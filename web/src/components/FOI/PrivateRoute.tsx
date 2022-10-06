@@ -1,12 +1,11 @@
 import React, {useEffect} from 'react';
 import Home from './Home/Home';
-import UserService from '../../services/UserService';
-import {setUserAuth} from '../../actions/UserActions';
+import UserService from '../../services/userService';
+import {setUserAuth} from '../../actions/userActions';
 import { useAppSelector, useAppDispatch } from '../../hooks/hook'
 
 function PrivateRoute(props: any) {
-    const dispatch = useAppDispatch();
-    const isAuth = useAppSelector((state: any) => state.user.isAuthenticated); 
+    const dispatch = useAppDispatch();     
     useEffect(()=>{
         console.log('authenticate')
         if(props.store){
@@ -17,10 +16,14 @@ function PrivateRoute(props: any) {
         }
     },[props.store, dispatch]);
 
+    const isAuth = useAppSelector((state: any) => state.user.isAuthenticated);
     const userDetail = useAppSelector((state: any) => state.user.userDetail);
     console.log(userDetail)
   return (
-    <Home />
+    <>
+      {isAuth ? 
+      <Home /> : null }
+    </>
   );
 }
 

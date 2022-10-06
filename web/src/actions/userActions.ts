@@ -1,4 +1,4 @@
-import ACTION_CONSTANTS from './ActionContants'
+import ACTION_CONSTANTS from './actionContants'
 
 export const setCurrentPage = (data: any) => (dispatch: any) => {
   dispatch({

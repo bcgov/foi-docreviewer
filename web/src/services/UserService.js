@@ -7,9 +7,9 @@ import {
   setUserToken,
   setUserDetails,
   setUserAuthorization,
-} from "../actions/UserActions";
+} from "../actions/userActions";
 
-import {_kc} from "../constants/KeycloakConstant";
+import {_kc} from "../constants/keycloakConstant";
 import {
   isMinistryLogin,
   isProcessingTeam,
@@ -30,6 +30,7 @@ const tokenUpdateThreshold = 600; // if token expires in less than 10 minutes (6
 const initKeycloak = (store, ...rest) => {
   const done = rest.length ? rest[0] : () => {};
   console.log("init Keycloak")
+  console.log(window.location.origin)
   KeycloakData.init({
     onLoad: "check-sso",
     // onLoad: "login-required",
