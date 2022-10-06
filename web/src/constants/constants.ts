@@ -1,6 +1,6 @@
 
 //keycloak
-export const Keycloak_Client = "foi-document-redaction";//"forms-flow-web";//"foi-document-redaction";
+export const Keycloak_Client = "foi-document-redaction";//"forms-flow-web";
 export const KEYCLOAK_REALM = "5k8dbl4h";
 export const KEYCLOAK_URL ="https://dev.oidc.gov.bc.ca";
 export const KEYCLOAK_AUTH_URL = `${KEYCLOAK_URL}/auth`;
