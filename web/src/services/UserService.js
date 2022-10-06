@@ -27,20 +27,30 @@ const tokenUpdateThreshold = 600; // if token expires in less than 10 minutes (6
  * @param onAuthenticatedCallback
  */
 
+const KeycloakData= _kc;
+
+ 
+const doLogin = KeycloakData.login;
+const doLogout = KeycloakData.logout;
+const getToken = () => KeycloakData.token;
+
 const initKeycloak = (store, ...rest) => {
   const done = rest.length ? rest[0] : () => {};
   console.log("init Keycloak")
   console.log(window.location.origin)
   KeycloakData.init({
-    onLoad: "check-sso",
-    // onLoad: "login-required",
+    // onLoad: "check-sso",
+    onLoad: "login-required",
     // promiseType: "native",
-    silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+    // silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
     pkceMethod: "S256",
     checkLoginIframe: false,
   }).then((authenticated) => {
     console.log(`authenticated = ${authenticated}`)
     if (authenticated) {
+      console.log(`data = ${JSON.stringify(KeycloakData.resourceAccess)}`)
+      console.log(`KeycloakData = ${JSON.stringify(KeycloakData)}`)
+      debugger;
       if (KeycloakData.resourceAccess[Keycloak_Client]) {
         const UserRoles = KeycloakData.resourceAccess[Keycloak_Client].roles;
         store.dispatch(setUserRole(UserRoles));
@@ -101,11 +111,7 @@ const authenticateAnonymousUser = (store) => {
   store.dispatch(setUserRole([user]));
 };
 
-const KeycloakData= _kc;
 
-const doLogin = KeycloakData.login;
-const doLogout = KeycloakData.logout;
-const getToken = () => KeycloakData.token;
 
 const UserService ={
   initKeycloak,

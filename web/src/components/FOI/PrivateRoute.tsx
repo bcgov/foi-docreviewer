@@ -10,7 +10,8 @@ function PrivateRoute(props: any) {
         console.log('authenticate')
         if(props.store){
         UserService.initKeycloak(props.store, (_err: any, res: any) => {
-            console.log(`error = ${JSON.stringify(_err)}`)
+            console.log(`res = ${JSON.stringify(res.authenticated)}`)
+
             dispatch(setUserAuth(res.authenticated));
         });
         }
@@ -22,7 +23,7 @@ function PrivateRoute(props: any) {
   return (
     <>
       {isAuth ? 
-      <Home /> : null }
+      <Home /> : null}
     </>
   );
 }
