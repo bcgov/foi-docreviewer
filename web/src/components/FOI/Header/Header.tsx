@@ -1,0 +1,40 @@
+import * as React from 'react';
+import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
+import logo from "../../../assets/images/logo-banner.png";
+import "./Header.scss";
+import {useDispatch, useSelector} from "react-redux";
+import userService from "../../../services/userService";
+
+interface IHeaderProps {
+}
+
+
+
+const Header: React.FunctionComponent<IHeaderProps> = (props) => {
+
+    const dispatch = useDispatch(); 
+
+    const signout = () => {
+        localStorage.removeItem('authToken');
+        //dispatch(push(`/`));
+        userService.userLogout(); 
+    }
+
+  return (
+    <Navbar bg="#036" variant="dark" className='foiHeader'>
+    <Container className="container">
+      <Navbar.Brand href="#home">
+        <img src={logo} alt="Go to the Government of British Columbia website" style={{width:'70%'}}/>
+      </Navbar.Brand>
+      <Navbar.Collapse className="justify-content-end">
+          <Navbar.Text>
+            <button type="button" className="btn btn-primary signout-btn" onClick={signout}>Sign Out</button>
+          </Navbar.Text>
+        </Navbar.Collapse>
+    </Container>
+  </Navbar>
+  );
+};
+
+export default Header;

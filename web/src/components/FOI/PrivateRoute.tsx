@@ -2,7 +2,12 @@ import React, {useEffect} from 'react';
 import Home from './Home/Home';
 import UserService from '../../services/userService';
 import {setUserAuth} from '../../actions/userActions';
-import { useAppSelector, useAppDispatch } from '../../hooks/hook'
+import { useAppSelector, useAppDispatch } from '../../hooks/hook';
+import Header from "./Header/Header";
+import Footer from "./Footer/Footer";
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
 
 function PrivateRoute(props: any) {
     const dispatch = useAppDispatch();     
@@ -23,7 +28,13 @@ function PrivateRoute(props: any) {
   return (
     <>
       {isAuth ? 
-      <Home /> : null}
+      <><Header />
+        <Container fluid="lg">
+          <Row>
+            <Col><Home /></Col>
+          </Row>
+        </Container>
+      <Footer /></> : null}
     </>
   );
 }
