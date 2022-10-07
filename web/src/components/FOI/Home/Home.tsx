@@ -3,7 +3,6 @@ import "../../FOI/App.scss";
 
 function Home() {
 
-  const isAuthenticated = useAppSelector((state: any) => state.user.isAuthenticated);
   const user = useAppSelector((state: any) => state.user.userDetail);
 
   return (
