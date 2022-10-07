@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import Home from './Home/Home';
-import UserService from '../../services/userService';
+import UserService from '../../services/UserService';
 import {setUserAuth} from '../../actions/userActions';
 import { useAppSelector, useAppDispatch } from '../../hooks/hook';
 import Header from "./Header/Header";
