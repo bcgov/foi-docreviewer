@@ -9,11 +9,11 @@ interface IFooterProps {
 const Footer: React.FunctionComponent<IFooterProps> = (props) => {
   return (
     <Navbar fixed="bottom" bg="#036" variant="dark">
-    <Container className="container">
-      <Navbar.Brand>
-      </Navbar.Brand>
-    </Container>
-  </Navbar>
+      <Container className="container">
+        <Navbar.Brand>
+        </Navbar.Brand>
+      </Container>
+    </Navbar>
   );
 };
 
