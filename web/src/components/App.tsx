@@ -1,15 +1,12 @@
-import React from 'react';
+
 import { Helmet } from 'react-helmet';
-// import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { HistoryRouter as Router } from "redux-first-history/rr6";
-
-//import './App.css';
 import PrivateRoute from "./FOI/PrivateRoute";
+import { KEYCLOAK_URL } from '../constants/constants'
 
 function App(props: any) {
   const { store, history } = props;
-  const KEYCLOAK_URL = "https://dev.oidc.gov.bc.ca"
   return (
     <div>
       <Helmet>
