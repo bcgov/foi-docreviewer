@@ -1,7 +1,4 @@
-import React from 'react';
-import {useDispatch, useSelector} from "react-redux";
-import UserService from "../../../services/userService";
-import { useAppSelector, useAppDispatch } from '../../../hooks/hook';
+import { useAppSelector } from '../../../hooks/hook';
 import "../../FOI/App.scss";
 
 function Home() {
