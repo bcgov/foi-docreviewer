@@ -3,8 +3,7 @@ import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import logo from "../../../assets/images/logo-banner.png";
 import "./Header.scss";
-import {useDispatch, useSelector} from "react-redux";
-import userService from "../../../services/userService";
+import UserService from "../../../services/UserService";
 
 interface IHeaderProps {
 }
@@ -13,12 +12,11 @@ interface IHeaderProps {
 
 const Header: React.FunctionComponent<IHeaderProps> = (props) => {
 
-    const dispatch = useDispatch(); 
+
 
     const signout = () => {
         localStorage.removeItem('authToken');
-        //dispatch(push(`/`));
-        userService.userLogout(); 
+        UserService.userLogout(); 
     }
 
   return (

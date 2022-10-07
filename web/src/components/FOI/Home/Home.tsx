@@ -1,13 +1,8 @@
-import React from 'react';
-import {useDispatch, useSelector} from "react-redux";
-import UserService from "../../../services/userService";
-import { useAppSelector, useAppDispatch } from '../../../hooks/hook';
+import { useAppSelector } from '../../../hooks/hook';
 import "../../FOI/App.scss";
 
 function Home() {
 
-  // const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  // const user = useSelector((state) => state.user.userDetail);
   const isAuthenticated = useAppSelector((state: any) => state.user.isAuthenticated);
   const user = useAppSelector((state: any) => state.user.userDetail);
 
