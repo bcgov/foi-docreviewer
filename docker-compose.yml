@@ -1,0 +1,25 @@
+version: '3'
+services:    
+  foi-docreviewer-web:
+    container_name: foi-docreviewer-web
+    build:
+      context: ./web/
+      dockerfile: Dockerfile.local
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+        - GENERATE_SOURCEMAP=false                
+        - REACT_APP_KEYCLOAK_CLIENT=${KEYCLOAK_WEB_CLIENTID:-foi-document-redaction}       
+        - REACT_APP_KEYCLOAK_URL_REALM=${KEYCLOAK_URL_REALM:-5k8dbl4h}
+        - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}       
+    volumes:
+      - ".:/web"
+      - "/web/node_modules"
+    ports:
+      - "3006:8080"
+    tty: true
+    
+volumes:
+  dbdata:
+networks:  
+  services-network:    
+    driver: bridge
