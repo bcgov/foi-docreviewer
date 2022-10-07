@@ -1,5 +1,4 @@
 import {
-    Keycloak_Client,
     ANONYMOUS_USER
   } from "../constants/constants";
   import {
@@ -17,7 +16,6 @@ import {
     isFlexTeam,
   } from "../helper/helper";
   
-  // const jwt = require("jsonwebtoken");
   const tokenRefreshInterval = 180000; // how often we should check for token expiry --> 180000 = 3 mins
   const tokenUpdateThreshold = 600; // if token expires in less than 10 minutes (600 seconds), refresh token
   
@@ -41,36 +39,25 @@ import {
     KeycloakData.init({
       // onLoad: "check-sso",
       onLoad: "login-required",
-      // promiseType: "native",
       // silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
       pkceMethod: "S256",
       checkLoginIframe: false,
     }).then((authenticated) => {
       console.log(`authenticated = ${authenticated}`)
       if (authenticated) {
-        console.log(`data = ${JSON.stringify(KeycloakData.resourceAccess)}`)
-        console.log(`KeycloakData = ${JSON.stringify(KeycloakData)}`)
-        debugger;
-        if (KeycloakData.resourceAccess[Keycloak_Client]) {
-          const UserRoles = KeycloakData.resourceAccess[Keycloak_Client].roles;
-          store.dispatch(setUserRole(UserRoles));
-          store.dispatch(setUserToken(KeycloakData.token));
-  
-          KeycloakData.loadUserInfo().then((res) => {
-            store.dispatch(setUserDetails(res));
-            const userGroups = res.groups.map((group) => group.slice(1));
-            const authorized =
-              isIntakeTeam(userGroups) ||
-              isFlexTeam(userGroups) ||
-              isProcessingTeam(userGroups) ||
-              isMinistryLogin(userGroups);
+        store.dispatch(setUserToken(KeycloakData.token));
+        KeycloakData.loadUserInfo().then((res) => {
+          store.dispatch(setUserDetails(res));
+          const userGroups = res.groups.map((group) => group.slice(1));
+          const authorized =
+            isIntakeTeam(userGroups) ||
+            isFlexTeam(userGroups) ||
+            isProcessingTeam(userGroups) ||
+            isMinistryLogin(userGroups);
             store.dispatch(setUserAuthorization(authorized));
           });
           done(null, KeycloakData);
           refreshToken(store);
-        } else {
-          doLogout();
-        }
       } else {
         console.warn("not authenticated!");
         doLogin();

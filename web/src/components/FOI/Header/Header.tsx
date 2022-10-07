@@ -3,9 +3,7 @@ import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import logo from "../../../assets/images/logo-banner.png";
 import "./Header.scss";
-import {useDispatch, useSelector} from "react-redux";
 import { useAppSelector } from '../../../hooks/hook';
-import Nav from 'react-bootstrap/Nav';
 import UserService from "../../../services/UserService";
 
 interface IHeaderProps {
