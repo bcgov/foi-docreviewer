@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet';
 import { Provider } from 'react-redux';
 import { HistoryRouter as Router } from "redux-first-history/rr6";
 
-import './App.css';
+//import './App.css';
 import PrivateRoute from "./FOI/PrivateRoute";
 
 function App(props: any) {
