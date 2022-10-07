@@ -4,9 +4,9 @@ import Navbar from 'react-bootstrap/Navbar';
 import logo from "../../../assets/images/logo-banner.png";
 import "./Header.scss";
 import {useDispatch, useSelector} from "react-redux";
-import userService from "../../../services/userService";
 import { useAppSelector } from '../../../hooks/hook';
 import Nav from 'react-bootstrap/Nav';
+import UserService from "../../../services/UserService";
 
 interface IHeaderProps {
 }
@@ -15,14 +15,13 @@ interface IHeaderProps {
 
 const Header: React.FunctionComponent<IHeaderProps> = (props) => {
 
-    const dispatch = useDispatch(); 
+
 
     const user = useAppSelector((state: any) => state.user.userDetail);
 
     const signout = () => {
         localStorage.removeItem('authToken');
-        //dispatch(push(`/`));
-        userService.userLogout(); 
+        UserService.userLogout(); 
     }
 
   return (

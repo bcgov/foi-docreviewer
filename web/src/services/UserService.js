@@ -113,11 +113,11 @@ import {
   
   
   
-  const userService ={
+  const UserService ={
     initKeycloak,
     userLogout,
     getToken, 
     authenticateAnonymousUser
   };
   
-  export default userService;
+  export default UserService;
