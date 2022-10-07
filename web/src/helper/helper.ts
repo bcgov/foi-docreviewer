@@ -8,8 +8,8 @@ import { KCProcessingTeams, MINISTRYGROUPS } from "../constants/enum";
 let CryptoJS = require("crypto-js");
 
 const replaceUrl = (URL: any, key: any, value: any) => {
-    return URL.replace(key, value);
-  };
+  return URL.replace(key, value);
+};
 
 const isMinistryCoordinator = (userdetail: any, ministryteam: any) => {
   if (

@@ -1,4 +1,4 @@
-import {Keycloak_Client, KEYCLOAK_REALM, KEYCLOAK_AUTH_URL} from "./constants";
+import { Keycloak_Client, KEYCLOAK_REALM, KEYCLOAK_AUTH_URL } from "./constants";
 import Keycloak from "keycloak-js";
 
 //TODO get from api

@@ -12,17 +12,17 @@ function App(props: any) {
   const KEYCLOAK_URL = "https://dev.oidc.gov.bc.ca"
   return (
     <div>
-        <Helmet>
-          {KEYCLOAK_URL?<link rel="preconnect" href={KEYCLOAK_URL} />:null}
-        </Helmet>
-        <Provider store={store}>
-          <Router history={history}>
-            
-              <PrivateRoute  store={store}/>
-               
-          </Router>
-        </Provider>
-      </div>
+      <Helmet>
+        {KEYCLOAK_URL ? <link rel="preconnect" href={KEYCLOAK_URL} /> : null}
+      </Helmet>
+      <Provider store={store}>
+        <Router history={history}>
+
+          <PrivateRoute store={store} />
+
+        </Router>
+      </Provider>
+    </div>
   );
 }
 

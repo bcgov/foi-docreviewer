@@ -1,7 +1,7 @@
 import thunk from "redux-thunk";
-import {createBrowserHistory} from "history";
+import { createBrowserHistory } from "history";
 import { createReduxHistoryContext } from "redux-first-history";
-import {combineReducers } from "redux";
+import { combineReducers } from "redux";
 import { configureStore } from "@reduxjs/toolkit";
 import user from "../modules/userDetailReducer";
 
