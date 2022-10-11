@@ -9,7 +9,7 @@ from request_api import db as _db
 
 from request_api import create_app 
 from sqlalchemy import event, text
-from request_api.auth import jwt as _jwt
+from reviewer_api.auth import jwt as _jwt
 
 @pytest.fixture(scope='session')
 def app():

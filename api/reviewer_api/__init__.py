@@ -21,12 +21,12 @@ import os
 import logging
 from flask import Flask
 
-import request_api.config as config
-from request_api.config import _Config
+import reviewer_api.config as config
+from reviewer_api.config import _Config
 
-from request_api.models import db, ma
-from request_api.utils.util_logging import configure_logging
-from request_api.auth import jwt
+from reviewer_api.models import db, ma
+from reviewer_api.utils.util_logging import configure_logging
+from reviewer_api.auth import jwt
 from flask_cors import CORS
 import re
 from flask_caching import Cache
@@ -34,7 +34,7 @@ import secure
 
 app = Flask(__name__)
 #Cache Initialization
-app.config.from_object('request_api.utils.cache.Config') 
+app.config.from_object('reviewer_api.utils.cache.Config') 
 cache = Cache(app) 
 
 #Setup log
@@ -75,7 +75,7 @@ def create_app(run_mode=os.getenv('FLASK_ENV', 'development')):
     """Return a configured Flask App using the Factory method."""   
     app.config.from_object(config.CONFIGURATION[run_mode])
 
-    from request_api.resources import API_BLUEPRINT #, DEFAULT_API_BLUEPRINT #, OPS_BLUEPRINT  # pylint: disable=import-outside-toplevel
+    from reviewer_api.resources import API_BLUEPRINT #, DEFAULT_API_BLUEPRINT #, OPS_BLUEPRINT  # pylint: disable=import-outside-toplevel
 
     print("environment :" + run_mode)
     

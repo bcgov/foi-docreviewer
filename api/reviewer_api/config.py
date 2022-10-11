@@ -29,10 +29,10 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 
 CONFIGURATION = {
-    'development': 'request_api.config.DevConfig',
-    'testing': 'request_api.config.TestConfig',
-    'production': 'request_api.config.ProdConfig',
-    'default': 'request_api.config.ProdConfig'
+    'development': 'reviewer_api.config.DevConfig',
+    'testing': 'reviewer_api.config.TestConfig',
+    'production': 'reviewer_api.config.ProdConfig',
+    'default': 'reviewer_api.config.ProdConfig'
 }
 
 
@@ -121,24 +121,9 @@ class _Config():  # pylint: disable=too-few-public-methods
         JWT_OIDC_JWKS_CACHE_TIMEOUT = int(os.getenv('JWT_OIDC_JWKS_CACHE_TIMEOUT'))
     except ValueError:  # pylint:disable=bare-except # noqa: B901, E722
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
-
     
     # email
     MAIL_FROM_ID = os.getenv('MAIL_FROM_ID')
-
-    # Fees
-    LEGISLATIVE_TIMEZONE = 'America/Vancouver'
-    FOI_WEB_PAY_URL = os.getenv('FOI_WEB_PAY_URL')
-    FOI_FFA_URL = os.getenv('FOI_FFA_URL')
-    PAYBC_REF_NUMBER = os.getenv('PAYBC_REF_NUMBER')
-    PAYBC_PORTAL_URL = os.getenv('PAYBC_PORTAL_URL')
-    PAYBC_TXN_PREFIX = os.getenv('PAYBC_TXN_PREFIX', 'FOI')
-    PAYBC_API_KEY = os.getenv('PAYBC_API_KEY')
-
-    PAYBC_API_BASE_URL = os.getenv('PAYBC_API_BASE_URL')
-    PAYBC_API_CLIENT = os.getenv('PAYBC_API_CLIENT')
-    PAYBC_API_SECRET = os.getenv('PAYBC_API_SECRET')
-    CONNECT_TIMEOUT = os.getenv('CONNECT_TIMEOUT', 60)
 
     # CDOGS
     CDOGS_ACCESS_TOKEN = os.getenv('CDOGS_ACCESS_TOKEN')
