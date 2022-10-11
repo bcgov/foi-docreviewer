@@ -32,4 +32,4 @@ class Info(Resource):
     def get():
         """Return a JSON object with meta information about the Service."""
         version = get_run_version()
-        return jsonify(API=f'request_api/{version}')
+        return jsonify(API=f'reviewer_api/{version}')

@@ -23,7 +23,7 @@ from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
-import request_api
+import reviewer_api
 import requests
 from reviewer_api.schemas.foirequestsformslist import  FOIRequestsFormsList
 from aws_requests_auth.aws_auth import AWSRequestsAuth

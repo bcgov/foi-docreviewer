@@ -18,7 +18,7 @@ Standardize error message to display user friendly messages.
 
 from enum import Enum
 
-from request_api import status as http_status
+from reviewer_api import status as http_status
 
 
 class Error(Enum):

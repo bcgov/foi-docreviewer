@@ -29,13 +29,12 @@ services:
     build:
       context: ./api
       dockerfile: dockerfile.local
-    image: foidocreviewerapiimage
     depends_on: 
       - foi-docreviewer-db
     networks:
       services-network:
         aliases:
-          - backendnw
+          - backendapi
     ports:
       - 17000:7000
     environment:

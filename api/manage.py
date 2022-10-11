@@ -21,8 +21,8 @@ from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager  # class for handling a set of commands
 
 # models included so that migrate can build the database migrations
-from request_api import models  # pylint: disable=unused-import
-from request_api import create_app
+from reviewer_api import models  # pylint: disable=unused-import
+from reviewer_api import create_app
 from reviewer_api.models import db
 
 ## python manage.py db migrate

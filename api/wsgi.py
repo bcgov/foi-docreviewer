@@ -6,7 +6,7 @@ from distutils.log import debug
 
 
 import os
-from request_api import create_app
+from reviewer_api import create_app
 
 APP = create_app()
 if __name__ == "__main__":

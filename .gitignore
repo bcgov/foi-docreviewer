@@ -6,7 +6,7 @@ api/env
 
 *.pyc
 
-api/request_api/logs
+api/reviewer_api/logs
 
 .vscode/
 
