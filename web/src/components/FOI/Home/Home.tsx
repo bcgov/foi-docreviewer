@@ -1,5 +1,5 @@
 import { useAppSelector } from '../../../hooks/hook';
-import "../../FOI/App.scss";
+import "../../../styles.scss";
 
 function Home() {
 
@@ -7,7 +7,7 @@ function Home() {
 
   return (
     <div className="App">
-      <header className="App-header">
+      <header className="app-header">
         <span className="navbar-text" style={{}}> Hi {user.name || user.preferred_username || ""} </span>
       </header>
     </div>
