@@ -14,7 +14,6 @@ from flask import g, request
 from request_api.auth import AuthHelper
 from request_api.exceptions import BusinessException
 from flask import current_app
-from request_api.utils.redissubscriber import RedisSubscriberService
 import logging
 
 @socketio.on('connect')
@@ -58,10 +57,4 @@ def error_handler(e):
 
 APP = create_app()
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))    
-    messagequeue = os.getenv('SOCKETIO_MESSAGE_QUEUE', 'INMEMORY')
-    if os.getenv("SOCKETIO_MESSAGE_QTYPE") == "REDIS":
-        RedisSubscriberService().register_subscription()
-    socketio.init_app(APP, async_mode='eventlet', 
-                      path='/api/v1/socket.io')    
-    socketio.run(APP, port=port,host='0.0.0.0', log_output=False, use_reloader=False)  
+    port = int(os.environ.get('PORT', 7000))

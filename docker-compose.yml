@@ -17,7 +17,86 @@ services:
     ports:
       - "3006:8080"
     tty: true
-    
+
+  foiredis:
+    image: redis:4.0
+    container_name: foi_docreviewer_redis
+    ports:
+      - "16379:6379"
+
+  foi-docreviewer-api:
+    container_name: foi_docreviewer_api
+    build:
+      context: ./api
+      dockerfile: dockerfile.local
+    image: foidocreviewerapiimage
+    depends_on: 
+      - foi-docreviewer-db
+    networks:
+      services-network:
+        aliases:
+          - backendnw
+    ports:
+      - 17000:7000
+    environment:
+      - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
+      - DATABASE_NAME=${FOI_DATABASE_NAME}
+      - DATABASE_HOST=${FOI_DATABASE_HOST}
+      - DATABASE_PORT=${FOI_DATABASE_PORT}
+      - FLASK_ENV:production
+      - FOI_DOCREVIEWER_REDISHOST=${WEBSOCKET_BROKER_HOST}
+      - FOI_DOCREVIEWER_REDISPORT=${WEBSOCKET_BROKER_PORT}
+      - FOI_DOCREVIEWER_REDISPASSWORD=${WEBSOCKET_BROKER_PASSCODE}
+      - FOI_DOCREVIEWER_REDISCHANNEL=${WEBSOCKET_FOI_RAWREQUEST_TOPIC}
+      - KEYCLOAK_ADMIN_HOST=${KEYCLOAK_URL}
+      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_URL_REALM}
+      - KEYCLOAK_ADMIN_CLIENT_ID=foi-lob-api
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      - KEYCLOAK_ADMIN_SRVACCOUNT=foisrcaccount
+      - KEYCLOAK_ADMIN_SRVPASSWORD=${KEYCLOAK_ADMIN_SRVPASSWORD}
+      - KEYCLOAK_ADMIN_INTAKE_GROUPID=${KEYCLOAK_ADMIN_INTAKE_GROUPID}
+      - JWT_OIDC_AUDIENCE=${JWT_OIDC_AUDIENCE}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - JWT_OIDC_WELL_KNOWN_CONFIG=${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_URL_REALM}/.well-known/openid-configuration
+      - JWT_OIDC_ALGORITHMS=RS256
+      - JWT_OIDC_JWKS_URI=${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_URL_REALM}/protocol/openid-connect/certs
+      - JWT_OIDC_ISSUER=${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_URL_REALM}
+      - JWT_OIDC_CACHING_ENABLED=True
+      - JWT_OIDC_JWKS_CACHE_TIMEOUT=300
+      - CACHE_TIMEOUT=${CACHE_TIMEOUT}
+      - FOI_DOCREVIEWER_REDISURL=${FOI_DOCREVIEWER_REDISURL}
+      - CACHE_ENABLED=${CACHE_ENABLED}
+      - OSS_S3_FORMS_BUCKET=${OSS_S3_FORMS_BUCKET}
+      - OSS_S3_FORMS_ACCESS_KEY_ID=${OSS_S3_FORMS_ACCESS_KEY_ID}
+      - OSS_S3_FORMS_SECRET_ACCESS_KEY=${OSS_S3_FORMS_SECRET_ACCESS_KEY}
+      - OSS_S3_HOST=${OSS_S3_HOST} 
+      - OSS_S3_REGION=${OSS_S3_REGION}
+      - OSS_S3_SERVICE=${OSS_S3_SERVICE}
+      - CACHE_REDISURL=${CACHE_REDISURL}
+      - FOI_FFA_URL=${FOI_FFA_URL}
+      - EMAIL_SERVER_IMAP=${EMAIL_SERVER_IMAP}
+      - EMAIL_SERVER_SMTP=${EMAIL_SERVER_SMTP}
+      - EMAIL_SERVER_SMTP_PORT=${EMAIL_SERVER_SMTP_PORT}
+      - EMAIL_SRUSERID=${EMAIL_SRUSERID}
+      - EMAIL_SRPWD=${EMAIL_SRPWD} 
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS}
+      - EMAIL_FOLDER_OUTBOX=${EMAIL_FOLDER_OUTBOX}
+      - EMAIL_FOLDER_INBOX=${EMAIL_FOLDER_INBOX}      
+
+  foi-docreviewer-db:
+    image: postgres
+    container_name: foi_docreviewer_db
+    ports:
+      - "25432:5432"
+    environment:
+      - POSTGRES_USER=${FOI_DATABASE_USERNAME}
+      - POSTGRES_PASSWORD=${FOI_DATABASE_PASSWORD}
+    networks:
+      services-network:
+        aliases:
+          - db   
+
 volumes:
   dbdata:
 networks:  
