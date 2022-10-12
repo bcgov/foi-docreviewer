@@ -9,7 +9,7 @@ status_code - where possible use HTTP Error Codes
 import traceback
 
 
-from request_api.exceptions.errors import Error  # noqa: I001, I003
+from reviewer_api.exceptions.errors import Error  # noqa: I001, I003
 
 
 class BusinessException(Exception):

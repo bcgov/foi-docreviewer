@@ -75,4 +75,5 @@ pyopenssl
 pyasn1
 secure==0.3.0
 imap-tools==0.56.0
+pytest
 -e git+https://github.com/bcgov/sbc-common-components.git#egg=sbc-common-components&subdirectory=python

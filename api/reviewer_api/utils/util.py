@@ -25,10 +25,10 @@ from functools import wraps
 from humps.main import camelize, decamelize
 from flask import request, g
 from sqlalchemy.sql.expression import false
-from request_api.auth import jwt as _authjwt
+from reviewer_api.auth import jwt as _authjwt
 import jwt
 import os
-from request_api.utils.enums import MinistryTeamWithKeycloackGroup, ProcessingTeamWithKeycloackGroup
+from reviewer_api.utils.enums import MinistryTeamWithKeycloackGroup, ProcessingTeamWithKeycloackGroup
 
 
 def cors_preflight(methods):

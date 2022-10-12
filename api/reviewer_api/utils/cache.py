@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 
-import request_api
+import reviewer_api
 import redis
 
 class Config(object):
