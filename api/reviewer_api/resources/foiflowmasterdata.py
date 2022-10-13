@@ -14,13 +14,13 @@
 """API endpoints for managing a FOI Requests resource."""
 
 from logging import Logger
-from flask import request
+from flask import request, current_app
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth
 
 
-from reviewer_api.tracer import Tracer
+# from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
@@ -37,7 +37,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
-TRACER = Tracer.get_instance()
+# TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/foiflow/oss/authheader')
@@ -45,7 +45,7 @@ class FOIFlowDocumentStorage(Resource):
     """Retrieves authentication properties for document storage.
     """
     @staticmethod
-    @TRACER.trace()
+    # @TRACER.trace()
     @cross_origin(origins=allowedorigins())       
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
@@ -101,13 +101,13 @@ class FOIFlowDocumentStorage(Resource):
 class FOIFlowS3Presigned(Resource):
 
     @staticmethod
-    @TRACER.trace()    
+    # @TRACER.trace()    
     @cross_origin(origins=allowedorigins())       
     @auth.require
-    @auth.documentbelongstosameministry
+    # @auth.documentbelongstosameministry
     def get(ministryrequestid):
         try :
-            Logger.debug("Inside Presigned api!!")
+            current_app.logger.debug("Inside Presigned api!!")
             formsbucket = "dev-forms-foirequests"
             accesskey = "AKIA95AE3AF038A4DC93"
             secretkey = "HPsksLnfJnx1wtOakmCF10nMWyWxD6wgkZkmxtUp"
