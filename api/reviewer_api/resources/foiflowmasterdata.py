@@ -108,12 +108,11 @@ class FOIFlowS3Presigned(Resource):
     def get(ministryrequestid):
         try :
             current_app.logger.debug("Inside Presigned api!!")
-            formsbucket = "dev-forms-foirequests"
-            accesskey = "AKIA95AE3AF038A4DC93"
-            secretkey = "HPsksLnfJnx1wtOakmCF10nMWyWxD6wgkZkmxtUp"
-            s3host = "citz-foi-prod.objectstore.gov.bc.ca"
-            s3region = "us-east-1"
-            filepath = request.args.get('filepath')
+            formsbucket = os.getenv('OSS_S3_FORMS_BUCKET')
+            accesskey = os.getenv('OSS_S3_FORMS_ACCESS_KEY_ID') 
+            secretkey = os.getenv('OSS_S3_FORMS_SECRET_ACCESS_KEY')
+            s3host = os.getenv('OSS_S3_HOST')
+            s3region = os.getenv('OSS_S3_REGION')
 
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
             endpoint_url='https://{0}/'.format(s3host),
