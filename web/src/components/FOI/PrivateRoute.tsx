@@ -12,11 +12,8 @@ import Col from 'react-bootstrap/Col';
 function PrivateRoute(props: any) {
   const dispatch = useAppDispatch();
   useEffect(() => {
-    console.log('authenticate')
     if (props.store) {
       UserService.initKeycloak(props.store, (_err: any, res: any) => {
-        console.log(`res = ${JSON.stringify(res.authenticated)}`)
-
         dispatch(setUserAuth(res.authenticated));
       });
     }
@@ -24,7 +21,6 @@ function PrivateRoute(props: any) {
 
   const isAuth = useAppSelector((state: any) => state.user.isAuthenticated);
   const userDetail = useAppSelector((state: any) => state.user.userDetail);
-  console.log(userDetail)
   return (
     <>
       {isAuth ?
