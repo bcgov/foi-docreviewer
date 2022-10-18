@@ -35,6 +35,7 @@ from reviewer_api.auth import AuthHelper
 import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
+from reviewer_api.services.external.storageservice import storageservice 
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
 # TRACER = Tracer.get_instance()
@@ -95,38 +96,17 @@ class FOIFlowDocumentStorage(Resource):
         except BusinessException as exception:            
             return {'status': exception.status_code, 'message':exception.message}, 500
 
-
 @cors_preflight('GET,OPTIONS')
-@API.route('/foiflow/oss/presigned/<ministryrequestid>')
+@API.route('/foiflow/oss/presigned/<ministryrequestid>/<category>/<bcgovcode>')
 class FOIFlowS3Presigned(Resource):
 
     @staticmethod
-    # @TRACER.trace()    
     @cross_origin(origins=allowedorigins())       
-    @auth.require
+    # @auth.require
     # @auth.documentbelongstosameministry
-    def get(ministryrequestid):
+    def get(ministryrequestid, category="attachments", bcgovcode=None):
         try :
-            current_app.logger.debug("Inside Presigned api!!")
-            formsbucket = os.getenv('OSS_S3_FORMS_BUCKET')
-            accesskey = os.getenv('OSS_S3_FORMS_ACCESS_KEY_ID') 
-            secretkey = os.getenv('OSS_S3_FORMS_SECRET_ACCESS_KEY')
-            s3host = os.getenv('OSS_S3_HOST')
-            s3region = os.getenv('OSS_S3_REGION')
-
-            s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
-            endpoint_url='https://{0}/'.format(s3host),
-            aws_access_key_id= accesskey,
-            aws_secret_access_key= secretkey,region_name= s3region
-                )
-
-            filename, file_extension = os.path.splitext(filepath)    
-            response = s3client.generate_presigned_url(
-                ClientMethod='get_object',
-                Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
-                ExpiresIn=3600,HttpMethod='GET'
-                )
-
+            response = storageservice().retrieve_s3_presigned(request.args.get('filepath'), category, bcgovcode)
             return json.dumps(response),200        
         except BusinessException as exception:            
          return {'status': exception.status_code, 'message':exception.message}, 500 

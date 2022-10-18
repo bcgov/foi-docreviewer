@@ -3,6 +3,10 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 import os
 import uuid
 import mimetypes
+import boto3
+from botocore.exceptions import ClientError
+from botocore.config import Config
+from reviewer_api.auth import AuthHelper
 
 formsbucket = os.getenv('OSS_S3_FORMS_BUCKET')
 accesskey = os.getenv('OSS_S3_FORMS_ACCESS_KEY_ID') 
@@ -14,81 +18,45 @@ class storageservice:
     """This class is reserved for S3 storage services integration.
     """
     
-    def uploadbytes(self, filename, bytes):
-        auth = AWSRequestsAuth(aws_access_key=accesskey,
-                aws_secret_access_key=secretkey,
-                aws_host=s3host,
-                aws_region=s3region,
-                aws_service=s3service) 
-        
-        s3uri = 'https://{0}/{1}/{2}/{3}/{4}'.format(s3host,formsbucket,'EDUC','EDUC-2021-11236',filename)        
-        response = requests.put(s3uri, data=None, auth=auth)
-        header = {
-            'X-Amz-Date': response.request.headers['x-amz-date'],
-            'Authorization': response.request.headers['Authorization'],
-            'Content-Type': mimetypes.MimeTypes().guess_type(filename)[0]
-        }
+    def retrieve_s3_presigned(self, filepath, category="attachments", bcgovcode=None):
+        formsbucket = self.__getbucket(category, bcgovcode)
+        s3client = self.__get_s3client()
+        filename, file_extension = os.path.splitext(filepath)    
+        response = s3client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
+            ExpiresIn=3600,HttpMethod='GET'
+        )
+        return response
 
-        #upload to S3
-        requests.put(s3uri, data=bytes, headers=header)
-        
-    def upload(self, attachment):        
-        
-        if(accesskey is None or secretkey is None or s3host is None or formsbucket is None):
-            raise ValueError('accesskey is None or secretkey is None or S3 host is None or formsbucket is None')
+    def __getbucket(self, category, programarea=None):
+        docpathmappers = Documents().getdocumentpath()
+        defaultbucket = None
+        for docpathmapper in docpathmappers:
+            if docpathmapper['category'].lower() == "attachments":
+                defaultbucket = self.__formatbucketname(docpathmapper['bucket'], programarea)
+            if docpathmapper['category'].lower() == category.lower():
+                return self.__formatbucketname(docpathmapper['bucket'], programarea)
+        return  defaultbucket 
 
-        foirequestform = FOIRequestsFormsList().load(attachment)
-        ministrycode = foirequestform.get('ministrycode')
-        requestnumber = foirequestform.get('requestnumber')
-        filestatustransition = foirequestform.get('filestatustransition')
-        filename = foirequestform.get('filename')
-        filenamesplittext = os.path.splitext(filename)
-        uniquefilename = '{0}{1}'.format(uuid.uuid4(),filenamesplittext[1])
+    def __formatbucketname(self, bucket, bcgovcode):
+        _bucket = bucket.replace('$environment', self.s3environment)
+        if bcgovcode is not None:
+            _bucket = _bucket.replace('$bcgovcode', bcgovcode.lower())
+        return _bucket        
 
-        auth = AWSRequestsAuth(aws_access_key=accesskey,
-                aws_secret_access_key=secretkey,
-                aws_host=s3host,
-                aws_region=s3region,
-                aws_service=s3service) 
-
-        s3uri = 'https://{0}/{1}/{2}/{3}/{4}/{5}'.format(s3host,formsbucket,ministrycode,requestnumber,filestatustransition,uniquefilename)        
-        response = requests.put(s3uri, data=None, auth=auth)
-
-        header = {
-            'X-Amz-Date': response.request.headers['x-amz-date'],
-            'Authorization': response.request.headers['Authorization'],
-            'Content-Type': mimetypes.MimeTypes().guess_type(filename)[0]
-        }
-
-        #upload to S3
-        requests.put(s3uri, data=attachment['file'], headers=header)
-
-        attachmentobj = {'filename': filename, 'documentpath': s3uri, 'category': filestatustransition}
-        return attachmentobj
-    
-    def download(self, s3uri): 
-
-        if(accesskey is None or secretkey is None or s3host is None or formsbucket is None):
-            raise ValueError('accesskey is None or secretkey is None or S3 host is None or formsbucket is None')
-        
-        auth = AWSRequestsAuth(aws_access_key=accesskey,
-                    aws_secret_access_key=secretkey,
-                    aws_host=s3host,
-                    aws_region=s3region,
-                    aws_service=s3service)
-
-        templatefile= requests.get(s3uri, auth=auth)
-        return templatefile
+    def __get_s3client(self):
+        ministrygroups = AuthHelper.getministrygroups()
+        #recordaccessaccount=getserviceaccountfors3(ministrygroups[0])
+        #use recordaccessaccount data for getting accesskey and secret.
+        return boto3.client('s3',config=Config(signature_version='s3v4'),
+            endpoint_url='https://{0}/'.format(self.s3host),
+            aws_access_key_id= self.recordsaccesskey,
+            aws_secret_access_key= self.recordssecretkey,
+            region_name= self.s3region
+        )
 
 
-    def downloadtemplate(self, templatename): 
-
-        s3templatefolder= "TEMPLATES"
-        if(accesskey is None or secretkey is None or s3host is None or formsbucket is None):
-            raise ValueError('accesskey is None or secretkey is None or S3 host is None or formsbucket is None')
-        #To DO : make the values of templatetype and templatename dynamic
-        templatetype= 'EMAILS'
-        s3uri = 'https://{0}/{1}/{2}/{3}/{4}'.format(s3host,formsbucket,s3templatefolder,templatetype,templatename)
-        templatefile= self.download(s3uri)
-        responsehtml=templatefile.text
-        return responsehtml
+    #def getserviceaccountfors3(ministrygroup):
+        #To Do: Get service account data from new db with 
+        # teamname=ministrygroup.

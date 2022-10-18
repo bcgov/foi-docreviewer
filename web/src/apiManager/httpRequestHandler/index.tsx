@@ -3,6 +3,8 @@ import UserService from "../../services/UserService";
 import { params } from "./types";
 
 export const httpGETRequest = (url: string, data: any, token: any, isBearer = true) => {
+  console.log("token",token);
+  console.log("isBearer",isBearer);
   return axios.get(url, {
     params: data,
     headers: {

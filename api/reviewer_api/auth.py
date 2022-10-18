@@ -14,6 +14,7 @@
 """Bring in the common JWT Manager."""
 from functools import wraps
 from http import HTTPStatus
+from logging import Logger
 
 from flask import g, request
 from flask_jwt_oidc import JwtManager
@@ -34,6 +35,7 @@ class Auth:
         @jwt.requires_auth
         @wraps(f)
         def decorated(*args, **kwargs):
+            #print("Inside auth require")
             g.authorization_header = request.headers.get("Authorization", None)
             g.token_info = g.jwt_oidc_token_info
             return f(*args, **kwargs)
@@ -80,6 +82,7 @@ class Auth:
             return wrapper
 
         return decorated
+        
     
 auth = (
     Auth()

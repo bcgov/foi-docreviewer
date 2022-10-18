@@ -7,7 +7,7 @@ import { params } from './types';
 
 function Home() {
 
-  let filepath = "EDU/ABC-2022-091801/email-attachment/557ad265-fa10-4e25-b609-f28cf606cb4d.xlsx";
+  let filepath = "edu-dev/ABC-23423-4234/0087420b-6eb2-4e9c-9b5e-87b9e4908d38.pdf";
   const dispatch = useDispatch();
   const user = useAppSelector((state: any) => state.user.userDetail);
   const [presignedUrl, setpresignedUrl] = useState(filepath);
@@ -27,7 +27,6 @@ function Home() {
                 }
                 setpresignedUrl(viwerUrl)                        
           })
-          console.log("##PresignedUrl:",presignedUrl);
    // }            
 },[]);
 
