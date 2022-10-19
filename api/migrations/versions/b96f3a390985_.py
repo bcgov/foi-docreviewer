@@ -29,7 +29,7 @@ def upgrade():
     op.bulk_insert(
         document_status_table,
         [
-            {'name':'unread', 'isactive':True, 'description': 'Unread'},
+            {'name':'new', 'isactive':True, 'description': 'New'},
             {'name':'inprogress', 'isactive':True, 'description': 'In progress'},
             {'name':'saved', 'isactive':True, 'description': 'Saved'}, 
         ]
@@ -87,12 +87,47 @@ def upgrade():
     op.bulk_insert(
         program_areas_table,
         [
-            {'name':'test', 'type':'iao', 'bcgovcode':'iao', 'iaocode':'iao', 'isactive':True},
+            {'name':'Ministry of Advanced Education and Skills Training','type':'BC GOV Ministry','isactive':True,'bcgovcode':'AEST','iaocode':'AED'},
+            {'name':'Ministry of Agriculture and Food','type':'BC GOV Ministry','isactive':True,'bcgovcode':'AGR','iaocode':'AGR'},
+            {'name':'Ministry of Attorney General','type':'BC GOV Ministry','isactive':True,'bcgovcode':'AG','iaocode':'MAG'},
+            {'name':'Ministry of Children and Family Development','type':'BC GOV Ministry','isactive':True,'bcgovcode':'MCF','iaocode':'CFD'},
+            {'name':'Ministry of Citizens’ Services','type':'BC GOV Ministry','isactive':True,'bcgovcode':'CITZ','iaocode':'CTZ'},
+            {'name':'Ministry of Education and Childcare','type':'BC GOV Ministry','isactive':True,'bcgovcode':'EDU','iaocode':'EDU'},
+            {'name':'Ministry of Energy, Mines and Low Carbon Innovation','type':'BC GOV Ministry','isactive':True,'bcgovcode':'EMLI','iaocode':'EML'},
+            {'name':'Ministry of Environment and Climate Change Strategy','type':'BC GOV Ministry','isactive':True,'bcgovcode':'ENV','iaocode':'MOE'},
+            {'name':'Ministry of Finance','type':'BC GOV Ministry','isactive':True,'bcgovcode':'FIN','iaocode':'FIN'},
+            {'name':'Ministry of Forests','type':'BC GOV Ministry','isactive':True,'bcgovcode':'FOR','iaocode':'FOR'},
+            {'name':'Ministry of Health','type':'BC GOV Ministry','isactive':True,'bcgovcode':'HLTH','iaocode':'HLTH'},
+            {'name':'Ministry of Indigenous Relations and Reconciliation','type':'BC GOV Ministry','isactive':True,'bcgovcode':'IRR','iaocode':'IRR'},
+            {'name':'Ministry of Jobs, Economic Recovery and Innovation','type':'BC GOV Ministry','isactive':True,'bcgovcode':'JERI','iaocode':'JER'},
+            {'name':'Ministry of Labour','type':'BC GOV Ministry','isactive':True,'bcgovcode':'LBR','iaocode':'LBR'},
+            {'name':'Ministry of Mental Health and Addictions','type':'BC GOV Ministry','isactive':True,'bcgovcode':'MMHA','iaocode':'MHA'},
+            {'name':'Ministry of Municipal Affairs','type':'BC GOV Ministry','isactive':True,'bcgovcode':'MUNI','iaocode':'MMA'},
+            {'name':'Ministry of Public Safety and Solicitor General','type':'BC GOV Ministry','isactive':True,'bcgovcode':'PSSG','iaocode':'PSS'},
+            {'name':'Ministry of Social Development and Poverty Reduction','type':'BC GOV Ministry','isactive':True,'bcgovcode':'SDPR','iaocode':'MSD'},
+            {'name':'Ministry of Tourism, Arts, Culture and Sport','type':'BC GOV Ministry','isactive':True,'bcgovcode':'TACS','iaocode':'TAC'},
+            {'name':'Ministry of Transportation and Infrastructure','type':'BC GOV Ministry','isactive':True,'bcgovcode':'TRAN','iaocode':'TRA'},
+            {'name':'BC Coroners Service','type':'Other','isactive':True,'bcgovcode':'OCC','iaocode':'OCC'},
+            {'name':'BC Public Service Agency','type':'Other','isactive':True,'bcgovcode':'PSA','iaocode':'PSA'},
+            {'name':'Board Resourcing and Development Office','type':'Other','isactive':True,'bcgovcode':'BRD','iaocode':'BRD'},
+            {'name':'Community Living BC','type':'Other','isactive':True,'bcgovcode':'CLB','iaocode':'CLB'},
+            {'name':'Crown Agencies Secretariat','type':'Other','isactive':True,'bcgovcode':'CAS','iaocode':'CAS'},
+            {'name':'Emergency Management BC','type':'Other','isactive':True,'bcgovcode':'EMBC','iaocode':'EMB'},
+            {'name':'Environmental Assessment Office','type':'Other','isactive':True,'bcgovcode':'EAO','iaocode':'EAO'},
+            {'name':'Government Communications and Public Engagement','type':'Other','isactive':True,'bcgovcode':'GCPE','iaocode':'GCP'},
+            {'name':'Independent Investigations Office','type':'Other','isactive':True,'bcgovcode':'IIO','iaocode':'IIO'},
+            {'name':'Office of the Premier','type':'Other','isactive':True,'bcgovcode':'PREM','iaocode':'OOP'},
+            {'name':'Liquor Distribution Branch','type':'Other','isactive':True,'bcgovcode':'LDB','iaocode':'LDB'},
+            {'name':'Transportation Investment Corporation','type':'Other','isactive':True,'bcgovcode':'TIC','iaocode':'TIC'},
+            {'name':'Order of British Columbia Advisory Council','type':'Other','isactive':True,'bcgovcode':'OBC','iaocode':'OBC'},
+            {'name':'Medal of Good Citizenship Selection Committee','type':'Other','isactive':True,'bcgovcode':'MGC','iaocode':'MGC'},
+            {'name':'Declaration Act Secretariat','type':'BC GOV Ministry','isactive':True,'bcgovcode':'DAS','iaocode':'DAS'},
+            {'name':'Lands, Water and Resource Stewardship','type':'BC GOV Ministry','isactive':True,'bcgovcode':'LWR','iaocode':'LWR'}
         ]
     )
 
     programarea_division_table =  op.create_table('ProgramAreaDivisions',
-        sa.Column('divisionid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
+        sa.Column('divisionid', sa.Integer(), primary_key=True, nullable=False),
         sa.Column('programareaid', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=120), nullable=False),
         sa.Column('isactive', sa.Boolean(), nullable=False),
@@ -102,12 +137,48 @@ def upgrade():
         sa.ForeignKeyConstraint(['programareaid'], ['ProgramAreas.programareaid'], )
     )
 
-    # op.bulk_insert(
-    #     programarea_division_table,
-    #     [
-    #         {'programareaid':1, 'name':'', 'isactive':True, 'createdby':'', 'created_at':''},
-    #     ]
-    # )
+    op.bulk_insert(
+        programarea_division_table,
+        [
+            {'divisionid':1, 'programareaid':6, 'name':'Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':2, 'programareaid':6, 'name':'Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':3, 'programareaid':6, 'name':'Education Programs', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':4, 'programareaid':6, 'name':'Learning', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':5, 'programareaid':6, 'name':'Services & Technology', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':6, 'programareaid':6, 'name':'Governance & Analytics', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':7, 'programareaid':6, 'name':'Resource Management', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':8, 'programareaid':16, 'name':'Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':9, 'programareaid':16, 'name':'Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':10, 'programareaid':16, 'name':'Management Services', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':11, 'programareaid':16, 'name':'Immigration Services and Strategic Planning', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':12, 'programareaid':16, 'name':'Local Government', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':13, 'programareaid':14, 'name':'Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':14, 'programareaid':14, 'name':'Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':15, 'programareaid':14, 'name':'Labour', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':16, 'programareaid':14, 'name':'Management Services', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':17, 'programareaid':14, 'name':'Policy and Legislation', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':18, 'programareaid':14, 'name':'Employment Standards', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':19, 'programareaid':14, 'name':'Workers’ Advisor’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':20, 'programareaid':14, 'name':'Employers’ Advisor’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':21, 'programareaid':13, 'name':'Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':22, 'programareaid':13, 'name':'Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':23, 'programareaid':13, 'name':'Management Services', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':24, 'programareaid':13, 'name':'Trade & Industry Development', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':25, 'programareaid':13, 'name':'Small Business & Economic Development', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':27, 'programareaid':13, 'name':'Mass Timber Implementation', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':28, 'programareaid':13, 'name':'Innovation, Technology & Investment Capital', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':29, 'programareaid':13, 'name':'Investment & Innovation', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':30, 'programareaid':19, 'name':'Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':31, 'programareaid':19, 'name':'Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':32, 'programareaid':19, 'name':'Sport and Creative Sector', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':33, 'programareaid':19, 'name':'Management Services', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':34, 'programareaid':19, 'name':'Arts & Culture', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':35, 'programareaid':19, 'name':'Tourism Sector Strategy', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':36, 'programareaid':14, 'name':'Assistant Deputy Minister’s Office', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':37, 'programareaid':6, 'name':'Child Care', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()},
+            {'divisionid':38, 'programareaid':6, 'name':'Minister of State', 'isactive':True, 'createdby':'system', 'created_at':datetime.now()}
+        ]
+    )
 
     s3_account_table =  op.create_table('OperatingTeamS3ServiceAccounts',
         sa.Column('teamid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
