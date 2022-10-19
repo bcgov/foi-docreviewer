@@ -29,6 +29,7 @@ services:
     build:
       context: ./api
       dockerfile: dockerfile.local
+    image: docreviewerapiimage
     depends_on: 
       - foi-docreviewer-db
     networks:
