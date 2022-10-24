@@ -5,7 +5,7 @@ from sqlalchemy import and_
 class DocumentStatus(db.Model):
     __tablename__ = 'DocumentStatus' 
     # Defining the columns
-    statusid = db.Column(db.Integer, primary_key=True,autoincrement=True)
+    statusid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(120), unique=False, nullable=False)
     description = db.Column(db.Text, unique=False, nullable=False)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
@@ -18,4 +18,4 @@ class DocumentStatus(db.Model):
 
 class DocumentStatusSchema(ma.Schema):
     class Meta:
-        fields = ('statusid', 'name', 'description','isactive')
+        fields = ('statusid', 'name', 'description', 'isactive')

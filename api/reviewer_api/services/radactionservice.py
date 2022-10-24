@@ -3,6 +3,7 @@ from os import stat
 from re import VERBOSE
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
+from reviewer_api.models.OperatingTeamS3ServiceAccounts import OperatingTeamS3ServiceAccount
 
 import json
 import base64
@@ -25,6 +26,9 @@ class redactionservice:
     def getannotations(self, documentid, documentversion):
         annotations = Annotation.getannotations(documentid, documentversion)
         return self.__formatcreateddate(annotations)
+
+    def gets3serviceaccount(self, groupname):
+        return OperatingTeamS3ServiceAccount.getserviceaccount(groupname)
 
     # def uploadpersonaldocuments(self, requestid, attachments):
     #     attachmentlist = []

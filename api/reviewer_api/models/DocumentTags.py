@@ -7,7 +7,7 @@ from datetime import datetime as datetime2
 class DocumentTag(db.Model):
     __tablename__ = 'DocumentTags' 
     # Defining the columns
-    tagid = db.Column(db.Integer, primary_key=True,autoincrement=True)
+    tagid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     documentid = db.Column(db.Integer, db.ForeignKey('Documents.documentid'))
     documentversion = db.Column(db.Integer, db.ForeignKey('Documents.version'))
     tag = db.Column(JSON, unique=False, nullable=False)

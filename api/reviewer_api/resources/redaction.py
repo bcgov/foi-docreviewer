@@ -28,7 +28,7 @@ import os
 from reviewer_api.auth import AuthHelper
 from reviewer_api.services.radactionservice import redactionservice
 
-API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
+API = Namespace('Redaction App Master Data', description='Endpoints for Redaction app master data')
 # TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
@@ -38,19 +38,19 @@ class GetDocuments(Resource):
     """
     @staticmethod
     # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())       
+    @cross_origin(origins=allowedorigins())
     # @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid): 
+    def get(requestid):
         # if requestid != "ministryrequest" and requesttype != "rawrequest":
-        #     return {'status': False, 'message':'Bad Request'}, 400          
+        #     return {'status': False, 'message':'Bad Request'}, 400
         try:
             result = redactionservice().getdocuments(requestid)
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400        
-        except BusinessException as exception:            
-            return {'status': exception.status_code, 'message':exception.message}, 500   
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
 
 
 @cors_preflight('GET,OPTIONS')
@@ -60,17 +60,39 @@ class GetAnnotations(Resource):
     """
     @staticmethod
     # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())       
+    @cross_origin(origins=allowedorigins())
     # @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
-    def get(documentid, documentversion): 
+    def get(documentid, documentversion):
         # if requestid != "ministryrequest" and requesttype != "rawrequest":
-        #     return {'status': False, 'message':'Bad Request'}, 400          
+        #     return {'status': False, 'message':'Bad Request'}, 400
         try:
             result = redactionservice().getannotations(documentid, documentversion)
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400        
-        except BusinessException as exception:            
-            return {'status': exception.status_code, 'message':exception.message}, 500   
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/account/<groupname>')
+class GetAccount(Resource):
+    """Retrieves authentication properties for document storage.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    # @auth.require
+    # @auth.ismemberofgroups(getrequiredmemberships())
+    def get(groupname):
+        # if requestid != "ministryrequest" and requesttype != "rawrequest":
+        #     return {'status': False, 'message':'Bad Request'}, 400
+        try:
+            result = redactionservice().gets3serviceaccount(groupname)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
           

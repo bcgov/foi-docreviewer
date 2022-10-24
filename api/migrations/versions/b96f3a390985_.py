@@ -182,9 +182,9 @@ def upgrade():
 
     s3_account_table =  op.create_table('OperatingTeamS3ServiceAccounts',
         sa.Column('teamid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
+        sa.Column('usergroup', sa.String(length=120), nullable=False),
         sa.Column('accesskey', sa.String(length=255), nullable=False),
         sa.Column('secret', sa.String(length=255), nullable=False),
-        sa.Column('name', sa.String(length=120), nullable=False),
         sa.Column('type', sa.String(length=120), nullable=False),
         sa.Column('isactive', sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint('teamid')
@@ -193,7 +193,7 @@ def upgrade():
     op.bulk_insert(
         s3_account_table,
         [
-            {'accesskey':'12345', 'secret':'12345', 'name':'test', 'type':'test', 'isactive':True},
+            {'usergroup':'iao', 'accesskey':'12345', 'secret':'12345', 'type':'test', 'isactive':True},
         ]
     )
 
