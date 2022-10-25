@@ -17,7 +17,7 @@ from logging import Logger
 from flask import request, current_app
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
-from reviewer_api.auth import auth
+from reviewer_api.auth import auth, AuthHelper
 
 
 # from reviewer_api.tracer import Tracer
@@ -42,8 +42,6 @@ class GetDocuments(Resource):
     # @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
-        # if requestid != "ministryrequest" and requesttype != "rawrequest":
-        #     return {'status': False, 'message':'Bad Request'}, 400
         try:
             result = redactionservice().getdocuments(requestid)
             return json.dumps(result), 200
@@ -61,11 +59,9 @@ class GetAnnotations(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid, documentversion):
-        # if requestid != "ministryrequest" and requesttype != "rawrequest":
-        #     return {'status': False, 'message':'Bad Request'}, 400
         try:
             result = redactionservice().getannotations(documentid, documentversion)
             return json.dumps(result), 200
@@ -76,20 +72,24 @@ class GetAnnotations(Resource):
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/account/<groupname>')
+@API.route('/account')
 class GetAccount(Resource):
     """Retrieves authentication properties for document storage.
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
-    # @auth.ismemberofgroups(getrequiredmemberships())
-    def get(groupname):
-        # if requestid != "ministryrequest" and requesttype != "rawrequest":
-        #     return {'status': False, 'message':'Bad Request'}, 400
+    @auth.require
+    def get():
+        if AuthHelper.getusertype() == "ministry":
+            usergroups = AuthHelper.getministrygroups()
+            usergroup = usergroups[0]
+        else:
+            usergroup = AuthHelper.getiaotype()
+
+        print(usergroup)
         try:
-            result = redactionservice().gets3serviceaccount(groupname)
+            result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

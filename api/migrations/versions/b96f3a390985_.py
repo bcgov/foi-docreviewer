@@ -35,7 +35,7 @@ def upgrade():
         ]
     )
 
-    op.create_table('Documents',
+    documents_table = op.create_table('Documents',
         sa.Column('documentid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
         sa.Column('version', sa.Integer(), primary_key=True, nullable=False),
         sa.Column('filename', sa.String(length=120), nullable=False),
@@ -51,7 +51,19 @@ def upgrade():
         sa.ForeignKeyConstraint(['statusid'], ['DocumentStatus.statusid'], )
     )
 
-    op.create_table('DocumentTags',
+    op.bulk_insert(
+        documents_table,
+        [
+            {'version':1, 'filename':'test1','filepath':'test/test1','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
+            {'version':1, 'filename':'test2','filepath':'test/test2','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
+            {'version':1, 'filename':'test3','filepath':'test/test3','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
+            {'version':1, 'filename':'test4','filepath':'test/test4','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
+            {'version':1, 'filename':'test5','filepath':'test/test5','attributes':'','foiministryrequestid':2,'createdby':'','statusid':1},
+            {'version':1, 'filename':'test6','filepath':'test/test6','attributes':'','foiministryrequestid':2,'createdby':'','statusid':1}
+        ]
+    )
+
+    document_tag_table = op.create_table('DocumentTags',
         sa.Column('tagid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
         sa.Column('documentid', sa.Integer(), nullable=False),
         sa.Column('documentversion', sa.Integer(), nullable=False),
@@ -60,6 +72,18 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now()),
         sa.PrimaryKeyConstraint('tagid'),
         sa.ForeignKeyConstraint(['documentid', 'documentversion'], ['Documents.documentid', 'Documents.version'], )
+    )
+
+    op.bulk_insert(
+        document_tag_table,
+        [
+            {'documentid':1, 'documentversion':1,'tag':'','createdby':''},
+            {'documentid':2, 'documentversion':1,'tag':'','createdby':''},
+            {'documentid':3, 'documentversion':1,'tag':'','createdby':''},
+            {'documentid':4, 'documentversion':1,'tag':'','createdby':''},
+            {'documentid':5, 'documentversion':1,'tag':'','createdby':''},
+            {'documentid':6, 'documentversion':1,'tag':'','createdby':''}
+        ]
     )
 
     op.create_table('Annotations',
@@ -193,7 +217,45 @@ def upgrade():
     op.bulk_insert(
         s3_account_table,
         [
-            {'usergroup':'iao', 'accesskey':'12345', 'secret':'12345', 'type':'test', 'isactive':True},
+            {'usergroup':'intake', 'accesskey':'12345', 'secret':'12345', 'type':'iao', 'isactive':True},
+            {'usergroup':'flex', 'accesskey':'12345', 'secret':'12345', 'type':'iao', 'isactive':True},
+            {'usergroup':'processing', 'accesskey':'12345', 'secret':'12345', 'type':'iao', 'isactive':True},
+            {'usergroup':'AEST Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'AGR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'AG Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'BRD Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'CAS Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'CITZ Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'CLB Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'DAS Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'EAO Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'EDU Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'EMBC Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'EMLI Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'ENV Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'FIN Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'FOR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'GCPE Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'HLTH Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'IIO Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'IRR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'JERI Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'LBR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'LDB Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'LWR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'MCF Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'MGC Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'MMHA Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'MUNI Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'OBC Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'OCC Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'PREM Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'PSA Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'PSSG Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'SDPR Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'TACS Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'TIC Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True},
+            {'usergroup':'TRAN Ministry Team', 'accesskey':'12345', 'secret':'12345', 'type':'ministry', 'isactive':True}
         ]
     )
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy import func
 from .DocumentStatus import DocumentStatus
 from .DocumentTags import DocumentTag
+from reviewer_api.utils.util import pstformat
 
 class Document(db.Model):
     __tablename__ = 'Documents' 
@@ -62,14 +63,39 @@ class Document(db.Model):
                             ).join(
                                 DocumentTag,
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
-                            )
-        return query
+                            ).filter(Document.foiministryrequestid == foiministryrequestid).all()
+        documents = []
+        # document_schema = DocumentSchema(many=False)
+        for row in query:
+            # print(row)
+            # row.created_at = pstformat(row.created_at)
+            document = cls.__preparedocument(row, pstformat(row.created_at), pstformat(row.updated_at))
+            documents.append(document)
+        print(documents)
+        return documents
 
     @classmethod
     def getdocument(cls, documentid):
-        document_schema = DocumentSchema(many=True)
+        document_schema = DocumentSchema(many=False)
         query = db.session.query(Document).filter_by(documentid=documentid).order_by(Document.version.desc()).first()
         return document_schema.dump(query)
+
+    def __preparedocument(document, created_at, updated_at):
+        return {
+            'documentid': document.documentid,
+            'version': document.version,
+            'filename': document.filename,
+            'filepath': document.filepath,
+            'attributes': document.attributes,
+            'foiministryrequestid': document.foiministryrequestid,
+            'createdby': document.createdby,            
+            'created_at': created_at,
+            'updatedby': document.updatedby,
+            'updated_at': updated_at,
+            'statusid': document.statusid,
+            'status': document.status,
+            'tags': document.tags
+        }
 
 class DocumentSchema(ma.Schema):
     class Meta:

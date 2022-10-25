@@ -29,6 +29,7 @@ from reviewer_api.auth import jwt as _authjwt
 import jwt
 import os
 from reviewer_api.utils.enums import MinistryTeamWithKeycloackGroup, ProcessingTeamWithKeycloackGroup
+import maya
 
 
 def cors_preflight(methods):
@@ -99,3 +100,9 @@ def escape_wam_friendly_url(param):
     return encode_org_name
 
 
+def pstformat(dt):
+    if dt is not None:
+        formatedcreateddate = maya.parse(dt).datetime(to_timezone='America/Vancouver', naive=False)
+        formatedcreateddate.strftime('%Y %b %d | %I:%M %p')
+    else:
+        return ''

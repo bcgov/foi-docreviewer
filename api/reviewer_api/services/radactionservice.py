@@ -15,7 +15,7 @@ class redactionservice:
     
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
-        return self.__formatcreateddate(documents)
+        return documents
     
     def savedocument(self, documentid, documentversion, newfilepath, userid):
         return

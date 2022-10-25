@@ -12,7 +12,7 @@ class DocumentStatus(db.Model):
 
     @classmethod
     def getdocumentstatus(cls, statusid):
-        documentstatus_schema = DocumentStatusSchema(many=True)
+        documentstatus_schema = DocumentStatusSchema(many=False)
         query = db.session.query(DocumentStatus).filter_by(and_(statusid = statusid, isactive = True)).first()
         return documentstatus_schema.dump(query)
 
