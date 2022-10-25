@@ -27,6 +27,9 @@ class redactionservice:
         annotations = Annotation.getannotations(documentid, documentversion)
         return self.__formatcreateddate(annotations)
 
+    def saveannotation(self, documentid, documentversion, annotation, pagenumber, createdby):
+        return Annotation.saveannotation(documentid, documentversion, annotation, pagenumber, createdby)
+
     def gets3serviceaccount(self, groupname):
         return OperatingTeamS3ServiceAccount.getserviceaccount(groupname)
 

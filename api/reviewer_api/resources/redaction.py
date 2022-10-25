@@ -14,11 +14,11 @@
 """API endpoints for managing a FOI Requests resource."""
 
 from logging import Logger
+from api.reviewer_api.auth import Auth
 from flask import request, current_app
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
-
 
 # from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
@@ -28,13 +28,15 @@ import os
 from reviewer_api.auth import AuthHelper
 from reviewer_api.services.radactionservice import redactionservice
 
+from flask import jsonify
+
 API = Namespace('Redaction App Master Data', description='Endpoints for Redaction app master data')
 # TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/document/<requestid>')
 class GetDocuments(Resource):
-    """Retrieves authentication properties for document storage.
+    """Get document list.
     """
     @staticmethod
     # @TRACER.trace()
@@ -54,13 +56,12 @@ class GetDocuments(Resource):
 @cors_preflight('GET,OPTIONS')
 @API.route('/annotation/<documentid>/<documentversion>')
 class GetAnnotations(Resource):
-    """Retrieves authentication properties for document storage.
+    """Retrieves annotations for a document
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    # @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid, documentversion):
         try:
             result = redactionservice().getannotations(documentid, documentversion)
@@ -71,10 +72,44 @@ class GetAnnotations(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
+    """save an annotation for a document
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post(documentid, documentversion):
+        pagenumber = 1
+
+        #get user info
+        if AuthHelper.getusertype() == "ministry":
+            usergroups = AuthHelper.getministrygroups()
+            usergroup = usergroups[0]
+        else:
+            usergroup = AuthHelper.getiaotype()
+
+        createdby = {
+            'userid': AuthHelper.getuserid(),
+            'firstname': AuthHelper.getfirstname(),
+            'lastname': AuthHelper.getlastname(),
+            'operatingteam': usergroup
+        }
+
+        try:
+            annotationjson = request.get_json()
+            pagenumber = annotationjson['XG']
+            result = redactionservice().saveannotation(documentid, documentversion, annotationjson, pagenumber, createdby)
+            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
 @cors_preflight('GET,OPTIONS')
 @API.route('/account')
 class GetAccount(Resource):
-    """Retrieves authentication properties for document storage.
+    """Retrieves s3 accounts for user
     """
     @staticmethod
     # @TRACER.trace()
@@ -95,4 +130,5 @@ class GetAccount(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
-          
+
+
