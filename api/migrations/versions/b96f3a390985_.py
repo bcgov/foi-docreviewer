@@ -77,12 +77,12 @@ def upgrade():
     op.bulk_insert(
         document_tag_table,
         [
-            {'documentid':1, 'documentversion':1,'tag':'','createdby':''},
-            {'documentid':2, 'documentversion':1,'tag':'','createdby':''},
-            {'documentid':3, 'documentversion':1,'tag':'','createdby':''},
-            {'documentid':4, 'documentversion':1,'tag':'','createdby':''},
-            {'documentid':5, 'documentversion':1,'tag':'','createdby':''},
-            {'documentid':6, 'documentversion':1,'tag':'','createdby':''}
+            {'documentid':1, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
+            {'documentid':2, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
+            {'documentid':3, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':2}]}','createdby':''},
+            {'documentid':4, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':3}]}','createdby':''},
+            {'documentid':5, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
+            {'documentid':6, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''}
         ]
     )
 

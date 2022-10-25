@@ -65,13 +65,9 @@ class Document(db.Model):
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
                             ).filter(Document.foiministryrequestid == foiministryrequestid).all()
         documents = []
-        # document_schema = DocumentSchema(many=False)
         for row in query:
-            # print(row)
-            # row.created_at = pstformat(row.created_at)
             document = cls.__preparedocument(row, pstformat(row.created_at), pstformat(row.updated_at))
             documents.append(document)
-        print(documents)
         return documents
 
     @classmethod

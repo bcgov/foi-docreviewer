@@ -39,7 +39,7 @@ class GetDocuments(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
