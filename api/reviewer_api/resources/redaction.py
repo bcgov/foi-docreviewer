@@ -27,6 +27,7 @@ import json
 import os
 from reviewer_api.auth import AuthHelper
 from reviewer_api.services.radactionservice import redactionservice
+from reviewer_api.schemas.annotationrequest import AnnotationRequest
 
 from flask import jsonify
 
@@ -53,18 +54,20 @@ class GetDocuments(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
-@cors_preflight('GET,OPTIONS')
+@cors_preflight('GET,POST,DELETE,OPTIONS')
 @API.route('/annotation/<documentid>/<documentversion>')
-class GetAnnotations(Resource):
+@API.route('/annotation/<documentid>/<documentversion>/<pagenumber>')
+@API.route('/annotation/<documentid>/<documentversion>/<pagenumber>/<annotationname>')
+class Annotations(Resource):
     """Retrieves annotations for a document
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def get(documentid, documentversion):
+    def get(documentid, documentversion, pagenumber=None):
         try:
-            result = redactionservice().getannotations(documentid, documentversion)
+            result = redactionservice().getannotations(documentid, documentversion, pagenumber)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -72,14 +75,13 @@ class GetAnnotations(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
-    """save an annotation for a document
+    """save or update an annotation for a document
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion):
-        pagenumber = 1
+    def post(documentid, documentversion, pagenumber, annotationname):
 
         #get user info
         if AuthHelper.getusertype() == "ministry":
@@ -88,7 +90,7 @@ class GetAnnotations(Resource):
         else:
             usergroup = AuthHelper.getiaotype()
 
-        createdby = {
+        userinfo = {
             'userid': AuthHelper.getuserid(),
             'firstname': AuthHelper.getfirstname(),
             'lastname': AuthHelper.getlastname(),
@@ -96,10 +98,41 @@ class GetAnnotations(Resource):
         }
 
         try:
-            annotationjson = request.get_json()
-            pagenumber = annotationjson['XG']
-            result = redactionservice().saveannotation(documentid, documentversion, annotationjson, pagenumber, createdby)
+            requestjson = request.get_json()
+            annotationschema = AnnotationRequest.load(requestjson)
+
+            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema['xml'], pagenumber, userinfo)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+    """save or update an annotation for a document
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def delete(documentid, documentversion, annotationname):
+        #get user info
+        if AuthHelper.getusertype() == "ministry":
+            usergroups = AuthHelper.getministrygroups()
+            usergroup = usergroups[0]
+        else:
+            usergroup = AuthHelper.getiaotype()
+
+        userinfo = {
+            'userid': AuthHelper.getuserid(),
+            'firstname': AuthHelper.getfirstname(),
+            'lastname': AuthHelper.getlastname(),
+            'operatingteam': usergroup
+        }
+
+        try:
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
+            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
