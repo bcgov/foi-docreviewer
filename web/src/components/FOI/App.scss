@@ -8,3 +8,11 @@
   font-size: calc(10px + 2vmin);
   color: #036;
 }
+
+.hideContent {
+  display: none;
+}
+
+.webviewer {
+  height: calc(100vh - 117px)
+}

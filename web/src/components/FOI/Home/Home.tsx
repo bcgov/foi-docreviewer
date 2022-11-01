@@ -1,41 +1,30 @@
 import { useAppSelector } from '../../../hooks/hook';
+import React, { useRef, useEffect,useState } from 'react';
 import "../../../styles.scss";
-import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
-import { useEffect, useState } from 'react';
-import { useDispatch } from "react-redux";
-import { params } from './types';
+import "../App.scss"
+import DocumentSelector from './DocumentSelector';
+import Redlining from './Redlining';
+import Grid from "@material-ui/core/Grid";
+import WebViewer from '@pdftron/webviewer';
 
 function Home() {
 
-  let filepath = "EDU/ABC-2022-091801/email-attachment/557ad265-fa10-4e25-b609-f28cf606cb4d.xlsx";
-  const dispatch = useDispatch();
-  const user = useAppSelector((state: any) => state.user.userDetail);
-  const [presignedUrl, setpresignedUrl] = useState(filepath);
-
-
-  useEffect(() => {
-    // if(filepath)
-    // {
-          
-          let ministryrequestid="20";
-          const response = getFOIS3DocumentPreSignedUrl(filepath,ministryrequestid, dispatch)
-          response.then((result)=>{                        
-                var viwerUrl =   result.data
-                if(filepath.toLowerCase().indexOf('.docx') >-1 ||filepath.toLowerCase().indexOf('.doc') >-1 || filepath.toLowerCase().indexOf('.xls') >-1 || filepath.toLowerCase().indexOf('.xlsx')>-1)
-                { 
-                 viwerUrl =`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(result.data)}`
-                }
-                setpresignedUrl(viwerUrl)                        
-          })
-          console.log("##PresignedUrl:",presignedUrl);
-   // }            
-},[]);
+  const user = useAppSelector((state) => state.user.userDetail);
+  const [currentPage, setCurrentPage] = useState(0)
 
   return (
     <div className="App">
-      <header className="app-header">
-        <span className="navbar-text" style={{}}> Hi {user.name || user.preferred_username || ""} </span>
-      </header>
+      <Grid container spacing={1}>
+        <Grid item xs={3} style={{maxWidth: "350px"}}>
+          <DocumentSelector setCurrentPage={setCurrentPage}/>
+        </Grid>
+        <Grid item xs={true}>
+          <Redlining currentPage={currentPage}/>
+          {/* <header className="app-header">
+            <span className="navbar-text" style={{}}> Hi {user.name || user.preferred_username || ""}</span>
+          </header> */}
+        </Grid>
+      </Grid>
     </div>
   );
 }

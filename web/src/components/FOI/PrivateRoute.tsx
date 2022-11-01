@@ -25,11 +25,7 @@ function PrivateRoute(props: any) {
     <>
       {isAuth ?
         <><Header />
-          <Container fluid="lg">
-            <Row>
-              <Col><Home /></Col>
-            </Row>
-          </Container>
+            <Home />
           <Footer /></> : null}
     </>
   );
