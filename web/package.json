@@ -51,10 +51,9 @@
   },
   "scripts": {
     "start": "set PORT=3006 && react-scripts start",
-    "build": "react-scripts build && npm run move-static",
+    "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "move-static": "cp -a ./node_modules/@pdftron/webviewer/public/. ./dist/public/webviewer"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
