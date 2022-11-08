@@ -22,7 +22,7 @@ class Annotation(db.Model):
     @classmethod
     def getannotations(cls, _documentid, _documentversion):
         annotation_schema = AnnotationSchema(many=True)
-        query = db.session.query(Annotation).filter_by(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
+        query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
         return annotation_schema.dump(query)
 
     #upsert
@@ -39,7 +39,8 @@ class Annotation(db.Model):
                                             documentversion=_documentversion,
                                             annotation=_annotation,
                                             pagenumber=_pagenumber,
-                                            createdby=userinfo
+                                            createdby=userinfo,
+                                            isactive=True
                                         )
         updatestmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname], set_={"annotation": _annotation,"updatedby":userinfo,"updated_at":datetime.now()})
         db.session.execute(updatestmt)               

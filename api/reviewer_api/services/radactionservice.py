@@ -27,7 +27,7 @@ class redactionservice:
         return
 
     def getannotations(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotations(documentid, documentversion, pagenumber)
+        annotations = Annotation.getannotations(documentid, documentversion)
         annotationswithformateddate = self.__formatcreateddate(annotations)
 
         annotationlist = []

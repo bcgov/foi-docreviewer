@@ -14,7 +14,6 @@
 """API endpoints for managing a FOI Requests resource."""
 
 from logging import Logger
-from api.reviewer_api.auth import Auth
 from flask import request, current_app
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
@@ -31,7 +30,7 @@ from reviewer_api.schemas.annotationrequest import AnnotationRequest
 
 from flask import jsonify
 
-API = Namespace('Redaction App Master Data', description='Endpoints for Redaction app master data')
+API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
 # TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
@@ -55,9 +54,9 @@ class GetDocuments(Resource):
 
 
 @cors_preflight('GET,POST,DELETE,OPTIONS')
-@API.route('/annotation/<documentid>/<documentversion>')
-@API.route('/annotation/<documentid>/<documentversion>/<pagenumber>')
-@API.route('/annotation/<documentid>/<documentversion>/<pagenumber>/<annotationname>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>')
 class Annotations(Resource):
     """Retrieves annotations for a document
     """
@@ -99,7 +98,7 @@ class Annotations(Resource):
 
         try:
             requestjson = request.get_json()
-            annotationschema = AnnotationRequest.load(requestjson)
+            annotationschema = AnnotationRequest().load(requestjson)
 
             result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema['xml'], pagenumber, userinfo)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
