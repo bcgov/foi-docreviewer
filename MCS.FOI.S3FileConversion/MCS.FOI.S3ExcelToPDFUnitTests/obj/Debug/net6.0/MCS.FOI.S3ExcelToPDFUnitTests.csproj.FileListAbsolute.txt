@@ -1,0 +1,5 @@
+C:\foi-s3-file-converesion\MCS.FOI.S3FileConversion\MCS.FOI.S3ExcelToPDFUnitTests\obj\Debug\net6.0\MCS.FOI.S3ExcelToPDFUnitTests.csproj.AssemblyReference.cache
+C:\foi-s3-file-converesion\MCS.FOI.S3FileConversion\MCS.FOI.S3ExcelToPDFUnitTests\obj\Debug\net6.0\MCS.FOI.S3ExcelToPDFUnitTests.GeneratedMSBuildEditorConfig.editorconfig
+C:\foi-s3-file-converesion\MCS.FOI.S3FileConversion\MCS.FOI.S3ExcelToPDFUnitTests\obj\Debug\net6.0\MCS.FOI.S3ExcelToPDFUnitTests.AssemblyInfoInputs.cache
+C:\foi-s3-file-converesion\MCS.FOI.S3FileConversion\MCS.FOI.S3ExcelToPDFUnitTests\obj\Debug\net6.0\MCS.FOI.S3ExcelToPDFUnitTests.AssemblyInfo.cs
+C:\foi-s3-file-converesion\MCS.FOI.S3FileConversion\MCS.FOI.S3ExcelToPDFUnitTests\obj\Debug\net6.0\MCS.FOI.S3ExcelToPDFUnitTests.csproj.CoreCompileInputs.cache
