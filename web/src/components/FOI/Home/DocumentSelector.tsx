@@ -159,7 +159,7 @@ const DocumentSelector = ({
                                 // boxShadow: theme.shadows[1],
                                 fontSize: 11}}
                                 title={<>
-                                    Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'PST' })}
+                                    Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                                 </>}
                                 placement="bottom-end"
                                 arrow
@@ -184,7 +184,7 @@ const DocumentSelector = ({
                         // boxShadow: theme.shadows[1],
                         fontSize: 11}}
                         title={<>
-                            Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'PST' })}
+                            Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                         </>}
                         placement="bottom-end"
                         arrow
