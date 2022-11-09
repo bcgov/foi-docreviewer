@@ -19,7 +19,7 @@ function Home() {
           <DocumentSelector setCurrentPage={setCurrentPage}/>
         </Grid>
         <Grid item xs={true}>
-          <Redlining currentPage={currentPage} user={user}/>
+          { (user?.name || user?.preferred_username) ? <Redlining currentPage={currentPage} user={user}/> : <div>Loading</div> }
           {/* <header className="app-header">
             <span className="navbar-text" style={{}}> Hi {user.name || user.preferred_username || ""}</span>
           </header> */}
