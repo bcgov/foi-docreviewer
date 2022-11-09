@@ -2,14 +2,12 @@ import React, { useRef, useEffect,useState } from 'react';
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
 
-import { fetchAnnotations, saveAnnotation } from '../../../apiManager/services/docReviewerService';
+import { fetchAnnotations, saveAnnotation, deleteAnnotation } from '../../../apiManager/services/docReviewerService';
 
 const Redlining = ({
   currentPage,
   user
 }) =>{
-  console.log("1st");
-  console.log(user);
 
   const viewer = useRef(null);
   const pdffile = '/files/PDFTRON_about.pdf'
@@ -56,8 +54,11 @@ const Redlining = ({
         // setDocumentViewer(documentViewer)
 
         console.log("2nd");
-        console.log(user);
-        annotationManager.setCurrentUser(user?.name || user?.preferred_username || "u001");
+        let newusername = user?.name || user?.preferred_username || "";
+        console.log(newusername);
+        let username = annotationManager.getCurrentUser();
+        console.log(username);
+        if(newusername && newusername != username) annotationManager.setCurrentUser(newusername);
 
         fetchAnnotations(
           1,
@@ -116,15 +117,27 @@ const Redlining = ({
           
           let documentnumber = 1;
           let documentversion = 1;
-          let result = saveAnnotation(
-            documentnumber,
-            documentversion,
-            annot.attributes.page,
-            annot.attributes.name,
-            astr,
-            (data)=>{console.log(data)},
-            (error)=>{console.log("error")}
-          );
+
+          if(action == 'delete') {
+            deleteAnnotation(
+              documentnumber,
+              documentversion,
+              annot.attributes.page,
+              annot.attributes.name,
+              (data)=>{console.log(data)},
+              (error)=>{console.log(error)}
+            );
+          } else {
+            saveAnnotation(
+              documentnumber,
+              documentversion,
+              annot.attributes.page,
+              annot.attributes.name,
+              astr,
+              (data)=>{console.log(data)},
+              (error)=>{console.log(error)}
+            );
+          }
         })
 
         // let allannotations = annotationManager.exportAnnotations({annotList: annotationManager.getAnnotationsList(), useDisplayAuthor: true})
@@ -145,8 +158,11 @@ const Redlining = ({
     documentViewer?.displayPageLocation(currentPage, 0, 0)
 
     console.log("3rd");
-    console.log(user);
-    documentViewer?.getAnnotationManager()?.setCurrentUser(user?.name || user?.preferred_username || "u002");
+    let newusername = user?.name || user?.preferred_username || "";
+    console.log(newusername);
+    let username = documentViewer?.getAnnotationManager()?.getCurrentUser();
+    console.log(username);
+    if(newusername != username) documentViewer?.getAnnotationManager()?.setCurrentUser(newusername);
   }, [currentPage, user])
 
   const gotopage = () => {

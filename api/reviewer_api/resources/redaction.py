@@ -114,7 +114,7 @@ class Annotations(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, annotationname):
+    def delete(documentid, documentversion, pagenumber, annotationname):
         #get user info
         if AuthHelper.getusertype() == "ministry":
             usergroups = AuthHelper.getministrygroups()
