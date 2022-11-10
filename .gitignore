@@ -62,7 +62,7 @@ bld/
 *.tmp
 *.tmp_proj
 *.log
-/MCS.FOI.S3FileConversion/MCS.FOI.FileConversion/obj
+/MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion/obj
 /.vs/slnx.sqlite
 /.vs
 /MCS.FOI.S3FileConversion/MCS.FOI.CalenderToPDF/bin/Debug/netcoreapp3.1
