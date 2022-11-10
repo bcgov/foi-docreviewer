@@ -54,12 +54,12 @@ def upgrade():
     op.bulk_insert(
         documents_table,
         [
-            {'version':1, 'filename':'test1','filepath':'test/test1','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
-            {'version':1, 'filename':'test2','filepath':'test/test2','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
-            {'version':1, 'filename':'test3','filepath':'test/test3','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
-            {'version':1, 'filename':'test4','filepath':'test/test4','attributes':'','foiministryrequestid':1,'createdby':'','statusid':1},
-            {'version':1, 'filename':'test5','filepath':'test/test5','attributes':'','foiministryrequestid':2,'createdby':'','statusid':1},
-            {'version':1, 'filename':'test6','filepath':'test/test6','attributes':'','foiministryrequestid':2,'createdby':'','statusid':1}
+            {'version':1, 'filename':'test1','filepath':'test/test1','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
+            {'version':1, 'filename':'test2','filepath':'test/test2','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
+            {'version':1, 'filename':'test3','filepath':'test/test3','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
+            {'version':1, 'filename':'test4','filepath':'test/test4','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
+            {'version':1, 'filename':'test5','filepath':'test/test5','attributes':{},'foiministryrequestid':2,'createdby':{},'statusid':1},
+            {'version':1, 'filename':'test6','filepath':'test/test6','attributes':{},'foiministryrequestid':2,'createdby':{},'statusid':1}
         ]
     )
 
@@ -77,12 +77,12 @@ def upgrade():
     op.bulk_insert(
         document_tag_table,
         [
-            {'documentid':1, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
-            {'documentid':2, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
-            {'documentid':3, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':2}]}','createdby':''},
-            {'documentid':4, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':3}]}','createdby':''},
-            {'documentid':5, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''},
-            {'documentid':6, 'documentversion':1,'tag':'{\'divisions\':[{\'divisionid\':1}]}','createdby':''}
+            {'documentid':1, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
+            {'documentid':2, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
+            {'documentid':3, 'documentversion':1,'tag':{'divisions':[{'divisionid':2}]},'createdby':{}},
+            {'documentid':4, 'documentversion':1,'tag':{'divisions':[{'divisionid':3}]},'createdby':{}},
+            {'documentid':5, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
+            {'documentid':6, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}}
         ]
     )
 

@@ -14,7 +14,9 @@ import Stack from "@mui/material/Stack";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 
 const DocumentSelector = ({
-    setCurrentPage
+    setCurrentPage,
+    setCurrentDoc,
+    documents
   }: any) => {
     const files = [
         {filename: "test1.pdf", lastmodified: "2022-07-09T20:18:55.022Z", divisions: [
@@ -64,9 +66,13 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (event: React.SyntheticEvent, nodeIds: string) => {
+        console.log(nodeIds);
         if (nodeIds.includes("page")) {
             let page = parseInt(nodeIds.split('page')[1])
             setCurrentPage(page)
+        } else if (nodeIds.includes("file")) {
+            let doc = parseInt(nodeIds.split('file')[1])
+            console.log("hi");
         }
     }
 

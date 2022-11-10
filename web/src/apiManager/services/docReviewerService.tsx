@@ -3,6 +3,28 @@ import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpReque
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 
+export const fetchDocuments = (
+  foiministryrequestid: number = 1,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.DOCREVIEWER_DOCUMENT}/${foiministryrequestid}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data) {
+        console.log(res.data);
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in fetching documents for a request");
+    });
+};
+
 export const fetchAnnotations = (
   documentid: number = 1,
   documentversion: number = 1,
