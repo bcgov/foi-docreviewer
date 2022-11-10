@@ -47,6 +47,7 @@ def upgrade():
         sa.Column('updatedby', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('statusid', sa.Integer(), nullable=False),
+        sa.Column('pagecount', sa.Integer(), nullable=True, default=0),
         sa.PrimaryKeyConstraint('documentid', 'version'),
         sa.ForeignKeyConstraint(['statusid'], ['DocumentStatus.statusid'], )
     )
@@ -54,12 +55,12 @@ def upgrade():
     op.bulk_insert(
         documents_table,
         [
-            {'version':1, 'filename':'test1','filepath':'test/test1','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
-            {'version':1, 'filename':'test2','filepath':'test/test2','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
-            {'version':1, 'filename':'test3','filepath':'test/test3','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
-            {'version':1, 'filename':'test4','filepath':'test/test4','attributes':{},'foiministryrequestid':1,'createdby':{},'statusid':1},
-            {'version':1, 'filename':'test5','filepath':'test/test5','attributes':{},'foiministryrequestid':2,'createdby':{},'statusid':1},
-            {'version':1, 'filename':'test6','filepath':'test/test6','attributes':{},'foiministryrequestid':2,'createdby':{},'statusid':1}
+            {'version':1, 'filename':'test1.pdf','filepath':'test/test1','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'test2.pdf','filepath':'test/test2','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'test3.pdf','filepath':'test/test3','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'test4.pdf','filepath':'test/test4','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'test5.pdf','filepath':'test/test5','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'test6.pdf','filepath':'test/test6','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9}
         ]
     )
 

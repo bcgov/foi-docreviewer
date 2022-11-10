@@ -23,6 +23,7 @@ class Document(db.Model):
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     statusid = db.Column(db.Integer, db.ForeignKey('DocumentStatus.statusid'))
+    pagecount = db.Column(db.Integer, nullable=True)
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
 
     @classmethod
@@ -49,7 +50,8 @@ class Document(db.Model):
             Document.updated_at,
             Document.statusid,
             DocumentStatus.name.label('status'),
-            DocumentTag.tag.label('tags')
+            DocumentTag.tag.label('tags'),
+            Document.pagecount
         ]
 
         query = _session.query(
@@ -87,12 +89,13 @@ class Document(db.Model):
             'createdby': document.createdby,            
             'created_at': created_at,
             'updatedby': document.updatedby,
-            'updated_at': updated_at,
+            'lastmodified': updated_at,
             'statusid': document.statusid,
             'status': document.status,
-            'tags': document.tags
+            'divisions': document.tags['divisions'],
+            'pagecount': document.pagecount
         }
 
 class DocumentSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'version', 'filename', 'filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name')
+        fields = ('documentid', 'version', 'filename', 'filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount')

@@ -4,6 +4,7 @@ from re import VERBOSE
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.OperatingTeamS3ServiceAccounts import OperatingTeamS3ServiceAccount
+from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 
 import json
 import os
@@ -18,6 +19,18 @@ class redactionservice:
     
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
+        divisions = ProgramAreaDivision.getallprogramareadivisons()
+
+        formated_documents = []
+        for document in documents:
+            doc_divisions = []
+            for division in document['divisions']:
+                doc_division = [div for div in divisions if div['divisionid']==division['divisionid']][0]
+                doc_divisions.append(doc_division)
+
+            document['divisions'] = doc_divisions
+            formated_documents.append(document)
+
         return documents
     
     def savedocument(self, documentid, documentversion, newfilepath, userid):

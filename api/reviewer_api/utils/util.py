@@ -102,7 +102,10 @@ def escape_wam_friendly_url(param):
 
 def pstformat(dt):
     if dt is not None:
-        formatedcreateddate = maya.parse(dt).datetime(to_timezone='America/Vancouver', naive=False)
-        formatedcreateddate.strftime('%Y %b %d | %I:%M %p')
+        tolocaltime = maya.MayaDT.from_datetime(dt).datetime(to_timezone='America/Vancouver', naive=False)
+        # return tolocaltime.strftime('%Y %b %d | %I:%M %p')
+        return tolocaltime.isoformat()
+        # formatedcreateddate = maya.parse(dt).datetime(to_timezone='America/Vancouver', naive=False)
+        # return formatedcreateddate.strftime('%Y %b %d | %I:%M %p')
     else:
         return ''

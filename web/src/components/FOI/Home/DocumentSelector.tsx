@@ -18,34 +18,38 @@ const DocumentSelector = ({
     setCurrentDoc,
     documents
   }: any) => {
-    const files = [
-        {filename: "test1.pdf", lastmodified: "2022-07-09T20:18:55.022Z", divisions: [
-            {"divisionid": 2, "divisionname": "Deputy Minister's Office"},
-            {"divisionid": 1, "divisionname": "Minister's Office"},
-            {"divisionid": 6, "divisionname": "Governance & Analytics"}
-        ], pagecount: 9},
-        {filename: "test2.pdf", lastmodified: "2022-10-09T20:18:55.022Z", divisions: [
-            {"divisionid": 2, "divisionname": "Deputy Minister's Office"}
-        ], pagecount: 9},
-        {filename: "test3.pdf", lastmodified: "2022-08-09T20:18:55.022Z", divisions: [
-            {"divisionid": 2, "divisionname": "Deputy Minister's Office"}
-        ], pagecount: 9},
-        {filename: "test4.pdf", lastmodified: "2022-06-09T20:18:55.022Z", divisions: [
-            {"divisionid": 2, "divisionname": "Deputy Minister's Office"}
-        ], pagecount: 9},
-        {filename: "test5.pdf", lastmodified: "2022-10-03T20:18:55.022Z", divisions: [
-            {"divisionid": 2, "divisionname": "Deputy Minister's Office"}
-        ], pagecount: 9},
-    ]
+    const [files, setFiles] = useState(documents)
+
+    console.log(documents);
+
+    // const files = [
+    //     {filename: "test1.pdf", lastmodified: "2022-07-09T20:18:55.022Z", divisions: [
+    //         {"divisionid": 2, "name": "Deputy Minister's Office"},
+    //         {"divisionid": 1, "name": "Minister's Office"},
+    //         {"divisionid": 6, "name": "Governance & Analytics"}
+    //     ], pagecount: 9},
+    //     {filename: "test2.pdf", lastmodified: "2022-10-09T20:18:55.022Z", divisions: [
+    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
+    //     ], pagecount: 9},
+    //     {filename: "test3.pdf", lastmodified: "2022-08-09T20:18:55.022Z", divisions: [
+    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
+    //     ], pagecount: 9},
+    //     {filename: "test4.pdf", lastmodified: "2022-06-09T20:18:55.022Z", divisions: [
+    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
+    //     ], pagecount: 9},
+    //     {filename: "test5.pdf", lastmodified: "2022-10-03T20:18:55.022Z", divisions: [
+    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
+    //     ], pagecount: 9},
+    // ]
 
     let arr: any[] = [];
-    const divisions = [...new Map(files.reduce((acc, file) => [...acc, ...new Map(file.divisions.map(division => [division.divisionid, division]))], arr)).values()]
+    const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
     console.log(divisions)
 
     const [filesForDisplay, setFilesForDisplay] = useState(files);
 
     const onFilterChange = (filterValue: string) => {
-        setFilesForDisplay(files.filter(file => file.filename.includes(filterValue)))
+        setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
     }
 
     // const getDivisionFiles = (division) => {
@@ -156,9 +160,9 @@ const DocumentSelector = ({
                 //         {getFiles()}
                 // </TreeItem>
                 divisions.map((division: any, index) =>
-                    <TreeItem nodeId={`division${index}`} label={division.divisionname}>
+                    <TreeItem nodeId={`division${index}`} label={division.name}>
                         {/* {getDivisionFiles(division)} */}
-                        {filesForDisplay.filter(file => file.divisions.map(d => d.divisionid).includes(division.divisionid)).map((file, i) =>
+                        {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
                             <Tooltip
                                 sx={{backgroundColor: 'white',
                                 color: 'rgba(0, 0, 0, 0.87)',
@@ -183,7 +187,7 @@ const DocumentSelector = ({
                     </TreeItem>
                 )
                 :
-                filesForDisplay.sort((a, b) => Date.parse(a.lastmodified) - Date.parse(b.lastmodified)).map((file, index) =>
+                filesForDisplay.sort((a: any, b: any) => Date.parse(a.lastmodified) - Date.parse(b.lastmodified)).map((file: any, index: number) =>
                     <Tooltip
                         sx={{backgroundColor: 'white',
                         color: 'rgba(0, 0, 0, 0.87)',

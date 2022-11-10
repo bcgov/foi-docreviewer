@@ -1,5 +1,5 @@
 import { useAppSelector } from '../../../hooks/hook';
-import React, { useRef, useEffect,useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import "../../../styles.scss";
 import "../App.scss"
 import DocumentSelector from './DocumentSelector';
@@ -14,26 +14,28 @@ function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const [currentPage, setCurrentPage] = useState(0)
   const [currentDoc, setCurrentDoc] = useState(0)
-  const [files, setFiles] = useState(null)
+  const [files, setFiles] = useState([])
 
   const foiministryrequestid = 1;
-  fetchDocuments(
-    foiministryrequestid,
-    (data: any) => {
-      console.log("docs:");
-      setFiles(data);
-      console.log(data);
-    },
-    (error: any) => {
-      console.log(error);
-    }
-  );
+  useEffect(() => {
+    fetchDocuments(
+      foiministryrequestid,
+      (data: any) => {
+        console.log("docs:");
+        setFiles(data);
+        console.log(data);
+      },
+      (error: any) => {
+        console.log(error);
+      }
+    );
+  }, [])
 
   return (
     <div className="App">
       <Grid container spacing={1}>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-          <DocumentSelector documents={files} setCurrentPage={setCurrentPage} setCurrentDoc={setCurrentDoc} />
+          { (files.length > 0) ? <DocumentSelector documents={files} setCurrentPage={setCurrentPage} setCurrentDoc={setCurrentDoc} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
           { (user?.name || user?.preferred_username) ? <Redlining currentPage={currentPage} user={user}/> : <div>Loading</div> }
