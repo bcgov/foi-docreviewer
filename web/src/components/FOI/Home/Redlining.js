@@ -38,12 +38,15 @@ const Redlining = ({
       PDFNet.initialize();
 
       documentViewer.addEventListener('documentLoaded', () => {
-
         PDFNet.initialize(); // Only needs to be initialized once
 
+        //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
         if(newusername && newusername != username) annotationManager.setCurrentUser(newusername);
+
+        //update isloaded flag
+        localStorage.setItem("isDocumentLoaded", "true");
 
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         fetchAnnotations(
@@ -54,7 +57,7 @@ const Redlining = ({
             _annotations.then(_annotation => {
               annotationManager.redrawAnnotation(_annotation);
             });
-            // documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
+            documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
           },
           (error) => {
             console.log('error');
@@ -153,16 +156,16 @@ const Redlining = ({
   useEffect(() => {
     //load a new document
     if(pdffile != (currentPageInfo.file['filepath'] + currentPageInfo.file['filename'])) {
+      localStorage.setItem("isDocumentLoaded", "false");
       setpdffile(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
-      console.log("come on!");
-      console.log(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
-      console.log(currentPageInfo);
       docInstance?.UI?.loadDocument(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
     }
 
     //change page from document selector
     console.log("page changed")
-    docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0)
+    let isDocLoaded = localStorage.getItem("isDocumentLoaded");
+    if(isDocLoaded === 'true')
+      docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
   }, [currentPageInfo])
 
 
