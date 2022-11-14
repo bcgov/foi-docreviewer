@@ -55,12 +55,12 @@ def upgrade():
     op.bulk_insert(
         documents_table,
         [
-            {'version':1, 'filename':'test1.pdf','filepath':'test/test1','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'test2.pdf','filepath':'test/test2','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'test3.pdf','filepath':'test/test3','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'test4.pdf','filepath':'test/test4','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'test5.pdf','filepath':'test/test5','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'test6.pdf','filepath':'test/test6','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9}
+            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'sample2.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2},
+            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'sample2.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2}
         ]
     )
 
