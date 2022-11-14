@@ -82,6 +82,10 @@ const Redlining = ({
       //   console.log("current page:");
       //   console.log(pageNumber);
       //   setCurrentPageInfo({'file': currentPageInfo['file'], 'page': pageNumber});
+
+      //   let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      //   localDocumentInfo.page = pageNumber;
+      //   localStorage.setItem("currentDocumentInfo", JSON.stringify(localDocumentInfo));
       // });
 
 
