@@ -95,7 +95,7 @@ namespace MCS.FOI.S3FileConversion
         private static Stream convertExcelFiles(Stream input)
         {
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input, "C:\\Users\\Nicholas Kan\\Documents\\Test Attachments\\uploaded\\test1.xlsx");
-            excelFileProcessor.IsSinglePDFOutput = false;
+            excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.WaitTimeinMilliSeconds = 5000;
             excelFileProcessor.FailureAttemptCount = 10;
             var (converted, message, PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
