@@ -14,13 +14,12 @@ import Stack from "@mui/material/Stack";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 
 const DocumentSelector = ({
-    setCurrentPage,
-    setCurrentDoc,
-    documents
+    documents,
+    currentPageInfo,
+    setCurrentPageInfo
   }: any) => {
     const [files, setFiles] = useState(documents)
-
-    console.log(documents);
+    // console.log(documents);
 
     // const files = [
     //     {filename: "test1.pdf", lastmodified: "2022-07-09T20:18:55.022Z", divisions: [
@@ -44,7 +43,7 @@ const DocumentSelector = ({
 
     let arr: any[] = [];
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
-    console.log(divisions)
+    // console.log(divisions)
 
     const [filesForDisplay, setFilesForDisplay] = useState(files);
 
@@ -69,16 +68,24 @@ const DocumentSelector = ({
         return pages;
     }
 
-    const selectTreeItem = (event: React.SyntheticEvent, nodeIds: string) => {
-        console.log(nodeIds);
-        if (nodeIds.includes("page")) {
-            let page = parseInt(nodeIds.split('page')[1])
-            setCurrentPage(page)
-        } else if (nodeIds.includes("file")) {
-            let doc = parseInt(nodeIds.split('file')[1])
-            console.log("hi");
-        }
-    }
+    // const selectTreeItem = (event: React.SyntheticEvent, nodeIds: string) => {
+    //     console.log(nodeIds);
+    //     if (nodeIds.includes("page")) {
+    //         let page = parseInt(nodeIds.split('page')[1])
+    //         setCurrentPage(page)
+    //     } else if (nodeIds.includes("file")) {
+    //         let doc = parseInt(nodeIds.split('file')[1])
+    //         console.log("hi");
+    //     }
+    // }
+
+    const selectTreeItem = (file: any, page: number) => {
+        console.log("onclick:");
+        console.log(file);
+        console.log(page);
+        setCurrentPageInfo({'file': file, 'page': page});
+        localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': file, 'page': page}));
+    };
 
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     return (
@@ -153,7 +160,7 @@ const DocumentSelector = ({
                 defaultCollapseIcon={<ExpandMoreIcon />}
                 defaultExpandIcon={<ChevronRightIcon />}
                 sx={{flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-                onNodeSelect={selectTreeItem}
+                // onNodeSelect={selectTreeItem}
             >
                 {organizeBy === "division" ?
                 // <TreeItem nodeId={`1`} label="Test Division 1">
@@ -175,9 +182,9 @@ const DocumentSelector = ({
                                 arrow
                             >
                                 {/* <TreeItem nodeId={`division${index}file${i}`} label={file.filename}/> */}
-                                <TreeItem nodeId={`division${index}file${i}`} label={file.filename}>
+                                <TreeItem nodeId={`division${index}file${i}`} label={file.filename} onClick={() => selectTreeItem(file, 1)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
-                                        <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`}/>
+                                        <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
                                     )
                                     //getFilePages(file.pagecount, index)
                                     }
@@ -199,9 +206,9 @@ const DocumentSelector = ({
                         placement="bottom-end"
                         arrow
                     >
-                        <TreeItem nodeId={`${index}`} label={file.filename}>
+                        <TreeItem nodeId={`${index}`} label={file.filename} onClick={() => selectTreeItem(file, 1)} >
                             {[...Array(file.pagecount)].map((_x, p) =>
-                                <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`}/>
+                                <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
                             )
                             //getFilePages(file.pagecount, index)
                             }

@@ -12,9 +12,8 @@ import { fetchDocuments } from '../../../apiManager/services/docReviewerService'
 function Home() {
 
   const user = useAppSelector((state) => state.user.userDetail);
-  const [currentPage, setCurrentPage] = useState(0)
-  const [currentDoc, setCurrentDoc] = useState(0)
   const [files, setFiles] = useState([])
+  const [currentPageInfo, setCurrentPageInfo] = useState({'file': {}, 'page': 0})
 
   const foiministryrequestid = 1;
   useEffect(() => {
@@ -23,6 +22,7 @@ function Home() {
       (data: any) => {
         console.log("docs:");
         setFiles(data);
+        setCurrentPageInfo({'file': data[0], 'page': 1})
         console.log(data);
       },
       (error: any) => {
@@ -35,13 +35,10 @@ function Home() {
     <div className="App">
       <Grid container spacing={1}>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-          { (files.length > 0) ? <DocumentSelector documents={files} setCurrentPage={setCurrentPage} setCurrentDoc={setCurrentDoc} /> : <div>Loading</div> }
+          { (files.length > 0) ? <DocumentSelector documents={files} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
-          { (user?.name || user?.preferred_username) ? <Redlining currentPage={currentPage} user={user}/> : <div>Loading</div> }
-          {/* <header className="app-header">
-            <span className="navbar-text" style={{}}> Hi {user.name || user.preferred_username || ""}</span>
-          </header> */}
+          { ((user?.name || user?.preferred_username) && (currentPageInfo?.page > 0)) ? <Redlining currentPageInfo={currentPageInfo} user={user} setCurrentPageInfo={setCurrentPageInfo}/> : <div>Loading</div> }
         </Grid>
       </Grid>
     </div>
