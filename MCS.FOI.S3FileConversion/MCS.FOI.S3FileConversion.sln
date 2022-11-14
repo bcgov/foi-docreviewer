@@ -5,14 +5,14 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MCS.FOI.S3FileConversion", "MCS.FOI.S3FileConversion\MCS.FOI.S3FileConversion.csproj", "{139A2E57-B741-4A43-A6E9-581E89847372}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MCS.FOI.ExcelToPDF", "MCS.FOI.S3ExcelToPDF\MCS.FOI.ExcelToPDF.csproj", "{FA17E837-E4EA-4865-A385-36EB4565BA42}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCS.FOI.ExcelToPDFUnitTests", "MCS.FOI.ExcelToPDFUnitTests\MCS.FOI.ExcelToPDFUnitTests.csproj", "{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MCS.FOI.ExcelToPDFUnitTests", "MCS.FOI.ExcelToPDFUnitTests\MCS.FOI.ExcelToPDFUnitTests.csproj", "{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C74CE9FE-140A-4DC1-AB79-662168F8692A}"
 	ProjectSection(SolutionItems) = preProject
 		test.runsettings = test.runsettings
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MCS.FOI.ExcelToPDF", "MCS.FOI.ExcelToPDF\MCS.FOI.ExcelToPDF.csproj", "{427F92EF-1542-4D2B-BF3E-37A843291973}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,14 +24,14 @@ Global
 		{139A2E57-B741-4A43-A6E9-581E89847372}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{139A2E57-B741-4A43-A6E9-581E89847372}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{139A2E57-B741-4A43-A6E9-581E89847372}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FA17E837-E4EA-4865-A385-36EB4565BA42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FA17E837-E4EA-4865-A385-36EB4565BA42}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FA17E837-E4EA-4865-A385-36EB4565BA42}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FA17E837-E4EA-4865-A385-36EB4565BA42}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E34ED4A6-0445-4524-B465-48C9E8BFD8C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{427F92EF-1542-4D2B-BF3E-37A843291973}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{427F92EF-1542-4D2B-BF3E-37A843291973}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{427F92EF-1542-4D2B-BF3E-37A843291973}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{427F92EF-1542-4D2B-BF3E-37A843291973}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

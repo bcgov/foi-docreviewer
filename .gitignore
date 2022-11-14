@@ -65,12 +65,12 @@ bld/
 /MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion/obj
 /.vs/slnx.sqlite
 /.vs
-/MCS.FOI.S3FileConversion/MCS.FOI.CalenderToPDF/bin/Debug/netcoreapp3.1
+/MCS.FOI.S3FileConversion/MCS.FOI.CalenderToPDF/bin/Debug/net6.0
 /MCS.FOI.S3FileConversion/MCS.FOI.CalenderToPDF/obj
-/MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDF/bin/Debug/netcoreapp3.1
+/MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDF/bin/Debug/net6.0
 /MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDF/obj
-/MCS.FOI.S3FileConversion/MCS.FOI.FileConversion/bin/Debug/netcoreapp3.1
-/MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDFUnitTests/bin/Debug/netcoreapp3.1
+/MCS.FOI.S3FileConversion/MCS.FOI.FileConversion/bin/Debug/net6.0
+/MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDFUnitTests/bin/Debug/net6.0
 /MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDFUnitTests/obj
 /MCS.FOI.S3FileConversion/.vs/MCS.FOI.S3FileConversion/v16/TestStore/0
 /MCS.FOI.S3FileConversion/MCS.FOI.ExcelToPDFUnitTests/SourceExcel/output

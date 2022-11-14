@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MCS.FOI.S3ExcelToPDF\MCS.FOI.ExcelToPDF.csproj" />
+    <ProjectReference Include="..\MCS.FOI.ExcelToPDF\MCS.FOI.ExcelToPDF.csproj" />
   </ItemGroup>
 
 </Project>
