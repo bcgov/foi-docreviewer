@@ -12,6 +12,6 @@ api/reviewer_api/logs
 
 web/node_modules
 web/build
-web/package-lock.json
+# web/package-lock.json
 
 *.snap

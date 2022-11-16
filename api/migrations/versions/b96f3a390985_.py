@@ -55,12 +55,12 @@ def upgrade():
     op.bulk_insert(
         documents_table,
         [
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample2.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample2.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2}
+            {'version':1, 'filename':'Unix and Linux System.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':1885},
+            {'version':1, 'filename':'6 Important factors.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'1001 Books.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2272},
+            {'version':1, 'filename':'6 Important factors.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
+            {'version':1, 'filename':'Unix and Linux System.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':1885},
+            {'version':1, 'filename':'6 Important factors.pdf','filepath':'/files/','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9}
         ]
     )
 
