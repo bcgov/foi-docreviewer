@@ -9,6 +9,9 @@ using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Amazon;
 using MCS.FOI.ExcelToPDF;
+using MCS.FOI.CalendarToPDF;
+using MCS.FOI.MSGAttachmentsToPdf;
+using MCS.FOI.DocToPDF;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -55,6 +58,17 @@ namespace MCS.FOI.S3FileConversion
                         case ".xlsx":
                             output = convertExcelFiles(responseStream);
                             break;
+                        case ".ics":
+                            output = convertCalendarFiles(responseStream);
+                            break;
+                        case ".msg":
+                        case ".eml":
+                            output = convertMSGFiles(responseStream);
+                            break;
+                        case ".doc":
+                        case ".docx":
+                            output = convertDocFiles(responseStream);
+                            break;
                     }
 
 
@@ -95,11 +109,49 @@ namespace MCS.FOI.S3FileConversion
         private static Stream convertExcelFiles(Stream input)
         {
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input, "C:\\Users\\Nicholas Kan\\Documents\\Test Attachments\\uploaded\\test1.xlsx");
-            excelFileProcessor.IsSinglePDFOutput = true;
+            excelFileProcessor.IsSinglePDFOutput = false;
             excelFileProcessor.WaitTimeinMilliSeconds = 5000;
             excelFileProcessor.FailureAttemptCount = 10;
             var (converted, message, PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
             return output;
         }
+
+        private static Stream convertCalendarFiles(Stream input)
+        {
+            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input, "C:\\test-files\\test1.ics", "test1");
+            calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
+            calendarFileProcessor.FailureAttemptCount = 10;
+            calendarFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
+            var (Message, DestinationPath, output) = calendarFileProcessor.ProcessCalendarFiles();
+            return output;
+        }
+
+        private static Stream convertMSGFiles(Stream input)
+        {
+            //string sourcePath = fileInfo.FullName.Replace(fileInfo.Name, "");
+            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1");
+            //msgFileProcessor.MSGFileName = fileInfo.Name;
+            msgFileProcessor.IsSinglePDFOutput = false;
+            //msgFileProcessor.MSGSourceFilePath = sourcePath;
+            //msgFileProcessor.SourceStream = input;
+            //msgFileProcessor.OutputFilePath = getPdfOutputPath(msgFileProcessor.MSGSourceFilePath);
+            msgFileProcessor.WaitTimeinMilliSeconds = 5000;
+            msgFileProcessor.FailureAttemptCount = 10;
+            msgFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
+            var (converted, message, PdfOutputFilePath, output) = msgFileProcessor.MoveAttachments();
+           //var output = msgFileProcessor.ProcessMsgOrEmlToPdf();
+            return output;
+        }
+
+        private static Stream convertDocFiles(Stream input)
+        {
+            DocFileProcessor docFileProcessor = new DocFileProcessor(input);
+            docFileProcessor.IsSinglePDFOutput = false;
+            docFileProcessor.WaitTimeinMilliSeconds = 5000;
+            docFileProcessor.FailureAttemptCount = 10;
+            var (converted, output) = docFileProcessor.ConvertToPDF();
+            return output;
+        }
+
     }
 }
