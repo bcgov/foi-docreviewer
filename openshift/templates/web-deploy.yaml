@@ -34,9 +34,21 @@ objects:
           window["_env_"] =  {
             "NODE_ENV": "production",
             "REACT_APP_APPLICATION_NAME": "${REACT_APP_APPLICATION_NAME}",
+
             "REACT_APP_KEYCLOAK_URL": "${REACT_APP_KEYCLOAK_URL}",
             "REACT_APP_KEYCLOAK_URL_REALM": "${REACT_APP_KEYCLOAK_URL_REALM}",
-            "REACT_APP_KEYCLOAK_CLIENT": "forms-flow-web",            
+            "REACT_APP_KEYCLOAK_CLIENT": "forms-flow-web",
+
+            "CACHE_ENABLED": "${CACHE_ENABLED}",
+            "CACHE_TYPE": "${CACHE_TYPE}",
+
+            "OSS_S3_FORMS_BUCKET": "${OSS_S3_FORMS_BUCKET}",
+            "OSS_S3_FORMS_ACCESS_KEY_ID": "${OSS_S3_FORMS_ACCESS_KEY_ID}",
+            "OSS_S3_FORMS_SECRET_ACCESS_KEY": "${OSS_S3_FORMS_SECRET_ACCESS_KEY}",
+            "OSS_S3_HOST": "${OSS_S3_HOST}",
+            "OSS_S3_REGION": "${OSS_S3_REGION}",
+            "OSS_S3_SERVICE": "${OSS_S3_SERVICE}",
+
             "FOI_DOCREVIEWER_BASE_API_URL": "${FOI_DOCREVIEWER_BASE_API_URL}",
             "REACT_APP_FOI_BASE_API_URL": "${REACT_APP_FOI_BASE_API_URL}"
           }
@@ -154,7 +166,7 @@ objects:
         app: ${APP_NAME}
       name: ${NAME}
     spec:
-      host: ${FFAWEB_URL}
+      host: "${TAG_NAME}-${APP_NAME}.apps.silver.devops.gov.bc.ca"
       tls:
         insecureEdgeTerminationPolicy: Redirect
         termination: edge
@@ -179,6 +191,7 @@ parameters:
     description: The name assigned to all of the OpenShift resources associated to the
       server instance.
     required: true
+    value: reviewer-web
   - name: IMAGE_NAMESPACE
     displayName: Image Namespace
     required: true
@@ -225,29 +238,60 @@ parameters:
     description: The path to where the app config directory will get mounted.
     required: true
     value: /usr/share/nginx/html/config/
-  - name: FFAWEB_URL
-    displayName: FFAWEB_URL
-    description:
-      Route to access Forms Flow AI Web site
-    required: true
   - name: REACT_APP_APPLICATION_NAME
     displayName: REACT_APP_APPLICATION_NAME
     description: the name displayed in the application home page
     required: true
-    value: 
+    value: reviewer-web
   - name: REACT_APP_KEYCLOAK_URL
     displayName: REACT_APP_KEYCLOAK_URL
     description: keycloak url without auth part in the url
-    required: true    
+    required: true
   - name: REACT_APP_KEYCLOAK_URL_REALM
     displayName: REACT_APP_KEYCLOAK_URL_REALM
     description: oidc REALM
+    required: true
+  - name: REACT_APP_KEYCLOAK_CLIENT
+    displayName: REACT_APP_KEYCLOAK_CLIENT
+    description: KEYCLOAK CLIENT
+    required: true
+  - name: CACHE_ENABLED
+    displayName: CACHE_ENABLED
+    description: CACHE_ENABLED
+    required: true
+  - name: CACHE_TYPE
+    displayName: CACHE_TYPE
+    description: CACHE_TYPE
+    required: true
+  - name: OSS_S3_FORMS_BUCKET
+    displayName: OSS_S3_FORMS_BUCKET
+    description: OSS_S3_FORMS_BUCKET
+    required: true
+    value: reviewer-web
+  - name: OSS_S3_FORMS_ACCESS_KEY_ID
+    displayName: OSS_S3_FORMS_ACCESS_KEY_ID
+    description: OSS_S3_FORMS_ACCESS_KEY_ID
+    required: true
+  - name: OSS_S3_FORMS_SECRET_ACCESS_KEY
+    displayName: OSS_S3_FORMS_SECRET_ACCESS_KEY
+    description: OSS_S3_FORMS_SECRET_ACCESS_KEY
+    required: true
+  - name: OSS_S3_HOST
+    displayName: OSS_S3_HOST
+    description: OSS_S3_HOST
+    required: true
+  - name: OSS_S3_REGION
+    displayName: OSS_S3_REGION
+    description: OSS_S3_REGION
+    required: true
+  - name: OSS_S3_SERVICE
+    displayName: OSS_S3_SERVICE
+    description: OSS_S3_SERVICE
     required: true
   - name: FOI_DOCREVIEWER_BASE_API_URL
     displayName: FOI_DOCREVIEWER_BASE_API_URL
     description: API URL
     required: true
-    
   - name: REACT_APP_FOI_BASE_API_URL
     displayName: REACT_APP_FOI_BASE_API_URL
     description: Form flow api url
