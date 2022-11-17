@@ -101,7 +101,6 @@ namespace MCS.FOI.CalendarToPDF
                 //{
                     for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
-
                         try
                         {
                             //using (FileStream fileStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read))
@@ -119,7 +118,6 @@ namespace MCS.FOI.CalendarToPDF
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
                     }
-
                     Calendar calendar = Calendar.Load(ical);
                     var events = calendar.Events;
                     StringBuilder htmlString = new StringBuilder();

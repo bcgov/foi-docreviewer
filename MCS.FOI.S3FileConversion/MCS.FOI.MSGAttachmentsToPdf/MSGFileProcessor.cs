@@ -29,37 +29,21 @@ namespace MCS.FOI.MSGAttachmentsToPdf
 
         public string DestinationPath { get; set; }
 
+        public string FileExtension { get; set; }
+
 
 
         public MSGFileProcessor() { }
 
 
-        public MSGFileProcessor(Stream sourceStream, string destinationPath, string fileName)
+        public MSGFileProcessor(Stream sourceStream, string destinationPath, string fileName, string extension)
         {
-            //this.MSGSourceFilePath = sourcePath;
             this.DestinationPath = destinationPath;
             this.MSGFileName = fileName;
             this.SourceStream = sourceStream;
+            this.FileExtension = extension;
 
         }
-
-        //public (bool, string, string, Stream) ProcessMsgOrEmlFiles()
-        //{
-        //    MemoryStream output = new MemoryStream();
-        //    bool isProcessed;
-
-        //    try
-        //    {
-        //        string htmlString = ConvertMsgOrEmlToHTML();
-        //        output = ConvertHTMLtoPDF(htmlString, output);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw ex;
-        //    }
-        //    return (isProcessed, Message, DestinationPath, output);
-        //}
-
 
 
         public (bool, string, string, Stream) MoveAttachments()
@@ -81,78 +65,83 @@ namespace MCS.FOI.MSGAttachmentsToPdf
 
                         try
                         {
+                        //var msg;
+                        //if (FileExtension == ".eml")
+                        //{
+                        //    msg = MsgReader.Mime.Message(SourceStream)
+                        //}
+                        //else
+                        //{
+                        //    msg = new MsgReader.Outlook.Storage.Message(SourceStream);
+                        //}
+                        //var msg = (FileExtension == ".eml" ? new MsgReader.Mime.Message(SourceStream) : new MsgReader.Outlook.Storage.Message(SourceStream))
 
-                            using (var msg = new MsgReader.Outlook.Storage.Message(SourceStream))
+                        using (var msg = new Storage.Message(SourceStream))
+                        {
+                        //var bodyHtml = msg.BodyHtml;
+
+                            string htmlString = generateHtmlfromMsg(msg);
+                            output = ConvertHTMLtoPDF(htmlString, output);
+
+                            var attachments = msg.Attachments;
+                            foreach (Object attachment in attachments)
                             {
-                            //var bodyHtml = msg.BodyHtml;
-
-                                string htmlString = generateHtmlfromMsg(msg);
-                                output = ConvertHTMLtoPDF(htmlString, output);
-
-                                var attachments = msg.Attachments;
-                                foreach (Object attachment in attachments)
+                                var type = attachment.GetType().FullName;
+                                if (type.ToLower().Contains("message"))
                                 {
-                                    var type = attachment.GetType().FullName;
-                                    if (type.ToLower().Contains("message"))
+                                    var file = (Storage.Message)attachment;
+                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                    problematicFiles.Add(file.FileName, file);
+
+                                }
+                                else
+                                {
+                                    var file = (Storage.Attachment)attachment;
+                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
                                     {
-                                        var file = (Storage.Message)attachment;
                                         problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                         problematicFiles.Add(file.FileName, file);
 
                                     }
+
+                                }
+                            }
+
+                            if (problematicFiles != null)
+                            {
+                                int cnt = 0;
+                                foreach (var attachmenttomove in problematicFiles)
+                                {
+
+                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
+                                    {
+                                        var _attachment = (Storage.Message)attachmenttomove.Value;
+                                        string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
+                                        foreach (var subattachment in _attachment.Attachments)
+                                        {
+                                            var type = subattachment.GetType().FullName;
+                                            if (type.ToLower().Contains("attachment"))
+                                            {
+                                                var file = (Storage.Attachment)subattachment;
+                                                CreateOutputFolder("subattachments");
+                                                string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{file.FileName}";
+                                                File.WriteAllBytes(_fileName, file.Data);
+                                            }
+                                        }
+                                    }
                                     else
                                     {
-                                        var file = (Storage.Attachment)attachment;
-                                        if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".png"))
-                                        {
-                                            problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                            problematicFiles.Add(file.FileName, file);
-
-                                        }
-
+                                        var _attachment = (Storage.Attachment)attachmenttomove.Value;
+                                        string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
+                                        CreateOutputFolder();
+                                        File.WriteAllBytes(fileName, _attachment.Data);
+                                        outputpath += fileName;
                                     }
+                                    cnt++;
                                 }
-
-                                if (problematicFiles != null)
-                                {
-                                    int cnt = 0;
-                                    foreach (var attachmenttomove in problematicFiles)
-                                    {
-
-                                        if (attachmenttomove.Key.ToLower().Contains(".msg"))
-                                        {
-                                            var _attachment = (Storage.Message)attachmenttomove.Value;
-                                            string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
-                                            foreach (var subattachment in _attachment.Attachments)
-                                            {
-                                                var type = subattachment.GetType().FullName;
-                                                if (type.ToLower().Contains("attachment"))
-                                                {
-                                                    var file = (Storage.Attachment)subattachment;
-                                                    CreateOutputFolder("subattachments");
-                                                    string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{file.FileName}";
-                                                    File.WriteAllBytes(_fileName, file.Data);
-
-                                                }
-
-                                            }
-
-                                        }
-                                        else
-                                        {
-                                            var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                            string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
-                                            CreateOutputFolder();
-                                            File.WriteAllBytes(fileName, _attachment.Data);
-                                            outputpath += fileName;
-                                        }
-
-                                        cnt++;
-
-                                    }
-                                    moved = true;
-                                    message = string.Concat($"{cnt} problematic files moved", outputpath);
-                                }
+                                moved = true;
+                                message = string.Concat($"{cnt} problematic files moved", outputpath);
+                            }
 
                             break;
                             }
@@ -185,29 +174,101 @@ namespace MCS.FOI.MSGAttachmentsToPdf
 
         private string generateHtmlfromMsg(Storage.Message msg)
         {
-            var sb = new StringBuilder();
-            var from = msg.Sender;
-            var sentOn = msg.SentOn;
-            //var recipientsTo = msg.GetEmailRecipients(
-            //    MsgReader.Outlook.Storage.Recipient.RecipientType.To, false, false);
-            //var recipientsCc = msg.GetEmailRecipients(
-            //    MsgReader.Outlook.Storage.Recipient.RecipientType.Cc, false, false);
-            //var recipientsBCC = msg.GetEmailRecipients(
-            //    MsgReader.Outlook.Storage.Recipient.RecipientType.Bcc, false, false);
-            var subject = msg.Subject;
 
-            sb.AppendLine($"   From: {from.DisplayName} {from.Email}");
-            sb.AppendLine($"   Sent: {sentOn}");
-            //sb.AppendLine($"     To: {recipientsTo}");
-            //sb.AppendLine($"     CC: {recipientsCc}");
-            //sb.AppendLine($"    BCC: {recipientsBCC}");
-            sb.AppendLine($"Subject: {subject}");
-            sb.AppendLine($"   Body:");
-            sb.AppendLine(msg.BodyText);
-            //File.WriteAllText(Path.Combine(
-            //    AppDomain.CurrentDomain.BaseDirectory, "suggestion.txt"),
-            //    sb.ToString());
-            return sb.ToString();
+            try { 
+                var sb = new StringBuilder();
+                StringBuilder htmlString = new StringBuilder();
+                htmlString.Append(@"
+                            <html>
+                                <head>
+                                </head>
+                                <body style='border: 50px solid white;'>
+                                    ");
+
+                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:20px;'>");
+                //Sender Name and Email
+                string sender = string.Empty;
+                if (msg.Sender != null && msg.Sender.DisplayName != null)
+                {
+                    sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + "(" + msg.Sender.Email + ")": msg.Sender.DisplayName;
+                }
+                htmlString.Append(@"<tr>
+                            <td><b>From: </b></td>
+                            <td>" + sender + "</td></tr>");
+                //Recipient Name and Email
+                string recipientName = "";
+                foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
+                {
+                    recipientName += "; (" + recipient + ")";
+                }
+                string recipientCCName = "";
+                foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
+                {
+                    recipientCCName += "; (" + recipient + ")";
+                }
+                string recipientBccName = "";
+                foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
+                {
+                    recipientBccName += "; (" + recipient + ")";
+                }
+                //if (!string.IsNullOrEmpty(recipientName))
+                //{ 
+                //    //recipientName = recipientName.Substring(1);
+                //    htmlString.Append(@"<tr>
+                //            <td><b>To: </b></td>
+                //            <td>" + recipientName + "</td></tr>");
+                //}
+                htmlString.Append(@"<tr>
+                            <td><b>To: </b></td>
+                            <td>" + recipientName + "</td></tr>");
+
+                if (!string.IsNullOrEmpty(recipientCCName))
+                {
+                    //recipientCCName = recipientCCName.Substring(1);
+                    htmlString.Append(@"<tr>
+                                <td><b>To: </b></td>
+                                <td>" + recipientCCName + "</td></tr>");
+                }
+
+                if (!string.IsNullOrEmpty(recipientBccName))
+                {
+                    //recipientBccName = recipientBccName.Substring(1);
+                    htmlString.Append(@"<tr>
+                            <td><b>To: </b></td>
+                            <td>" + recipientBccName + "</td></tr>");
+                }
+
+                htmlString.Append(@"<tr>
+                            <td><b>Subject: </b></td>
+                            <td>" + msg.Subject + "</td></tr>");
+
+                //Message Sent On timestamp
+                htmlString.Append(@"<tr>
+                            <td><b>Sent: </b></td>
+                            <td>" + msg.SentOn + "</td></tr>");
+
+                //Message body
+                string message = @"" + msg.BodyText.Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br>");
+                message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
+                message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
+                htmlString.Append(@"<tr>
+                            <td><b>Message Body: </b></td>
+                            </tr>
+                            <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                htmlString.Append(@"
+                                    </table>
+                                </div><hr>");
+
+                htmlString.Append(@"</body></html>");
+                return htmlString.ToString();
+            }
+            catch (Exception ex)
+            {
+                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                Console.WriteLine(error);
+                //Message = error;
+                return error;
+            }
         }
 
         private MemoryStream ConvertHTMLtoPDF(string strHTML, MemoryStream output)
@@ -218,19 +279,14 @@ namespace MCS.FOI.MSGAttachmentsToPdf
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-
                 WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
-
                 //Point to the webkit based on the platform the application is running
                 webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
-
-
                 //Assign WebKit converter settings to HTML converter
                 htmlConverter.ConverterSettings = webKitConverterSettings;
                 htmlConverter.ConverterSettings.Margin.All = 25;
                 htmlConverter.ConverterSettings.EnableHyperLink = true;
                 htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
-
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
 

@@ -63,7 +63,7 @@ namespace MCS.FOI.S3FileConversion
                             break;
                         case ".msg":
                         case ".eml":
-                            output = convertMSGFiles(responseStream);
+                            output = convertMSGFiles(responseStream, extension);
                             break;
                         case ".doc":
                         case ".docx":
@@ -108,7 +108,7 @@ namespace MCS.FOI.S3FileConversion
 
         private static Stream convertExcelFiles(Stream input)
         {
-            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input, "C:\\Users\\Nicholas Kan\\Documents\\Test Attachments\\uploaded\\test1.xlsx");
+            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input, "C:\\test-files\\test1.xlsx");
             excelFileProcessor.IsSinglePDFOutput = false;
             excelFileProcessor.WaitTimeinMilliSeconds = 5000;
             excelFileProcessor.FailureAttemptCount = 10;
@@ -126,10 +126,10 @@ namespace MCS.FOI.S3FileConversion
             return output;
         }
 
-        private static Stream convertMSGFiles(Stream input)
+        private static Stream convertMSGFiles(Stream input, string extension)
         {
             //string sourcePath = fileInfo.FullName.Replace(fileInfo.Name, "");
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1");
+            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1", extension);
             //msgFileProcessor.MSGFileName = fileInfo.Name;
             msgFileProcessor.IsSinglePDFOutput = false;
             //msgFileProcessor.MSGSourceFilePath = sourcePath;
