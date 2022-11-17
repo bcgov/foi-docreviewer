@@ -37,7 +37,7 @@ objects:
 
             "REACT_APP_KEYCLOAK_URL": "${REACT_APP_KEYCLOAK_URL}",
             "REACT_APP_KEYCLOAK_URL_REALM": "${REACT_APP_KEYCLOAK_URL_REALM}",
-            "REACT_APP_KEYCLOAK_CLIENT": "forms-flow-web",
+            "REACT_APP_KEYCLOAK_CLIENT": "${REACT_APP_KEYCLOAK_CLIENT}",
 
             "CACHE_ENABLED": "${CACHE_ENABLED}",
             "CACHE_TYPE": "${CACHE_TYPE}",
