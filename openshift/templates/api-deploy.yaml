@@ -67,34 +67,34 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${DB_SECRETS}"
-                  key: database-user
+                  key: app-db-username
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "${DB_SECRETS}"
-                  key: database-password
+                  key: app-db-password
             - name: DATABASE_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: "${DB_SECRETS}"
-                  key: database-name
-
+              value: "${DATABASE_NAME}"
             - name: DATABASE_HOST
               value: "${DATABASE_HOST}"
             - name: FLASK_ENV
               value: production
 
-
-            - name: KEYCLOAK_ADMIN_HOST
+            - name: KEYCLOAK_URL
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: KEYCLOAK_ADMIN_HOST
-            - name: KEYCLOAK_ADMIN_REALM
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_URL_REALM
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: KEYCLOAK_ADMIN_REALM
+                  key: KEYCLOAK_URL_REALM
+            - name: KEYCLOAK_BPM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_BPM_CLIENT_SECRET
             - name: KEYCLOAK_ADMIN_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -110,6 +110,27 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: KEYCLOAK_ADMIN_INTAKE_GROUPID
+            - name: KEYCLOAK_ADMIN_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_ADMIN_HOST
+            - name: KEYCLOAK_ADMIN_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_ADMIN_REALM
+            - name: KEYCLOAK_ADMIN_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_ADMIN_CLIENT_ID
+            - name: KEYCLOAK_ADMIN_SRVACCOUNT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_ADMIN_SRVACCOUNT
+
             - name: JWT_OIDC_WELL_KNOWN_CONFIG
               valueFrom:
                 secretKeyRef:
@@ -130,16 +151,23 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: JWT_OIDC_ALGORITHMS
-            - name: CORS_ORIGIN
-              value: "${CORS_ORIGIN}"
+            - name: JWT_OIDC_JWKS_URI
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: JWT_OIDC_JWKS_URI
             - name: JWT_OIDC_CACHING_ENABLED
               value: 'True'
             - name: JWT_OIDC_JWKS_CACHE_TIMEOUT
               value: "300"
+            - name: CORS_ORIGIN
+              value: "${CORS_ORIGIN}"
             - name: CACHE_TIMEOUT
               value: "36000"
             - name: CACHE_ENABLED
               value: 'Y'
+            - name: CACHE_TYPE
+              value: 'RedisClusterCache'
             - name: OSS_S3_FORMS_BUCKET
               valueFrom:
                 secretKeyRef:
@@ -283,18 +311,22 @@ parameters:
   displayName: Database service name
   description: Must match service name of database, eg patroni-master-002
   required: true
-  value: postgresql-docreviewer
+  value: patroni-master-002
+- name: DATABASE_NAME
+  displayName: Database name
+  description: Must match name of database, eg docreviewer
+  required: true
+  value: docreviewer
 - name: DB_SECRETS
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: postgresql-docreviewer
+  value: patroni-002
 - name: SECRETS
   displayName: Request Management Secrets
   description: Name of secret for all request-management-api values
   required: true
   value: docreviewer-secret
-
 - name: IMAGE_STREAM_NAME_FULL
   displayName: Full image stream name (eg "reviewer-api:dev")
   description: Includes ImageStream name and tag
