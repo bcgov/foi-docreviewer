@@ -1,4 +1,4 @@
-import ACTION_CONSTANTS from "../actions/actionContants";
+import ACTION_CONSTANTS from "../actions/actionConstants";
 import { encrypt } from "../helper/helper";
 
 const initialState = {
