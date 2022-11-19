@@ -15,3 +15,6 @@ web/build
 # web/package-lock.json
 
 *.snap
+
+*/env
+computingservices/poc/env/*
