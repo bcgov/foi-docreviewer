@@ -20,11 +20,11 @@ services:
       - "3006:8080"
     tty: true
 
-  foiredis:
-    image: redis:4.0
-    container_name: foi_docreviewer_redis
-    ports:
-      - "16379:6379"
+  # foiredis:
+  #   image: redis:4.0
+  #   container_name: foi_docreviewer_redis
+  #   ports:
+  #     - "16379:6379"
 
   foi-docreviewer-api:
     container_name: foi_docreviewer_api

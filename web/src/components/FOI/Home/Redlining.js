@@ -12,7 +12,8 @@ const Redlining = ({
 
   const viewer = useRef(null);
   // const pdffile = '/files/PDFTRON_about.pdf';
-  const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
+  // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
+  const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
   const [docViewer, setDocViewer] = useState(null);
   const [docInstance, setDocInstance] = useState(null);
   
@@ -26,7 +27,8 @@ const Redlining = ({
       {
         path: '/webviewer',
         preloadWorker: 'pdf',
-        initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
+        // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
+        initialDoc: currentPageInfo.file['filepath'],
         fullAPI: true,
         enableRedaction: true,
       },
@@ -159,10 +161,13 @@ const Redlining = ({
 
   useEffect(() => {
     //load a new document
-    if(pdffile != (currentPageInfo.file['filepath'] + currentPageInfo.file['filename'])) {
+    // if(pdffile != (currentPageInfo.file['filepath'] + currentPageInfo.file['filename'])) {
+    if(pdffile != (currentPageInfo.file['filepath'])) {
       localStorage.setItem("isDocumentLoaded", "false");
-      setpdffile(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
-      docInstance?.UI?.loadDocument(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
+      // setpdffile(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
+      setpdffile(currentPageInfo.file['filepath']);
+      // docInstance?.UI?.loadDocument(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
+      docInstance?.UI?.loadDocument(currentPageInfo.file['filepath']);
     }
 
     //change page from document selector
