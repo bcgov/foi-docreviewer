@@ -41,7 +41,7 @@ class GetDocuments(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
@@ -63,7 +63,7 @@ class Annotations(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     def get(documentid, documentversion, pagenumber=None):
         try:
             result = redactionservice().getannotations(documentid, documentversion, pagenumber)
@@ -79,7 +79,7 @@ class Annotations(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     def post(documentid, documentversion, pagenumber, annotationname):
 
         #get user info
@@ -113,7 +113,7 @@ class Annotations(Resource):
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
+    @auth.require
     def delete(documentid, documentversion, pagenumber, annotationname):
         #get user info
         if AuthHelper.getusertype() == "ministry":
