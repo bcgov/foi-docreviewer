@@ -1,0 +1,1 @@
+from .hashcalculator import hash_file
