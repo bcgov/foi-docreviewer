@@ -12,6 +12,7 @@ using MCS.FOI.ExcelToPDF;
 using MCS.FOI.CalendarToPDF;
 using MCS.FOI.MSGAttachmentsToPdf;
 using MCS.FOI.DocToPDF;
+using MCS.FOI.EMLToPDF;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -62,8 +63,10 @@ namespace MCS.FOI.S3FileConversion
                             output = convertCalendarFiles(responseStream);
                             break;
                         case ".msg":
+                            output = convertMSGFiles(responseStream);
+                            break;
                         case ".eml":
-                            output = convertMSGFiles(responseStream, extension);
+                            output = convertEMLFiles(responseStream);
                             break;
                         case ".doc":
                         case ".docx":
@@ -122,14 +125,14 @@ namespace MCS.FOI.S3FileConversion
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
             calendarFileProcessor.FailureAttemptCount = 10;
             calendarFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (Message, DestinationPath, output) = calendarFileProcessor.ProcessCalendarFiles();
+            var (isProcessed, Message, DestinationPath, output) = calendarFileProcessor.ProcessCalendarFiles();
             return output;
         }
 
-        private static Stream convertMSGFiles(Stream input, string extension)
+        private static Stream convertMSGFiles(Stream input)
         {
             //string sourcePath = fileInfo.FullName.Replace(fileInfo.Name, "");
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1", extension);
+            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1");
             //msgFileProcessor.MSGFileName = fileInfo.Name;
             msgFileProcessor.IsSinglePDFOutput = false;
             //msgFileProcessor.MSGSourceFilePath = sourcePath;
@@ -140,6 +143,17 @@ namespace MCS.FOI.S3FileConversion
             msgFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
             var (converted, message, PdfOutputFilePath, output) = msgFileProcessor.MoveAttachments();
            //var output = msgFileProcessor.ProcessMsgOrEmlToPdf();
+            return output;
+        }
+
+        private static Stream convertEMLFiles(Stream input)
+        {
+            EMLFileProcessor emlFileProcessor = new EMLFileProcessor(input, "C:\\test-files\\test-payment.eml", "test-payment");
+            emlFileProcessor.IsSinglePDFOutput = false;
+            emlFileProcessor.WaitTimeinMilliSeconds = 5000;
+            emlFileProcessor.FailureAttemptCount = 10;
+            emlFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
+            var (converted, message, PdfOutputFilePath, output) = emlFileProcessor.ConvertToPDF();
             return output;
         }
 

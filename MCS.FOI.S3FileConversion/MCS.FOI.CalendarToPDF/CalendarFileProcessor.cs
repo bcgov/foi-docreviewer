@@ -69,7 +69,7 @@ namespace MCS.FOI.CalendarToPDF
 
         }
 
-        public (string, string, Stream) ProcessCalendarFiles()
+        public (bool, string, string, Stream) ProcessCalendarFiles()
         {
             MemoryStream output = new MemoryStream();
             bool isProcessed;
@@ -78,12 +78,14 @@ namespace MCS.FOI.CalendarToPDF
             {
                 string htmlString = ConvertCalendartoHTML();
                 output = ConvertHTMLtoPDF(htmlString, output);
+                isProcessed = true;
             }
             catch (Exception ex)
             {
+                isProcessed=false;
                 throw ex;
             }
-            return (Message, DestinationPath, output);
+            return (isProcessed, Message, DestinationPath, output);
         }
 
         /// <summary>

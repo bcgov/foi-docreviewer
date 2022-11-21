@@ -39,6 +39,8 @@
 	<ProjectReference Include="..\MCS.FOI.CalendarToPDF\MCS.FOI.CalendarToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.MSGAttachmentsToPdf\MCS.FOI.MSGAttachmentsToPdf.csproj" />
 	<ProjectReference Include="..\MCS.FOI.DocToPdf\MCS.FOI.DocToPdf.csproj" />
+	<ProjectReference Include="..\MCS.FOI.EMLToPDF\MCS.FOI.EMLToPDF.csproj" />
+	  
   </ItemGroup>
 	
 

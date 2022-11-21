@@ -1,8 +1,8 @@
-﻿namespace MCS.FOI.MSGAttachmentsToPdf
+﻿namespace MCS.FOI.EMLToPDF
 {
-    public interface IMSGFileProcessor
+    public interface IEMLFileProcessor
     {
-        public (bool, string, string, Stream) MoveAttachments();
+        public (bool, string, string, Stream) ConvertToPDF();
         public string MSGSourceFilePath { get; set; }
         public Stream SourceStream { get; set; }
         public string OutputFilePath { get; set; }
@@ -12,7 +12,6 @@
         public int WaitTimeinMilliSeconds { get; set; }
         public string HTMLtoPdfWebkitPath { get; set; }
         public string DestinationPath { get; set; }
-
 
     }
 }
