@@ -4,4 +4,6 @@ export const FOI_BASE_API_URL = `${(window._env_ && window._env_.REACT_APP_FOI_B
 
 export const DOCREVIEWER_BASE_API_URL = `${(window._env_ && window._env_.FOI_DOCREVIEWER_BASE_API_URL) || process.env.FOI_DOCREVIEWER_BASE_API_URL || "http://localhost:15500"}`;
 
-// export const DOCREVIEWER_BASE_API_URL = 'http://localhost:5000'
+// export const DOCREVIEWER_BASE_API_URL = 'http://localhost:15500'
+
+// export const DOCREVIEWER_BASE_API_URL = 'https://dev-reviewer-api.apps.silver.devops.gov.bc.ca'
