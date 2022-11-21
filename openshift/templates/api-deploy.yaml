@@ -161,7 +161,10 @@ objects:
             - name: JWT_OIDC_JWKS_CACHE_TIMEOUT
               value: "300"
             - name: CORS_ORIGIN
-              value: "${CORS_ORIGIN}"
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: CACHE_REDISURL
             - name: CACHE_TIMEOUT
               value: "36000"
             - name: CACHE_ENABLED
@@ -332,7 +335,3 @@ parameters:
   description: Includes ImageStream name and tag
   required: true
   value: reviewer-api:dev
-- name: CORS_ORIGIN
-  displayName: CORS Origin whitelists
-  description: Whitelist for CORS requests
-  required: false
