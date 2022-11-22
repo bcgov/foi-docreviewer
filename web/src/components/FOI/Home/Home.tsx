@@ -16,6 +16,7 @@ function Home() {
   const [files, setFiles] = useState([]);
   const [currentPageInfo, setCurrentPageInfo] = useState({'file': {}, 'page': 0});
   const [s3UrlReady, setS3UrlReady] = useState(false);
+  const [s3Url, setS3Url] = useState('');
 
   const foiministryrequestid = 1;
   useEffect(() => {
@@ -34,7 +35,10 @@ function Home() {
             data[0]?.filepath,
             ministryrequestid,
             (s3data: string) => {
+                console.log('s3:');
+                console.log(s3data);
                 localStorage.setItem("currentDocumentS3Url", s3data);
+                setS3Url(s3data);
                 setS3UrlReady(true);
             },
             (error: any) => {
@@ -55,7 +59,7 @@ function Home() {
           { (files.length > 0) ? <DocumentSelector documents={files} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
-          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady ) ? <Redlining currentPageInfo={currentPageInfo} user={user} /> : <div>Loading</div> }
+          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? <Redlining currentPageInfo={currentPageInfo} user={user} /> : <div>Loading</div> }
         </Grid>
       </Grid>
     </div>
