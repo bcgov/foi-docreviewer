@@ -14,7 +14,7 @@
 """API endpoints for managing a FOI Requests resource."""
 
 from logging import Logger
-from flask import request, current_app
+from flask import request, current_app, jsonify
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
@@ -24,11 +24,9 @@ from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequired
 from reviewer_api.exceptions import BusinessException
 import json
 import os
-from reviewer_api.auth import AuthHelper
+
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.schemas.annotationrequest import AnnotationRequest
-
-from flask import jsonify
 
 API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
 # TRACER = Tracer.get_instance()
