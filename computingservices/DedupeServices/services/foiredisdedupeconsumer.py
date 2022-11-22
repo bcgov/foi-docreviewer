@@ -8,12 +8,12 @@ import typer
 import random
 import time
 from enum import Enum
-from utils import redisstreamdb
+from utils import redisstreamdb,dedupe_stream_key
 
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
-STREAM_KEY = "EDUC"
+STREAM_KEY = dedupe_stream_key
 
 app = typer.Typer()
 
