@@ -3,11 +3,11 @@ import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
 
 import { fetchAnnotations, saveAnnotation, deleteAnnotation } from '../../../apiManager/services/docReviewerService';
+import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 
 const Redlining = ({
   currentPageInfo,
-  user,
-  setCurrentPageInfo
+  user
 }) =>{
 
   const viewer = useRef(null);
@@ -23,12 +23,13 @@ const Redlining = ({
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
+    let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
     WebViewer(
       {
         path: '/webviewer',
         preloadWorker: 'pdf',
         // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
-        initialDoc: currentPageInfo.file['filepath'],
+        initialDoc: currentDocumentS3Url,
         fullAPI: true,
         enableRedaction: true,
       },
@@ -45,7 +46,7 @@ const Redlining = ({
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
-        if(newusername && newusername != username) annotationManager.setCurrentUser(newusername);
+        if(newusername && newusername !== username) annotationManager.setCurrentUser(newusername);
 
         //update isloaded flag
         localStorage.setItem("isDocumentLoaded", "true");
@@ -118,7 +119,7 @@ const Redlining = ({
           let annots = jObj.getElementsByTagName("annots");
           let annot = annots[0].children[0];
           
-          if(action == 'delete') {
+          if(action === 'delete') {
             deleteAnnotation(
               localDocumentInfo['file']['documentid'],
               localDocumentInfo['file']['version'],
@@ -156,18 +157,29 @@ const Redlining = ({
     //update user name
     let newusername = user?.name || user?.preferred_username || "";
     let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-    if(newusername != username) docViewer?.getAnnotationManager()?.setCurrentUser(newusername);
+    if(newusername !== username) docViewer?.getAnnotationManager()?.setCurrentUser(newusername);
   }, [user])
 
   useEffect(() => {
     //load a new document
-    // if(pdffile != (currentPageInfo.file['filepath'] + currentPageInfo.file['filename'])) {
-    if(pdffile != (currentPageInfo.file['filepath'])) {
+    if(pdffile !== (currentPageInfo.file['filepath'])) {
       localStorage.setItem("isDocumentLoaded", "false");
-      // setpdffile(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
       setpdffile(currentPageInfo.file['filepath']);
-      // docInstance?.UI?.loadDocument(currentPageInfo.file['filepath'] + currentPageInfo.file['filename']);
-      docInstance?.UI?.loadDocument(currentPageInfo.file['filepath']);
+
+      let ministryrequestid = "1";
+      getFOIS3DocumentPreSignedUrl(
+          currentPageInfo.file['filepath'],
+          ministryrequestid,
+          (data) => {
+              console.log("s3:");
+              console.log(data);
+              docInstance?.UI?.loadDocument(data);
+          },
+          (error) => {
+              console.log('error123');
+              console.log(error);
+          }
+        );
     }
 
     //change page from document selector

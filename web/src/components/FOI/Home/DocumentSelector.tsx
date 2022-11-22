@@ -19,27 +19,6 @@ const DocumentSelector = ({
     setCurrentPageInfo
   }: any) => {
     const [files, setFiles] = useState(documents)
-    // console.log(documents);
-
-    // const files = [
-    //     {filename: "test1.pdf", lastmodified: "2022-07-09T20:18:55.022Z", divisions: [
-    //         {"divisionid": 2, "name": "Deputy Minister's Office"},
-    //         {"divisionid": 1, "name": "Minister's Office"},
-    //         {"divisionid": 6, "name": "Governance & Analytics"}
-    //     ], pagecount: 9},
-    //     {filename: "test2.pdf", lastmodified: "2022-10-09T20:18:55.022Z", divisions: [
-    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
-    //     ], pagecount: 9},
-    //     {filename: "test3.pdf", lastmodified: "2022-08-09T20:18:55.022Z", divisions: [
-    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
-    //     ], pagecount: 9},
-    //     {filename: "test4.pdf", lastmodified: "2022-06-09T20:18:55.022Z", divisions: [
-    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
-    //     ], pagecount: 9},
-    //     {filename: "test5.pdf", lastmodified: "2022-10-03T20:18:55.022Z", divisions: [
-    //         {"divisionid": 2, "name": "Deputy Minister's Office"}
-    //     ], pagecount: 9},
-    // ]
 
     let arr: any[] = [];
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
