@@ -4,12 +4,13 @@ $ python consumer.py consumer1 --start-from $
 Start processing all records in the stream from the beginning:
 $ python consumer.py consumer1 --start-from 0
 """
+import json
 import typer
 import random
 import time
 from enum import Enum
 from utils import redisstreamdb,dedupe_stream_key
-
+from . import jsonmessageparser
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -43,6 +44,10 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         if messages:
             for message_id, message in messages:
                 print(f"processing {message_id}::{message}")
+                if message is not None:                    
+                    _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
+                    _message = _message.replace("b'","'").replace("'",'')                                   
+                    producermessage = jsonmessageparser.getdedupeproducermessage(_message)                    
                 # simulate processing
                 time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
