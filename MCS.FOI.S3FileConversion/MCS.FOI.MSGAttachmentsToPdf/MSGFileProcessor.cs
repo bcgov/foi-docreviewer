@@ -45,12 +45,15 @@ namespace MCS.FOI.MSGAttachmentsToPdf
         }
 
 
-        public (bool, string, string, Stream) MoveAttachments()
+        public (bool, string, string, Stream, Dictionary<MemoryStream, string>) MoveAttachments()
         {
             var message = $"No attachments to move to output folder";
             bool moved = true;
             string outputpath = string.Empty;
             MemoryStream output = new MemoryStream();
+            MemoryStream attachmentStream = new MemoryStream();
+            //List<MemoryStream> attachmentStreams = new List<MemoryStream>();
+            Dictionary<MemoryStream, string> attachmentsObj = new Dictionary<MemoryStream, string>();
             try
             {
                 //string sourceFile = Path.Combine(MSGSourceFilePath, MSGFileName);
@@ -61,8 +64,8 @@ namespace MCS.FOI.MSGAttachmentsToPdf
 
                     for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
-
-                        try
+                    
+                    try
                         {
                
                         using (var msg = new MsgReader.Outlook.Storage.Message(SourceStream))
@@ -84,7 +87,8 @@ namespace MCS.FOI.MSGAttachmentsToPdf
                                 else
                                 {
                                     var file = (Storage.Attachment)attachment;
-                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
+                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") || 
+                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx"))
                                     {
                                         problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                         problematicFiles.Add(file.FileName, file);
@@ -99,7 +103,7 @@ namespace MCS.FOI.MSGAttachmentsToPdf
                                 int cnt = 0;
                                 foreach (var attachmenttomove in problematicFiles)
                                 {
-
+                                    attachmentStream = new MemoryStream();
                                     if (attachmenttomove.Key.ToLower().Contains(".msg"))
                                     {
                                         var _attachment = (Storage.Message)attachmenttomove.Value;
@@ -110,19 +114,27 @@ namespace MCS.FOI.MSGAttachmentsToPdf
                                             if (type.ToLower().Contains("attachment"))
                                             {
                                                 var file = (Storage.Attachment)subattachment;
-                                                CreateOutputFolder("subattachments");
-                                                string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{file.FileName}";
-                                                File.WriteAllBytes(_fileName, file.Data);
+                                                //CreateOutputFolder("subattachments");
+                                                //string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{file.FileName}";
+                                                //File.WriteAllBytes(_fileName, file.Data);
+                                                File.WriteAllBytes(file.FileName, file.Data);
+                                                attachmentStream.Write(file.Data, 0, file.Data.Length);
+                                                attachmentsObj.Add(attachmentStream, file.FileName);
                                             }
                                         }
                                     }
                                     else
                                     {
+                                        //var _attachment = (Storage.Attachment)attachmenttomove.Value;
+                                        //string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
+                                        //CreateOutputFolder();
+                                        //File.WriteAllBytes(fileName, _attachment.Data);
+                                        //outputpath += fileName;
                                         var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                        string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
-                                        CreateOutputFolder();
-                                        File.WriteAllBytes(fileName, _attachment.Data);
-                                        outputpath += fileName;
+                                        File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        attachmentsObj.Add(attachmentStream, _attachment.FileName);
+                                        //attachmentStreams.Add(attachmentStream);
                                     }
                                     cnt++;
                                 }
@@ -155,7 +167,7 @@ namespace MCS.FOI.MSGAttachmentsToPdf
                 moved = false;
             }
 
-            return (moved, message, outputpath, output);
+            return (moved, message, outputpath, output, attachmentsObj);
         }
 
 

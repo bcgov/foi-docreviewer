@@ -2,7 +2,7 @@
 {
     public interface IMSGFileProcessor
     {
-        public (bool, string, string, Stream) MoveAttachments();
+        public (bool, string, string, Stream, Dictionary<MemoryStream, string>) MoveAttachments();
         public string MSGSourceFilePath { get; set; }
         public Stream SourceStream { get; set; }
         public string OutputFilePath { get; set; }

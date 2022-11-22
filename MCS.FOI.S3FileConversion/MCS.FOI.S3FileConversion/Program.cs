@@ -66,9 +66,15 @@ namespace MCS.FOI.S3FileConversion
                     {
                         //Console.WriteLine(message);
                         Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["S3Path"]);
-                        await S3Handler.convertFile(message["S3Path"]);
+                        List<String> s3AttachmentPaths= await S3Handler.convertFile(message["S3Path"]);
                         latest = message.Id;
                         db.StringSet($"{latest}:lastid", latest);
+                        for(int i = 0; i < s3AttachmentPaths.Count; i++)
+                        {
+                            db.StreamAdd(streamKey, new NameValueEntry[]
+                            { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
+                        }
+
                         db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
                         Console.WriteLine("Finished Converting: {0}", message["S3Path"]); 
                     }

@@ -69,14 +69,14 @@ namespace MCS.FOI.CalendarToPDF
 
         }
 
-        public (bool, string, string, Stream) ProcessCalendarFiles()
+        public (bool, string, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
         {
             MemoryStream output = new MemoryStream();
             bool isProcessed;
-
+            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
             try
             {
-                string htmlString = ConvertCalendartoHTML();
+                (string htmlString, attachments) = ConvertCalendartoHTML();
                 output = ConvertHTMLtoPDF(htmlString, output);
                 isProcessed = true;
             }
@@ -85,23 +85,25 @@ namespace MCS.FOI.CalendarToPDF
                 isProcessed=false;
                 throw ex;
             }
-            return (isProcessed, Message, DestinationPath, output);
+            return (isProcessed, Message, DestinationPath, output, attachments);
         }
 
         /// <summary>
         /// Converts iCalendar to HTML
         /// </summary>
         /// <returns>HTML as a string</returns>
-        private string ConvertCalendartoHTML()
+        private (string, Dictionary<MemoryStream, string>) ConvertCalendartoHTML()
         {
-
+            Dictionary<MemoryStream, string> attachmentsObj = new Dictionary<MemoryStream, string>();
             try
             {
                 string ical = string.Empty;
+                MemoryStream attachmentStream = new MemoryStream();
+
                 //string sourceFile = Path.Combine(SourcePath, FileName);
                 //if (File.Exists(sourceFile))
                 //{
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
                         try
                         {
@@ -140,10 +142,15 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
+                                //var file = attch.Parameters.Get("X-FILENAME");
+                                //string fileName = @$"{DestinationPath}\{Path.GetFileNameWithoutExtension(FileName)}_{file}";
+                                //CreateOutputFolder();
+                                //File.WriteAllBytes(fileName, attch.Data);
+                                    attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
-                                    string fileName = @$"{DestinationPath}\{Path.GetFileNameWithoutExtension(FileName)}_{file}";
-                                    CreateOutputFolder();
-                                    File.WriteAllBytes(fileName, attch.Data);
+                                    File.WriteAllBytes(file, attch.Data);
+                                    attachmentStream.Write(attch.Data, 0, attch.Data.Length);
+                                    attachmentsObj.Add(attachmentStream, file);
                                 }
                             }
                         }
@@ -213,7 +220,7 @@ namespace MCS.FOI.CalendarToPDF
                             </body>
                         </html>");
 
-                    return htmlString.ToString();
+                    return (htmlString.ToString(), attachmentsObj);
                 //}
                 //else
                 //{
@@ -226,7 +233,7 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
-                return error;
+                return (error, attachmentsObj);
             }
 
         }

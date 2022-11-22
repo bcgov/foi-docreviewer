@@ -18,7 +18,7 @@ namespace MCS.FOI.S3FileConversion
 {
     internal class S3Handler
     {
-        public static async System.Threading.Tasks.Task convertFile(string filePath)
+        public static async System.Threading.Tasks.Task<List<String>> convertFile(string filePath)
         {
             // Get S3 Access credentials based on ministry
             var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
@@ -27,7 +27,7 @@ namespace MCS.FOI.S3FileConversion
             string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
             string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
             string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
-
+            List<string> attachmentKeys = new List<string>();
             try {
                 // Initialize S3 Client
                 IAmazonS3 s3;
@@ -53,6 +53,8 @@ namespace MCS.FOI.S3FileConversion
                     // Convert File
                     string extension = Path.GetExtension(fileKey);
                     Stream output = new MemoryStream();
+                    Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+
                     switch (extension)
                     {
                         case ".xls":
@@ -60,14 +62,14 @@ namespace MCS.FOI.S3FileConversion
                             output = convertExcelFiles(responseStream);
                             break;
                         case ".ics":
-                            output = convertCalendarFiles(responseStream);
+                            (output, attachments) = convertCalendarFiles(responseStream);
                             break;
                         case ".msg":
-                            output = convertMSGFiles(responseStream);
+                            (output, attachments) = convertMSGFiles(responseStream);
                             break;
-                        case ".eml":
-                            output = convertEMLFiles(responseStream);
-                            break;
+                        //case ".eml":
+                        //    output = convertEMLFiles(responseStream);
+                        //    break;
                         case ".doc":
                         case ".docx":
                             output = convertDocFiles(responseStream);
@@ -83,13 +85,33 @@ namespace MCS.FOI.S3FileConversion
                     StreamContent strm = new StreamContent(output);
                     strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                     HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
+                    
+                    if (attachments != null)
+                    {
+                        //for (int i = 0; i < attachments.Count; i++)
+                        foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
+                        {
+                            attachment.Key.Position=0;
+                            //var newAttachmentKey = bucket + "/test-attachments/" + attachment.Value;
+                            var newAttachmentKey = bucket + "/"+ attachment.Value;
+                            var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
+                            //var newAttachmentKey = Path.ChangeExtension(fileKey, ".pdf");  "attachment" + i;
+                            //var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
+                            attachmentKeys.Add(S3Host+"/"+newAttachmentKey);
+                            StreamContent attachmentstrm = new StreamContent(attachment.Key);
+                            strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                            HttpResponseMessage putRespMsg1 = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+                        }
+                    }
 
                 }
+                
             }
             catch (AmazonS3Exception ex)
             {
                 Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
             }
+            return attachmentKeys;
         }
 
         public static string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)
@@ -119,17 +141,17 @@ namespace MCS.FOI.S3FileConversion
             return output;
         }
 
-        private static Stream convertCalendarFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, string>) convertCalendarFiles(Stream input)
         {
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input, "C:\\test-files\\test1.ics", "test1");
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
             calendarFileProcessor.FailureAttemptCount = 10;
             calendarFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (isProcessed, Message, DestinationPath, output) = calendarFileProcessor.ProcessCalendarFiles();
-            return output;
+            var (isProcessed, Message, DestinationPath, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
+            return (output, attachments);
         }
 
-        private static Stream convertMSGFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, string>) convertMSGFiles(Stream input)
         {
             //string sourcePath = fileInfo.FullName.Replace(fileInfo.Name, "");
             MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1");
@@ -141,9 +163,9 @@ namespace MCS.FOI.S3FileConversion
             msgFileProcessor.WaitTimeinMilliSeconds = 5000;
             msgFileProcessor.FailureAttemptCount = 10;
             msgFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (converted, message, PdfOutputFilePath, output) = msgFileProcessor.MoveAttachments();
+            var (converted, message, PdfOutputFilePath, output, attachments) = msgFileProcessor.MoveAttachments();
            //var output = msgFileProcessor.ProcessMsgOrEmlToPdf();
-            return output;
+            return (output, attachments);
         }
 
         private static Stream convertEMLFiles(Stream input)
