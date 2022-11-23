@@ -10,9 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Amazon;
 using MCS.FOI.ExcelToPDF;
 using MCS.FOI.CalendarToPDF;
-using MCS.FOI.MSGAttachmentsToPdf;
 using MCS.FOI.DocToPDF;
 using MCS.FOI.EMLToPDF;
+using MCS.FOI.MSGToPDF;
+
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -163,7 +164,7 @@ namespace MCS.FOI.S3FileConversion
             msgFileProcessor.WaitTimeinMilliSeconds = 5000;
             msgFileProcessor.FailureAttemptCount = 10;
             msgFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (converted, message, PdfOutputFilePath, output, attachments) = msgFileProcessor.MoveAttachments();
+            var (converted, message, PdfOutputFilePath, output, attachments) = msgFileProcessor.ConvertToPDF();
            //var output = msgFileProcessor.ProcessMsgOrEmlToPdf();
             return (output, attachments);
         }
