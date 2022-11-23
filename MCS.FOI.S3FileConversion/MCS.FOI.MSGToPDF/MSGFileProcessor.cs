@@ -197,35 +197,31 @@ namespace MCS.FOI.MSGToPDF
                 string recipientName = "";
                 foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
                 {
-                    recipientName += "; (" + recipient + ")";
+                    recipientName += recipient;
                 }
                 string recipientCCName = "";
                 foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
                 {
-                    recipientCCName += "; (" + recipient + ")";
+                    recipientCCName += recipient;
                 }
                 string recipientBccName = "";
                 foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
                 {
-                    recipientBccName += "; (" + recipient + ")";
+                    recipientBccName += recipient;
                 }
-                //if (!string.IsNullOrEmpty(recipientName))
-                //{ 
-                //    //recipientName = recipientName.Substring(1);
-                //    htmlString.Append(@"<tr>
-                //            <td><b>To: </b></td>
-                //            <td>" + recipientName + "</td></tr>");
-                //}
-                htmlString.Append(@"<tr>
+                if (!string.IsNullOrEmpty(recipientName))
+                {
+                    htmlString.Append(@"<tr>
                             <td><b>To: </b></td>
-                            <td>" + recipientName + "</td></tr>");
+                            <td>" + recipientName.Replace("<", "(").Replace(">", ")") + "</td></tr>");
+                }
 
                 if (!string.IsNullOrEmpty(recipientCCName))
                 {
                     //recipientCCName = recipientCCName.Substring(1);
                     htmlString.Append(@"<tr>
                                 <td><b>To: </b></td>
-                                <td>" + recipientCCName + "</td></tr>");
+                                <td>" + recipientCCName.Replace("<", "(").Replace(">", ")") + "</td></tr>");
                 }
 
                 if (!string.IsNullOrEmpty(recipientBccName))
@@ -233,7 +229,7 @@ namespace MCS.FOI.MSGToPDF
                     //recipientBccName = recipientBccName.Substring(1);
                     htmlString.Append(@"<tr>
                             <td><b>To: </b></td>
-                            <td>" + recipientBccName + "</td></tr>");
+                            <td>" + recipientBccName.Replace("<", "(").Replace(">", ")") + "</td></tr>");
                 }
 
                 htmlString.Append(@"<tr>
@@ -255,7 +251,7 @@ namespace MCS.FOI.MSGToPDF
                             <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
                 htmlString.Append(@"
                                     </table>
-                                </div><hr>");
+                                </div>");
 
                 htmlString.Append(@"</body></html>");
                 return htmlString.ToString();
