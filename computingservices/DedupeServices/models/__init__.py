@@ -1,1 +1,2 @@
 from .dedupeproducermessage import dedupeproducermessage
+from .s3credentials import s3credentials
