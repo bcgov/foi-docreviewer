@@ -1,1 +1,1 @@
-from utils import hashcalculator as foidedupehashcalulator, jsonmessageparser,conn
+from utils import hashcalculator as foidedupehashcalulator, jsonmessageparser,getdbconnection
