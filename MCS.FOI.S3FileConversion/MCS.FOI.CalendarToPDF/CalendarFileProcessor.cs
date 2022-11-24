@@ -15,19 +15,13 @@ namespace MCS.FOI.CalendarToPDF
     public class CalendarFileProcessor : ICalendarFileProcessor
     {
 
-        public string SourcePath { get; set; }
         /// <summary>
-        /// Source iCalendar Path, this will be full path including sub folders/ directories
+        /// Source iCalendar Stream
         /// </summary>
         public Stream SourceStream { get; set; }
 
         /// <summary>
-        /// PDF output path with sub folder(s) path
-        /// </summary>
-        public string DestinationPath { get; set; }
-
-        /// <summary>
-        /// Wait in Milli seconds before trying next attempt
+        /// Counts / tries to file convert , if that file already under access or updates or copying is still in progress
         /// </summary>
         public int FailureAttemptCount { get; set; }
 
@@ -35,12 +29,6 @@ namespace MCS.FOI.CalendarToPDF
         /// Wait in Milli seconds before trying next attempt
         /// </summary>
         public int WaitTimeinMilliSeconds { get; set; }
-
-        /// <summary>
-        /// Source file name with extension
-        /// </summary>
-        public string FileName { get; set; }
-
 
         /// <summary>
         /// Deployment platform - Linux/Windows
@@ -60,16 +48,13 @@ namespace MCS.FOI.CalendarToPDF
         {
 
         }
-        public CalendarFileProcessor(Stream sourceStream, string destinationPath, string fileName)
+        public CalendarFileProcessor(Stream sourceStream)
         {
             SourceStream = sourceStream;
-            DestinationPath = destinationPath;
-            FileName = fileName;
             Message = string.Empty;
-
         }
 
-        public (bool, string, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
+        public (bool, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
         {
             MemoryStream output = new MemoryStream();
             bool isProcessed;
@@ -85,7 +70,7 @@ namespace MCS.FOI.CalendarToPDF
                 isProcessed=false;
                 throw ex;
             }
-            return (isProcessed, Message, DestinationPath, output, attachments);
+            return (isProcessed, Message, output, attachments);
         }
 
         /// <summary>
@@ -267,12 +252,12 @@ namespace MCS.FOI.CalendarToPDF
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
 
-                CreateOutputFolder();
-                string outputPath = Path.Combine(DestinationPath, $"{Path.GetFileNameWithoutExtension(FileName)}.pdf");
-                fileStream = new FileStream(outputPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                //CreateOutputFolder();
+                //string outputPath = Path.Combine(DestinationPath, $"{Path.GetFileNameWithoutExtension(FileName)}.pdf");
+                //fileStream = new FileStream(outputPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
                 //Save and close the PDF document 
-                document.Save(fileStream);
+                //document.Save(fileStream);
                 document.Save(output);
                 document.Close(true);
 
@@ -293,16 +278,7 @@ namespace MCS.FOI.CalendarToPDF
             }
             return output;
         }
-        /// <summary>
-        /// Creates the output folder with sub folders if any
-        /// </summary>
-        private void CreateOutputFolder()
-        {
-            if (!Directory.Exists(DestinationPath))
-                Directory.CreateDirectory(DestinationPath);
-        }
-
-    }
+      }
 
     public enum Platform
     {

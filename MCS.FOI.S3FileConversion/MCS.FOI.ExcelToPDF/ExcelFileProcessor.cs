@@ -20,14 +20,10 @@ namespace MCS.FOI.ExcelToPDF
         /// Overloaded Constructor to recieve the Source Excel location and output location to save the PDF.
         /// </summary>
         /// <param name="sourceExcelFilePath"></param>
-        /// <param name="outputPdfFilePath"></param>
         /// <param name="excelFileName"></param>
-        public ExcelFileProcessor(Stream sourceStream, string outputPdfFilePath)
+        public ExcelFileProcessor(Stream sourceStream)
         {
             this.SourceStream = sourceStream;
-            //this.ExcelSourceFilePath = sourceExcelFilePath;
-            this.PdfOutputFilePath = outputPdfFilePath;
-            //this.ExcelFileName = excelFileName;
         }
 
         /// <summary>
@@ -35,20 +31,6 @@ namespace MCS.FOI.ExcelToPDF
         /// </summary>
         public Stream SourceStream { get; set; }
 
-        /// <summary>
-        /// Source Excel Path, this will be full path including sub folders/ directories
-        /// </summary>
-        public string ExcelSourceFilePath { get; set; }
-
-        /// <summary>
-        /// PDF output path with sub folder(s) path
-        /// </summary>
-        public string PdfOutputFilePath { get; set; }
-
-        /// <summary>
-        /// Source File Name
-        /// </summary>
-        public string ExcelFileName { get; set; }
 
         /// <summary>
         /// Flag to indicate to Syncfusion Xls to PDF Conversion, whether its a single page output for all spreadsheets
@@ -69,7 +51,7 @@ namespace MCS.FOI.ExcelToPDF
        /// Main Conversion Method, including Sysnfusion components, Failure recovery attempts and PDF conversion
        /// </summary>
        /// <returns>return a tuple wwith file conversion status.</returns>
-        public (bool, string, string, Stream) ConvertToPDF()
+        public (bool, string, Stream) ConvertToPDF()
         {
             bool converted = false;
             string message = string.Empty;
@@ -153,12 +135,12 @@ namespace MCS.FOI.ExcelToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting file at {ExcelSourceFilePath} , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception occured while coverting file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
             }
 
-            return (converted, message, PdfOutputFilePath, output);
+            return (converted, message, output);
         }
 
        
@@ -170,20 +152,20 @@ namespace MCS.FOI.ExcelToPDF
         {
             XlsIORenderer renderer = new XlsIORenderer();
             
-            if (!Directory.Exists(PdfOutputFilePath))
-                Directory.CreateDirectory(PdfOutputFilePath);
+            //if (!Directory.Exists(PdfOutputFilePath))
+            //    Directory.CreateDirectory(PdfOutputFilePath);
 
-            string _worksheetName = FileNameUtil.GetFormattedFileName(worksheet.Name); ;
+           // string _worksheetName = FileNameUtil.GetFormattedFileName(worksheet.Name); ;
        
-            string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}_{_worksheetName}");
+            //string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}_{_worksheetName}");
                       
             using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
-            using var stream = new FileStream($"{outputFileName}.pdf", FileMode.Create, FileAccess.Write); 
+            //using var stream = new FileStream($"{outputFileName}.pdf", FileMode.Create, FileAccess.Write); 
             pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
             pdfDocument.Compression = PdfCompressionLevel.Normal;            
-            pdfDocument.Save(stream);
+            //pdfDocument.Save(stream);
             pdfDocument.Save(output);
-            stream.Dispose();
+            //stream.Dispose();
             return output;
 
         }
@@ -195,14 +177,14 @@ namespace MCS.FOI.ExcelToPDF
         private MemoryStream saveToPdf(IWorkbook workbook, MemoryStream output)
         {
             XlsIORenderer renderer = new XlsIORenderer();
-            if (!Directory.Exists(PdfOutputFilePath))
-                Directory.CreateDirectory(PdfOutputFilePath);
-            string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}.pdf");
+            //if (!Directory.Exists(PdfOutputFilePath))
+            //    Directory.CreateDirectory(PdfOutputFilePath);
+            //string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}.pdf");
             PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
-            Stream stream = new FileStream(outputFileName, FileMode.Create, FileAccess.ReadWrite);
-            pdfDocument.Save(stream);
+            //Stream stream = new FileStream(outputFileName, FileMode.Create, FileAccess.ReadWrite);
+            //pdfDocument.Save(stream);
             pdfDocument.Save(output);
-            stream.Dispose();
+            //stream.Dispose();
             return output;
 
         }
