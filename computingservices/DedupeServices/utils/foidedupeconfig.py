@@ -14,3 +14,10 @@ dedupe_db_name = os.getenv('DEDUPE_DB_NAME')
 dedupe_db_port = os.getenv('DEDUPE_DB_PORT')
 dedupe_db_user = os.getenv('DEDUPE_DB_USER')
 dedupe_db_password = os.getenv('DEDUPE_DB_PASSWORD')
+
+dedupe_s3_host = os.getenv('DEDUPE_S3_HOST')
+dedupe_s3_host = os.getenv('DEDUPE_S3_HOST')
+dedupe_s3_region = os.getenv('DEDUPE_S3_REGION')
+dedupe_s3_service = os.getenv('DEDUPE_S3_SERVICE')
+dedupe_s3_env = os.getenv('DEDUPE_S3_ENV')
+

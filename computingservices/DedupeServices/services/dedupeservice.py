@@ -1,10 +1,6 @@
-from . import foidedupehashcalulator
-from .s3documentservice import getcredentialsbybcgovcode
 
-def rundedupe(filepath):
-    return foidedupehashcalulator.hash_file(filepath)
+from .s3documentservice import gets3documenthashcode
 
 
-def processmessage(message):
-    credentialattr = getcredentialsbybcgovcode(message.bcgovcode)
-    print(credentialattr)
+def processmessage(message):   
+    gets3documenthashcode(message)

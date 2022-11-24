@@ -1,5 +1,5 @@
 from .hashcalculator import hash_file
 from .foiredisstreamdb import redisstreamdb
-from .foidedupeconfig import redishost,redisport,redispassword,dedupe_stream_key,dedupe_db_host,dedupe_db_name,dedupe_db_password,dedupe_db_port,dedupe_db_user
+from .foidedupeconfig import *
 from .jsonmessageparser import getdedupeproducermessage,gets3credentialsobject
 from .dbconnection import getdbconnection
