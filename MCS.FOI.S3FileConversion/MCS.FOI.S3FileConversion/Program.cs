@@ -38,7 +38,7 @@ namespace MCS.FOI.S3FileConversion
                 //string S3Host = configurationbuilder.GetSection("ConversionSettings:S3Host").Value;
 
 
-                // Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
+                //Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
                 //ConversionSettings.DeploymentPlatform = environmentName.ToLower().StartsWith("linux") ? Platform.Linux : Platform.Windows; //KEEPING MULTI PLATFORM CODE BASE LOGIC FOR FUTURE REFERENCE
                 ConversionSettings.DeploymentPlatform = Platform.Windows; //Fixing to Windows platform for Win Server VM deployment, once with Linux/OS , will take environment
                 ConversionSettings.FileWatcherStartDate = configurationbuilder.GetSection("ConversionSettings:FileWatcherStartDate").Value;

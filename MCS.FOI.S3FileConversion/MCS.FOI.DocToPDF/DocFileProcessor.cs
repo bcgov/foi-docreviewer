@@ -54,7 +54,6 @@ namespace MCS.FOI.DocToPDF
                         //Convert Word document into PDF document
                         PdfDocument pdfDocument = converter.ConvertToPDF(wordDocument);
                         //Save the PDF file
-                        pdfDocument.Save("WordtoPDF.pdf");
                         //Close the instance of document objects
                         pdfDocument.Save(output);
                         pdfDocument.Close(true);
@@ -74,7 +73,7 @@ namespace MCS.FOI.DocToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting Doc file at {SourceStream} , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception occured while coverting Doc file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
             }

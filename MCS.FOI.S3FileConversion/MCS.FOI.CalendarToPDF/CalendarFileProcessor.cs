@@ -85,21 +85,16 @@ namespace MCS.FOI.CalendarToPDF
                 string ical = string.Empty;
                 MemoryStream attachmentStream = new MemoryStream();
 
-                //string sourceFile = Path.Combine(SourcePath, FileName);
-                //if (File.Exists(sourceFile))
-                //{
-                for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                if (SourceStream != null && SourceStream.Length > 0)
+                { 
+                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
                         try
                         {
-                            //using (FileStream fileStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read))
+                            using (StreamReader sr = new StreamReader(SourceStream))
                             {
-                                using (StreamReader sr = new StreamReader(SourceStream))
-                                {
-                                    ical = sr.ReadToEnd();
-                                }
+                                ical = sr.ReadToEnd();
                             }
-                            break;
                         }
                         catch (Exception e)
                         {
@@ -127,10 +122,6 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
-                                //var file = attch.Parameters.Get("X-FILENAME");
-                                //string fileName = @$"{DestinationPath}\{Path.GetFileNameWithoutExtension(FileName)}_{file}";
-                                //CreateOutputFolder();
-                                //File.WriteAllBytes(fileName, attch.Data);
                                     attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     File.WriteAllBytes(file, attch.Data);
@@ -206,12 +197,12 @@ namespace MCS.FOI.CalendarToPDF
                         </html>");
 
                     return (htmlString.ToString(), attachmentsObj);
-                //}
-                //else
-                //{
-                //    string errorMessage = $"File not found at the {SourcePath}";
-                //    return errorMessage;
-                //}
+                }
+                else
+                {
+                    string errorMessage = $"File not found";
+                    return (errorMessage, attachmentsObj);
+                }
             }
             catch (Exception ex)
             {
@@ -236,28 +227,18 @@ namespace MCS.FOI.CalendarToPDF
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-
                 WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
-
                 //Point to the webkit based on the platform the application is running
                 webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
-
-
                 //Assign WebKit converter settings to HTML converter
                 htmlConverter.ConverterSettings = webKitConverterSettings;
                 htmlConverter.ConverterSettings.Margin.All = 25;
                 htmlConverter.ConverterSettings.EnableHyperLink = true;
                 htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
-
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
 
-                //CreateOutputFolder();
-                //string outputPath = Path.Combine(DestinationPath, $"{Path.GetFileNameWithoutExtension(FileName)}.pdf");
-                //fileStream = new FileStream(outputPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-
                 //Save and close the PDF document 
-                //document.Save(fileStream);
                 document.Save(output);
                 document.Close(true);
 

@@ -8,6 +8,7 @@ using Amazon.S3.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Amazon;
+using MCS.FOI.S3FileConversion.Utilities;
 using MCS.FOI.ExcelToPDF;
 using MCS.FOI.CalendarToPDF;
 using MCS.FOI.DocToPDF;
@@ -23,11 +24,15 @@ namespace MCS.FOI.S3FileConversion
         {
             // Get S3 Access credentials based on ministry
             var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
+            var configurationbuilder = new ConfigurationBuilder()
+                        .AddJsonFile($"appsettings.json", true, true)
+                        .AddEnvironmentVariables().Build();
             string S3Host = cb.GetSection("S3Host").Value;
             string bucket = filePath.Split("/")[3];
             string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
             string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
             string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
+            
             List<string> attachmentKeys = new List<string>();
             try {
                 // Initialize S3 Client
@@ -87,21 +92,17 @@ namespace MCS.FOI.S3FileConversion
                     strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                     HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
                     
-                    if (attachments != null)
+                    if (attachments != null && attachments.Count > 0)
                     {
-                        //for (int i = 0; i < attachments.Count; i++)
                         foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
                         {
                             attachment.Key.Position=0;
-                            //var newAttachmentKey = bucket + "/test-attachments/" + attachment.Value;
                             var newAttachmentKey = bucket + "/"+ attachment.Value;
                             var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
-                            //var newAttachmentKey = Path.ChangeExtension(fileKey, ".pdf");  "attachment" + i;
-                            //var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                             attachmentKeys.Add(S3Host+"/"+newAttachmentKey);
                             StreamContent attachmentstrm = new StreamContent(attachment.Key);
                             strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                            HttpResponseMessage putRespMsg1 = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+                            HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
                         }
                     }
 
@@ -122,70 +123,60 @@ namespace MCS.FOI.S3FileConversion
             {
                 Key = fileName,
                 Verb = method,
-                //ContentType = "application/pdf",
                 Expires = DateTime.Now.AddHours(1),
                 Protocol = Protocol.HTTPS,
-                //ServerSideEncryptionKeyManagementServiceKeyId = S3AccessSecretKey,
-                //ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256
             };
-            //request1.ResponseHeaderOverrides.ContentType = "application/pdf";
             return s3.GetPreSignedURL(request);
         }
 
         private static Stream convertExcelFiles(Stream input)
         {
-            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input, "C:\\test-files\\test1.xlsx");
+            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input);
             excelFileProcessor.IsSinglePDFOutput = false;
-            excelFileProcessor.WaitTimeinMilliSeconds = 5000;
-            excelFileProcessor.FailureAttemptCount = 10;
-            var (converted, message, PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
+            excelFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
+            excelFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            var (converted, message, output) = excelFileProcessor.ConvertToPDF();
             return output;
         }
 
         private static (Stream, Dictionary<MemoryStream, string>) convertCalendarFiles(Stream input)
         {
-            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input, "C:\\test-files\\test1.ics", "test1");
-            calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
-            calendarFileProcessor.FailureAttemptCount = 10;
-            calendarFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (isProcessed, Message, DestinationPath, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
+            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input);
+            calendarFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
+            calendarFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            calendarFileProcessor.HTMLtoPdfWebkitPath = ConversionSettings.HTMLtoPdfWebkitPath;
+            var (isProcessed, Message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             return (output, attachments);
         }
 
         private static (Stream, Dictionary<MemoryStream, string>) convertMSGFiles(Stream input)
         {
-            //string sourcePath = fileInfo.FullName.Replace(fileInfo.Name, "");
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input, "C:\\test-files\\test1.msg", "test1");
-            //msgFileProcessor.MSGFileName = fileInfo.Name;
+            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input);
             msgFileProcessor.IsSinglePDFOutput = false;
-            //msgFileProcessor.MSGSourceFilePath = sourcePath;
-            //msgFileProcessor.SourceStream = input;
-            //msgFileProcessor.OutputFilePath = getPdfOutputPath(msgFileProcessor.MSGSourceFilePath);
-            msgFileProcessor.WaitTimeinMilliSeconds = 5000;
-            msgFileProcessor.FailureAttemptCount = 10;
-            msgFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (converted, message, PdfOutputFilePath, output, attachments) = msgFileProcessor.ConvertToPDF();
-           //var output = msgFileProcessor.ProcessMsgOrEmlToPdf();
+            msgFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
+            msgFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            msgFileProcessor.HTMLtoPdfWebkitPath = ConversionSettings.HTMLtoPdfWebkitPath;
+            var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             return (output, attachments);
         }
 
-        private static Stream convertEMLFiles(Stream input)
-        {
-            EMLFileProcessor emlFileProcessor = new EMLFileProcessor(input, "C:\\test-files\\test-payment.eml", "test-payment");
-            emlFileProcessor.IsSinglePDFOutput = false;
-            emlFileProcessor.WaitTimeinMilliSeconds = 5000;
-            emlFileProcessor.FailureAttemptCount = 10;
-            emlFileProcessor.HTMLtoPdfWebkitPath = "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.S3FileConversion\\QtBinariesWindows";
-            var (converted, message, PdfOutputFilePath, output) = emlFileProcessor.ConvertToPDF();
-            return output;
-        }
+        //private static Stream convertEMLFiles(Stream input)
+        //{
+        //    EMLFileProcessor emlFileProcessor = new EMLFileProcessor(input, "C:\\test-files\\test-payment.eml", "test-payment");
+        //    emlFileProcessor.IsSinglePDFOutput = false;
+        //    emlFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
+        //    emlFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+        //    emlFileProcessor.HTMLtoPdfWebkitPath = ConversionSettings.HTMLtoPdfWebkitPath;
+        //    var (converted, message, PdfOutputFilePath, output) = emlFileProcessor.ConvertToPDF();
+        //    return output;
+        //}
 
         private static Stream convertDocFiles(Stream input)
         {
             DocFileProcessor docFileProcessor = new DocFileProcessor(input);
             docFileProcessor.IsSinglePDFOutput = false;
-            docFileProcessor.WaitTimeinMilliSeconds = 5000;
-            docFileProcessor.FailureAttemptCount = 10;
+            docFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
+            docFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
             var (converted, output) = docFileProcessor.ConvertToPDF();
             return output;
         }
