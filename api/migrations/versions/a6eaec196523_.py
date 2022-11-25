@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     op.create_table('DocumentHashCodes',
-        sa.Column('documentid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
+        sa.Column('documentid', sa.Integer(), primary_key=True, autoincrement=False, nullable=False),
         sa.Column('rank1hash', sa.Text, nullable=False), 
         sa.Column('rank2hash', sa.Text, nullable=True),       
         sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now()),

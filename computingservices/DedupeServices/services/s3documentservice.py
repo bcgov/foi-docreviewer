@@ -46,6 +46,5 @@ def gets3documenthashcode(producermessage):
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)
-
-    print(sig.hexdigest())
+    
     return sig.hexdigest()
