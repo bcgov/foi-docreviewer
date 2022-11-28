@@ -94,14 +94,18 @@ namespace MCS.FOI.S3FileConversion
                             List<String> s3AttachmentPaths= await S3Handler.convertFile(message["S3Path"]);
                             latest = message.Id;
                             db.StringSet($"{latest}:lastid", latest);
-                            for(int i = 0; i < s3AttachmentPaths.Count; i++)
-                            {
-                                db.StreamAdd(streamKey, new NameValueEntry[]
-                                { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
-                            }
-
                             db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
-                            Console.WriteLine("Finished Converting: {0}", message["S3Path"]); 
+                            Console.WriteLine("Finished Converting: {0}", message["S3Path"]);
+                            if (s3AttachmentPaths != null && s3AttachmentPaths.Count > 0)
+                            {
+                                for (int i = 0; i < s3AttachmentPaths.Count; i++)
+                                {
+                                    db.StreamAdd(streamKey, new NameValueEntry[]
+                                    { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
+                                    db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
+                                    Console.WriteLine("Finished Converting: {0}", s3AttachmentPaths[i]);
+                                }
+                            }
                         }
                     } else {
                         Console.WriteLine("No new messages after {0}", latest);

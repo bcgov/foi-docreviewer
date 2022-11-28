@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Xml;
 using MsgReader;
 using MsgReader.Helpers;
 using MsgReader.Outlook;
@@ -40,6 +41,7 @@ namespace MCS.FOI.MSGToPDF
         {
             var message = $"No attachments to move to output folder";
             bool moved = true;
+            bool isConverted = false;
             string outputpath = string.Empty;
             MemoryStream output = new MemoryStream();
             MemoryStream attachmentStream = new MemoryStream();
@@ -57,7 +59,7 @@ namespace MCS.FOI.MSGToPDF
                             using (var msg = new MsgReader.Outlook.Storage.Message(SourceStream))
                             {
                                 string htmlString = generateHtmlfromMsg(msg);
-                                output = ConvertHTMLtoPDF(htmlString, output);
+                                (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
 
                                 var attachments = msg.Attachments;
                                 foreach (Object attachment in attachments)
@@ -159,7 +161,7 @@ namespace MCS.FOI.MSGToPDF
                                 <body style='border: 50px solid white;'>
                                     ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:20px;'>");
+                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:60px;'>");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -241,24 +243,29 @@ namespace MCS.FOI.MSGToPDF
             }
         }
 
-        private MemoryStream ConvertHTMLtoPDF(string strHTML, MemoryStream output)
+        private (MemoryStream, bool) ConvertHTMLtoPDF(string strHTML, MemoryStream output)
         {
             bool isConverted;
-            FileStream fileStream = null;
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-                WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
+                //HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
+                //Initialize HTML to PDF converter with Blink rendering engine
+                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
+
+                //WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
                 //Point to the webkit based on the platform the application is running
-                webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
+                //webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
                 //Assign WebKit converter settings to HTML converter
-                htmlConverter.ConverterSettings = webKitConverterSettings;
-                htmlConverter.ConverterSettings.Margin.All = 25;
-                htmlConverter.ConverterSettings.EnableHyperLink = true;
-                htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
-                //Convert HTML string to PDF
+                //htmlConverter.ConverterSettings = webKitConverterSettings;
+                //htmlConverter.ConverterSettings.Margin.All = 25;
+                //htmlConverter.ConverterSettings.EnableHyperLink = true;
+                //htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
+                string baseUrl = @"C:/Temp/HTMLFiles/";
+                //Convert URL to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
+                //Convert HTML string to PDF
+                //PdfDocument document = htmlConverter.Convert(strHTML);
                 //Save and close the PDF document 
                 document.Save(output);
                 document.Close(true);
@@ -273,12 +280,12 @@ namespace MCS.FOI.MSGToPDF
                 Console.WriteLine(error);
                 //Message = error;
             }
-            finally
-            {
-                if (fileStream != null)
-                    fileStream.Dispose();
-            }
-            return output;
+            //finally
+            //{
+            //    if (output != null)
+            //        output.Dispose();
+            //}
+            return (output, isConverted);
         }
 
     }

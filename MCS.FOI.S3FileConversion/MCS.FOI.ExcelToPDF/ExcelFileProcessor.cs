@@ -59,13 +59,11 @@ namespace MCS.FOI.ExcelToPDF
             MemoryStream output = new MemoryStream();
             try
             {
-                //string sourceFile = Path.Combine(ExcelSourceFilePath, ExcelFileName);
-                //if (File.Exists(sourceFile))
-                //{
+                if (SourceStream != null && SourceStream.Length > 0)
+                {
                     using (ExcelEngine excelEngine = new ExcelEngine())
                     {
                         IApplication application = excelEngine.Excel;
-
                         var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
 
                         for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
@@ -74,10 +72,8 @@ namespace MCS.FOI.ExcelToPDF
                             
                             try
                             {
-                                //using (excelStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read))
                                 using (excelStream = SourceStream)
                                 {
-                                    
                                     IWorkbook workbook = application.Workbooks.Open(excelStream, excelparseoptions);
 
                                     if (workbook.Worksheets.Count > 0)
@@ -88,7 +84,6 @@ namespace MCS.FOI.ExcelToPDF
                                             {
                                                 if (worksheet.Visibility == WorksheetVisibility.Visible)
                                                 {                                                   
-                                                    //worksheet.UsedRange.AutofitRows();                                                    
                                                     output = saveToPdf(worksheet, output);
                                                 }
                                             }
@@ -124,13 +119,12 @@ namespace MCS.FOI.ExcelToPDF
                         }
 
                     }
-                //}
-                //else
-                //{
-                //    message = $"{sourceFile} does not exist!";
-                //    Log.Error(message);
-                //    //return converted;
-                //}
+                }
+                else
+                {
+                    message = $"Excel File does not exist!";
+                    Log.Error(message);
+                }
             }
             catch (Exception ex)
             {
@@ -150,24 +144,20 @@ namespace MCS.FOI.ExcelToPDF
         /// <param name="worksheet">worksheet object</param>
         private MemoryStream saveToPdf(IWorksheet worksheet, MemoryStream output)
         {
-            XlsIORenderer renderer = new XlsIORenderer();
-            
-            //if (!Directory.Exists(PdfOutputFilePath))
-            //    Directory.CreateDirectory(PdfOutputFilePath);
-
-           // string _worksheetName = FileNameUtil.GetFormattedFileName(worksheet.Name); ;
-       
-            //string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}_{_worksheetName}");
-                      
-            using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
-            //using var stream = new FileStream($"{outputFileName}.pdf", FileMode.Create, FileAccess.Write); 
-            pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
-            pdfDocument.Compression = PdfCompressionLevel.Normal;            
-            //pdfDocument.Save(stream);
-            pdfDocument.Save(output);
-            //stream.Dispose();
+            try
+            {
+                XlsIORenderer renderer = new XlsIORenderer();
+                using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
+                pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
+                pdfDocument.Compression = PdfCompressionLevel.Normal;
+                pdfDocument.Save(output);
+            }
+            catch (Exception ex)
+            {
+                string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                Console.WriteLine(error);
+            }
             return output;
-
         }
 
         /// <summary>
@@ -176,17 +166,18 @@ namespace MCS.FOI.ExcelToPDF
         /// <param name="workbook">workbook object</param>
         private MemoryStream saveToPdf(IWorkbook workbook, MemoryStream output)
         {
-            XlsIORenderer renderer = new XlsIORenderer();
-            //if (!Directory.Exists(PdfOutputFilePath))
-            //    Directory.CreateDirectory(PdfOutputFilePath);
-            //string outputFileName = Path.Combine(PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(ExcelFileName)}.pdf");
-            PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
-            //Stream stream = new FileStream(outputFileName, FileMode.Create, FileAccess.ReadWrite);
-            //pdfDocument.Save(stream);
-            pdfDocument.Save(output);
-            //stream.Dispose();
+            try
+            {
+                XlsIORenderer renderer = new XlsIORenderer();
+                PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
+                pdfDocument.Save(output);
+            }
+            catch (Exception ex)
+            {
+                string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                Console.WriteLine(error);
+            }
             return output;
-
         }
 
 

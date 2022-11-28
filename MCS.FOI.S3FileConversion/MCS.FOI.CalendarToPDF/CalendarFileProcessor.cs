@@ -57,20 +57,19 @@ namespace MCS.FOI.CalendarToPDF
         public (bool, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
         {
             MemoryStream output = new MemoryStream();
-            bool isProcessed;
+            bool isConverted;
             Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
             try
             {
                 (string htmlString, attachments) = ConvertCalendartoHTML();
-                output = ConvertHTMLtoPDF(htmlString, output);
-                isProcessed = true;
+                (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
             }
             catch (Exception ex)
             {
-                isProcessed=false;
+                isConverted = false;
                 throw ex;
             }
-            return (isProcessed, Message, output, attachments);
+            return (isConverted, Message, output, attachments);
         }
 
         /// <summary>
@@ -219,7 +218,7 @@ namespace MCS.FOI.CalendarToPDF
         /// </summary>
         /// <param name="strHTML">HTML string</param>
         /// <returns>true - if converted successfully, else false</returns>
-        private MemoryStream ConvertHTMLtoPDF(string strHTML, MemoryStream output)
+        private (MemoryStream, bool) ConvertHTMLtoPDF(string strHTML, MemoryStream output)
         {
             bool isConverted;
             FileStream fileStream = null;
@@ -257,7 +256,7 @@ namespace MCS.FOI.CalendarToPDF
                 if (fileStream != null)
                     fileStream.Dispose();
             }
-            return output;
+            return (output, isConverted);
         }
       }
 
