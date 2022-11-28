@@ -95,6 +95,14 @@ services:
       services-network:
         aliases:
           - db   
+  
+  foi-s3-fileconversion:
+    container_name: foi-s3-fileconversion
+    build:
+      context: ./MCS.FOI.S3FileConversion/
+      dockerfile: Dockerfile.local
+      args:
+    volumes:
 
 volumes:
   dbdata:

@@ -34,7 +34,8 @@ namespace MCS.FOI.S3FileConversion
             string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
             
             List<string> attachmentKeys = new List<string>();
-            try {
+            try
+            {
                 // Initialize S3 Client
                 IAmazonS3 s3;
                 AWSCredentials AWSCredentials = new BasicAWSCredentials(S3AccessKeyID, S3AccessSecretKey);
@@ -107,7 +108,7 @@ namespace MCS.FOI.S3FileConversion
                     }
 
                 }
-                
+
             }
             catch (AmazonS3Exception ex)
             {
