@@ -2,6 +2,7 @@ import unittest
 import os
 from .testcontext import hashcalc , dedupeunittestbasedirectory
 
+#python -m unittest .\unittests\testhashcodecalculator.py
 class Testhashcodecalculator(unittest.TestCase):
 
     def test_hascalc(self):                
