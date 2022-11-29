@@ -2,7 +2,7 @@ import unittest
 from .testcontext import dedupedbservice
 from models import dedupeproducermessage
 
-#python -m unittest .\unittests\testhashcodecalculator.py
+#python -m unittest .\unittests\test_dedupedbservice.py
 class TestDedupeDBService(unittest.TestCase):
 
     def test_dedupedbservice(self):                

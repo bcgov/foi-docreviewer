@@ -9,9 +9,7 @@ class Testhashcodecalculator(unittest.TestCase):
         testfilepath = str.format('{0}\\files\\sample.pdf', dedupeunittestbasedirectory)
         documenthashvalue1 = hashcalc.hash_file(testfilepath)
         self.assertIsNotNone(documenthashvalue1)
-        print(documenthashvalue1)
-        documenthashvalue2 = hashcalc.hash_file(testfilepath)
-        print(documenthashvalue2)
+        documenthashvalue2 = hashcalc.hash_file(testfilepath)       
         self.assertEqual(documenthashvalue1,documenthashvalue2)
 
 
