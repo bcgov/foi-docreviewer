@@ -43,7 +43,6 @@ namespace MCS.FOI.S3FileConversion
                 ConversionSettings.DeploymentPlatform = Platform.Windows; //Fixing to Windows platform for Win Server VM deployment, once with Linux/OS , will take environment
                 ConversionSettings.FileWatcherStartDate = configurationbuilder.GetSection("ConversionSettings:FileWatcherStartDate").Value;
                 ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
-                ConversionSettings.HTMLtoPdfWebkitPath = configurationbuilder.GetSection("ConversionSettings:HTMLtoPdfWebkitPath").Value;
                 ConversionSettings.CFRArchiveFoldertoSkip = configurationbuilder.GetSection("ConversionSettings:CFRArchiveFoldertoSkip").Value;
                 IConfigurationSection ministryConfigSection = configurationbuilder.GetSection("ConversionSettings:MinistryIncomingPaths");
 
@@ -78,7 +77,6 @@ namespace MCS.FOI.S3FileConversion
                 var pong = await db.PingAsync();
                 Console.WriteLine(pong);
 
-                //string latest = "1667951169543-0";
                 string latest = "$";
                 string streamKey = configurationbuilder.GetSection("EventHub:StreamKey").Value;
                 //db.StreamCreateConsumerGroup(streamKey, "file-conversion-consumer-group", "$");
@@ -89,13 +87,11 @@ namespace MCS.FOI.S3FileConversion
                     if (messages.Length > 0) {
                         foreach (StreamEntry message in messages)
                         {
-                            //Console.WriteLine(message);
                             Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["S3Path"]);
                             List<String> s3AttachmentPaths= await S3Handler.convertFile(message["S3Path"]);
                             latest = message.Id;
                             db.StringSet($"{latest}:lastid", latest);
                             db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
-                            Console.WriteLine("Finished Converting: {0}", message["S3Path"]);
                             if (s3AttachmentPaths != null && s3AttachmentPaths.Count > 0)
                             {
                                 for (int i = 0; i < s3AttachmentPaths.Count; i++)
@@ -103,11 +99,12 @@ namespace MCS.FOI.S3FileConversion
                                     db.StreamAdd(streamKey, new NameValueEntry[]
                                     { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
                                     db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
-                                    Console.WriteLine("Finished Converting: {0}", s3AttachmentPaths[i]);
                                 }
                             }
+                            Console.WriteLine("Finished Converting: {0}", message["S3Path"]);
                         }
-                    } else {
+                    }
+                    else {
                         Console.WriteLine("No new messages after {0}", latest);
                     }
                     Thread.Sleep(6000);

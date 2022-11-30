@@ -5,6 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
 
@@ -28,22 +29,17 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.101.9" />
-    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
 	<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
 	<PackageReference Include="StackExchange.Redis" Version="2.6.70" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.AspNet" Version="20.3.0.58" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.AspNet.Mvc5" Version="20.3.0.58" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Blink.AspNet" Version="20.3.0.47" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Linux" Version="20.3.0.58" />
+	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Linux" Version="20.3.0.59" />
 	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Windows" Version="20.3.0.56" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.WinForms" Version="20.3.0.58" />
-	<PackageReference Include="Syncfusion.HtmlToPdfConverter.WPF" Version="20.3.0.58" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MCS.FOI.ExcelToPDF\MCS.FOI.ExcelToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.CalendarToPDF\MCS.FOI.CalendarToPDF.csproj" />
-	<ProjectReference Include="..\MCS.FOI.DocToPdf\MCS.FOI.DocToPDF.csproj" />
+	<ProjectReference Include="..\MCS.FOI.DocToPDF\MCS.FOI.DocToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.EMLToPDF\MCS.FOI.EMLToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.MSGToPDF\MCS.FOI.MSGToPDF.csproj" />
   </ItemGroup>

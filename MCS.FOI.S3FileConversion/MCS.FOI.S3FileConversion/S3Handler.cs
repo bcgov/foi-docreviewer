@@ -145,7 +145,6 @@ namespace MCS.FOI.S3FileConversion
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input);
             calendarFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
             calendarFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
-            calendarFileProcessor.HTMLtoPdfWebkitPath = ConversionSettings.HTMLtoPdfWebkitPath;
             var (isProcessed, Message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             return (output, attachments);
         }
@@ -156,7 +155,6 @@ namespace MCS.FOI.S3FileConversion
             msgFileProcessor.IsSinglePDFOutput = false;
             msgFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
             msgFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
-            msgFileProcessor.HTMLtoPdfWebkitPath = ConversionSettings.HTMLtoPdfWebkitPath;
             var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             return (output, attachments);
         }

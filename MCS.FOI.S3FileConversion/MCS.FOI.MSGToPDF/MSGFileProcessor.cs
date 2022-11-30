@@ -23,9 +23,6 @@ namespace MCS.FOI.MSGToPDF
         public bool IsSinglePDFOutput { get; set; }
         public int FailureAttemptCount { get; set; }
         public int WaitTimeinMilliSeconds { get; set; }
-        public string HTMLtoPdfWebkitPath { get; set; }
-
-
 
         public MSGFileProcessor() { }
 
@@ -161,7 +158,7 @@ namespace MCS.FOI.MSGToPDF
                                 <body style='border: 50px solid white;'>
                                     ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:60px;'>");
+                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:15px;'>");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -220,17 +217,13 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.SentOn + "</td></tr>");
 
                 //Message body
-                string message = @"" + msg.BodyText.Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br>");
-                message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
+                string message = @"" + msg.BodyText.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
-                htmlString.Append(@"<tr>
-                            <td><b>Message Body: </b></td>
-                            </tr>
-                            <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
+                                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
                 htmlString.Append(@"
                                     </table>
                                 </div>");
-
                 htmlString.Append(@"</body></html>");
                 return htmlString.ToString();
             }
@@ -249,42 +242,27 @@ namespace MCS.FOI.MSGToPDF
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                //HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-                //Initialize HTML to PDF converter with Blink rendering engine
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
-
-                //WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
-                //Point to the webkit based on the platform the application is running
-                //webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
-                //Assign WebKit converter settings to HTML converter
-                //htmlConverter.ConverterSettings = webKitConverterSettings;
-                //htmlConverter.ConverterSettings.Margin.All = 25;
-                //htmlConverter.ConverterSettings.EnableHyperLink = true;
-                //htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
-                string baseUrl = @"C:/Temp/HTMLFiles/";
-                //Convert URL to PDF
-                PdfDocument document = htmlConverter.Convert(strHTML, "");
+                BlinkConverterSettings settings = new BlinkConverterSettings();
+                settings.EnableHyperLink = false;
+                //Set command line arguments to run without sandbox.
+                settings.CommandLineArguments.Add("--no-sandbox");
+                settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
-                //PdfDocument document = htmlConverter.Convert(strHTML);
+                PdfDocument document = htmlConverter.Convert(strHTML, "");
                 //Save and close the PDF document 
                 document.Save(output);
                 document.Close(true);
-
                 isConverted = true;
-                //Message = $"processed successfully!";
             }
             catch (Exception ex)
             {
                 isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
-                //Message = error;
             }
-            //finally
-            //{
-            //    if (output != null)
-            //        output.Dispose();
-            //}
+  
             return (output, isConverted);
         }
 

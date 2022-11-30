@@ -36,14 +36,11 @@ namespace MCS.FOI.CalendarToPDF
         public Platform DeploymentPlatform { get; set; }
 
         /// <summary>
-        /// Syncfusion binary path for qt webkit. Required for conversion from HTML to PDF
-        /// </summary>
-        public string HTMLtoPdfWebkitPath { get; set; }
-
-        /// <summary>
         /// Success/Failure message
         /// </summary>
         public string Message { get; set; }
+
+
         public CalendarFileProcessor()
         {
 
@@ -130,7 +127,7 @@ namespace MCS.FOI.CalendarToPDF
                             }
                         }
                         //Meeting Title
-                        htmlString.Append(@"<div class='header" + i + "' style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><h1>" + e.Summary + "</h1><hr><table style='border: 5px; padding: 0; font-size:20px;'>");
+                        htmlString.Append(@"<div class='header" + i + "' style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><h1>" + e.Summary + "</h1><hr><table style='border: 5px; padding: 0; font-size:15px;'>");
 
                         string organizer = string.Empty;
                         //Organizer Name and Email
@@ -214,7 +211,7 @@ namespace MCS.FOI.CalendarToPDF
         }
 
         /// <summary>
-        /// Converts HTML string to PDF using syncfution library and webkit
+        /// Converts HTML string to PDF using syncfution library and blink engine
         /// </summary>
         /// <param name="strHTML">HTML string</param>
         /// <returns>true - if converted successfully, else false</returns>
@@ -225,18 +222,15 @@ namespace MCS.FOI.CalendarToPDF
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-                WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
-                //Point to the webkit based on the platform the application is running
-                webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
-                //Assign WebKit converter settings to HTML converter
-                htmlConverter.ConverterSettings = webKitConverterSettings;
-                htmlConverter.ConverterSettings.Margin.All = 25;
-                htmlConverter.ConverterSettings.EnableHyperLink = true;
-                htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
+                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
+                BlinkConverterSettings settings = new BlinkConverterSettings();
+                settings.EnableHyperLink = false;
+                //Set command line arguments to run without sandbox.
+                settings.CommandLineArguments.Add("--no-sandbox");
+                settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
-
                 //Save and close the PDF document 
                 document.Save(output);
                 document.Close(true);
