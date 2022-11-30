@@ -154,6 +154,7 @@ class GetAccount(Resource):
 
         print(usergroup)
         try:
+            # redactionservice().gets3serviceaccount('test')
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200
         except KeyError as err:

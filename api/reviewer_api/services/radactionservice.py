@@ -5,6 +5,7 @@ from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.OperatingTeamS3ServiceAccounts import OperatingTeamS3ServiceAccount
 from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
+from reviewer_api.models.DocumentPathMapper import DocumentPathMapper
 
 import json
 import os
@@ -56,8 +57,12 @@ class redactionservice:
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
-    def gets3serviceaccount(self, groupname):
-        return OperatingTeamS3ServiceAccount.getserviceaccount(groupname)
+    def gets3serviceaccount(self, bcgovcode):
+        mapper =  DocumentPathMapper.getmapper(bcgovcode)
+        # print(mapper["attributes"])
+        attribute = mapper["attributes"]
+        # print(attribute)
+        return attribute
 
     # def uploadpersonaldocuments(self, requestid, attachments):
     #     attachmentlist = []
