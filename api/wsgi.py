@@ -10,5 +10,4 @@ from reviewer_api import create_app
 
 APP = create_app()
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 7000))
-    APP.run()
+    APP.run(host="0.0.0.0", debug=True)

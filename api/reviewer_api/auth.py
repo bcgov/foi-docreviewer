@@ -97,18 +97,18 @@ class AuthHelper:
     @classmethod
     def getwsuserid(cls, token):
         unverified_claims = josejwt.get_unverified_claims(token.strip())
-        return unverified_claims['preferred_username']  
+        return unverified_claims['preferred_username']
 
     @classmethod
     def getusername(cls):
         token = request.headers.get("Authorization", None)
         unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        return unverified_claims['name']  
+        return unverified_claims['name']
     
     @classmethod
     def isministrymember(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())) 
+        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
         if len(ministrygroups) > 0:
             return True
         return False
@@ -116,16 +116,16 @@ class AuthHelper:
     @classmethod
     def isprocesingteammember(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())) 
+        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
         if len(ministrygroups) > 0:
-            return False    
+            return False
         else:
-            processinggroups = list(set(usergroups).intersection(ProcessingTeamWithKeycloackGroup.list())) 
+            processinggroups = list(set(usergroups).intersection(ProcessingTeamWithKeycloackGroup.list()))
             if len(processinggroups) > 0:
                 return True
         return False
-    
-    @classmethod        
+
+    @classmethod
     def getusergroups(cls):
         token = request.headers.get("Authorization", None)
         unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
@@ -133,24 +133,24 @@ class AuthHelper:
         usergroups = [usergroup.replace('/','',1) if usergroup.startswith('/') else usergroup for usergroup in usergroups]
         return usergroups
     
-    @classmethod        
-    def getusertype(cls): 
+    @classmethod
+    def getusertype(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())) 
+        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
         if len(ministrygroups) > 0:
-            return "ministry"    
+            return "ministry"
         else:
             iaogroups = list(set(usergroups).intersection(IAOTeamWithKeycloackGroup.list()))
             if len(iaogroups) > 0:
                 return "iao"
         return None
-    
-    @classmethod        
-    def getiaotype(cls): 
+
+    @classmethod
+    def getiaotype(cls):
         usergroups = cls.getusergroups()
         _groups = set(usergroups)
         if cls.isministrymember() == False:
-            processinggroups = list(_groups.intersection(ProcessingTeamWithKeycloackGroup.list())) 
+            processinggroups = list(_groups.intersection(ProcessingTeamWithKeycloackGroup.list()))
             if len(processinggroups) > 0:
                 return "processing"
             else:
@@ -162,11 +162,21 @@ class AuthHelper:
                     return None
         else:
             return None
-    
-    @classmethod        
-    def getministrygroups(cls): 
-        usergroups = cls.getusergroups()
-        return list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))   
-      
 
+    @classmethod
+    def getministrygroups(cls):
+        usergroups = cls.getusergroups()
+        return list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
+
+    @classmethod
+    def getfirstname(cls):
+        token = request.headers.get("Authorization", None)
+        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
+        return unverified_claims['given_name']
+
+    @classmethod
+    def getlastname(cls):
+        token = request.headers.get("Authorization", None)
+        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
+        return unverified_claims['family_name']
         

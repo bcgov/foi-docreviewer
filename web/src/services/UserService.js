@@ -34,8 +34,6 @@ const getToken = () => KeycloakData.token;
 
 const initKeycloak = (store, ...rest) => {
   const done = rest.length ? rest[0] : () => { };
-  console.log("init Keycloak")
-  console.log(window.location.origin)
   KeycloakData.init({
     // onLoad: "check-sso",
     onLoad: "login-required",

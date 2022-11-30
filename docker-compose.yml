@@ -1,5 +1,5 @@
 version: '3'
-services:    
+services:
   foi-docreviewer-web:
     container_name: foi-docreviewer-web
     build:
@@ -7,10 +7,12 @@ services:
       dockerfile: Dockerfile.local
       args:
         - NODE_ENV=${NODE_ENV:-development}
-        - GENERATE_SOURCEMAP=false                
-        - REACT_APP_KEYCLOAK_CLIENT=${KEYCLOAK_WEB_CLIENTID:-foi-document-redaction}       
+        - GENERATE_SOURCEMAP=false
+        - REACT_APP_KEYCLOAK_CLIENT=${KEYCLOAK_WEB_CLIENTID:-foi-document-redaction}
         - REACT_APP_KEYCLOAK_URL_REALM=${KEYCLOAK_URL_REALM:-5k8dbl4h}
-        - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}       
+        - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}
+        - FOI_DOCREVIEWER_BASE_API_URL=${FOI_DOCREVIEWER_BASE_API_URL}
+        - REACT_APP_FOI_BASE_API_URL=${REACT_APP_FOI_BASE_API_URL}
     volumes:
       - ".:/web"
       - "/web/node_modules"
@@ -18,25 +20,26 @@ services:
       - "3006:8080"
     tty: true
 
-  foiredis:
-    image: redis:4.0
-    container_name: foi_docreviewer_redis
-    ports:
-      - "16379:6379"
+  # foiredis:
+  #   image: redis:4.0
+  #   container_name: foi_docreviewer_redis
+  #   ports:
+  #     - "16379:6379"
 
   foi-docreviewer-api:
     container_name: foi_docreviewer_api
     build:
       context: ./api
       dockerfile: dockerfile.local
-    depends_on: 
+    image: docreviewerapiimage
+    depends_on:
       - foi-docreviewer-db
     networks:
       services-network:
         aliases:
           - backendapi
     ports:
-      - 17000:7000
+      - 15500:5000
     environment:
       - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
       - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
@@ -69,7 +72,7 @@ services:
       - OSS_S3_FORMS_BUCKET=${OSS_S3_FORMS_BUCKET}
       - OSS_S3_FORMS_ACCESS_KEY_ID=${OSS_S3_FORMS_ACCESS_KEY_ID}
       - OSS_S3_FORMS_SECRET_ACCESS_KEY=${OSS_S3_FORMS_SECRET_ACCESS_KEY}
-      - OSS_S3_HOST=${OSS_S3_HOST} 
+      - OSS_S3_HOST=${OSS_S3_HOST}
       - OSS_S3_REGION=${OSS_S3_REGION}
       - OSS_S3_SERVICE=${OSS_S3_SERVICE}
       - CACHE_REDISURL=${CACHE_REDISURL}
@@ -78,10 +81,10 @@ services:
       - EMAIL_SERVER_SMTP=${EMAIL_SERVER_SMTP}
       - EMAIL_SERVER_SMTP_PORT=${EMAIL_SERVER_SMTP_PORT}
       - EMAIL_SRUSERID=${EMAIL_SRUSERID}
-      - EMAIL_SRPWD=${EMAIL_SRPWD} 
+      - EMAIL_SRPWD=${EMAIL_SRPWD}
       - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS}
       - EMAIL_FOLDER_OUTBOX=${EMAIL_FOLDER_OUTBOX}
-      - EMAIL_FOLDER_INBOX=${EMAIL_FOLDER_INBOX}      
+      - EMAIL_FOLDER_INBOX=${EMAIL_FOLDER_INBOX}
 
   foi-docreviewer-db:
     image: postgres
@@ -94,10 +97,37 @@ services:
     networks:
       services-network:
         aliases:
-          - db   
+          - db
+
+  foi-docreviewer-dedupe:
+    container_name: foi-docreviewer-dedupe
+    build:
+      context: ./computingservices/DedupeServices
+      dockerfile: Dockerfile.local
+    image: docreviewerdedupeimage
+    stdin_open: true
+    tty: true
+    networks:
+      services-network:
+        aliases:
+          - docreviewerdedupe     
+    environment:
+      - REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - REDIS_PORT=${DEDUPE_REDIS_PORT}
+      - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
+      - DEDUPE_S3_ENV=${DEDUPE_S3_ENV}
+      - DEDUPE_DB_HOST=${DEDUPE_DB_HOST}
+      - DEDUPE_DB_NAME=${DEDUPE_DB_NAME}
+      - DEDUPE_DB_PORT=${DEDUPE_DB_PORT}
+      - DEDUPE_DB_USER=${DEDUPE_DB_USER}
+      - DEDUPE_DB_PASSWORD=${DEDUPE_DB_PASSWORD}
+      - DEDUPE_S3_HOST=${DEDUPE_S3_HOST}
+      - DEDUPE_S3_REGION=${DEDUPE_S3_REGION}
+      - DEDUPE_S3_SERVICE=${DEDUPE_S3_SERVICE}
 
 volumes:
   dbdata:
-networks:  
-  services-network:    
+networks:
+  services-network:
     driver: bridge
