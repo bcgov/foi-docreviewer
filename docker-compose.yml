@@ -99,6 +99,33 @@ services:
         aliases:
           - db
 
+  foi-docreviewer-dedupe:
+    container_name: foi-docreviewer-dedupe
+    build:
+      context: ./computingservices/DedupeServices
+      dockerfile: Dockerfile.local
+    image: docreviewerdedupeimage
+    stdin_open: true
+    tty: true
+    networks:
+      services-network:
+        aliases:
+          - docreviewerdedupe     
+    environment:
+      - REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - REDIS_PORT=${DEDUPE_REDIS_PORT}
+      - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
+      - DEDUPE_S3_ENV=${DEDUPE_S3_ENV}
+      - DEDUPE_DB_HOST=${DEDUPE_DB_HOST}
+      - DEDUPE_DB_NAME=${DEDUPE_DB_NAME}
+      - DEDUPE_DB_PORT=${DEDUPE_DB_PORT}
+      - DEDUPE_DB_USER=${DEDUPE_DB_USER}
+      - DEDUPE_DB_PASSWORD=${DEDUPE_DB_PASSWORD}
+      - DEDUPE_S3_HOST=${DEDUPE_S3_HOST}
+      - DEDUPE_S3_REGION=${DEDUPE_S3_REGION}
+      - DEDUPE_S3_SERVICE=${DEDUPE_S3_SERVICE}
+
 volumes:
   dbdata:
 networks:
