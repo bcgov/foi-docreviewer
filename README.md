@@ -7,4 +7,8 @@ FOI Dedupe, Document extraction and NLP Services described in this documentation
 ### Architecture
 ![Here is the Full FOI Flow architecture](./archanddesign/images/Option1_TechArch_Emerald.jpg)
 
+The above architecture diagram describes full architecture of FOI FLOW ( on silver) , with the new Dedupe , NLP Services which will be deployed on BC GOV Emerald Cluster. For the purpose of elaborating Dedupe and related services along with the data storage , please follow below subsection of the above diagram.
+![image](https://user-images.githubusercontent.com/78570775/204931018-582b9630-b2be-44ed-9ef2-56d6625668c1.png)
+
+
 ### Design
