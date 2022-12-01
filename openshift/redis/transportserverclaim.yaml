@@ -1,0 +1,12 @@
+apiVersion: porter.devops.gov.bc.ca/v1alpha1
+kind: TransportServerClaim
+metadata:
+  name: redisservice-transport-server
+  namespace: d106d6-dev
+spec:
+  monitor:
+    interval: 10
+    timeout: 10
+    type: tcp
+  service: redis
+  servicePort: 6379
