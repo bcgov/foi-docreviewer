@@ -24,3 +24,6 @@ The above architecture diagram describes full architecture of FOI FLOW ( on left
 **REDACTION WEB APPLICATION** : This is the Front-End application where above mentioned personas interact with 'gathered records' for each FOI Request and do their review. This application is secured, enabled with SSO under the authenticated clients on Keyclaok and access to each documents or set of documents is restricted based on their group and/or role membership on KEYCLOAK. This application utilizes a PAID frontend Javascript component/WebViewer called [PDFTRON](https://www.pdftron.com/webviewer/), in order to review documents. This webviewer will consume the API microservice mentioned above in order to visually indicate the PII - HTTPGET and also to POST back the redacted information to S3 storage. 
 
 ### Design
+#### High Level Design
+Below mentioned diagram indicates various FOI Request Process states from which 'Records gathering' happens and in turn event 'PUBLISHING / PRODUCE' happens to activate the corresponding CONSUMER services events, there by assigned tasks will get completed.
+![HIGH LEVEL DESIGN](./archanddesign/images/FOI_Dedupe_redaction.jpg)
