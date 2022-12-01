@@ -21,4 +21,6 @@ The above architecture diagram describes full architecture of FOI FLOW ( on left
 
 **API Component** : API Component is basically a secured HTTPS REST Endpoint which talks with  FRONT END React Apps like REDACTION App and existing FOI FLOW App. The one endpoint on the API component will status out(GET)  various stages of document flow, like 'DEDUPE IN PROGRESS', 'DUPLICATE DOCUMENT','EXTRACTION IN PROGRESS' etc. This endpoint will be consumed by FOI FLOW Front End app. The second endpoint of this API will cater mainly document data related tasks - Like GET-ing 'PII' and/or 'Named Entities' on each document. Also, second endpoint will have POST functionalities for REDACTION Web app to save 'ANNOTATIONS' , 'COMMENTS','REDACTIONS' etc. These informations are saved into a HIGH security tagged Datastore.This API component can be under a LOW - MEDIUM Zone/tag , but its BACKENDs are aleady in HIGH SECURITY ZONE.
 
+**REDACTION WEB APPLICATION** : This is the Front-End application where above mentioned personas interact with 'gathered records' for each FOI Request and do their review. This application is secured, enabled with SSO under the authenticated clients on Keyclaok and access to each documents or set of documents is restricted based on their group and/or role membership on KEYCLOAK.
+
 ### Design
