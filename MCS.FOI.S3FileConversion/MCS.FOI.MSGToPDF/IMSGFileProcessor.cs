@@ -7,7 +7,6 @@
         public bool IsSinglePDFOutput { get; set; }
         public int FailureAttemptCount { get; set; }
         public int WaitTimeinMilliSeconds { get; set; }
-        public string HTMLtoPdfWebkitPath { get; set; }
 
 
     }

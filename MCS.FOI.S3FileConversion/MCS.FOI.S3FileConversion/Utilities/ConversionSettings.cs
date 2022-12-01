@@ -21,8 +21,6 @@ namespace MCS.FOI.S3FileConversion.Utilities
 
         public static string SyncfusionLicense { get; set; }
 
-        public static string HTMLtoPdfWebkitPath { get; set; }
-
         public static string FileWatcherStartDate { get; set; }
 
         public static string CFRArchiveFoldertoSkip { get; set; }
