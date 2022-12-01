@@ -27,3 +27,9 @@ The above architecture diagram describes full architecture of FOI FLOW ( on left
 #### High Level Design
 Below mentioned diagram indicates various FOI Request Process states from which 'Records gathering' happens and in turn event 'PUBLISHING / PRODUCE' happens to activate the corresponding CONSUMER services events, there by assigned tasks will get completed.
 ![HIGH LEVEL DESIGN](./archanddesign/images/FOI_Dedupe_redaction.jpg)
+
+#### Dedupe Algorithm 
+Below mentioned Flow Chart describes the logic behind the Deduping Records uploaded under a FOI Request. We are considering two levels of Deduping on a document. #1) Dedupe by document metadata , we are naming it as 'RANK 1 Dedupe' #2) Dedupe by document content, we are naming it as 'RANK 2 Dedupe' - which is more in depth and tries to find the uniqueness in a set of documents under a request by its content as well' - not just by metadata.
+![image](https://user-images.githubusercontent.com/78570775/204957398-8b29f90f-5cf1-40b0-baca-c0195f39dcf0.png)
+
+
