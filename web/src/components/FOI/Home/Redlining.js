@@ -168,8 +168,7 @@ const Redlining = ({
 
       let ministryrequestid = "1";
       getFOIS3DocumentPreSignedUrl(
-          currentPageInfo.file['filepath'],
-          ministryrequestid,
+          currentPageInfo.file['documentid'],
           (data) => {
               console.log("s3:");
               console.log(data);
