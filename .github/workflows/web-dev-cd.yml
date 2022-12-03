@@ -4,11 +4,10 @@ name: DEV Web CD
 on:
   push:
     branches:
-      # - dev
-      - dev-RQ-2956-new
+      - dev
     paths:
       - "web/**"
-      - ".github/workflows/web-cd.dev.yml"
+      - ".github/workflows/web-dev-cd.yml"
   workflow_dispatch:
     inputs:
       environment:
@@ -50,7 +49,7 @@ jobs:
       - name: Build from dev branch
         shell: bash
         run: |
-          oc patch bc/${{ env.APP_NAME }}-build -p '{"spec":{"source":{"git":{"ref":"dev-RQ-2956-new"}}}}'
+          oc patch bc/${{ env.APP_NAME }}-build -p '{"spec":{"source":{"git":{"ref":"dev"}}}}'
 
       - name: Start Build Openshift
         shell: bash
