@@ -112,15 +112,11 @@ class FOIFlowS3Presigned(Resource):
             attribute = json.loads(documentmapper["attributes"])
 
             current_app.logger.debug("Inside Presigned api!!")
-            # formsbucket = "dev-forms-foirequests"
             formsbucket = documentmapper["bucket"]
-            # accesskey = "AKIA95AE3AF038A4DC93"
             accesskey = attribute["s3accesskey"]
-            # secretkey = "HPsksLnfJnx1wtOakmCF10nMWyWxD6wgkZkmxtUp"
             secretkey = attribute["s3secretkey"]
             s3host = "citz-foi-prod.objectstore.gov.bc.ca"
             s3region = "us-east-1"
-            # filepath = request.args.get('filepath')
             filepath = document["filepath"]
 
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
