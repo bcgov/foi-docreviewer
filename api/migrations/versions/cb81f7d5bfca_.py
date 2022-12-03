@@ -38,6 +38,9 @@ def upgrade():
             category, bucket, isactive, createdby)
             Select 'Records', lower(bcgovcode) || '-$environment' , true, 'System' from
             public."ProgramAreas" where isactive = true''')
+    op.execute('''INSERT INTO public."DocumentPathMapper"(
+            category, bucket, isactive, createdby)
+            VALUES ("Records", "dev-forms-foirequests", \'{"s3accesskey":"","s3secretkey":""}\', true, "Richard")''')
 
 
 def downgrade():
