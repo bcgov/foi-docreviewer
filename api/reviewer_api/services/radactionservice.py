@@ -33,6 +33,9 @@ class redactionservice:
             formated_documents.append(document)
 
         return documents
+
+    def getdocument(self, documentid):
+        return Document.getdocument(documentid)
     
     def savedocument(self, documentid, documentversion, newfilepath, userid):
         return
@@ -57,8 +60,11 @@ class redactionservice:
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
-    def gets3serviceaccount(self, bcgovcode):
-        mapper =  DocumentPathMapper.getmapper(bcgovcode)
+    def getdocumentmapper(self, documentpathid):
+        return DocumentPathMapper.getmapper(documentpathid)
+
+    def gets3serviceaccount(self, documentpathid):
+        mapper =  DocumentPathMapper.getmapper(documentpathid)
         # print(mapper["attributes"])
         attribute = mapper["attributes"]
         # print(attribute)
