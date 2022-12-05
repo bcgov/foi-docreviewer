@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -14,10 +15,17 @@ using MCS.FOI.CalendarToPDF;
 using MCS.FOI.DocToPDF;
 using MCS.FOI.EMLToPDF;
 using MCS.FOI.MSGToPDF;
+using Npgsql;
+using Serilog;
 
 
 namespace MCS.FOI.S3FileConversion
 {
+    internal class S3AccessKeys
+    {
+        public string s3accesskey { get; set; }
+        public string s3secretkey { get; set; }
+    }
     internal class S3Handler
     {
         public static async System.Threading.Tasks.Task<List<String>> convertFile(string filePath)
@@ -27,12 +35,17 @@ namespace MCS.FOI.S3FileConversion
             var configurationbuilder = new ConfigurationBuilder()
                         .AddJsonFile($"appsettings.json", true, true)
                         .AddEnvironmentVariables().Build();
-            string S3Host = cb.GetSection("S3Host").Value;
             string bucket = filePath.Split("/")[3];
-            string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
-            string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
-            string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
-            
+            // Comment in if running locally
+            //string S3Host = cb.GetSection("S3Host").Value;
+            //string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
+            //string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
+            //string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
+            S3AccessKeys s3AccessKeys = await getAccessKeyFromDB(bucket);
+            string S3AccessKeyID = s3AccessKeys.s3accesskey;
+            string S3AccessSecretKey = s3AccessKeys.s3secretkey;
+            string S3Host = Environment.GetEnvironmentVariable("S3_HOST");
+
             List<string> attachmentKeys = new List<string>();
             try
             {
@@ -178,6 +191,44 @@ namespace MCS.FOI.S3FileConversion
             docFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
             var (converted, output) = docFileProcessor.ConvertToPDF();
             return output;
+        }
+
+
+        private static async System.Threading.Tasks.Task<S3AccessKeys> getAccessKeyFromDB(string bucket)
+        {
+            S3AccessKeys s3AccessKeys = new S3AccessKeys();
+            try
+            {
+                var host = Environment.GetEnvironmentVariable("DATABASE_HOST");
+                var port = Environment.GetEnvironmentVariable("DATABASE_PORT");
+                var dbname = Environment.GetEnvironmentVariable("DATABASE_NAME");
+                var username = Environment.GetEnvironmentVariable("DATABASE_USERNAME");
+                var password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD");
+                var connString = "Host="+host + ";Port=" + port + ";Username="+username+"; Password="+password+";Database="+dbname+";";
+
+
+                await using var conn = new NpgsqlConnection(connString);
+                await conn.OpenAsync();
+
+                // Retrieve access key
+                await using (var cmd = new NpgsqlCommand("SELECT attributes FROM \"DocumentPathMapper\" where bucket='"+bucket+"';", conn))
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        string res = reader.GetString(0);
+                        Console.WriteLine(res);
+                        s3AccessKeys = JsonSerializer.Deserialize<S3AccessKeys>(res);
+                    }
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+            }
+            return s3AccessKeys;
         }
 
     }

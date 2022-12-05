@@ -61,16 +61,24 @@ namespace MCS.FOI.S3FileConversion
                 //Fetching Syncfusion License from settings
                 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(ConversionSettings.SyncfusionLicense);
 
-                //CreateHostBuilder(args).Build().Run();
-
-                string eventHubHost = configurationbuilder.GetSection("EventHub:Host").Value;
-                string eventHubPort = configurationbuilder.GetSection("EventHub:Port").Value;
+                // Comment in if running locally
+                //string eventHubHost = configurationbuilder.GetSection("EventHub:Host").Value;
                 //string eventHubPort = configurationbuilder.GetSection("EventHub:Port").Value;
+                //string eventHubPassword = configurationbuilder.GetSection("EventHub:Password").Value;
+                //string streamKey = configurationbuilder.GetSection("EventHub:StreamKey").Value;
+                //string consumerGroup = "file-conversion-consumer-group";
+
+                string eventHubHost = Environment.GetEnvironmentVariable("REDIS_STREAM_HOST");
+                string eventHubPort = Environment.GetEnvironmentVariable("REDIS_STREAM_PORT");
+                string eventHubPassword = Environment.GetEnvironmentVariable("REDIS_STREAM_PASSWORD");
+                string streamKey = Environment.GetEnvironmentVariable("REDIS_STREAM_KEY");
+                string consumerGroup = Environment.GetEnvironmentVariable("REDIS_STREAM_CONSUMER_GROUP");
+
                 ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
                 new ConfigurationOptions
                 {
                     EndPoints = { $"{eventHubHost}:{eventHubPort}" },
-                    Password = configurationbuilder.GetSection("EventHub:Password").Value
+                    Password = eventHubPassword
                 });
 
                 var db = redis.GetDatabase();
@@ -78,12 +86,21 @@ namespace MCS.FOI.S3FileConversion
                 Console.WriteLine(pong);
 
                 string latest = "$";
-                string streamKey = configurationbuilder.GetSection("EventHub:StreamKey").Value;
-                //db.StreamCreateConsumerGroup(streamKey, "file-conversion-consumer-group", "$");
+                try
+                {
+                    db.StreamCreateConsumerGroup(streamKey, consumerGroup, "$");
+                }
+                catch (Exception ex)
+                {
+                    if (ex.Message != "BUSYGROUP Consumer Group name already exists")
+                    {
+                        throw ex;
+                    }
+                }
 
                 while (true)
                 {
-                    var messages = db.StreamReadGroup(streamKey, "file-conversion-consumer-group", "c1");
+                    var messages = db.StreamReadGroup(streamKey, consumerGroup, "c1");
                     if (messages.Length > 0) {
                         foreach (StreamEntry message in messages)
                         {
@@ -91,14 +108,14 @@ namespace MCS.FOI.S3FileConversion
                             List<String> s3AttachmentPaths= await S3Handler.convertFile(message["S3Path"]);
                             latest = message.Id;
                             db.StringSet($"{latest}:lastid", latest);
-                            db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
+                            db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
                             if (s3AttachmentPaths != null && s3AttachmentPaths.Count > 0)
                             {
                                 for (int i = 0; i < s3AttachmentPaths.Count; i++)
                                 {
                                     db.StreamAdd(streamKey, new NameValueEntry[]
                                     { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
-                                    db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
+                                    db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
                                 }
                             }
                             Console.WriteLine("Finished Converting: {0}", message["S3Path"]);
