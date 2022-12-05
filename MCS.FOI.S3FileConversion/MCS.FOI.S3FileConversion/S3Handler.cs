@@ -28,13 +28,10 @@ namespace MCS.FOI.S3FileConversion
     }
     internal class S3Handler
     {
-        public static async System.Threading.Tasks.Task<List<String>> convertFile(string filePath)
+        public static async System.Threading.Tasks.Task<List<String>> ConvertFile(string filePath)
         {
             // Get S3 Access credentials based on ministry
             var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
-            var configurationbuilder = new ConfigurationBuilder()
-                        .AddJsonFile($"appsettings.json", true, true)
-                        .AddEnvironmentVariables().Build();
             string bucket = filePath.Split("/")[3];
             // Comment in if running locally
             //string S3Host = cb.GetSection("S3Host").Value;
@@ -52,12 +49,12 @@ namespace MCS.FOI.S3FileConversion
                 // Initialize S3 Client
                 IAmazonS3 s3;
                 AWSCredentials AWSCredentials = new BasicAWSCredentials(S3AccessKeyID, S3AccessSecretKey);
-                AmazonS3Config config = new AmazonS3Config
+                AmazonS3Config config = new()
                 {
                     ServiceURL = S3Host
                 };
 
-                AmazonS3Client s3Client = new AmazonS3Client(AWSCredentials, config);
+                AmazonS3Client s3Client = new(AWSCredentials, config);
 
                 using (s3 = new AmazonS3Client(AWSCredentials, config))
                 {
@@ -73,26 +70,26 @@ namespace MCS.FOI.S3FileConversion
                     // Convert File
                     string extension = Path.GetExtension(fileKey);
                     Stream output = new MemoryStream();
-                    Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+                    Dictionary<MemoryStream, string> attachments = new();
 
                     switch (extension)
                     {
                         case ".xls":
                         case ".xlsx":
-                            output = convertExcelFiles(responseStream);
+                            output = ConvertExcelFiles(responseStream);
                             break;
                         case ".ics":
-                            (output, attachments) = convertCalendarFiles(responseStream);
+                            (output, attachments) = ConvertCalendarFiles(responseStream);
                             break;
                         case ".msg":
-                            (output, attachments) = convertMSGFiles(responseStream);
+                            (output, attachments) = ConvertMSGFiles(responseStream);
                             break;
                         //case ".eml":
                         //    output = convertEMLFiles(responseStream);
                         //    break;
                         case ".doc":
                         case ".docx":
-                            output = convertDocFiles(responseStream);
+                            output = ConvertDocFiles(responseStream);
                             break;
                     }
 
@@ -100,9 +97,10 @@ namespace MCS.FOI.S3FileConversion
                     // Save converted pdf back to s3
                     var newKey = Path.ChangeExtension(fileKey, ".pdf");
                     var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
+                    string folder = filePath.Split("/")[4];
 
                     output.Position = 0;
-                    StreamContent strm = new StreamContent(output);
+                    StreamContent strm = new(output);
                     strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                     HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
                     
@@ -111,7 +109,7 @@ namespace MCS.FOI.S3FileConversion
                         foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
                         {
                             attachment.Key.Position=0;
-                            var newAttachmentKey = bucket + "/"+ attachment.Value;
+                            var newAttachmentKey = bucket+"/"+folder+"/"+ attachment.Value;
                             var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                             attachmentKeys.Add(S3Host+"/"+newAttachmentKey);
                             StreamContent attachmentstrm = new StreamContent(attachment.Key);
@@ -143,31 +141,37 @@ namespace MCS.FOI.S3FileConversion
             return s3.GetPreSignedURL(request);
         }
 
-        private static Stream convertExcelFiles(Stream input)
+        private static Stream ConvertExcelFiles(Stream input)
         {
-            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input);
-            excelFileProcessor.IsSinglePDFOutput = false;
-            excelFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
-            excelFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input)
+            {
+                IsSinglePDFOutput = false,
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
             var (converted, message, output) = excelFileProcessor.ConvertToPDF();
             return output;
         }
 
-        private static (Stream, Dictionary<MemoryStream, string>) convertCalendarFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, string>) ConvertCalendarFiles(Stream input)
         {
-            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input);
-            calendarFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
-            calendarFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
+            {
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
             var (isProcessed, Message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             return (output, attachments);
         }
 
-        private static (Stream, Dictionary<MemoryStream, string>) convertMSGFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, string>) ConvertMSGFiles(Stream input)
         {
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input);
-            msgFileProcessor.IsSinglePDFOutput = false;
-            msgFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
-            msgFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
+            {
+                IsSinglePDFOutput = false,
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
             var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             return (output, attachments);
         }
@@ -183,12 +187,14 @@ namespace MCS.FOI.S3FileConversion
         //    return output;
         //}
 
-        private static Stream convertDocFiles(Stream input)
+        private static Stream ConvertDocFiles(Stream input)
         {
-            DocFileProcessor docFileProcessor = new DocFileProcessor(input);
-            docFileProcessor.IsSinglePDFOutput = false;
-            docFileProcessor.WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds;
-            docFileProcessor.FailureAttemptCount = ConversionSettings.FailureAttemptCount;
+            DocFileProcessor docFileProcessor = new DocFileProcessor(input)
+            {
+                IsSinglePDFOutput = false,
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
             var (converted, output) = docFileProcessor.ConvertToPDF();
             return output;
         }

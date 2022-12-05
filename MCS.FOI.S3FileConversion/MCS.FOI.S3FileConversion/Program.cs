@@ -105,7 +105,7 @@ namespace MCS.FOI.S3FileConversion
                         foreach (StreamEntry message in messages)
                         {
                             Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["S3Path"]);
-                            List<String> s3AttachmentPaths= await S3Handler.convertFile(message["S3Path"]);
+                            List<String> s3AttachmentPaths= await S3Handler.ConvertFile(message["S3Path"]);
                             latest = message.Id;
                             db.StringSet($"{latest}:lastid", latest);
                             db.StreamAcknowledge(streamKey, consumerGroup, message.Id);

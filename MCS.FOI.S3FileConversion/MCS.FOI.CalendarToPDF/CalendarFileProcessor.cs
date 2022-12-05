@@ -53,18 +53,17 @@ namespace MCS.FOI.CalendarToPDF
 
         public (bool, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
         {
-            MemoryStream output = new MemoryStream();
+            MemoryStream output = new();
             bool isConverted;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, string> attachments;
             try
             {
                 (string htmlString, attachments) = ConvertCalendartoHTML();
                 (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                isConverted = false;
-                throw ex;
+                throw;
             }
             return (isConverted, Message, output, attachments);
         }
@@ -87,12 +86,13 @@ namespace MCS.FOI.CalendarToPDF
                     {
                         try
                         {
-                            using (StreamReader sr = new StreamReader(SourceStream))
-                            {
-                                ical = sr.ReadToEnd();
-                            }
+                            long position = SourceStream.Position;
+                            SourceStream.Seek(0, SeekOrigin.Begin);
+                            StreamReader sr = new(SourceStream);
+                            ical = sr.ReadToEnd();
+                            SourceStream.Seek(position, SeekOrigin.Begin);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             Console.WriteLine($"Exception happened while accessing File, re-attempting count : {attempt}");
                             Thread.Sleep(WaitTimeinMilliSeconds);
@@ -100,7 +100,7 @@ namespace MCS.FOI.CalendarToPDF
                     }
                     Calendar calendar = Calendar.Load(ical);
                     var events = calendar.Events;
-                    StringBuilder htmlString = new StringBuilder();
+                    StringBuilder htmlString = new();
                     htmlString.Append(@"
                         <html>
                             <head>
@@ -175,7 +175,7 @@ namespace MCS.FOI.CalendarToPDF
                         <td><b>End Time: </b></td>
                         <td>" + e.DtEnd.Date + "</td></tr>");
                         //Meeting Message
-                        string message = @"" + e.Description.Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br>");
+                        string message = @"" + e.Description.Replace("\n", "<br>");
                         message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
                         message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                         htmlString.Append(@"<tr>
@@ -207,6 +207,11 @@ namespace MCS.FOI.CalendarToPDF
                 Message = error;
                 return (error, attachmentsObj);
             }
+            finally
+            {
+                if (SourceStream != null)
+                    SourceStream.Dispose();
+            }
 
         }
 
@@ -218,13 +223,14 @@ namespace MCS.FOI.CalendarToPDF
         private (MemoryStream, bool) ConvertHTMLtoPDF(string strHTML, MemoryStream output)
         {
             bool isConverted;
-            FileStream fileStream = null;
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
-                BlinkConverterSettings settings = new BlinkConverterSettings();
-                settings.EnableHyperLink = false;
+                HtmlToPdfConverter htmlConverter = new(HtmlRenderingEngine.Blink);
+                BlinkConverterSettings settings = new()
+                {
+                    EnableHyperLink = false
+                };
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
@@ -244,11 +250,6 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
-            }
-            finally
-            {
-                if (fileStream != null)
-                    fileStream.Dispose();
             }
             return (output, isConverted);
         }

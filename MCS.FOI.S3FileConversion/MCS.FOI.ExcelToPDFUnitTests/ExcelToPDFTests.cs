@@ -43,10 +43,9 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
             excelFileProcessor.WaitTimeinMilliSeconds = 4000;
-            excelFileProcessor.PdfOutputFilePath = Path.Combine(getExcelRootFolder(), "output");
-            (isconverted, message, excelFileProcessor.PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
+            (isconverted, message, output) = excelFileProcessor.ConvertToPDF();
 
-            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed for {excelFileProcessor.ExcelFileName}");
+            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed");
             Assert.IsTrue(output.Length > 0, $"Conversion failed: output file size is zero");
 
             //string outputfile = Path.Combine(getExcelRootFolder(), "output", $"{Path.GetFileNameWithoutExtension(excelFileProcessor.ExcelFileName)}.pdf");
@@ -71,10 +70,9 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
             excelFileProcessor.WaitTimeinMilliSeconds = 4000;
-            excelFileProcessor.PdfOutputFilePath = Path.Combine(getExcelRootFolder(), "output");
-            (isconverted, message, excelFileProcessor.PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
+            (isconverted, message, output) = excelFileProcessor.ConvertToPDF();
 
-            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed for {excelFileProcessor.ExcelFileName}");
+            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed");
             Assert.IsTrue(output.Length > 0, $"Conversion failed: output file size is zero");
         }
 
@@ -94,10 +92,9 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
             excelFileProcessor.WaitTimeinMilliSeconds = 4000;
-            excelFileProcessor.PdfOutputFilePath = Path.Combine(getExcelRootFolder(), "output");
-            (isconverted, message, excelFileProcessor.PdfOutputFilePath, output) = excelFileProcessor.ConvertToPDF();
+            (isconverted, message, output) = excelFileProcessor.ConvertToPDF();
 
-            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed for {excelFileProcessor.ExcelFileName}");
+            Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed");
             Assert.IsTrue(output.Length > 0, $"Conversion failed: output file size is zero");
 
             //string outputfile = Path.Combine(getExcelRootFolder(), "output", $"{Path.GetFileNameWithoutExtension(excelFileProcessor.ExcelFileName)}.pdf");

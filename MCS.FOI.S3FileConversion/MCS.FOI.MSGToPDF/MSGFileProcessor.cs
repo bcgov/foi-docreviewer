@@ -36,13 +36,11 @@ namespace MCS.FOI.MSGToPDF
 
         public (bool, string, Stream, Dictionary<MemoryStream, string>) ConvertToPDF()
         {
-            var message = $"No attachments to move to output folder";
+            string message = $"No attachments to move to output folder";
             bool moved = true;
-            bool isConverted = false;
             string outputpath = string.Empty;
-            MemoryStream output = new MemoryStream();
-            MemoryStream attachmentStream = new MemoryStream();
-            Dictionary<MemoryStream, string> attachmentsObj = new Dictionary<MemoryStream, string>();
+            MemoryStream output = new();
+            Dictionary<MemoryStream, string> attachmentsObj = new();
             try
             {
                 Dictionary<string, Object> problematicFiles = null;
@@ -53,72 +51,71 @@ namespace MCS.FOI.MSGToPDF
                     {
                         try
                         {
-                            using (var msg = new MsgReader.Outlook.Storage.Message(SourceStream))
-                            {
-                                string htmlString = generateHtmlfromMsg(msg);
-                                (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
+                            using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
+                            string htmlString = GenerateHtmlfromMsg(msg);
+                            bool isConverted;
+                            (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
 
-                                var attachments = msg.Attachments;
-                                foreach (Object attachment in attachments)
+                            var attachments = msg.Attachments;
+                            foreach (Object attachment in attachments)
+                            {
+                                var type = attachment.GetType().FullName;
+                                if (type.ToLower().Contains("message"))
                                 {
-                                    var type = attachment.GetType().FullName;
-                                    if (type.ToLower().Contains("message"))
+                                    var file = (Storage.Message)attachment;
+                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                    problematicFiles.Add(file.FileName, file);
+
+                                }
+                                else
+                                {
+                                    var file = (Storage.Attachment)attachment;
+                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") ||
+                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx"))
                                     {
-                                        var file = (Storage.Message)attachment;
                                         problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                         problematicFiles.Add(file.FileName, file);
 
                                     }
-                                    else
-                                    {
-                                        var file = (Storage.Attachment)attachment;
-                                        if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") || 
-                                            file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx"))
-                                        {
-                                            problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                            problematicFiles.Add(file.FileName, file);
 
-                                        }
-
-                                    }
                                 }
+                            }
 
-                                if (problematicFiles != null)
+                            if (problematicFiles != null)
+                            {
+                                int cnt = 0;
+                                foreach (var attachmenttomove in problematicFiles)
                                 {
-                                    int cnt = 0;
-                                    foreach (var attachmenttomove in problematicFiles)
+                                    MemoryStream attachmentStream = new();
+                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
                                     {
-                                        attachmentStream = new MemoryStream();
-                                        if (attachmenttomove.Key.ToLower().Contains(".msg"))
+                                        var _attachment = (Storage.Message)attachmenttomove.Value;
+                                        foreach (var subattachment in _attachment.Attachments)
                                         {
-                                            var _attachment = (Storage.Message)attachmenttomove.Value;
-                                            foreach (var subattachment in _attachment.Attachments)
+                                            var type = subattachment.GetType().FullName;
+                                            if (type.ToLower().Contains("attachment"))
                                             {
-                                                var type = subattachment.GetType().FullName;
-                                                if (type.ToLower().Contains("attachment"))
-                                                {
-                                                    var file = (Storage.Attachment)subattachment;
-                                                    File.WriteAllBytes(file.FileName, file.Data);
-                                                    attachmentStream.Write(file.Data, 0, file.Data.Length);
-                                                    attachmentsObj.Add(attachmentStream, file.FileName);
-                                                }
+                                                var file = (Storage.Attachment)subattachment;
+                                                File.WriteAllBytes(file.FileName, file.Data);
+                                                attachmentStream.Write(file.Data, 0, file.Data.Length);
+                                                attachmentsObj.Add(attachmentStream, file.FileName);
                                             }
                                         }
-                                        else
-                                        {
-                                            var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                            File.WriteAllBytes(_attachment.FileName, _attachment.Data);
-                                            attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                            attachmentsObj.Add(attachmentStream, _attachment.FileName);
-                                        }
-                                        cnt++;
                                     }
-                                    moved = true;
-                                    message = string.Concat($"{cnt} problematic files moved", outputpath);
+                                    else
+                                    {
+                                        var _attachment = (Storage.Attachment)attachmenttomove.Value;
+                                        File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        attachmentsObj.Add(attachmentStream, _attachment.FileName);
+                                    }
+                                    cnt++;
                                 }
+                                moved = true;
+                                message = string.Concat($"{cnt} problematic files moved", outputpath);
+                            }
 
-                                break;
-                                }
+                            break;
                         }
                         catch(Exception e)
                         {
@@ -146,11 +143,11 @@ namespace MCS.FOI.MSGToPDF
         }
 
 
-        private string generateHtmlfromMsg(Storage.Message msg)
+        private string GenerateHtmlfromMsg(Storage.Message msg)
         {
             try {
                 var sb = new StringBuilder();
-                StringBuilder htmlString = new StringBuilder();
+                StringBuilder htmlString = new();
                 htmlString.Append(@"
                             <html>
                                 <head>
