@@ -41,10 +41,10 @@ namespace MCS.FOI.CalendarToPDF
         public string Message { get; set; }
 
 
-        public CalendarFileProcessor()
-        {
+        //public CalendarFileProcessor()
+        //{
 
-        }
+        //}
         public CalendarFileProcessor(Stream sourceStream)
         {
             SourceStream = sourceStream;
@@ -74,12 +74,11 @@ namespace MCS.FOI.CalendarToPDF
         /// <returns>HTML as a string</returns>
         private (string, Dictionary<MemoryStream, string>) ConvertCalendartoHTML()
         {
-            Dictionary<MemoryStream, string> attachmentsObj = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, string> attachmentsObj = new();
             try
             {
                 string ical = string.Empty;
-                MemoryStream attachmentStream = new MemoryStream();
-
+                MemoryStream attachmentStream = new();
                 if (SourceStream != null && SourceStream.Length > 0)
                 { 
                     for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
@@ -90,7 +89,7 @@ namespace MCS.FOI.CalendarToPDF
                             SourceStream.Seek(0, SeekOrigin.Begin);
                             StreamReader sr = new(SourceStream);
                             ical = sr.ReadToEnd();
-                            SourceStream.Seek(position, SeekOrigin.Begin);
+                            _ = SourceStream.Seek(position, SeekOrigin.Begin);
                         }
                         catch (Exception)
                         {
@@ -150,7 +149,7 @@ namespace MCS.FOI.CalendarToPDF
                             attName += ";" + attendee.CommonName + "(" + attendee.Value.AbsoluteUri + ")";
                         }
                         if (!string.IsNullOrEmpty(attName))
-                            attName = attName.Substring(1);
+                            attName = attName[1..];
                         htmlString.Append(@"<tr>
                         <td><b>To: </b></td>
                         <td>" + attName + "</td></tr>");

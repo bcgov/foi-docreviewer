@@ -8,7 +8,6 @@ namespace MCS.FOI.CalendarToPDF
     {
         public (bool, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles();
 
-
         public int FailureAttemptCount { get; set; }
 
         public int WaitTimeinMilliSeconds { get; set; }

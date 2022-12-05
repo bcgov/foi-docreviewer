@@ -24,7 +24,7 @@ namespace MCS.FOI.MSGToPDF
         public int FailureAttemptCount { get; set; }
         public int WaitTimeinMilliSeconds { get; set; }
 
-        public MSGFileProcessor() { }
+        //public MSGFileProcessor() { }
 
 
         public MSGFileProcessor(Stream sourceStream)
@@ -43,7 +43,7 @@ namespace MCS.FOI.MSGToPDF
             Dictionary<MemoryStream, string> attachmentsObj = new();
             try
             {
-                Dictionary<string, Object> problematicFiles = null;
+                Dictionary<string, object>? problematicFiles = null;
 
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
@@ -63,7 +63,7 @@ namespace MCS.FOI.MSGToPDF
                                 if (type.ToLower().Contains("message"))
                                 {
                                     var file = (Storage.Message)attachment;
-                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                    problematicFiles ??= new Dictionary<string, object>();
                                     problematicFiles.Add(file.FileName, file);
 
                                 }
@@ -73,7 +73,7 @@ namespace MCS.FOI.MSGToPDF
                                     if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") ||
                                         file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx"))
                                     {
-                                        problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                        problematicFiles ??= new Dictionary<string, object>();
                                         problematicFiles.Add(file.FileName, file);
 
                                     }
@@ -239,9 +239,11 @@ namespace MCS.FOI.MSGToPDF
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
-                BlinkConverterSettings settings = new BlinkConverterSettings();
-                settings.EnableHyperLink = false;
+                HtmlToPdfConverter htmlConverter = new(HtmlRenderingEngine.Blink);
+                BlinkConverterSettings settings = new()
+                {
+                    EnableHyperLink = false
+                };
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");

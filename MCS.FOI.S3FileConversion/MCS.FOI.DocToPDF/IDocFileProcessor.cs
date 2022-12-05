@@ -8,6 +8,9 @@ namespace MCS.FOI.DocToPDF
 {
     public interface IDocFileProcessor
     {
+
+        public (bool, string, Stream) ConvertToPDF();
+
         public int FailureAttemptCount { get; set; }
 
         public int WaitTimeinMilliSeconds { get; set; }

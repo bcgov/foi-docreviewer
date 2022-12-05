@@ -17,7 +17,7 @@ namespace MCS.FOI.DocToPDF
     {
 
 
-        public DocFileProcessor(){        }
+        //public DocFileProcessor(){        }
 
         public DocFileProcessor(Stream SourceStream)
         {
@@ -34,12 +34,12 @@ namespace MCS.FOI.DocToPDF
 
 
 
-        public (bool, Stream) ConvertToPDF()
+        public (bool, string, Stream) ConvertToPDF()
         {
             bool converted = false;
             string message = string.Empty;
-            bool _isSinglePDFOutput = IsSinglePDFOutput;
-            MemoryStream output = new MemoryStream();
+            //bool _isSinglePDFOutput = IsSinglePDFOutput;
+            MemoryStream output = new();
             try
             {
                 for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
@@ -48,7 +48,7 @@ namespace MCS.FOI.DocToPDF
                     {
                         //Load an existing Word document
                         //WordDocument wordDocument = new WordDocument(SourceStream, FormatType.Docx);
-                        DocIORenderer renderer = new DocIORenderer();
+                        DocIORenderer renderer = new();
                         //Initialize chart to image converter for converting charts during Word to pdf conversion
                         //wordDocument.ChartToImageConverter = new ChartToImageConverter();
                         //Create an instance of DocToPDFConverter
@@ -63,7 +63,7 @@ namespace MCS.FOI.DocToPDF
                         pdfDocument.Close(true);
                         //wordDocument.Close();
                         converted = true;
-
+                        message = $"File processed successfully!";
                     }
                     catch (Exception e)
                     {
@@ -81,7 +81,7 @@ namespace MCS.FOI.DocToPDF
                 Log.Error(error);
                 Console.WriteLine(error);
             }
-            return (converted, output);
+            return (converted, message, output);
         }
     }
 }

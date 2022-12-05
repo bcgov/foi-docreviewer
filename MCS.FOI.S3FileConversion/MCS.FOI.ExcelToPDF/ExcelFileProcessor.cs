@@ -14,7 +14,7 @@ namespace MCS.FOI.ExcelToPDF
     public class ExcelFileProcessor : IExcelFileProcessor
     {
 
-        public ExcelFileProcessor() { }
+        //public ExcelFileProcessor() { }
 
         /// <summary>
         /// Overloaded Constructor to recieve the Source Excel location and output location to save the PDF.
@@ -56,68 +56,65 @@ namespace MCS.FOI.ExcelToPDF
             bool converted = false;
             string message = string.Empty;
             bool _isSinglePDFOutput = IsSinglePDFOutput;
-            MemoryStream output = new MemoryStream();
+            MemoryStream output = new();
             try
             {
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
-                    using (ExcelEngine excelEngine = new ExcelEngine())
+                    using ExcelEngine excelEngine = new();
+                    IApplication application = excelEngine.Excel;
+                    var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
+
+                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
-                        IApplication application = excelEngine.Excel;
-                        var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
+                        Stream? excelStream;
 
-                        for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                        try
                         {
-                            Stream excelStream;
-                            
-                            try
+                            using (excelStream = SourceStream)
                             {
-                                using (excelStream = SourceStream)
-                                {
-                                    IWorkbook workbook = application.Workbooks.Open(excelStream, excelparseoptions);
+                                IWorkbook workbook = application.Workbooks.Open(excelStream, excelparseoptions);
 
-                                    if (workbook.Worksheets.Count > 0)
+                                if (workbook.Worksheets.Count > 0)
+                                {
+                                    if (!_isSinglePDFOutput) /// if not single output, then traverse through each sheet and make seperate o/p pdfs
                                     {
-                                        if (!_isSinglePDFOutput) /// if not single output, then traverse through each sheet and make seperate o/p pdfs
+                                        foreach (IWorksheet worksheet in workbook.Worksheets)
                                         {
-                                            foreach (IWorksheet worksheet in workbook.Worksheets)
+                                            if (worksheet.Visibility == WorksheetVisibility.Visible)
                                             {
-                                                if (worksheet.Visibility == WorksheetVisibility.Visible)
-                                                {                                                   
-                                                    output = saveToPdf(worksheet, output);
-                                                }
+                                                output = SaveToPdf(worksheet, output);
                                             }
                                         }
-                                        else
-                                        {
-                                            output = saveToPdf(workbook, output);
-
-                                        }
                                     }
+                                    else
+                                    {
+                                        output = SaveToPdf(workbook, output);
 
-                                    converted = true;
-                                    message = $"File processed successfully!";
-                                    break;
+                                    }
                                 }
-                            }
-                            catch(Exception e)
-                            {
-                                message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                                Log.Error(message);
-                                Console.WriteLine(message);
-                                excelStream = null;
-                                Thread.Sleep(WaitTimeinMilliSeconds);
-                                if(attempt >= 3 && attempt < 5 && attempt < FailureAttemptCount)
-                                {
-                                    excelparseoptions = ExcelParseOptions.ParseWorksheetsOnDemand;
-                                }                                
-                                else
-                                {
-                                    excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
-                                }
+
+                                converted = true;
+                                message = $"File processed successfully!";
+                                break;
                             }
                         }
-
+                        catch (Exception e)
+                        {
+                            message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
+                            Log.Error(message);
+                            Console.WriteLine(message);
+                            excelStream = null;
+                            Thread.Sleep(WaitTimeinMilliSeconds);
+                            if (attempt >= 3 && attempt < 5 && attempt < FailureAttemptCount)
+                            {
+                                excelparseoptions = ExcelParseOptions.ParseWorksheetsOnDemand;
+                            }
+                            else
+                            {
+                                excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
+                            }
+                        }
                     }
                 }
                 else
@@ -142,11 +139,11 @@ namespace MCS.FOI.ExcelToPDF
         /// Save to pdf method, based on input from Excel file - Workbook vs Worksheet
         /// </summary>
         /// <param name="worksheet">worksheet object</param>
-        private MemoryStream saveToPdf(IWorksheet worksheet, MemoryStream output)
+        private static MemoryStream SaveToPdf(IWorksheet worksheet, MemoryStream output)
         {
             try
             {
-                XlsIORenderer renderer = new XlsIORenderer();
+                XlsIORenderer renderer = new();
                 using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
                 pdfDocument.Compression = PdfCompressionLevel.Normal;
@@ -164,11 +161,11 @@ namespace MCS.FOI.ExcelToPDF
         ///  Save to pdf method, based on input from Excel file - Workbook vs Worksheet
         /// </summary>
         /// <param name="workbook">workbook object</param>
-        private MemoryStream saveToPdf(IWorkbook workbook, MemoryStream output)
+        private static MemoryStream SaveToPdf(IWorkbook workbook, MemoryStream output)
         {
             try
             {
-                XlsIORenderer renderer = new XlsIORenderer();
+                XlsIORenderer renderer = new();
                 PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.Save(output);
             }

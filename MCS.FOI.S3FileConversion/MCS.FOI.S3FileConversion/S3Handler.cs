@@ -20,100 +20,102 @@ namespace MCS.FOI.S3FileConversion
 {
     internal class S3Handler
     {
-        public static async System.Threading.Tasks.Task<List<String>> ConvertFile(string filePath)
+        public static async Task<List<string>> ConvertFile(string? filePath)
         {
-            // Get S3 Access credentials based on ministry
-            var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
-            //var configurationbuilder = new ConfigurationBuilder()
-            //            .AddJsonFile($"appsettings.json", true, true)
-            //            .AddEnvironmentVariables().Build();
-            string S3Host = cb.GetSection("S3Host").Value;
-            string bucket = filePath.Split("/")[3];
-            string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
-            string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
-            //string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
-            
             List<string> attachmentKeys = new();
-            try
+            if (!string.IsNullOrEmpty(filePath))
             {
-                // Initialize S3 Client
-                IAmazonS3 s3;
-                AWSCredentials AWSCredentials = new BasicAWSCredentials(S3AccessKeyID, S3AccessSecretKey);
-                AmazonS3Config config = new()
+                // Get S3 Access credentials based on ministry
+                IConfigurationRoot cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
+                //var configurationbuilder = new ConfigurationBuilder()
+                //            .AddJsonFile($"appsettings.json", true, true)
+                //            .AddEnvironmentVariables().Build();
+                string S3Host = cb.GetSection("S3Host").Value;
+                string bucket = filePath.Split("/")[3];
+                string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
+                string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
+                //string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
+                try
                 {
-                    ServiceURL = S3Host
-                };
-
-                AmazonS3Client s3Client = new(AWSCredentials, config);
-
-                using (s3 = new AmazonS3Client(AWSCredentials, config))
-                {
-                    // Get File from s3
-                    var fileKey = filePath.Split(S3Host + '/')[1];
-                    var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
-
-                    var client = new HttpClient();
-                    HttpResponseMessage response = await client.GetAsync(presignedGetURL);
-                    response.EnsureSuccessStatusCode();
-                    Stream responseStream = response.Content.ReadAsStream();
-
-                    // Convert File
-                    string extension = Path.GetExtension(fileKey);
-                    Stream output = new MemoryStream();
-                    Dictionary<MemoryStream, string> attachments = new();
-
-                    switch (extension)
+                    // Initialize S3 Client
+                    IAmazonS3 s3;
+                    AWSCredentials AWSCredentials = new BasicAWSCredentials(S3AccessKeyID, S3AccessSecretKey);
+                    AmazonS3Config config = new()
                     {
-                        case ".xls":
-                        case ".xlsx":
-                            output = ConvertExcelFiles(responseStream);
-                            break;
-                        case ".ics":
-                            (output, attachments) = ConvertCalendarFiles(responseStream);
-                            break;
-                        case ".msg":
-                            (output, attachments) = ConvertMSGFiles(responseStream);
-                            break;
-                        //case ".eml":
-                        //    output = convertEMLFiles(responseStream);
-                        //    break;
-                        case ".doc":
-                        case ".docx":
-                            output = ConvertDocFiles(responseStream);
-                            break;
-                    }
+                        ServiceURL = S3Host
+                    };
 
+                    AmazonS3Client s3Client = new(AWSCredentials, config);
 
-                    // Save converted pdf back to s3
-                    var newKey = Path.ChangeExtension(fileKey, ".pdf");
-                    var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
-                    string folder = filePath.Split("/")[4];
-
-                    output.Position = 0;
-                    StreamContent strm = new(output);
-                    strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                    HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
-                    
-                    if (attachments != null && attachments.Count > 0)
+                    using (s3 = new AmazonS3Client(AWSCredentials, config))
                     {
-                        foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
+                        // Get File from s3
+                        var fileKey = filePath.Split(S3Host + '/')[1];
+                        var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
+
+                        var client = new HttpClient();
+                        HttpResponseMessage response = await client.GetAsync(presignedGetURL);
+                        response.EnsureSuccessStatusCode();
+                        Stream responseStream = response.Content.ReadAsStream();
+
+                        // Convert File
+                        string extension = Path.GetExtension(fileKey);
+                        Stream output = new MemoryStream();
+                        Dictionary<MemoryStream, string> attachments = new();
+
+                        switch (extension)
                         {
-                            attachment.Key.Position=0;
-                            var newAttachmentKey = bucket+"/"+folder+"/"+ attachment.Value;
-                            var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
-                            attachmentKeys.Add(S3Host+"/"+newAttachmentKey);
-                            StreamContent attachmentstrm = new StreamContent(attachment.Key);
-                            strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                            HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+                            case ".xls":
+                            case ".xlsx":
+                                output = ConvertExcelFiles(responseStream);
+                                break;
+                            case ".ics":
+                                (output, attachments) = ConvertCalendarFiles(responseStream);
+                                break;
+                            case ".msg":
+                                (output, attachments) = ConvertMSGFiles(responseStream);
+                                break;
+                            //case ".eml":
+                            //    output = convertEMLFiles(responseStream);
+                            //    break;
+                            case ".doc":
+                            case ".docx":
+                                output = ConvertDocFiles(responseStream);
+                                break;
                         }
+
+
+                        // Save converted pdf back to s3
+                        var newKey = Path.ChangeExtension(fileKey, ".pdf");
+                        var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
+                        string folder = filePath.Split("/")[4];
+
+                        output.Position = 0;
+                        StreamContent strm = new(output);
+                        strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                        HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
+
+                        if (attachments != null && attachments.Count > 0)
+                        {
+                            foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
+                            {
+                                attachment.Key.Position = 0;
+                                var newAttachmentKey = bucket + "/" + folder + "/" + attachment.Value;
+                                var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
+                                attachmentKeys.Add(S3Host + "/" + newAttachmentKey);
+                                StreamContent attachmentstrm = new(attachment.Key);
+                                strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                                HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+                            }
+                        }
+
                     }
 
                 }
-
-            }
-            catch (AmazonS3Exception ex)
-            {
-                Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
+                catch (AmazonS3Exception ex)
+                {
+                    Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
+                }
             }
             return attachmentKeys;
         }
@@ -133,36 +135,51 @@ namespace MCS.FOI.S3FileConversion
 
         private static Stream ConvertExcelFiles(Stream input)
         {
-            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input)
+            ExcelFileProcessor excelFileProcessor = new(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
-            var (converted, message, output) = excelFileProcessor.ConvertToPDF();
+            (bool converted, string message, Stream output) = excelFileProcessor.ConvertToPDF();
+            if (!converted)
+            {
+                string error = $"Exception Occured while coverting Excel file to PDF, error :  {message}";
+                Console.WriteLine(error);
+            }
             return output;
         }
 
         private static (Stream, Dictionary<MemoryStream, string>) ConvertCalendarFiles(Stream input)
         {
-            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
+            CalendarFileProcessor calendarFileProcessor = new(input)
             {
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
-            var (isProcessed, Message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
+            (bool isProcessed, string Message, Stream output, Dictionary<MemoryStream, string> attachments) = calendarFileProcessor.ProcessCalendarFiles();
+            if (!isProcessed)
+            {
+                string error = $"Exception Occured while coverting ICS file to PDF, error :  {Message}";
+                Console.WriteLine(error);
+            }
             return (output, attachments);
         }
 
         private static (Stream, Dictionary<MemoryStream, string>) ConvertMSGFiles(Stream input)
         {
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
+            MSGFileProcessor msgFileProcessor = new(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
-            var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
+            (bool converted, string message, Stream output, Dictionary<MemoryStream, string> attachments) = msgFileProcessor.ConvertToPDF();
+            if (!converted)
+            {
+                string error = $"Exception Occured while coverting MSG file to PDF, error :  {message}";
+                Console.WriteLine(error);
+            }
             return (output, attachments);
         }
 
@@ -179,13 +196,17 @@ namespace MCS.FOI.S3FileConversion
 
         private static Stream ConvertDocFiles(Stream input)
         {
-            DocFileProcessor docFileProcessor = new DocFileProcessor(input)
+            DocFileProcessor docFileProcessor = new(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
-            var (converted, output) = docFileProcessor.ConvertToPDF();
+            (bool converted, string message, Stream output) = docFileProcessor.ConvertToPDF();
+            if (!converted) {
+                string error = $"Exception Occured while coverting Doc/Docx file to PDF, error :  {message}";
+                Console.WriteLine(error);
+            }
             return output;
         }
 

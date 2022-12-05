@@ -22,7 +22,7 @@ namespace MCS.FOI.S3FileConversion
 {
     class Program
     {
-        static async System.Threading.Tasks.Task Main(string[] args)
+        static async Task Main(string[] args)
         {
 
             try
@@ -38,31 +38,16 @@ namespace MCS.FOI.S3FileConversion
                 //string S3Host = configurationbuilder.GetSection("ConversionSettings:S3Host").Value;
 
 
-                //Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
-                //ConversionSettings.DeploymentPlatform = environmentName.ToLower().StartsWith("linux") ? Platform.Linux : Platform.Windows; //KEEPING MULTI PLATFORM CODE BASE LOGIC FOR FUTURE REFERENCE
-                ConversionSettings.DeploymentPlatform = Platform.Windows; //Fixing to Windows platform for Win Server VM deployment, once with Linux/OS , will take environment
-                ConversionSettings.FileWatcherStartDate = configurationbuilder.GetSection("ConversionSettings:FileWatcherStartDate").Value;
-                ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
-                ConversionSettings.CFRArchiveFoldertoSkip = configurationbuilder.GetSection("ConversionSettings:CFRArchiveFoldertoSkip").Value;
-                IConfigurationSection ministryConfigSection = configurationbuilder.GetSection("ConversionSettings:MinistryIncomingPaths");
-
-                int.TryParse(configurationbuilder.GetSection("ConversionSettings:FailureAttemptCount").Value, out int failureattempt);
+                _ = int.TryParse(configurationbuilder.GetSection("ConversionSettings:FailureAttemptCount").Value, out int failureattempt);
                 ConversionSettings.FailureAttemptCount = failureattempt;// Max. recovery attempts after a failure.
 
-                int.TryParse(configurationbuilder.GetSection("ConversionSettings:WaitTimeInMilliSeconds").Value, out int waittimemilliseconds);
+                _ = int.TryParse(configurationbuilder.GetSection("ConversionSettings:WaitTimeInMilliSeconds").Value, out int waittimemilliseconds);
                 ConversionSettings.WaitTimeInMilliSeconds = waittimemilliseconds; // Wait time between recovery attempts after a failure
-
-                int.TryParse(configurationbuilder.GetSection("ConversionSettings:FileWatcherMonitoringDelayInMilliSeconds").Value, out int fileWatcherMonitoringDelayInMilliSeconds);
-                ConversionSettings.FileWatcherMonitoringDelayInMilliSeconds = fileWatcherMonitoringDelayInMilliSeconds; // Delay between file directory fetch.
-
-                int.TryParse(configurationbuilder.GetSection("ConversionSettings:DayCountBehindToStart").Value, out int count);
-                ConversionSettings.DayCountBehindToStart = count; // days behind to start from for File watching, this is for DirectoryList Object to set up static algo for FileWacthing, till DB integration.
-
+                                             
                 //Fetching Syncfusion License from settings
                 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(ConversionSettings.SyncfusionLicense);
 
                 //CreateHostBuilder(args).Build().Run();
-
                 string eventHubHost = configurationbuilder.GetSection("EventHub:Host").Value;
                 string eventHubPort = configurationbuilder.GetSection("EventHub:Port").Value;
                 //string eventHubPort = configurationbuilder.GetSection("EventHub:Port").Value;
@@ -79,7 +64,6 @@ namespace MCS.FOI.S3FileConversion
 
                 string latest = "$";
                 string streamKey = configurationbuilder.GetSection("EventHub:StreamKey").Value;
-                //db.StreamCreateConsumerGroup(streamKey, "file-conversion-consumer-group", "$");
 
                 while (true)
                 {
@@ -88,10 +72,10 @@ namespace MCS.FOI.S3FileConversion
                         foreach (StreamEntry message in messages)
                         {
                             Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["S3Path"]);
-                            List<String> s3AttachmentPaths= await S3Handler.ConvertFile(message["S3Path"]);
                             latest = message.Id;
                             db.StringSet($"{latest}:lastid", latest);
                             db.StreamAcknowledge(streamKey, "file-conversion-consumer-group", message.Id);
+                            List<string> s3AttachmentPaths = await S3Handler.ConvertFile(message["S3Path"]);
                             if (s3AttachmentPaths != null && s3AttachmentPaths.Count > 0)
                             {
                                 for (int i = 0; i < s3AttachmentPaths.Count; i++)
@@ -120,7 +104,6 @@ namespace MCS.FOI.S3FileConversion
                 Console.WriteLine("Press enter to exit.");
                 Console.ReadLine();
             }
-            
 
         }
 
