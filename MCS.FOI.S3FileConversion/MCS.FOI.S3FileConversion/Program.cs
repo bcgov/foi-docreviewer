@@ -37,7 +37,7 @@ namespace MCS.FOI.S3FileConversion
 
                 //string S3Host = configurationbuilder.GetSection("ConversionSettings:S3Host").Value;
 
-
+                ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
                 _ = int.TryParse(configurationbuilder.GetSection("ConversionSettings:FailureAttemptCount").Value, out int failureattempt);
                 ConversionSettings.FailureAttemptCount = failureattempt;// Max. recovery attempts after a failure.
 
