@@ -17,9 +17,10 @@ revision = 'cb81f7d5bfca'
 down_revision = 'a6eaec196523'
 branch_labels = None
 depends_on = None
-
+import os
 
 def upgrade():
+    s3environment = os.getenv('DEDUPE_S3_ENV')
     docment_path_mapper = table('DocumentPathMapper',
                                  column('category',String),
                                  column('bucket',String),
@@ -31,13 +32,13 @@ def upgrade():
     op.bulk_insert(
         docment_path_mapper,
         [
-            {'category':'Attachments','bucket':'$environment-forms-foirequests','isactive':True,'createdby':'System'},
+            {'category':'Attachments','bucket':'{0}-forms-foirequests'.format(s3environment),'isactive':True,'createdby':'System'},
         ]
     )
     op.execute('''INSERT INTO public."DocumentPathMapper"(
             category, bucket, isactive, createdby)
-            Select 'Records', lower(bcgovcode) || '-$environment' , true, 'System' from
-            public."ProgramAreas" where isactive = true''')
+            Select 'Records', lower(bcgovcode) || '-{0}' , true, 'System' from
+            public."ProgramAreas" where isactive = true'''.format(s3environment))
 
 
 def downgrade():
