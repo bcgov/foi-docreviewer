@@ -32,8 +32,7 @@ function Home() {
 
         let ministryrequestid = "1";
         getFOIS3DocumentPreSignedUrl(
-            data[0]?.filepath,
-            ministryrequestid,
+            data[0]?.documentid,
             (s3data: string) => {
                 console.log('s3:');
                 console.log(s3data);
