@@ -2,19 +2,19 @@
 kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
-  name: "${API_NAME}-build-template"
+  name: "${APP_NAME}-build-template"
   creationTimestamp: 
 objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: "${API_NAME}"
+    name: "${APP_NAME}"
 - kind: BuildConfig
   apiVersion: v1
   metadata:
-    name: "${API_NAME}-build"
+    name: "${APP_NAME}-build"
     labels:
-      app: "${API_NAME}-build"
+      app: "${APP_NAME}-build"
   spec:
     runPolicy: Serial
     source:
@@ -30,7 +30,7 @@ objects:
       dockerStrategy:
         dockerfilePath: "${DOCKER_FILE_PATH}"
         pullSecret: 
-          name: artifactory-creds
+          name: artifacts-pull-default-jmhvkc
       # type: Source
       # sourceStrategy:
       #   from:
@@ -40,9 +40,9 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: "${API_NAME}:latest"
+        name: "${APP_NAME}:latest"
 parameters:
-- name: API_NAME
+- name: APP_NAME
   displayName: Name
   description: The name assigned to all of the resources defined in this template.
   required: true
