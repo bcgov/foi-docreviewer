@@ -164,7 +164,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: CACHE_REDISURL
+                  key: CORS_ORIGIN
             - name: CACHE_TIMEOUT
               value: "36000"
             - name: CACHE_ENABLED
