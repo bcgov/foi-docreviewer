@@ -9,6 +9,7 @@ on:
       - dev-RQ-3081
     paths:
       - "api/**"
+      - ".github/workflows/api-cd.yml"
 
 defaults:
   run:

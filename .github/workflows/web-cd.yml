@@ -9,6 +9,7 @@ on:
       - dev-RQ-3081
     paths:
       - "web/**"
+      - ".github/workflows/web-cd.yml"
 
 defaults:
   run:
