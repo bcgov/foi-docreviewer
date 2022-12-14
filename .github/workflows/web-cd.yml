@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - dev
-      - main
+      # - main
       - dev-RQ-3081
     paths:
       - "web/**"
