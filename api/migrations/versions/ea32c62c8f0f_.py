@@ -21,12 +21,34 @@ def upgrade():
                existing_type=sa.String(length=255),
                type_=sa.String(length=500),
                existing_nullable=False)
-    op.execute('UPDATE public."Documents" SET filename = \'1001 Books.pdf\', filepath = \'test/1001 Books.pdf\', pagecount = 2272 WHERE documentid = 1')
-    op.execute('UPDATE public."Documents" SET filename = \'6 Important factors.pdf\', filepath = \'test/6 Important factors.pdf\', pagecount = 9 WHERE documentid = 2')
-    op.execute('UPDATE public."Documents" SET filename = \'Unix and Linux System.pdf\', filepath = \'test/Unix and Linux System.pdf\', pagecount = 1885 WHERE documentid = 3')
-    op.execute('UPDATE public."Documents" SET filename = \'6 Important factors.pdf\', filepath = \'test/6 Important factors.pdf\', pagecount = 9 WHERE documentid = 4')
-    op.execute('UPDATE public."Documents" SET filename = \'1001 Books.pdf\', filepath = \'test/1001 Books.pdf\', pagecount = 2272 WHERE documentid = 5')
-    op.execute('UPDATE public."Documents" SET filename = \'6 Important factors.pdf\', filepath = \'test/6 Important factors.pdf\', pagecount = 9 WHERE documentid = 6')
+    op.execute('Truncate table public."Documents" RESTART IDENTITY CASCADE;commit;')
+    op.execute('Truncate table public."DocumentTags" RESTART IDENTITY CASCADE;commit;')
+
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, '1001 Books.pdf', 'test/1001 Books.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2272);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, '6 Important factors.pdf', 'test/6 Important factors.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 9);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Unix and Linux System.pdf', 'test/Unix and Linux System.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 1885);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, '6 Important factors.pdf', 'test/6 Important factors.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 9);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, '1001 Books.pdf', 'test/1001 Books.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2272);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, '6 Important factors.pdf', 'test/6 Important factors.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 9);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'QA Review Form.pdf', 'test/QA Review Form.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 4);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Request Summary - CORR Police Services.pdf', 'test/Request Summary - CORR Police Services.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Request Summary - DVR Request - Corrections and Court Services.pdf', 'test/Request Summary - DVR Request - Corrections and Court Services.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Sign Form - Calendars.pdf', 'test/Sign Form - Calendars.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Sign Form - Expense.pdf', 'test/Sign Form - Expense.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 2);commit;''')
+    op.execute('''INSERT INTO public."Documents" (version, filename, filepath, attributes, foiministryrequestid, createdby, created_at, updated_at, statusid, pagecount) VALUES (1, 'Sign Form.pdf', 'test/Sign Form.pdf', '{"documentpathid"\:38}', 1, '{}', now()::Date, now()::Date, 1, 3);commit;''')
+ 
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (1, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (2, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (3, 1, '{"divisions"\:[{"divisionid"\:2}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (4, 1, '{"divisions"\:[{"divisionid"\:3}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (5, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (6, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (7, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (8, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (9, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (10, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (11, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
+    op.execute('''INSERT INTO public."DocumentTags" (documentid, documentversion, tag, createdby, created_at) VALUES (12, 1, '{"divisions"\:[{"divisionid"\:1}]}', '{}', now()::Date);commit;''')
 
 
 def downgrade():
@@ -34,9 +56,6 @@ def downgrade():
                existing_type=sa.String(length=500),
                type_=sa.VARCHAR(length=255),
                existing_nullable=False)
-    op.execute('UPDATE public."Documents" SET filename = \'sample1.pdf\', filepath = \'/files/sample1.pdf\', pagecount = 9 WHERE documentid = 1')
-    op.execute('UPDATE public."Documents" SET filename = \'sample2.pdf\', filepath = \'/files/sample2.pdf\', pagecount = 2 WHERE documentid = 2')
-    op.execute('UPDATE public."Documents" SET filename = \'sample1.pdf\', filepath = \'/files/sample1.pdf\', pagecount = 9 WHERE documentid = 3')
-    op.execute('UPDATE public."Documents" SET filename = \'sample1.pdf\', filepath = \'/files/sample1.pdf\', pagecount = 9 WHERE documentid = 4')
-    op.execute('UPDATE public."Documents" SET filename = \'sample1.pdf\', filepath = \'/files/sample1.pdf\', pagecount = 9 WHERE documentid = 5')
-    op.execute('UPDATE public."Documents" SET filename = \'sample2.pdf\', filepath = \'/files/sample2.pdf\', pagecount = 2 WHERE documentid = 6')
+
+    op.execute('Truncate table public."Documents" RESTART IDENTITY CASCADE;commit;')
+    op.execute('Truncate table public."DocumentTags" RESTART IDENTITY CASCADE;commit;')

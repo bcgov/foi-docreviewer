@@ -17,7 +17,7 @@ objects:
         "realm": "${REACT_APP_KEYCLOAK_URL_REALM}",
         "auth-server-url": "${AUTH_SERVER_URL}" ,
         "ssl-required": "external",
-        "resource": "forms-flow-web",
+        "resource": "foi-document-redaction",
         "public-client": true,
         "verify-token-audience": true,
         "use-resource-role-mappings": true,
@@ -207,7 +207,7 @@ parameters:
     displayName: Environment TAG name
     description: The TAG name for this environment, e.g., dev, test, prod
     required: true
-    value: dev
+    value: test
   - name: CPU_REQUEST
     displayName: Resources CPU Request
     description: The resources CPU request (in cores) for this build.
