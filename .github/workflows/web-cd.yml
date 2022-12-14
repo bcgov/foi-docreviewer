@@ -64,12 +64,12 @@ jobs:
       - name: Build from ${{ env.BRANCH_NAME }} branch
         shell: bash
         run: |
-          oc patch bc/${{ env.APP_NAME }} -p '{"spec":{"source":{"contextDir":"/web","git":{"ref":"${{ env.BRANCH_NAME }}"}}}}'
+          oc patch bc/${{ env.APP_NAME }}-build -p '{"spec":{"source":{"contextDir":"/web","git":{"ref":"${{ env.BRANCH_NAME }}"}}}}'
 
       - name: Start Build Openshift
         shell: bash
         run: |
-          oc start-build ${{ env.APP_NAME }} --wait
+          oc start-build ${{ env.APP_NAME }}-build --wait
 
       - name: Tag+Deploy for ${{ env.TAG_NAME }}
         shell: bash
