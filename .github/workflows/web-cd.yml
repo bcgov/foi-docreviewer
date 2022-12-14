@@ -57,7 +57,7 @@ jobs:
         run: |
           oc login --server=${{secrets.OPENSHIFT4_LOGIN_REGISTRY}} --token=${{secrets.OPENSHIFT4_SA_TOKEN}}
 
-      - name: Tools project
+      - name: Tools project ${{ env.TOOLS_NAME }}
         shell: bash
         run: |
           oc project ${{ env.TOOLS_NAME }}-tools
