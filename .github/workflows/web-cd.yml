@@ -60,10 +60,10 @@ jobs:
         run: |
           oc login --server=${{secrets.OPENSHIFT4_LOGIN_REGISTRY}} --token=${{secrets.OPENSHIFT4_SA_TOKEN}}
 
-      - name: Tools project ${{ env.TOOLS_NAME }}
+      - name: Tools project
         shell: bash
         run: |
-          oc project ${{ env.TOOLS_NAME }}-tools
+          oc project ${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY}}-tools
 
       - name: Build from ${{ env.BRANCH_NAME }} branch
         shell: bash
@@ -83,4 +83,4 @@ jobs:
       - name: Watch new rollout (trigger by image change in Openshift)
         shell: bash
         run: |
-          oc rollout status dc/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
+          oc rollout status dc/${{ env.APP_NAME }} -n ${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY}}-${{ env.ENV_NAME }} -w
