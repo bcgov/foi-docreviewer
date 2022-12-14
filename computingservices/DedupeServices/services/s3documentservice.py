@@ -42,7 +42,7 @@ def gets3documenthashcode(producermessage):
                     aws_region=dedupe_s3_region,
                     aws_service=dedupe_s3_service)
    
-    response= requests.get('https://{0}/{1}'.format(dedupe_s3_host,producermessage.s3filepath), auth=auth,stream=True)
+    response= requests.get('{0}'.format(producermessage.s3filepath), auth=auth,stream=True)
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)
