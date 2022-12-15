@@ -39,7 +39,9 @@ def upgrade():
             category, bucket, isactive, createdby)
             Select 'Records', lower(bcgovcode) || '-{0}' , true, 'System' from
             public."ProgramAreas" where isactive = true'''.format(s3environment))
-
+    op.execute('''INSERT INTO public."DocumentPathMapper"(
+            category, bucket, attributes, isactive, createdby)
+            VALUES ('Records', 'dev-forms-foirequests', '{"s3accesskey":"","s3secretkey":""}', true, 'Richard')''')
 
 def downgrade():
     op.execute('Truncate table public."DocumentPathMapper" RESTART IDENTITY CASCADE;commit;')

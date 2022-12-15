@@ -1,6 +1,6 @@
 ---
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   annotations:
     description: Deployment template for a adjudication api service.
@@ -164,7 +164,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: CACHE_REDISURL
+                  key: CORS_ORIGIN
             - name: CACHE_TIMEOUT
               value: "36000"
             - name: CACHE_ENABLED
@@ -309,12 +309,12 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: dev
+  value: test
 - name: DATABASE_HOST
   displayName: Database service name
   description: Must match service name of database, eg patroni-master-002
   required: true
-  value: patroni-master-002
+  value: patroni-master-001
 - name: DATABASE_NAME
   displayName: Database name
   description: Must match name of database, eg docreviewer
@@ -324,7 +324,7 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: patroni-002
+  value: patroni-001
 - name: SECRETS
   displayName: Request Management Secrets
   description: Name of secret for all request-management-api values
@@ -334,4 +334,4 @@ parameters:
   displayName: Full image stream name (eg "reviewer-api:dev")
   description: Includes ImageStream name and tag
   required: true
-  value: reviewer-api:dev
+  value: reviewer-api:test
