@@ -25,14 +25,15 @@ jobs:
 
     if: github.event_name == 'push' && github.repository == 'bcgov/foi-docreviewer'
     steps:
+      - uses: actions/checkout@v2
       - name: Set ENV variables
         id: set-variable
         run: |
-          echo "For ${{ github.ref_name }} branch"
           echo "TAG_NAME=dev" >> $GITHUB_ENV
           echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
           echo "${{ env.TAG_NAME }}"
+        shell: bash
 
       - name: Check env var
         id: step_two
