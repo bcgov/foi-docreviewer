@@ -41,6 +41,7 @@ jobs:
             echo "TAG_NAME=dev" >> $GITHUB_ENV
             echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
             echo "ENV_NAME=dev" >> $GITHUB_ENV
+            echo "${{ env.TAG_NAME }}"
           elif [[ ${{ github.ref }} == 'main' ]]
           then
             echo "For ${{ github.ref_name }} branch"
