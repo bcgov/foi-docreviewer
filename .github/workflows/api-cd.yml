@@ -32,7 +32,6 @@ jobs:
           echo "TAG_NAME=dev" >> $GITHUB_ENV
           echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
-          echo "${{ env.TAG_NAME }}"
         shell: bash
 
       - name: Check env var
@@ -40,6 +39,8 @@ jobs:
         run: |
           echo "check out env variables"
           echo "${{ env.TAG_NAME }}"
+          echo "${{ env.BRANCH_NAME }}"
+          echo "${{ env.ENV_NAME }}"
 
       - name: Login Openshift
         shell: bash
