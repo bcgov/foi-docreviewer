@@ -49,6 +49,14 @@ jobs:
           fi
         shell: bash
 
+      - name: Check env var
+        id: step_two
+        run: |
+          echo "check out env variables"
+          echo "${{ env.TAG_NAME }}"
+          echo "${{ env.BRANCH_NAME }}"
+          echo "${{ env.ENV_NAME }}"
+
       - name: Login Openshift
         shell: bash
         run: |
