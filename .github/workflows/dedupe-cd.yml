@@ -18,6 +18,7 @@ defaults:
 
 env:
   APP_NAME: "reviewer-dedupe"
+  TOOLS_NAME: "${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY_DEDUPE}}"
 
 jobs:
   dedupe-cd-by-push:
@@ -61,7 +62,7 @@ jobs:
       - name: Tools project
         shell: bash
         run: |
-          oc project ${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY_DEDUPE}}-tools
+          oc project ${{ env.TOOLS_NAME }}-tools
 
       - name: Build from ${{ env.BRANCH_NAME }} branch
         shell: bash
@@ -81,4 +82,4 @@ jobs:
       - name: Watch new rollout (trigger by image change in Openshift)
         shell: bash
         run: |
-          oc rollout status dc/${{ env.APP_NAME }} -n ${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY_DEDUPE}}-${{ env.ENV_NAME }} -w
+          oc rollout status dc/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
