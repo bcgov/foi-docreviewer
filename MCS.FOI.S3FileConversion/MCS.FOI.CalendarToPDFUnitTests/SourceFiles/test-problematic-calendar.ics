@@ -1,0 +1,103 @@
+BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:Microsoft Exchange Server 2010
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Pacific Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ORGANIZER;CN=Paul Hill:mailto:Paul.Hill@non.se.com
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Abin Anton
+ y:mailto:abin.antony@non.se.com
+ATTENDEE;ROLE=OPT-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=henry.ofor
+ eh@aot-technologies.com:mailto:henry.oforeh@aot-technologies.com
+ATTENDEE;ROLE=OPT-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=divya.v@ao
+ t-technologies.com:mailto:divya.v@aot-technologies.com
+ATTENDEE;ROLE=OPT-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=avanti.c@a
+ ot-technologies.com:mailto:avanti.c@aot-technologies.com
+ATTENDEE;ROLE=OPT-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=nikhila.pa
+ nkaj@aot-technologies.com:mailto:nikhila.pankaj@aot-technologies.com
+DESCRIPTION;LANGUAGE=en-US:  *   A working meeting to ensure everyone is se
+ t up and has the access they need to get started.\n  *   Presentation of t
+ he architecture of PA\n  *   Walk the backlog and craft some backlog items
+ \n  *   Q&A\n_____________________________________________________________
+ ___________________\nMicrosoft Teams meeting\nJoin on your computer or mob
+ ile app\nClick here to join the meeting<https://teams.microsoft.com/l/meet
+ up-join/19%3ameeting_ZTYwMjk0ZWUtYjAzNC00ODY1LWJjMmEtOTIxMDcyZGNiY2M3%40th
+ read.v2/0?context=%7b%22Tid%22%3a%226e51e1ad-c54b-4b39-b598-0ffe9ae68fef%2
+ 2%2c%22Oid%22%3a%22eb3695cf-3e3c-4b1e-a8ad-0750909640ab%22%7d>\nJoin with 
+ a video conferencing device\n690912161.{ConfID}@video.schneider-electric.c
+ om<mailto:690912161.%7bConfID%7d@video.schneider-electric.com>\nVideo Conf
+ erence ID: 128 613 115 8\nAlternate VTC dialing instructions<https://diali
+ n.plcm.vc/teams/?key=690912161&conf=1286131158&domain=video.schneider-elec
+ tric.com&ip=159.215.247.20>\nOr call in (audio only)\n+1 647-749-1120\,\,4
+ 31541022#<tel:+16477491120\,\,431541022#>   Canada\, Toronto\nPhone Confer
+ ence ID: 431 541 022#\nFind a local number<https://dialin.teams.microsoft.
+ com/8093d3ba-288f-45c5-9669-24497e3c2114?id=431541022> | Reset PIN<https:/
+ /mysettings.lync.com/pstnconferencing>\nLearn More<https://aka.ms/JoinTeam
+ sMeeting> | Meeting options<https://teams.microsoft.com/meetingOptions/?or
+ ganizerId=eb3695cf-3e3c-4b1e-a8ad-0750909640ab&tenantId=6e51e1ad-c54b-4b39
+ -b598-0ffe9ae68fef&threadId=19_meeting_ZTYwMjk0ZWUtYjAzNC00ODY1LWJjMmEtOTI
+ xMDcyZGNiY2M3@thread.v2&messageId=0&language=en-US>\n_____________________
+ ___________________________________________________________\n\n
+UID:040000008200E00074C5B7101A82E008000000009041A1C6B7BDD601000000000000000
+ 010000000187340FC9095DE42A50471C884760383
+SUMMARY;LANGUAGE=en-US:AoT Power Advisor Project Kick-off
+DTSTART;TZID=Pacific Standard Time:20201123T093000
+DTEND;TZID=Pacific Standard Time:20201123T115000
+CLASS:PUBLIC
+PRIORITY:5
+DTSTAMP:20201120T213742Z
+TRANSP:OPAQUE
+STATUS:CONFIRMED
+SEQUENCE:2
+LOCATION;LANGUAGE=en-US:Microsoft Teams Meeting
+X-MICROSOFT-CDO-APPT-SEQUENCE:2
+X-MICROSOFT-CDO-OWNERAPPTID:1175631844
+X-MICROSOFT-CDO-BUSYSTATUS:TENTATIVE
+X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
+X-MICROSOFT-CDO-ALLDAYEVENT:FALSE
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-CDO-INSTTYPE:0
+X-MICROSOFT-SKYPETEAMSMEETINGURL:https://teams.microsoft.com/l/meetup-join/
+ 19%3ameeting_ZTYwMjk0ZWUtYjAzNC00ODY1LWJjMmEtOTIxMDcyZGNiY2M3%40thread.v2/
+ 0?context=%7b%22Tid%22%3a%226e51e1ad-c54b-4b39-b598-0ffe9ae68fef%22%2c%22O
+ id%22%3a%22eb3695cf-3e3c-4b1e-a8ad-0750909640ab%22%7d
+X-MICROSOFT-SCHEDULINGSERVICEUPDATEURL:https://scheduler.teams.microsoft.co
+ m/teams/6e51e1ad-c54b-4b39-b598-0ffe9ae68fef/eb3695cf-3e3c-4b1e-a8ad-07509
+ 09640ab/19_meeting_ZTYwMjk0ZWUtYjAzNC00ODY1LWJjMmEtOTIxMDcyZGNiY2M3@thread
+ .v2/0
+X-MICROSOFT-SKYPETEAMSPROPERTIES:{"cid":"19:meeting_ZTYwMjk0ZWUtYjAzNC00ODY
+ 1LWJjMmEtOTIxMDcyZGNiY2M3@thread.v2"\,"private":true\,"type":0\,"mid":0\,"
+ rid":0\,"uid":null}
+X-MICROSOFT-ONLINEMEETINGCONFLINK:conf:sip:Paul.Hill@non.se.com\;gruu\;opaq
+ ue=app:conf:focus:id:teams:2:0!19:meeting_ZTYwMjk0ZWUtYjAzNC00ODY1LWJjMmEt
+ OTIxMDcyZGNiY2M3-thread.v2!eb3695cf3e3c4b1ea8ad0750909640ab!6e51e1adc54b4b
+ 39b5980ffe9ae68fef
+X-MICROSOFT-ONLINEMEETINGINFORMATION:{"OnlineMeetingChannelId":null\,"Onlin
+ eMeetingProvider":3}
+X-MICROSOFT-DONOTFORWARDMEETING:FALSE
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
+X-MICROSOFT-LOCATIONS:[{"DisplayName":"Microsoft Teams Meeting"\,"LocationA
+ nnotation":""\,"LocationUri":""\,"LocationStreet":""\,"LocationCity":""\,"
+ LocationState":""\,"LocationCountry":""\,"LocationPostalCode":""\,"Locatio
+ nFullAddress":""}]
+BEGIN:VALARM
+DESCRIPTION:REMINDER
+TRIGGER;RELATED=START:-PT15M
+ACTION:DISPLAY
+END:VALARM
+END:VEVENT
+END:VCALENDAR

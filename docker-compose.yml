@@ -85,7 +85,32 @@ services:
     networks:
       services-network:
         aliases:
-          - db
+          - db   
+  
+  foi-s3-fileconversion:
+    container_name: foi-s3-fileconversion
+    depends_on:
+      - foi-docreviewer-db
+    build:
+      context: ./MCS.FOI.S3FileConversion/
+      dockerfile: Dockerfile.local
+    environment:
+      - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
+      - DATABASE_NAME=${FOI_DATABASE_NAME}
+      - DATABASE_HOST=${FOI_DATABASE_HOST}
+      - DATABASE_PORT=${FOI_DATABASE_PORT}
+      - S3_HOST=${S3_HOST}
+      - S3_REGION=${S3_REGION}
+      - S3_SERVICE=${S3_SERVICE}
+      - REDIS_STREAM_HOST=${REDIS_STREAM_HOST}
+      - REDIS_STREAM_PASSWORD=${REDIS_STREAM_PASSWORD}
+      - REDIS_STREAM_PORT=${REDIS_STREAM_PORT}
+      - REDIS_STREAM_KEY=${FILE_CONVERSION_STREAM_KEY}
+      - REDIS_STREAM_CONSUMER_GROUP=${FILE_CONVERSION_STREAM_CONSUMER_GROUP}
+    networks:
+      - services-network
+
 
   foi-docreviewer-dedupe:
     container_name: foi-docreviewer-dedupe

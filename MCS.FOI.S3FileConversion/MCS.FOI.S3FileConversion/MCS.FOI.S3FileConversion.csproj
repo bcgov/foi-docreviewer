@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+
+
+    <ItemGroup>
+	    <None Remove="appsettings.json" />
+		<None Remove="s3access.json" />
+    </ItemGroup>
+
+	<ItemGroup>
+		<Content Include="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<Content Include="s3access.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="3.7.101.9" />
+	<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+	<PackageReference Include="Npgsql" Version="7.0.0" />
+	<PackageReference Include="StackExchange.Redis" Version="2.6.70" />
+	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Linux" Version="20.3.0.59" />
+	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Windows" Version="20.3.0.59" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MCS.FOI.CalendarToPDF\MCS.FOI.CalendarToPDF.csproj" />
+    <ProjectReference Include="..\MCS.FOI.ExcelToPDF\MCS.FOI.ExcelToPDF.csproj" />
+	<ProjectReference Include="..\MCS.FOI.DocToPDF\MCS.FOI.DocToPDF.csproj" />
+	<ProjectReference Include="..\MCS.FOI.EMLToPDF\MCS.FOI.EMLToPDF.csproj" />
+	<ProjectReference Include="..\MCS.FOI.MSGToPDF\MCS.FOI.MSGToPDF.csproj" />
+  </ItemGroup>
+	
+
+</Project>
