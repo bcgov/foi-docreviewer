@@ -3,7 +3,7 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime as datetime2
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, aliased
 from sqlalchemy import func, case
 from .DocumentStatus import DocumentStatus
 from .DocumentTags import DocumentTag
@@ -81,11 +81,14 @@ class Document(db.Model):
 
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):
-        sq = db.session.query(func.min(DocumentHashCodes.documentid).label('minid')).group_by(DocumentHashCodes.rank1hash).subquery('sq')
+        sq = db.session.query(func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash).group_by(DocumentHashCodes.rank1hash).subquery('sq')        
+        sq2 = db.session.query(func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash).group_by(DocumentHashCodes.rank1hash).subquery('sq2')
         xpr = case([(sq.c.minid != None, False),],
         else_ = True).label("isduplicate")
+        originaldocument = aliased(Document)
         selectedcolumns = [
             xpr,
+            originaldocument.filename.label('duplicateof'),
             Document.documentid,
             Document.version,
             Document.filename,
@@ -108,6 +111,10 @@ class Document(db.Model):
             DocumentTag, Document.documentid == DocumentTag.documentid
         ).join(
             DocumentHashCodes, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            sq2, sq2.c.rank1hash == DocumentHashCodes.rank1hash
+        ).join(
+            originaldocument, originaldocument.documentid == sq2.c.minid
         ).order_by(DocumentHashCodes.created_at.asc()).all()
         return [r._asdict() for r in query]
 
