@@ -47,6 +47,9 @@ jobs:
           else
             echo "For ${{ github.ref_name }} branch"
           fi
+          echo "Test1=test1" >> $GITHUB_ENV
+          echo "Test2=test2" >> $GITHUB_ENV
+          echo "Test3=test3" >> $GITHUB_ENV
         shell: bash
 
       - name: Check env var
@@ -54,8 +57,8 @@ jobs:
         run: |
           echo "check out env variables"
           echo "${{ env.TAG_NAME }}"
-          echo "${{ env.BRANCH_NAME }}"
-          echo "${{ env.ENV_NAME }}"
+          echo "${{ env.Test1 }}"
+          echo "${{ env.Test3 }}"
 
       - name: Login Openshift
         shell: bash
