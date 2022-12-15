@@ -29,17 +29,20 @@ jobs:
       - name: Set ENV variables
         id: set-variable
         run: |
-          if [ ${{ github.ref_name }} == 'dev' ]; then
+          if [[ ${{ github.ref_name }} == 'dev' ]]
+          then
             echo "For ${{ github.ref_name }} branch"
             echo "TAG_NAME=dev" >> $GITHUB_ENV
             echo "BRANCH_NAME=dev" >> $GITHUB_ENV
             echo "ENV_NAME=dev" >> $GITHUB_ENV
-          elif [ ${{ github.ref }} == 'dev-RQ-3081' ]; then
+          elif [[ ${{ github.ref }} == 'dev-RQ-3081' ]]
+          then
             echo "For ${{ github.ref_name }} branch"
             echo "TAG_NAME=dev" >> $GITHUB_ENV
             echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
             echo "ENV_NAME=dev" >> $GITHUB_ENV
-          elif [ ${{ github.ref }} == 'main' ]; then
+          elif [[ ${{ github.ref }} == 'main' ]]
+          then
             echo "For ${{ github.ref_name }} branch"
             echo "TAG_NAME=test" >> $GITHUB_ENV
             echo "BRANCH_NAME=main" >> $GITHUB_ENV
