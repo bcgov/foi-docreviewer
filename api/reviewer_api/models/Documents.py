@@ -82,7 +82,7 @@ class Document(db.Model):
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):
         sq = db.session.query(func.min(DocumentHashCodes.documentid).label('minid')).group_by(DocumentHashCodes.rank1hash).subquery('sq')
-        xpr = case([(Document.documentid == sq.c.minid, False),],
+        xpr = case([(sq.c.minid != None, False),],
         else_ = True).label("isduplicate")
         selectedcolumns = [
             xpr,
@@ -102,6 +102,8 @@ class Document(db.Model):
         ]
         query = db.session.query(*selectedcolumns).filter(
             Document.foiministryrequestid == requestid
+        ).join(
+            sq, sq.c.minid == Document.documentid, isouter=True
         ).join(
             DocumentTag, Document.documentid == DocumentTag.documentid
         ).join(
