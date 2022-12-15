@@ -29,6 +29,7 @@ from .meta import API as META_API
 from .ops import API as OPS_API
 from .foiflowmasterdata import API as FOIFLOWMASTERDATA_API
 from .redaction import API as REDACTION_API
+from .dedupestatus import API as DEDUPESTATUS_API
 
 
 __all__ = ('API_BLUEPRINT')
@@ -53,3 +54,4 @@ API.add_namespace(META_API, path="/api")
 API.add_namespace(OPS_API, path="/api")
 API.add_namespace(FOIFLOWMASTERDATA_API, path="/api")
 API.add_namespace(REDACTION_API, path="/api")
+API.add_namespace(DEDUPESTATUS_API, path="/api")
