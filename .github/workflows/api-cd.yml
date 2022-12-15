@@ -25,44 +25,20 @@ jobs:
 
     if: github.event_name == 'push' && github.repository == 'bcgov/foi-docreviewer'
     steps:
-      - uses: actions/checkout@v2
       - name: Set ENV variables
         id: set-variable
         run: |
-          if [[ ${{ github.ref_name }} == 'dev' ]]
-          then
-            echo "For ${{ github.ref_name }} branch"
-            echo "TAG_NAME=dev" >> $GITHUB_ENV
-            echo "BRANCH_NAME=dev" >> $GITHUB_ENV
-            echo "ENV_NAME=dev" >> $GITHUB_ENV
-          elif [[ ${{ github.ref }} == 'dev-RQ-3081' ]]
-          then
-            echo "For ${{ github.ref_name }} branch"
-            echo "TAG_NAME=dev" >> $GITHUB_ENV
-            echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
-            echo "ENV_NAME=dev" >> $GITHUB_ENV
-            echo "${{ env.TAG_NAME }}"
-          elif [[ ${{ github.ref }} == 'main' ]]
-          then
-            echo "For ${{ github.ref_name }} branch"
-            echo "TAG_NAME=test" >> $GITHUB_ENV
-            echo "BRANCH_NAME=main" >> $GITHUB_ENV
-            echo "ENV_NAME=test" >> $GITHUB_ENV
-          else
-            echo "For ${{ github.ref_name }} branch"
-          fi
-          echo "Test1=test1" >> $GITHUB_ENV
-          echo "Test2=test2" >> $GITHUB_ENV
-          echo "Test3=test3" >> $GITHUB_ENV
-        shell: bash
+          echo "For ${{ github.ref_name }} branch"
+          echo "TAG_NAME=dev" >> $GITHUB_ENV
+          echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
+          echo "ENV_NAME=dev" >> $GITHUB_ENV
+          echo "${{ env.TAG_NAME }}"
 
       - name: Check env var
         id: step_two
         run: |
           echo "check out env variables"
           echo "${{ env.TAG_NAME }}"
-          echo "${{ env.Test1 }}"
-          echo "${{ env.Test3 }}"
 
       - name: Login Openshift
         shell: bash
