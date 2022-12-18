@@ -6,7 +6,7 @@ COPY MCS.FOI.S3FileConversion/*.csproj ./MCS.FOI.S3FileConversion/
 COPY MCS.FOI.ExcelToPDF/*.csproj ./MCS.FOI.ExcelToPDF/
 COPY MCS.FOI.CalendarToPDF/*.csproj ./MCS.FOI.CalendarToPDF/
 COPY MCS.FOI.MSGToPDF/*.csproj ./MCS.FOI.MSGToPDF/
-COPY MCS.FOI.MSGAttachmentsToPdf/*.csproj ./MCS.FOI.MSGAttachmentsToPdf/
+# COPY MCS.FOI.MSGAttachmentsToPdf/*.csproj ./MCS.FOI.MSGAttachmentsToPdf/
 COPY MCS.FOI.ExcelToPDFUnitTests/*.csproj ./MCS.FOI.ExcelToPDFUnitTests/
 COPY MCS.FOI.EMLToPDF/*.csproj ./MCS.FOI.EMLToPDF/
 COPY MCS.FOI.CalendarToPDFUnitTests/*.csproj ./MCS.FOI.CalendarToPDFUnitTests/
@@ -22,7 +22,7 @@ COPY MCS.FOI.S3FileConversion/. ./MCS.FOI.S3FileConversion/
 COPY MCS.FOI.ExcelToPDF/. ./MCS.FOI.ExcelToPDF/
 COPY MCS.FOI.CalendarToPDF/. ./MCS.FOI.CalendarToPDF/
 COPY MCS.FOI.MSGToPDF/. ./MCS.FOI.MSGToPDF/
-COPY MCS.FOI.MSGAttachmentsToPdf/. ./MCS.FOI.MSGAttachmentsToPdf/
+# COPY MCS.FOI.MSGAttachmentsToPdf/. ./MCS.FOI.MSGAttachmentsToPdf/
 COPY MCS.FOI.DocToPDF/. ./MCS.FOI.DocToPDF/
 COPY MCS.FOI.EMLToPDF/. ./MCS.FOI.EMLToPDF/
 
@@ -35,7 +35,7 @@ RUN dotnet publish -c Release -o out
 # Build runtime image
 FROM artifacts.developer.gov.bc.ca/docker-remote/mcr.microsoft.com/dotnet/runtime:6.0
 WORKDIR /app
-COPY MCS.FOI.S3FileConversion/QtBinariesLinux/. ./QtBinariesLinux/
+# COPY MCS.FOI.S3FileConversion/QtBinariesLinux/. ./QtBinariesLinux/
 # fonts
 # COPY ["Fonts/*.*", "/usr/local/share/fonts/"]
 # either copy fonts to font folder in project path, or run following command in cmd
