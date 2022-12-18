@@ -3,7 +3,7 @@ kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
   annotations:
-    description: Deployment template for a dedupe service.
+    description: Deployment template for a file conversion app.
     tags: "${APP_NAME}"
   name: "${APP_NAME}-deploy"
 objects:
@@ -159,7 +159,7 @@ parameters:
   required: true
   value: dev
 - name: SECRETS
-  displayName: Dedupe Services Secrets
-  description: Name of secret for all dedupe services values
+  displayName: File Conversion App Secrets
+  description: Name of secret for all file conversion values
   required: true
   value: conversion-secret
