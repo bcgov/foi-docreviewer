@@ -118,7 +118,7 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: REDIS_STREAM_CONSUMER_GROUP
-           resources:
+          resources:
             requests:
               cpu: "50m"
               memory: "250Mi"
