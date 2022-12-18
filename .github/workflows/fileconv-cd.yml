@@ -21,7 +21,7 @@ env:
   TOOLS_NAME: "${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY}}"
 
 jobs:
-  dedupe-cd-by-push:
+  conversion-cd-by-push:
     runs-on: ubuntu-20.04
 
     if: github.event_name == 'push' && github.repository == 'bcgov/foi-docreviewer'
