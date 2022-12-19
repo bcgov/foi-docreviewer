@@ -31,11 +31,11 @@ class Auth:
     def require(cls, f):
         """Validate the Bearer Token."""
 
-        @jwt.requires_auth
+        # @jwt.requires_auth
         @wraps(f)
         def decorated(*args, **kwargs):
-            g.authorization_header = request.headers.get("Authorization", None)
-            g.token_info = g.jwt_oidc_token_info
+            # g.authorization_header = request.headers.get("Authorization", None)
+            # g.token_info = g.jwt_oidc_token_info
             return f(*args, **kwargs)
 
         return decorated
