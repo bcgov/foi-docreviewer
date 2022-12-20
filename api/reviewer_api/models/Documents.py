@@ -81,8 +81,13 @@ class Document(db.Model):
 
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):
-        sq = db.session.query(func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash).group_by(DocumentHashCodes.rank1hash).subquery('sq')        
-        sq2 = db.session.query(func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash).group_by(DocumentHashCodes.rank1hash).subquery('sq2')
+        sq = db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid')
+        ).join(Document, Document.documentid == DocumentHashCodes.documentid).filter(Document.foiministryrequestid == requestid).group_by(DocumentHashCodes.rank1hash).subquery('sq')        
+        sq2 = db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
+        ).join(Document, Document.documentid == DocumentHashCodes.documentid).filter(Document.foiministryrequestid == requestid).group_by(DocumentHashCodes.rank1hash).subquery('sq2')        
+
         xpr = case([(sq.c.minid != None, False),],
         else_ = True).label("isduplicate")
         originaldocument = aliased(Document)
