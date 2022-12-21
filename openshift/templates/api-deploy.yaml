@@ -74,12 +74,22 @@ objects:
                   name: "${DB_SECRETS}"
                   key: app-db-password
             - name: DATABASE_NAME
-              value: "${DATABASE_NAME}"
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DATABASE_NAME
             - name: DATABASE_HOST
-              value: "${DATABASE_HOST}"
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DATABASE_PORT
             - name: FLASK_ENV
               value: production
-
             - name: KEYCLOAK_URL
               valueFrom:
                 secretKeyRef:
@@ -130,7 +140,6 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: KEYCLOAK_ADMIN_SRVACCOUNT
-
             - name: JWT_OIDC_WELL_KNOWN_CONFIG
               valueFrom:
                 secretKeyRef:
@@ -157,20 +166,35 @@ objects:
                   name: "${SECRETS}"
                   key: JWT_OIDC_JWKS_URI
             - name: JWT_OIDC_CACHING_ENABLED
-              value: 'True'
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: JWT_OIDC_CACHING_ENABLED
             - name: JWT_OIDC_JWKS_CACHE_TIMEOUT
-              value: "300"
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: JWT_OIDC_JWKS_CACHE_TIMEOUT
             - name: CORS_ORIGIN
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: CORS_ORIGIN
             - name: CACHE_TIMEOUT
-              value: "36000"
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: CACHE_TIMEOUT
             - name: CACHE_ENABLED
-              value: 'Y'
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: CACHE_ENABLED
             - name: CACHE_TYPE
-              value: 'RedisClusterCache'
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: CACHE_TYPE
             - name: OSS_S3_FORMS_BUCKET
               valueFrom:
                 secretKeyRef:
@@ -304,34 +328,34 @@ parameters:
   required: true
   description: The namespace of the OpenShift project containing the imagestream for
     the application.
-  value: d7abee-tools
+  value: d106d6-tools
 - name: TAG_NAME
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: test
+  value: dev
 - name: DATABASE_HOST
   displayName: Database service name
   description: Must match service name of database, eg patroni-master-002
   required: true
-  value: patroni-master-001
+  value: patroni-docreviewer
 - name: DATABASE_NAME
   displayName: Database name
   description: Must match name of database, eg docreviewer
   required: true
   value: docreviewer
 - name: DB_SECRETS
-  displayName: Environment TAG name
-  description: The TAG name for this environment, e.g., dev, test, prod
+  displayName: Patroni DB Secrets
+  description: Name of secrets for all db values
   required: true
-  value: patroni-001
+  value: patroni-docreviewer
 - name: SECRETS
-  displayName: Request Management Secrets
-  description: Name of secret for all request-management-api values
+  displayName: API Secrets
+  description: Name of secrets for all api values
   required: true
   value: docreviewer-secret
 - name: IMAGE_STREAM_NAME_FULL
   displayName: Full image stream name (eg "reviewer-api:dev")
   description: Includes ImageStream name and tag
   required: true
-  value: reviewer-api:test
+  value: reviewer-api:dev

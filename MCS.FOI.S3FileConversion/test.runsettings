@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+	<RunConfiguration>
+		<EnvironmentVariables>
+			<!-- List of environment variables we want to set-->
+			<SourceRootPath>C:\foi-docreviewer\MCS.FOI.S3FileConversion\MCS.FOI.ExcelToPDFUnitTests\SourceExcel</SourceRootPath>
+			<!--<SDK_PATH>C:\Codebase\Sdk</SDK_PATH>-->
+		</EnvironmentVariables>
+	</RunConfiguration>
+</RunSettings>

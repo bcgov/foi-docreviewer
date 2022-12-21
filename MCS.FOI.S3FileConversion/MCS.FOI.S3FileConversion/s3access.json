@@ -1,0 +1,12 @@
+{
+  "S3Host": "https://citz-foi-prod.objectstore.gov.bc.ca",
+  "AccountMapping": {
+    "** bucket name **": {
+      "S3AccessKeyID": "** enter access key here **",
+      "S3AccessSecretKey": "** enter secret key here **",
+      "S3Bucket": "** bucket name **",
+      "S3ServiceAccount": "** account name **"
+    }
+  }
+
+}
