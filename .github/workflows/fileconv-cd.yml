@@ -18,7 +18,7 @@ defaults:
 
 env:
   APP_NAME: "reviewer-conversion"
-  TOOLS_NAME: "${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY}}"
+  TOOLS_NAME: "${{secrets.OPENSHIFT4_REPOSITORY}}"
 
 jobs:
   conversion-cd-by-push:

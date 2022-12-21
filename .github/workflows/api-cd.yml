@@ -18,7 +18,7 @@ defaults:
 
 env:
   APP_NAME: "reviewer-api"
-  TOOLS_NAME: "${{secrets.OPENSHIFT4_FRONTEND_REPOSITORY}}"
+  TOOLS_NAME: "${{secrets.OPENSHIFT4_REPOSITORY}}"
 
 jobs:
   api-cd-by-push:

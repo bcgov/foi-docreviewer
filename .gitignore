@@ -4,6 +4,8 @@ api/env
 api/src
 
 .env
+dev.env
+test.env
 
 *.pyc
 

@@ -30,7 +30,7 @@ objects:
       dockerStrategy:
         dockerfilePath: "${DOCKER_FILE_PATH}"
         pullSecret: 
-          name: artifactory-creds
+          name: artifacts-pull-default-jmhvkc
       # type: Source
       # sourceStrategy:
       #   from:

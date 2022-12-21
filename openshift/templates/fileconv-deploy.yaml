@@ -56,13 +56,13 @@ objects:
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: "${SECRETS}"
-                  key: DATABASE_USERNAME
+                  name: "${DB_SECRETS}"
+                  key: app-db-username
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "${SECRETS}"
-                  key: DATABASE_PASSWORD
+                  name: "${DB_SECRETS}"
+                  key: app-db-password
             - name: DATABASE_NAME
               valueFrom:
                 secretKeyRef:
@@ -152,12 +152,17 @@ parameters:
   required: true
   description: The namespace of the OpenShift project containing the imagestream for
     the application.
-  value: d7abee-tools
+  value: d106d6-tools
 - name: TAG_NAME
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
   value: dev
+- name: DB_SECRETS
+  displayName: Patroni DB Secrets
+  description: Name of secrets for all db values
+  required: true
+  value: patroni-docreviewer
 - name: SECRETS
   displayName: File Conversion App Secrets
   description: Name of secret for all file conversion values

@@ -1,6 +1,6 @@
 ---
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "${APP_NAME}-build-template"
   creationTimestamp: 
@@ -30,7 +30,7 @@ objects:
       dockerStrategy:
         dockerfilePath: "${DOCKER_FILE_PATH}"
         pullSecret: 
-          name: artifactory-creds
+          name: artifacts-pull-default-jmhvkc
       # type: Source
       # sourceStrategy:
       #   from:
