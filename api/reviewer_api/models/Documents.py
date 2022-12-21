@@ -6,6 +6,7 @@ from datetime import datetime as datetime2
 from sqlalchemy.orm import relationship, backref, aliased
 from sqlalchemy import func, case
 from .DocumentStatus import DocumentStatus
+from .DocumentDeleted import DocumentDeleted
 from .DocumentTags import DocumentTag
 from .DocumentHashCodes import DocumentHashCodes
 from reviewer_api.utils.util import pstformat
@@ -66,7 +67,13 @@ class Document(db.Model):
                             ).join(
                                 DocumentTag,
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
-                            ).filter(Document.foiministryrequestid == foiministryrequestid).all()
+                            ).join(
+                                DocumentDeleted,
+                                DocumentDeleted.filepath == Document.filepath, isouter=True
+                            ).filter(
+                                Document.foiministryrequestid == foiministryrequestid,
+                                DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+                            ).all()
         documents = []
         for row in query:
             document = cls.__preparedocument(row, pstformat(row.created_at), pstformat(row.updated_at))
@@ -109,7 +116,10 @@ class Document(db.Model):
             Document.pagecount
         ]
         query = db.session.query(*selectedcolumns).filter(
-            Document.foiministryrequestid == requestid
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).join(
+            DocumentDeleted, DocumentDeleted.filepath == Document.filepath, isouter=True
         ).join(
             sq, sq.c.minid == Document.documentid, isouter=True
         ).join(

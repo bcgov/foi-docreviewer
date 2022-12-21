@@ -43,7 +43,7 @@ def upgrade():
         sa.Column('attributes', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('foiministryrequestid', sa.Integer(), nullable=False),
         sa.Column('createdby', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now()),
+        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now),
         sa.Column('updatedby', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('statusid', sa.Integer(), nullable=False),
@@ -70,7 +70,7 @@ def upgrade():
         sa.Column('documentversion', sa.Integer(), nullable=False),
         sa.Column('tag', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('createdby', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now()),
+        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now),
         sa.PrimaryKeyConstraint('tagid'),
         sa.ForeignKeyConstraint(['documentid', 'documentversion'], ['Documents.documentid', 'Documents.version'], )
     )
@@ -96,7 +96,7 @@ def upgrade():
         sa.Column('pagenumber', sa.Integer(), nullable=False),
         sa.Column('isactive', sa.Boolean(), nullable=False, default=True),
         sa.Column('createdby', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now()),
+        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.now),
         sa.Column('updatedby', postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('annotationid'),
@@ -271,7 +271,7 @@ def upgrade():
         sa.Column('attributes', sa.Text,nullable=True),
         sa.Column('isactive', sa.Boolean(), nullable=False),
         sa.Column('createdby', sa.String(length=120), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True, default=datetime.now()),
+        sa.Column('created_at', sa.DateTime(), nullable=True, default=datetime.now),
         sa.Column('updatedby', sa.String(length=120), nullable=True), 
         sa.Column('updated_at', sa.DateTime(), nullable=True),   
         sa.PrimaryKeyConstraint('documentpathid')
