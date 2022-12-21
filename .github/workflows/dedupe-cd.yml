@@ -5,8 +5,7 @@ on:
   push:
     branches:
       - dev
-      # - main
-      - dev-RQ-3081
+      - main
     paths:
       - "computingservices/DedupeServices/**"
       - ".github/workflows/dedupe-cd.yml"
@@ -34,15 +33,6 @@ jobs:
           echo "For ${{ github.ref_name }} branch"
           echo "TAG_NAME=dev" >> $GITHUB_ENV
           echo "BRANCH_NAME=dev" >> $GITHUB_ENV
-          echo "ENV_NAME=dev" >> $GITHUB_ENV
-
-      - name: Set ENV variables for dev-RQ-3081 branch
-        if: ${{ github.ref_name == 'dev-RQ-3081' }}
-        shell: bash
-        run: |
-          echo "For ${{ github.ref_name }} branch"
-          echo "TAG_NAME=dev" >> $GITHUB_ENV
-          echo "BRANCH_NAME=dev-RQ-3081" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
 
       - name: Set ENV variables for main branch
