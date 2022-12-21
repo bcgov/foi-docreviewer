@@ -15,7 +15,7 @@ class Annotation(db.Model):
     pagenumber = db.Column(db.Integer, nullable=False)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     createdby = db.Column(JSON, unique=False, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.now)
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
 

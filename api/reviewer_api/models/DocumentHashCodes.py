@@ -11,4 +11,4 @@ class DocumentHashCodes(db.Model):
 
 class DocumentHashCodesSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'rank1hash', 'rank1hash', 'created_at')
+        fields = ('documentid', 'rank1hash', 'rank2hash', 'created_at')
