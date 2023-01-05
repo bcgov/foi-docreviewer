@@ -107,7 +107,7 @@ namespace MCS.FOI.MSGToPDF
                                     //else
                                     //{
                                         var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                        File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                        //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
                                         attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                         attachmentInfo.Add("filename", _attachment.FileName);

@@ -120,7 +120,7 @@ namespace MCS.FOI.CalendarToPDF
                                 {
                                     attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
-                                    File.WriteAllBytes(file, attch.Data);
+                                    //File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
                                     Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                     attachmentInfo.Add("filename", attch.Parameters.Get("X-FILENAME"));
