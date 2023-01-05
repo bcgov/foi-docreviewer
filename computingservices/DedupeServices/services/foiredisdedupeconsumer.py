@@ -9,13 +9,15 @@ import typer
 import random
 import time
 from enum import Enum
-from utils import redisstreamdb,dedupe_stream_key
+from utils import redisstreamdb,dedupe_stream_key,notification_stream_key
 from . import jsonmessageparser
 from .dedupeservice import processmessage
+from .dedupedbservice import isbatchcompleted
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
 STREAM_KEY = dedupe_stream_key
+NOTIFICATION_STREAM_KEY = notification_stream_key
 
 app = typer.Typer()
 
@@ -48,9 +50,22 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 if message is not None:                    
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'') 
-                    try:                                 
+                    try:
                         producermessage = jsonmessageparser.getdedupeproducermessage(_message)
                         processmessage(producermessage) 
+
+                        # send message to notification stream if batch is complete
+                        complete, err = isbatchcompleted(producermessage.batch)
+                        if complete:
+                            notificationstream = rdb.Stream(NOTIFICATION_STREAM_KEY)
+                            msgid = notificationstream.add({
+                                "batch": producermessage.batch,
+                                "ministryrequestid": producermessage.ministryrequestid,
+                                "error": "True" if err else "False"
+                            }, id="*")
+                            print(f"message {msgid} sent to notification stream")
+                        else:
+                            print("batch not yet complete, no message sent")
                     except(Exception) as error: 
                         print(error)
                                             

@@ -51,17 +51,17 @@ namespace MCS.FOI.CalendarToPDF
             Message = string.Empty;
         }
 
-        public (bool, string, Stream, Dictionary<MemoryStream, string>) ProcessCalendarFiles()
+        public (bool, string, Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ProcessCalendarFiles()
         {
             MemoryStream output = new();
             bool isConverted;
-            Dictionary<MemoryStream, string> attachments;
+            Dictionary<MemoryStream, Dictionary<string, string>> attachments;
             try
             {
                 (string htmlString, attachments) = ConvertCalendartoHTML();
                 (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 throw;
             }
@@ -72,9 +72,9 @@ namespace MCS.FOI.CalendarToPDF
         /// Converts iCalendar to HTML
         /// </summary>
         /// <returns>HTML as a string</returns>
-        private (string, Dictionary<MemoryStream, string>) ConvertCalendartoHTML()
+        private (string, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendartoHTML()
         {
-            Dictionary<MemoryStream, string> attachmentsObj = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
             try
             {
                 string ical = string.Empty;
@@ -92,7 +92,7 @@ namespace MCS.FOI.CalendarToPDF
                             ical = sr.ReadToEnd();
                             SourceStream.Seek(position, SeekOrigin.Begin);
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
                             Console.WriteLine($"Exception happened while accessing File, re-attempting count : {attempt}");
                             Thread.Sleep(WaitTimeinMilliSeconds);
@@ -122,7 +122,11 @@ namespace MCS.FOI.CalendarToPDF
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
-                                    attachmentsObj.Add(attachmentStream, file);
+                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                    attachmentInfo.Add("filename", attch.Parameters.Get("X-FILENAME"));
+                                    attachmentInfo.Add("size", attch.Data.Length.ToString());
+                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    //attachmentsObj.Add(attachmentStream, file);
                                 }
                             }
                         }

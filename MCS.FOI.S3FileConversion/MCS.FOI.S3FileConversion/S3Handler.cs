@@ -15,8 +15,8 @@ using MCS.FOI.CalendarToPDF;
 using MCS.FOI.DocToPDF;
 using MCS.FOI.EMLToPDF;
 using MCS.FOI.MSGToPDF;
-using Npgsql;
 using Serilog;
+using static System.Net.WebRequestMethods;
 
 
 namespace MCS.FOI.S3FileConversion
@@ -28,7 +28,7 @@ namespace MCS.FOI.S3FileConversion
     }
     internal class S3Handler
     {
-        public static async System.Threading.Tasks.Task<List<String>> ConvertFile(string filePath)
+        public static async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(string filePath)
         {
             // Get S3 Access credentials based on ministry
             var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
@@ -38,12 +38,16 @@ namespace MCS.FOI.S3FileConversion
             //string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
             //string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
             //string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
-            S3AccessKeys s3AccessKeys = await getAccessKeyFromDB(bucket);
+            S3AccessKeys s3AccessKeys = await DBHandler.getAccessKeyFromDB(bucket);
             string S3AccessKeyID = s3AccessKeys.s3accesskey;
             string S3AccessSecretKey = s3AccessKeys.s3secretkey;
             string S3Host = Environment.GetEnvironmentVariable("S3_HOST");
+            if (!S3Host.Contains("https://"))
+            {
+                S3Host = "https://" + S3Host;
+            }
 
-            List<string> attachmentKeys = new List<string>();
+            List<Dictionary<string, string>> returnAttachments = new();
             try
             {
                 // Initialize S3 Client
@@ -70,7 +74,7 @@ namespace MCS.FOI.S3FileConversion
                     // Convert File
                     string extension = Path.GetExtension(fileKey);
                     Stream output = new MemoryStream();
-                    Dictionary<MemoryStream, string> attachments = new();
+                    Dictionary<MemoryStream, Dictionary<string, string>> attachments = new();
 
                     switch (extension)
                     {
@@ -97,7 +101,6 @@ namespace MCS.FOI.S3FileConversion
                     // Save converted pdf back to s3
                     var newKey = Path.ChangeExtension(fileKey, ".pdf");
                     var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
-                    string folder = filePath.Split("/")[4];
 
                     output.Position = 0;
                     StreamContent strm = new(output);
@@ -106,12 +109,13 @@ namespace MCS.FOI.S3FileConversion
                     
                     if (attachments != null && attachments.Count > 0)
                     {
-                        foreach (KeyValuePair<MemoryStream, string> attachment in attachments)
+                        foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
                         {
                             attachment.Key.Position=0;
-                            var newAttachmentKey = bucket+"/"+folder+"/"+ attachment.Value;
+                            var newAttachmentKey = newKey.Split(".")[0] + "/" + attachment.Value["filename"];
                             var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
-                            attachmentKeys.Add(S3Host+"/"+newAttachmentKey);
+                            attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
+                            returnAttachments.Add(attachment.Value);
                             StreamContent attachmentstrm = new StreamContent(attachment.Key);
                             strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                             HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
@@ -125,7 +129,7 @@ namespace MCS.FOI.S3FileConversion
             {
                 Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
             }
-            return attachmentKeys;
+            return returnAttachments;
         }
 
         public static string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)
@@ -153,7 +157,7 @@ namespace MCS.FOI.S3FileConversion
             return output;
         }
 
-        private static (Stream, Dictionary<MemoryStream, string>) ConvertCalendarFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendarFiles(Stream input)
         {
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
             {
@@ -164,7 +168,7 @@ namespace MCS.FOI.S3FileConversion
             return (output, attachments);
         }
 
-        private static (Stream, Dictionary<MemoryStream, string>) ConvertMSGFiles(Stream input)
+        private static (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
         {
             MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
             {
@@ -197,45 +201,7 @@ namespace MCS.FOI.S3FileConversion
             };
             var (converted, output) = docFileProcessor.ConvertToPDF();
             return output;
-        }
-
-
-        private static async System.Threading.Tasks.Task<S3AccessKeys> getAccessKeyFromDB(string bucket)
-        {
-            S3AccessKeys s3AccessKeys = new S3AccessKeys();
-            try
-            {
-                var host = Environment.GetEnvironmentVariable("DATABASE_HOST");
-                var port = Environment.GetEnvironmentVariable("DATABASE_PORT");
-                var dbname = Environment.GetEnvironmentVariable("DATABASE_NAME");
-                var username = Environment.GetEnvironmentVariable("DATABASE_USERNAME");
-                var password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD");
-                var connString = "Host="+host + ";Port=" + port + ";Username="+username+"; Password="+password+";Database="+dbname+";";
-
-
-                await using var conn = new NpgsqlConnection(connString);
-                await conn.OpenAsync();
-
-                // Retrieve access key
-                await using (var cmd = new NpgsqlCommand("SELECT attributes FROM \"DocumentPathMapper\" where bucket='"+bucket+"';", conn))
-                await using (var reader = await cmd.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        string res = reader.GetString(0);
-                        Console.WriteLine(res);
-                        s3AccessKeys = JsonSerializer.Deserialize<S3AccessKeys>(res);
-                    }
-
-
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
-            }
-            return s3AccessKeys;
-        }
+        }        
 
     }
 }

@@ -2,7 +2,7 @@
 {
     public interface IMSGFileProcessor
     {
-        public (bool, string, Stream, Dictionary<MemoryStream, string>) ConvertToPDF();
+        public (bool, string, Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertToPDF();
         public Stream SourceStream { get; set; }
         public bool IsSinglePDFOutput { get; set; }
         public int FailureAttemptCount { get; set; }

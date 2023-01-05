@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -34,13 +35,13 @@ namespace MCS.FOI.MSGToPDF
         }
 
 
-        public (bool, string, Stream, Dictionary<MemoryStream, string>) ConvertToPDF()
+        public (bool, string, Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertToPDF()
         {
             string message = $"No attachments to move to output folder";
             bool moved = true;
             string outputpath = string.Empty;
             MemoryStream output = new();
-            Dictionary<MemoryStream, string> attachmentsObj = new();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
             try
             {
                 Dictionary<string, Object> problematicFiles = null;
@@ -71,7 +72,8 @@ namespace MCS.FOI.MSGToPDF
                                 {
                                     var file = (Storage.Attachment)attachment;
                                     if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") ||
-                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx"))
+                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx") ||
+                                        file.FileName.ToLower().Contains(".pdf"))
                                     {
                                         problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                         problematicFiles.Add(file.FileName, file);
@@ -87,28 +89,33 @@ namespace MCS.FOI.MSGToPDF
                                 foreach (var attachmenttomove in problematicFiles)
                                 {
                                     MemoryStream attachmentStream = new();
-                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
-                                    {
-                                        var _attachment = (Storage.Message)attachmenttomove.Value;
-                                        foreach (var subattachment in _attachment.Attachments)
-                                        {
-                                            var type = subattachment.GetType().FullName;
-                                            if (type.ToLower().Contains("attachment"))
-                                            {
-                                                var file = (Storage.Attachment)subattachment;
-                                                File.WriteAllBytes(file.FileName, file.Data);
-                                                attachmentStream.Write(file.Data, 0, file.Data.Length);
-                                                attachmentsObj.Add(attachmentStream, file.FileName);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
+                                    //if (attachmenttomove.Key.ToLower().Contains(".msg"))
+                                    //{
+                                    //    var _attachment = (Storage.Message)attachmenttomove.Value;
+                                    //    foreach (var subattachment in _attachment.Attachments)
+                                    //    {
+                                    //        var type = subattachment.GetType().FullName;
+                                    //        if (type.ToLower().Contains("attachment"))
+                                    //        {
+                                    //            var file = (Storage.Attachment)subattachment;
+                                    //            File.WriteAllBytes(file.FileName, file.Data);
+                                    //            attachmentStream.Write(file.Data, 0, file.Data.Length);
+                                    //            attachmentsObj.Add(attachmentStream, file.FileName);
+                                    //        }
+                                    //    }
+                                    //}
+                                    //else
+                                    //{
                                         var _attachment = (Storage.Attachment)attachmenttomove.Value;
                                         File.WriteAllBytes(_attachment.FileName, _attachment.Data);
                                         attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                        attachmentsObj.Add(attachmentStream, _attachment.FileName);
-                                    }
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    //}
                                     cnt++;
                                 }
                                 moved = true;
