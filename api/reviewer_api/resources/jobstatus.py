@@ -21,10 +21,12 @@ from reviewer_api.auth import auth
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
+from flask import request
 
 from reviewer_api.services.documentservice import documentservice
+from reviewer_api.services.jobrecordservice import jobrecordservice
 
-API = Namespace('Deduplication Status', description='Endpoints for getting deduplication status of documents')
+API = Namespace('Job Status', description='Endpoints for getting and posting deduplication and file conversion job status of documents')
 # TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
@@ -39,6 +41,25 @@ class GetDedupeStatus(Resource):
     def get(requestid):
         try:
             result = documentservice().getdedupestatus(requestid)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/jobstatus')
+class GetDedupeStatus(Resource):
+    """Insert entries into job record table.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            result = jobrecordservice().recordjobstatus(requestjson)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

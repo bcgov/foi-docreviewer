@@ -16,7 +16,10 @@ using System;
 using System.Threading.Tasks;
 using SkiaSharp;
 using ILogger = Serilog.ILogger;
-
+using System.Text.Json;
+using System.Reflection.Metadata;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -72,6 +75,7 @@ namespace MCS.FOI.S3FileConversion
                 string eventHubPort = Environment.GetEnvironmentVariable("REDIS_STREAM_PORT");
                 string eventHubPassword = Environment.GetEnvironmentVariable("REDIS_STREAM_PASSWORD");
                 string streamKey = Environment.GetEnvironmentVariable("REDIS_STREAM_KEY");
+                string dedupeStreamKey = Environment.GetEnvironmentVariable("DEDUPE_STREAM_KEY");
                 string consumerGroup = Environment.GetEnvironmentVariable("REDIS_STREAM_CONSUMER_GROUP");
 
                 ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
@@ -101,35 +105,106 @@ namespace MCS.FOI.S3FileConversion
                 while (true)
                 {
                     var messages = db.StreamReadGroup(streamKey, consumerGroup, "c1");
-                    if (messages.Length > 0) {
+                    if (messages.Length > 0)
+                    {
                         foreach (StreamEntry message in messages)
-                        {
-                            Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["S3Path"]);
-                            List<String> s3AttachmentPaths= await S3Handler.ConvertFile(message["S3Path"]);
-                            latest = message.Id;
-                            db.StringSet($"{latest}:lastid", latest);
-                            db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
-                            if (s3AttachmentPaths != null && s3AttachmentPaths.Count > 0)
+                        {                            
+                            try
                             {
-                                for (int i = 0; i < s3AttachmentPaths.Count; i++)
+                                Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
+                                Console.WriteLine("Attributes: {0}", message["attributes"]);
+                                Console.WriteLine("Parentfilename: {0}", message["parentfilename"]);
+                                ValidateMessage(message);
+                                await DBHandler.recordJobStart(message);
+                                List<Dictionary<string, String>> attachments = await S3Handler.ConvertFile(message["s3filepath"]);
+                                // Record any child tasks before sending them to Redis Streams
+                                Dictionary<string, string> jobIDs = await DBHandler.recordJobEnd(message, false, "", attachments);
+                                if (attachments != null && attachments.Count > 0)
                                 {
-                                    db.StreamAdd(streamKey, new NameValueEntry[]
-                                    { new("S3Path", s3AttachmentPaths[i]), new NameValueEntry("RequestNumber", latest)});
-                                    db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
+                                    for (int i = 0; i < attachments.Count; i++)
+                                    {
+                                        var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                        attributes["filesize"] = JsonValue.Create(attachments[i]["size"]);
+                                        attributes["isattachment"] = JsonValue.Create(true);
+                                        if (attachments[i].ContainsKey("lastmodified"))
+                                        {
+                                            attributes["lastmodified"] = JsonValue.Create(attachments[i]["lastmodified"]);
+                                        }
+                                        if (attachments[i]["filename"].ToLower().Contains(".pdf")) 
+                                        {
+                                            db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
+                                            {
+                                                new("s3filepath", attachments[i]["filepath"]),
+                                                new("requestnumber", message["requestnumber"]),
+                                                new("bcgovcode", message["bcgovcode"]),
+                                                new("filename", attachments[i]["filename"]),
+                                                new("ministryrequestid", message["ministryrequestid"]),
+                                                new("attributes", attributes.ToJsonString()),
+                                                new("batch", message["batch"]),
+                                                new("jobid", jobIDs[attachments[i]["filepath"]]),
+                                                new("trigger", "fileconversion"),
+                                            });
+                                        } 
+                                        else
+                                        {
+                                            db.StreamAdd(streamKey, new NameValueEntry[]
+                                            //{ new("s3filepath", attachments[i].Key), new NameValueEntry("RequestNumber", latest)});
+                                            {
+                                                new("s3filepath", attachments[i]["filepath"]),
+                                                new("requestnumber", message["requestnumber"]),
+                                                new("bcgovcode", message["bcgovcode"]),
+                                                new("filename", attachments[i]["filename"]),
+                                                new("ministryrequestid", message["ministryrequestid"]),
+                                                new("attributes", attributes.ToJsonString()),
+                                                new("batch", message["batch"]),
+                                                new("parentfilepath", message["s3filepath"]),
+                                                new("parentfilename", message["filename"]),
+                                                new("jobid", jobIDs[attachments[i]["filepath"]]),
+                                                new("trigger", "attachment"),
+                                            });
+
+                                        }
+                                    }
                                 }
+                                db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
+                                {
+                                new("s3filepath", Path.ChangeExtension(message["s3filepath"], ".pdf")),
+                                new("requestnumber", message["requestnumber"]),
+                                new("bcgovcode", message["bcgovcode"]),
+                                new("filename", message["filename"]),
+                                new("ministryrequestid", message["ministryrequestid"]),
+                                new("attributes", message["attributes"].ToString()),
+                                new("batch", message["batch"]),
+                                new("jobid", jobIDs[Path.ChangeExtension(message["s3filepath"], ".pdf")]),
+                                new("trigger", "fileconversion"),
+                                });
+                                latest = message.Id;
+                                db.StringSet($"{latest}:lastid", latest);
+                                db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
+                                Console.WriteLine("Finished Converting: {0}", message["s3filepath"]);
                             }
-                            Console.WriteLine("Finished Converting: {0}", message["S3Path"]);
+                            catch (MissingFieldException ex)
+                            {                                
+                                Console.WriteLine(ex.Message);
+                            }
+                            catch (Exception ex)
+                            {
+                                var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}";
+                                Console.WriteLine(errorMessage);
+                                await DBHandler.recordJobEnd(message, true, errorMessage, new List<Dictionary<string, String>>());
+                            }
                         }
                     }
-                    else {
+                    else
+                    {
                         Console.WriteLine("No new messages after {0}", latest);
                     }
                     Thread.Sleep(6000);
                 }
-
             }
             catch (Exception ex)
             {
+                Console.WriteLine($" Error happpened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
                 Log.Information($" Error happpened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
             }
             finally
@@ -137,7 +212,7 @@ namespace MCS.FOI.S3FileConversion
                 Console.WriteLine("Press enter to exit.");
                 Console.ReadLine();
             }
-            
+
 
         }
 
@@ -150,6 +225,18 @@ namespace MCS.FOI.S3FileConversion
         //       })
         //   .UseWindowsService(); // Marking as Windows Service to silently execute the process.
 
+        private static void ValidateMessage(StreamEntry message)
+        {
+            if (message["s3filepath"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 's3filepath'"); }
+            if (message["requestnumber"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'requestnumber'"); }
+            if (message["bcgovcode"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'bcgovcode'"); }
+            if (message["filename"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'filename'"); }
+            if (message["ministryrequestid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'ministryrequestid'"); }
+            if (message["attributes"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'attributes'"); }
+            if (message["batch"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'batch'"); }
+            if (message["jobid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'jobid'"); }
+            if (message["trigger"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'trigger'"); }
 
+        }
     }
 }

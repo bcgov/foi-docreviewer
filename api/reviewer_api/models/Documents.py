@@ -111,6 +111,7 @@ class Document(db.Model):
             Document.updatedby,
             Document.updated_at,
             DocumentTag.tag.label('attributes'),
+            DocumentTag.tag['isattachment'].astext.cast(db.Boolean).label('isattachment'),
             DocumentHashCodes.rank1hash.label('rank1hash'),
             DocumentHashCodes.rank2hash.label('rank2hash'),
             Document.pagecount
@@ -119,7 +120,7 @@ class Document(db.Model):
             Document.foiministryrequestid == requestid,
             DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
         ).join(
-            DocumentDeleted, DocumentDeleted.filepath == Document.filepath, isouter=True
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
         ).join(
             sq, sq.c.minid == Document.documentid, isouter=True
         ).join(
