@@ -99,7 +99,7 @@ class Document(db.Model):
             DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
         ).group_by(DocumentHashCodes.rank1hash).subquery('sq')
         sq2 = db.session.query(
-            func.min(DocumentHashCodes.documentid).label('minid')
+            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
         ).join(
             Document, Document.documentid == DocumentHashCodes.documentid
         ).join(
