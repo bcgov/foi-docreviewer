@@ -29,6 +29,8 @@ from .meta import API as META_API
 from .ops import API as OPS_API
 from .foiflowmasterdata import API as FOIFLOWMASTERDATA_API
 from .redaction import API as REDACTION_API
+from .jobstatus import API as JOBSTATUS_API
+from .documentdelete import API as DOCUMENTDELETE_API
 
 
 __all__ = ('API_BLUEPRINT')
@@ -53,3 +55,5 @@ API.add_namespace(META_API, path="/api")
 API.add_namespace(OPS_API, path="/api")
 API.add_namespace(FOIFLOWMASTERDATA_API, path="/api")
 API.add_namespace(REDACTION_API, path="/api")
+API.add_namespace(JOBSTATUS_API, path="/api")
+API.add_namespace(DOCUMENTDELETE_API, path="/api")

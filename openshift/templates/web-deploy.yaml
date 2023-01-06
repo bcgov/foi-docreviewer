@@ -197,7 +197,7 @@ parameters:
     required: true
     description: The namespace of the OpenShift project containing the imagestream for
       the application.
-    value: d7abee-tools
+    value: d106d6-tools
   - name: IMAGE_NAME
     displayName: IMAGE_NAME
     required: true
@@ -207,7 +207,7 @@ parameters:
     displayName: Environment TAG name
     description: The TAG name for this environment, e.g., dev, test, prod
     required: true
-    value: test
+    value: dev
   - name: CPU_REQUEST
     displayName: Resources CPU Request
     description: The resources CPU request (in cores) for this build.

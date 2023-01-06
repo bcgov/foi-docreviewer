@@ -96,13 +96,13 @@ objects:
             - name: DEDUPE_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: "${SECRETS}"
-                  key: DEDUPE_DB_USER
+                  name: "${DB_SECRETS}"
+                  key: app-db-username
             - name: DEDUPE_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "${SECRETS}"
-                  key: DEDUPE_DB_PASSWORD
+                  name: "${DB_SECRETS}"
+                  key: app-db-password
             - name: DEDUPE_S3_HOST
               valueFrom:
                 secretKeyRef:
@@ -158,8 +158,13 @@ parameters:
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
   value: dev
+- name: DB_SECRETS
+  displayName: Patroni DB Secrets
+  description: Name of secrets for all db values
+  required: true
+  value: patroni-docreviewer
 - name: SECRETS
-  displayName: Dedupe Services Secrets
-  description: Name of secret for all dedupe services values
+  displayName: Dedupe Secrets
+  description: Name of secrets for all dedupe values
   required: true
   value: dedupe-secret

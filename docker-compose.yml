@@ -73,6 +73,8 @@ services:
       - OSS_S3_SERVICE=${OSS_S3_SERVICE}
       - CACHE_REDISURL=${CACHE_REDISURL}
       - DEDUPE_S3_ENV=${DEDUPE_S3_ENV}
+      - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
+      - FILE_CONVERSION_STREAM_KEY=${FILE_CONVERSION_STREAM_KEY}
 
   foi-docreviewer-db:
     image: postgres
@@ -85,7 +87,33 @@ services:
     networks:
       services-network:
         aliases:
-          - db
+          - db   
+  
+  foi-s3-fileconversion:
+    container_name: foi-s3-fileconversion
+    depends_on:
+      - foi-docreviewer-db
+    build:
+      context: ./MCS.FOI.S3FileConversion/
+      dockerfile: Dockerfile.local
+    environment:
+      - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
+      - DATABASE_NAME=${FOI_DATABASE_NAME}
+      - DATABASE_HOST=${FOI_DATABASE_HOST}
+      - DATABASE_PORT=${FOI_DATABASE_PORT}
+      - S3_HOST=${DEDUPE_S3_HOST}
+      - S3_REGION=${OSS_S3_REGION}
+      - S3_SERVICE=${OSS_S3_SERVICE}
+      - REDIS_STREAM_HOST=${DEDUPE_REDIS_HOST}
+      - REDIS_STREAM_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - REDIS_STREAM_PORT=${DEDUPE_REDIS_PORT}
+      - REDIS_STREAM_KEY=${FILE_CONVERSION_STREAM_KEY}
+      - REDIS_STREAM_CONSUMER_GROUP=${FILE_CONVERSION_STREAM_CONSUMER_GROUP}
+      - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
+    networks:
+      - services-network
+
 
   foi-docreviewer-dedupe:
     container_name: foi-docreviewer-dedupe
@@ -113,6 +141,7 @@ services:
       - DEDUPE_S3_HOST=${DEDUPE_S3_HOST}
       - DEDUPE_S3_REGION=${DEDUPE_S3_REGION}
       - DEDUPE_S3_SERVICE=${DEDUPE_S3_SERVICE}
+      - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
 
 volumes:
   dbdata:

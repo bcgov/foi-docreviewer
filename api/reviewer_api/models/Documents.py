@@ -3,10 +3,12 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime as datetime2
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy import func
+from sqlalchemy.orm import relationship, backref, aliased
+from sqlalchemy import func, case
 from .DocumentStatus import DocumentStatus
+from .DocumentDeleted import DocumentDeleted
 from .DocumentTags import DocumentTag
+from .DocumentHashCodes import DocumentHashCodes
 from reviewer_api.utils.util import pstformat
 
 class Document(db.Model):
@@ -65,7 +67,13 @@ class Document(db.Model):
                             ).join(
                                 DocumentTag,
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
-                            ).filter(Document.foiministryrequestid == foiministryrequestid).all()
+                            ).join(
+                                DocumentDeleted,
+                                DocumentDeleted.filepath == Document.filepath, isouter=True
+                            ).filter(
+                                Document.foiministryrequestid == foiministryrequestid,
+                                DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+                            ).all()
         documents = []
         for row in query:
             document = cls.__preparedocument(row, pstformat(row.created_at), pstformat(row.updated_at))
@@ -77,6 +85,68 @@ class Document(db.Model):
         document_schema = DocumentSchema(many=False)
         query = db.session.query(Document).filter_by(documentid=documentid).order_by(Document.version.desc()).first()
         return document_schema.dump(query)
+
+    @classmethod
+    def getdocumentsdedupestatus(cls, requestid):
+        sq = db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid')
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).group_by(DocumentHashCodes.rank1hash).subquery('sq')
+        sq2 = db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).group_by(DocumentHashCodes.rank1hash).subquery('sq2')
+
+        xpr = case([(sq.c.minid != None, False),],
+        else_ = True).label("isduplicate")
+        originaldocument = aliased(Document)
+        selectedcolumns = [
+            xpr,
+            originaldocument.filename.label('duplicateof'),
+            Document.documentid,
+            Document.version,
+            Document.filename,
+            Document.filepath,
+            Document.foiministryrequestid,
+            Document.createdby,
+            Document.created_at,
+            Document.updatedby,
+            Document.updated_at,
+            DocumentTag.tag.label('attributes'),
+            DocumentTag.tag['isattachment'].astext.cast(db.Boolean).label('isattachment'),
+            DocumentHashCodes.rank1hash.label('rank1hash'),
+            DocumentHashCodes.rank2hash.label('rank2hash'),
+            Document.pagecount
+        ]
+        query = db.session.query(*selectedcolumns).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).join(
+            sq, sq.c.minid == Document.documentid, isouter=True
+        ).join(
+            DocumentTag, Document.documentid == DocumentTag.documentid
+        ).join(
+            DocumentHashCodes, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            sq2, sq2.c.rank1hash == DocumentHashCodes.rank1hash
+        ).join(
+            originaldocument, originaldocument.documentid == sq2.c.minid
+        ).order_by(DocumentHashCodes.created_at.asc()).all()
+        return [r._asdict() for r in query]
 
     def __preparedocument(document, created_at, updated_at):
         return {
