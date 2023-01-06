@@ -90,10 +90,24 @@ class Document(db.Model):
     def getdocumentsdedupestatus(cls, requestid):
         sq = db.session.query(
             func.min(DocumentHashCodes.documentid).label('minid')
-        ).join(Document, Document.documentid == DocumentHashCodes.documentid).filter(Document.foiministryrequestid == requestid).group_by(DocumentHashCodes.rank1hash).subquery('sq')        
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).group_by(DocumentHashCodes.rank1hash).subquery('sq')
         sq2 = db.session.query(
-            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
-        ).join(Document, Document.documentid == DocumentHashCodes.documentid).filter(Document.foiministryrequestid == requestid).group_by(DocumentHashCodes.rank1hash).subquery('sq2')        
+            func.min(DocumentHashCodes.documentid).label('minid')
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).group_by(DocumentHashCodes.rank1hash).subquery('sq2')
 
         xpr = case([(sq.c.minid != None, False),],
         else_ = True).label("isduplicate")
