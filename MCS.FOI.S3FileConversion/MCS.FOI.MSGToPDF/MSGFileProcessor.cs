@@ -66,20 +66,12 @@ namespace MCS.FOI.MSGToPDF
                                     var file = (Storage.Message)attachment;
                                     problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                     problematicFiles.Add(file.FileName, file);
-
                                 }
                                 else
                                 {
                                     var file = (Storage.Attachment)attachment;
-                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") ||
-                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx") ||
-                                        file.FileName.ToLower().Contains(".pdf"))
-                                    {
-                                        problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                        problematicFiles.Add(file.FileName, file);
-
-                                    }
-
+                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                    problematicFiles.Add(file.FileName, file);
                                 }
                             }
 

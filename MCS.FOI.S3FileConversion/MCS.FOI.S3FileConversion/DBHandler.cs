@@ -103,7 +103,9 @@ namespace MCS.FOI.S3FileConversion
                     {
                         foreach (var attachment in attachments)
                         {
-                            if (attachment["filename"].ToLower().Contains(".pdf"))
+                            string extension = Path.GetExtension(attachment["filename"]);
+                            string[] conversionFormats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg" };
+                            if (Array.IndexOf(conversionFormats, extension) == -1)
                             {
                                 var query = new NpgsqlBatchCommand(@"INSERT INTO ""DeduplicationJob"" 
                                     (version, ministryrequestid, batch, type, trigger, filepath, filename, status) 
