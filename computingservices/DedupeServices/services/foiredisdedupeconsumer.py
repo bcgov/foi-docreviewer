@@ -8,6 +8,7 @@ import json
 import typer
 import random
 import time
+import logging
 from enum import Enum
 from utils import redisstreamdb,dedupe_stream_key,notification_stream_key
 from . import jsonmessageparser
@@ -67,7 +68,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                         else:
                             print("batch not yet complete, no message sent")
                     except(Exception) as error: 
-                        print(error)
+                        logging.exception(error)
                                             
                 # simulate processing
                 time.sleep(random.randint(1, 3)) #TODO : todo: remove!

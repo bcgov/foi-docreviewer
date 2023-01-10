@@ -26,9 +26,10 @@ def savedocumentdetails(dedupeproducermessage, hashcode):
         cursor.execute('''select d.documentid, dt.tag from public."DocumentHashCodes" hc
             join public."Documents" d on hc.documentid = d.documentid
             join public."DocumentTags" dt on dt.documentid = d.documentid
-            where hc.rank1hash = %s
+            left outer join public."DocumentDeleted" dd on d.filepath ilike '%%' || dd.filepath || '%%'
+            where hc.rank1hash = %s and d.foiministryrequestid = %s and (dd.deleted is null or dd.deleted is false)
             order by hc.created_at asc limit 1''',
-            (hashcode,)
+            (hashcode, dedupeproducermessage.ministryrequestid)
         )
         (originalid, attributes) = cursor.fetchone()
         messageattributes = json.loads(dedupeproducermessage.attributes)
