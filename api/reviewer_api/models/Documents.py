@@ -115,6 +115,7 @@ class Document(db.Model):
         selectedcolumns = [
             xpr,
             originaldocument.filename.label('duplicateof'),
+            originaldocument.filepath.label('duplicatefilepath'),
             Document.documentid,
             Document.version,
             Document.filename,
