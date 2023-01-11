@@ -112,8 +112,6 @@ namespace MCS.FOI.S3FileConversion
                             try
                             {
                                 Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
-                                Console.WriteLine("Attributes: {0}", message["attributes"]);
-                                Console.WriteLine("Parentfilename: {0}", message["parentfilename"]);
                                 ValidateMessage(message);
                                 await DBHandler.recordJobStart(message);
                                 List<Dictionary<string, String>> attachments = await S3Handler.ConvertFile(message["s3filepath"]);
@@ -126,11 +124,15 @@ namespace MCS.FOI.S3FileConversion
                                         var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
                                         attributes["filesize"] = JsonValue.Create(attachments[i]["size"]);
                                         attributes["isattachment"] = JsonValue.Create(true);
+                                        attributes["parentfilepath"] = JsonValue.Create((string)message["s3filepath"]);
+                                        attributes["parentfilename"] = JsonValue.Create((string)message["filename"]);
                                         if (attachments[i].ContainsKey("lastmodified"))
                                         {
                                             attributes["lastmodified"] = JsonValue.Create(attachments[i]["lastmodified"]);
                                         }
-                                        if (attachments[i]["filename"].ToLower().Contains(".pdf")) 
+                                        string extension = Path.GetExtension(attachments[i]["filename"]);
+                                        string[] conversionFormats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg" };
+                                        if (Array.IndexOf(conversionFormats, extension) == -1)
                                         {
                                             db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                             {
