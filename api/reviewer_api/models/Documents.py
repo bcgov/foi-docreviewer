@@ -10,6 +10,7 @@ from .DocumentDeleted import DocumentDeleted
 from .DocumentTags import DocumentTag
 from .DocumentHashCodes import DocumentHashCodes
 from reviewer_api.utils.util import pstformat
+import json
 
 class Document(db.Model):
     __tablename__ = 'Documents' 
@@ -39,6 +40,13 @@ class Document(db.Model):
             subquery_maxversion.c.max_version == Document.version,
         ]
 
+        #subquery for filtering out duplicates, merging divisions
+        subquery_hashcode = cls.__getoriginalsubquery(foiministryrequestid).add_columns(
+            func.json_agg(DocumentTag.tag['divisions'][0]).label('divisions')
+        ).join(
+            DocumentTag, DocumentTag.documentid == Document.documentid
+        ).subquery('sq')
+
         selectedcolumns = [
             Document.documentid,
             Document.version,
@@ -52,7 +60,7 @@ class Document(db.Model):
             Document.updated_at,
             Document.statusid,
             DocumentStatus.name.label('status'),
-            DocumentTag.tag.label('tags'),
+            (func.to_jsonb(DocumentTag.tag).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('tags'),
             Document.pagecount
         ]
 
@@ -68,11 +76,10 @@ class Document(db.Model):
                                 DocumentTag,
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
                             ).join(
-                                DocumentDeleted,
-                                DocumentDeleted.filepath == Document.filepath, isouter=True
+                                subquery_hashcode,
+                                subquery_hashcode.c.minid == Document.documentid
                             ).filter(
                                 Document.foiministryrequestid == foiministryrequestid,
-                                DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
                             ).all()
         documents = []
         for row in query:
@@ -88,26 +95,8 @@ class Document(db.Model):
 
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):
-        sq = db.session.query(
-            func.min(DocumentHashCodes.documentid).label('minid')
-        ).join(
-            Document, Document.documentid == DocumentHashCodes.documentid
-        ).join(
-            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
-        ).filter(
-            Document.foiministryrequestid == requestid,
-            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
-        ).group_by(DocumentHashCodes.rank1hash).subquery('sq')
-        sq2 = db.session.query(
-            func.min(DocumentHashCodes.documentid).label('minid')
-        ).join(
-            Document, Document.documentid == DocumentHashCodes.documentid
-        ).join(
-            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
-        ).filter(
-            Document.foiministryrequestid == requestid,
-            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
-        ).group_by(DocumentHashCodes.rank1hash).subquery('sq2')
+        sq = cls.__getoriginalsubquery(requestid).subquery('sq')
+        sq2 = cls.__getoriginalsubquery(requestid).subquery('sq2')
 
         xpr = case([(sq.c.minid != None, False),],
         else_ = True).label("isduplicate")
@@ -166,6 +155,19 @@ class Document(db.Model):
             'divisions': document.tags['divisions'],
             'pagecount': document.pagecount
         }
+
+    # subquery to fetch the earliest uploaded, non-deleted duplicates in a request
+    def __getoriginalsubquery(requestid):
+        return db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentDeleted, Document.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+        ).group_by(DocumentHashCodes.rank1hash)
 
 class DocumentSchema(ma.Schema):
     class Meta:
