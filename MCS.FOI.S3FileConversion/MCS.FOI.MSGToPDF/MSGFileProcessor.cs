@@ -136,6 +136,7 @@ namespace MCS.FOI.MSGToPDF
                 Log.Error($"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}");
                 message = $"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
+                throw;
             }
 
             return (moved, message, output, attachmentsObj);
@@ -229,6 +230,7 @@ namespace MCS.FOI.MSGToPDF
                 Console.WriteLine(error);
                 //Message = error;
                 return error;
+                throw;
             }
         }
 
@@ -257,6 +259,7 @@ namespace MCS.FOI.MSGToPDF
                 isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
+                throw;
             }
   
             return (output, isConverted);

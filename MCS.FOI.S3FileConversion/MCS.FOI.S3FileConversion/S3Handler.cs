@@ -128,6 +128,7 @@ namespace MCS.FOI.S3FileConversion
             catch (AmazonS3Exception ex)
             {
                 Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
+                throw;
             }
             return returnAttachments;
         }

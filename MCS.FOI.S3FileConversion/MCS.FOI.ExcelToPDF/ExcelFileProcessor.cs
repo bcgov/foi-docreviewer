@@ -132,6 +132,7 @@ namespace MCS.FOI.ExcelToPDF
                 string error = $"Exception occured while coverting file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
+                throw;
             }
 
             return (converted, message, output);
@@ -156,6 +157,7 @@ namespace MCS.FOI.ExcelToPDF
             {
                 string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
+                throw;
             }
             return output;
         }
@@ -176,6 +178,7 @@ namespace MCS.FOI.ExcelToPDF
             {
                 string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
+                throw;
             }
             return output;
         }

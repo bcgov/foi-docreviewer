@@ -209,6 +209,7 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
+                throw;
                 return (error, attachmentsObj);
             }
             finally
@@ -254,6 +255,7 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
+                throw;
             }
             return (output, isConverted);
         }
