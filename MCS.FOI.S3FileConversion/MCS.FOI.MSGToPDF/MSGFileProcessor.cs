@@ -120,7 +120,11 @@ namespace MCS.FOI.MSGToPDF
                         {
                             message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                             Log.Error(message);
-                            Console.WriteLine(message);                            
+                            Console.WriteLine(message);          
+                            if (attempt == FailureAttemptCount)
+                            {
+                                throw;
+                            }
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
                     }
