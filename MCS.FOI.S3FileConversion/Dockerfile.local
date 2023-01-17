@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
 WORKDIR /app
 
-COPY *.sln .
+# COPY *.sln .
 COPY MCS.FOI.S3FileConversion/*.csproj ./MCS.FOI.S3FileConversion/
 COPY MCS.FOI.ExcelToPDF/*.csproj ./MCS.FOI.ExcelToPDF/
 COPY MCS.FOI.CalendarToPDF/*.csproj ./MCS.FOI.CalendarToPDF/
@@ -14,7 +14,7 @@ COPY MCS.FOI.DocToPDFUnitTests/*.csproj ./MCS.FOI.DocToPDFUnitTests/
 COPY MCS.FOI.DocToPDF/*.csproj ./MCS.FOI.DocToPDF/
 
 # Restore as distinct layers
-RUN dotnet restore
+RUN dotnet restore "MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion.csproj"
 
 # Copy everything else
 COPY MCS.FOI.S3FileConversion/. ./MCS.FOI.S3FileConversion/
