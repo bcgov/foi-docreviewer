@@ -66,20 +66,12 @@ namespace MCS.FOI.MSGToPDF
                                     var file = (Storage.Message)attachment;
                                     problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                     problematicFiles.Add(file.FileName, file);
-
                                 }
                                 else
                                 {
                                     var file = (Storage.Attachment)attachment;
-                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".xlsx") || file.FileName.ToLower().Contains(".ics") ||
-                                        file.FileName.ToLower().Contains(".msg") || file.FileName.ToLower().Contains(".doc") || file.FileName.ToLower().Contains(".docx") ||
-                                        file.FileName.ToLower().Contains(".pdf"))
-                                    {
-                                        problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                        problematicFiles.Add(file.FileName, file);
-
-                                    }
-
+                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                    problematicFiles.Add(file.FileName, file);
                                 }
                             }
 
@@ -106,15 +98,15 @@ namespace MCS.FOI.MSGToPDF
                                     //}
                                     //else
                                     //{
-                                        var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                        //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
-                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                        attachmentInfo.Add("filename", _attachment.FileName);
-                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    var _attachment = (Storage.Attachment)attachmenttomove.Value;
+                                    //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                    attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                    attachmentInfo.Add("filename", _attachment.FileName);
+                                    attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     //}
                                     cnt++;
                                 }
@@ -124,11 +116,15 @@ namespace MCS.FOI.MSGToPDF
 
                             break;
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                             Log.Error(message);
-                            Console.WriteLine(message);                            
+                            Console.WriteLine(message);
+                            if (attempt == FailureAttemptCount)
+                            {
+                                throw;
+                            }
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
                     }
@@ -144,6 +140,7 @@ namespace MCS.FOI.MSGToPDF
                 Log.Error($"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}");
                 message = $"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
+                throw;
             }
 
             return (moved, message, output, attachmentsObj);
@@ -152,7 +149,8 @@ namespace MCS.FOI.MSGToPDF
 
         private string GenerateHtmlfromMsg(Storage.Message msg)
         {
-            try {
+            try
+            {
                 var sb = new StringBuilder();
                 StringBuilder htmlString = new();
                 htmlString.Append(@"
@@ -167,7 +165,7 @@ namespace MCS.FOI.MSGToPDF
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
                 {
-                    sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + "(" + msg.Sender.Email + ")": msg.Sender.DisplayName;
+                    sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + "(" + msg.Sender.Email + ")" : msg.Sender.DisplayName;
                 }
                 htmlString.Append(@"<tr>
                             <td><b>From: </b></td>
@@ -237,6 +235,7 @@ namespace MCS.FOI.MSGToPDF
                 Console.WriteLine(error);
                 //Message = error;
                 return error;
+                throw;
             }
         }
 
@@ -265,8 +264,9 @@ namespace MCS.FOI.MSGToPDF
                 isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
+                throw;
             }
-  
+
             return (output, isConverted);
         }
 
