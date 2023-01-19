@@ -38,6 +38,8 @@ WORKDIR /app
 # COPY ["Fonts/*.*", "/usr/local/share/fonts/"]
 # either copy fonts to font folder in project path, or run following command in cmd
 # docker cp C:/Windows/Fonts/. ** docker image hash code **:/usr/local/share/fonts
+# try copying BlinkBinaries manually
+ADD https://citz-foi-prod.objectstore.gov.bc.ca/test123/BlinkBinariesLinux/ ./BlinkBinariesLinux/
 RUN apt-get update && apt-get install -y libfontconfig1 xvfb
 # RUN echo "deb http://httpredir.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \ 
 #     && echo "deb http://httpredir.debian.org/debian buster-updates main contrib non- free" >> /etc/apt/sources.list \
