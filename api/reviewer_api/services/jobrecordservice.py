@@ -1,6 +1,7 @@
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from datetime import datetime as datetime2
+from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES, DEDUPE_FILE_TYPES
 import json, os
 from reviewer_api.utils.util import pstformat
 
@@ -14,7 +15,7 @@ class jobrecordservice:
         jobids = {}
         for record in batchinfo['records']:
             _filename, extension = os.path.splitext(record['s3uripath'])
-            if extension in ['.doc','.docx','.xls','.xlsx', '.ics', '.msg']:
+            if extension in FILE_CONVERSION_FILE_TYPES:
                 row = FileConversionJob(
                     version=1,
                     batch=batchinfo['batch'],
@@ -26,7 +27,7 @@ class jobrecordservice:
                 )
                 response = FileConversionJob.insert(row)
                 jobids[record['s3uripath']] = response.identifier
-            elif extension in ['.pdf']:
+            elif extension in DEDUPE_FILE_TYPES:
                 row = DeduplicationJob(
                     version=1,
                     batch=batchinfo['batch'],
@@ -39,4 +40,6 @@ class jobrecordservice:
                 )
                 response = DeduplicationJob.insert(row)
                 jobids[record['s3uripath']] = response.identifier
+            else:
+                jobids[record['s3uripath']] = 'Invalid file type'
         return jobids

@@ -21,11 +21,12 @@ from reviewer_api.auth import auth, AuthHelper
 # from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
+from reviewer_api.schemas.document import FOIRequestDeleteRecordSchema
 import json
 
 from reviewer_api.services.documentservice import documentservice
 
-API = Namespace('Document Delete', description='Endpoints for deleting documents')
+API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 # TRACER = Tracer.get_instance()
 
 @cors_preflight('POST,OPTIONS')
@@ -40,11 +41,10 @@ class GetDedupeStatus(Resource):
     def post():
         try:
             payload = request.get_json()
+            payload = FOIRequestDeleteRecordSchema().load(payload)
             result = documentservice().deletedocument(payload['filepath'], AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
-
-
