@@ -248,6 +248,7 @@ namespace MCS.FOI.MSGToPDF
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
                 BlinkConverterSettings settings = new BlinkConverterSettings();
                 settings.EnableHyperLink = false;
+                settings.BlinkPath = Path.Combine("/", "BlinkBinariesLinux");
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
