@@ -209,6 +209,7 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
+                throw;
                 return (error, attachmentsObj);
             }
             finally
@@ -237,6 +238,7 @@ namespace MCS.FOI.CalendarToPDF
                 };
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
+                //settings.BlinkPath = Path.Combine("/", "BlinkBinariesLinux");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
                 htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
@@ -254,6 +256,7 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
+                throw;
             }
             return (output, isConverted);
         }

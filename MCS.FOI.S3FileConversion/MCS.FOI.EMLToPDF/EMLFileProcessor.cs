@@ -161,6 +161,7 @@ namespace MCS.FOI.EMLToPDF
                 Log.Error($"Error happened while moving attachments on {MSGSourceFilePath}\\{MSGFileName} , Exception message : {ex.Message} , details : {ex.StackTrace}");
                 message = $"Error happened while moving attachments on {MSGSourceFilePath}\\{MSGFileName} , Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
+                throw;
             }
 
             return (moved, message, outputpath, output);
@@ -292,6 +293,7 @@ namespace MCS.FOI.EMLToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 //Message = error;
+                throw;
                 return error;
             }
         }
@@ -337,6 +339,7 @@ namespace MCS.FOI.EMLToPDF
                 isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
+                throw;
                 //Message = error;
             }
             finally

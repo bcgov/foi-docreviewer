@@ -80,6 +80,7 @@ namespace MCS.FOI.DocToPDF
                 string error = $"Exception occured while coverting Doc file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
+                throw;
             }
             return (converted, output);
         }
