@@ -41,11 +41,12 @@ class Document(db.Model):
         ]
 
         #subquery for filtering out duplicates, merging divisions
-        subquery_hashcode = cls.__getoriginalsubquery(foiministryrequestid).add_columns(
-            func.json_agg(DocumentTag.tag['divisions'][0]).label('divisions')
-        ).join(
-            DocumentTag, DocumentTag.documentid == Document.documentid
-        ).subquery('sq')
+        # Commented out for demo purposes
+        # subquery_hashcode = cls.__getoriginalsubquery(foiministryrequestid).add_columns(
+        #     func.json_agg(DocumentTag.tag['divisions'][0]).label('divisions')
+        # ).join(
+        #     DocumentTag, DocumentTag.documentid == Document.documentid
+        # ).subquery('sq')
 
         selectedcolumns = [
             Document.documentid,
@@ -60,7 +61,9 @@ class Document(db.Model):
             Document.updated_at,
             Document.statusid,
             DocumentStatus.name.label('status'),
-            (func.to_jsonb(DocumentTag.tag).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('tags'),
+            DocumentTag.tag.label('tags'),
+            # Commented out for demo purposes
+            # (func.to_jsonb(DocumentTag.tag).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('tags'),
             Document.pagecount
         ]
 
@@ -75,9 +78,9 @@ class Document(db.Model):
                             ).join(
                                 DocumentTag,
                                 and_(DocumentTag.documentid == Document.documentid, DocumentTag.documentversion == Document.version)
-                            ).join(
-                                subquery_hashcode,
-                                subquery_hashcode.c.minid == Document.documentid
+                            # ).join(
+                            #     subquery_hashcode,
+                            #     subquery_hashcode.c.minid == Document.documentid
                             ).filter(
                                 Document.foiministryrequestid == foiministryrequestid,
                             ).all()
