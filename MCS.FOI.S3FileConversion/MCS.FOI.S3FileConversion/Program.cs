@@ -145,6 +145,7 @@ namespace MCS.FOI.S3FileConversion
                                                 new("batch", message["batch"]),
                                                 new("jobid", jobIDs[attachments[i]["filepath"]]),
                                                 new("trigger", "fileconversion"),
+                                                new("createdby",  message["createdby"])
                                             });
                                         } 
                                         else
@@ -163,6 +164,7 @@ namespace MCS.FOI.S3FileConversion
                                                 new("parentfilename", message["filename"]),
                                                 new("jobid", jobIDs[attachments[i]["filepath"]]),
                                                 new("trigger", "attachment"),
+                                                new("createdby",  message["createdby"])
                                             });
 
                                         }
@@ -179,6 +181,7 @@ namespace MCS.FOI.S3FileConversion
                                 new("batch", message["batch"]),
                                 new("jobid", jobIDs[Path.ChangeExtension(message["s3filepath"], ".pdf")]),
                                 new("trigger", "fileconversion"),
+                                new("createdby",  message["createdby"])
                                 });
                                 latest = message.Id;
                                 db.StringSet($"{latest}:lastid", latest);
@@ -238,7 +241,7 @@ namespace MCS.FOI.S3FileConversion
             if (message["batch"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'batch'"); }
             if (message["jobid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'jobid'"); }
             if (message["trigger"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'trigger'"); }
-
+            if (message["createdby"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'createdby'"); }
         }
     }
 }
