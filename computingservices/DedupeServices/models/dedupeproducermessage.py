@@ -9,3 +9,4 @@ class dedupeproducermessage(object):
         self.batch=batch
         self.jobid=jobid
         self.trigger=trigger
+        self.createdby=createdby
