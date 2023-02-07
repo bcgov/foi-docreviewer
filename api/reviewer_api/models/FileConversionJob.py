@@ -12,19 +12,17 @@ class FileConversionJob(db.Model):
     createdat = db.Column(db.DateTime, default=datetime2.now, nullable=False)
     batch = db.Column(db.String(120), nullable=False)
     trigger = db.Column(db.String(120), nullable=False)
-    inputfilepath = db.Column(db.String(240), nullable=False)
-    outputfilepath = db.Column(db.String(240), nullable=True)
+    inputdocumentmasterid = db.Column(db.Integer, nullable=False)
+    outputdocumentmasterid = db.Column(db.Integer, nullable=True)
     filename = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(120), nullable=False)
-    parentfilepath = db.Column(db.String(240), nullable=True)
-    parentfilename = db.Column(db.String(500), nullable=True)
     message = db.Column(db.Text, nullable=True)
 
     @classmethod
     def insert(cls, row):
         db.session.add(row)
         db.session.commit()
-        return DefaultMethodResult(True,'Conversion Job recorded for filepath: {0}'.format(row.inputfilepath), row.fileconversionjobid)
+        return DefaultMethodResult(True,'Conversion Job recorded for documentmaster id: {0}'.format(row.inputdocumentmasterid), row.fileconversionjobid)
 
     @classmethod
     def getfilesconverted(cls, requestid):
