@@ -136,6 +136,7 @@ namespace MCS.FOI.S3FileConversion
                                                 new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
                                                 new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
                                                 new("trigger", "attachment"),
+                                                new("createdby",  message["createdby"])
                                             });
                                         } 
                                         else
@@ -155,6 +156,7 @@ namespace MCS.FOI.S3FileConversion
                                                 new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
                                                 new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
                                                 new("trigger", "attachment"),
+                                                new("createdby",  message["createdby"])
                                             });
                                         }
                                     }
@@ -173,6 +175,7 @@ namespace MCS.FOI.S3FileConversion
                                 new("documentmasterid", message["documentmasterid"]),
                                 new("outputdocumentmasterid", jobIDs[newFilename]["masterID"]),
                                 new("trigger", message["trigger"]),
+                                new("createdby",  message["createdby"])
                                 });
                                 latest = message.Id;
                                 db.StringSet($"{latest}:lastid", latest);
@@ -233,7 +236,7 @@ namespace MCS.FOI.S3FileConversion
             if (message["jobid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'jobid'"); }
             if (message["documentmasterid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'documentmasterid'"); }
             if (message["trigger"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'trigger'"); }
-
+            if (message["createdby"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'createdby'"); }
         }
     }
 }

@@ -14,11 +14,11 @@ from utils import redisstreamdb,dedupe_stream_key,notification_stream_key
 from . import jsonmessageparser
 from .dedupeservice import processmessage
 from .dedupedbservice import isbatchcompleted
+from rstreamio.redisstreamwriter import redisstreamwriter
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
 STREAM_KEY = dedupe_stream_key
-NOTIFICATION_STREAM_KEY = notification_stream_key
 
 app = typer.Typer()
 
@@ -58,13 +58,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                         # send message to notification stream if batch is complete
                         complete, err = isbatchcompleted(producermessage.batch)
                         if complete:
-                            notificationstream = rdb.Stream(NOTIFICATION_STREAM_KEY)
-                            msgid = notificationstream.add({
-                                "batch": producermessage.batch,
-                                "ministryrequestid": producermessage.ministryrequestid,
-                                "error": "True" if err else "False"
-                            }, id="*")
-                            print(f"message {msgid} sent to notification stream")
+                            redisstreamwriter().sendnotification(producermessage, err)
                         else:
                             print("batch not yet complete, no message sent")
                     except(Exception) as error: 
