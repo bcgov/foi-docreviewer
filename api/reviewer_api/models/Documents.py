@@ -157,11 +157,14 @@ class Document(db.Model):
         query = db.session.query(*selectedcolumns).select_from(DocumentMaster).filter(
             DocumentMaster.ministryrequestid == requestid,
             DocumentMaster.processingparentid == None,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None,
         ).join(
             sq3, case(
                 [(sq3.c.processingparentid == None, sq3.c.documentmasterid == DocumentMaster.documentmasterid),],
                 else_ = sq3.c.processingparentid == DocumentMaster.documentmasterid
             ), isouter=True
+        ).join(
+            DocumentDeleted, DocumentMaster.filepath.contains(DocumentDeleted.filepath), isouter=True
         )
 
         sqfc = db.session.query(
@@ -170,7 +173,8 @@ class Document(db.Model):
 
         query = query.join(
             FileConversionJob, and_(
-                FileConversionJob.createdat == sqfc.as_scalar()
+                FileConversionJob.createdat == sqfc.as_scalar(),
+                FileConversionJob.inputdocumentmasterid == DocumentMaster.documentmasterid
             ), isouter=True
         )
 
