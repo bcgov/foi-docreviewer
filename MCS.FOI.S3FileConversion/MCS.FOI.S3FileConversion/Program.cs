@@ -114,25 +114,15 @@ namespace MCS.FOI.S3FileConversion
                                 Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
                                 ValidateMessage(message);
                                 await DBHandler.recordJobStart(message);
-                                List<Dictionary<string, String>> attachments = await S3Handler.ConvertFile(message["s3filepath"]);
+                                List<Dictionary<string, String>> attachments = await S3Handler.ConvertFile(message);
                                 // Record any child tasks before sending them to Redis Streams
-                                Dictionary<string, string> jobIDs = await DBHandler.recordJobEnd(message, false, "", attachments);
+                                Dictionary<string, Dictionary<string, string>> jobIDs = await DBHandler.recordJobEnd(message, false, "", attachments);
                                 if (attachments != null && attachments.Count > 0)
                                 {
                                     for (int i = 0; i < attachments.Count; i++)
                                     {
-                                        var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
-                                        attributes["filesize"] = JsonValue.Create(attachments[i]["size"]);
-                                        attributes["isattachment"] = JsonValue.Create(true);
-                                        attributes["parentfilepath"] = JsonValue.Create((string)message["s3filepath"]);
-                                        attributes["parentfilename"] = JsonValue.Create((string)message["filename"]);
-                                        if (attachments[i].ContainsKey("lastmodified"))
-                                        {
-                                            attributes["lastmodified"] = JsonValue.Create(attachments[i]["lastmodified"]);
-                                        }
-                                        string extension = Path.GetExtension(attachments[i]["filename"]);
                                         string[] conversionFormats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg" };
-                                        if (Array.IndexOf(conversionFormats, extension) == -1)
+                                        if (Array.IndexOf(conversionFormats, attachments[i]["extension"]) == -1)
                                         {
                                             db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                             {
@@ -141,10 +131,11 @@ namespace MCS.FOI.S3FileConversion
                                                 new("bcgovcode", message["bcgovcode"]),
                                                 new("filename", attachments[i]["filename"]),
                                                 new("ministryrequestid", message["ministryrequestid"]),
-                                                new("attributes", attributes.ToJsonString()),
+                                                new("attributes", attachments[i]["attributes"]),
                                                 new("batch", message["batch"]),
-                                                new("jobid", jobIDs[attachments[i]["filepath"]]),
-                                                new("trigger", "fileconversion"),
+                                                new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
+                                                new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
+                                                new("trigger", "attachment"),
                                                 new("createdby",  message["createdby"])
                                             });
                                         } 
@@ -158,18 +149,19 @@ namespace MCS.FOI.S3FileConversion
                                                 new("bcgovcode", message["bcgovcode"]),
                                                 new("filename", attachments[i]["filename"]),
                                                 new("ministryrequestid", message["ministryrequestid"]),
-                                                new("attributes", attributes.ToJsonString()),
+                                                new("attributes", attachments[i]["attributes"]),
                                                 new("batch", message["batch"]),
                                                 new("parentfilepath", message["s3filepath"]),
                                                 new("parentfilename", message["filename"]),
-                                                new("jobid", jobIDs[attachments[i]["filepath"]]),
+                                                new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
+                                                new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
                                                 new("trigger", "attachment"),
                                                 new("createdby",  message["createdby"])
                                             });
-
                                         }
                                     }
                                 }
+                                string newFilename = Path.ChangeExtension(message["s3filepath"], ".pdf");
                                 db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                 {
                                 new("s3filepath", Path.ChangeExtension(message["s3filepath"], ".pdf")),
@@ -179,8 +171,10 @@ namespace MCS.FOI.S3FileConversion
                                 new("ministryrequestid", message["ministryrequestid"]),
                                 new("attributes", message["attributes"].ToString()),
                                 new("batch", message["batch"]),
-                                new("jobid", jobIDs[Path.ChangeExtension(message["s3filepath"], ".pdf")]),
-                                new("trigger", "fileconversion"),
+                                new("jobid", jobIDs[newFilename]["jobID"]),
+                                new("documentmasterid", message["documentmasterid"]),
+                                new("outputdocumentmasterid", jobIDs[newFilename]["masterID"]),
+                                new("trigger", message["trigger"]),
                                 new("createdby",  message["createdby"])
                                 });
                                 latest = message.Id;
@@ -240,6 +234,7 @@ namespace MCS.FOI.S3FileConversion
             if (message["attributes"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'attributes'"); }
             if (message["batch"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'batch'"); }
             if (message["jobid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'jobid'"); }
+            if (message["documentmasterid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'documentmasterid'"); }
             if (message["trigger"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'trigger'"); }
             if (message["createdby"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'createdby'"); }
         }

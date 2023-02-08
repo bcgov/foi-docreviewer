@@ -9,10 +9,9 @@ This class  consolidates schemas of record operations.
 __author__      = "sumathi.thirumani@aot-technologies.com"
 
 """
-
-class FOIRequestDeleteRecordSchema(Schema):
+class FOIRequestDeleteRecordsSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         """Exclude unknown fields in the deserialized output."""
 
         unknown = EXCLUDE
-    filepath = fields.Str(data_key="filepath",allow_none=False, validate=[validate.Length(max=1000, error=MAX_EXCEPTION_MESSAGE)])
+    filepaths = fields.List(fields.String(validate=[validate.Length(max=1000, error=MAX_EXCEPTION_MESSAGE)]), data_key="filepaths",allow_none=False)

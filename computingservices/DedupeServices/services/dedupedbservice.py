@@ -8,7 +8,8 @@ def savedocumentdetails(dedupeproducermessage, hashcode):
         conn = getdbconnection()
         cursor = conn.cursor()
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, filepath,foiministryrequestid,createdby,created_at,statusid) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer) RETURNING documentid;', (1, dedupeproducermessage.filename, dedupeproducermessage.s3filepath,
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer) RETURNING documentid;',
+        (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
         dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1))
         conn.commit()
         id_of_new_row = cursor.fetchone()
@@ -18,9 +19,9 @@ def savedocumentdetails(dedupeproducermessage, hashcode):
         conn.commit()
 
 
-        cursor.execute('INSERT INTO public."DocumentTags"(\
-	    documentid, documentversion, tag, createdby, created_at) VALUES (%s::integer, %s::integer, %s,%s,%s)',(id_of_new_row,1,dedupeproducermessage.attributes,'{"user":"dedupeservice"}',datetime.now()))
-        conn.commit()
+        # cursor.execute('INSERT INTO public."DocumentTags"(\
+	    # documentid, documentversion, tag, createdby, created_at) VALUES (%s::integer, %s::integer, %s,%s,%s)',(id_of_new_row,1,dedupeproducermessage.attributes,'{"user":"dedupeservice"}',datetime.now()))
+        # conn.commit()
 
         # combine list of divisions and save to original tag
         # cursor.execute('''select d.documentid, dt.tag from public."DocumentHashCodes" hc
@@ -52,9 +53,9 @@ def recordjobstart(dedupeproducermessage):
         conn = getdbconnection()
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."DeduplicationJob"
-            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, filepath, filename, status)
+            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
-            (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.s3filepath, dedupeproducermessage.filename, 'started'))
+            (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
         conn.commit()
         cursor.close()
         conn.close()
@@ -67,9 +68,9 @@ def recordjobend(dedupeproducermessage, error, message=""):
         conn = getdbconnection()
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."DeduplicationJob"
-            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, filepath, filename, status, message)
+            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status, message)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
-            (dedupeproducermessage.jobid, 3, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.s3filepath, dedupeproducermessage.filename,
+            (dedupeproducermessage.jobid, 3, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename,
             'error' if error else 'completed', message if error else ""))
         conn.commit()
         cursor.close()
