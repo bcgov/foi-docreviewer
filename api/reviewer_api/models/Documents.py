@@ -45,19 +45,16 @@ class Document(db.Model):
 
         #subquery for filtering out duplicates, merging divisions
         subquery_hashcode = cls.__getoriginalsubquery(foiministryrequestid).add_columns(
-            func.json_agg(DocumentAttributes.attributes['divisions'][0]).label('divisions'),
+            func.json_agg(DocumentAttributes.tag['divisions'][0]).label('divisions')
         ).join(
-            DocumentAttributes, case(
-                [(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
-                else_ = DocumentMaster.processingparentid == DocumentAttributes.documentmasterid
-            )
+            DocumentAttributes, DocumentAttributes.documentid == Document.documentid
         ).subquery('sq')
 
         selectedcolumns = [
             Document.documentid,
             Document.version,
             Document.filename,
-            DocumentMaster.filepath,
+            Document.filepath,
             Document.attributes,
             Document.foiministryrequestid,
             Document.createdby,
@@ -66,7 +63,7 @@ class Document(db.Model):
             Document.updated_at,
             Document.statusid,
             DocumentStatus.name.label('status'),
-            (func.to_jsonb(DocumentAttributes.attributes).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('attributes'),
+            (func.to_jsonb(DocumentAttributes.tag).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('tags'),
             Document.pagecount
         ]
 
@@ -79,16 +76,11 @@ class Document(db.Model):
                                 DocumentStatus,
                                 DocumentStatus.statusid == Document.statusid
                             ).join(
+                                DocumentAttributes,
+                                and_(DocumentAttributes.documentid == Document.documentid, DocumentAttributes.documentversion == Document.version)
+                            ).join(
                                 subquery_hashcode,
                                 subquery_hashcode.c.minid == Document.documentid
-                            ).join(
-                                DocumentMaster,
-                                DocumentMaster.documentmasterid == Document.documentmasterid
-                            ).join(
-                                DocumentAttributes, case(
-                                    [(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
-                                    else_ = DocumentMaster.processingparentid == DocumentAttributes.documentmasterid
-                                )
                             ).filter(
                                 Document.foiministryrequestid == foiministryrequestid,
                             ).all()
@@ -232,7 +224,7 @@ class Document(db.Model):
             'lastmodified': updated_at,
             'statusid': document.statusid,
             'status': document.status,
-            'divisions': document.attributes['divisions'],
+            'divisions': document.tags['divisions'],
             'pagecount': document.pagecount
         }
 
