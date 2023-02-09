@@ -31,6 +31,7 @@ from .foiflowmasterdata import API as FOIFLOWMASTERDATA_API
 from .redaction import API as REDACTION_API
 from .jobstatus import API as JOBSTATUS_API
 from .document import API as DOCUMENT_API
+from .section import API as SECTION_API
 
 
 __all__ = ('API_BLUEPRINT')
@@ -57,3 +58,4 @@ API.add_namespace(FOIFLOWMASTERDATA_API, path="/api")
 API.add_namespace(REDACTION_API, path="/api")
 API.add_namespace(JOBSTATUS_API, path="/api")
 API.add_namespace(DOCUMENT_API, path="/api")
+API.add_namespace(SECTION_API, path="/api")
