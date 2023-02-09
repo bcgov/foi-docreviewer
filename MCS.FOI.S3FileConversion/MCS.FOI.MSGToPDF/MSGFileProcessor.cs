@@ -81,33 +81,41 @@ namespace MCS.FOI.MSGToPDF
                                 foreach (var attachmenttomove in problematicFiles)
                                 {
                                     MemoryStream attachmentStream = new();
-                                    //if (attachmenttomove.Key.ToLower().Contains(".msg"))
-                                    //{
-                                    //    var _attachment = (Storage.Message)attachmenttomove.Value;
-                                    //    foreach (var subattachment in _attachment.Attachments)
-                                    //    {
-                                    //        var type = subattachment.GetType().FullName;
-                                    //        if (type.ToLower().Contains("attachment"))
-                                    //        {
-                                    //            var file = (Storage.Attachment)subattachment;
-                                    //            File.WriteAllBytes(file.FileName, file.Data);
-                                    //            attachmentStream.Write(file.Data, 0, file.Data.Length);
-                                    //            attachmentsObj.Add(attachmentStream, file.FileName);
-                                    //        }
-                                    //    }
-                                    //}
-                                    //else
-                                    //{
-                                    var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                    //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
-                                    attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                    attachmentInfo.Add("filename", _attachment.FileName);
-                                    attachmentInfo.Add("size", _attachment.Data.Length.ToString());
-                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
-                                    //}
+                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
+                                    {
+                                        //var _attachment = (Storage.Message)attachmenttomove.Value;
+                                        //foreach (var subattachment in _attachment.Attachments)
+                                        //{
+                                        //    var type = subattachment.GetType().FullName;
+                                        //    if (type.ToLower().Contains("attachment"))
+                                        //    {
+                                        //        var file = (Storage.Attachment)subattachment;
+                                        //        //File.WriteAllBytes(file.FileName, file.Data);
+                                        //        attachmentStream.Write(file.Data, 0, file.Data.Length);
+                                        //        attachmentsObj.Add(attachmentStream, file.FileName);
+                                        //    }
+                                        //}
+                                        var _attachment = (Storage.Message)attachmenttomove.Value;
+                                        _attachment.Save(attachmentStream);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    }
+                                    else
+                                    {
+                                        var _attachment = (Storage.Attachment)attachmenttomove.Value;
+                                        //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    }
                                     cnt++;
                                 }
                                 moved = true;

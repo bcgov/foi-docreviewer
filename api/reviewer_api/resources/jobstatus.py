@@ -15,7 +15,7 @@
 
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
-from reviewer_api.auth import auth
+from reviewer_api.auth import auth, AuthHelper
 
 # from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
@@ -59,7 +59,7 @@ class GetDedupeStatus(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            result = jobrecordservice().recordjobstatus(requestjson)
+            result = jobrecordservice().recordjobstatus(requestjson, AuthHelper.getuserid())
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
