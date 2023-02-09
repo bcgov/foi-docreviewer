@@ -13,7 +13,7 @@ class DeduplicationJob(db.Model):
     batch = db.Column(db.String(120), nullable=False)
     type = db.Column(db.String(50), nullable=False)
     trigger = db.Column(db.String(120), nullable=False)
-    filepath = db.Column(db.String(240), nullable=False)
+    documentmasterid = db.Column(db.String(240), nullable=False)
     filename = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(120), nullable=False)
     message = db.Column(db.Text, nullable=True)
@@ -22,7 +22,7 @@ class DeduplicationJob(db.Model):
     def insert(cls, row):
         db.session.add(row)
         db.session.commit()
-        return DefaultMethodResult(True,'Deduplication Job recorded for filepath: {0}'.format(row.filepath), row.deduplicationjobid)
+        return DefaultMethodResult(True,'Deduplication Job recorded for documentmasterid: {0}'.format(row.documentmasterid), row.deduplicationjobid)
 
     @classmethod
     def getfilesdeduped(cls, requestid):

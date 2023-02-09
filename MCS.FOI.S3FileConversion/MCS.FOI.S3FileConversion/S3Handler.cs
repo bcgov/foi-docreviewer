@@ -17,6 +17,9 @@ using MCS.FOI.EMLToPDF;
 using MCS.FOI.MSGToPDF;
 using Serilog;
 using static System.Net.WebRequestMethods;
+using StackExchange.Redis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 
 namespace MCS.FOI.S3FileConversion
@@ -28,8 +31,9 @@ namespace MCS.FOI.S3FileConversion
     }
     internal class S3Handler
     {
-        public static async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(string filePath)
+        public static async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(StreamEntry message)
         {
+            var filePath = (string) message["s3filepath"];
             // Get S3 Access credentials based on ministry
             var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
             string bucket = filePath.Split("/")[3];
@@ -112,7 +116,22 @@ namespace MCS.FOI.S3FileConversion
                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
                         {
                             attachment.Key.Position=0;
-                            var newAttachmentKey = newKey.Split(".")[0] + "/" + attachment.Value["filename"];
+                            var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                            attributes["filesize"] = JsonValue.Create(attachment.Value["size"]);
+                            attributes["isattachment"] = JsonValue.Create(true);
+                            attributes["rootparentfilepath"] ??= JsonValue.Create((string)message["s3filepath"]);
+                            if (attachment.Value.ContainsKey("lastmodified"))
+                            {
+                                attributes["lastmodified"] = JsonValue.Create(attachment.Value["lastmodified"]);
+                            }
+                            string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
+                            attributes["extension"] = JsonValue.Create(attachmentExtension);
+                            attachment.Value.Add("extension", attachmentExtension);
+                            string[] formats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pdf" };
+                            attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
+                            attachment.Value.Add("attributes", attributes.ToJsonString());
+                            var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
+                            var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["filename"];
                             var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                             attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
                             returnAttachments.Add(attachment.Value);

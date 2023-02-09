@@ -14,10 +14,10 @@ class DocumentDeleted(db.Model):
     updatedby = db.Column(db.String(120), unique=False, nullable=True)
 
     @classmethod
-    def create(cls, row):
-        db.session.add(row)
+    def create(cls, rows):
+        db.session.add_all(rows)
         db.session.commit()
-        return DefaultMethodResult(True,'Deleted Row Added - filepath: {0}'.format(row.filepath), row.documentdeletedid) 
+        return DefaultMethodResult(True,'Deleted Row(s) Added', -1, [{"id": row.documentdeletedid, "filepath": row.filepath} for row in rows]) 
 
 class DocumentDeletedSchema(ma.Schema):
     class Meta:
