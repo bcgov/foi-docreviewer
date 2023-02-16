@@ -56,73 +56,54 @@ namespace MCS.FOI.MSGToPDF
                             string htmlString = GenerateHtmlfromMsg(msg);
                             bool isConverted;
                             (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
+                            Dictionary<string, Boolean> fileNameHash = new();
 
-                            var attachments = msg.Attachments;
-                            foreach (Object attachment in attachments)
+                            foreach (Object attachment in msg.Attachments)
                             {
-                                var type = attachment.GetType().FullName;
-                                if (type.ToLower().Contains("message"))
+                                MemoryStream attachmentStream = new();
+                                if (attachment.GetType().FullName.ToLower().Contains("message"))
                                 {
-                                    var file = (Storage.Message)attachment;
-                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                    problematicFiles.Add(file.FileName, file);
+                                    var _attachment = (Storage.Message)attachment;
+                                    _attachment.Save(attachmentStream);
+                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                    var filename = _attachment.FileName;
+                                    if (fileNameHash.ContainsKey(filename))
+                                    {
+                                        var extension = Path.GetExtension(filename);
+                                        filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                    }
+                                    fileNameHash.Add(filename, true);
+                                    attachmentInfo.Add("filename", _attachment.FileName);
+                                    attachmentInfo.Add("s3filename", filename);
+                                    attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
+                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
                                 }
                                 else
                                 {
-                                    var file = (Storage.Attachment)attachment;
-                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                    problematicFiles.Add(file.FileName, file);
+                                    var _attachment = (Storage.Attachment)attachment;
+                                    //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
+                                    attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+                                    var filename = _attachment.FileName;
+                                    if (fileNameHash.ContainsKey(filename))
+                                    {
+                                        var extension = Path.GetExtension(filename);
+                                        filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                    }
+                                    fileNameHash.Add(filename, true);
+                                    attachmentInfo.Add("filename", _attachment.FileName);
+                                    attachmentInfo.Add("s3filename", filename);
+                                    attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
                                 }
                             }
-
-                            if (problematicFiles != null)
-                            {
-                                int cnt = 0;
-                                foreach (var attachmenttomove in problematicFiles)
-                                {
-                                    MemoryStream attachmentStream = new();
-                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
-                                    {
-                                        //var _attachment = (Storage.Message)attachmenttomove.Value;
-                                        //foreach (var subattachment in _attachment.Attachments)
-                                        //{
-                                        //    var type = subattachment.GetType().FullName;
-                                        //    if (type.ToLower().Contains("attachment"))
-                                        //    {
-                                        //        var file = (Storage.Attachment)subattachment;
-                                        //        //File.WriteAllBytes(file.FileName, file.Data);
-                                        //        attachmentStream.Write(file.Data, 0, file.Data.Length);
-                                        //        attachmentsObj.Add(attachmentStream, file.FileName);
-                                        //    }
-                                        //}
-                                        var _attachment = (Storage.Message)attachmenttomove.Value;
-                                        _attachment.Save(attachmentStream);
-                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                        attachmentInfo.Add("filename", _attachment.FileName);
-                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
-                                    }
-                                    else
-                                    {
-                                        var _attachment = (Storage.Attachment)attachmenttomove.Value;
-                                        //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
-                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                        attachmentInfo.Add("filename", _attachment.FileName);
-                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
-                                    }
-                                    cnt++;
-                                }
-                                moved = true;
-                                message = string.Concat($"{cnt} problematic files moved", outputpath);
-                            }
-
                             break;
+                            moved = true;
+                            message = string.Concat($"MSG file converted", outputpath);
                         }
                         catch (Exception e)
                         {
