@@ -58,8 +58,6 @@
     "type": "Typ",
     "upload": "nahrát",
     "link": "Odkaz",
-    "darkMode": "Tmavý režim",
-    "lightMode": "Světelný režim",
     "fileAttachmentDownload": "Stáhnout přiložený soubor",
     "prevResult": "Předchozí výsledek",
     "nextResult": "Další výsledek",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Zobrazit klávesové zkratky",
     "markAllRead": "označit vše jako přečtené",
     "insertPage": "Vkládání stránky",
-    "insertBlankPageAbove": "Nahoře vložte prázdnou stránku",
-    "insertBlankPageBelow": "Níže vložte prázdnou stránku",
+    "insert": "Vložit",
     "pageManipulation": "Manipulace se stránkou",
     "replace": "Nahradit",
     "setDestination": "Nastav destinaci",
     "showLess": "Ukaž méně",
     "showMore": "...více",
     "chooseFile": "Vyberte soubor",
+    "browse": "Procházet soubory",
     "selectYourOption": "Vyberte svou možnost",
     "open": "OTEVŘENO",
     "deselectAll": "Odznačit vše",
@@ -94,10 +92,10 @@
     "unselect": "Zrušte výběr",
     "addMark": "Přidat Marka",
     "viewFile": "Prohlédnout soubor",
-    "switchLanguage": "Jazyk",
     "multiReplyAnnotations": "Odpovědět na vybrané poznámky ({{count}})",
     "comparePages": "Porovnejte stránky",
-    "startComparison": "Spusťte porovnávání"
+    "startComparison": "Spusťte porovnávání",
+    "back": "Zadní"
   },
   "annotation": {
     "areaMeasurement": "Plocha",
@@ -214,7 +212,8 @@
       "open": "Zobrazit všechny anotace",
       "close": "Zavřít všechny anotace"
     },
-    "comparePanel": "Panel porovnání"
+    "comparePanel": "Panel porovnání",
+    "watermarkPanel": "Panel vodoznaku"
   },
   "message": {
     "toolsOverlayNoPresets": "Žádné předvolby",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Vložené soubory",
     "pageNum": "Číslo stránky",
     "viewBookmark": "Zobrazit záložku na stránce",
-    "error": "Chyba"
+    "error": "Chyba",
+    "errorPageNumber": "Neplatné číslo stránky. Limit je",
+    "errorLoadingDocument": "Při čtení tohoto dokumentu došlo k problému a některé stránky se nemusí zobrazit. To znamená, že dokument může být poškozen. Celkový počet stránek je {{totalPageCount}} a počet zobrazených stránek je {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Zdůraznit",
       "squiggly": "Zkrouceně",
       "3D": "3D",
-      "other": "jiný"
+      "other": "jiný",
+      "initials": "Iniciály",
+      "saved": "Uložené"
     },
     "notesOrder": {
       "dropdownLabel": "Seznam pořadí řazení",
@@ -408,22 +411,35 @@
       "addStamp": "Přidat nové razítko"
     },
     "signatureOverlay": {
-      "addSignature": "Přidat nový podpis"
+      "addSignature": "Přidat nový podpis",
+      "addSignatureOrInitials": "Podpis/Iniciály"
     },
     "signatureModal": {
       "modalName": "Vytvořit nový podpis",
       "dragAndDrop": "Sem přetáhněte obrázek",
       "or": "Nebo",
       "pickImage": "Vyberte podpis",
-      "selectImage": "Zde vyberte svůj obrázek"
+      "selectImage": "Zde vyberte svůj obrázek",
+      "typeSignature": "Typ podpis*",
+      "typeInitial": "Iniciály typu*",
+      "drawSignature": "Nakreslit podpis*",
+      "drawInitial": "Kreslit iniciály*",
+      "pickInitialsFile": "Vyberte Iniciály",
+      "noSignatures": "Momentálně nejsou žádné uložené podpisy."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Přetáhněte soubor sem",
+      "selectFile": "Zde vyberte svůj soubor",
       "or": "Nebo",
+      "yourFiles": "Vaše soubory",
       "chooseFile": "Vyberte soubor",
       "localFile": "Místní soubor",
       "pageReplaceInputLabel": "Nahradit stránky",
-      "pageReplaceInputFromSource": "se stránkami"
+      "pageReplaceInputFromSource": "se stránkami",
+      "warning": {
+        "title": "Ukončit nahrazení stránky?",
+        "message": "Ukončením zrušíte všechny dosud provedené výběry. Opravdu chcete stále ukončit?"
+      }
     },
     "filterAnnotModal": {
       "color": "Barva",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Styl"
+    },
+    "settings": {
+      "settings": "Nastavení",
+      "general": "Všeobecné",
+      "keyboardShortcut": "Klávesová zkratka",
+      "advancedSetting": "Pokročilé nastavení",
+      "language": "Jazyk",
+      "theme": "Téma",
+      "darkMode": "Tmavý režim",
+      "lightMode": "Světelný režim",
+      "viewing": "Prohlížení",
+      "disableFadePageNavigationComponent": "Zakažte komponentu navigace na stránce Fade",
+      "disableFadePageNavigationComponentDesc": "Vždy mějte komponentu Navigace na obrazovce na obrazovce. Výchozí chování je vyblednout po určité době nečinnosti.",
+      "disableNativeScrolling": "Zakázat nativní posouvání",
+      "disableNativeScrollingDesc": "Zakažte nativní chování posouvání mobilního zařízení, pokud bylo dříve povoleno. Všimněte si, že nativní chování posouvání mobilních zařízení je ve výchozím nastavení vypnuto.",
+      "annotations": "Anotace",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Zakázat aktualizaci výchozího stylu nástroje z vyskakovacího okna anotace",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Zakáže synchronizaci aktualizací stylu anotací s přidruženým nástrojem, který anotaci vytvořil. Pokud se tedy změní styl anotace, výchozí styly nástroje nebudou aktualizovány.",
+      "notesPanel": "Panel poznámek",
+      "disableNoteSubmissionWithEnter": "Zakázat odesílání poznámek pomocí Enter",
+      "disableNoteSubmissionWithEnterDesc": "Zakažte možnost odesílat poznámky stisknutím klávesy Enter pouze v případě, že byla dříve povolena. Tím se vrátí odeslání poznámky na výchozí hodnotu, což je Ctrl/Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Zakázat automatické rozbalení vlákna komentáře",
+      "disableAutoExpandCommentThreadDesc": "Zakáže automatické rozbalování všech vláken komentářů v panelu Poznámky.",
+      "disableReplyCollapse": "Zakázat sbalení odpovědi",
+      "disableReplyCollapseDesc": "Zakáže sbalování odpovědí v panelu Poznámky.",
+      "disableTextCollapse": "Zakázat sbalení textu",
+      "disableTextCollapseDesc": "Zakáže sbalení textu anotace v panelu Poznámky.",
+      "search": "Vyhledávání",
+      "disableClearSearchOnPanelClose": "Zakázat Vymazat hledání na panelu Zavřít",
+      "disableClearSearchOnPanelCloseDesc": "Zakázat mazání výsledků vyhledávání, když uživatel zavře vyhledávací panel. Když je tato možnost zakázána, výsledky vyhledávání se uchovávají, i když uživatel zavře a znovu otevře vyhledávací panel. Upozorňujeme, že mobilní zařízení nikdy nevymažou výsledky vyhledávání, i když je toto nastavení povoleno. Je to proto, že pro zobrazení výsledků hledání v dokumentu je třeba panel zavřít.",
+      "pageManipulation": "Manipulace se stránkou",
+      "disablePageDeletionConfirmationModal": "Zakázat modální potvrzení smazání stránky",
+      "disablePageDeletionConfirmationModalDesc": "Při odstraňování stránky ze zobrazení miniatur deaktivujte potvrzovací modal",
+      "disableMultiselect": "Zakázat vícenásobný výběr",
+      "disableMultiselectDesc": "V levém panelu miniatur deaktivujte vícenásobný výběr"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "Možnosti",
       "radioGroups": "Přepínací tlačítka se stejným názvem pole budou patřit do stejného seskupení.",
       "nameRequired": "Název pole je povinný",
+      "fieldIndicator": "Polní indikátory",
+      "documentFieldIndicator": "Indikátory pole dokumentu",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Sem vložte text",
+        "CheckBoxFormField": "Šek",
+        "RadioButtonFormField": "Vyplnit",
+        "ListBoxFormField": "Vybrat",
+        "ComboBoxFormField": "Vybrat",
+        "SignatureFormField": {
+          "fullSignature": "Zde se podepište",
+          "initialsSignature": "Počáteční zde"
+        }
+      },
       "size": "Velikost",
       "width": "Šířka",
       "height": "Výška",
@@ -826,13 +890,16 @@
     "certifier": "certifikovat",
     "certified": "certifikovaný",
     "Certified": "Certifikováno",
+    "Certification": "Osvědčení",
     "signer": "signatář",
     "signed": "podepsaný",
     "Signed": "Podepsaný",
+    "Signature": "Podpis",
     "by": "podle",
     "on": "na",
     "disallowedChange": "Nepovolená změna: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Nepodepsané pole podpisu: {{fieldName}}",
+    "signatureProperties": "Vlastnosti podpisu",
     "trustVerification": {
       "current": "Použitý čas ověření byl aktuální čas",
       "signing": "Čas ověření je od hodin na počítači podepisujícího",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Tento dokument neobsahuje žádná pole pro podpis",
       "certificateDownloadError": "Při pokusu o stažení důvěryhodného certifikátu došlo k chybě",
       "localCertificateError": "Existují určité problémy se čtením místního certifikátu"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} je platné.",
+      "failed": "{{verificationType}} se nezdařilo."
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Všechno",
     "emptyPanelMessage": "Vyberte prvek pro zobrazení jeho vlastností"
   },
+  "watermarkPanel": {
+    "textWatermark": "Textový vodoznak",
+    "uploadImage": "Nahrát obrázek",
+    "browse": "Procházet",
+    "watermarkOptions": "Možnosti vodoznaku",
+    "watermarks": "Vodoznaky"
+  },
   "languageModal": {
     "selectLanguage": "Zvolte jazyk"
+  },
+  "insertPageModal": {
+    "title": "Přidat novou stránku",
+    "tabs": {
+      "blank": "Prázdný",
+      "upload": "nahrát"
+    },
+    "pagePlacements": {
+      "header": "Umístění stránky",
+      "above": "Nad stránkou",
+      "below": "Níže na stránce"
+    },
+    "pageLocations": {
+      "header": "Umístění stránky",
+      "specify": "Zadejte stránku",
+      "specifyLocation": "Zadejte umístění stránky",
+      "amount": "Počet stránek",
+      "total": "Celkový",
+      "pages": "Stránky"
+    },
+    "pageDimensions": {
+      "header": "Rozměry stránky",
+      "subHeader": "Předvolby",
+      "presets": {
+        "letter": "Dopis",
+        "halfLetter": "Půl dopisu",
+        "juniorLegal": "Junior legal",
+        "custom": "Zvyk"
+      },
+      "units": "Jednotky"
+    },
+    "browse": "Procházet soubory",
+    "fileSelected": {
+      "title": "Vyberte Stránky k přidání"
+    },
+    "button": "Přidat stránky",
+    "selectPages": "Vyberte Stránky k přidání",
+    "page": "Strana",
+    "warning": {
+      "title": "Ukončit vložit novou stránku?",
+      "message": "Ukončením zrušíte všechny dosud provedené výběry. Opravdu chcete stále ukončit?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Přetáhněte sem soubor pro porovnání",
@@ -954,7 +1074,32 @@
       "change": "Změna",
       "old": "Starý",
       "new": "Nový",
-      "page": "Strana"
+      "page": "Strana",
+      "textContent": "Textový obsah",
+      "delete": "vymazat",
+      "insert": "vložit",
+      "edit": "Upravit"
     }
+  },
+  "saveModal": {
+    "close": "Zavřít",
+    "saveAs": "Uložit jako",
+    "general": "Všeobecné",
+    "fileName": "Název souboru",
+    "fileType": "Typ souboru",
+    "fileLocation": "Umístění souboru",
+    "browse": "Procházet",
+    "pageRange": "Stránkový rozsah",
+    "all": "Všechno",
+    "currentView": "Aktuální pohled",
+    "currentPage": "Aktuální stránka",
+    "specifyPage": "Zadejte stránku",
+    "properties": "Vlastnosti",
+    "includeAnnotation": "Zahrnout poznámky",
+    "includeComments": "Zahrnout komentáře",
+    "watermark": "Vodoznak",
+    "addWatermark": "Přidat vodoznak",
+    "save": "Uložení souboru",
+    "pageError": "Neplatná stránka. Platné rozsahy stránek jsou mezi 1 -"
   }
 }

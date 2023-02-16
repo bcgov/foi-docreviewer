@@ -58,8 +58,6 @@
     "type": "Type",
     "upload": "Uploaden",
     "link": "Koppeling",
-    "darkMode": "Donkere modus",
-    "lightMode": "Lichte modus",
     "fileAttachmentDownload": "Download bijgevoegd bestand",
     "prevResult": "Vorig resultaat",
     "nextResult": "Volgend resultaat",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Bekijk sneltoetsen",
     "markAllRead": "Markeer alles als gelezen",
     "insertPage": "Pagina invoegen",
-    "insertBlankPageAbove": "Lege pagina hierboven invoegen",
-    "insertBlankPageBelow": "Lege pagina hieronder invoegen",
+    "insert": "Invoegen",
     "pageManipulation": "Paginamanipulatie",
     "replace": "Vervangen",
     "setDestination": "Bestemming instellen",
     "showLess": "laat minder zien",
     "showMore": "...meer",
     "chooseFile": "Kies een bestand",
+    "browse": "Bestanden doorbladeren",
     "selectYourOption": "Selecteer uw optie",
     "open": "Open",
     "deselectAll": "Deselecteer alles",
@@ -94,10 +92,10 @@
     "unselect": "Deselecteren",
     "addMark": "Markering toevoegen",
     "viewFile": "Bestand bekijken",
-    "switchLanguage": "Taal",
     "multiReplyAnnotations": "Reageren op geselecteerde annotaties ({{count}})",
     "comparePages": "Vergelijk pagina's",
-    "startComparison": "Vergelijking starten"
+    "startComparison": "Vergelijking starten",
+    "back": "Rug"
   },
   "annotation": {
     "areaMeasurement": "Oppervlaktemeting",
@@ -214,7 +212,8 @@
       "open": "Bekijk alle annotaties",
       "close": "Sluit alle annotaties"
     },
-    "comparePanel": "Vergelijk Paneel"
+    "comparePanel": "Vergelijk Paneel",
+    "watermarkPanel": "Watermerkpaneel"
   },
   "message": {
     "toolsOverlayNoPresets": "Geen voorinstellingen",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Ingesloten bestanden",
     "pageNum": "Paginanummer",
     "viewBookmark": "Bekijk bladwijzer op pagina",
-    "error": "Fout"
+    "error": "Fout",
+    "errorPageNumber": "Ongeldig paginanummer. Limiet is",
+    "errorLoadingDocument": "Er is een probleem opgetreden bij het lezen van dit document en sommige pagina's worden mogelijk niet weergegeven. Dit geeft aan dat het document mogelijk beschadigd is. Het totale aantal pagina's is {{totalPageCount}} en het aantal weergegeven pagina's is {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Onderstrepen",
       "squiggly": "kronkelig",
       "3D": "3D",
-      "other": "Ander"
+      "other": "Ander",
+      "initials": "initialen",
+      "saved": "Opgeslagen"
     },
     "notesOrder": {
       "dropdownLabel": "Sorteer Bestellijst",
@@ -408,22 +411,35 @@
       "addStamp": "Nieuwe stempel toevoegen"
     },
     "signatureOverlay": {
-      "addSignature": "Voeg een handtekening toe"
+      "addSignature": "Voeg een handtekening toe",
+      "addSignatureOrInitials": "Handtekening/initialen"
     },
     "signatureModal": {
       "modalName": "Nieuwe handtekening maken",
       "dragAndDrop": "Sleep je afbeelding hiernaartoe",
       "or": "Of",
       "pickImage": "Kies handtekening afbeelding",
-      "selectImage": "Selecteer hier uw afbeelding"
+      "selectImage": "Selecteer hier uw afbeelding",
+      "typeSignature": "Typ Handtekening*",
+      "typeInitial": "Typ initialen*",
+      "drawSignature": "Handtekening tekenen*",
+      "drawInitial": "Initialen tekenen*",
+      "pickInitialsFile": "Kies initialen",
+      "noSignatures": "Er zijn momenteel geen opgeslagen handtekeningen."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Sleep en zet uw bestand hier neer",
+      "selectFile": "Selecteer hier uw bestand",
       "or": "Of",
+      "yourFiles": "Uw bestanden",
       "chooseFile": "Kies een bestand",
       "localFile": "Lokaal bestand",
       "pageReplaceInputLabel": "Pagina('s) vervangen",
-      "pageReplaceInputFromSource": "met pagina('s)"
+      "pageReplaceInputFromSource": "met pagina('s)",
+      "warning": {
+        "title": "Vervang pagina verlaten?",
+        "message": "Als u afsluit, worden alle selecties die u tot nu toe hebt gemaakt, geannuleerd. Weet je zeker dat je nog steeds wilt afsluiten?"
+      }
     },
     "filterAnnotModal": {
       "color": "Kleur",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Stijl"
+    },
+    "settings": {
+      "settings": "Instellingen",
+      "general": "Algemeen",
+      "keyboardShortcut": "Toetsenbord sneltoets",
+      "advancedSetting": "Geavanceerde instelling",
+      "language": "Taal",
+      "theme": "Thema",
+      "darkMode": "Donkere modus",
+      "lightMode": "Lichtmodus",
+      "viewing": "Bekijken",
+      "disableFadePageNavigationComponent": "Fade Pagina-navigatiecomponent uitschakelen",
+      "disableFadePageNavigationComponentDesc": "Houd de paginanavigatiecomponent altijd op het scherm. Het standaardgedrag is om het te vervagen na een bepaalde periode van inactiviteit.",
+      "disableNativeScrolling": "Native scrollen uitschakelen",
+      "disableNativeScrollingDesc": "Schakel het systeemeigen scrollgedrag van mobiele apparaten uit als dit eerder was ingeschakeld. Houd er rekening mee dat het oorspronkelijke scrollgedrag van mobiele apparaten standaard is uitgeschakeld.",
+      "annotations": "annotaties",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Standaardstijl-update van tool uitschakelen vanuit annotatiepop-up",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Schakelt het synchroniseren van updates van de annotatiestijl uit met de bijbehorende tool die de annotatie heeft gemaakt. Dus als de stijl van een annotatie wordt gewijzigd, worden de standaardstijlen van de tool niet bijgewerkt.",
+      "notesPanel": "Notitiepaneel",
+      "disableNoteSubmissionWithEnter": "Schakel het verzenden van notities uit met Enter",
+      "disableNoteSubmissionWithEnterDesc": "Schakel de mogelijkheid om notities in te dienen uit door alleen op Enter te drukken als dit eerder was ingeschakeld. Hiermee wordt het indienen van notities teruggezet naar de standaardwaarde, namelijk Ctrl/Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Discussiethread automatisch uitvouwen uitschakelen",
+      "disableAutoExpandCommentThreadDesc": "Schakelt de automatische uitbreiding van alle opmerkingenthreads in het deelvenster Notities uit.",
+      "disableReplyCollapse": "Beantwoorden samenvouwen uitschakelen",
+      "disableReplyCollapseDesc": "Schakelt het samenvouwen van de antwoorden in het deelvenster Notities uit.",
+      "disableTextCollapse": "Tekst samenvouwen uitschakelen",
+      "disableTextCollapseDesc": "Schakelt het samenvouwen van de tekst van de annotatie in het deelvenster Notities uit.",
+      "search": "Zoeken",
+      "disableClearSearchOnPanelClose": "Uitschakelen Wissen Zoeken op paneel Sluiten",
+      "disableClearSearchOnPanelCloseDesc": "Schakel het wissen van zoekresultaten uit wanneer de gebruiker het zoekvenster sluit. Indien uitgeschakeld, worden zoekresultaten bewaard, zelfs als de gebruiker het zoekvenster sluit en opnieuw opent. Let op: mobiele apparaten wissen nooit zoekresultaten, zelfs niet als deze instelling is ingeschakeld. Dit komt omdat het paneel moet worden gesloten om de zoekresultaten in het document te bekijken.",
+      "pageManipulation": "Paginamanipulatie",
+      "disablePageDeletionConfirmationModal": "Modaal voor verwijderen van pagina uitschakelen",
+      "disablePageDeletionConfirmationModalDesc": "Schakel de bevestigingsmodaliteit uit bij het verwijderen van een pagina uit de miniatuurweergave",
+      "disableMultiselect": "Multiselect uitschakelen",
+      "disableMultiselectDesc": "Schakel multi-select uit in het linkerminiatuurpaneel"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "Opties",
       "radioGroups": "Keuzerondjes met dezelfde veldnaam horen in dezelfde groep.",
       "nameRequired": "Veldnaam is verplicht",
+      "fieldIndicator": "Veldindicatoren",
+      "documentFieldIndicator": "Indicatoren documentvelden",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Tekst hier invoegen",
+        "CheckBoxFormField": "Controleren",
+        "RadioButtonFormField": "Vullen",
+        "ListBoxFormField": "Selecteer",
+        "ComboBoxFormField": "Selecteer",
+        "SignatureFormField": {
+          "fullSignature": "Hier tekenen",
+          "initialsSignature": "Eerste hier"
+        }
+      },
       "size": "Grootte",
       "width": "Breedte",
       "height": "Hoogte",
@@ -826,13 +890,16 @@
     "certifier": "certificeren",
     "certified": "gecertificeerd",
     "Certified": "Gecertificeerd",
+    "Certification": "Certificering",
     "signer": "teken",
     "signed": "ondertekend",
     "Signed": "Gesigneerd",
+    "Signature": "Handtekening",
     "by": "door",
     "on": "Aan",
     "disallowedChange": "Niet-toegestane wijziging: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Niet ondertekend handtekeningveld: {{fieldName}}",
+    "signatureProperties": "Handtekening Eigenschappen",
     "trustVerification": {
       "current": "De gebruikte verificatietijd was de huidige tijd",
       "signing": "De verificatietijd is van de klok op de computer van de ondertekenaar",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Dit document heeft geen handtekeningvelden",
       "certificateDownloadError": "Er is een fout opgetreden bij het downloaden van een vertrouwd certificaat",
       "localCertificateError": "Er zijn enkele problemen met het lezen van een lokaal certificaat"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} is geldig.",
+      "failed": "{{verificationType}} is mislukt."
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Alle",
     "emptyPanelMessage": "Selecteer een element om de eigenschappen ervan te bekijken."
   },
+  "watermarkPanel": {
+    "textWatermark": "Tekst watermerk",
+    "uploadImage": "Afbeelding uploaden",
+    "browse": "Bladeren",
+    "watermarkOptions": "Watermerkopties",
+    "watermarks": "Watermerken"
+  },
   "languageModal": {
     "selectLanguage": "Selecteer taal"
+  },
+  "insertPageModal": {
+    "title": "Nieuwe pagina toevoegen",
+    "tabs": {
+      "blank": "Blanco",
+      "upload": "Uploaden"
+    },
+    "pagePlacements": {
+      "header": "Paginaplaatsing",
+      "above": "Boven pagina",
+      "below": "Onder pagina"
+    },
+    "pageLocations": {
+      "header": "Paginalocatie",
+      "specify": "Specificeer pagina",
+      "specifyLocation": "Specificeer paginalocatie",
+      "amount": "Aantal pagina's",
+      "total": "Totaal",
+      "pages": "Pagina's"
+    },
+    "pageDimensions": {
+      "header": "Pagina-afmetingen",
+      "subHeader": "Voorinstellingen",
+      "presets": {
+        "letter": "Brief",
+        "halfLetter": "halve letter",
+        "juniorLegal": "Junior juridisch",
+        "custom": "Aangepast"
+      },
+      "units": "Eenheden"
+    },
+    "browse": "Bestanden doorbladeren",
+    "fileSelected": {
+      "title": "Selecteer pagina's om toe te voegen"
+    },
+    "button": "Pagina('s) toevoegen",
+    "selectPages": "Selecteer pagina's om toe te voegen",
+    "page": "Bladzijde",
+    "warning": {
+      "title": "Afsluiten nieuwe pagina invoegen?",
+      "message": "Als u afsluit, worden alle selecties die u tot nu toe hebt gemaakt, geannuleerd. Weet je zeker dat je nog steeds wilt afsluiten?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Sleep uw bestand hierheen om te vergelijken",
@@ -954,7 +1074,32 @@
       "change": "Wijziging",
       "old": "Oud",
       "new": "Nieuw",
-      "page": "Bladzijde"
+      "page": "Bladzijde",
+      "textContent": "Tekstinhoud",
+      "delete": "verwijderen",
+      "insert": "invoegen",
+      "edit": "Bewerk"
     }
+  },
+  "saveModal": {
+    "close": "Dichtbij",
+    "saveAs": "Opslaan als",
+    "general": "Algemeen",
+    "fileName": "Bestandsnaam",
+    "fileType": "Bestandstype",
+    "fileLocation": "Bestandslocatie",
+    "browse": "Bladeren",
+    "pageRange": "Paginabereik",
+    "all": "Allemaal",
+    "currentView": "Huidige weergave",
+    "currentPage": "Huidige pagina",
+    "specifyPage": "Specificeer pagina",
+    "properties": "Eigendommen",
+    "includeAnnotation": "Voeg annotaties toe",
+    "includeComments": "Opmerkingen opnemen",
+    "watermark": "Watermerk",
+    "addWatermark": "Voeg een watermerk toe",
+    "save": "Sla bestand op",
+    "pageError": "Ongeldige pagina. Geldige paginabereiken liggen tussen 1 -"
   }
 }

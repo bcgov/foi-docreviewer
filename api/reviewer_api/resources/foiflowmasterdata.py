@@ -117,7 +117,7 @@ class FOIFlowS3Presigned(Resource):
             secretkey = attribute["s3secretkey"]
             s3host = "citz-foi-prod.objectstore.gov.bc.ca"
             s3region = "us-east-1"
-            filepath = document["filepath"]
+            filepath = '/'.join(document["filepath"].split('/')[4:])
 
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
                 endpoint_url='https://{0}/'.format(s3host),

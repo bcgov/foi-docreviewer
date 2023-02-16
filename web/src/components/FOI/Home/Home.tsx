@@ -27,7 +27,7 @@ function Home() {
         console.log("docs:");
         setFiles(data);
         setCurrentPageInfo({'file': data[0] || {}, 'page': 1})
-        localStorage.setItem("currentDocumentInfo", JSON.stringify(currentPageInfo));
+        localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': data[0] || {}, 'page': 1}));
         console.log(data);
 
         let ministryrequestid = "1";

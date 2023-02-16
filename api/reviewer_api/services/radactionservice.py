@@ -116,6 +116,9 @@ class redactionservice:
         return ''
     
     def __generateannotationsxml(self, annotations):
+        if not annotations:
+            return ''
+
         annotationsstring = ''.join(annotations)
 
         template_path = "reviewer_api/xml_templates/annotations.xml"

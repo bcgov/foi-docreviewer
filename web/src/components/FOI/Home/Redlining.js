@@ -1,8 +1,17 @@
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
 import React, { useRef, useEffect,useState } from 'react';
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
+import ReactModal from 'react-modal-resizable-draggable';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import CloseIcon from '@material-ui/icons/Close';
+import IconButton from "@material-ui/core/IconButton";
 
-import { fetchAnnotations, saveAnnotation, deleteAnnotation } from '../../../apiManager/services/docReviewerService';
+import { fetchAnnotations, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 
 const Redlining = ({
@@ -15,7 +24,15 @@ const Redlining = ({
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
   const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
   const [docViewer, setDocViewer] = useState(null);
+  const [annotManager, setAnnotManager] = useState(null);
+  const [annots, setAnnots] = useState(null);
   const [docInstance, setDocInstance] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [newRedaction, setNewRedaction] = useState(null);
+  const [saveAnnot, setSaveAnnot] = useState(null);
+  const [deleteAnnot, setDeleteAnnot] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [selectedSections, setSelectedSections] = useState([]);
   
   //xml parser
   const parser = new XMLParser();
@@ -24,6 +41,10 @@ const Redlining = ({
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
     let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
+    fetchSections(
+      (data) => setSections(data),
+      (error)=> console.log(error)
+    );
     WebViewer(
       {
         path: '/webviewer',
@@ -56,11 +77,13 @@ const Redlining = ({
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
           (data) => {
-            const _annotations = annotationManager.importAnnotations(data)
-            _annotations.then(_annotation => {
-              annotationManager.redrawAnnotation(_annotation);
-            });
-            documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
+            if (data.length > 0) {
+              const _annotations = annotationManager.importAnnotations(data)
+              _annotations.then(_annotation => {
+                annotationManager.redrawAnnotation(_annotation);
+              });
+              documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
+            }
           },
           (error) => {
             console.log('error');
@@ -119,25 +142,10 @@ const Redlining = ({
           let annots = jObj.getElementsByTagName("annots");
           let annot = annots[0].children[0];
           
-          if(action === 'delete') {
-            deleteAnnotation(
-              localDocumentInfo['file']['documentid'],
-              localDocumentInfo['file']['version'],
-              annot.attributes.page,
-              annot.attributes.name,
-              (data)=>{console.log(data)},
-              (error)=>{console.log(error)}
-            );
-          } else {
-            saveAnnotation(
-              localDocumentInfo['file']['documentid'],
-              localDocumentInfo['file']['version'],
-              annot.attributes.page,
-              annot.attributes.name,
-              astr,
-              (data)=>{console.log(data)},
-              (error)=>{console.log(error)}
-            );
+          if(action === 'delete') {            
+            setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name});
+          } else {            
+            setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
 
@@ -146,6 +154,8 @@ const Redlining = ({
         //   console.log(astr)
         //   // localStorage.setItem("savedannotations",astr)
         // })
+        setAnnotManager(annotationManager);
+        setAnnots(Annotations);
 
       });
 
@@ -188,12 +198,169 @@ const Redlining = ({
       docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
   }, [currentPageInfo])
 
+  const saveRedaction = () => {
+    setModalOpen(false)
+    let redaction = annotManager.getAnnotationById(newRedaction.name);
+    let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+    saveAnnotation(
+      localDocumentInfo['file']['documentid'],
+      localDocumentInfo['file']['version'],
+      newRedaction.page,
+      newRedaction.name,
+      newRedaction.astr,
+      (data)=>{console.log(data)},
+      (error)=>{console.log(error)}
+    );
+    let parser = new DOMParser();
+    var astr = parser.parseFromString(newRedaction.astr,"text/xml");
+    var coords = astr.getElementsByTagName("redact")[0].attributes.getNamedItem('coords').value;
+    var X = coords.substring(0, coords.indexOf(","));
+    const annot = new annots.FreeTextAnnotation();
+    annot.PageNumber = redaction.getPageNumber()
+    annot.X = X;
+    annot.Y = redaction.Y;
+    annot.FontSize = redaction.FontSize;
+    annot.Color = 'red';
+    annot.StrokeThickness = 0;
+    annot.Author = user?.name || user?.preferred_username || "";
+
+    var redactionSections = sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map(s => s.section).join(", ");
+    annot.setAutoSizeType('auto');
+    annot.setContents(redactionSections);
+    
+    annotManager.addAnnotation(annot);
+    // Always redraw annotation
+    annotManager.redrawAnnotation(annot);
+    // setNewRedaction(null)
+  }
+
+  useEffect(() => {
+    if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
+      let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      deleteAnnotation(
+        localDocumentInfo['file']['documentid'],
+        localDocumentInfo['file']['version'],
+        deleteAnnot.page,
+        deleteAnnot.name,
+        (data)=>{console.log(data)},
+        (error)=>{console.log(error)}
+      );
+      setNewRedaction(null)
+    }
+    setDeleteAnnot(null)
+  }, [deleteAnnot, newRedaction])
+
+  useEffect(() => {
+    if (saveAnnot) {
+      // if new redaction is not null, that means it is a section annotation
+      let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      if (newRedaction === null) {
+        if (saveAnnot.type === 'redact') {
+          setModalOpen(true);
+          setNewRedaction(saveAnnot)
+        } else {
+          saveAnnotation(
+            localDocumentInfo['file']['documentid'],
+            localDocumentInfo['file']['version'],
+            saveAnnot.page,
+            saveAnnot.name,
+            saveAnnot.astr,
+            (data)=>{console.log(data)},
+            (error)=>{console.log(error)}
+          );
+        }
+      } else {
+        // add the parent annotation info to section annotation
+        
+        setNewRedaction(null)
+        saveAnnotation(
+          localDocumentInfo['file']['documentid'],
+          localDocumentInfo['file']['version'],
+          saveAnnot.page,
+          saveAnnot.name,
+          saveAnnot.astr,
+          (data)=>{console.log(data)},
+          (error)=>{console.log(error)}
+        );
+      }
+    }
+    setSaveAnnot(null);
+  }, [saveAnnot])
+
+  const cancelRedaction = () => {
+    setModalOpen(false);
+    annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
+    // setDeleteAnnot(newRedaction)
+  }
+
+  const handleSectionSelected = (e) => {
+    var sectionID = e.target.getAttribute('data-sectionid');
+    if (e.target.checked) {
+      selectedSections.push(sectionID);
+    } else {
+      selectedSections.splice(selectedSections.indexOf(sectionID), 1);
+    }
+  }
+
 
 
   return (
     <div>
       {/* <button onClick={gotopage}>Click here</button> */}
       <div className="webviewer" ref={viewer}></div>
+      <ReactModal 
+          initWidth={800} 
+          initHeight={400} 
+          minWidth ={400} 
+          minHeight ={200} 
+          className={"state-change-dialog"}
+          onRequestClose={cancelRedaction} 
+          isOpen={modalOpen}>
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">FOIPPA Sections</h2>
+            <IconButton className="title-col3" onClick={cancelRedaction}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={'dialog-content-nomargin'}>
+            <DialogContentText id="state-change-dialog-description" component={'span'} >
+              {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
+                <List className="section-list">
+                  {sections.map((section, index) => 
+                    <ListItem>
+                      <label key={index} className="check-item">
+                        <input
+                          type="checkbox"
+                          className="checkmark"
+                          key={section.sectionid}
+                          data-sectionid={section.sectionid}
+                          onChange={handleSectionSelected}
+                        />
+                      </label>
+                      {section.section + ' - ' + section.description}
+                    </ListItem>
+                  )}
+                </List>
+              {/* </div> */}
+              {/* <span className="confirmation-message">
+                    Are you sure you want to delete the attachments from this request? <br></br>
+                    <i>This will remove all attachments from the redaction app.</i>
+                  </span> */}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+            <button
+              className={`btn-bottom btn-save btn`}
+              onClick={saveRedaction}
+            >
+              Select Code(s)
+            </button>
+            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+              Cancel
+            </button>
+          </DialogActions>
+      </ReactModal>
     </div>
   );
 

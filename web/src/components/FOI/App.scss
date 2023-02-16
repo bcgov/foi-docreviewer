@@ -16,3 +16,152 @@
 .webviewer {
   height: calc(100vh - 117px)
 }
+
+.flexible-modal {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid #ccc;
+  background: white;
+}
+.flexible-modal-mask {
+  position: fixed;
+  height: 100%;
+  background: rgba(55, 55, 55, 0.6);
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+}
+.flexible-modal-resizer {
+  position:absolute;
+  right:0;
+  bottom:0;
+  cursor:se-resize;
+  margin:5px;
+  border-bottom: none !important;
+  border-right: none !important;
+  background-size: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg width='30' height='30' xmlns='http://www.w3.org/2000/svg' stroke='null' style='vector-effect: non-scaling-stroke;'%3E%3Cg id='Layer_1'%3E%3Ctitle%3ELayer 1%3C/title%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_2' cy='28.93701' cx='18.62205' fill='none'/%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_3' cy='19.01575' cx='28.38583' fill='none'/%3E%3Cline transform='rotate(45 23.4602 24.0105)' id='svg_4' y2='31.01042' x2='23.51658' y1='17.01051' x1='23.40384' stroke-width='2' stroke='%23666666' fill='none'/%3E%3Cline transform='rotate(45 19.7988 19.5616)' stroke='%23666666' id='svg_6' y2='32.63046' x2='19.85521' y1='6.49282' x1='19.74247' stroke-width='2' fill='none'/%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_7' cy='10.27559' cx='28.93701' fill='none'/%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_8' cy='28.77953' cx='10.66929' fill='none'/%3E%3Cline transform='rotate(45 15.4681 15.4671)' stroke='%23666666' id='svg_9' y2='34.10369' x2='15.52444' y1='-3.16948' x1='15.41171' stroke-width='2' fill='none'/%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_10' cy='2.24409' cx='28.62205' fill='none'/%3E%3Cellipse stroke='%23666666' ry='0.44882' rx='0.44882' id='svg_11' cy='28.62205' cx='2.40158' fill='none'/%3E%3C/g%3E%3C/svg%3E");
+}
+.flexible-modal-drag-area{
+  background: none !important;
+  height: 50px;
+  position:absolute;
+  right:0;
+  top:0;
+  cursor:move;
+}
+
+#state-change-dialog-title {
+  font-family: "BCSans-Bold", sans-serif!important;
+  padding: 30px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.state-change-header {
+  // margin-left: 30px;
+  color: #036 ;
+  font-size: xx-large;
+  font-weight: bold;
+  font-family: "BCSans-Bold", sans-serif !important;
+  flex-direction: column;
+  flex-basis: 70%
+}
+
+#state-change-dialog-title .MuiIconButton-root {
+  background-color: #036 ;
+  color: white;
+  border-radius: unset;
+}
+#state-change-content {
+  padding: 15px 50px 50px 50px;
+}
+
+#state-change-dialog-description {
+  // padding-left: 50px;
+  overflow: auto;
+  height: 100%;
+  display: block;
+  color: black;
+}
+
+.dialog-close-button {
+  display: none;
+}
+
+
+
+.btn-save {
+  border-radius: 3px;
+  font-size: small;
+  height: 30px;
+
+  flex-basis: 50%
+}
+
+.btn-save:disabled {
+  opacity: 0.65;
+}
+
+.btn-cancel {
+  border: 1px solid #38598A;
+  background-color: #FFFFFF;
+  color: #38598A;
+  border-radius: 3px;
+  font-size: small;
+  height: 30px;
+  flex-basis: 50%;
+}
+
+.btn-bottom {
+  background-color: #38598a!important;
+  color: white !important;
+}
+
+.foippa-modal-actions{
+  padding: 30px !important;
+}
+
+.dialog-content-nomargin{
+  padding: 0px 30px !important;
+  overflow-y: visible !important;
+  height: calc(100% - 198px);
+}
+
+.section-list{
+  >li:nth-child(odd) {
+    background-color: #E5EAEF;
+  }
+  >li:nth-child(even) {
+    background-color: #CCD6E0;
+  }
+}
+
+.check-item{
+  margin-right: 10px;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

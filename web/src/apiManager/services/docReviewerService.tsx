@@ -2,6 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
+import { callbackify } from "util";
 
 export const fetchDocuments = (
   foiministryrequestid: number = 1,
@@ -35,7 +36,7 @@ export const fetchAnnotations = (
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
-      if (res.data) {
+      if (res.data || res.data === "") {
         callback(res.data);
       } else {
         throw new Error();
@@ -93,3 +94,22 @@ export const deleteAnnotation = (
       errorCallback("Error in deleting an annotation");
     });
 };
+
+export const fetchSections = (
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrl: string  = API.DOCREVIEWER_SECTIONS;
+
+  httpGETRequest(apiUrl, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+}

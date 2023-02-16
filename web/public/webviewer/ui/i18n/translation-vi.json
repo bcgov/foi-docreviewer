@@ -58,8 +58,6 @@
     "type": "Kiểu",
     "upload": "Tải lên",
     "link": "Liên kết",
-    "darkMode": "Chế độ tối",
-    "lightMode": "Chế độ sáng",
     "fileAttachmentDownload": "Tải xuống tệp đính kèm",
     "prevResult": "Kết quả trước",
     "nextResult": "Kết quả tiếp theo",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Xem Phím Tắt",
     "markAllRead": "Đánh dấu tất cả là đọc",
     "insertPage": "Chèn Trang",
-    "insertBlankPageAbove": "Chèn trang trống ở trên",
-    "insertBlankPageBelow": "Chèn trang trống ở dưới",
+    "insert": "Chèn",
     "pageManipulation": "Thao Tác Trang",
     "replace": "Thay thế",
     "setDestination": "Đích đã được cài",
     "showLess": "hiển thị ít hơn",
     "showMore": "...nhiều hơn",
     "chooseFile": "Chọn một tệp",
+    "browse": "Duyệt qua tệp",
     "selectYourOption": "Chọn tùy chọn của bạn",
     "open": "Mở",
     "deselectAll": "Bỏ Chọn Tất Cả",
@@ -94,10 +92,10 @@
     "unselect": "Bỏ chọn",
     "addMark": "Thêm dấu",
     "viewFile": "Xem tài liệu",
-    "switchLanguage": "Ngôn ngữ",
     "multiReplyAnnotations": "Trả lời các chú thích đã chọn ({{count}})",
     "comparePages": "So sánh các trang",
-    "startComparison": "Bắt đầu so sánh"
+    "startComparison": "Bắt đầu so sánh",
+    "back": "Mặt sau"
   },
   "annotation": {
     "areaMeasurement": "Diện tích",
@@ -214,7 +212,8 @@
       "open": "Xem tất cả các chú thích",
       "close": "Đóng tất cả các chú thích"
     },
-    "comparePanel": "So sánh bảng điều khiển"
+    "comparePanel": "So sánh bảng điều khiển",
+    "watermarkPanel": "Bảng điều khiển hình mờ"
   },
   "message": {
     "toolsOverlayNoPresets": "Không Có Cài Đặt Trước",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Tệp Nhúng",
     "pageNum": "Số Trang",
     "viewBookmark": "Xem dấu trang trên trang",
-    "error": "Lỗi"
+    "error": "Lỗi",
+    "errorPageNumber": "Số trang không hợp lệ. Giới hạn là",
+    "errorLoadingDocument": "Đã xảy ra sự cố khi đọc tài liệu này và một số trang có thể không được hiển thị. Điều này cho thấy tài liệu có thể bị hỏng. Tổng số trang là {{totalPageCount}} và số trang đang được hiển thị là {{displayPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Gạch chân",
       "squiggly": "Nguệch ngoạc",
       "3D": "3D",
-      "other": "Khác"
+      "other": "Khác",
+      "initials": "Tên viết tắt",
+      "saved": "Đã lưu"
     },
     "notesOrder": {
       "dropdownLabel": "Sắp Xếp Danh Sách Lệnh",
@@ -408,22 +411,35 @@
       "addStamp": "Thêm Tem Mới"
     },
     "signatureOverlay": {
-      "addSignature": "Thêm Chữ Ký Mới"
+      "addSignature": "Thêm Chữ Ký Mới",
+      "addSignatureOrInitials": "Chữ ký / Tên viết tắt"
     },
     "signatureModal": {
       "modalName": "Tạo Chữ Ký Mới",
       "dragAndDrop": "Kéo & Thả hình ảnh của bạn tại đây",
       "or": "Hoặc",
       "pickImage": "Chọn một chữ ký",
-      "selectImage": "Chọn hình ảnh của bạn tại đây"
+      "selectImage": "Chọn hình ảnh của bạn tại đây",
+      "typeSignature": "Nhập Chữ ký *",
+      "typeInitial": "Nhập tên viết tắt *",
+      "drawSignature": "Vẽ Chữ ký *",
+      "drawInitial": "Rút tên viết tắt *",
+      "pickInitialsFile": "Chọn tên viết tắt",
+      "noSignatures": "Hiện tại không có chữ ký nào được lưu."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Kéo & Thả tệp của bạn tại đây",
+      "selectFile": "Chọn tệp của bạn ở đây",
       "or": "Hoặc",
+      "yourFiles": "Tệp của bạn",
       "chooseFile": "Chọn một tệp",
       "localFile": "Tệp Cục Bộ",
       "pageReplaceInputLabel": "Thay Thế (các) Trang",
-      "pageReplaceInputFromSource": "bằng (các) trang"
+      "pageReplaceInputFromSource": "bằng (các) trang",
+      "warning": {
+        "title": "Thoát khỏi trang thay thế?",
+        "message": "Thoát sẽ hủy tất cả các lựa chọn bạn đã thực hiện cho đến nay. Bạn có chắc chắn vẫn muốn thoát không?"
+      }
     },
     "filterAnnotModal": {
       "color": "Màu",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Phong cách"
+    },
+    "settings": {
+      "settings": "Cài đặt",
+      "general": "Chung",
+      "keyboardShortcut": "Phim tăt",
+      "advancedSetting": "Cài đặt nâng cao",
+      "language": "Ngôn ngữ",
+      "theme": "Chủ đề",
+      "darkMode": "Chế độ tối",
+      "lightMode": "Chế độ sáng",
+      "viewing": "Đang xem",
+      "disableFadePageNavigationComponent": "Tắt thành phần điều hướng trang làm mờ",
+      "disableFadePageNavigationComponentDesc": "Luôn giữ Thành phần Điều hướng Trang trên màn hình. Hành vi mặc định là làm mờ dần nó sau một thời gian không hoạt động nhất định.",
+      "disableNativeScrolling": "Tắt tính năng cuộn gốc",
+      "disableNativeScrollingDesc": "Tắt hành vi cuộn thiết bị di động gốc nếu nó đã được bật trước đó. Lưu ý rằng hành vi cuộn trên thiết bị di động gốc bị tắt theo mặc định.",
+      "annotations": "Chú thích",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Tắt cập nhật kiểu mặc định của công cụ từ cửa sổ bật lên chú thích",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Tắt đồng bộ hóa các cập nhật kiểu chú thích với công cụ được liên kết đã tạo chú thích. Vì vậy, nếu kiểu của chú thích bị thay đổi, kiểu mặc định của công cụ sẽ không được cập nhật.",
+      "notesPanel": "Bảng ghi chú",
+      "disableNoteSubmissionWithEnter": "Tắt tính năng gửi ghi chú bằng phím Enter",
+      "disableNoteSubmissionWithEnterDesc": "Vô hiệu hóa khả năng gửi ghi chú bằng cách chỉ nhấn Enter nếu nó đã được bật trước đó. Thao tác này sẽ hoàn nguyên việc gửi ghi chú về mặc định là Ctrl / Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Tắt tự động mở rộng chuỗi nhận xét",
+      "disableAutoExpandCommentThreadDesc": "Tắt tính năng mở rộng tự động của tất cả các chuỗi nhận xét trong Bảng ghi chú.",
+      "disableReplyCollapse": "Tắt thu gọn trả lời",
+      "disableReplyCollapseDesc": "Tắt tính năng thu gọn các câu trả lời trong Bảng ghi chú.",
+      "disableTextCollapse": "Tắt tính năng thu gọn văn bản",
+      "disableTextCollapseDesc": "Tắt tính năng thu gọn văn bản của chú thích trong Bảng ghi chú.",
+      "search": "Tìm kiếm",
+      "disableClearSearchOnPanelClose": "Vô hiệu hóa Xóa tìm kiếm trên bảng điều khiển Đóng",
+      "disableClearSearchOnPanelCloseDesc": "Tắt xóa kết quả tìm kiếm khi người dùng đóng bảng tìm kiếm. Khi bị tắt, kết quả tìm kiếm vẫn được giữ lại ngay cả khi người dùng đóng và mở lại bảng tìm kiếm. Lưu ý, thiết bị di động không bao giờ xóa kết quả tìm kiếm ngay cả khi cài đặt này được bật. Điều này là do bảng điều khiển cần được đóng lại để xem kết quả tìm kiếm trên tài liệu.",
+      "pageManipulation": "Thao tác trang",
+      "disablePageDeletionConfirmationModal": "Tắt phương thức xác nhận xóa trang",
+      "disablePageDeletionConfirmationModalDesc": "Tắt phương thức xác nhận khi xóa trang khỏi chế độ xem hình thu nhỏ",
+      "disableMultiselect": "Tắt nhiều lựa chọn",
+      "disableMultiselectDesc": "Tắt nhiều lựa chọn trong bảng hình thu nhỏ bên trái"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "Tùy Chọn",
       "radioGroups": "Các nút radio có cùng Tên Trường sẽ thuộc cùng một nhóm.",
       "nameRequired": "Tên trường là bắt buộc",
+      "fieldIndicator": "Chỉ báo trường",
+      "documentFieldIndicator": "Chỉ báo trường tài liệu",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Chèn văn bản tại đây",
+        "CheckBoxFormField": "Kiểm tra",
+        "RadioButtonFormField": "Lấp đầy",
+        "ListBoxFormField": "Lựa chọn",
+        "ComboBoxFormField": "Lựa chọn",
+        "SignatureFormField": {
+          "fullSignature": "Ký vào đây",
+          "initialsSignature": "Ban đầu tại đây"
+        }
+      },
       "size": "Kích thước",
       "width": "Chiều rộng",
       "height": "Chiều cao",
@@ -826,13 +890,16 @@
     "certifier": "người chứng nhận",
     "certified": "đã chứng nhận",
     "Certified": "Đã chứng nhận",
+    "Certification": "chứng nhận",
     "signer": "người ký",
     "signed": "đã ký",
     "Signed": "Đã ký",
+    "Signature": "Chữ ký",
     "by": "bởi",
     "on": "vào",
     "disallowedChange": "Thay Đổi Không Được Phép: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Trường chữ ký chưa ký: {{fieldName}}",
+    "signatureProperties": "Thuộc tính chữ ký",
     "trustVerification": {
       "current": "Thời gian xác minh được sử dụng là thời gian hiện tại",
       "signing": "Thời gian xác minh là từ đồng hồ trên máy tính của người ký",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Tài liệu này không có trường chữ ký nào",
       "certificateDownloadError": "Đã gặp phải lỗi khi cố gắng tải xuống chứng chỉ uy tín",
       "localCertificateError": "Có một số vấn đề với việc đọc chứng chỉ cục bộ"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} hợp lệ.",
+      "failed": "{{verificationType}} không thành công."
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Tất cả",
     "emptyPanelMessage": "Chọn một phần tử để xem các thuộc tính của nó."
   },
+  "watermarkPanel": {
+    "textWatermark": "Hình mờ văn bản",
+    "uploadImage": "Tải lên hình ảnh",
+    "browse": "Duyệt qua",
+    "watermarkOptions": "Tùy chọn hình mờ",
+    "watermarks": "Hình mờ"
+  },
   "languageModal": {
     "selectLanguage": "Chọn ngôn ngữ"
+  },
+  "insertPageModal": {
+    "title": "Thêm trang mới",
+    "tabs": {
+      "blank": "Trống",
+      "upload": "Tải lên"
+    },
+    "pagePlacements": {
+      "header": "Vị trí trang",
+      "above": "Trang trên",
+      "below": "Dưới trang"
+    },
+    "pageLocations": {
+      "header": "Vị trí trang",
+      "specify": "Chỉ định Trang",
+      "specifyLocation": "Chỉ định vị trí trang",
+      "amount": "Số lượng trang",
+      "total": "Tổng cộng",
+      "pages": "Các trang"
+    },
+    "pageDimensions": {
+      "header": "Kích thước trang",
+      "subHeader": "Cài đặt trước",
+      "presets": {
+        "letter": "Bức thư",
+        "halfLetter": "Nửa chữ cái",
+        "juniorLegal": "Pháp lý cơ sở",
+        "custom": "Phong tục"
+      },
+      "units": "Các đơn vị"
+    },
+    "browse": "Duyệt qua tệp",
+    "fileSelected": {
+      "title": "Chọn các trang để thêm"
+    },
+    "button": "Thêm (các) Trang",
+    "selectPages": "Chọn các trang để thêm",
+    "page": "Trang",
+    "warning": {
+      "title": "Thoát chèn trang mới?",
+      "message": "Thoát sẽ hủy tất cả các lựa chọn bạn đã thực hiện cho đến nay. Bạn có chắc chắn vẫn muốn thoát không?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Kéo và thả tệp của bạn vào đây để so sánh",
@@ -954,7 +1074,32 @@
       "change": "Biến đổi",
       "old": "Cũ",
       "new": "Mới",
-      "page": "Trang"
+      "page": "Trang",
+      "textContent": "Nội dung văn bản",
+      "delete": "xóa bỏ",
+      "insert": "chèn",
+      "edit": "chỉnh sửa"
     }
+  },
+  "saveModal": {
+    "close": "Đóng",
+    "saveAs": "Lưu thành",
+    "general": "Chung",
+    "fileName": "Tên tệp",
+    "fileType": "Loại tệp",
+    "fileLocation": "Vị trí tập tin",
+    "browse": "Duyệt qua",
+    "pageRange": "Phạm vi trang",
+    "all": "Tất cả các",
+    "currentView": "Chế độ xem hiện tại",
+    "currentPage": "Trang hiện tại",
+    "specifyPage": "Chỉ định Trang",
+    "properties": "Đặc tính",
+    "includeAnnotation": "Bao gồm chú thích",
+    "includeComments": "Bao gồm các bình luận",
+    "watermark": "Chữ ký ảnh",
+    "addWatermark": "Thêm hình mờ",
+    "save": "Lưu tập tin",
+    "pageError": "Trang không hợp lệ. Phạm vi trang hợp lệ là từ 1 -"
   }
 }
