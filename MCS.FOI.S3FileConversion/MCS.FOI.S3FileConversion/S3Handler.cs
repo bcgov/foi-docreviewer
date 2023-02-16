@@ -131,7 +131,7 @@ namespace MCS.FOI.S3FileConversion
                             attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
                             attachment.Value.Add("attributes", attributes.ToJsonString());
                             var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
-                            var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["filename"];
+                            var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["s3filename"];
                             var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                             attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
                             returnAttachments.Add(attachment.Value);
