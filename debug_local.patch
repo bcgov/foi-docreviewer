@@ -1,5 +1,5 @@
 diff --git a/api/reviewer_api/auth.py b/api/reviewer_api/auth.py
-index cdda225..1dca7e1 100644
+index cdda225..eff7423 100644
 --- a/api/reviewer_api/auth.py
 +++ b/api/reviewer_api/auth.py
 @@ -31,11 +31,11 @@ class Auth:
@@ -17,51 +17,7 @@ index cdda225..1dca7e1 100644
              return f(*args, **kwargs)
  
          return decorated
-@@ -51,6 +51,43 @@ class Auth:
-             return wrapper
-         return decorated
- 
-+    @classmethod
-+    def belongstosameministry(cls,func):
-+        @wraps(func)
-+        def decorated(type, id, field,*args, **kwargs):
-+            usertype = AuthHelper.getusertype()
-+            if(usertype == "iao"):
-+                return func(type, id, field,*args, **kwargs)
-+            elif(usertype == "ministry"):
-+                requestministry = FOIMinistryRequest.getrequestbyministryrequestid(id)
-+                ministrygroups = AuthHelper.getministrygroups()
-+                expectedministrygroup = MinistryTeamWithKeycloackGroup[requestministry['programarea.bcgovcode']].value
-+                retval = "Unauthorized" , 401
-+                if(expectedministrygroup not in ministrygroups):
-+                    return retval
-+                else:
-+                    return func(type, id, field,*args, **kwargs)
-+        return decorated
-+
-+    @classmethod
-+    def documentbelongstosameministry(cls,func):
-+        @wraps(func)
-+        def decorated( ministryrequestid, *args, **kwargs):
-+            usertype = AuthHelper.getusertype()
-+            if(usertype == "iao"):
-+                return func( ministryrequestid,*args, **kwargs)
-+            elif(usertype == "ministry"):
-+                requestministry = FOIMinistryRequest.getrequestbyministryrequestid(ministryrequestid)
-+                ministrygroups = AuthHelper.getministrygroups()
-+                expectedministrygroup = MinistryTeamWithKeycloackGroup[requestministry['programarea.bcgovcode']].value
-+                retval = "Unauthorized" , 401
-+                if(expectedministrygroup not in ministrygroups):
-+                    return retval
-+                else:
-+                    return func(id, *args, **kwargs)
-+        return decorated
-+
-+
-     @classmethod
-     def ismemberofgroups(cls, groups):
-         """Check that at least one of the realm groups are in the token.
-@@ -63,120 +100,127 @@ class Auth:
+@@ -63,120 +63,127 @@ class Auth:
              #@Auth.require
              @wraps(f)
              def wrapper(*args, **kwargs):
