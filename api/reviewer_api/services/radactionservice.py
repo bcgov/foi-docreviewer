@@ -3,10 +3,12 @@ from os import stat
 from re import VERBOSE
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
+
+
 from reviewer_api.models.OperatingTeamS3ServiceAccounts import OperatingTeamS3ServiceAccount
 from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 from reviewer_api.models.DocumentPathMapper import DocumentPathMapper
-
+from reviewer_api.services.annotationservice import annotationservice
 import json
 import os
 import base64
@@ -44,21 +46,13 @@ class redactionservice:
         return
 
     def getannotations(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotations(documentid, documentversion)
-        annotationswithformateddate = self.__formatcreateddate(annotations)
+        return annotationservice().getannotations(documentid, documentversion, pagenumber)
 
-        annotationlist = []
-        for annot in annotationswithformateddate:
-            annotationlist.append(annot["annotation"])
-
-        # return self.__formatcreateddate(annotations)
-        return self.__generateannotationsxml(annotationlist)
-
-    def saveannotation(self, annotationname, documentid, documentversion, xml, pagenumber, userinfo):
-        return Annotation.saveannotation(annotationname, documentid, documentversion, self.__extractannotfromxml(xml), pagenumber, userinfo)
+    def saveannotation(self, annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo):
+        return annotationservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo)
 
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
-        return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
+        return annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
     def getdocumentmapper(self, documentpathid):
         return DocumentPathMapper.getmapper(documentpathid)

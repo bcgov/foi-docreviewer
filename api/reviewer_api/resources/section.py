@@ -40,3 +40,19 @@ class GetSections(Resource):
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/sections/ministryrequest/<int:ministryrequestid>')
+class GetSections(Resource):
+    """Add document to deleted list.
+    """
+    @staticmethod
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(ministryrequestid):
+        try:
+            data = sectionservice().getsections_by_ministryid(ministryrequestid)
+            return json.dumps(data) , 200
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
