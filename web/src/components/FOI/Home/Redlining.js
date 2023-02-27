@@ -10,6 +10,8 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@material-ui/core/IconButton";
+import editLogo from "../../../assets/images/edit-icon.png";
+
 
 import { fetchAnnotations, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
@@ -33,7 +35,7 @@ const Redlining = ({
   const [deleteAnnot, setDeleteAnnot] = useState(null);
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
-  
+  const [parentAnnotation, setParentAnnotation] = useState("");
   //xml parser
   const parser = new XMLParser();
 
@@ -41,6 +43,7 @@ const Redlining = ({
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
     let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
+
     fetchSections(
       (data) => setSections(data),
       (error)=> console.log(error)
@@ -56,11 +59,16 @@ const Redlining = ({
       },
       viewer.current,
     ).then((instance) => {
+      instance.UI.annotationPopup.add({
+        type: 'actionButton',
+        img: editLogo,
+        onClick: () => console.log(instance.Core.documentViewer.getAnnotationManager().getAnnotationFromPopup(instance.UI.annotationPopup())),
+      });
       setDocInstance(instance);
+
 
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       PDFNet.initialize();
-
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
 
@@ -135,14 +143,14 @@ const Redlining = ({
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
         // let _annotationtring = annotationManager.exportAnnotationCommand()
         _annotationtring.then(astr=>{
-          // console.log(astr)
-
           //parse annotation xml
           let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
           let annots = jObj.getElementsByTagName("annots");
           let annot = annots[0].children[0];
+          console.log("annot",annot)
           
-          if(action === 'delete') {            
+          if(action === 'delete') {      
+            console.log("",annot.attributes)      
             setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name});
           } else {            
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
@@ -192,7 +200,8 @@ const Redlining = ({
     }
 
     //change page from document selector
-    console.log("page changed")
+    //console.log("page changed")
+    localStorage.setItem("isDocumentLoaded", "true");
     let isDocLoaded = localStorage.getItem("isDocumentLoaded");
     if(isDocLoaded === 'true')
       docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
@@ -200,21 +209,33 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false)
+    console.log("Inside Save Redaction Method!!",saveAnnot)
+    //console.log("newRedaction",newRedaction)
+    //setParentAnnotation(newRedaction.name);
     let redaction = annotManager.getAnnotationById(newRedaction.name);
+    console.log("redaction",redaction)
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+    let sectn = {
+      "foiministryrequestid": 1,
+      "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+      "parts": [{"annotation":parentAnnotation}]    
+    }
+    console.log("sectn:",sectn);
     saveAnnotation(
       localDocumentInfo['file']['documentid'],
       localDocumentInfo['file']['version'],
       newRedaction.page,
       newRedaction.name,
       newRedaction.astr,
+      sectn,
       (data)=>{console.log(data)},
       (error)=>{console.log(error)}
     );
     let parser = new DOMParser();
     var astr = parser.parseFromString(newRedaction.astr,"text/xml");
-    var coords = astr.getElementsByTagName("redact")[0].attributes.getNamedItem('coords').value;
-    var X = coords.substring(0, coords.indexOf(","));
+    console.log("redactt!",astr.getElementsByTagName("redact"))
+    var coords = astr.getElementsByTagName("redact")[0]?.attributes.getNamedItem('coords')?.value;
+    var X = coords?.substring(0, coords.indexOf(","));
     const annot = new annots.FreeTextAnnotation();
     annot.PageNumber = redaction.getPageNumber()
     annot.X = X;
@@ -234,8 +255,15 @@ const Redlining = ({
     // setNewRedaction(null)
   }
 
+  const editSection = () =>{
+    setModalOpen(true);
+    //const selectedAnnots = annotationManager().getSelectedAnnotations();
+    //console.log("selectedAnnots:",selected);
+  }
+
   useEffect(() => {
     if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
+      console.log("deleteAnnot",deleteAnnot)
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
       deleteAnnotation(
         localDocumentInfo['file']['documentid'],
@@ -255,6 +283,12 @@ const Redlining = ({
       // if new redaction is not null, that means it is a section annotation
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
       if (newRedaction === null) {
+        setParentAnnotation(saveAnnot.name);
+        let sectn = {
+          "foiministryrequestid": 1,
+          "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+          "parts": [{"annotation":parentAnnotation}]    
+        }
         if (saveAnnot.type === 'redact') {
           setModalOpen(true);
           setNewRedaction(saveAnnot)
@@ -265,13 +299,20 @@ const Redlining = ({
             saveAnnot.page,
             saveAnnot.name,
             saveAnnot.astr,
+            sectn,
             (data)=>{console.log(data)},
             (error)=>{console.log(error)}
           );
         }
       } else {
+        let sectn = {
+          "foiministryrequestid": 1,
+          "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+          "parts": [{"annotation":parentAnnotation}]    
+        }
         // add the parent annotation info to section annotation
-        
+        console.log("ParentAnnotation:",parentAnnotation);
+        // console.log("2)localDocumentInfo",localDocumentInfo)
         setNewRedaction(null)
         saveAnnotation(
           localDocumentInfo['file']['documentid'],
@@ -279,6 +320,7 @@ const Redlining = ({
           saveAnnot.page,
           saveAnnot.name,
           saveAnnot.astr,
+          sectn,
           (data)=>{console.log(data)},
           (error)=>{console.log(error)}
         );
@@ -289,7 +331,11 @@ const Redlining = ({
 
   const cancelRedaction = () => {
     setModalOpen(false);
-    annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
+    console.log("saveAnnot in cancel:",saveAnnot)
+    console.log("newRedaction in cancel:",newRedaction)
+    if(newRedaction != null)
+      annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
+    setNewRedaction(null)
     // setDeleteAnnot(newRedaction)
   }
 
@@ -301,7 +347,6 @@ const Redlining = ({
       selectedSections.splice(selectedSections.indexOf(sectionID), 1);
     }
   }
-
 
 
   return (
@@ -328,7 +373,7 @@ const Redlining = ({
               {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
                   {sections.map((section, index) => 
-                    <ListItem>
+                    <ListItem key={section.sectionid}>
                       <label key={index} className="check-item">
                         <input
                           type="checkbox"
