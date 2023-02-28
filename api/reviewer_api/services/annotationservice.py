@@ -31,7 +31,7 @@ class annotationservice:
             section = self.__getsection(annotationsections, entry["annotationname"])
             if self.__issection(annotationsections, entry["annotationname"]) == False:
                 if section is not None:     
-                    entry['sections'] = { "sectionannotationname": section["sectionannotationname"], "ids": section["ids"]}
+                    entry['sections'] = { "sectionannotationname": section["sectionannotationname"], "ids": json.loads(section["ids"])}
                 entry['created_at'] = datetimehandler().convert_to_pst(entry['created_at'], self.__getdateformat())
                 annotationlist.append(entry)
         return annotationlist
