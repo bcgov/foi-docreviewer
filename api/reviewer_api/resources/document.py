@@ -61,7 +61,7 @@ class GetDocuments(Resource):
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
-            result = documentservice().getdocuments(4)
+            result = documentservice().getdocuments(requestid)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

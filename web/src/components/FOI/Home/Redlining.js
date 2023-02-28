@@ -13,7 +13,7 @@ import IconButton from "@material-ui/core/IconButton";
 import editLogo from "../../../assets/images/edit-icon.png";
 
 
-import { fetchAnnotations, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
+import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 
 const Redlining = ({
@@ -38,6 +38,7 @@ const Redlining = ({
   const [defaultSections, setDefaultSections] = useState(false);
   const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
+  const [redactionInfo, setRedactionInfo] = useState([]);
   //xml parser
   const parser = new XMLParser();
 
@@ -103,6 +104,19 @@ const Redlining = ({
           }
         );
 
+        fetchAnnotationsInfo(
+          localDocumentInfo['file']['documentid'],
+          localDocumentInfo['file']['version'],
+          (data) => {
+            if (data.length > 0) {
+              setRedactionInfo(data);
+            }
+          },
+          (error) => {
+            console.log('error');
+          }
+        );
+
         setDocViewer(documentViewer);
       });
 
@@ -156,7 +170,7 @@ const Redlining = ({
           
           if(action === 'delete') {      
             console.log("",annot.attributes)      
-            setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name});
+            setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
           } else {            
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
@@ -263,6 +277,7 @@ const Redlining = ({
     if (!defaultSections) {
       setSelectedSections([]);
     }
+    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id}});
   }
 
   const editAnnotation = (annotationManager, Annotations, selectedAnnot) =>{
@@ -300,6 +315,12 @@ const Redlining = ({
         (error)=>{console.log(error)}
       );
       setNewRedaction(null)
+      if (deleteAnnot.type === 'redact') {
+        let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
+        let childSections = redactionInfo[i].sections.annotationname;
+        redactionInfo.splice(i, 1);
+        annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
+      }
     }
     setDeleteAnnot(null)
   }, [deleteAnnot, newRedaction])
