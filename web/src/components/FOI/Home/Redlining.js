@@ -35,6 +35,7 @@ const Redlining = ({
   const [deleteAnnot, setDeleteAnnot] = useState(null);
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
+  const [defaultSections, setDefaultSections] = useState(false);
   const [parentAnnotation, setParentAnnotation] = useState("");
   //xml parser
   const parser = new XMLParser();
@@ -208,7 +209,7 @@ const Redlining = ({
   }, [currentPageInfo])
 
   const saveRedaction = () => {
-    setModalOpen(false)
+    setModalOpen(false);
     console.log("Inside Save Redaction Method!!",saveAnnot)
     //console.log("newRedaction",newRedaction)
     //setParentAnnotation(newRedaction.name);
@@ -231,6 +232,8 @@ const Redlining = ({
       (data)=>{console.log(data)},
       (error)=>{console.log(error)}
     );
+
+    // add section annotation
     let parser = new DOMParser();
     var astr = parser.parseFromString(newRedaction.astr,"text/xml");
     console.log("redactt!",astr.getElementsByTagName("redact"))
@@ -238,7 +241,7 @@ const Redlining = ({
     var X = coords?.substring(0, coords.indexOf(","));
     const annot = new annots.FreeTextAnnotation();
     annot.PageNumber = redaction.getPageNumber()
-    annot.X = X;
+    annot.X = X || redaction.X;
     annot.Y = redaction.Y;
     annot.FontSize = redaction.FontSize;
     annot.Color = 'red';
@@ -253,6 +256,9 @@ const Redlining = ({
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
+    if (!defaultSections) {
+      setSelectedSections([]);
+    }
   }
 
   const editSection = () =>{
@@ -290,8 +296,10 @@ const Redlining = ({
           "parts": [{"annotation":parentAnnotation}]    
         }
         if (saveAnnot.type === 'redact') {
-          setModalOpen(true);
-          setNewRedaction(saveAnnot)
+          setNewRedaction(saveAnnot);
+          if (!defaultSections) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is true
+            setModalOpen(true);
+          }
         } else {
           saveAnnotation(
             localDocumentInfo['file']['documentid'],
@@ -331,6 +339,9 @@ const Redlining = ({
 
   const cancelRedaction = () => {
     setModalOpen(false);
+    if (!defaultSections) {
+      setSelectedSections([]);
+    }
     console.log("saveAnnot in cancel:",saveAnnot)
     console.log("newRedaction in cancel:",newRedaction)
     if(newRedaction != null)
@@ -338,6 +349,17 @@ const Redlining = ({
     setNewRedaction(null)
     // setDeleteAnnot(newRedaction)
   }
+
+  const saveDefaultSections = () => {
+    setModalOpen(false);
+    setDefaultSections(true);
+  }
+
+  useEffect(() => {
+    if (defaultSections && newRedaction) {
+      saveRedaction();
+    }
+  }, [defaultSections, newRedaction])
 
   const handleSectionSelected = (e) => {
     var sectionID = e.target.getAttribute('data-sectionid');
@@ -381,6 +403,7 @@ const Redlining = ({
                           key={section.sectionid}
                           data-sectionid={section.sectionid}
                           onChange={handleSectionSelected}
+                          defaultChecked={selectedSections.includes(section.sectionid.toString())}
                         />
                       </label>
                       {section.section + ' - ' + section.description}
@@ -400,6 +423,9 @@ const Redlining = ({
               onClick={saveRedaction}
             >
               Select Code(s)
+            </button>
+            <button className="btn-bottom btn-cancel" onClick={saveDefaultSections}>
+              Save as Default
             </button>
             <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
               Cancel
