@@ -32,7 +32,7 @@ class annotationservice:
             section = self.__getsection(annotationsections, entry["annotationname"])
             if self.__issection(annotationsections, entry["annotationname"]) == False:
                 if section is not None:     
-                    entry['sections'] = {"annotationname": section["sectionannotationname"]}
+                    entry['sections'] = {"annotationname": section["sectionannotationname"], "ids": list(map(lambda id: id['id'], json.loads(section["ids"])))}
                 annotationlist.append(entry)
         return annotationlist
     

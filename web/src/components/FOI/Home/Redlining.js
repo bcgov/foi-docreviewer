@@ -35,7 +35,7 @@ const Redlining = ({
   const [deleteAnnot, setDeleteAnnot] = useState(null);
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
-  const [defaultSections, setDefaultSections] = useState(false);
+  const [defaultSections, setDefaultSections] = useState([]);
   const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
   const [redactionInfo, setRedactionInfo] = useState([]);
@@ -51,7 +51,7 @@ const Redlining = ({
       (data) => setSections(data),
       (error)=> console.log(error)
     );
-    
+
     WebViewer(
       {
         path: '/webviewer',
@@ -167,11 +167,11 @@ const Redlining = ({
           let annots = jObj.getElementsByTagName("annots");
           let annot = annots[0].children[0];
           console.log("annot",annot)
-          
-          if(action === 'delete') {      
-            console.log("",annot.attributes)      
+
+          if(action === 'delete') {
+            console.log("",annot.attributes)
             setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
-          } else {            
+          } else {
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
@@ -236,7 +236,7 @@ const Redlining = ({
     // let sectn = {
     //   "foiministryrequestid": 1,
     //   "ids": sections.filter(s => selectedSections?.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
-    //   "parts": [{"annotation":parentAnnotation}]    
+    //   "parts": [{"annotation":parentAnnotation}]
     // }
     saveAnnotation(
       localDocumentInfo['file']['documentid'],
@@ -263,23 +263,21 @@ const Redlining = ({
     annot.StrokeThickness = 0;
     annot.Author = user?.name || user?.preferred_username || "";
     console.log("selectedSections",selectedSections)
-    var redactionSections = sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map(s => s.section).join(", ");
+    let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
+    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.sectionid.toString()) > -1).map(s => s.section).join(", ");
     console.log("redactionSections",redactionSections)
     annot.setAutoSizeType('auto');
     annot.setContents(redactionSections);
-    
+
     annotManager.addAnnotation(annot);
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
-    if (!defaultSections) {
-      setSelectedSections([]);
-    }
-    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id}});
+    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
+    setSelectedSections([]);
   }
 
   const editAnnotation = (annotationManager, Annotations, selectedAnnot) =>{
-    setModalOpen(true);
     selectedAnnot.then(astr=>{
       //parse annotation xml
       let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
@@ -288,14 +286,17 @@ const Redlining = ({
       console.log("annot:",annot);
       setEditAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
     })
-    setAnnotManager(annotationManager);
-    setAnnots(Annotations);
+    // setAnnotManager(annotationManager);
+    // setAnnots(Annotations);
   }
 
   useEffect(() => {
     console.log("editAnnot:",editAnnot);
-    if (editAnnot)
-      setNewRedaction(editAnnot)
+    if (editAnnot) {
+      // setNewRedaction(editAnnot)
+      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections.ids.map(id => id.toString()))
+      setModalOpen(true);
+    }
   }, [editAnnot])
 
   useEffect(() => {
@@ -328,7 +329,7 @@ const Redlining = ({
         setParentAnnotation(saveAnnot.name);
         if (saveAnnot.type === 'redact') {
           setNewRedaction(saveAnnot);
-          if (!defaultSections) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is true
+          if (defaultSections.length === 0) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is set
             setModalOpen(true);
           }
         } else {
@@ -347,8 +348,8 @@ const Redlining = ({
         console.log("SELECTEDSECTIONS:",selectedSections);
         let sectn = {
           "foiministryrequestid": 1,
-          "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
-          "redactannotation": parentAnnotation    
+          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+          "redactannotation": parentAnnotation
         }
         // add the parent annotation info to section annotation
         setNewRedaction(null)
@@ -369,9 +370,7 @@ const Redlining = ({
 
   const cancelRedaction = () => {
     setModalOpen(false);
-    if (!defaultSections) {
-      setSelectedSections([]);
-    }
+    setSelectedSections([]);
     console.log("saveAnnot in cancel:",saveAnnot)
     console.log("newRedaction in cancel:",newRedaction)
     if(newRedaction != null)
@@ -382,11 +381,15 @@ const Redlining = ({
 
   const saveDefaultSections = () => {
     setModalOpen(false);
-    setDefaultSections(true);
+    setDefaultSections(selectedSections);
+  }
+
+  const clearDefaultSections = () => {
+    setDefaultSections([]);
   }
 
   useEffect(() => {
-    if (defaultSections && newRedaction) {
+    if (defaultSections.length > 0 && newRedaction) {
       saveRedaction();
     }
   }, [defaultSections, newRedaction])
@@ -405,13 +408,13 @@ const Redlining = ({
     <div>
       {/* <button onClick={gotopage}>Click here</button> */}
       <div className="webviewer" ref={viewer}></div>
-      <ReactModal 
-          initWidth={800} 
-          initHeight={400} 
-          minWidth ={400} 
-          minHeight ={200} 
+      <ReactModal
+          initWidth={800}
+          initHeight={400}
+          minWidth ={400}
+          minHeight ={200}
           className={"state-change-dialog"}
-          onRequestClose={cancelRedaction} 
+          onRequestClose={cancelRedaction}
           isOpen={modalOpen}>
           <DialogTitle disableTypography id="state-change-dialog-title">
             <h2 className="state-change-header">FOIPPA Sections</h2>
@@ -424,7 +427,7 @@ const Redlining = ({
             <DialogContentText id="state-change-dialog-description" component={'span'} >
               {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
-                  {sections.map((section, index) => 
+                  {sections.map((section, index) =>
                     <ListItem key={section.sectionid}>
                       <label key={index} className="check-item">
                         <input
@@ -454,9 +457,15 @@ const Redlining = ({
             >
               Select Code(s)
             </button>
-            <button className="btn-bottom btn-cancel" onClick={saveDefaultSections}>
-              Save as Default
-            </button>
+            {defaultSections.length > 0 ?
+              <button className="btn-bottom btn-cancel" onClick={clearDefaultSections}>
+                Clear Defaults
+              </button>
+              :
+              <button className="btn-bottom btn-cancel" onClick={saveDefaultSections}>
+                Save as Default
+              </button>
+            }
             <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
               Cancel
             </button>
