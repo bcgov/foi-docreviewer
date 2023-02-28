@@ -49,7 +49,7 @@ class AnnotationSection(db.Model):
                         cast("section"  AS json) ->> 'redactannotation' as redactannotation,
                         cast("section"  AS json) ->> 'ids' as ids
                         from "AnnotationSections" as2, "Annotations" a  where  as2.annotationname  = a.annotationname 
-                           and a.documentid = :documentid and a.documentversion = :documentversion;
+                           and a.isactive = true and a.documentid = :documentid and a.documentversion = :documentversion;
                     """
             rs = db.session.execute(text(sql), {'documentid': documentid, 'documentversion': documentversion})
         
