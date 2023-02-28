@@ -99,7 +99,9 @@
   font-size: small;
   height: 30px;
 
-  flex-basis: 50%
+  flex-basis: 50%;
+  background-color: #38598a!important;
+  color: white !important;
 }
 
 .btn-save:disabled {
@@ -107,8 +109,8 @@
 }
 
 .btn-cancel {
-  border: 1px solid #38598A;
-  background-color: #FFFFFF;
+  border: 1px solid #38598A!important;
+  background-color: #FFFFFF!important;
   color: #38598A;
   border-radius: 3px;
   font-size: small;
@@ -117,8 +119,6 @@
 }
 
 .btn-bottom {
-  background-color: #38598a!important;
-  color: white !important;
 }
 
 .foippa-modal-actions{
