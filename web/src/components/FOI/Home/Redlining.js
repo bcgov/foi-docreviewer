@@ -309,18 +309,20 @@ const Redlining = ({
         (error)=>{console.log(error)}
       );
       setNewRedaction(null)
-      if (deleteAnnot.type === 'redact') {
+      
+      if (deleteAnnot.type === 'redact' && redactionInfo) {
         let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
-        let childSections = redactionInfo[i].sections.annotationname;
-        redactionInfo.splice(i, 1);
-        annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
+        if(i >= 0){
+          let childSections = redactionInfo[i].sections.annotationname;
+          redactionInfo.splice(i, 1);
+          annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
+        }
       }
     }
     setDeleteAnnot(null)
   }, [deleteAnnot, newRedaction])
 
   useEffect(() => {
-    console.log("saveAnnot in useeffect:",saveAnnot);
     if (saveAnnot) {
       // if new redaction is not null, that means it is a section annotation
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
@@ -427,7 +429,7 @@ const Redlining = ({
                   {sections.map((section, index) => 
                     <ListItem key={section.sectionid}>
                       <label key={index} className="check-item">
-                        <input
+                        <input id="section-checkbox"
                           type="checkbox"
                           className="checkmark"
                           key={section.sectionid}
