@@ -304,7 +304,6 @@ const Redlining = ({
       deleteAnnotation(
         localDocumentInfo['file']['documentid'],
         localDocumentInfo['file']['version'],
-        deleteAnnot.page,
         deleteAnnot.name,
         (data)=>{console.log(data)},
         (error)=>{console.log(error)}

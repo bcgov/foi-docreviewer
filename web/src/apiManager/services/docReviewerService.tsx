@@ -102,12 +102,11 @@ export const saveAnnotation = (
 export const deleteAnnotation = (
   documentid: number = 1,
   documentversion: number = 1,
-  pagenumber: number = 0,
   annotationname: string = "",
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
