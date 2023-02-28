@@ -48,3 +48,22 @@ class GetDedupeStatus(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/document/<requestid>')
+class GetDocuments(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    # @auth.ismemberofgroups(getrequiredmemberships())
+    def get(requestid):
+        try:
+            result = documentservice().getdocuments(4)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500

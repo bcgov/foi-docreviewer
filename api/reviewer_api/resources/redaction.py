@@ -34,24 +34,6 @@ from marshmallow import ValidationError, EXCLUDE
 API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
 # TRACER = Tracer.get_instance()
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/document/<requestid>')
-class GetDocuments(Resource):
-    """Get document list.
-    """
-    @staticmethod
-    # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    # @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid):
-        try:
-            result = redactionservice().getdocuments(requestid)
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
 
 
 @cors_preflight('GET,POST,DELETE,OPTIONS')
@@ -93,65 +75,62 @@ class Annotations(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
+@cors_preflight('DELETE,OPTIONS')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:cascadetype>')
+class DeactivateAnnotations(Resource):
+    
     """save or update an annotation for a document
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, pagenumber, annotationname):
-        #get user info
-        if AuthHelper.getusertype() == "ministry":
-            usergroups = AuthHelper.getministrygroups()
-            usergroup = usergroups[0]
-        else:
-            usergroup = AuthHelper.getiaotype()
-
-        userinfo = {
-            'userid': AuthHelper.getuserid(),
-            'firstname': AuthHelper.getfirstname(),
-            'lastname': AuthHelper.getlastname(),
-            'operatingteam': usergroup
-        }
-
+    def delete(documentid, documentversion, annotationname, cascadetype=None):
+        
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), cascadetype)
+            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+        
+
+@cors_preflight('DELETE,OPTIONS')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:cascadetype>')
+class DeactivateAnnotations(Resource):
+    
+    """save or update an annotation for a document
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def delete(documentid, documentversion, annotationname, cascadetype=None):
+        
+        try:
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), cascadetype)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
-
-@cors_preflight('GET,POST,DELETE,OPTIONS')
-@API.route('/annotation/<string:annotationname>/sections')
+@cors_preflight('POST,OPTIONS')
+@API.route('/annotation/section/<string:sectionannotationname>')
 class AnnotationSections(Resource):
-    """Retrieves annotations for a document
-    """
-    @staticmethod
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def get(annotationname):
-        try:
-            result = annotationservice().getannotationsections(annotationname)
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-
+    
     """save or update an annotation for a document
     """
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(annotationname):
+    def post(sectionannotationname):
         try:
             requestjson = request.get_json()
             sectionschema = SectionRequestSchema().load(requestjson)
-            result = annotationservice().saveannotationsection(annotationname, sectionschema, AuthHelper.getuserinfo())
+            result = annotationservice().saveannotationsection(sectionannotationname, sectionschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except ValidationError as err:
             return {"errors": err.messages}, 422
@@ -161,6 +140,28 @@ class AnnotationSections(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,POST,DELETE,OPTIONS')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/info')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/info')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>/info')
+class AnnotationMetadata(Resource):
+    """Retrieves annotations for a document
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(documentid, documentversion, pagenumber=None):
+        try:
+            result = redactionservice().getannotationinfo(documentid, documentversion, pagenumber)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
 
 
 @cors_preflight('GET,OPTIONS')
