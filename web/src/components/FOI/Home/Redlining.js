@@ -36,6 +36,7 @@ const Redlining = ({
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
   const [parentAnnotation, setParentAnnotation] = useState("");
+  const [editAnnot, setEditAnnot] = useState(null);
   //xml parser
   const parser = new XMLParser();
 
@@ -48,6 +49,7 @@ const Redlining = ({
       (data) => setSections(data),
       (error)=> console.log(error)
     );
+    
     WebViewer(
       {
         path: '/webviewer',
@@ -59,15 +61,16 @@ const Redlining = ({
       },
       viewer.current,
     ).then((instance) => {
+      const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       instance.UI.annotationPopup.add({
         type: 'actionButton',
         img: editLogo,
-        onClick: () => console.log(instance.Core.documentViewer.getAnnotationManager().getAnnotationFromPopup(instance.UI.annotationPopup())),
+        onClick: () => editAnnotation(annotationManager, Annotations, annotationManager.exportAnnotations({annotList: annotationManager.getSelectedAnnotations(), useDisplayAuthor: true})),
       });
       setDocInstance(instance);
 
 
-      const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
+      //const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       PDFNet.initialize();
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
@@ -87,6 +90,7 @@ const Redlining = ({
           (data) => {
             if (data.length > 0) {
               const _annotations = annotationManager.importAnnotations(data)
+              console.log("Check Annot:",_annotations)
               _annotations.then(_annotation => {
                 annotationManager.redrawAnnotation(_annotation);
               });
@@ -209,18 +213,17 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false)
-    console.log("Inside Save Redaction Method!!",saveAnnot)
+    console.log("Inside Save Redaction Method!!",newRedaction)
     //console.log("newRedaction",newRedaction)
-    //setParentAnnotation(newRedaction.name);
+    setParentAnnotation(newRedaction.name);
     let redaction = annotManager.getAnnotationById(newRedaction.name);
     console.log("redaction",redaction)
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     let sectn = {
       "foiministryrequestid": 1,
-      "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+      "ids": sections.filter(s => selectedSections?.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
       "parts": [{"annotation":parentAnnotation}]    
     }
-    console.log("sectn:",sectn);
     saveAnnotation(
       localDocumentInfo['file']['documentid'],
       localDocumentInfo['file']['version'],
@@ -244,8 +247,9 @@ const Redlining = ({
     annot.Color = 'red';
     annot.StrokeThickness = 0;
     annot.Author = user?.name || user?.preferred_username || "";
-
+    console.log("selectedSections",selectedSections)
     var redactionSections = sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map(s => s.section).join(", ");
+    console.log("redactionSections",redactionSections)
     annot.setAutoSizeType('auto');
     annot.setContents(redactionSections);
     
@@ -255,13 +259,29 @@ const Redlining = ({
     // setNewRedaction(null)
   }
 
-  const editSection = () =>{
+  const editAnnotation = (annotationManager, Annotations, selectedAnnot) =>{
     setModalOpen(true);
-    //const selectedAnnots = annotationManager().getSelectedAnnotations();
-    //console.log("selectedAnnots:",selected);
+    selectedAnnot.then(astr=>{
+      //parse annotation xml
+      let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+      let annots = jObj.getElementsByTagName("annots");
+      let annot = annots[0].children[0];
+      console.log("annot:",annot);
+      setEditAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
+    })
+    setAnnotManager(annotationManager);
+    setAnnots(Annotations);
   }
 
   useEffect(() => {
+    console.log("editAnnot:",editAnnot);
+    if (editAnnot)
+      setNewRedaction(editAnnot)
+    //setSaveAnnot(null);
+  }, [editAnnot])
+
+  useEffect(() => {
+    console.log("newRedaction useeffect:",newRedaction)
     if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
       console.log("deleteAnnot",deleteAnnot)
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
@@ -279,6 +299,7 @@ const Redlining = ({
   }, [deleteAnnot, newRedaction])
 
   useEffect(() => {
+    console.log("saveAnnot in useeffect:",saveAnnot);
     if (saveAnnot) {
       // if new redaction is not null, that means it is a section annotation
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
