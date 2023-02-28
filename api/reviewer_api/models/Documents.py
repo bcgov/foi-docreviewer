@@ -21,7 +21,7 @@ class Document(db.Model):
     documentid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version = db.Column(db.Integer, primary_key=True, nullable=False)
     filename = db.Column(db.String(120), unique=False, nullable=False)
-    documentmasterid = db.Column(db.String(255), unique=False, nullable=False)
+    documentmasterid = db.Column(db.Integer, db.ForeignKey('DocumentMaster.documentmasterid'), unique=False, nullable=False)
     attributes = db.Column(JSON, unique=False, nullable=True)
     foiministryrequestid = db.Column(db.Integer, nullable=False)
     createdby = db.Column(JSON, unique=False, nullable=True)
@@ -31,6 +31,7 @@ class Document(db.Model):
     statusid = db.Column(db.Integer, db.ForeignKey('DocumentStatus.statusid'))
     pagecount = db.Column(db.Integer, nullable=True)
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
+    documentmaster = relationship("DocumentMaster", backref=backref("DocumentMaster"), uselist=False)
 
     @classmethod
     def getdocuments(cls, foiministryrequestid):
@@ -102,7 +103,10 @@ class Document(db.Model):
     def getdocument(cls, documentid):
         document_schema = DocumentSchema(many=False)
         query = db.session.query(Document).filter_by(documentid=documentid).order_by(Document.version.desc()).first()
-        return document_schema.dump(query)
+        document = document_schema.dump(query)
+        document['filepath'] = document['documentmaster.filepath']
+        del document['documentmaster.filepath']
+        return document
 
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):
@@ -253,4 +257,4 @@ class Document(db.Model):
 
 class DocumentSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'version', 'filename', 'filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount')
+        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount')

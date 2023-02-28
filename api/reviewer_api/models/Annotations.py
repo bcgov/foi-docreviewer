@@ -29,6 +29,12 @@ class Annotation(db.Model):
         annotation_schema = AnnotationSchema(many=True)
         query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
         return annotation_schema.dump(query)
+    
+    @classmethod
+    def getannotationinfo(cls, _documentid, _documentversion):
+        annotation_schema = AnnotationSchema(many=True)
+        query = db.session.query(Annotation.annotationname, Annotation.created_at, Annotation.createdby).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
+        return annotation_schema.dump(query)
 
     @classmethod
     def getannotationid(cls, _annotationname):
@@ -65,7 +71,7 @@ class Annotation(db.Model):
 
     @classmethod
     def deactivateannotation(cls, _annotationname, _documentid, _documentversion, userinfo)->DefaultMethodResult:
-        db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
+        db.session.query(Annotation).filter(Annotation.annotationname.in_(_annotationname), Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
         db.session.commit()
         return DefaultMethodResult(True,'Annotation deactivated',_annotationname)
 

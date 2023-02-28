@@ -22,6 +22,31 @@ class annotationservice:
             entry['created_at'] = datetimehandler().convert_to_pst(entry['created_at'], self.__getdateformat())    
             annotationlist.append(entry["annotation"])
         return self.__generateannotationsxml(annotationlist)
+    
+    def getannotationinfo(self, documentid, documentversion, pagenumber):
+        annotations = Annotation.getannotationinfo(documentid, documentversion)
+        annotationsections = AnnotationSection.getsectionmapping(documentid, documentversion)
+        annotationlist = []
+        for entry in annotations:
+            section = self.__getsection(annotationsections, entry["annotationname"])
+            if self.__issection(annotationsections, entry["annotationname"]) == False:
+                if section is not None:     
+                    entry['sections'] = { "sectionannotationname": section["sectionannotationname"], "ids": section["ids"]}
+                entry['created_at'] = datetimehandler().convert_to_pst(entry['created_at'], self.__getdateformat())
+                annotationlist.append(entry)
+        return annotationlist
+    
+    def __issection(self, annotationsections, annotationname):
+        for entry in annotationsections:
+            if entry["sectionannotationname"] == annotationname:
+                return True
+        return False
+    
+    def __getsection(self, annotationsections, annotationname):
+        for entry in annotationsections:
+            if entry["redactannotation"] == annotationname:
+                return entry
+        return None
 
     def getannotationsections(self, ministryid):
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
@@ -32,8 +57,8 @@ class annotationservice:
         if _annotresponse.success == True:
             if "sections" in annotationschema:
                 self.saveannotationsection(annotationname, annotationschema, userinfo)
-            return DefaultMethodResult(True,'Annotation is saved',annotationname)          
-        return DefaultMethodResult(False,'Failed to save Annotation',annotationname)
+            return DefaultMethodResult(True,'Annotation Section is saved',annotationname)          
+        return DefaultMethodResult(False,'Failed to save Annotation Section',annotationname)
 
     def saveannotationsection(self, annotationname, annotsectionschema, userinfo):
         ministryid, sectionschema = self.__generateannotsection(annotsectionschema)
@@ -41,7 +66,9 @@ class annotationservice:
         if _annotsectionresponse.success == True:
             return DefaultMethodResult(True,'Annotation is saved',annotationname)     
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo, cascadetype):
+        if cascadetype == "sections":
+            print("deactivate")
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
     def __getdateformat(self):

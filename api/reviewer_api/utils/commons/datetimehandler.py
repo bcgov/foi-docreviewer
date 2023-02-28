@@ -34,7 +34,7 @@ class datetimehandler:
         return _inpdate.strftime(_format)
 
     def getdate(self, inputdate):
-        return  datetime.strptime(inputdate, "%Y-%m-%d") if isinstance(inputdate, str) else inputdate            
+        return  inputdate            
    
     def getdefaulttimezone(self):
         return 'America/Vancouver'

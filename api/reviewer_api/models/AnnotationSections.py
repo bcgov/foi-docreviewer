@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.sql.schema import ForeignKey, ForeignKeyConstraint
 from reviewer_api.models.Annotations import Annotation
 import logging
+from sqlalchemy import text
 
 class AnnotationSection(db.Model):
     __tablename__ = 'AnnotationSections'
@@ -38,6 +39,28 @@ class AnnotationSection(db.Model):
             raise ex
         finally:
             db.session.close()
+
+
+    @classmethod
+    def getsectionmapping(cls, documentid, documentversion):  
+        mapping = []
+        try:              
+            sql = """select as2.annotationname  as "sectionannotationname", 
+                        cast("section"  AS json) ->> 'redactannotation' as redactannotation,
+                        cast("section"  AS json) ->> 'ids' as ids
+                        from "AnnotationSections" as2, "Annotations" a  where  as2.annotationname  = a.annotationname 
+                           and a.documentid = :documentid and a.documentversion = :documentversion;
+                    """
+            rs = db.session.execute(text(sql), {'documentid': documentid, 'documentversion': documentversion})
+        
+            for row in rs:
+                mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return mapping
 
     @classmethod
     def get_by_annotationame(cls, _annotationname):
