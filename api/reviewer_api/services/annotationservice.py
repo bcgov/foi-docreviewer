@@ -31,8 +31,7 @@ class annotationservice:
             section = self.__getsection(annotationsections, entry["annotationname"])
             if self.__issection(annotationsections, entry["annotationname"]) == False:
                 if section is not None:     
-                    entry['sections'] = { "sectionannotationname": section["sectionannotationname"], "ids": json.loads(section["ids"])}
-                entry['created_at'] = datetimehandler().convert_to_pst(entry['created_at'], self.__getdateformat())
+                    entry['sections'] = {"annotationname": section["sectionannotationname"]}
                 annotationlist.append(entry)
         return annotationlist
     
@@ -66,9 +65,7 @@ class annotationservice:
         if _annotsectionresponse.success == True:
             return DefaultMethodResult(True,'Annotation is saved',annotationname)     
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo, cascadetype):
-        if cascadetype == "sections":
-            print("deactivate")
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
     def __getdateformat(self):
