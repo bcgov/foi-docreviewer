@@ -36,7 +36,7 @@ API = Namespace('Document and annotations', description='Endpoints for document 
 
 
 
-@cors_preflight('GET,POST,DELETE,OPTIONS')
+@cors_preflight('GET,POST, OPTIONS')
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>')
@@ -76,7 +76,7 @@ class Annotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:cascadetype>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -85,10 +85,10 @@ class DeactivateAnnotations(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, annotationname, cascadetype=None):
+    def delete(documentid, documentversion, annotationname):
         
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), cascadetype)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -97,7 +97,7 @@ class DeactivateAnnotations(Resource):
         
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:cascadetype>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -106,10 +106,10 @@ class DeactivateAnnotations(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, annotationname, cascadetype=None):
+    def delete(documentid, documentversion, annotationname):
         
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), cascadetype)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

@@ -29,8 +29,8 @@ class redactionservice:
     def saveannotation(self, annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo):
         return annotationservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo)
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo, cascadetype):
-        return annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo, cascadetype)
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
+        return annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
     def getdocumentmapper(self, documentpathid):
         return DocumentPathMapper.getmapper(documentpathid)

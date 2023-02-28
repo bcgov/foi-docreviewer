@@ -46,15 +46,14 @@ class AnnotationSection(db.Model):
         mapping = []
         try:              
             sql = """select as2.annotationname  as "sectionannotationname", 
-                        cast("section"  AS json) ->> 'redactannotation' as redactannotation,
-                        cast("section"  AS json) ->> 'ids' as ids
+                        cast("section"  AS json) ->> 'redactannotation' as redactannotation
                         from "AnnotationSections" as2, "Annotations" a  where  as2.annotationname  = a.annotationname 
-                           and a.documentid = :documentid and a.documentversion = :documentversion;
+                           and a.isactive = true and a.documentid = :documentid and a.documentversion = :documentversion;
                     """
             rs = db.session.execute(text(sql), {'documentid': documentid, 'documentversion': documentversion})
         
             for row in rs:
-                mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
+                mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
