@@ -214,24 +214,22 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false);
-    console.log("Inside Save Redaction Method!!",saveAnnot)
-    //console.log("newRedaction",newRedaction)
+    console.log("Inside Save Redaction Method!!",newRedaction)
     setParentAnnotation(newRedaction.name);
     let redaction = annotManager.getAnnotationById(newRedaction.name);
     console.log("redaction",redaction)
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    let sectn = {
-      "foiministryrequestid": 1,
-      "ids": sections.filter(s => selectedSections?.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
-      "parts": [{"annotation":parentAnnotation}]    
-    }
+    // let sectn = {
+    //   "foiministryrequestid": 1,
+    //   "ids": sections.filter(s => selectedSections?.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+    //   "parts": [{"annotation":parentAnnotation}]    
+    // }
     saveAnnotation(
       localDocumentInfo['file']['documentid'],
       localDocumentInfo['file']['version'],
       newRedaction.page,
       newRedaction.name,
       newRedaction.astr,
-      sectn,
       (data)=>{console.log(data)},
       (error)=>{console.log(error)}
     );
@@ -283,13 +281,10 @@ const Redlining = ({
     console.log("editAnnot:",editAnnot);
     if (editAnnot)
       setNewRedaction(editAnnot)
-    //setSaveAnnot(null);
   }, [editAnnot])
 
   useEffect(() => {
-    console.log("newRedaction useeffect:",newRedaction)
     if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
-      console.log("deleteAnnot",deleteAnnot)
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
       deleteAnnotation(
         localDocumentInfo['file']['documentid'],
@@ -311,11 +306,6 @@ const Redlining = ({
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
       if (newRedaction === null) {
         setParentAnnotation(saveAnnot.name);
-        let sectn = {
-          "foiministryrequestid": 1,
-          "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
-          "parts": [{"annotation":parentAnnotation}]    
-        }
         if (saveAnnot.type === 'redact') {
           setNewRedaction(saveAnnot);
           if (!defaultSections) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is true
@@ -328,20 +318,19 @@ const Redlining = ({
             saveAnnot.page,
             saveAnnot.name,
             saveAnnot.astr,
-            sectn,
             (data)=>{console.log(data)},
             (error)=>{console.log(error)}
           );
         }
       } else {
+        console.log("SECTIONS:",sections);
+        console.log("SELECTEDSECTIONS:",selectedSections);
         let sectn = {
           "foiministryrequestid": 1,
           "ids": sections.filter(s => selectedSections.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
-          "parts": [{"annotation":parentAnnotation}]    
+          "redactannotation": parentAnnotation    
         }
         // add the parent annotation info to section annotation
-        console.log("ParentAnnotation:",parentAnnotation);
-        // console.log("2)localDocumentInfo",localDocumentInfo)
         setNewRedaction(null)
         saveAnnotation(
           localDocumentInfo['file']['documentid'],
@@ -349,9 +338,9 @@ const Redlining = ({
           saveAnnot.page,
           saveAnnot.name,
           saveAnnot.astr,
-          sectn,
           (data)=>{console.log(data)},
-          (error)=>{console.log(error)}
+          (error)=>{console.log(error)},
+          sectn
         );
       }
     }

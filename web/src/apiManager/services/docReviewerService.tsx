@@ -53,16 +53,18 @@ export const saveAnnotation = (
   pagenumber: number = 0,
   annotationname: string = "",
   annotation: string = "",
-  sections: object,
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  sections?: object,
 ) => {
   let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
-  let requestJSON = {
+  let requestJSON = sections ?{
     "xml": annotation,
     "sections": sections
+    } : 
+    {
+      "xml": annotation
     }
-
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
