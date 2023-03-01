@@ -423,8 +423,8 @@ const Redlining = ({
       {/* <button onClick={gotopage}>Click here</button> */}
       <div className="webviewer" ref={viewer}></div>
       <ReactModal
-          initWidth={800}
-          initHeight={400}
+          initWidth={650}
+          initHeight={700}
           minWidth ={400}
           minHeight ={200}
           className={"state-change-dialog"}
@@ -442,18 +442,19 @@ const Redlining = ({
               {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
                   {sections.sort((a, b) => b.count - a.count).map((section, index) =>
-                    <ListItem key={section.id}>
-                      <label key={index} className="check-item">
-                        <input id="section-checkbox"
+                    <ListItem key={section.id}>                      
+                      <input
                           type="checkbox"
-                          className="checkmark"
+                          className="section-checkbox"
                           key={section.id}
+                          id={"section" + section.id}
                           data-sectionid={section.id}
                           onChange={handleSectionSelected}
                           defaultChecked={selectedSections.includes(section.id.toString())}
-                        />
+                      />
+                      <label for={"section"+section.id} key={index} className="check-item">
+                        {section.section + ' - ' + section.description}
                       </label>
-                      {section.section + ' - ' + section.description}
                     </ListItem>
                   )}
                 </List>

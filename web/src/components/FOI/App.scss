@@ -140,12 +140,13 @@
   }
 }
 
-.check-item{
-  margin-right: 10px;
+.section-checkbox:checked + label {
+  color: green;
 }
 
-#section-checkbox {
+.section-checkbox {
   accent-color: #178100;
+  margin-right: 10px;
 }
 
 /* width */
