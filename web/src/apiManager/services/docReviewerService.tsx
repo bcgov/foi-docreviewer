@@ -122,10 +122,11 @@ export const deleteAnnotation = (
 };
 
 export const fetchSections = (
+  foiministryrquestid: number,
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrl: string  = API.DOCREVIEWER_SECTIONS;
+  let apiUrl: string  = replaceUrl(API.DOCREVIEWER_SECTIONS, '<ministryrequestid>', foiministryrquestid);
 
   httpGETRequest(apiUrl, {}, UserService.getToken())
     .then((res:any) => {
@@ -139,3 +140,7 @@ export const fetchSections = (
       errorCallback("Error in fetching annotations for a document");
     });
 }
+
+const replaceUrl = (URL, key, value) => {
+  return URL.replace(key, value);
+};

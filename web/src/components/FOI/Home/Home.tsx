@@ -58,7 +58,7 @@ function Home() {
           { (files.length > 0) ? <DocumentSelector documents={files} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
-          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? <Redlining currentPageInfo={currentPageInfo} user={user} /> : <div>Loading</div> }
+          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? <Redlining currentPageInfo={currentPageInfo} user={user} requestid={foiministryrequestid} /> : <div>Loading</div> }
         </Grid>
       </Grid>
     </div>

@@ -18,7 +18,8 @@ import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOS
 
 const Redlining = ({
   currentPageInfo,
-  user
+  user,
+  requestid
 }) =>{
 
   const viewer = useRef(null);
@@ -48,6 +49,7 @@ const Redlining = ({
     let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
 
     fetchSections(
+      requestid,
       (data) => setSections(data),
       (error)=> console.log(error)
     );
@@ -74,6 +76,9 @@ const Redlining = ({
 
       //const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       PDFNet.initialize();
+      documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(currentStyle => ({
+        FillColor: new Annotations.Color(255, 255, 255)
+      }));
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
 
@@ -235,7 +240,7 @@ const Redlining = ({
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     // let sectn = {
     //   "foiministryrequestid": 1,
-    //   "ids": sections.filter(s => selectedSections?.indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+    //   "ids": sections.filter(s => selectedSections?.indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
     //   "parts": [{"annotation":parentAnnotation}]
     // }
     saveAnnotation(
@@ -264,7 +269,7 @@ const Redlining = ({
     annot.Author = user?.name || user?.preferred_username || "";
     console.log("selectedSections",selectedSections)
     let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
-    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.sectionid.toString()) > -1).map(s => s.section).join(", ");
+    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
     console.log("redactionSections",redactionSections)
     annot.setAutoSizeType('auto');
     annot.setContents(redactionSections);
@@ -273,8 +278,10 @@ const Redlining = ({
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
-    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
-    setSelectedSections([]);
+    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});    
+    for(let id of redactionSectionsIds) {
+      sections.find(s => s.id.toString() === id).count++;
+    }
   }
 
   const editAnnotation = (annotationManager, Annotations, selectedAnnot) =>{
@@ -315,6 +322,10 @@ const Redlining = ({
         let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
         if(i >= 0){
           let childSections = redactionInfo[i].sections.annotationname;
+          let sectionids = redactionInfo[i].sections.ids;
+          for(let id of sectionids) {
+            sections.find(s => s.id === id).count--;
+          }
           redactionInfo.splice(i, 1);
           annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
         }
@@ -350,11 +361,12 @@ const Redlining = ({
         console.log("SELECTEDSECTIONS:",selectedSections);
         let sectn = {
           "foiministryrequestid": 1,
-          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.sectionid.toString()) > -1).map((s) => ({"id":s.sectionid, "section":s.section})),
+          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
           "redactannotation": parentAnnotation
         }
         // add the parent annotation info to section annotation
         setNewRedaction(null)
+        setSelectedSections([]);
         saveAnnotation(
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
@@ -429,16 +441,16 @@ const Redlining = ({
             <DialogContentText id="state-change-dialog-description" component={'span'} >
               {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
-                  {sections.map((section, index) =>
-                    <ListItem key={section.sectionid}>
+                  {sections.sort((a, b) => b.count - a.count).map((section, index) =>
+                    <ListItem key={section.id}>
                       <label key={index} className="check-item">
                         <input id="section-checkbox"
                           type="checkbox"
                           className="checkmark"
-                          key={section.sectionid}
-                          data-sectionid={section.sectionid}
+                          key={section.id}
+                          data-sectionid={section.id}
                           onChange={handleSectionSelected}
-                          defaultChecked={selectedSections.includes(section.sectionid.toString())}
+                          defaultChecked={selectedSections.includes(section.id.toString())}
                         />
                       </label>
                       {section.section + ' - ' + section.description}
