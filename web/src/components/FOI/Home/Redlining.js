@@ -10,7 +10,7 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@material-ui/core/IconButton";
-import editLogo from "../../../assets/images/edit-icon.png";
+import {ReactComponent as EditLogo} from "../../../assets/images/icon-edit-form-field.svg";
 
 
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
@@ -66,10 +66,39 @@ const Redlining = ({
       viewer.current,
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
+      const Edit = () => {
+        let selectedAnnotations = annotationManager.getSelectedAnnotations();
+        return (
+          <button
+            type="button"
+            class="Button ActionButton"
+            onClick={() => {
+              // if (selectedAnnotations[0].Subject === 'Redact') {
+                editAnnotation(annotationManager, Annotations, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
+              // }
+            }}
+            disabled={selectedAnnotations[0].Subject !== 'Redact'}
+          >
+            <div class="Icon">
+              <EditLogo/>
+              {/* <svg width="19px" height="19px" viewBox="0 0 19 19" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                  <title>Shape</title>
+                  <g id="Symbols---Light" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                      <g id="icon-/-operation-/-annotations-/-line" transform="translate(-3.000000, -3.000000)" fill="#868E96">
+                          <path d="M19.0416689,12.7184193 L20.7833366,10.7017527 L20.7833366,19.3184193 C20.7844507,20.3973559 19.9361575,21.286044 18.8583355,21.335086 L5.10833553,21.335086 C4.56059488,21.3498468 4.02967481,21.1450706 3.63371079,20.7663225 C3.23774678,20.3875743 3.00958797,19.866275 3.0000011,19.3184193 L3.0000011,5.47675266 C2.99888704,4.3978161 3.84718022,3.50912801 4.92500219,3.46008599 L13.6333355,3.46008599 L11.8916689,5.20175266 L4.65000219,5.20175266 L4.65000219,19.5934193 L18.9500022,19.5934193 L18.9500022,12.7184193 L19.0416689,12.7184193 Z M21.3333355,6.57675266 C21.3310126,7.0882508 21.1344108,7.57975545 20.7833355,7.95175266 L11.2500022,17.3934193 L6.94166886,17.3934193 L6.94166886,12.9934193 L16.4750022,3.55175266 C17.244066,2.81608245 18.4559384,2.81608245 19.2250022,3.55175266 L20.7833355,5.11008599 C21.1507066,5.50867428 21.3480365,6.03488736 21.3333355,6.57675266 L21.3333355,6.57675266 Z M16.6583355,9.60175266 L14.6416689,7.58508599 L8.50000219,13.8184193 L8.50000219,15.835086 L10.4250022,15.835086 L16.6583355,9.60175266 Z M19.6833355,6.66841933 L17.6666689,4.65175266 L15.9250022,6.39341933 L17.9416689,8.41008599 L19.6833355,6.66841933 Z" id="Shape"></path>
+                      </g>
+                  </g>
+              </svg> */}
+            </div>
+          </button>
+        );
+      }
       instance.UI.annotationPopup.add({
-        type: 'actionButton',
-        img: editLogo,
-        onClick: () => editAnnotation(annotationManager, Annotations, annotationManager.exportAnnotations({annotList: annotationManager.getSelectedAnnotations(), useDisplayAuthor: true})),
+        type: 'customElement',
+        // img: editLogo,
+        title: 'Edit',
+        render: () => <Edit/>
+
       });
       setDocInstance(instance);
 
@@ -278,7 +307,7 @@ const Redlining = ({
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
-    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});    
+    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
     for(let id of redactionSectionsIds) {
       sections.find(s => s.id.toString() === id).count++;
     }
@@ -317,7 +346,7 @@ const Redlining = ({
         (error)=>{console.log(error)}
       );
       setNewRedaction(null)
-      
+
       if (deleteAnnot.type === 'redact' && redactionInfo) {
         let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
         if(i >= 0){
@@ -442,7 +471,7 @@ const Redlining = ({
               {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
                   {sections.sort((a, b) => b.count - a.count).map((section, index) =>
-                    <ListItem key={section.id}>                      
+                    <ListItem key={section.id}>
                       <input
                           type="checkbox"
                           className="section-checkbox"
