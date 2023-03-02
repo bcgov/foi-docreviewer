@@ -10,11 +10,10 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@material-ui/core/IconButton";
-import {ReactComponent as EditLogo} from "../../../assets/images/icon-edit-form-field.svg";
-
-
+import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
+import { element } from 'prop-types';
 
 const Redlining = ({
   currentPageInfo,
@@ -74,7 +73,7 @@ const Redlining = ({
             class="Button ActionButton"
             onClick={() => {
               // if (selectedAnnotations[0].Subject === 'Redact') {
-                editAnnotation(annotationManager, Annotations, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
+                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
               // }
             }}
             disabled={selectedAnnotations[0].Subject !== 'Redact'}
@@ -103,7 +102,6 @@ const Redlining = ({
       setDocInstance(instance);
 
 
-      //const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       PDFNet.initialize();
       documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(currentStyle => ({
         FillColor: new Annotations.Color(255, 255, 255)
@@ -183,45 +181,25 @@ const Redlining = ({
         // from the server or individual changes from other users
         if (info.imported) return;
 
-        console.log(action)
-
-        // annotations.forEach((annot) => {
-        //   console.log('annotation page number', annot.PageNumber);
-        //   console.log(annot)
-        //   console.log(JSON.stringify(annot))
-        // });
-
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
-        // let _annotationtring = annotationManager.exportAnnotationCommand()
         _annotationtring.then(astr=>{
           //parse annotation xml
           let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
           let annots = jObj.getElementsByTagName("annots");
           let annot = annots[0].children[0];
-          console.log("annot",annot)
 
           if(action === 'delete') {
-            console.log("",annot.attributes)
             setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
-          } else {
+          } 
+          else {
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
-
-        // let allannotations = annotationManager.exportAnnotations({annotList: annotationManager.getAnnotationsList(), useDisplayAuthor: true})
-        // allannotations.then(astr=>{
-        //   console.log(astr)
-        //   // localStorage.setItem("savedannotations",astr)
-        // })
         setAnnotManager(annotationManager);
         setAnnots(Annotations);
-
       });
-
     });
-
   }, []);
 
   useEffect(() => {
@@ -241,19 +219,14 @@ const Redlining = ({
       getFOIS3DocumentPreSignedUrl(
           currentPageInfo.file['documentid'],
           (data) => {
-              console.log("s3:");
-              console.log(data);
               docInstance?.UI?.loadDocument(data);
           },
           (error) => {
-              console.log('error123');
-              console.log(error);
+              console.log('Error fetching document:',error);
           }
         );
     }
-
     //change page from document selector
-    //console.log("page changed")
     localStorage.setItem("isDocumentLoaded", "true");
     let isDocLoaded = localStorage.getItem("isDocumentLoaded");
     if(isDocLoaded === 'true')
@@ -262,30 +235,59 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false);
-    console.log("Inside Save Redaction Method!!",newRedaction)
-    setParentAnnotation(newRedaction.name);
-    let redaction = annotManager.getAnnotationById(newRedaction.name);
-    console.log("redaction",redaction)
+    let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    // let sectn = {
-    //   "foiministryrequestid": 1,
-    //   "ids": sections.filter(s => selectedSections?.indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
-    //   "parts": [{"annotation":parentAnnotation}]
-    // }
-    saveAnnotation(
-      localDocumentInfo['file']['documentid'],
-      localDocumentInfo['file']['version'],
-      newRedaction.page,
-      newRedaction.name,
-      newRedaction.astr,
-      (data)=>{console.log(data)},
-      (error)=>{console.log(error)}
-    );
+    let redaction = annotManager.getAnnotationById(redactionObj.name);
+    let childRedaction;
+    let childSection ="";
+    let i = redactionInfo.findIndex(a => a.annotationname === redactionObj.name);
+    if(i >= 0){
+      childSection = redactionInfo[i].sections.annotationname;
+      childRedaction = annotManager.getAnnotationById(childSection);
 
+    }
+    if(editAnnot){
+      let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
+      var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
+      childRedaction.setAutoSizeType('auto');
+      childRedaction.setContents(redactionSections);
+      let _annotationtring = annotManager.exportAnnotations({annotList: [childRedaction], useDisplayAuthor: true})
+      let sectn = {
+        "foiministryrequestid": 1,
+        "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
+        "redactannotation": parentAnnotation
+      }
+      _annotationtring.then(astr=>{
+        //parse annotation xml
+        let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+        let annots = jObj.getElementsByTagName("annots");
+        let annot = annots[0].children[0];
+        saveAnnotation(
+          localDocumentInfo['file']['documentid'],
+          localDocumentInfo['file']['version'],
+          childRedaction.page,
+          childSection,
+          astr,
+          (data)=>{console.log(data)},
+          (error)=>{console.log(error)},
+          sectn
+        );
+      })
+    }
+    else {
+      saveAnnotation(
+        localDocumentInfo['file']['documentid'],
+        localDocumentInfo['file']['version'],
+        newRedaction.page,
+        newRedaction.name,
+        newRedaction.astr,
+        (data)=>{console.log(data)},
+        (error)=>{console.log(error)}
+      );
+    //}
     // add section annotation
     let parser = new DOMParser();
-    var astr = parser.parseFromString(newRedaction.astr,"text/xml");
-    console.log("redactt!",astr.getElementsByTagName("redact"))
+    var astr = parser.parseFromString(redactionObj.astr,"text/xml");
     var coords = astr.getElementsByTagName("redact")[0]?.attributes.getNamedItem('coords')?.value;
     var X = coords?.substring(0, coords.indexOf(","));
     const annot = new annots.FreeTextAnnotation();
@@ -296,10 +298,8 @@ const Redlining = ({
     annot.Color = 'red';
     annot.StrokeThickness = 0;
     annot.Author = user?.name || user?.preferred_username || "";
-    console.log("selectedSections",selectedSections)
     let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
     var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
-    console.log("redactionSections",redactionSections)
     annot.setAutoSizeType('auto');
     annot.setContents(redactionSections);
 
@@ -307,30 +307,27 @@ const Redlining = ({
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
-    redactionInfo.push({annotationname: newRedaction.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
+    redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});    
     for(let id of redactionSectionsIds) {
       sections.find(s => s.id.toString() === id).count++;
     }
+    }
   }
 
-  const editAnnotation = (annotationManager, Annotations, selectedAnnot) =>{
+  const editAnnotation = (annotationManager, selectedAnnot) =>{
     selectedAnnot.then(astr=>{
       //parse annotation xml
       let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
       let annots = jObj.getElementsByTagName("annots");
       let annot = annots[0].children[0];
-      console.log("annot:",annot);
       setEditAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
     })
-    // setAnnotManager(annotationManager);
-    // setAnnots(Annotations);
+    setAnnotManager(annotationManager);
   }
 
   useEffect(() => {
-    console.log("editAnnot:",editAnnot);
     if (editAnnot) {
-      // setNewRedaction(editAnnot)
-      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections.ids.map(id => id.toString()))
+      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id.toString()))
       setModalOpen(true);
     }
   }, [editAnnot])
@@ -386,8 +383,6 @@ const Redlining = ({
           );
         }
       } else {
-        console.log("SECTIONS:",sections);
-        console.log("SELECTEDSECTIONS:",selectedSections);
         let sectn = {
           "foiministryrequestid": 1,
           "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
@@ -414,8 +409,6 @@ const Redlining = ({
   const cancelRedaction = () => {
     setModalOpen(false);
     setSelectedSections([]);
-    console.log("saveAnnot in cancel:",saveAnnot)
-    console.log("newRedaction in cancel:",newRedaction)
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
     setNewRedaction(null)
