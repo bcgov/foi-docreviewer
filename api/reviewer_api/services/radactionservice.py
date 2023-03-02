@@ -32,8 +32,8 @@ class redactionservice:
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
 
-    def getdocumentmapper(self, documentpathid):
-        return DocumentPathMapper.getmapper(documentpathid)
+    def getdocumentmapper(self, bucket):
+        return DocumentPathMapper.getmapper(bucket)
 
     def gets3serviceaccount(self, documentpathid):
         mapper =  DocumentPathMapper.getmapper(documentpathid)
