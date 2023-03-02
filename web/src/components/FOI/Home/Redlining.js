@@ -464,7 +464,7 @@ const Redlining = ({
                           onChange={handleSectionSelected}
                           defaultChecked={selectedSections.includes(section.id.toString())}
                       />
-                      <label for={"section"+section.id} key={index} className="check-item">
+                      <label key={index} className="check-item">
                         {section.section + ' - ' + section.description}
                       </label>
                     </ListItem>
