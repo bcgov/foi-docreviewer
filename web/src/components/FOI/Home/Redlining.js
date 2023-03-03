@@ -22,6 +22,7 @@ const Redlining = ({
 }) =>{
 
   const viewer = useRef(null);
+  const saveButton = useRef(null);
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
   const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
@@ -39,6 +40,7 @@ const Redlining = ({
   const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
   const [redactionInfo, setRedactionInfo] = useState([]);
+  const [saveDisabled, setSaveDisabled]= useState(true);
   //xml parser
   const parser = new XMLParser();
 
@@ -182,7 +184,7 @@ const Redlining = ({
           if(action === 'delete') {
             setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
           } 
-          else {
+          else if (action === 'add') {
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
@@ -239,8 +241,14 @@ const Redlining = ({
     if(editAnnot){
       let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
       var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
-      childRedaction.setAutoSizeType('auto');
       childRedaction.setContents(redactionSections);
+      const doc = docViewer.getDocument();
+      const pageNumber = parseInt(editAnnot.page) + 1;
+      const pageInfo = doc.getPageInfo(pageNumber);
+      const pageMatrix = doc.getPageMatrix(pageNumber);
+      const pageRotation = doc.getPageRotation(pageNumber);
+      childRedaction.fitText(pageInfo, pageMatrix, pageRotation);
+      annotManager.redrawAnnotation(childRedaction);
       let _annotationtring = annotManager.exportAnnotations({annotList: [childRedaction], useDisplayAuthor: true})
       let sectn = {
         "foiministryrequestid": 1,
@@ -262,6 +270,9 @@ const Redlining = ({
           (error)=>{console.log(error)},
           sectn
         );
+        setSelectedSections([]);
+        redactionInfo.find(r => r.annotationname === redactionObj.name).sections.ids = redactionSectionsIds;
+        setEditAnnot(null);
       })
     }
     else {
@@ -401,7 +412,8 @@ const Redlining = ({
     setSelectedSections([]);
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
-    setNewRedaction(null)
+    setNewRedaction(null);
+    setEditAnnot(null);
     // setDeleteAnnot(newRedaction)
   }
 
@@ -427,6 +439,7 @@ const Redlining = ({
     } else {
       selectedSections.splice(selectedSections.indexOf(sectionID), 1);
     }
+    setSaveDisabled(selectedSections.length === 0);
   }
 
 
@@ -481,6 +494,7 @@ const Redlining = ({
             <button
               className={`btn-bottom btn-save btn`}
               onClick={saveRedaction}
+              disabled={saveDisabled}
             >
               Select Code(s)
             </button>
