@@ -3,6 +3,8 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import JSON, insert
 from datetime import datetime
+from sqlalchemy.orm import relationship, backref, aliased
+import logging
 
 class Annotation(db.Model):
     __tablename__ = 'Annotations'
@@ -18,22 +20,31 @@ class Annotation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
+    
+    sections = relationship('AnnotationSection', primaryjoin="and_(Annotation.annotationname==AnnotationSection.annotationname)") 
+    
 
     @classmethod
     def getannotations(cls, _documentid, _documentversion):
         annotation_schema = AnnotationSchema(many=True)
         query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
         return annotation_schema.dump(query)
+    
+    @classmethod
+    def getannotationinfo(cls, _documentid, _documentversion):
+        annotation_schema = AnnotationSchema(many=True)
+        query = db.session.query(Annotation.annotationname).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
+        return annotation_schema.dump(query)
 
+    @classmethod
+    def getannotationid(cls, _annotationname):
+        return db.session.query(Annotation.annotationid).filter(and_(Annotation.annotationname == _annotationname, Annotation.isactive==True)).first()[0]
+       
     #upsert
     @classmethod
     def saveannotation(cls, _annotationname, _documentid, _documentversion, _annotation, _pagenumber, userinfo)->DefaultMethodResult:
-        # newannotation = Annotation(annotationname=_annotationname, documentid=_documentid, documentversion=_documentversion, annotation=_annotation, pagenumber=_pagenumber, createdby=userinfo)
-        # db.session.add(newannotation)
-        # db.session.commit()
-        # return DefaultMethodResult(True,'Annotation added',newannotation.annotationid)
-
-        insertstmt = insert(Annotation).values(
+        try:
+            insertstmt = insert(Annotation).values(
                                             annotationname=_annotationname,
                                             documentid=_documentid,
                                             documentversion=_documentversion,
@@ -42,11 +53,16 @@ class Annotation(db.Model):
                                             createdby=userinfo,
                                             isactive=True
                                         )
-        updatestmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname], set_={"annotation": _annotation,"updatedby":userinfo,"updated_at":datetime.now()})
-        db.session.execute(updatestmt)               
-        db.session.commit()   
-        return DefaultMethodResult(True, 'Annotation added', _annotationname)
-
+            updatestmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname], set_={"annotation": _annotation,"updatedby":userinfo,"updated_at":datetime.now()})
+            db.session.execute(updatestmt)     
+            db.session.commit() 
+            return DefaultMethodResult(True, 'Annotation added', _annotationname)
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()  
+        
     # @classmethod
     # def updateannotation(cls, _annotationname, _documentid, _documentversion, _annotation, userinfo)->DefaultMethodResult:
     #     db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"annotation": _annotation, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)

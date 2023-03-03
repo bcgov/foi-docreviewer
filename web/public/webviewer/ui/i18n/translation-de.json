@@ -58,8 +58,6 @@
     "type": "Schreiben",
     "upload": "Hochladen",
     "link": "Verknüpfung",
-    "darkMode": "Dunkler Modus",
-    "lightMode": "Heller Modus",
     "fileAttachmentDownload": "Laden Sie die angehängte Datei herunter",
     "prevResult": "Vorheriges Ergebnis",
     "nextResult": "Nächstes Ergebnis",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Tastenkombinationen für 3D anzeigen",
     "markAllRead": "Als Gelesen markieren",
     "insertPage": "Seite einfügen",
-    "insertBlankPageAbove": "Leere Seite oben einfügen",
-    "insertBlankPageBelow": "Leere Seite unten einfügen page",
+    "insert": "Einfügung",
     "pageManipulation": "Seitenmanipulation",
     "replace": "Ersetzen",
     "setDestination": "Festgelegtes Ziel",
     "showLess": "zeige weniger",
     "showMore": "...mehr",
     "chooseFile": "Datei auswählen",
+    "browse": "Dateien durchsuchen",
     "selectYourOption": "Option wählen",
     "open": "Öffnen",
     "deselectAll": "Auswahl aufheben",
@@ -90,14 +88,14 @@
     "redactPages": "Seiten schwärzen",
     "playAudio": "Audio abspielen",
     "pauseAudio": "Audiopause",
-    "selectAll": "Wählen Sie Alle",
+    "selectAll": "Alle auswählen ",
     "unselect": "Auswahl aufheben",
-    "addMark": "Markus hinzufügen",
+    "addMark": "Markieren hinzufügen",
     "viewFile": "Datei ansehen",
-    "switchLanguage": "Sprache",
     "multiReplyAnnotations": "Auf ausgewählte Anmerkungen antworten ({{count}})",
     "comparePages": "Seiten vergleichen",
-    "startComparison": "Vergleich starten"
+    "startComparison": "Vergleich starten",
+    "back": "Der Rücken"
   },
   "annotation": {
     "areaMeasurement": "Flächenmessung",
@@ -214,7 +212,8 @@
       "open": "Alle Anmerkungen anzeigen",
       "close": "Alle Anmerkungen schließen"
     },
-    "comparePanel": "Panel vergleichen"
+    "comparePanel": "Panel vergleichen",
+    "watermarkPanel": "Wasserzeichen-Panel"
   },
   "message": {
     "toolsOverlayNoPresets": "Keine Voreinstellungen",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Eingebettete Dateien",
     "pageNum": "Seitennummer",
     "viewBookmark": "Lesezeichen auf Seite anzeigen",
-    "error": "Fehler"
+    "error": "Fehler",
+    "errorPageNumber": "Ungültige Seitenzahl. Grenze ist",
+    "errorLoadingDocument": "Beim Lesen dieses Dokuments ist ein Problem aufgetreten, und einige Seiten werden möglicherweise nicht angezeigt. Dies weist darauf hin, dass das Dokument möglicherweise beschädigt ist. Die Gesamtseitenzahl ist {{totalPageCount}} und die Anzahl der angezeigten Seiten ist {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Unterstreichen",
       "squiggly": "Gewellte Linie",
       "3D": "3D",
-      "other": "Sonstige"
+      "other": "Sonstige",
+      "initials": "Initialen",
+      "saved": "Gerettet"
     },
     "notesOrder": {
       "dropdownLabel": "Sortierreihenfolge Liste",
@@ -408,22 +411,35 @@
       "addStamp": "Neuen Stempel hinzufügen"
     },
     "signatureOverlay": {
-      "addSignature": "Eine Unterschrift hinzufügen"
+      "addSignature": "Eine Unterschrift hinzufügen",
+      "addSignatureOrInitials": "Unterschrift/Initialen"
     },
     "signatureModal": {
       "modalName": "Neue Signatur erstellen",
       "dragAndDrop": "Ziehen Sie Ihr Bild per Drag & Drop hierher",
       "or": "Oder",
       "pickImage": "Wählen Sie das Signaturbild",
-      "selectImage": "Wählen Sie hier Ihr Bild aus"
+      "selectImage": "Wählen Sie hier Ihr Bild aus",
+      "typeSignature": "Typ Unterschrift*",
+      "typeInitial": "Typ Initialen*",
+      "drawSignature": "Unterschrift zeichnen*",
+      "drawInitial": "Initialen zeichnen*",
+      "pickInitialsFile": "Wählen Sie Initialen",
+      "noSignatures": "Es sind derzeit keine gespeicherten Unterschriften vorhanden."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Ziehen Sie Ihre Datei per Drag & Drop hierher",
+      "selectFile": "Wählen Sie hier Ihre Datei aus",
       "or": "Oder",
+      "yourFiles": "Ihre Dateien",
       "chooseFile": "Wähle eine Datei aus",
       "localFile": "Lokale Datei",
       "pageReplaceInputLabel": "Seite(n) ersetzen",
-      "pageReplaceInputFromSource": "mit Seite(n)"
+      "pageReplaceInputFromSource": "mit Seite(n)",
+      "warning": {
+        "title": "Seite ersetzen beenden?",
+        "message": "Beim Beenden werden alle bisher getroffenen Auswahlen aufgehoben. Sind Sie sicher, dass Sie immer noch beenden möchten?"
+      }
     },
     "filterAnnotModal": {
       "color": "Farbe",
@@ -578,7 +594,7 @@
       "backgroundColor": "Hintergrundfarbe"
     },
     "pageRedactModal": {
-      "addMark": "Markus hinzufügen",
+      "addMark": "Markieren hinzufügen",
       "pageSelection": "Seitenauswahl",
       "current": "Aktuelle Seite",
       "specify": "Seiten angeben",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Stil"
+    },
+    "settings": {
+      "settings": "Einstellungen",
+      "general": "Allgemein",
+      "keyboardShortcut": "Tastaturkürzel",
+      "advancedSetting": "Erweiterte Einstellung",
+      "language": "Sprache",
+      "theme": "Thema",
+      "darkMode": "Dunkler Modus",
+      "lightMode": "Lichtmodus",
+      "viewing": "Anzeigen",
+      "disableFadePageNavigationComponent": "Deaktivieren Sie die Seitennavigationskomponente ausblenden",
+      "disableFadePageNavigationComponentDesc": "Lassen Sie die Seitennavigationskomponente immer auf dem Bildschirm. Das Standardverhalten besteht darin, es nach einer bestimmten Zeit der Inaktivität auszublenden.",
+      "disableNativeScrolling": "Natives Scrollen deaktivieren",
+      "disableNativeScrollingDesc": "Deaktivieren Sie das native Scrollverhalten mobiler Geräte, wenn es zuvor aktiviert wurde. Beachten Sie, dass das native Scrollverhalten mobiler Geräte standardmäßig deaktiviert ist.",
+      "annotations": "Anmerkungen",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Deaktivieren Sie die Aktualisierung des Werkzeug-Standardstils aus dem Anmerkungs-Popup",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Deaktiviert die Synchronisierung von Anmerkungsstilaktualisierungen mit dem zugeordneten Werkzeug, das die Anmerkung erstellt hat. Wenn also der Stil einer Anmerkung geändert wird, werden die Standardstile des Werkzeugs nicht aktualisiert.",
+      "notesPanel": "Notizenbereich",
+      "disableNoteSubmissionWithEnter": "Deaktivieren Sie das Senden von Notizen mit der Eingabetaste",
+      "disableNoteSubmissionWithEnterDesc": "Deaktivieren Sie die Möglichkeit, Notizen zu senden, indem Sie nur die Eingabetaste drücken, wenn sie zuvor aktiviert war. Dadurch wird das Senden von Notizen auf die Standardeinstellung zurückgesetzt, die Strg/Befehl + Eingabetaste ist.",
+      "disableAutoExpandCommentThread": "Kommentar-Thread automatisch erweitern deaktivieren",
+      "disableAutoExpandCommentThreadDesc": "Deaktiviert die automatische Erweiterung aller Kommentar-Threads im Notizenbereich.",
+      "disableReplyCollapse": "Reply Collapse deaktivieren",
+      "disableReplyCollapseDesc": "Deaktiviert das Reduzieren der Antworten im Notizenbereich.",
+      "disableTextCollapse": "Deaktivieren Sie die Textreduzierung",
+      "disableTextCollapseDesc": "Deaktiviert das Reduzieren des Anmerkungstexts im Notizenbereich.",
+      "search": "Suche",
+      "disableClearSearchOnPanelClose": "Deaktivieren Sie die Suche beim Schließen des Fensters löschen",
+      "disableClearSearchOnPanelCloseDesc": "Deaktivieren Sie das Löschen von Suchergebnissen, wenn der Benutzer das Suchfeld schließt. Bei Deaktivierung werden die Suchergebnisse beibehalten, auch wenn der Benutzer das Suchfeld schließt und erneut öffnet. Beachten Sie, dass Mobilgeräte niemals Suchergebnisse löschen, selbst wenn diese Einstellung aktiviert ist. Dies liegt daran, dass der Bereich geschlossen werden muss, um die Suchergebnisse für das Dokument anzuzeigen.",
+      "pageManipulation": "Seitenmanipulation",
+      "disablePageDeletionConfirmationModal": "Deaktivieren Sie das Modal zur Bestätigung der Seitenlöschung",
+      "disablePageDeletionConfirmationModalDesc": "Deaktivieren Sie das Bestätigungsmodal beim Löschen einer Seite aus der Miniaturansicht",
+      "disableMultiselect": "Mehrfachauswahl deaktivieren",
+      "disableMultiselectDesc": "Deaktivieren Sie die Mehrfachauswahl im linken Miniaturbildbereich"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "Optionen",
       "radioGroups": "Optionsfelder mit demselben Feldnamen gehören zur selben Gruppierung.",
       "nameRequired": "Feldname ist erforderlich",
+      "fieldIndicator": "Feldindikatoren",
+      "documentFieldIndicator": "Dokumentfeldindikatoren",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Text hier einfügen",
+        "CheckBoxFormField": "Prüfen",
+        "RadioButtonFormField": "Füllen",
+        "ListBoxFormField": "Auswählen",
+        "ComboBoxFormField": "Auswählen",
+        "SignatureFormField": {
+          "fullSignature": "Hier unterschreiben",
+          "initialsSignature": "Initiale hier"
+        }
+      },
       "size": "Größe",
       "width": "Breite",
       "height": "Höhe",
@@ -826,13 +890,16 @@
     "certifier": "bestätigen",
     "certified": "zertifiziert",
     "Certified": "Zertifiziert",
+    "Certification": "Zertifizierung",
     "signer": "Unterzeichner",
     "signed": "unterzeichnet",
     "Signed": "Unterzeichnet",
+    "Signature": "Unterschrift",
     "by": "durch",
     "on": "auf",
     "disallowedChange": "Unzulässige Änderung: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Unsigniertes Signaturfeld: {{fieldName}}",
+    "signatureProperties": "Signatureigenschaften",
     "trustVerification": {
       "current": "Die verwendete Überprüfungszeit war die aktuelle Zeit",
       "signing": "Die Überprüfungszeit beginnt mit der Uhr auf dem Computer des Unterzeichners",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Dieses Dokument enthält keine Signaturfelder",
       "certificateDownloadError": "Beim Versuch, ein vertrauenswürdiges Zertifikat herunterzuladen, ist ein Fehler aufgetreten",
       "localCertificateError": "Es gibt einige Probleme beim Lesen eines lokalen Zertifikats"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} ist gültig.",
+      "failed": "{{verificationType}} fehlgeschlagen."
     }
   },
   "cropPopUp": {
@@ -910,7 +981,7 @@
     "noMarkedRedactions": "Beginnen Sie mit dem Schwärzen, indem Sie Text, Regionen, Seiten markieren oder eine Suche durchführen.",
     "redactionSearchPlaceholder": "Hinzufügen nach Schlüsselwortsuche oder Mustern",
     "redactionCounter": "Zur Schwärzung markiert",
-    "clearMarked": "Klar",
+    "clearMarked": "Markierung entfernen",
     "redactAllMarked": "Alle schwärzen",
     "redactionItem": {
       "regionRedaction": "Regionsredaktion",
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Alle",
     "emptyPanelMessage": "Wählen Sie ein Element aus, um seine Eigenschaften anzuzeigen."
   },
+  "watermarkPanel": {
+    "textWatermark": "Textwasserzeichen",
+    "uploadImage": "Bild hochladen",
+    "browse": "Durchsuche",
+    "watermarkOptions": "Wasserzeichenoptionen",
+    "watermarks": "Wasserzeichen"
+  },
   "languageModal": {
     "selectLanguage": "Sprache auswählen"
+  },
+  "insertPageModal": {
+    "title": "Neue Seite hinzufügen",
+    "tabs": {
+      "blank": "Leer",
+      "upload": "Hochladen"
+    },
+    "pagePlacements": {
+      "header": "Seitenplatzierung",
+      "above": "Oben Seite",
+      "below": "Unten Seite"
+    },
+    "pageLocations": {
+      "header": "Seitenposition",
+      "specify": "Seite angeben",
+      "specifyLocation": "Geben Sie die Seitenposition an",
+      "amount": "Anzahl der Seiten",
+      "total": "Gesamt",
+      "pages": "Seiten"
+    },
+    "pageDimensions": {
+      "header": "Seitenabmessungen",
+      "subHeader": "Voreinstellungen",
+      "presets": {
+        "letter": "Brief",
+        "halfLetter": "Halber Buchstabe",
+        "juniorLegal": "Junior legal",
+        "custom": "Brauch"
+      },
+      "units": "Einheiten"
+    },
+    "browse": "Dateien durchsuchen",
+    "fileSelected": {
+      "title": "Wählen Sie Seiten zum Hinzufügen aus"
+    },
+    "button": "Seite(n) hinzufügen",
+    "selectPages": "Wählen Sie Seiten zum Hinzufügen aus",
+    "page": "Buchseite",
+    "warning": {
+      "title": "Beenden Neue Seite einfügen?",
+      "message": "Beim Beenden werden alle bisher getroffenen Auswahlen aufgehoben. Sind Sie sicher, dass Sie immer noch beenden möchten?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Ziehen Sie Ihre Datei hierher, um sie zu vergleichen",
@@ -954,7 +1074,32 @@
       "change": "Veränderung",
       "old": "Alt",
       "new": "Neu",
-      "page": "Buchseite"
+      "page": "Buchseite",
+      "textContent": "Textinhalt",
+      "delete": "löschen",
+      "insert": "Einfügung",
+      "edit": "bearbeiten"
     }
+  },
+  "saveModal": {
+    "close": "Nah dran",
+    "saveAs": "Speichern als",
+    "general": "Allgemein",
+    "fileName": "Dateiname",
+    "fileType": "Dateityp",
+    "fileLocation": "Speicherort",
+    "browse": "Durchsuche",
+    "pageRange": "SeitenReichweite",
+    "all": "Alle",
+    "currentView": "Momentane Sicht",
+    "currentPage": "Aktuelle Seite",
+    "specifyPage": "Seite angeben",
+    "properties": "Eigenschaften",
+    "includeAnnotation": "Anmerkungen einschließen",
+    "includeComments": "Kommentare einschließen",
+    "watermark": "Wasserzeichen",
+    "addWatermark": "Wasserzeichen hinzufügen",
+    "save": "Datei speichern",
+    "pageError": "Ungültige Seite. Gültige Seitenbereiche liegen zwischen 1 -"
   }
 }
