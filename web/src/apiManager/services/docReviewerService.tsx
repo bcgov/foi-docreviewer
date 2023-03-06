@@ -2,6 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
+import { callbackify } from "util";
 
 export const fetchDocuments = (
   foiministryrequestid: number = 1,
@@ -35,6 +36,27 @@ export const fetchAnnotations = (
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+};
+
+export const fetchAnnotationsInfo = (
+  documentid: number = 1,
+  documentversion: number = 1,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/info`
+
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
@@ -53,11 +75,17 @@ export const saveAnnotation = (
   annotationname: string = "",
   annotation: string = "",
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  sections?: object,
 ) => {
   let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
-  let requestJSON = {xml: annotation}
-
+  let requestJSON = sections ?{
+    "xml": annotation,
+    "sections": sections
+    } : 
+    {
+      "xml": annotation
+    }
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -74,12 +102,11 @@ export const saveAnnotation = (
 export const deleteAnnotation = (
   documentid: number = 1,
   documentversion: number = 1,
-  pagenumber: number = 0,
   annotationname: string = "",
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -92,4 +119,28 @@ export const deleteAnnotation = (
     .catch((error:any) => {
       errorCallback("Error in deleting an annotation");
     });
+};
+
+export const fetchSections = (
+  foiministryrquestid: number,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrl: string  = replaceUrl(API.DOCREVIEWER_SECTIONS, '<ministryrequestid>', foiministryrquestid);
+
+  httpGETRequest(apiUrl, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+}
+
+const replaceUrl = (URL, key, value) => {
+  return URL.replace(key, value);
 };

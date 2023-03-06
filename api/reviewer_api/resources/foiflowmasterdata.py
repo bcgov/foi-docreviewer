@@ -35,6 +35,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 from reviewer_api.services.radactionservice import redactionservice
+from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
 # TRACER = Tracer.get_instance()
@@ -107,8 +108,8 @@ class FOIFlowS3Presigned(Resource):
     # @auth.documentbelongstosameministry
     def get(documentid):
         try :
-            document = redactionservice().getdocument(documentid)
-            documentmapper = redactionservice().getdocumentmapper(document["attributes"]["documentpathid"])
+            document = documentservice().getdocument(documentid)
+            documentmapper = redactionservice().getdocumentmapper(document["filepath"].split('/')[3])
             attribute = json.loads(documentmapper["attributes"])
 
             current_app.logger.debug("Inside Presigned api!!")
@@ -117,8 +118,7 @@ class FOIFlowS3Presigned(Resource):
             secretkey = attribute["s3secretkey"]
             s3host = "citz-foi-prod.objectstore.gov.bc.ca"
             s3region = "us-east-1"
-            filepath = document["filepath"]
-
+            filepath = '/'.join(document["filepath"].split('/')[4:])
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
                 endpoint_url='https://{0}/'.format(s3host),
                 aws_access_key_id= accesskey,

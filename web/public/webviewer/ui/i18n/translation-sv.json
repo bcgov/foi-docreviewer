@@ -58,8 +58,6 @@
     "type": "Typ",
     "upload": "Ladda upp",
     "link": "Länk",
-    "darkMode": "Mörkt läge",
-    "lightMode": "Ljusläge",
     "fileAttachmentDownload": "Ladda ner bifogad fil",
     "prevResult": "Tidigare resultat",
     "nextResult": "Nästa resultat",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Visa kortkommandon",
     "markAllRead": "Markera allt som läst",
     "insertPage": "Sidinsättning",
-    "insertBlankPageAbove": "Infoga tom sida ovan",
-    "insertBlankPageBelow": "Infoga tom sida nedan",
+    "insert": "Föra in",
     "pageManipulation": "Sidmanipulation",
     "replace": "Byta ut",
     "setDestination": "Ställ in destination",
     "showLess": "visa mindre",
     "showMore": "...Mer",
     "chooseFile": "Välj en fil",
+    "browse": "Bläddra bland filer",
     "selectYourOption": "Välj ditt alternativ",
     "open": "Öppna",
     "deselectAll": "Avmarkera alla",
@@ -94,10 +92,10 @@
     "unselect": "Avmarkera",
     "addMark": "Lägg till Mark",
     "viewFile": "Visa fil",
-    "switchLanguage": "Språk",
     "multiReplyAnnotations": "Svara på valda kommentarer ({{count}})",
     "comparePages": "Jämför sidor",
-    "startComparison": "Starta jämförelse"
+    "startComparison": "Starta jämförelse",
+    "back": "Tillbaka"
   },
   "annotation": {
     "areaMeasurement": "Område",
@@ -214,7 +212,8 @@
       "open": "Visa alla kommentarer",
       "close": "Stäng alla anteckningar"
     },
-    "comparePanel": "Jämför panel"
+    "comparePanel": "Jämför panel",
+    "watermarkPanel": "Vattenstämpelpanel"
   },
   "message": {
     "toolsOverlayNoPresets": "Inga förinställningar",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Inbäddade filer",
     "pageNum": "Sidonummer",
     "viewBookmark": "Visa bokmärke på sidan",
-    "error": "Fel"
+    "error": "Fel",
+    "errorPageNumber": "Ogiltigt sidnummer. Gränsen är",
+    "errorLoadingDocument": "Det uppstod ett problem med att läsa det här dokumentet och vissa sidor kanske inte visas. Detta indikerar att dokumentet kan vara skadat. Det totala antalet sidor är {{totalPageCount}} och antalet sidor som visas är {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Understrykning",
       "squiggly": "Snyggt",
       "3D": "3D",
-      "other": "Övrig"
+      "other": "Övrig",
+      "initials": "Initialer",
+      "saved": "Sparad"
     },
     "notesOrder": {
       "dropdownLabel": "Sorteringsordningslista",
@@ -408,22 +411,35 @@
       "addStamp": "Lägg till ny stämpel"
     },
     "signatureOverlay": {
-      "addSignature": "Lägg till ny signatur"
+      "addSignature": "Lägg till ny signatur",
+      "addSignatureOrInitials": "Signatur/Initialer"
     },
     "signatureModal": {
       "modalName": "Skapa ny signatur",
       "dragAndDrop": "Dra och släpp din bild här",
       "or": "Eller",
       "pickImage": "Välj en signatur",
-      "selectImage": "Välj din bild här"
+      "selectImage": "Välj din bild här",
+      "typeSignature": "Skriv signatur*",
+      "typeInitial": "Typ initialer*",
+      "drawSignature": "Rita signatur*",
+      "drawInitial": "Rita initialer*",
+      "pickInitialsFile": "Välj initialer",
+      "noSignatures": "Det finns för närvarande inga sparade signaturer."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Dra och släpp din fil här",
+      "selectFile": "Välj din fil här",
       "or": "Eller",
+      "yourFiles": "Dina filer",
       "chooseFile": "Välj en fil",
       "localFile": "Lokal fil",
       "pageReplaceInputLabel": "Ersätt sida(r)",
-      "pageReplaceInputFromSource": "med sida(r)"
+      "pageReplaceInputFromSource": "med sida(r)",
+      "warning": {
+        "title": "Vill du avsluta ersättningssidan?",
+        "message": "Om du avslutar avbryts alla val du har gjort hittills. Är du säker på att du fortfarande vill avsluta?"
+      }
     },
     "filterAnnotModal": {
       "color": "Färg",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Stil"
+    },
+    "settings": {
+      "settings": "inställningar",
+      "general": "Allmän",
+      "keyboardShortcut": "Tangentbordsgenväg",
+      "advancedSetting": "Avancerade inställningar",
+      "language": "Språk",
+      "theme": "Tema",
+      "darkMode": "Mörkt läge",
+      "lightMode": "Ljusläge",
+      "viewing": "Visning",
+      "disableFadePageNavigationComponent": "Inaktivera Fade Page Navigation Component",
+      "disableFadePageNavigationComponentDesc": "Håll alltid sidnavigeringskomponenten på skärmen. Standardbeteendet är att blekna det efter en viss period av inaktivitet.",
+      "disableNativeScrolling": "Inaktivera Native Scrolling",
+      "disableNativeScrollingDesc": "Inaktivera inbyggd rullning av mobila enheter om det tidigare hade aktiverats. Observera att rullningsbeteendet för inbyggd mobil enhet är avstängt som standard.",
+      "annotations": "Anteckningar",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Inaktivera verktygets standardformatuppdatering från anteckningspopup",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Inaktiverar synkronisering av uppdateringar av anteckningsstil till det associerade verktyget som skapade anteckningen. Så om en kommentars stil ändras kommer verktygets standardstilar inte att uppdateras.",
+      "notesPanel": "Anteckningspanel",
+      "disableNoteSubmissionWithEnter": "Inaktivera anteckningsinlämning med Enter",
+      "disableNoteSubmissionWithEnterDesc": "Inaktivera möjligheten att skicka anteckningar genom att endast trycka på Enter om det tidigare varit aktiverat. Detta kommer att återställa anteckningsinlämning till standarden som är Ctrl/Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Inaktivera automatisk expandering av kommentarstråd",
+      "disableAutoExpandCommentThreadDesc": "Inaktiverar automatisk expansion av alla kommentarstrådar i anteckningspanelen.",
+      "disableReplyCollapse": "Inaktivera Svarskomprimering",
+      "disableReplyCollapseDesc": "Inaktiverar komprimering av svaren i anteckningspanelen.",
+      "disableTextCollapse": "Inaktivera textkomprimering",
+      "disableTextCollapseDesc": "Inaktiverar komprimering av anteckningens text i anteckningspanelen.",
+      "search": "Sök",
+      "disableClearSearchOnPanelClose": "Inaktivera Rensa sökning på panelstäng",
+      "disableClearSearchOnPanelCloseDesc": "Inaktivera rensning av sökresultat när användaren stänger sökpanelen. När inaktiverad bevaras sökresultat även om användaren stänger och öppnar sökpanelen igen. Observera att mobila enheter aldrig rensar sökresultat även om den här inställningen är aktiverad. Detta beror på att panelen måste stängas för att se sökresultaten på dokumentet.",
+      "pageManipulation": "Sidmanipulation",
+      "disablePageDeletionConfirmationModal": "Inaktivera bekräftelsemodal för borttagning av sida",
+      "disablePageDeletionConfirmationModalDesc": "Inaktivera bekräftelsemodal när du tar bort en sida från miniatyrvyn",
+      "disableMultiselect": "Inaktivera Multiselect",
+      "disableMultiselectDesc": "Inaktivera multival i den vänstra miniatyrpanelen"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "alternativ",
       "radioGroups": "Alternativknappar med samma fältnamn hör hemma i samma grupp.",
       "nameRequired": "Fältnamn krävs",
+      "fieldIndicator": "Fältindikatorer",
+      "documentFieldIndicator": "Dokumentfältindikatorer",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Infoga text här",
+        "CheckBoxFormField": "Kolla upp",
+        "RadioButtonFormField": "Fylla",
+        "ListBoxFormField": "Välj",
+        "ComboBoxFormField": "Välj",
+        "SignatureFormField": {
+          "fullSignature": "Signera här",
+          "initialsSignature": "Inledande här"
+        }
+      },
       "size": "Storlek",
       "width": "Bredd",
       "height": "Höjd",
@@ -826,13 +890,16 @@
     "certifier": "intyga",
     "certified": "auktoriserad",
     "Certified": "Auktoriserad",
+    "Certification": "Certifiering",
     "signer": "undertecknare",
     "signed": "signerad",
     "Signed": "Signerad",
+    "Signature": "Signatur",
     "by": "förbi",
     "on": "på",
     "disallowedChange": "Ej tillåten ändring: {{typ}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Osignerat signaturfält: {{fieldName}}",
+    "signatureProperties": "Signaturegenskaper",
     "trustVerification": {
       "current": "Verifieringstiden som användes var den aktuella tiden",
       "signing": "Verifieringstiden är från klockan på undertecknarens dator",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Detta dokument har inga signaturfält",
       "certificateDownloadError": "Ett fel uppstod vid försök att ladda ner ett betrodd certifikat",
       "localCertificateError": "Det finns vissa problem med att läsa ett lokalt certifikat"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} är giltig.",
+      "failed": "{{verificationType}} misslyckades."
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Allt",
     "emptyPanelMessage": "Välj ett element för att se dess egenskaper"
   },
+  "watermarkPanel": {
+    "textWatermark": "Text vattenstämpel",
+    "uploadImage": "Ladda upp bild",
+    "browse": "Bläddra",
+    "watermarkOptions": "Vattenstämpelalternativ",
+    "watermarks": "Vattenstämplar"
+  },
   "languageModal": {
     "selectLanguage": "Välj språk"
+  },
+  "insertPageModal": {
+    "title": "Lägg till ny sida",
+    "tabs": {
+      "blank": "Tom",
+      "upload": "Ladda upp"
+    },
+    "pagePlacements": {
+      "header": "Sidplacering",
+      "above": "Ovan sidan",
+      "below": "Nedan sida"
+    },
+    "pageLocations": {
+      "header": "Sidans plats",
+      "specify": "Ange sida",
+      "specifyLocation": "Ange sidplats",
+      "amount": "Antal sidor",
+      "total": "Total",
+      "pages": "Sidor"
+    },
+    "pageDimensions": {
+      "header": "Sidmått",
+      "subHeader": "Förinställningar",
+      "presets": {
+        "letter": "Brev",
+        "halfLetter": "Halv bokstav",
+        "juniorLegal": "Junior juridisk",
+        "custom": "Beställnings"
+      },
+      "units": "Enheter"
+    },
+    "browse": "Bläddra bland filer",
+    "fileSelected": {
+      "title": "Välj Sidor att lägga till"
+    },
+    "button": "Lägg till sida(r)",
+    "selectPages": "Välj Sidor att lägga till",
+    "page": "Sida",
+    "warning": {
+      "title": "Avsluta infoga ny sida?",
+      "message": "Om du avslutar avbryts alla val du har gjort hittills. Är du säker på att du fortfarande vill avsluta?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Dra och släpp din fil här för att jämföra",
@@ -954,7 +1074,32 @@
       "change": "Förändra",
       "old": "Gammal",
       "new": "Ny",
-      "page": "Sida"
+      "page": "Sida",
+      "textContent": "Textinnehåll",
+      "delete": "radera",
+      "insert": "Föra in",
+      "edit": "redigera"
     }
+  },
+  "saveModal": {
+    "close": "Stänga",
+    "saveAs": "Spara som",
+    "general": "Allmän",
+    "fileName": "Filnamn",
+    "fileType": "Filtyp",
+    "fileLocation": "Filplats",
+    "browse": "Bläddra",
+    "pageRange": "Sidintervall",
+    "all": "Allt",
+    "currentView": "Nuvarande åsikt",
+    "currentPage": "Nuvarande sida",
+    "specifyPage": "Ange sida",
+    "properties": "Egenskaper",
+    "includeAnnotation": "Inkludera anteckningar",
+    "includeComments": "Inkludera kommentarer",
+    "watermark": "Vattenstämpel",
+    "addWatermark": "Lägg till vattenstämpel",
+    "save": "Spara fil",
+    "pageError": "Ogiltig sida. Giltiga sidintervall är mellan 1 -"
   }
 }
