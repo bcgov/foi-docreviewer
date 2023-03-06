@@ -1,6 +1,7 @@
 from . import getdbconnection,gets3credentialsobject
 from . import foidedupehashcalulator
 from psycopg2 import sql
+from os import path
 import json
 import psycopg2
 import requests
@@ -42,7 +43,11 @@ def gets3documenthashcode(producermessage):
                     aws_region=dedupe_s3_region,
                     aws_service=dedupe_s3_service)
    
-    response= requests.get('https://{0}/{1}'.format(dedupe_s3_host,producermessage.s3filepath), auth=auth,stream=True)
+    _filename, extension = path.splitext(producermessage.filename)
+    filepath = producermessage.s3filepath
+    if extension not in ['.pdf']:
+        filepath = path.splitext(filepath)[0] + extension
+    response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)

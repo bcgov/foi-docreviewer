@@ -1,6 +1,6 @@
 ---
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "${API_NAME}-build-template"
   creationTimestamp: 
@@ -30,7 +30,7 @@ objects:
       dockerStrategy:
         dockerfilePath: "${DOCKER_FILE_PATH}"
         pullSecret: 
-          name: artifactory-creds
+          name: artifacts-pull-default-jmhvkc
       # type: Source
       # sourceStrategy:
       #   from:
@@ -56,7 +56,7 @@ parameters:
   displayName: Git Reference
   description: The git reference or branch.
   required: true
-  value: dev-RQ-2956-new
+  value: dev
 - name: SOURCE_CONTEXT_DIR
   displayName: Source Context Directory
   description: The source context directory.

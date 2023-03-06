@@ -24,16 +24,18 @@ from reviewer_api.auth import auth, AuthHelper
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
-import requests
-from reviewer_api.schemas.foirequestsformslist import  FOIRequestsFormsList
+# import requests
+# from reviewer_api.schemas.foirequestsformslist import  FOIRequestsFormsList
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 import os
-import uuid
-from reviewer_api.utils.cache import cache_filter, response_filter
+# from reviewer_api.utils.cache import cache_filter, response_filter
 
 import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
+
+from reviewer_api.services.radactionservice import redactionservice
+from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
 # TRACER = Tracer.get_instance()
@@ -96,38 +98,41 @@ API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow mast
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/foiflow/oss/presigned/<ministryrequestid>')
+@API.route('/foiflow/oss/presigned/<documentid>')
 class FOIFlowS3Presigned(Resource):
 
     @staticmethod
-    # @TRACER.trace()    
-    @cross_origin(origins=allowedorigins())       
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
     @auth.require
     # @auth.documentbelongstosameministry
-    def get(ministryrequestid):
+    def get(documentid):
         try :
+            document = documentservice().getdocument(documentid)
+            documentmapper = redactionservice().getdocumentmapper(document["filepath"].split('/')[3])
+            attribute = json.loads(documentmapper["attributes"])
+
             current_app.logger.debug("Inside Presigned api!!")
-            formsbucket = "dev-forms-foirequests"
-            accesskey = "AKIA95AE3AF038A4DC93"
-            secretkey = "HPsksLnfJnx1wtOakmCF10nMWyWxD6wgkZkmxtUp"
+            formsbucket = documentmapper["bucket"]
+            accesskey = attribute["s3accesskey"]
+            secretkey = attribute["s3secretkey"]
             s3host = "citz-foi-prod.objectstore.gov.bc.ca"
             s3region = "us-east-1"
-            filepath = request.args.get('filepath')
-
+            filepath = '/'.join(document["filepath"].split('/')[4:])
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
-            endpoint_url='https://{0}/'.format(s3host),
-            aws_access_key_id= accesskey,
-            aws_secret_access_key= secretkey,region_name= s3region
+                endpoint_url='https://{0}/'.format(s3host),
+                aws_access_key_id= accesskey,
+                aws_secret_access_key= secretkey,region_name= s3region
                 )
 
-            filename, file_extension = os.path.splitext(filepath)    
+            filename, file_extension = os.path.splitext(filepath)
             response = s3client.generate_presigned_url(
                 ClientMethod='get_object',
                 Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
                 ExpiresIn=3600,HttpMethod='GET'
                 )
 
-            return json.dumps(response),200        
-        except BusinessException as exception:            
-         return {'status': exception.status_code, 'message':exception.message}, 500 
+            return json.dumps(response),200
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500 
           

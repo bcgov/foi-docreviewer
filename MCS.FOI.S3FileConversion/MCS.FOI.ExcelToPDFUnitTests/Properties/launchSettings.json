@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MCS.FOI.ExcelToPDFUnitTests": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "SourceRoutePath": "C:\\\\foi-docreviewer\\\\MCS.FOI.S3FileConversion\\\\MCS.FOI.ExcelToPDFUnitTests\\\\SourceExcel"
+      }
+    }
+  }
+}

@@ -17,7 +17,7 @@ objects:
         "realm": "${REACT_APP_KEYCLOAK_URL_REALM}",
         "auth-server-url": "${AUTH_SERVER_URL}" ,
         "ssl-required": "external",
-        "resource": "forms-flow-web",
+        "resource": "foi-document-redaction",
         "public-client": true,
         "verify-token-audience": true,
         "use-resource-role-mappings": true,
@@ -197,7 +197,7 @@ parameters:
     required: true
     description: The namespace of the OpenShift project containing the imagestream for
       the application.
-    value: d7abee-tools
+    value: d106d6-tools
   - name: IMAGE_NAME
     displayName: IMAGE_NAME
     required: true

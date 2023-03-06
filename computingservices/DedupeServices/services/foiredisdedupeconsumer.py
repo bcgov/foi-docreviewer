@@ -8,10 +8,13 @@ import json
 import typer
 import random
 import time
+import logging
 from enum import Enum
-from utils import redisstreamdb,dedupe_stream_key
+from utils import redisstreamdb,dedupe_stream_key,notification_stream_key
 from . import jsonmessageparser
 from .dedupeservice import processmessage
+from .dedupedbservice import isbatchcompleted
+from rstreamio.redisstreamwriter import redisstreamwriter
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -48,11 +51,18 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 if message is not None:                    
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'') 
-                    try:                                 
+                    try:
                         producermessage = jsonmessageparser.getdedupeproducermessage(_message)
                         processmessage(producermessage) 
+
+                        # send message to notification stream if batch is complete
+                        complete, err = isbatchcompleted(producermessage.batch)
+                        if complete:
+                            redisstreamwriter().sendnotification(producermessage, err)
+                        else:
+                            print("batch not yet complete, no message sent")
                     except(Exception) as error: 
-                        print(error)
+                        logging.exception(error)
                                             
                 # simulate processing
                 time.sleep(random.randint(1, 3)) #TODO : todo: remove!

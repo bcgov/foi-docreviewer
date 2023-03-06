@@ -22,8 +22,8 @@
     "download": "Download",
     "edit": "Edit",
     "extract": "Extract",
-    "enterFullscreen": "Full screen",
-    "exitFullscreen": "Exit full screen",
+    "enterFullscreen": "Enter Full Screen",
+    "exitFullscreen": "Exit Full Screen",
     "fit": "Fit",
     "fitToPage": "Fit to page",
     "fitToWidth": "Fit to width",
@@ -58,8 +58,6 @@
     "type": "Type",
     "upload": "Upload",
     "link": "Link",
-    "darkMode": "Dark mode",
-    "lightMode": "Light mode",
     "fileAttachmentDownload": "Download attached file",
     "prevResult": "Previous result",
     "nextResult": "Next result",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "View Shortcut Keys",
     "markAllRead": "Mark all as read",
     "insertPage": "Page Insertion",
-    "insertBlankPageAbove": "Insert blank page above",
-    "insertBlankPageBelow": "Insert blank page below",
+    "insert": "Insert",
     "pageManipulation": "Page Manipulation",
     "replace": "Replace",
     "setDestination": "Set Destination",
     "showLess": "show less",
     "showMore": "...more",
     "chooseFile": "Choose a file",
+    "browse": "Browse Files",
     "selectYourOption": "Select your option",
     "open": "Open",
     "deselectAll": "Deselect All",
@@ -94,10 +92,10 @@
     "unselect": "Unselect",
     "addMark": "Add Mark",
     "viewFile": "View file",
-    "switchLanguage": "Language",
     "multiReplyAnnotations": "Reply to selected annotations ({{count}})",
     "comparePages": "Compare pages",
-    "startComparison": "Start Comparison"
+    "startComparison": "Start Comparison",
+    "back": "Back"
   },
   "annotation": {
     "areaMeasurement": "Area",
@@ -214,7 +212,8 @@
       "open": "View All Annotations",
       "close": "Close All Annotations"
     },
-    "comparePanel": "Compare Panel"
+    "comparePanel": "Compare Panel",
+    "watermarkPanel": "Watermark Panel"
   },
   "message": {
     "toolsOverlayNoPresets": "No Presets",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Embedded Files",
     "pageNum": "Page Number",
     "viewBookmark": "View Bookmark on Page",
-    "error": "Error"
+    "error": "Error",
+    "errorPageNumber": "Invalid page number. Limit is ",
+    "errorLoadingDocument": "There was a problem reading this document and some pages may not be displayed. This indicates the document may be corrupted. The total page count is {{totalPageCount}} and the number pages being displayed is {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -297,7 +298,8 @@
       "squiggly": "Squiggly",
       "3D": "3D",
       "other": "Other",
-      "initials": "Initials"
+      "initials": "Initials",
+      "saved": "Saved"
     },
     "notesOrder": {
       "dropdownLabel": "Sort Order List",
@@ -422,15 +424,22 @@
       "typeInitial": "Type Initials*",
       "drawSignature": "Draw Signature*",
       "drawInitial": "Draw Initials*",
-      "pickInitialsFile": "Choose Initials"
+      "pickInitialsFile": "Choose Initials",
+      "noSignatures": "There are currently no saved signatures."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Drag & Drop your file here",
+      "selectFile": "Select your file here",
       "or": "Or",
+      "yourFiles": "Your Files",
       "chooseFile": "Choose a file",
-      "localFile": "Local File",
-      "pageReplaceInputLabel": "Replace Page(s)",
-      "pageReplaceInputFromSource": "with page(s)"
+      "localFile": "Upload",
+      "pageReplaceInputLabel": "Replace Page",
+      "pageReplaceInputFromSource": "with page(s)",
+      "warning": {
+        "title": "Exit replace page?",
+        "message": "Exiting will cancel all of the selections you have made so far. Are you sure you still want to exit?"
+      }
     },
     "filterAnnotModal": {
       "color": "Color",
@@ -595,6 +604,85 @@
     },
     "lineStyleOptions": {
       "title": "Style"
+    },
+    "settings": {
+      "settings": "Settings",
+      "general": "General",
+      "language": "Language",
+      "theme": "Theme",
+      "darkMode": "Dark mode",
+      "lightMode": "Light mode",
+      "advancedSetting": "Advanced Setting",
+      "viewing": "Viewing",
+      "disableFadePageNavigationComponent": "Disable Fade Page Navigation Component",
+      "disableFadePageNavigationComponentDesc": "Always keep the Page Navigation Component on screen. Default behaviour is to fade it after certain period of inactivity.",
+      "disableNativeScrolling": "Disable Native Scrolling",
+      "disableNativeScrollingDesc": "Disable native mobile device scrolling behavior if it had previously been enabled. Note that native mobile device scrolling behavior is off by default.",
+      "annotations": "Annotations",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Disable Tool Default Style Update From Annotation Popup",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Disables syncing of annotation style updates to the associated tool that created the annotation. So if an annotation's style is changed the tool default styles will not be updated.",
+      "notesPanel": "Notes Panel",
+      "disableNoteSubmissionWithEnter": "Disable Note Submission With Enter",
+      "disableNoteSubmissionWithEnterDesc": "Disable the ability to submit notes by only pressing Enter if it had previously been enabled. This will revert note submission to the default which is Ctrl/Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Disable Auto Expand Comment Thread",
+      "disableAutoExpandCommentThreadDesc": "Disables the automatic expansion of all the comments threads in the Notes Panel.",
+      "disableReplyCollapse": "Disable Reply Collapse",
+      "disableReplyCollapseDesc": "Disables the collapsing of the replies in the Notes Panel.",
+      "disableTextCollapse": "Disable Text Collapse",
+      "disableTextCollapseDesc": "Disables the collapsing of the annotation's text in the Notes Panel.",
+      "search": "Search",
+      "disableClearSearchOnPanelClose": "Disable Clear Search On Panel Close",
+      "disableClearSearchOnPanelCloseDesc": "Disable clearing search results when user closes search panel. When disabled, search results are kept even if user closes and reopens search panel. Note, mobile devices never clear search results even if this setting is enabled. This is because the panel needs to be closed to view the search results on the document.",
+      "pageManipulation": "Page Manipulation",
+      "disablePageDeletionConfirmationModal": "Disable Page Deletion Confirmation Modal",
+      "disablePageDeletionConfirmationModalDesc": "Disable the confirmation modal when deleting a page from the thumbnail view",
+      "disableMultiselect": "Disable Multiselect",
+      "disableMultiselectDesc": "Disable multi select in the left thumbnail panel",
+      "miscellaneous": "Miscellaneous",
+      "keyboardShortcut": "Keyboard Shortcut",
+      "command": "Command",
+      "description": "Description",
+      "action": "Action",
+      "rotateDocumentClockwise": "Rotate the document clockwise",
+      "rotateDocumentCounterclockwise": "Rotate the document counterclockwise",
+      "copyText": "Copy selected text or annotations",
+      "pasteText": "Paste text or annotations",
+      "undoChange": "Undo an annotation change",
+      "redoChange": "Redo an annotation change",
+      "openFile": "Open the file picker",
+      "openSearch": "Open the search overlay",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fitScreenWidth": "Fit the document to the screen width in a small screen(< 640px), otherwise fit it to its original size",
+      "print": "Print",
+      "bookmarkOpenPanel": "Quickly bookmark a page and open the bookmark panel",
+      "goToPreviousPage": "Go to the previous page",
+      "goToNextPage": "Go to the next page",
+      "goToPreviousPageArrowUp": "Go to the previous page in single layout mode (ArrowUp)",
+      "goToNextPageArrowDown": "Go to the next page in single layout mode (ArrowDown)",
+      "holdSwitchPan": "Hold to switch to Pan mode and release to return to previous tool",
+      "selectAnnotationEdit": "Select the AnnotationEdit tool",
+      "selectPan": "Select the Pan tool",
+      "selectCreateArrowTool": "Select the AnnotationCreateArrow tool",
+      "selectCreateCalloutTool": "Select the AnnotationCreateCallout tool",
+      "selectEraserTool": "Select the AnnotationEraser tool",
+      "selectCreateFreeHandTool": "Select the AnnotationCreateFreeHand tool",
+      "selectCreateStampTool": "Select the AnnotationCreateStamp tool",
+      "selectCreateLineTool": "Select the AnnotationCreateLine tool",
+      "selectCreateStickyTool": "Select the AnnotationCreateSticky tool",
+      "selectCreateEllipseTool": "Select the AnnotationCreateEllipse tool",
+      "selectCreateRectangleTool": "Select the AnnotationCreateRectangle tool",
+      "selectCreateRubberStampTool": "Select the AnnotationCreateRubberStamp tool",
+      "selectCreateFreeTextTool": "Select the AnnotationCreateFreeText tool",
+      "openSignatureModal": "Open the signature modal or the overlay",
+      "selectCreateTextSquigglyTool": "Select the AnnotationCreateTextSquiggly tool",
+      "selectCreateTextHighlightTool": "Select the AnnotationCreateTextHighlight tool",
+      "selectCreateTextStrikeoutTool": "Select the AnnotationCreateTextStrikeout tool",
+      "selectCreateTextUnderlineTool": "Select the AnnotationCreateTextUnderline tool",
+      "editKeyboardShorcut": "Edit Keyboard Shorcut",
+      "setShorcut": "Set Shorcut",
+      "pressKeyToSet": "Press key or keys to set new shorcut.",
+      "shortcutAlreadyExists": "The keyboard shortcut above already exists."
     }
   },
   "warning": {
@@ -846,13 +934,16 @@
     "certifier": "certifier",
     "certified": "certified",
     "Certified": "Certified",
+    "Certification": "Certification",
     "signer": "signer",
     "signed": "signed",
     "Signed": "Signed",
+    "Signature": "Signature",
     "by": "by",
     "on": "on",
     "disallowedChange": "Disallowed Change: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Unsigned signature field: {{fieldName}}",
+    "signatureProperties": "Signature Properties",
     "trustVerification": {
       "current": "Verification time used was the current time",
       "signing": "Verification time is from the clock on the signer's computer",
@@ -903,6 +994,10 @@
       "noSignatureFields": "This document has no signature fields",
       "certificateDownloadError": "Error encountered when trying to download a trusted certificate",
       "localCertificateError": "There are some issues with reading a local certificate"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} is valid.",
+      "failed": "{{verificationType}} failed."
     }
   },
   "cropPopUp": {
@@ -917,7 +1012,7 @@
     },
     "cropModal": {
       "applyTitle": "Apply crop?",
-      "applyMessage": "This action will permanently crop all selected pages selected. It cannot be undone.",
+      "applyMessage": "This action will permanently crop all selected pages. It cannot be undone.",
       "cancelTitle": "Cancel crop?",
       "cancelMessage": "Are you sure you want to cancel cropping all selected pages?"
     }
@@ -957,8 +1052,57 @@
     "miscValuesHeader": "All",
     "emptyPanelMessage": "Select an element to view its properties."
   },
+  "watermarkPanel": {
+    "textWatermark": "Text Watermark",
+    "uploadImage": "Upload Image",
+    "browse": "Browse",
+    "watermarkOptions": "Watermark Options",
+    "watermarks": "Watermarks"
+  },
   "languageModal": {
     "selectLanguage": "Select language"
+  },
+  "insertPageModal": {
+    "title": "Add New Page",
+    "tabs": {
+      "blank": "Blank",
+      "upload": "Upload"
+    },
+    "pagePlacements": {
+      "header": "Page Placement",
+      "above": "Above Page",
+      "below": "Below Page"
+    },
+    "pageLocations": {
+      "header": "Page Location",
+      "specify": "Specify Page",
+      "specifyLocation": "Specify Page Location",
+      "amount": "Number Of Pages",
+      "total": "Total",
+      "pages": "Pages"
+    },
+    "pageDimensions": {
+      "header": "Page Dimensions",
+      "subHeader": "Presets",
+      "presets": {
+        "letter": "Letter",
+        "halfLetter": "Half letter",
+        "juniorLegal": "Junior legal",
+        "custom": "Custom"
+      },
+      "units": "Units"
+    },
+    "browse": "Browse Files",
+    "fileSelected": {
+      "title": "Select Pages to Add"
+    },
+    "button": "Add Page(s)",
+    "selectPages": "Select Pages to Add",
+    "page": "Page",
+    "warning": {
+      "title": "Exit insert new page?",
+      "message": "Exiting will cancel all of the selections you have made so far. Are you sure you still want to exit?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Drag and Drop your file here to compare",
@@ -974,7 +1118,32 @@
       "change": "Change",
       "old": "Old",
       "new": "New",
-      "page": "Page"
+      "page": "Page",
+			"textContent": "Text Content",
+			"delete": "delete",
+			"insert": "insert",
+			"edit": "edit"
     }
+  },
+  "saveModal": {
+    "close": "Close",
+    "saveAs": "Save As",
+    "general": "General",
+    "fileName": "File Name",
+    "fileType": "File Type",
+    "fileLocation": "File Location",
+    "browse": "Browse",
+    "pageRange": "Page Range",
+    "all": "All",
+    "currentView": "Current View",
+    "currentPage": "Current Page",
+    "specifyPage": "Specify Page",
+    "properties": "Properties",
+    "includeAnnotation": "Include Annotations",
+    "includeComments": "Include Comments",
+    "watermark": "Watermark",
+    "addWatermark": "Add Watermark",
+    "save": "Save File",
+    "pageError": "Invalid page. Valid page ranges are between  1 - "
   }
 }
