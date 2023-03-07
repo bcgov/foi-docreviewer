@@ -351,7 +351,7 @@ const Redlining = ({
           let childSections = redactionInfo[i].sections.annotationname;
           let sectionids = redactionInfo[i].sections.ids;
           for(let id of sectionids) {
-            sections.find(s => s.id === id).count--;
+            sections.find(s => s.id.toString() === id).count--;
           }
           redactionInfo.splice(i, 1);
           annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
