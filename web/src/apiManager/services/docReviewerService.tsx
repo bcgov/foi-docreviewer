@@ -141,6 +141,6 @@ export const fetchSections = (
     });
 }
 
-const replaceUrl = (URL, key, value) => {
+const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
 };

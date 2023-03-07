@@ -23,7 +23,7 @@ function Home() {
   useEffect(() => {
     setS3UrlReady(false);
     fetchDocuments(
-      parseInt(foiministryrequestid),
+      Number(foiministryrequestid),
       (data: any) => {
         console.log("docs:");
         setFiles(data);
