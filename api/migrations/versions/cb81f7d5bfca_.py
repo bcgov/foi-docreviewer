@@ -32,16 +32,16 @@ def upgrade():
     op.bulk_insert(
         docment_path_mapper,
         [
-            {'category':'Attachments','bucket':'{0}-forms-foirequests'.format(s3environment),'isactive':True,'createdby':'System'},
+            {'category':'Attachments','bucket':'{0}-forms-foirequests-e'.format(s3environment),'isactive':True,'createdby':'System'},
         ]
     )
     op.execute('''INSERT INTO public."DocumentPathMapper"(
             category, bucket, isactive, createdby)
-            Select 'Records', lower(bcgovcode) || '-{0}' , true, 'System' from
+            Select 'Records', lower(bcgovcode) || '-{0}-e' , true, 'System' from
             public."ProgramAreas" where isactive = true'''.format(s3environment))
     op.execute('''INSERT INTO public."DocumentPathMapper"(
             category, bucket, attributes, isactive, createdby)
-            VALUES ('Records', 'dev-forms-foirequests', '{"s3accesskey":"","s3secretkey":""}', true, 'Richard')''')
+            VALUES ('Records', 'dev-forms-foirequests-e', '{"s3accesskey":"","s3secretkey":""}', true, 'Richard')''')
 
 def downgrade():
     op.execute('Truncate table public."DocumentPathMapper" RESTART IDENTITY CASCADE;commit;')
