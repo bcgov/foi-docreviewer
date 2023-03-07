@@ -195,3 +195,7 @@ class AuthHelper:
             'lastname': cls.getlastname(),
             'operatingteam': usergroup
         }
+
+    @classmethod
+    def getauthtoken(cls):
+        return request.headers.get("Authorization", None)
