@@ -1,4 +1,5 @@
-FROM artifacts.developer.gov.bc.ca/docker-remote/mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+#FROM artifacts.developer.gov.bc.ca/docker-remote/mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+FROM artifacts.developer.gov.bc.ca/microsoft-docker-remote/dotnet/sdk:6.0 AS build-env
 WORKDIR /app
 
 COPY *.sln .
