@@ -49,7 +49,7 @@ def upgrade():
             {"name":"Consult","description":"Consult","isactive":True, "createdby": "System","sortorder":4},
             {"name":"Duplicate","description":"Duplicate","isactive":True, "createdby": "System","sortorder":5},
             {"name":"Not Responsive","description":"Not Responsive","isactive":True, "createdby": "System","sortorder":6},
-            {"name":"Left Off Here","description":"Left Off Here","isactive":True, "createdby": "System","sortorder":7}
+            {"name":"Page Left Off","description":"Page Left Off","isactive":True, "createdby": "System","sortorder":7}
         ]
     )
     # ### end Alembic commands ###
