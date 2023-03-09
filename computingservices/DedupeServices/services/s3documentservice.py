@@ -14,7 +14,7 @@ def __getcredentialsbybcgovcode(bcgovcode):
     s3cred = None
     try:                              
         cur = _conn.cursor()
-        _sql = sql.SQL("SELECT  attributes FROM {0} WHERE bucket='{1}'and category='Records'".format('public."DocumentPathMapper"','{0}-{1}'.format(bcgovcode.lower(),dedupe_s3_env.lower())))
+        _sql = sql.SQL("SELECT  attributes FROM {0} WHERE bucket='{1}'and category='Records'".format('public."DocumentPathMapper"','{0}-{1}-e'.format(bcgovcode.lower(),dedupe_s3_env.lower())))
         cur.execute(_sql)
         attributes = cur.fetchone()
         if attributes is not None:

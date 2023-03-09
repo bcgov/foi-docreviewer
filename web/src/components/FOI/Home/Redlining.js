@@ -68,6 +68,15 @@ const Redlining = ({
       viewer.current,
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
+      instance.UI.disableElements(['toolbarGroup-Edit']);
+      instance.UI.disableElements(['toolbarGroup-Insert']);
+      instance.UI.disableElements(['toolbarGroup-Forms']);
+      instance.UI.disableElements(['toolbarGroup-FillAndSign']);
+      instance.UI.disableElements([ 'thumbDelete' ]);
+      instance.UI.disableElements([ 'deletePage' ]);
+      instance.UI.disableElements([ 'replacePage' ]);
+      instance.UI.disableElements([ 'insertPage' ]);
+      
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
         return (
