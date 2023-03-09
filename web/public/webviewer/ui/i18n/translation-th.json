@@ -58,8 +58,6 @@
     "type": "พิมพ์",
     "upload": "ที่อัพโหลด",
     "link": "ลิงค์",
-    "darkMode": "โหมดมืด",
-    "lightMode": "โหมดแสง",
     "fileAttachmentDownload": "ดาวน์โหลดไฟล์แนบ",
     "prevResult": "ผลลัพธ์ก่อนหน้า",
     "nextResult": "ผลลัพธ์ถัดไป",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "ดูปุ่มลัด",
     "markAllRead": "ทำเครื่องหมายทั้งหมดว่าอ่านแล้ว",
     "insertPage": "การแทรกหน้า",
-    "insertBlankPageAbove": "แทรกหน้าว่างด้านบน",
-    "insertBlankPageBelow": "แทรกหน้าว่างด้านล่าง",
+    "insert": "แทรก",
     "pageManipulation": "การจัดการหน้า",
     "replace": "แทนที่",
     "setDestination": "กำหนดปลายทาง",
     "showLess": "แสดงน้อยลง",
     "showMore": "...มากกว่า",
     "chooseFile": "เลือกไฟล์",
+    "browse": "เรียกดูไฟล์",
     "selectYourOption": "เลือกตัวเลือกของคุณ",
     "open": "เปิด",
     "deselectAll": "ยกเลิกการเลือกทั้งหมด",
@@ -94,10 +92,10 @@
     "unselect": "ยกเลิกการเลือก",
     "addMark": "เพิ่มเครื่องหมาย",
     "viewFile": "ไฟล์มุมมอง",
-    "switchLanguage": "ภาษา",
     "multiReplyAnnotations": "ตอบกลับคำอธิบายประกอบที่เลือก ({{จำนวน}})",
     "comparePages": "เปรียบเทียบหน้า",
-    "startComparison": "เริ่มการเปรียบเทียบ"
+    "startComparison": "เริ่มการเปรียบเทียบ",
+    "back": "กลับ"
   },
   "annotation": {
     "areaMeasurement": "พื้นที่",
@@ -214,7 +212,8 @@
       "open": "ดูคำอธิบายประกอบทั้งหมด",
       "close": "ปิดคำอธิบายประกอบทั้งหมด"
     },
-    "comparePanel": "เปรียบเทียบแผง"
+    "comparePanel": "เปรียบเทียบแผง",
+    "watermarkPanel": "แผงลายน้ำ"
   },
   "message": {
     "toolsOverlayNoPresets": "ไม่มีสถานีที่ตั้งไว้",
@@ -272,7 +271,9 @@
     "embeddedFiles": "ไฟล์ที่ฝังตัว",
     "pageNum": "เลขหน้า",
     "viewBookmark": "ดูบุ๊กมาร์กบนเพจ",
-    "error": "ข้อผิดพลาด"
+    "error": "ข้อผิดพลาด",
+    "errorPageNumber": "หมายเลขหน้าไม่ถูกต้อง ขีดจำกัดคือ",
+    "errorLoadingDocument": "เกิดปัญหาในการอ่านเอกสารนี้และบางหน้าอาจไม่แสดง นี่แสดงว่าเอกสารอาจเสียหาย จำนวนหน้าทั้งหมดคือ {{totalPageCount}} และจำนวนหน้าที่แสดงคือ {{displayedPageCount}}"
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "ขีดเส้นใต้",
       "squiggly": "ไก่เขี่ย",
       "3D": "3D",
-      "other": "อื่น"
+      "other": "อื่น",
+      "initials": "ชื่อย่อ",
+      "saved": "บันทึกแล้ว"
     },
     "notesOrder": {
       "dropdownLabel": "เรียงลำดับรายการ",
@@ -408,22 +411,35 @@
       "addStamp": "เพิ่มแสตมป์ใหม่"
     },
     "signatureOverlay": {
-      "addSignature": "เพิ่มลายเซ็นใหม่"
+      "addSignature": "เพิ่มลายเซ็นใหม่",
+      "addSignatureOrInitials": "ลายเซ็น/ชื่อย่อ"
     },
     "signatureModal": {
       "modalName": "สร้างลายเซ็นใหม่",
       "dragAndDrop": "ลากและวางรูปภาพของคุณที่นี่",
       "or": "หรือ",
       "pickImage": "เลือกลายเซ็น",
-      "selectImage": "เลือกรูปภาพของคุณที่นี่"
+      "selectImage": "เลือกรูปภาพของคุณที่นี่",
+      "typeSignature": "พิมพ์ ลายเซ็น*",
+      "typeInitial": "พิมพ์ชื่อย่อ*",
+      "drawSignature": "วาดลายเซ็น*",
+      "drawInitial": "วาดชื่อย่อ*",
+      "pickInitialsFile": "เลือกชื่อย่อ",
+      "noSignatures": "ขณะนี้ไม่มีลายเซ็นที่บันทึกไว้"
     },
     "pageReplacementModal": {
       "dragAndDrop": "ลากและวางไฟล์ของคุณที่นี่",
+      "selectFile": "เลือกไฟล์ของคุณที่นี่",
       "or": "หรือ",
+      "yourFiles": "ไฟล์ของคุณ",
       "chooseFile": "เลือกไฟล์",
       "localFile": "ไฟล์ในเครื่อง",
       "pageReplaceInputLabel": "แทนที่หน้า",
-      "pageReplaceInputFromSource": "กับเพจ"
+      "pageReplaceInputFromSource": "กับเพจ",
+      "warning": {
+        "title": "ออกจากหน้าแทนที่?",
+        "message": "การออกจะเป็นการยกเลิกการเลือกทั้งหมดที่คุณได้ทำไปแล้ว คุณแน่ใจหรือว่ายังต้องการออก"
+      }
     },
     "filterAnnotModal": {
       "color": "สี",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "สไตล์"
+    },
+    "settings": {
+      "settings": "การตั้งค่า",
+      "general": "ทั่วไป",
+      "keyboardShortcut": "แป้นพิมพ์ลัด",
+      "advancedSetting": "การตั้งค่าขั้นสูง",
+      "language": "ภาษา",
+      "theme": "ธีม",
+      "darkMode": "โหมดมืด",
+      "lightMode": "โหมดแสง",
+      "viewing": "กำลังดู",
+      "disableFadePageNavigationComponent": "ปิดใช้งานส่วนประกอบการนำทางหน้าเฟด",
+      "disableFadePageNavigationComponentDesc": "เก็บส่วนประกอบการนำทางของเพจไว้บนหน้าจอเสมอ พฤติกรรมเริ่มต้นคือการจางหายไปหลังจากไม่มีการใช้งานในช่วงระยะเวลาหนึ่ง",
+      "disableNativeScrolling": "ปิดการใช้งาน Native Scrolling",
+      "disableNativeScrollingDesc": "ปิดใช้งานลักษณะการเลื่อนของอุปกรณ์มือถือดั้งเดิมหากเปิดใช้งานไว้ก่อนหน้านี้ โปรดทราบว่าลักษณะการเลื่อนของอุปกรณ์เคลื่อนที่ดั้งเดิมจะปิดอยู่โดยค่าเริ่มต้น",
+      "annotations": "คำอธิบายประกอบ",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "ปิดใช้งานการอัปเดตสไตล์เริ่มต้นของเครื่องมือจากป๊อปอัปคำอธิบายประกอบ",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "ปิดใช้งานการซิงค์การอัปเดตรูปแบบคำอธิบายประกอบกับเครื่องมือที่เกี่ยวข้องซึ่งสร้างคำอธิบายประกอบ ดังนั้น หากรูปแบบคำอธิบายประกอบมีการเปลี่ยนแปลง รูปแบบเริ่มต้นของเครื่องมือจะไม่ได้รับการอัปเดต",
+      "notesPanel": "แผงบันทึกย่อ",
+      "disableNoteSubmissionWithEnter": "ปิดใช้งานการส่งโน้ตด้วย Enter",
+      "disableNoteSubmissionWithEnterDesc": "ปิดใช้งานความสามารถในการส่งบันทึกย่อโดยกด Enter หากเคยเปิดใช้งานไว้ก่อนหน้านี้เท่านั้น การดำเนินการนี้จะเปลี่ยนการส่งโน้ตกลับเป็นค่าเริ่มต้นซึ่งก็คือ Ctrl/Cmd + Enter",
+      "disableAutoExpandCommentThread": "ปิดการใช้งานอัตโนมัติขยายความคิดเห็นเธรด",
+      "disableAutoExpandCommentThreadDesc": "ปิดใช้งานการขยายอัตโนมัติของเธรดความคิดเห็นทั้งหมดในแผงบันทึกย่อ",
+      "disableReplyCollapse": "ปิดใช้งานการตอบกลับ ยุบ",
+      "disableReplyCollapseDesc": "ปิดใช้งานการยุบคำตอบในแผงบันทึกย่อ",
+      "disableTextCollapse": "ปิดใช้งานการยุบข้อความ",
+      "disableTextCollapseDesc": "ปิดใช้งานการยุบข้อความของคำอธิบายประกอบในแผงบันทึกย่อ",
+      "search": "ค้นหา",
+      "disableClearSearchOnPanelClose": "ปิดการใช้งานล้างการค้นหาบนแผง ปิด",
+      "disableClearSearchOnPanelCloseDesc": "ปิดใช้งานการล้างผลการค้นหาเมื่อผู้ใช้ปิดแผงการค้นหา เมื่อปิดใช้งาน ผลการค้นหาจะถูกเก็บไว้แม้ว่าผู้ใช้จะปิดและเปิดแผงการค้นหาอีกครั้ง โปรดทราบว่าอุปกรณ์เคลื่อนที่จะไม่ล้างผลการค้นหาแม้ว่าจะเปิดใช้การตั้งค่านี้อยู่ก็ตาม เนื่องจากต้องปิดแผงเพื่อดูผลการค้นหาในเอกสาร",
+      "pageManipulation": "การจัดการหน้า",
+      "disablePageDeletionConfirmationModal": "ปิดใช้งานโมดอลการยืนยันการลบหน้า",
+      "disablePageDeletionConfirmationModalDesc": "ปิดใช้งานโมดอลการยืนยันเมื่อลบหน้าจากมุมมองภาพขนาดย่อ",
+      "disableMultiselect": "ปิดใช้งานการเลือกหลายรายการ",
+      "disableMultiselectDesc": "ปิดใช้งานการเลือกหลายรายการในแผงภาพขนาดย่อด้านซ้าย"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "ตัวเลือก",
       "radioGroups": "ปุ่มตัวเลือกที่มีชื่อฟิลด์เดียวกันจะอยู่ในกลุ่มเดียวกัน",
       "nameRequired": "ต้องระบุชื่อช่อง",
+      "fieldIndicator": "ตัวชี้วัดภาคสนาม",
+      "documentFieldIndicator": "ตัวบ่งชี้ฟิลด์เอกสาร",
+      "indicatorPlaceHolders": {
+        "TextFormField": "ใส่ข้อความที่นี่",
+        "CheckBoxFormField": "ตรวจสอบ",
+        "RadioButtonFormField": "เติม",
+        "ListBoxFormField": "เลือก",
+        "ComboBoxFormField": "เลือก",
+        "SignatureFormField": {
+          "fullSignature": "ลงชื่อที่นี่",
+          "initialsSignature": "เริ่มต้นที่นี่"
+        }
+      },
       "size": "ขนาด",
       "width": "ความกว้าง",
       "height": "ส่วนสูง",
@@ -826,13 +890,16 @@
     "certifier": "รับรอง",
     "certified": "ได้รับการรับรอง",
     "Certified": "ได้รับการรับรอง",
+    "Certification": "การรับรอง",
     "signer": "ผู้ลงนาม",
     "signed": "ลงนาม",
     "Signed": "ลงชื่อ",
+    "Signature": "ลายเซ็น",
     "by": "โดย",
     "on": "บน",
     "disallowedChange": "การเปลี่ยนแปลงที่ไม่อนุญาต: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "ฟิลด์ลายเซ็นที่ไม่ได้ลงนาม: {{fieldName}}",
+    "signatureProperties": "คุณสมบัติลายเซ็น",
     "trustVerification": {
       "current": "เวลาที่ใช้ตรวจสอบคือเวลาปัจจุบัน",
       "signing": "เวลายืนยันมาจากนาฬิกาบนคอมพิวเตอร์ของผู้ลงนาม",
@@ -883,6 +950,10 @@
       "noSignatureFields": "เอกสารนี้ไม่มีช่องลายเซ็น",
       "certificateDownloadError": "พบข้อผิดพลาดขณะพยายามดาวน์โหลดใบรับรองที่เชื่อถือได้",
       "localCertificateError": "มีปัญหาบางอย่างเกี่ยวกับการอ่านใบรับรองท้องถิ่น"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} ถูกต้อง",
+      "failed": "{{verificationType}} ล้มเหลว"
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "ทั้งหมด",
     "emptyPanelMessage": "เลือกองค์ประกอบเพื่อดูคุณสมบัติของมัน"
   },
+  "watermarkPanel": {
+    "textWatermark": "ลายน้ำข้อความ",
+    "uploadImage": "อัพโหลดภาพ",
+    "browse": "เรียกดู",
+    "watermarkOptions": "ตัวเลือกลายน้ำ",
+    "watermarks": "ลายน้ำ"
+  },
   "languageModal": {
     "selectLanguage": "เลือกภาษา"
+  },
+  "insertPageModal": {
+    "title": "เพิ่มหน้าใหม่",
+    "tabs": {
+      "blank": "ว่างเปล่า",
+      "upload": "ที่อัพโหลด"
+    },
+    "pagePlacements": {
+      "header": "ตำแหน่งหน้า",
+      "above": "เหนือหน้า",
+      "below": "หน้าล่าง"
+    },
+    "pageLocations": {
+      "header": "ที่ตั้งเพจ",
+      "specify": "ระบุหน้า",
+      "specifyLocation": "ระบุตำแหน่งหน้า",
+      "amount": "จำนวนหน้า",
+      "total": "ทั้งหมด",
+      "pages": "หน้า"
+    },
+    "pageDimensions": {
+      "header": "ขนาดหน้า",
+      "subHeader": "ที่ตั้งไว้ล่วงหน้า",
+      "presets": {
+        "letter": "จดหมาย",
+        "halfLetter": "อักษรครึ่งตัว",
+        "juniorLegal": "นิติศาสตร์จูเนียร์",
+        "custom": "กำหนดเอง"
+      },
+      "units": "หน่วย"
+    },
+    "browse": "เรียกดูไฟล์",
+    "fileSelected": {
+      "title": "เลือกหน้าที่จะเพิ่ม"
+    },
+    "button": "เพิ่มหน้า",
+    "selectPages": "เลือกหน้าที่จะเพิ่ม",
+    "page": "หน้าหนังสือ",
+    "warning": {
+      "title": "ออก แทรกหน้าใหม่?",
+      "message": "การออกจะเป็นการยกเลิกการเลือกทั้งหมดที่คุณได้ทำไปแล้ว คุณแน่ใจหรือว่ายังต้องการออก"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "ลากและวางไฟล์ของคุณที่นี่เพื่อเปรียบเทียบ",
@@ -954,7 +1074,32 @@
       "change": "เปลี่ยน",
       "old": "เก่า",
       "new": "ใหม่",
-      "page": "หน้าหนังสือ"
+      "page": "หน้าหนังสือ",
+      "textContent": "เนื้อหาข้อความ",
+      "delete": "ลบ",
+      "insert": "แทรก",
+      "edit": "แก้ไข"
     }
+  },
+  "saveModal": {
+    "close": "ปิด I",
+    "saveAs": "บันทึกเป็น",
+    "general": "ทั่วไป",
+    "fileName": "ชื่อไฟล์",
+    "fileType": "ประเภทไฟล์",
+    "fileLocation": "ตำแหน่งไฟล์",
+    "browse": "เรียกดู",
+    "pageRange": "ช่วงหน้า",
+    "all": "ทั้งหมด",
+    "currentView": "มุมมองปัจจุบัน",
+    "currentPage": "หน้าปัจจุบัน",
+    "specifyPage": "ระบุหน้า",
+    "properties": "คุณสมบัติ",
+    "includeAnnotation": "รวมคำอธิบายประกอบ",
+    "includeComments": "รวมความคิดเห็น",
+    "watermark": "ลายน้ำ",
+    "addWatermark": "ใส่ลายน้ำ",
+    "save": "บันทึกไฟล์",
+    "pageError": "หน้าไม่ถูกต้อง ช่วงหน้าที่ถูกต้องอยู่ระหว่าง 1 -"
   }
 }

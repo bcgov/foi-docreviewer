@@ -180,3 +180,22 @@ class AuthHelper:
         unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
         return unverified_claims['family_name']
         
+    @classmethod    
+    def getuserinfo(cls):
+        #get user info
+        if cls.getusertype() == "ministry":
+            usergroups = cls.getministrygroups()
+            usergroup = usergroups[0]
+        else:
+            usergroup = cls.getiaotype()
+
+        return {
+            'userid': cls.getuserid(),
+            'firstname': cls.getfirstname(),
+            'lastname': cls.getlastname(),
+            'operatingteam': usergroup
+        }
+
+    @classmethod
+    def getauthtoken(cls):
+        return request.headers.get("Authorization", None)

@@ -20,11 +20,11 @@ services:
       - "3006:8080"
     tty: true
 
-  # foiredis:
-  #   image: redis:4.0
-  #   container_name: foi_docreviewer_redis
-  #   ports:
-  #     - "16379:6379"
+  foi-docreviewer-redis:
+    image: redis:5.0.14
+    container_name: aot_foi_docreviewer_redis
+    ports:
+      - "7379:6379"
 
   foi-docreviewer-api:
     container_name: foi_docreviewer_api
@@ -64,6 +64,8 @@ services:
       - JWT_OIDC_JWKS_CACHE_TIMEOUT=300
       - CACHE_TIMEOUT=${CACHE_TIMEOUT}
       - FOI_DOCREVIEWER_REDISURL=${FOI_DOCREVIEWER_REDISURL}
+      - FOI_REQ_MANAGEMENT_API_URL=${FOI_REQ_MANAGEMENT_API_URL}
+      - FOI_REQ_MANAGEMENT_API_TIMEOUT=${FOI_REQ_MANAGEMENT_API_TIMEOUT}
       - CACHE_ENABLED=${CACHE_ENABLED}
       - OSS_S3_FORMS_BUCKET=${OSS_S3_FORMS_BUCKET}
       - OSS_S3_FORMS_ACCESS_KEY_ID=${OSS_S3_FORMS_ACCESS_KEY_ID}
@@ -93,6 +95,7 @@ services:
     container_name: foi-s3-fileconversion
     depends_on:
       - foi-docreviewer-db
+      - foi-docreviewer-redis
     build:
       context: ./MCS.FOI.S3FileConversion/
       dockerfile: Dockerfile.local
@@ -117,6 +120,9 @@ services:
 
   foi-docreviewer-dedupe:
     container_name: foi-docreviewer-dedupe
+    depends_on:
+      - foi-docreviewer-db
+      - foi-docreviewer-redis
     build:
       context: ./computingservices/DedupeServices
       dockerfile: Dockerfile.local

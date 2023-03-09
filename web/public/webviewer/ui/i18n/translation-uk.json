@@ -58,8 +58,6 @@
     "type": "Тип",
     "upload": "Завантажити",
     "link": "Посилання",
-    "darkMode": "Темний режим",
-    "lightMode": "Світлий режим",
     "fileAttachmentDownload": "Завантажте вкладений файл",
     "prevResult": "Попередній результат",
     "nextResult": "Наступний результат",
@@ -73,14 +71,14 @@
     "viewShortCutKeysFor3D": "Перегляд комбінацій клавіш",
     "markAllRead": "Позначити все як прочитане",
     "insertPage": "Вставка сторінки",
-    "insertBlankPageAbove": "Вставте порожню сторінку вище",
-    "insertBlankPageBelow": "Вставте порожню сторінку нижче",
+    "insert": "Вставка",
     "pageManipulation": "Маніпулювання сторінками",
     "replace": "Замінити",
     "setDestination": "Встановити пункт призначення",
     "showLess": "показувати менше",
     "showMore": "...більше",
     "chooseFile": "Виберіть файл",
+    "browse": "Огляд файлів",
     "selectYourOption": "Виберіть свій варіант",
     "open": "відчинено",
     "deselectAll": "Скасуйте вибір усіх",
@@ -94,10 +92,10 @@
     "unselect": "Скасувати вибір",
     "addMark": "Додайте позначку",
     "viewFile": "Переглянути файл",
-    "switchLanguage": "Мову",
     "multiReplyAnnotations": "Відповідь на вибрані анотації ({{count}})",
     "comparePages": "Порівняти сторінки",
-    "startComparison": "Почати порівняння"
+    "startComparison": "Почати порівняння",
+    "back": "Назад"
   },
   "annotation": {
     "areaMeasurement": "Площа",
@@ -214,7 +212,8 @@
       "open": "Переглянути всі анотації",
       "close": "Закрити всі анотації"
     },
-    "comparePanel": "Панель порівняння"
+    "comparePanel": "Панель порівняння",
+    "watermarkPanel": "Панель водяних знаків"
   },
   "message": {
     "toolsOverlayNoPresets": "Без попередніх налаштувань",
@@ -272,7 +271,9 @@
     "embeddedFiles": "Вбудовані файли",
     "pageNum": "Номер сторінки",
     "viewBookmark": "Переглянути закладку на сторінці",
-    "error": "Помилка"
+    "error": "Помилка",
+    "errorPageNumber": "Недійсний номер сторінки. Обмеження є",
+    "errorLoadingDocument": "Під час читання цього документа виникла проблема, тому деякі сторінки можуть не відображатися. Це означає, що документ може бути пошкоджено. Загальна кількість сторінок становить {{totalPageCount}}, а кількість сторінок, які відображаються, — {{displayedPageCount}}."
   },
   "option": {
     "type": {
@@ -296,7 +297,9 @@
       "underline": "Підкресли",
       "squiggly": "Хвиляста",
       "3D": "3D",
-      "other": "Інший"
+      "other": "Інший",
+      "initials": "Ініціали",
+      "saved": "Збережено"
     },
     "notesOrder": {
       "dropdownLabel": "Список порядку сортування",
@@ -408,22 +411,35 @@
       "addStamp": "Додати новий штамп"
     },
     "signatureOverlay": {
-      "addSignature": "Додати новий підпис"
+      "addSignature": "Додати новий підпис",
+      "addSignatureOrInitials": "Підпис/Ініціали"
     },
     "signatureModal": {
       "modalName": "Створити новий підпис",
       "dragAndDrop": "Перетягніть сюди своє зображення",
       "or": "Або",
       "pickImage": "Виберіть підпис",
-      "selectImage": "Виберіть тут своє зображення"
+      "selectImage": "Виберіть тут своє зображення",
+      "typeSignature": "Тип Підпис*",
+      "typeInitial": "Введіть ініціали*",
+      "drawSignature": "Намалювати підпис*",
+      "drawInitial": "Намалювати ініціали*",
+      "pickInitialsFile": "Виберіть Ініціали",
+      "noSignatures": "Наразі немає збережених підписів."
     },
     "pageReplacementModal": {
       "dragAndDrop": "Перетягніть свій файл сюди",
+      "selectFile": "Виберіть свій файл тут",
       "or": "Або",
+      "yourFiles": "Ваші файли",
       "chooseFile": "Виберіть файл",
       "localFile": "Локальний файл",
       "pageReplaceInputLabel": "Замінити сторінки",
-      "pageReplaceInputFromSource": "зі сторінкою(ами)"
+      "pageReplaceInputFromSource": "зі сторінкою(ами)",
+      "warning": {
+        "title": "Вийти зі сторінки заміни?",
+        "message": "Вихід призведе до скасування всіх вибраних параметрів. Ви впевнені, що все ще хочете вийти?"
+      }
     },
     "filterAnnotModal": {
       "color": "Колір",
@@ -588,6 +604,41 @@
     },
     "lineStyleOptions": {
       "title": "Стиль"
+    },
+    "settings": {
+      "settings": "Налаштування",
+      "general": "Загальний",
+      "keyboardShortcut": "Комбінація клавіш",
+      "advancedSetting": "Розширені налаштування",
+      "language": "Мову",
+      "theme": "Тема",
+      "darkMode": "Темний режим",
+      "lightMode": "Світловий режим",
+      "viewing": "Перегляд",
+      "disableFadePageNavigationComponent": "Вимкнути навігаційний компонент Fade Page",
+      "disableFadePageNavigationComponentDesc": "Завжди тримайте компонент навігації сторінкою на екрані. Поведінка за замовчуванням — зникати після певного періоду бездіяльності.",
+      "disableNativeScrolling": "Вимкнути власну прокрутку",
+      "disableNativeScrollingDesc": "Вимкніть власну поведінку прокручування мобільного пристрою, якщо її було ввімкнено раніше. Зауважте, що стандартну поведінку прокручування мобільного пристрою вимкнено за умовчанням.",
+      "annotations": "Анотації",
+      "disableToolDefaultStyleUpdateFromAnnotationPopup": "Вимкнути оновлення стилю інструмента за замовчуванням зі спливаючого вікна анотації",
+      "disableToolDefaultStyleUpdateFromAnnotationPopupDesc": "Вимикає синхронізацію оновлень стилю анотації з пов’язаним інструментом, який створив анотацію. Отже, якщо стиль анотації змінено, стандартні стилі інструмента не оновлюватимуться.",
+      "notesPanel": "Панель приміток",
+      "disableNoteSubmissionWithEnter": "Вимкніть надсилання приміток за допомогою Enter",
+      "disableNoteSubmissionWithEnterDesc": "Вимкніть можливість подавати нотатки, лише натиснувши клавішу Enter, якщо її було ввімкнено раніше. Це поверне подання нотаток до типового значення, яке є Ctrl/Cmd + Enter.",
+      "disableAutoExpandCommentThread": "Вимкнути автоматичне розширення ланцюжка коментарів",
+      "disableAutoExpandCommentThreadDesc": "Вимикає автоматичне розгортання всіх потоків коментарів на панелі приміток.",
+      "disableReplyCollapse": "Вимкнути згортання відповіді",
+      "disableReplyCollapseDesc": "Вимикає згортання відповідей на панелі приміток.",
+      "disableTextCollapse": "Вимкнути згортання тексту",
+      "disableTextCollapseDesc": "Вимикає згортання тексту анотації на панелі приміток.",
+      "search": "Пошук",
+      "disableClearSearchOnPanelClose": "Вимкнути Clear Search на панелі Close",
+      "disableClearSearchOnPanelCloseDesc": "Вимкнути очищення результатів пошуку, коли користувач закриває панель пошуку. Якщо вимкнено, результати пошуку зберігаються, навіть якщо користувач закриває та знову відкриває панель пошуку. Зауважте, що мобільні пристрої ніколи не очищають результати пошуку, навіть якщо цей параметр увімкнено. Це відбувається тому, що для перегляду результатів пошуку в документі панель потрібно закрити.",
+      "pageManipulation": "Маніпуляція сторінкою",
+      "disablePageDeletionConfirmationModal": "Вимкнути модаль підтвердження видалення сторінки",
+      "disablePageDeletionConfirmationModalDesc": "Вимкніть режим підтвердження під час видалення сторінки з перегляду мініатюр",
+      "disableMultiselect": "Вимкнути Multiselect",
+      "disableMultiselectDesc": "Вимкніть багаторазовий вибір на лівій панелі мініатюр"
     }
   },
   "warning": {
@@ -762,6 +813,19 @@
       "options": "Параметри",
       "radioGroups": "Перемикач з однаковою назвою поля належатиме до тієї ж групи.",
       "nameRequired": "Ім’я поля обов’язкове",
+      "fieldIndicator": "Індикатори полів",
+      "documentFieldIndicator": "Індикатори полів документа",
+      "indicatorPlaceHolders": {
+        "TextFormField": "Вставте текст тут",
+        "CheckBoxFormField": "Перевірте",
+        "RadioButtonFormField": "Заповнити",
+        "ListBoxFormField": "Виберіть",
+        "ComboBoxFormField": "Виберіть",
+        "SignatureFormField": {
+          "fullSignature": "Підпишіть тут",
+          "initialsSignature": "Ініціал тут"
+        }
+      },
       "size": "Розмір",
       "width": "Ширина",
       "height": "Висота",
@@ -826,13 +890,16 @@
     "certifier": "сертифікувати",
     "certified": "сертифікований",
     "Certified": "Сертифікований",
+    "Certification": "Атестація",
     "signer": "знак",
     "signed": "підписано",
     "Signed": "Підписано",
+    "Signature": "Підпис",
     "by": "за",
     "on": "на",
     "disallowedChange": "Недозволена зміна: {{type}}, objnum: {{objnum}}",
     "unsignedSignatureField": "Непідписане поле підпису: {{fieldName}}",
+    "signatureProperties": "Властивості підпису",
     "trustVerification": {
       "current": "Використаний час перевірки був поточним часом",
       "signing": "Час перевірки вказується на годиннику на комп’ютері підписувача",
@@ -883,6 +950,10 @@
       "noSignatureFields": "Цей документ не має полів для підпису",
       "certificateDownloadError": "Під час спроби завантажити довірений сертифікат сталася помилка",
       "localCertificateError": "Існують деякі проблеми з читанням локального сертифіката"
+    },
+    "verificationStatus": {
+      "valid": "{{verificationType}} дійсний.",
+      "failed": "{{verificationType}} не вдалося."
     }
   },
   "cropPopUp": {
@@ -937,8 +1008,57 @@
     "miscValuesHeader": "Усі",
     "emptyPanelMessage": "Виберіть елемент, щоб переглянути його властивості."
   },
+  "watermarkPanel": {
+    "textWatermark": "Текстовий водяний знак",
+    "uploadImage": "Завантажити зображення",
+    "browse": "переглядати",
+    "watermarkOptions": "Параметри водяного знака",
+    "watermarks": "Водяні знаки"
+  },
   "languageModal": {
     "selectLanguage": "Оберіть мову"
+  },
+  "insertPageModal": {
+    "title": "Додати нову сторінку",
+    "tabs": {
+      "blank": "Пустий",
+      "upload": "Завантажити"
+    },
+    "pagePlacements": {
+      "header": "Розміщення сторінки",
+      "above": "Над сторінкою",
+      "below": "Нижче сторінки"
+    },
+    "pageLocations": {
+      "header": "Розташування сторінки",
+      "specify": "Вкажіть сторінку",
+      "specifyLocation": "Укажіть розташування сторінки",
+      "amount": "Кількість сторінок",
+      "total": "Всього",
+      "pages": "сторінки"
+    },
+    "pageDimensions": {
+      "header": "Розміри сторінки",
+      "subHeader": "Предустановки",
+      "presets": {
+        "letter": "лист",
+        "halfLetter": "Половина листа",
+        "juniorLegal": "Молодший юридичний",
+        "custom": "Custom"
+      },
+      "units": "одиниці"
+    },
+    "browse": "Огляд файлів",
+    "fileSelected": {
+      "title": "Виберіть Сторінки для додавання"
+    },
+    "button": "Додати сторінку(и)",
+    "selectPages": "Виберіть Сторінки для додавання",
+    "page": "Сторінка",
+    "warning": {
+      "title": "Вийти, вставити нову сторінку?",
+      "message": "Вихід призведе до скасування всіх вибраних параметрів. Ви впевнені, що все ще хочете вийти?"
+    }
   },
   "multiViewer": {
     "dragAndDrop": "Перетягніть свій файл сюди, щоб порівняти",
@@ -954,7 +1074,32 @@
       "change": "Зміна",
       "old": "Старий",
       "new": "новий",
-      "page": "Сторінка"
+      "page": "Сторінка",
+      "textContent": "Текстовий вміст",
+      "delete": "видалити",
+      "insert": "вставка",
+      "edit": "редагувати"
     }
+  },
+  "saveModal": {
+    "close": "Закрити",
+    "saveAs": "Зберегти як",
+    "general": "Загальний",
+    "fileName": "Ім'я файлу",
+    "fileType": "Тип файлу",
+    "fileLocation": "Розташування файлу",
+    "browse": "переглядати",
+    "pageRange": "Діапазон сторінок",
+    "all": "всі",
+    "currentView": "Поточний вигляд",
+    "currentPage": "Поточна сторінка",
+    "specifyPage": "Вкажіть сторінку",
+    "properties": "Властивості",
+    "includeAnnotation": "Додайте анотації",
+    "includeComments": "Додайте коментарі",
+    "watermark": "Водяний знак",
+    "addWatermark": "Додати водяний знак",
+    "save": "Зберегти файл",
+    "pageError": "Недійсна сторінка. Дійсні діапазони сторінок від 1 до"
   }
 }

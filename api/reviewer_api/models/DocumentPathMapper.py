@@ -17,10 +17,10 @@ class DocumentPathMapper(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
 
     @classmethod
-    def getmapper(cls, documentpathid):
+    def getmapper(cls, bucket):
         documentpathmapperschema = DocumentPathMapperSchema(many=False)
         # query = db.session.query(DocumentPathMapper).filter_by(and_(category = 'Records', bucket = bcgovcode.lower()+'-dev')).first()
-        query = db.session.query(DocumentPathMapper).filter(DocumentPathMapper.documentpathid == documentpathid).first()
+        query = db.session.query(DocumentPathMapper).filter(DocumentPathMapper.bucket == bucket).first()
         return documentpathmapperschema.dump(query)
 
 class DocumentPathMapperSchema(ma.Schema):
