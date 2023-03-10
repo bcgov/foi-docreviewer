@@ -226,6 +226,7 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false);
+    setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     let redaction = annotManager.getAnnotationById(redactionObj.name);
@@ -414,6 +415,7 @@ const Redlining = ({
   const cancelRedaction = () => {
     setModalOpen(false);
     setSelectedSections([]);
+    setSaveDisabled(true);
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
     setNewRedaction(null);
