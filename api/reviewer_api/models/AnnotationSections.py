@@ -1,7 +1,9 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import aliased
 from sqlalchemy.dialects.postgresql import JSON, insert
+from sqlalchemy.sql.expression import cast
 from datetime import datetime
 from sqlalchemy.sql.schema import ForeignKey, ForeignKeyConstraint
 from reviewer_api.models.Annotations import Annotation
@@ -71,7 +73,12 @@ class AnnotationSection(db.Model):
     @classmethod
     def get_by_ministryid(cls, ministryrequestid):
         annotation_section_schema = AnnotationSectionSchema(many=True)
-        query = db.session.query(AnnotationSection).filter(and_(AnnotationSection.foiministryrequestid == ministryrequestid)).all()
+        redaction = aliased(Annotation)
+        query = db.session.query(AnnotationSection).join(
+            Annotation, Annotation.annotationname == AnnotationSection.annotationname
+        ).join(
+            redaction, redaction.annotationname == cast(AnnotationSection.section, JSON)['redactannotation'].astext
+        ).filter(and_(AnnotationSection.foiministryrequestid == ministryrequestid, Annotation.isactive == True, redaction.isactive == True)).all()
         return annotation_section_schema.dump(query)
 
       
