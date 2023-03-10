@@ -23,6 +23,7 @@ web/build
 */env
 computingservices/poc/env/*
 computingservices/DedupeServices/env/*
+computingservices/PDFStitchServices/env/*
 
 
 ################################################################################

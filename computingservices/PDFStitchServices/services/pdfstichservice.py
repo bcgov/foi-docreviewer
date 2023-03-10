@@ -1,5 +1,5 @@
 
-from .s3documentservice import gets3documentbytearray, uploadbytes
+from .s3documentservice import gets3documentbytearray, uploadbytes, getcredentialsbybcgovcode
 from . import jsonmessageparser
 import traceback
 from pypdf import PdfReader, PdfWriter
@@ -17,6 +17,7 @@ def processmessage(_message):
     attributes = decoder.decode(_message.attributes)    
     print("attributes === ",attributes)
     print("attributes length = ", len(attributes))
+    s3credentials = getcredentialsbybcgovcode(bcgovcode)
  
     try:
         pool = Pool(len(attributes))
@@ -24,14 +25,14 @@ def processmessage(_message):
         for division in attributes:
             print("division = ",division)
             # pdfstitchbasedondivision(requestnumber, division, bcgovcode)
-            pool.apply_async(pdfstitchbasedondivision, (requestnumber, division, bcgovcode))
+            pool.apply_async(pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode))
         
         pool.close()
         pool.join()
     except (Exception) as error:
         print('error with Thread Pool: ', error)
  
-def pdfstitchbasedondivision(requestno, division, bcgovcode):
+def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
     try:
         print("division files : ",division.get('files'))
         count = 0
@@ -43,27 +44,27 @@ def pdfstitchbasedondivision(requestno, division, bcgovcode):
                 _message = _message.replace("b'","'").replace("'",'') 
                 producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)              
                 print(file.get('filename'))
-                docbytes = getdocumentbytearray(producermessage, bcgovcode)
+                docbytes = getdocumentbytearray(producermessage, s3credentials)
                 writer = mergepdf(docbytes, writer)
                 count += 1
         if writer:
             print("*********************write to PDF**********************")
-            savetos3(writer, requestno + division.get('division')+'.pdf', 'EDU-2022-12345', 'edu')          
+            savetos3(writer, requestno + division.get('division')+'.pdf', 'EDU-2022-12345', bcgovcode, s3credentials)          
     except(Exception) as error:
         print('error with item: ', error)
 
-def getdocumentbytearray(message, bcgovcode):
+def getdocumentbytearray(message, s3credentials):
     try:
-        docbytearray = gets3documentbytearray(message, bcgovcode)
+        docbytearray = gets3documentbytearray(message, s3credentials)
         return docbytearray
     except(Exception) as error:
         print("error in getting the bytearray >> ",error)
         raise
 
-def uploadstitchedpdf(filename, bytesarray, requestnumber, bcgovcode):
+def uploadstitchedpdf(filename, bytesarray, requestnumber, bcgovcode, s3credentials):
     try:
         print("filename = ", filename)
-        docobj = uploadbytes(filename, bytesarray, requestnumber, bcgovcode)
+        docobj = uploadbytes(filename, bytesarray, requestnumber, bcgovcode, s3credentials)
         print(docobj)
         return docobj
     except(Exception) as error:
@@ -81,9 +82,9 @@ def mergepdf(raw_bytes_data, writer ):
         writer.add_page(page)
     return writer
     
-def savetos3(writer, filename, requestnumber, bcgovcode):
+def savetos3(writer, filename, requestnumber, bcgovcode, s3credentials):
     with BytesIO() as bytes_stream:
         writer.write(bytes_stream)
         print("**************writer.write*****************") 
         bytes_stream.seek(0)
-        uploadstitchedpdf(filename, bytes_stream, requestnumber, bcgovcode)
+        uploadstitchedpdf(filename, bytes_stream, requestnumber, bcgovcode, s3credentials)

@@ -1,12 +1,19 @@
+import os
 import random
 import redis
 import time
 from walrus import Database
 import json
+from dotenv import load_dotenv
+load_dotenv()
 
-STREAM_KEY = "DIVISION-PDF-STITCH-local"
+STREAM_KEY = os.getenv('DIVISION_PDF_STITCH_STREAM_KEY')
 
-db = Database(host="localhost", port=6379, db=0,password=None)
+redishost = os.getenv('REDIS_HOST') 
+redisport = os.getenv('REDIS_PORT')
+redispassword = os.getenv('REDIS_PASSWORD')
+
+db = Database(host=redishost, port=redisport, db=0,password=redispassword)
 stream = db.Stream(STREAM_KEY)
 encoder = json.JSONEncoder()
 while True:

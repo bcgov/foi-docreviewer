@@ -8,14 +8,13 @@ import hashlib
 import mimetypes
 from utils import gets3credentialsobject, pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
 
-def __getcredentialsbybcgovcode(bcgovcode):
-    print("Before getdbconnection")
+def getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
-    print("****DB Connected****")
     s3cred = None
+    bucket = '{0}-{1}-e'.format(bcgovcode.lower(),pdfstitch_s3_env.lower())
     try:                              
         cur = _conn.cursor()
-        _sql = sql.SQL("SELECT  attributes FROM {0} WHERE bucket='{1}'and category='Records'".format('public."DocumentPathMapper"','{0}-{1}'.format(bcgovcode.lower(),pdfstitch_s3_env.lower())))
+        _sql = sql.SQL("SELECT  attributes FROM {0} WHERE bucket='{1}'and category='Records'".format('public."DocumentPathMapper"',bucket))
         cur.execute(_sql)
         attributes = cur.fetchone()
         if attributes is not None:
@@ -33,7 +32,7 @@ def __getcredentialsbybcgovcode(bcgovcode):
 
 def gets3documenthashcode(producermessage): 
     
-    s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)
+    s3credentials = getcredentialsbybcgovcode(producermessage.bcgovcode)
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
@@ -56,9 +55,9 @@ def gets3documenthashcode(producermessage):
     return sig.hexdigest()
 
 
-def gets3documentbytearray(producermessage, bcgovcode): 
+def gets3documentbytearray(producermessage, s3credentials): 
     
-    s3credentials = __getcredentialsbybcgovcode(bcgovcode)
+    # s3credentials = __getcredentialsbybcgovcode(bcgovcode)
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
@@ -75,12 +74,12 @@ def gets3documentbytearray(producermessage, bcgovcode):
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
     return response.content
 
-def uploadbytes(filename, bytes, requestnumber, bcgovcode):
-    s3credentials = __getcredentialsbybcgovcode(bcgovcode)
+def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
+    # s3credentials = __getcredentialsbybcgovcode(bcgovcode)
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
-    formsbucket = bcgovcode.lower()+'-'+pdfstitch_s3_env.lower() #pdfstitch_s3_bucket
+    formsbucket = bcgovcode.lower()+'-'+pdfstitch_s3_env.lower()+'-e' #pdfstitch_s3_bucket
     try: 
         auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
         aws_secret_access_key=s3_secret_access_key,
