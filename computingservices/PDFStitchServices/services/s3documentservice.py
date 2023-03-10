@@ -9,7 +9,9 @@ import mimetypes
 from utils import gets3credentialsobject, pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
 
 def __getcredentialsbybcgovcode(bcgovcode):
+    print("Before getdbconnection")
     _conn = getdbconnection()
+    print("****DB Connected****")
     s3cred = None
     try:                              
         cur = _conn.cursor()
@@ -54,9 +56,9 @@ def gets3documenthashcode(producermessage):
     return sig.hexdigest()
 
 
-def gets3documentbytearray(producermessage): 
+def gets3documentbytearray(producermessage, bcgovcode): 
     
-    s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)
+    s3credentials = __getcredentialsbybcgovcode(bcgovcode)
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey

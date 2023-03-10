@@ -1,6 +1,7 @@
 class pdfstitchproducermessage(object):
-    def __init__(self,requestnumber,attributes) -> None:
+    def __init__(self,requestnumber, bcgovcode, attributes) -> None:
         self.requestnumber = requestnumber
+        self.bcgovcode = bcgovcode
         self.attributes=attributes
 
 

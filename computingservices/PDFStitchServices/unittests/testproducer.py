@@ -13,6 +13,7 @@ while True:
 
     jobs_dict ={ 
         "requestnumber": "EDU-2023-03070" + str(random.randint(100, 500)),
+        "bcgovcode": "edu",
         "attributes": encoder.encode([
             {
             "division":"div1",

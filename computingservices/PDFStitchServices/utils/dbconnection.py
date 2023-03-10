@@ -1,10 +1,10 @@
 import psycopg2
-from . import dedupe_db_user,dedupe_db_port,dedupe_db_host,dedupe_db_name,dedupe_db_password
+from . import pdfstitch_db_user,pdfstitch_db_port,pdfstitch_db_host,pdfstitch_db_name,pdfstitch_db_password
 
 def getdbconnection():
     conn = psycopg2.connect(
-        host=dedupe_db_host,
-        database=dedupe_db_name,
-        user=dedupe_db_user,
-        password=dedupe_db_password,port=dedupe_db_port)
-    return conn    
+        host=pdfstitch_db_host,
+        database=pdfstitch_db_name,
+        user=pdfstitch_db_user,
+        password=pdfstitch_db_password,port=pdfstitch_db_port)
+    return conn
