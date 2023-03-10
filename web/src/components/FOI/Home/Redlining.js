@@ -34,7 +34,6 @@ const Redlining = ({
   const [newRedaction, setNewRedaction] = useState(null);
   const [saveAnnot, setSaveAnnot] = useState(null);
   const [deleteAnnot, setDeleteAnnot] = useState(null);
-  const [deleteQueue, setDeleteQueue] = useState([]);
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
   const [defaultSections, setDefaultSections] = useState([]);
@@ -68,15 +67,6 @@ const Redlining = ({
       viewer.current,
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
-      instance.UI.disableElements(['toolbarGroup-Edit']);
-      instance.UI.disableElements(['toolbarGroup-Insert']);
-      instance.UI.disableElements(['toolbarGroup-Forms']);
-      instance.UI.disableElements(['toolbarGroup-FillAndSign']);
-      instance.UI.disableElements([ 'thumbDelete' ]);
-      instance.UI.disableElements([ 'deletePage' ]);
-      instance.UI.disableElements([ 'replacePage' ]);
-      instance.UI.disableElements([ 'insertPage' ]);
-      
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
         return (
@@ -189,25 +179,12 @@ const Redlining = ({
           //parse annotation xml
           let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
           let annots = jObj.getElementsByTagName("annots");
+          let annot = annots[0].children[0];
+
           if(action === 'delete') {
-            let annotObjs = []
-            for (let annot of annots[0].children) {
-              if (annot.name === 'redact') {
-                annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
-              } else {
-                deleteAnnotation(
-                  localDocumentInfo['file']['documentid'],
-                  localDocumentInfo['file']['version'],
-                  annot.attributes.name,
-                  (data)=>{console.log(data)},
-                  (error)=>{console.log(error)}
-                );
-              }
-            }
-            setDeleteQueue(annotObjs);
+            setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
           } 
           else if (action === 'add') {
-            let annot = annots[0].children[0];
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
@@ -361,34 +338,32 @@ const Redlining = ({
   }, [editAnnot])
 
   useEffect(() => {
-    while (deleteQueue?.length > 0) {
-      var annot = deleteQueue.pop();
-      if (annot && annot.name !== newRedaction?.name) {
-        let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-        deleteAnnotation(
-          localDocumentInfo['file']['documentid'],
-          localDocumentInfo['file']['version'],
-          annot.name,
-          (data)=>{console.log(data)},
-          (error)=>{console.log(error)}
-        );
+    if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
+      let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      deleteAnnotation(
+        localDocumentInfo['file']['documentid'],
+        localDocumentInfo['file']['version'],
+        deleteAnnot.name,
+        (data)=>{console.log(data)},
+        (error)=>{console.log(error)}
+      );
+      setNewRedaction(null)
 
-        if (annot.type === 'redact' && redactionInfo) {
-          let i = redactionInfo.findIndex(a => a.annotationname === annot.name);
-          if(i >= 0){
-            let childSections = redactionInfo[i].sections.annotationname;
-            let sectionids = redactionInfo[i].sections.ids;
-            for(let id of sectionids) {
-              sections.find(s => s.id === id).count--;
-            }
-            redactionInfo.splice(i, 1);
-            annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
+      if (deleteAnnot.type === 'redact' && redactionInfo) {
+        let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
+        if(i >= 0){
+          let childSections = redactionInfo[i].sections.annotationname;
+          let sectionids = redactionInfo[i].sections.ids;
+          for(let id of sectionids) {
+            sections.find(s => s.id === id).count--;
           }
+          redactionInfo.splice(i, 1);
+          annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
         }
       }
-      setNewRedaction(null)
     }
-  }, [deleteQueue, newRedaction])
+    setDeleteAnnot(null)
+  }, [deleteAnnot, newRedaction])
 
   useEffect(() => {
     if (saveAnnot) {
@@ -441,6 +416,7 @@ const Redlining = ({
     setSelectedSections([]);
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
+    setNewRedaction(null);
     setEditAnnot(null);
     // setDeleteAnnot(newRedaction)
   }
