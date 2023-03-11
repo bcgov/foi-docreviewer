@@ -17,7 +17,7 @@ import Popover from "@material-ui/core/Popover";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
 import MenuList from "@material-ui/core/MenuList";
 import MenuItem from "@material-ui/core/MenuItem";
-import { fetchPageFlags, savePageFlag } from '../../../apiManager/services/docReviewerService';
+import { fetchPageFlagsMasterData, fetchPageFlag, savePageFlag } from '../../../apiManager/services/docReviewerService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faCircleHalfStroke, faCircle, faCircleQuestion, 
     faCircleStop, faCircleXmark, faBookmark, faCirclePlus, faAngleRight} from '@fortawesome/free-solid-svg-icons';
@@ -41,35 +41,76 @@ const DocumentSelector = ({
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlags, setPageFlags] = useState([]);
     const [openModal, setOpenModal] = useState(false);
+    const [displayPage, setDisplayPage] = useState({});
+
 
     useEffect(() => {
-        fetchPageFlags(
+        // fetchPageFlag(
+        //     requestid,
+        //   (data: any) => setPageFlags(data),
+        //   (error: any)=> console.log(error)
+        // )
+        let resp = [
+            {
+                "docid": 1,
+                "pageflag": [{"page": 1,"flagid":0, "other":"test"} ]
+            },
+            {
+                "docid": 2,
+                "pageflag": [{"page": 2,"flagid":0, "other2":"test2"} ]
+            }
+        ];
+        //assignPageFlagIcons(resp);
+        fetchPageFlagsMasterData(
           (data: any) => setPageFlags(data),
           (error: any)=> console.log(error)
         );
         //assignIcon();
     }, []);
 
-    const assignIcon = (pageFlag: String) => {
+    const assignIcon = (pageFlag: any) => {
         //const pageFlagNames = Object.values(pageFlags).map(key == 'name');
         switch (pageFlag) {
+            case 0:
             case "Partial Disclosure":
               return faCircleHalfStroke;
+            case 1:
             case "Full Disclosure":
               return faCircle;
+            case 2:
             case "Withheld in Full":
               return filledCircle;
+            case 3:
             case "Consult":
               return faCircleQuestion;
+            case 4:
             case "Duplicate":
               return faCircleStop;
+            case 5:
             case "Not Responsive":
                 return faCircleXmark;
+            case 6:
             case "Page Left Off":
                 return faBookmark;
             default:
               return faBookmark;
         }
+    }
+
+    const assignPageIcon = (docId: number, page: number) => {
+        let resp = [
+            {
+                "docid": 14,
+                "pageflag": [{"page": 1,"flagid":0, "other":"test"},{"page": 2,"flagid":3} ]
+            },
+            {
+                "docid": 2,
+                "pageflag": [{"page": 2,"flagid":0, "other2":"test2"} ]
+            }
+        ];
+        let docs :any= resp?.find((doc) => doc.docid === docId);
+        let pageFlagObj=docs?.pageflag?.find((flag: any) => flag.page === page);
+        return assignIcon(pageFlagObj?.flagid);
     }
 
     let arr: any[] = [];
@@ -78,6 +119,8 @@ const DocumentSelector = ({
 
     const [filesForDisplay, setFilesForDisplay] = useState(files);
 
+    console.log("filesForDisplay",filesForDisplay);
+    
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
     }
@@ -100,6 +143,14 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number) => {
+        // fetchPageFlag(
+        //     requestid,
+        //     file.documentid,
+        //     file.version,
+        //   (data: any) => setDisplayPage(data),
+        //   (error: any)=> console.log(error)
+        // )
+        
         console.log("onclick:");
         console.log(file);
         console.log(page);
@@ -151,6 +202,7 @@ const DocumentSelector = ({
     };
 
     const savePageFlags = (flagId : number, documentid : number, documentversion : number) => {
+        setOpenedPopover(false);
         savePageFlag(
             requestid,
             documentid,
@@ -297,6 +349,9 @@ const DocumentSelector = ({
         );
     };
 
+    // const displayPageNumber = (p) => {
+
+    // }
 
     return (
         <>
@@ -397,7 +452,7 @@ const DocumentSelector = ({
                                     {/* <TreeItem nodeId={`division${index}file${i}`} label={file.filename}/> */}
                                     <TreeItem nodeId={`division${index}file${i}`} label={file.filename} onClick={() => selectTreeItem(file, 1)} >
                                         {[...Array(file.pagecount)].map((_x, p) =>
-                                            <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
+                                            <TreeItem nodeId={`file${index}page${p + 1}`} icon={<FontAwesomeIcon icon={assignIcon("Page Left Off") as IconProp} size='1x'/>} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
                                         )
                                             //getFilePages(file.pagecount, index)
                                         }
@@ -424,7 +479,15 @@ const DocumentSelector = ({
                         >
                             <TreeItem nodeId={`${index}`} label={file.filename} onClick={() => selectTreeItem(file, 1)} >
                                 {[...Array(file.pagecount)].map((_x, p) =>
-                                    <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={openContextMenu} />
+                                    <>
+                                    {/* <TreeItem nodeId={`file${index}page${p + 1}`} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={openContextMenu} > */}
+                                    
+                                    <TreeItem nodeId={`file${index}page${p + 1}`} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, 1) as IconProp } size='1x'/>} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={openContextMenu} >
+                                    
+                                    {/* <FontAwesomeIcon icon={assignIcon("Page Left Off") as IconProp} size='1x'/> */}
+                                    
+                                    </TreeItem>
+                                    </>
                                 )
                                     //getFilePages(file.pagecount, index)
                                 }

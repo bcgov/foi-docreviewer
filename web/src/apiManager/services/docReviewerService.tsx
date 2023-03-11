@@ -141,11 +141,11 @@ export const fetchSections = (
     });
 }
 
-export const fetchPageFlags = (
+export const fetchPageFlagsMasterData = (
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_GET_PAGEFLAGS}`
+  let apiUrlGet: string = `${API.DOCREVIEWER_GET_ALL_PAGEFLAGS}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -156,7 +156,7 @@ export const fetchPageFlags = (
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in fetching pageflags for a document");
+      errorCallback("Error in fetching pageflags master data");
     });
 };
 
@@ -197,6 +197,32 @@ export const savePageFlag = (
     })
     .catch((error:any) => {
       errorCallback("Error in saving an page flag");
+    });
+};
+
+export const fetchPageFlag = (
+  foiministryrquestid: string = "",
+  documentid: number = 1,
+  documentversion: number = 1,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = replaceUrl(replaceUrl(replaceUrl(
+    API.DOCREVIEWER_GET_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  ), "<documentid>", documentid), "<documentversion>",documentversion);
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching pageflags for a document");
     });
 };
 
