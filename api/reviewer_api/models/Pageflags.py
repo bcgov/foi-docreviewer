@@ -2,6 +2,7 @@ from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_
 from datetime import datetime as datetime2
+from sqlalchemy import or_, and_
 
 class Pageflag(db.Model):
     __tablename__ = 'Pageflags' 
@@ -18,9 +19,14 @@ class Pageflag(db.Model):
 
     @classmethod
     def getall(cls):
-        section_schema = PageflagSchema(many=True)
+        pageflag_schema = PageflagSchema(many=True)
         query = db.session.query(Pageflag).filter_by(isactive=True).order_by(Pageflag.sortorder.asc()).all()
-        return section_schema.dump(query)
+        return pageflag_schema.dump(query)
+    
+    @classmethod
+    def getpageid(cls, name):
+        pageflagid = db.session.query(Pageflag.pageflagid).filter(and_(Pageflag.name == name, Pageflag.isactive == True)).one()
+        return pageflagid[0]
 
 class PageflagSchema(ma.Schema):
     class Meta:
