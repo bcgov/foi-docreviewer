@@ -168,8 +168,8 @@ export const savePageFlag = (
   flagid: number,
   callback: any,
   errorCallback: any,
+  other? : string,
   programareaid? : number,
-  other? : string
 ) => {
   let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
     API.DOCREVIEWER_POST_PAGEFLAGS,

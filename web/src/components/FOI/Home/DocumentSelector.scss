@@ -1,4 +1,7 @@
 
+.leftPanel {
+    margin: 10px 5px;
+}
 
 .pageFlagModal {
     color: #808080;
@@ -35,6 +38,11 @@
     background-color: #38598A;
     color: #FFFFFF;
 }
+
+.leftPanelIcons{
+    color: #808080 !important;
+}
+
 
 .other-pb-modal-message {
     margin: 0px 10% 0px 3%;
@@ -97,5 +105,9 @@
 }
 .PrivateNotchedOutline-legendLabelled-4 {
     font-size: 0.80rem !important;
+}
+
+.style-float{
+    float: right;
 }
 

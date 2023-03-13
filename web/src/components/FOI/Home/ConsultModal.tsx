@@ -8,7 +8,6 @@ import CloseIcon from '@material-ui/icons/Close';
 import TextField from '@material-ui/core/TextField';
 import IconButton from "@mui/material/IconButton";
 import { makeStyles } from '@material-ui/core/styles';
-import Box from '@mui/material/Box';
 
 
 const ConsultModal = ({
@@ -30,6 +29,35 @@ const ConsultModal = ({
       }));
 
     const classes = useStyles();
+
+    const[newConsultBody,setNewConsultBody]= useState("");
+    const[errorMessage, setErrorMessage] = useState("");
+
+    const saveNewCode = (newConsultBody: string) => {
+        if(newConsultBody?.length >100){
+            setErrorMessage("Character limit cannot exceeded.")
+        }
+        else{
+            setNewConsultBody(newConsultBody);
+            if(newConsultBody){
+                savePageFlags(flagId,
+                    documentId,
+                    documentVersion,
+                    newConsultBody
+                    );
+            }
+        }
+    }
+
+    const updateConsultBody = (e:any) => {
+        console.log("newConsultBody:",e.target.value);
+        if(e.target.value?.length >100 || e.target.value?.length <=0 ){
+            setErrorMessage("Character limit should be between 0-100.")
+        }
+        else{
+            setNewConsultBody(e.target.value);
+        }
+    }
 
     return (
         <div className={`consult-modal-dialog`}>
@@ -57,21 +85,18 @@ const ConsultModal = ({
                             inputProps={{ "aria-labelledby": "otherPublicBody-label" }}
                             InputLabelProps={{ shrink: true}}
                             variant="outlined"
-                            defaultValue="Hello World"
                             fullWidth
-                            //value={newConsultBody}
-                        //onChange={}
-                            //error={(errorMessage !== undefined && errorMessage !== "")}
-                            //helperText={errorMessage}
+                            value={newConsultBody || ''}
+                            onChange={updateConsultBody}
+                            error={newConsultBody?.length >100}
+                            helperText={errorMessage}
                         />
                     </div>
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
                 {/* <div className='consult-modal-margin'> */}
-                    <button className={`btn-bottom btn-save btnenabled`} onClick={savePageFlags(flagId,
-                        documentId,
-                        documentVersion)}>
+                    <button className={`btn-bottom btn-save btnenabled`} onClick={() => saveNewCode(newConsultBody)}>
                         Save
                     </button>
                     <button className="btn-bottom btn-cancel" onClick={() => setOpenModal(false)}>
