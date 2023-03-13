@@ -6,6 +6,7 @@ api/src
 .env
 dev.env
 test.env
+demo.env
 
 *.pyc
 
