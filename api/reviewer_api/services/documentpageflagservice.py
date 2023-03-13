@@ -4,7 +4,10 @@ import json
 class documentpageflagservice:
 
     
-    def getpageflags(self, requestid, documentid, version):
+    def getpageflags(self, requestid):
+        return DocumentPageflag.getpageflag_by_request(requestid)
+    
+    def getdocumentpageflags(self, requestid, documentid=None, version=None):
         pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version)
         if pageflag not in (None, {}):
             return pageflag["pageflag"]
@@ -12,7 +15,7 @@ class documentpageflagservice:
 
     
     def savepageflag(self, requestid, documentid, version, data, userinfo):
-        pageflag = self.getpageflags(requestid, documentid, version)
+        pageflag = self.getdocumentpageflags(requestid, documentid, version)
         if pageflag is not None:
             isnew = True
             for entry in pageflag:

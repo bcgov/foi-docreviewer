@@ -61,7 +61,27 @@ class GetDocumentPageflag(Resource):
     # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, documentid, documentversion):
         try:
-            result = documentpageflagservice().getpageflags(requestid, documentid, documentversion)
+            result = documentpageflagservice().getdocumentpageflags(requestid, documentid, documentversion)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/ministryrequest/<requestid>/pageflag')
+class GetDocumentPageflag(Resource):
+    """Get document page flag list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    # @auth.ismemberofgroups(getrequiredmemberships())
+    def get(requestid):
+        try:
+            result = documentpageflagservice().getpageflags(requestid)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

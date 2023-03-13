@@ -7,6 +7,7 @@ import logging
 from sqlalchemy.dialects.postgresql import JSON, insert
 from datetime import datetime
 from sqlalchemy import or_, and_
+from sqlalchemy import text
 
 class DocumentPageflag(db.Model):
   
@@ -63,6 +64,24 @@ class DocumentPageflag(db.Model):
         pageflag_schema = DocumentPageflagSchema(many=False)
         query = db.session.query(DocumentPageflag).filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion)).one_or_none()
         return pageflag_schema.dump(query)
+    
+    @classmethod
+    def getpageflag_by_request(cls,  _foiministryrequestid):
+        pageflags = []
+        try:              
+            sql = """select distinct on (documentid) documentid, pageflag from "DocumentPageflags" dp  
+                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
+                    """
+            rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid})
+        
+            for row in rs:
+                pageflags.append({"documentid":row["documentid"],"pageflag":row["pageflag"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return pageflags
 
 class DocumentPageflagSchema(ma.Schema):
     class Meta:
