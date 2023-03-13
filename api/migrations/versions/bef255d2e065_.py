@@ -24,9 +24,9 @@ def upgrade():
     sa.Column('foiministryrequestid', sa.Integer(), nullable=False),
     sa.Column('section', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('createdby', sa.String(length=120), nullable=True),
+    sa.Column('createdby', sa.String(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),    
-    sa.Column('updatedby', sa.String(length=120), nullable=True),
+    sa.Column('updatedby', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.ForeignKeyConstraint(['annotationname'], ['Annotations.annotationname'])
     )
