@@ -21,7 +21,8 @@ class documentpageflagservice:
             for entry in pageflag:
                 if entry["page"] == data["page"]:
                     isnew = False
-                    entry.update(data)
+                    pageflag.remove(entry)
+                    pageflag.append(data)
             if isnew == True:
                 pageflag.append(data)
             return DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
