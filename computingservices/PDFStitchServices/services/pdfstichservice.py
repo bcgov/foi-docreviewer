@@ -6,6 +6,8 @@ from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 import json
+from zipfile import ZipFile
+from os import path
 
 
 def processmessage(_message):
@@ -39,17 +41,23 @@ def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
         writer = PdfWriter()
         for file in division.get('files'):
             if count < len(division.get('files')):
-                print("file = ", file)
-                _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
-                _message = _message.replace("b'","'").replace("'",'') 
-                producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)              
-                print(file.get('filename'))
-                docbytes = getdocumentbytearray(producermessage, s3credentials)
-                writer = mergepdf(docbytes, writer)
+                _, extension = path.splitext(file.get('s3filepath'))
+                if extension in ['.pdf']:
+                    print("file = ", file)
+                    _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
+                    _message = _message.replace("b'","'").replace("'",'')
+                    producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)
+                    print(file.get('filename'))
+                    docbytes = getdocumentbytearray(producermessage, s3credentials)
+                    writer = mergepdf(docbytes, writer)
                 count += 1
         if writer:
             print("*********************write to PDF**********************")
-            savetos3(writer, requestno + division.get('division')+'.pdf', 'EDU-2022-12345', bcgovcode, s3credentials)          
+            with BytesIO() as bytes_stream:
+                writer.write(bytes_stream)
+                print("**************writer.write*****************")
+                bytes_stream.seek(0)
+                zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, bytes_stream, division.get('files'))
     except(Exception) as error:
         print('error with item: ', error)
 
@@ -61,7 +69,7 @@ def getdocumentbytearray(message, s3credentials):
         print("error in getting the bytearray >> ",error)
         raise
 
-def uploadstitchedpdf(filename, bytesarray, requestnumber, bcgovcode, s3credentials):
+def uploadzipfile(filename, bytesarray, requestnumber, bcgovcode, s3credentials):
     try:
         print("filename = ", filename)
         docobj = uploadbytes(filename, bytesarray, requestnumber, bcgovcode, s3credentials)
@@ -81,10 +89,23 @@ def mergepdf(raw_bytes_data, writer ):
         print("**************Add Page*****************") 
         writer.add_page(page)
     return writer
-    
-def savetos3(writer, filename, requestnumber, bcgovcode, s3credentials):
-    with BytesIO() as bytes_stream:
-        writer.write(bytes_stream)
-        print("**************writer.write*****************") 
-        bytes_stream.seek(0)
-        uploadstitchedpdf(filename, bytes_stream, requestnumber, bcgovcode, s3credentials)
+
+def zipfiles(filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files):
+    archive = BytesIO()
+
+    with ZipFile(archive, 'w') as zip_archive:
+        # zip stitched pdf first
+        with zip_archive.open(filename+'.pdf', 'w') as archivefile:
+            archivefile.write(stitchedpdfstream.getbuffer())
+        # zip any non pdf files
+        for file in files:
+            _, extension = path.splitext(file.get('s3filepath'))
+            if extension not in ['.pdf']:
+                with zip_archive.open(file.get('filename'), 'w') as archivefile:
+                    _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
+                    _message = _message.replace("b'","'").replace("'",'')
+                    producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)
+                    archivefile.write(getdocumentbytearray(producermessage, s3credentials))
+
+
+    uploadzipfile(filename+'.zip', archive.getbuffer(), requestnumber, bcgovcode, s3credentials)

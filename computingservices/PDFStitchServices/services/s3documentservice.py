@@ -67,11 +67,8 @@ def gets3documentbytearray(producermessage, s3credentials):
                     aws_host=pdfstitch_s3_host,
                     aws_region=pdfstitch_s3_region,
                     aws_service=pdfstitch_s3_service)
-    _filename, extension = path.splitext(producermessage.filename)
     filepath = producermessage.s3filepath
-    if extension in ['.pdf']:
-        filepath = path.splitext(filepath)[0] + extension
-    response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
+    response= requests.get(filepath, auth=auth,stream=True)
     return response.content
 
 def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
