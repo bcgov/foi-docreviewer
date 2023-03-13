@@ -1,5 +1,6 @@
 
 from .s3documentservice import gets3documentbytearray, uploadbytes, getcredentialsbybcgovcode
+from utils import add_numbering_to_pdf
 from . import jsonmessageparser
 import traceback
 from pypdf import PdfReader, PdfWriter
@@ -13,12 +14,8 @@ from os import path
 def processmessage(_message):
     decoder = json.JSONDecoder()
     requestnumber = _message.requestnumber
-    print("requestnumber === ",requestnumber)
     bcgovcode = _message.bcgovcode
-    print("bcgovcode === ",bcgovcode)
-    attributes = decoder.decode(_message.attributes)    
-    print("attributes === ",attributes)
-    print("attributes length = ", len(attributes))
+    attributes = decoder.decode(_message.attributes)
     s3credentials = getcredentialsbybcgovcode(bcgovcode)
  
     try:
@@ -55,9 +52,10 @@ def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
             print("*********************write to PDF**********************")
             with BytesIO() as bytes_stream:
                 writer.write(bytes_stream)
-                print("**************writer.write*****************")
                 bytes_stream.seek(0)
-                zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, bytes_stream, division.get('files'))
+                paginationtext = requestno + "| page [x] of [totalpages]"
+                numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
+                zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, numberedpdfbytes, division.get('files'))
     except(Exception) as error:
         print('error with item: ', error)
 
@@ -96,7 +94,7 @@ def zipfiles(filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstrea
     with ZipFile(archive, 'w') as zip_archive:
         # zip stitched pdf first
         with zip_archive.open(filename+'.pdf', 'w') as archivefile:
-            archivefile.write(stitchedpdfstream.getbuffer())
+            archivefile.write(stitchedpdfstream)
         # zip any non pdf files
         for file in files:
             _, extension = path.splitext(file.get('s3filepath'))
