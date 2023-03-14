@@ -2,6 +2,7 @@ __pycache__/
 
 api/env
 api/src
+api/.env
 
 .env
 dev.env

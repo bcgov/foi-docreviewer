@@ -1,1 +1,2 @@
-from utils import hashcalculator as foidedupehashcalulator, jsonmessageparser,getdbconnection,gets3credentialsobject
+from utils import jsonmessageparser,getdbconnection,gets3credentialsobject
+from .pdfstichservice import processmessage

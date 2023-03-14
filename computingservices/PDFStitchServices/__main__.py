@@ -1,6 +1,6 @@
-from services import foiredispdfstitchconsumer
+from rstreamio import linearharmspdfstitchconsumer
 
 
 
 if __name__ == '__main__':
-    foiredispdfstitchconsumer.app()
+    linearharmspdfstitchconsumer.app()
