@@ -67,7 +67,7 @@ def upgrade():
             {"section":"s. 3 - CA s. 64","description":"Application of FOIPPA, Coroner's Act","isactive":True, "createdby": "System","sortorder":22},
             {"section":"s. 3 - FMEA s. 43","description":"Confidential Information, Family Maintenance Enforcement Act","isactive":True, "createdby": "System","sortorder":23},
             {"section":"s. 3 - PA","description":"Police Act","isactive":True, "createdby": "System","sortorder":24},
-            {"section":"s. 14","description":"Blank Code - CFD Personals","isactive":True, "createdby": "System","sortorder":25},
+            {"section":"","description":"Blank Code - CFD Personals","isactive":True, "createdby": "System","sortorder":25},
         ]
     )
     # ### end Alembic commands ###

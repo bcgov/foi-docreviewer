@@ -17,7 +17,6 @@ class annotationservice:
     """
     def getannotations(self, documentid, documentversion, pagenumber):
         annotations = Annotation.getannotations(documentid, documentversion)
-        print("annotations",annotations)
         annotationlist = []
         for entry in annotations:
             #entry['created_at'] = datetimehandler().convert_to_pst(entry['created_at'], self.__getdateformat())    
