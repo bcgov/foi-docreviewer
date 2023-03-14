@@ -142,10 +142,15 @@ export const fetchSections = (
 }
 
 export const fetchPageFlagsMasterData = (
+  foiministryrquestid:string,
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_GET_ALL_PAGEFLAGS}`
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_GET_ALL_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  );
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -168,6 +173,7 @@ export const savePageFlag = (
   flagid: number,
   callback: any,
   errorCallback: any,
+  publicbodyaction? : string,
   other? : string,
   programareaid? : number,
 ) => {
@@ -180,12 +186,13 @@ export const savePageFlag = (
     {
       "page": pagenumber,
       "flagid": flagid,
+      "publicbodyaction":publicbodyaction,
       "programareaid":programareaid,
       "other":other
     }
   : {
     "page": pagenumber,
-    "flagid": flagid
+    "flagid": flagid,
     }
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {

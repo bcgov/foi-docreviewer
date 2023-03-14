@@ -19,10 +19,6 @@
     margin-right:12px;
 }
 
-.MuiMenuItem-root{
-    font-size: 14px !important;
-}
-
 .MuiList-padding{
     padding: 4px !important;
 }
@@ -30,7 +26,8 @@
 .ministryCodeModal {
     margin:16px 0px;
     font-size: 14px;
-    min-width: 130px;
+    max-width: 150px;
+    max-height: 450px;
 }
 
 .btnenabled {
@@ -69,9 +66,7 @@
 }
 
 #consult-modal-description {
-    // padding-left: 50px;
     display: flex;
-    /* text-align: center; */
     justify-content: center;
     color: black; 
 }
@@ -101,7 +96,10 @@
 }
 
 .MuiMenuItem-root {
+    font-size: 14px !important;
     font-family: "BCSans-Regular", sans-serif !important;
+    overflow-wrap: break-word;
+    white-space: break-spaces !important;
 }
 .PrivateNotchedOutline-legendLabelled-4 {
     font-size: 0.80rem !important;
@@ -118,5 +116,16 @@
 .pageLeftOff {
     margin-left: 16px;
     cursor: pointer;
+}
+
+.MuiTreeItem-label {
+    //max-width:20ch;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.MuiTreeItem-iconContainer {
+    color: #808080;
 }
 

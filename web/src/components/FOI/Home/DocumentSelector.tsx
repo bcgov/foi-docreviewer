@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip";
 import TreeView from '@mui/lab/TreeView';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import TreeItem from '@mui/lab/TreeItem';
+import TreeItem, { treeItemClasses } from "@mui/lab/TreeItem";
 import SearchIcon from "@material-ui/icons/Search";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputBase from "@mui/material/InputBase";
@@ -11,7 +11,7 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Grid from "@material-ui/core/Grid";
 import Stack from "@mui/material/Stack";
-
+import OutlinedInput from '@mui/material/OutlinedInput';
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import Popover from "@material-ui/core/Popover";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
@@ -27,6 +27,7 @@ import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
 import ConsultModal from "./ConsultModal";
+import { styled } from "@mui/material/styles";
 
 
 const DocumentSelector = ({
@@ -38,7 +39,6 @@ const DocumentSelector = ({
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [openConsultPopup, setOpenConsultPopup] = useState(false)
-    //const [popoverOpen, setPopoverOpen] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [orgListAnchorPosition, setOrgListAnchorPosition] = useState<any>(undefined);
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
@@ -53,10 +53,12 @@ const DocumentSelector = ({
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [filesForDisplay1, setFilesForDisplay1] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState([]);
+    
 
 
     useEffect(() => {
         fetchPageFlagsMasterData(
+            requestid,
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
@@ -64,6 +66,11 @@ const DocumentSelector = ({
 
     useEffect(() => {
         setPageFlagChanged(false);
+        fetchPageFlagsMasterData(
+            requestid,
+            (data: any) => setPageData(data),
+            (error: any) => console.log(error)
+        );
         fetchPageFlag(
             requestid,
           (data: any) => updatePageFlag(data),
@@ -81,35 +88,35 @@ const DocumentSelector = ({
     }
 
     const setPageData = (data:any) => {
-        console.log("Data:",data.find((flag: any) => flag.name === 'Consult').programareas)
         setConsultMinistries(data.find((flag: any) => flag.name === 'Consult').programareas);
         setPageFlagList(data);
     }
 
     const updatePageFlag = (resp: any)=> {
         setPageFlags(resp);
-        setAdditionalData();
+        //setAdditionalData();
     }
 
     const setAdditionalData = ()=> {
         filesForDisplay1.forEach((file1: any) => {
             pageFlags?.forEach((pageFlag1: any) => {
                 if(file1.documentid == pageFlag1?.documentid){
-                    let consultDetails: any = pageFlag1?.pageflag?.filter((flag1: any) => flag1.flagid == 4 && (flag1.programareaid || flag1.other));
+                    console.log("pageFlag1?.pageflag",pageFlag1?.pageflag)
+                    let consultDetails: any = pageFlag1?.pageflag?.filter((flag1: any) => (flag1.programareaid || flag1.other));
                     if(consultDetails?.length >0){
                         consultDetails.forEach((consult: any)=> {
-                            console.log("@@", consultMinistries)
                             let ministryCode: any= consultMinistries?.find((ministry: any) => ministry.programareaid === consult.programareaid);
-                            console.log("ministryCode:", ministryCode?.iaocode)
                             if(ministryCode)
                                 consult['iaocode']= ministryCode.iaocode;
                         })
                         file1.consult = consultDetails;
                     }
+                    else{
+                        delete file1.consult;
+                    }
                 }
             })
         });
-        console.log("DISPLAY FILES:",filesForDisplay1);
         setFilesForDisplay1(filesForDisplay1);
     }
 
@@ -119,25 +126,25 @@ const DocumentSelector = ({
 
     const assignIcon = (pageFlag: any) => {
         switch (pageFlag) {
-            case 0:
+            case 1:
             case "Partial Disclosure":
                 return faCircleHalfStroke;
-            case 1:
+            case 2:
             case "Full Disclosure":
                 return faCircle;
-            case 2:
+            case 3:
             case "Withheld in Full":
                 return filledCircle;
-            case 3:
+            case 4:
             case "Consult":
                 return faCircleQuestion;
-            case 4:
+            case 5:
             case "Duplicate":
                 return faCircleStop;
-            case 5:
+            case 6:
             case "Not Responsive":
                 return faCircleXmark;
-            case 6:
+            case 7:
             case "Page Left Off":
                 return faBookmark;
             default:
@@ -147,7 +154,6 @@ const DocumentSelector = ({
 
     //Revisit this method & assign icons when fetching itself!!
     const assignPageIcon = (docId: number, page: number) => {
-        console.log("Inside assignPageIcon! ")
         let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
         let pageFlagObj = docs?.pageflag?.find((flag: any) => flag.page === page);
         return assignIcon(pageFlagObj?.flagid);
@@ -179,7 +185,7 @@ const DocumentSelector = ({
         return pages;
     }
 
-    const selectTreeItem = (file: any, page: number) => {
+    const selectStyledTreeItem = (file: any, page: number) => {
         setCurrentPageInfo({ 'file': file, 'page': page });
         localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
     };
@@ -194,10 +200,22 @@ const DocumentSelector = ({
 
     const ministryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.programareas?.map((programarea: any, index: number) => {
         return (
-            <div onClick={() => savePageFlags(pageFlag.pageflagid, documentId, documentVersion, "", programarea?.programareaid)}>
+            <div onClick={() => savePageFlags(pageFlag.pageflagid, documentId, documentVersion, "", "", programarea?.programareaid)}>
                 <MenuList key={programarea?.programareaid}>
                     <MenuItem>
                         {programarea?.iaocode}
+                    </MenuItem>
+                </MenuList>
+            </div>
+        )
+    })
+
+    const otherMinistryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.others?.map((other: any, index: number) => {
+        return (
+            <div onClick={() => savePageFlags(pageFlag.pageflagid, documentId, documentVersion,"",other)}>
+                <MenuList key={index}>
+                    <MenuItem>
+                        {other}
                     </MenuItem>
                 </MenuList>
             </div>
@@ -212,7 +230,7 @@ const DocumentSelector = ({
         setOpenConsultPopup(true)
     };
 
-    const savePageFlags = (flagId: number, documentid: number, documentversion: number, other?: string, programareaid?: number) => {
+    const savePageFlags = (flagId: number, documentid: number, documentversion: number, publicbodyaction? : string, other?: string, programareaid?: number) => {
         setOpenConsultPopup(false);
         setOpenContextPopup(false);
         savePageFlag(
@@ -223,6 +241,7 @@ const DocumentSelector = ({
             flagId,
             (data: any) => setPageFlagChanged(true),
             (error: any) => console.log(error),
+            publicbodyaction,
             other,
             programareaid
         );
@@ -233,7 +252,6 @@ const DocumentSelector = ({
         setFlagId(flagId);
         setDocumentId(documentId);
         setDocumentVersion(documentVersion);
-        console.log("Open Modal:", openModal);
     }
 
     const closePopup = ()=>{
@@ -289,6 +307,7 @@ const DocumentSelector = ({
                                 >
                                 <div className='ministryCodeModal' >
                                     {ministryOrgCodes(pageFlag, file.documentid, file.version)}
+                                    {otherMinistryOrgCodes(pageFlag, file.documentid, file.version)}
                                     <div style={{ margin: ' 3px 16px' }} onClick={() => addOtherPublicBody(pageFlag.pageflagid, file.documentid, file.version)}>
                                         <span style={{ marginRight: '10px' }}>
                                             <FontAwesomeIcon icon={faCirclePlus as IconProp} size='1x' />
@@ -454,9 +473,9 @@ const DocumentSelector = ({
                                         arrow
                                         key={i}
                                     >
-                                        <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={() => selectTreeItem(file, 1)} >
+                                        <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={() => selectStyledTreeItem(file, 1)} >
                                             {[...Array(file.pagecount)].map((_x, p) =>
-                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={index} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, 1) as IconProp} size='1x' />} label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
+                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={index} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, 1) as IconProp} size='1x' />} label={`Page ${p + 1}`} onClick={() => selectStyledTreeItem(file, p + 1)} />
                                             )
                                             }
                                             {ContextMenu(file)}
@@ -482,17 +501,17 @@ const DocumentSelector = ({
                                 key={index}
                             >
                             { file.consult ?
-                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={() => selectTreeItem(file, 1)} >
+                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={() => selectStyledTreeItem(file, 1)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={index} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, 1) as IconProp} size='1x' />} 
-                                            label={`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={openContextMenu} />
+                                            label={`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`} onClick={() => selectStyledTreeItem(file, p + 1)} onContextMenu={openContextMenu} />
                                     )}
                                     {ContextMenu(file)}
                                 </TreeItem> :
-                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={() => selectTreeItem(file, 1)} >
+                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={() => selectStyledTreeItem(file, 1)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
                                     <TreeItem nodeId={`file${index}page${p + 1}`} key={index} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, 1) as IconProp} size='1x' />} 
-                                    label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={openContextMenu} />
+                                    label={`Page ${p + 1}`} onClick={() => selectStyledTreeItem(file, p + 1)} onContextMenu={openContextMenu} />
                                     )}
                                     {ContextMenu(file)}
                                 </TreeItem>
@@ -501,6 +520,7 @@ const DocumentSelector = ({
                         )}
                 </TreeView>
             </Stack>
+                    
             </div>
             {openModal &&
                 <ConsultModal

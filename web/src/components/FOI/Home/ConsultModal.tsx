@@ -5,9 +5,9 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
-import TextField from '@material-ui/core/TextField';
 import IconButton from "@mui/material/IconButton";
 import { makeStyles } from '@material-ui/core/styles';
+import TextField from '@mui/material/TextField';
 
 
 const ConsultModal = ({
@@ -44,6 +44,7 @@ const ConsultModal = ({
                 savePageFlags(flagId,
                     documentId,
                     documentVersion,
+                    "add",
                     newConsultBody
                     );
             }
@@ -80,13 +81,12 @@ const ConsultModal = ({
                 <DialogContentText id="consult-modal-description" component={'span'}>
                     <div className={`row other-pb-modal-message`}>
                         <TextField
-                            id="outlined-required"
+                            id="new-public-body"
                             label="Type Name of Other Public Body for Consult"
                             placeholder='Type Other Public Body Name'
                             inputProps={{ "aria-labelledby": "otherPublicBody-label" , maxLength: 100 }}
                             InputLabelProps={{ shrink: true}}
-                            variant="outlined"
-                            fullWidth
+                            focused
                             value={newConsultBody || ''}
                             onChange={updateConsultBody}
                             error={newConsultBody?.length >100}
@@ -109,7 +109,7 @@ const ConsultModal = ({
             </DialogActions>
         </Dialog >
         </div >
-
+       
 
 
     )
