@@ -10,14 +10,6 @@ from reportlab.lib.pagesizes import A4, letter
 from pypdf import PdfReader, PdfWriter
 import os
 
-
-standard_fonts = (
-    "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique",
-    "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
-    "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
-    "Symbol", "ZapfDingbats",
-)
-
 position_to_width = {
     "left": 10,
     "center": 38,
@@ -44,7 +36,7 @@ def get_parameters_for_numbering(original_pdf,paginationtext, position, start_pa
     return {
         "paginationtext": paginationtext,
         "width_of_pages": get_width_of_pages(original_pdf, position),
-        "height": 76 * mm,
+        "height": 70.5 * mm,
         "start_page": start_page - 1,
         "end_page": end_page or len(original_pdf.pages) + 1,
         "start_index": start_index,

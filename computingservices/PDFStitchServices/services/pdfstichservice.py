@@ -1,6 +1,6 @@
 
 from .s3documentservice import gets3documentbytearray, uploadbytes, getcredentialsbybcgovcode
-from utils import add_numbering_to_pdf
+from utils import add_numbering_to_pdf, add_spacing_around_special_character
 from . import jsonmessageparser
 import traceback
 from pypdf import PdfReader, PdfWriter
@@ -53,7 +53,7 @@ def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
             with BytesIO() as bytes_stream:
                 writer.write(bytes_stream)
                 bytes_stream.seek(0)
-                paginationtext = requestno + "| page [x] of [totalpages]"
+                paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
                 numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
                 zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, numberedpdfbytes, division.get('files'))
     except(Exception) as error:
