@@ -202,16 +202,14 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string = "",
-  documentid: number = 1,
-  documentversion: number = 1,
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = replaceUrl(replaceUrl(replaceUrl(
+  let apiUrlGet: string = replaceUrl(
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ), "<documentid>", documentid), "<documentversion>",documentversion);
+  );
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {

@@ -7,6 +7,6 @@ const API = {
     DOCREVIEWER_SECTIONS:`${DOCREVIEWER_BASE_API_URL}/api/sections/ministryrequest/<ministryrequestid>`,
     DOCREVIEWER_GET_ALL_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/pageflags`,
     DOCREVIEWER_POST_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag`,
-    DOCREVIEWER_GET_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag`,
+    DOCREVIEWER_GET_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/ministryrequest/<requestid>/pageflag`,
 };
 export default API;

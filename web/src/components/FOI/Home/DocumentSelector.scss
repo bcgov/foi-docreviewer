@@ -14,7 +14,7 @@
     }
 }
 
-.leftOffFlag {
+.pageLeftOffIcon {
     float: right;
     margin-right:12px;
 }
@@ -109,5 +109,14 @@
 
 .style-float{
     float: right;
+}
+
+.hrStyle {
+    margin: 10px 0px;
+}
+
+.pageLeftOff {
+    margin-left: 16px;
+    cursor: pointer;
 }
 

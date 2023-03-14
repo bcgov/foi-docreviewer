@@ -38,6 +38,7 @@ const ConsultModal = ({
             setErrorMessage("Character limit cannot exceeded.")
         }
         else{
+            setOpenModal(false);
             setNewConsultBody(newConsultBody);
             if(newConsultBody){
                 savePageFlags(flagId,
@@ -51,8 +52,8 @@ const ConsultModal = ({
 
     const updateConsultBody = (e:any) => {
         console.log("newConsultBody:",e.target.value);
-        if(e.target.value?.length >100 || e.target.value?.length <=0 ){
-            setErrorMessage("Character limit should be between 0-100.")
+        if(e.target.value?.length >100){
+            setErrorMessage("Character limit exceeded.")
         }
         else{
             setNewConsultBody(e.target.value);
@@ -82,7 +83,7 @@ const ConsultModal = ({
                             id="outlined-required"
                             label="Type Name of Other Public Body for Consult"
                             placeholder='Type Other Public Body Name'
-                            inputProps={{ "aria-labelledby": "otherPublicBody-label" }}
+                            inputProps={{ "aria-labelledby": "otherPublicBody-label" , maxLength: 100 }}
                             InputLabelProps={{ shrink: true}}
                             variant="outlined"
                             fullWidth
@@ -96,7 +97,9 @@ const ConsultModal = ({
             </DialogContent>
             <DialogActions>
                 {/* <div className='consult-modal-margin'> */}
-                    <button className={`btn-bottom btn-save btnenabled`} onClick={() => saveNewCode(newConsultBody)}>
+                    <button className={`btn-bottom btn-save btnenabled`} 
+                    disabled={newConsultBody?.length <=0}
+                    onClick={() => saveNewCode(newConsultBody)}>
                         Save
                     </button>
                     <button className="btn-bottom btn-cancel" onClick={() => setOpenModal(false)}>
