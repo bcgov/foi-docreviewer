@@ -23,10 +23,6 @@ class Pageflag(db.Model):
         query = db.session.query(Pageflag).filter_by(isactive=True).order_by(Pageflag.sortorder.asc()).all()
         return pageflag_schema.dump(query)
     
-    @classmethod
-    def getpageid(cls, name):
-        pageflagid = db.session.query(Pageflag.pageflagid).filter(and_(Pageflag.name == name, Pageflag.isactive == True)).one()
-        return pageflagid[0]
 
 class PageflagSchema(ma.Schema):
     class Meta:

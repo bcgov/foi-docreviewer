@@ -19,7 +19,7 @@ class pageflagservice:
     def getpageflag_by_request(self, requestid):
         pageflags = Pageflag.getall()
         programareas = ProgramArea.getprogramareas()  
-        data = documentpageflagservice().getpageflags(requestid)      
+        data = documentpageflagservice().getpublicbody(requestid)      
         for entry in pageflags:
             if entry["name"] == "Consult":
                 entry["programareas"] = programareas
@@ -29,10 +29,11 @@ class pageflagservice:
     
     def __getadditionlflags(self, data):
         others = []
-        consultid = Pageflag.getpageid("Consult")       
         for entry in data:
-            for pageflag in entry["pageflag"]:
-                if pageflag["flagid"] == consultid and "other" in pageflag:
-                    if pageflag["other"] not in others:
-                        others.append(pageflag["other"])  
+            _attributes = entry["attributes"]
+            _publicbody = _attributes["publicbody"] if _attributes is not None and "publicbody" in _attributes else None
+            if _publicbody is not None:
+                for entry in _publicbody:
+                    if entry["name"] not in others:
+                        others.append(entry["name"])  
         return others  

@@ -19,6 +19,7 @@ class DocumentPageflag(db.Model):
     documentid = db.Column(db.Integer, ForeignKey('Documents.documentid')) 
     documentversion = db.Column(db.Integer, ForeignKey('Documents.version')) 
     pageflag = db.Column(db.Text, unique=False, nullable=False)  
+    attributes = db.Column(db.Text, unique=False, nullable=False)  
     createdby = db.Column(db.Text, unique=False, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime2.now)
     updatedby = db.Column(db.Text, unique=False, nullable=True)
@@ -58,6 +59,23 @@ class DocumentPageflag(db.Model):
             raise ex
         finally:
             db.session.close()
+
+    @classmethod
+    def savepublicbody(cls, _foiministryrequestid, _documentid, _documentversion, _attributes, userinfo)->DefaultMethodResult:
+        try:
+            dbquery = db.session.query(DocumentPageflag)
+            pageflag = dbquery.filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion))
+            if(pageflag.count() > 0) :
+                pageflag.update({DocumentPageflag.attributes:_attributes, DocumentPageflag.updated_at:datetime.now(), DocumentPageflag.updatedby:userinfo}, synchronize_session = False)
+                db.session.commit()
+                return DefaultMethodResult(True,'Public body is saved', _documentid)
+            else:
+                return DefaultMethodResult(False,'Public body does not exists',-1)   
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
     
     @classmethod
     def getpageflag(cls,  _foiministryrequestid, _documentid, _documentversion):
@@ -82,7 +100,25 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
         return pageflags
+    
+    @classmethod
+    def getpublicbody_by_request(cls,  _foiministryrequestid):
+        pageflags = []
+        try:              
+            sql = """select distinct on (documentid) documentid, attributes from "DocumentPageflags" dp  
+                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
+                    """
+            rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid})
+        
+            for row in rs:
+                pageflags.append({"documentid":row["documentid"],"attributes":row["attributes"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return pageflags
 
 class DocumentPageflagSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'foiministryrequestid', 'documentid','documentversion','pageflag','createdby','created_at','updatedby','updated_at')
+        fields = ('id', 'foiministryrequestid', 'documentid','documentversion','pageflag','attributes','createdby','created_at','updatedby','updated_at')
