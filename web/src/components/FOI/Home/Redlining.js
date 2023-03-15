@@ -14,6 +14,7 @@ import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-lin
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
+import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 
 const Redlining = ({
   currentPageInfo,
@@ -68,14 +69,7 @@ const Redlining = ({
       viewer.current,
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
-      instance.UI.disableElements(['toolbarGroup-Edit']);
-      instance.UI.disableElements(['toolbarGroup-Insert']);
-      instance.UI.disableElements(['toolbarGroup-Forms']);
-      instance.UI.disableElements(['toolbarGroup-FillAndSign']);
-      instance.UI.disableElements([ 'thumbDelete' ]);
-      instance.UI.disableElements([ 'deletePage' ]);
-      instance.UI.disableElements([ 'replacePage' ]);
-      instance.UI.disableElements([ 'insertPage' ]);
+      instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
       
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
@@ -249,6 +243,7 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false);
+    setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     let redaction = annotManager.getAnnotationById(redactionObj.name);
@@ -439,6 +434,7 @@ const Redlining = ({
   const cancelRedaction = () => {
     setModalOpen(false);
     setSelectedSections([]);
+    setSaveDisabled(true);
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
     setEditAnnot(null);
