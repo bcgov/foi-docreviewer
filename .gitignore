@@ -2,10 +2,12 @@ __pycache__/
 
 api/env
 api/src
+api/.env
 
 .env
 dev.env
 test.env
+demo.env
 
 *.pyc
 
@@ -22,6 +24,7 @@ web/build
 */env
 computingservices/poc/env/*
 computingservices/DedupeServices/env/*
+computingservices/PDFStitchServices/env/*
 
 
 ################################################################################

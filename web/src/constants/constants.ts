@@ -12,5 +12,7 @@ export const KEYCLOAK_AUTH_URL = `${KEYCLOAK_URL}/auth`;
 export const ANONYMOUS_USER = "anonymous";
 export const SESSION_SECURITY_KEY = "u7x!A%D*G-KaNdRgUkXp2s5v8y/B?E(H";
 export const SESSION_LIFETIME = 21600000;
-
+export const PDFVIEWER_DISABLED_FEATURES=(window._env_ && window._env_.REACT_APP_PDFVIEWERDISABLED) ||
+process.env.REACT_APP_PDFVIEWERDISABLED ||
+"toolbarGroup-Edit,toolbarGroup-Insert,toolbarGroup-Forms,toolbarGroup-FillAndSign,insertPage";
 

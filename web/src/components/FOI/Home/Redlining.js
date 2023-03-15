@@ -14,6 +14,7 @@ import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-lin
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
+import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 
 const Redlining = ({
   currentPageInfo,
@@ -34,6 +35,7 @@ const Redlining = ({
   const [newRedaction, setNewRedaction] = useState(null);
   const [saveAnnot, setSaveAnnot] = useState(null);
   const [deleteAnnot, setDeleteAnnot] = useState(null);
+  const [deleteQueue, setDeleteQueue] = useState([]);
   const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
   const [defaultSections, setDefaultSections] = useState([]);
@@ -67,6 +69,8 @@ const Redlining = ({
       viewer.current,
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
+      instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
+      
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
         return (
@@ -178,12 +182,25 @@ const Redlining = ({
           //parse annotation xml
           let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
           let annots = jObj.getElementsByTagName("annots");
-          let annot = annots[0].children[0];
-
           if(action === 'delete') {
-            setDeleteAnnot({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+            let annotObjs = []
+            for (let annot of annots[0].children) {
+              if (annot.name === 'redact') {
+                annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              } else {
+                deleteAnnotation(
+                  localDocumentInfo['file']['documentid'],
+                  localDocumentInfo['file']['version'],
+                  annot.attributes.name,
+                  (data)=>{console.log(data)},
+                  (error)=>{console.log(error)}
+                );
+              }
+            }
+            setDeleteQueue(annotObjs);
           } 
           else if (action === 'add') {
+            let annot = annots[0].children[0];
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
@@ -218,7 +235,6 @@ const Redlining = ({
         );
     }
     //change page from document selector
-    localStorage.setItem("isDocumentLoaded", "true");
     let isDocLoaded = localStorage.getItem("isDocumentLoaded");
     if(isDocLoaded === 'true')
       docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
@@ -226,6 +242,7 @@ const Redlining = ({
 
   const saveRedaction = () => {
     setModalOpen(false);
+    setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     let redaction = annotManager.getAnnotationById(redactionObj.name);
@@ -239,7 +256,7 @@ const Redlining = ({
     }
     if(editAnnot){
       let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
-      var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
+      var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
       childRedaction.setContents(redactionSections);
       const doc = docViewer.getDocument();
       const pageNumber = parseInt(editAnnot.page) + 1;
@@ -251,8 +268,8 @@ const Redlining = ({
       let _annotationtring = annotManager.exportAnnotations({annotList: [childRedaction], useDisplayAuthor: true})
       let sectn = {
         "foiministryrequestid": 1,
-        "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
-        "redactannotation": parentAnnotation
+        "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section})),
+        "redactannotation": editAnnot.name
       }
       _annotationtring.then(astr=>{
         //parse annotation xml
@@ -299,9 +316,14 @@ const Redlining = ({
     annot.StrokeThickness = 0;
     annot.Author = user?.name || user?.preferred_username || "";
     let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
-    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id.toString()) > -1).map(s => s.section).join(", ");
+    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
     annot.setAutoSizeType('auto');
     annot.setContents(redactionSections);
+    const doc = docViewer.getDocument();
+    const pageInfo = doc.getPageInfo(annot.PageNumber);
+    const pageMatrix = doc.getPageMatrix(annot.PageNumber);
+    const pageRotation = doc.getPageRotation(annot.PageNumber);
+    annot.fitText(pageInfo, pageMatrix, pageRotation);
 
     annotManager.addAnnotation(annot);
     // Always redraw annotation
@@ -309,7 +331,7 @@ const Redlining = ({
     // setNewRedaction(null)
     redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});    
     for(let id of redactionSectionsIds) {
-      sections.find(s => s.id.toString() === id).count++;
+      sections.find(s => s.id === id).count++;
     }
     }
   }
@@ -327,38 +349,40 @@ const Redlining = ({
 
   useEffect(() => {
     if (editAnnot) {
-      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id.toString()))
+      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id))
       setModalOpen(true);
     }
   }, [editAnnot])
 
   useEffect(() => {
-    if (deleteAnnot && deleteAnnot.name !== newRedaction?.name) {
-      let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-      deleteAnnotation(
-        localDocumentInfo['file']['documentid'],
-        localDocumentInfo['file']['version'],
-        deleteAnnot.name,
-        (data)=>{console.log(data)},
-        (error)=>{console.log(error)}
-      );
-      setNewRedaction(null)
+    while (deleteQueue?.length > 0) {
+      var annot = deleteQueue.pop();
+      if (annot && annot.name !== newRedaction?.name) {
+        let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        deleteAnnotation(
+          localDocumentInfo['file']['documentid'],
+          localDocumentInfo['file']['version'],
+          annot.name,
+          (data)=>{console.log(data)},
+          (error)=>{console.log(error)}
+        );
 
-      if (deleteAnnot.type === 'redact' && redactionInfo) {
-        let i = redactionInfo.findIndex(a => a.annotationname === deleteAnnot.name);
-        if(i >= 0){
-          let childSections = redactionInfo[i].sections.annotationname;
-          let sectionids = redactionInfo[i].sections.ids;
-          for(let id of sectionids) {
-            sections.find(s => s.id.toString() === id).count--;
+        if (annot.type === 'redact' && redactionInfo) {
+          let i = redactionInfo.findIndex(a => a.annotationname === annot.name);
+          if(i >= 0){
+            let childSections = redactionInfo[i].sections.annotationname;
+            let sectionids = redactionInfo[i].sections.ids;
+            for(let id of sectionids) {
+              sections.find(s => s.id === id).count--;
+            }
+            redactionInfo.splice(i, 1);
+            annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
           }
-          redactionInfo.splice(i, 1);
-          annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
         }
       }
+      setNewRedaction(null)
     }
-    setDeleteAnnot(null)
-  }, [deleteAnnot, newRedaction])
+  }, [deleteQueue, newRedaction])
 
   useEffect(() => {
     if (saveAnnot) {
@@ -385,7 +409,7 @@ const Redlining = ({
       } else {
         let sectn = {
           "foiministryrequestid": requestid,
-          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id.toString()) > -1).map((s) => ({"id":s.id, "section":s.section})),
+          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section})),
           "redactannotation": parentAnnotation
         }
         // add the parent annotation info to section annotation
@@ -409,9 +433,9 @@ const Redlining = ({
   const cancelRedaction = () => {
     setModalOpen(false);
     setSelectedSections([]);
+    setSaveDisabled(true);
     if(newRedaction != null)
       annotManager.deleteAnnotation(annotManager.getAnnotationById(newRedaction.name));
-    setNewRedaction(null);
     setEditAnnot(null);
     // setDeleteAnnot(newRedaction)
   }
@@ -434,9 +458,9 @@ const Redlining = ({
   const handleSectionSelected = (e) => {
     var sectionID = e.target.getAttribute('data-sectionid');
     if (e.target.checked) {
-      selectedSections.push(sectionID);
+      selectedSections.push(Number(sectionID));
     } else {
-      selectedSections.splice(selectedSections.indexOf(sectionID), 1);
+      selectedSections.splice(selectedSections.indexOf(Number(sectionID)), 1);
     }
     setSaveDisabled(selectedSections.length === 0);
   }
@@ -474,7 +498,7 @@ const Redlining = ({
                           id={"section" + section.id}
                           data-sectionid={section.id}
                           onChange={handleSectionSelected}
-                          defaultChecked={selectedSections.includes(section.id.toString())}
+                          defaultChecked={selectedSections.includes(section.id)}
                       />
                       <label key={index} className="check-item">
                         {section.section + ' - ' + section.description}
