@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    op.execute('SELECT setval('"ProgramAreaDivisions_divisionid_seq"', (select max(divisionid) from public."ProgramAreaDivisions"), true);')
+    op.execute('''SELECT setval('"ProgramAreaDivisions_divisionid_seq"', (select max(divisionid) from public."ProgramAreaDivisions"), true);''')
     op.execute('INSERT INTO public."ProgramAreaDivisions"(programareaid, name, isactive, created_at, createdby) VALUES ((select programareaid from public."ProgramAreas" where iaocode=\'PSE\'), \'Deputy Minister’s Office\', true, now(), \'system\');commit;')
     op.execute('INSERT INTO public."ProgramAreaDivisions"(programareaid, name, isactive, created_at, createdby) VALUES ((select programareaid from public."ProgramAreas" where iaocode=\'PSE\'), \'Minister’s Office\', true, now(), \'system\');commit;')
     op.execute('INSERT INTO public."ProgramAreaDivisions"(programareaid, name, isactive, created_at, createdby) VALUES ((select programareaid from public."ProgramAreas" where iaocode=\'PSE\'), \'Finance, Technology & Management Services\', true, now(), \'system\');commit;')
@@ -33,4 +33,4 @@ def downgrade():
     op.execute('delete from public."ProgramAreaDivisions" WHERE name in (\'Governance & Corporate Planning\') and programareaid = (select programareaid from public."ProgramAreas" where iaocode=\'PSE\');commit;')
     op.execute('delete from public."ProgramAreaDivisions" WHERE name in (\'Post-Secondary Policy & Programs\') and programareaid = (select programareaid from public."ProgramAreas" where iaocode=\'PSE\');commit;')
     op.execute('delete from public."ProgramAreaDivisions" WHERE name in (\'Workforce Development & Skills Training\') and programareaid = (select programareaid from public."ProgramAreas" where iaocode=\'PSE\');commit;')
-    op.execute('SELECT setval('"ProgramAreaDivisions_divisionid_seq"', (select max(divisionid) from public."ProgramAreaDivisions"), true);')
+    op.execute('''SELECT setval('"ProgramAreaDivisions_divisionid_seq"', (select max(divisionid) from public."ProgramAreaDivisions"), true);''')
