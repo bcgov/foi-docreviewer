@@ -1,6 +1,6 @@
 
 from .s3documentservice import gets3documentbytearray, uploadbytes, getcredentialsbybcgovcode
-from utils import add_numbering_to_pdf, add_spacing_around_special_character
+from utils import add_numbering_to_pdf, add_spacing_around_special_character, getimagepdf
 from . import jsonmessageparser
 import traceback
 from pypdf import PdfReader, PdfWriter
@@ -23,7 +23,7 @@ def processmessage(_message):
         # loop through the atributes (currently divisions)
         for division in attributes:
             print("division = ",division)
-            # pdfstitchbasedondivision(requestnumber, division, bcgovcode)
+            # pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
             pool.apply_async(pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode))
         
         pool.close()
@@ -39,14 +39,14 @@ def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
         for file in division.get('files'):
             if count < len(division.get('files')):
                 _, extension = path.splitext(file.get('s3filepath'))
-                if extension in ['.pdf']:
+                if extension in ['.pdf','.png','jpg']:
                     print("file = ", file)
                     _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
                     _message = _message.replace("b'","'").replace("'",'')
                     producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)
                     print(file.get('filename'))
                     docbytes = getdocumentbytearray(producermessage, s3credentials)
-                    writer = mergepdf(docbytes, writer)
+                    writer = mergepdf(docbytes, writer, extension)
                 count += 1
         if writer:
             print("*********************write to PDF**********************")
@@ -57,7 +57,8 @@ def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
                 numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
                 zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, numberedpdfbytes, division.get('files'))
     except(Exception) as error:
-        print('error with item: ', error)
+        print('error with file: ', error)
+
 
 def getdocumentbytearray(message, s3credentials):
     try:
@@ -69,7 +70,7 @@ def getdocumentbytearray(message, s3credentials):
 
 def uploadzipfile(filename, bytesarray, requestnumber, bcgovcode, s3credentials):
     try:
-        print("filename = ", filename)
+        print("zipfilename = ", filename)
         docobj = uploadbytes(filename, bytesarray, requestnumber, bcgovcode, s3credentials)
         print(docobj)
         return docobj
@@ -77,11 +78,13 @@ def uploadzipfile(filename, bytesarray, requestnumber, bcgovcode, s3credentials)
         print("error in writing the bytearray >> ", error)
         raise
 
-def mergepdf(raw_bytes_data, writer ):
-    reader = PdfReader(BytesIO(raw_bytes_data))
-    print("**************reader*****************") 
+def mergepdf(raw_bytes_data, writer, extension):
+    if extension in ['.png','jpg']:
+        # process the image bytes        
+        reader =  getimagepdf(raw_bytes_data)
+    else:
+        reader = PdfReader(BytesIO(raw_bytes_data))
     
-    print("**************writer*****************") 
     # Add all pages to the writer
     for page in reader.pages:
         print("**************Add Page*****************") 
@@ -98,7 +101,7 @@ def zipfiles(filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstrea
         # zip any non pdf files
         for file in files:
             _, extension = path.splitext(file.get('s3filepath'))
-            if extension not in ['.pdf']:
+            if extension not in ['.pdf','.png','jpg']:
                 with zip_archive.open(file.get('filename'), 'w') as archivefile:
                     _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
                     _message = _message.replace("b'","'").replace("'",'')

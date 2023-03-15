@@ -5,3 +5,4 @@ from .jsonmessageparser import gets3credentialsobject, getpdfstitchfilesproducer
 from .dbconnection import getdbconnection
 from .pdfnumbering import add_numbering_to_pdf
 from .basicutils import add_spacing_around_special_character
+from .imagetopdf import getimagepdf
