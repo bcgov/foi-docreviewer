@@ -17,8 +17,10 @@ depends_on = None
 
 
 def upgrade():    
+    op.execute('SELECT setval('"ProgramAreas_programareaid_seq"', (select max(programareaid) from public."ProgramAreas"), true);')
     op.execute('INSERT INTO public."ProgramAreas"(name, type, isactive, bcgovcode, iaocode)	VALUES (\'Post-Secondary Education and Future Skills\', \'BC GOV Ministry\', True, \'PSE\', \'PSE\');commit;')
 
 
 def downgrade():
     op.execute('DELETE FROM public."ProgramAreas" WHERE iaocode in (\'PSE\');commit;')
+    op.execute('SELECT setval('"ProgramAreas_programareaid_seq"', (select max(programareaid) from public."ProgramAreas"), true);')
