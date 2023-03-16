@@ -7,11 +7,13 @@ def savedocumentdetails(dedupeproducermessage, hashcode):
     try:
         conn = getdbconnection()
         cursor = conn.cursor()
-        print("incompatible value is {0}".format(dedupeproducermessage.incompatible))
+               
+        _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
+        
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,dedupeproducermessage.incompatible))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
