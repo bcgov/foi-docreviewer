@@ -26,11 +26,16 @@ while True:
             "division":"div1",
             "files":[{"filename":"3eb0b1a5-0022-47ca-8e40-99e050f2c498.pdf","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev/EDU-2022-12345/3eb0b1a5-0022-47ca-8e40-99e050f2c498.pdf"},
                     {"filename":"1a832088-f7b0-4a03-bad3-a98ac3e5aacc.pdf","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev/EDU-2022-12345/1a832088-f7b0-4a03-bad3-a98ac3e5aacc.pdf"},
-                    {"filename":"05d1c907-738b-4ab3-85b7-0170d0cd10f3.pdf","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev/EDU-2022-12345/05d1c907-738b-4ab3-85b7-0170d0cd10f3.pdf"}
+                    {"filename":"download.png","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/EDU-2022-12345/download.png"},
+                    {"filename":"05d1c907-738b-4ab3-85b7-0170d0cd10f3.pdf","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev/EDU-2022-12345/05d1c907-738b-4ab3-85b7-0170d0cd10f3.pdf"},
+                    {"filename":"MicrosoftTeams-image.png","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/EDU-2022-12345/MicrosoftTeams-image.png"},
                     ]
             },
             {"division":"div2",
             "files":[{"filename":"5700f73a-3e6b-4f90-9a89-ac79e70e2940.pdf","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev/EDU-2022-12345/5700f73a-3e6b-4f90-9a89-ac79e70e2940.pdf"}]
+            },
+            {"division":"div3",
+            "files":[{"filename":"download.png","s3filepath":"https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/EDU-2022-12345/download.png"}]
             }
         ])
     }
