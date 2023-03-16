@@ -18,7 +18,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import { fetchPageFlagsMasterData, fetchPageFlag, savePageFlag } from '../../../apiManager/services/docReviewerService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faCircleHalfStroke, faCircle, faCircleQuestion,
+    faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
     faCircleStop, faCircleXmark, faBookmark, faCirclePlus, faAngleRight
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
@@ -141,6 +141,9 @@ const DocumentSelector = ({
             case "Not Responsive":
                 return faCircleXmark;
             case 7:
+            case "In Progress":
+                return faSpinner;
+            case 8:
             case "Page Left Off":
                 return faBookmark;
             default:
@@ -181,7 +184,11 @@ const DocumentSelector = ({
         return pages;
     }
 
-    const selectTreeItem = (file: any, page: number) => {
+    const selectTreeItem = (file: any, page: number, e?:any) => {
+        // console.log("e:",e);
+        // if (e?.shiftKey) {
+        //     console.log("Clicked");
+        // }
         setCurrentPageInfo({ 'file': file, 'page': page });
         localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
     };
@@ -477,14 +484,14 @@ const DocumentSelector = ({
                                         key={i}
                                     >
                                         {/* { file.consult?.length >0 ? */}
-                                            <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={() => selectTreeItem(file, 0)} >
+                                            <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 0, e)} >
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                     (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
                                                     <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />} 
-                                                    label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
+                                                    label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1,e)} />
                                                     :
                                                     <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1}
-                                                    label={`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} />
+                                                    label={`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1,e)} />
                                                     )
                                                     )
                                                 }
@@ -510,13 +517,13 @@ const DocumentSelector = ({
                                 arrow
                             >
                             {/* { file.consult?.length >0 ? */}
-                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={() => selectTreeItem(file, 0)} >
+                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 0, e)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
                                     (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p+1) as IconProp} size='1x' />} 
-                                            label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={() => selectTreeItem(file, p + 1)} onContextMenu={(e) => openContextMenu(file,p+1,e)} /> :
+                                            label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} /> :
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                         onClick={() => selectTreeItem(file, p + 1)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
+                                         onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
                                     )
                                     )}
                                     {ContextMenu(file)}
