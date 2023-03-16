@@ -444,6 +444,17 @@ const DocumentSelector = ({
                     />
                 </Stack>
                 <hr className='hrStyle'/>
+                <div>
+                    <span className='filterText'>
+                        Filter:
+                    </span>
+                    <span>
+                        {pageFlagList.map((item : any) =>
+                            <FontAwesomeIcon title={item.name} className='filterIcons' icon={assignIcon(item.pageflagid) as IconProp} size='1x' />
+                        )}
+                    </span>
+                </div>
+                <hr className='hrStyle'/>
                 <div className='row'>
                     <div className='col-lg-6'>
                         {`Complete: ${completionPercentage}%`}
