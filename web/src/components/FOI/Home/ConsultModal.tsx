@@ -54,7 +54,6 @@ const ConsultModal = ({
     }
 
     const updateConsultBody = (e:any) => {
-        console.log("newConsultBody:",e.target.value);
         if(e.target.value?.length >100){
             setErrorMessage("Character limit exceeded.")
         }

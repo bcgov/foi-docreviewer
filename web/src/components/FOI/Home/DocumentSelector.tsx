@@ -97,7 +97,6 @@ const DocumentSelector = ({
         filesForDisplay.forEach((file1: any) => {
             pageFlags?.forEach((pageFlag1: any) => {
                 if(file1.documentid == pageFlag1?.documentid){
-                    console.log("pageFlag1?.pageflag",pageFlag1?.pageflag);
                     file1.pageFlag =  pageFlag1?.pageflag;
                     let consultDetails: any = pageFlag1?.pageflag?.filter((flag1: any) => (flag1.programareaid || flag1.other));
                     if(consultDetails?.length >0){
