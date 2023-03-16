@@ -24,7 +24,7 @@ def upgrade():
     sa.Column('documentid', sa.Integer(), nullable=False),
     sa.Column('documentversion', sa.Integer(), nullable=False),
     sa.Column('pageflag',  postgresql.JSON(astext_type=sa.Text()), nullable=False),
-    sa.Column('attributes',  postgresql.JSON(astext_type=sa.Text()), nullable=False),
+    sa.Column('attributes',  postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('createdby', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),    

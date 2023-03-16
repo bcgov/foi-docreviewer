@@ -12,6 +12,7 @@ import TextField from '@mui/material/TextField';
 
 const ConsultModal = ({
     flagId,
+    selectedPage,
     documentId,
     documentVersion,
     openModal,
@@ -42,6 +43,7 @@ const ConsultModal = ({
             setNewConsultBody(newConsultBody);
             if(newConsultBody){
                 savePageFlags(flagId,
+                    selectedPage,
                     documentId,
                     documentVersion,
                     "add",

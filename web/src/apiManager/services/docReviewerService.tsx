@@ -169,7 +169,7 @@ export const savePageFlag = (
   foiministryrquestid: string = "",
   documentid: number = 1,
   documentversion: number = 1,
-  pagenumber: number = 0,
+  pagenumber: number,
   flagid: number,
   callback: any,
   errorCallback: any,
