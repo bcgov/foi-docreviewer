@@ -30,6 +30,7 @@ class Document(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
     statusid = db.Column(db.Integer, db.ForeignKey('DocumentStatus.statusid'))
     pagecount = db.Column(db.Integer, nullable=True)
+    incompatible = db.Column(db.Boolean, nullable=True)
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
     documentmaster = relationship("DocumentMaster", backref=backref("DocumentMaster"), uselist=False)
 
@@ -45,7 +46,7 @@ class Document(db.Model):
         ]
 
         #subquery for filtering out duplicates, merging divisions
-        subquery_hashcode = cls.__getoriginalsubquery(foiministryrequestid).add_columns(
+        subquery_hashcode = cls.__getcompatableoriginalsubquery(foiministryrequestid).add_columns(
             func.json_agg(DocumentAttributes.attributes['divisions'][0]).label('divisions'),
         ).join(
             DocumentAttributes, case(
@@ -65,7 +66,7 @@ class Document(db.Model):
             Document.created_at,
             Document.updatedby,
             Document.updated_at,
-            Document.statusid,
+            Document.statusid,           
             DocumentStatus.name.label('status'),
             (func.to_jsonb(DocumentAttributes.attributes).op('||')(func.jsonb_build_object('divisions', subquery_hashcode.c.divisions))).label('attributes'),
             Document.pagecount
@@ -91,7 +92,8 @@ class Document(db.Model):
                                     else_ = DocumentMaster.processingparentid == DocumentAttributes.documentmasterid
                                 )
                             ).filter(
-                                Document.foiministryrequestid == foiministryrequestid,
+                                Document.foiministryrequestid == foiministryrequestid
+                                
                             ).all()
         documents = []
         for row in query:
@@ -253,6 +255,23 @@ class Document(db.Model):
         ).filter(
             Document.foiministryrequestid == requestid,
             DocumentDeleted.deleted == False or DocumentDeleted.deleted == None
+            
+        ).group_by(DocumentHashCodes.rank1hash)
+    
+        # subquery to fetch the earliest uploaded, non-deleted duplicates AND incompatable FALSE in a request
+    def __getcompatableoriginalsubquery(requestid):
+        return db.session.query(
+            func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
+        ).join(
+            Document, Document.documentid == DocumentHashCodes.documentid
+        ).join(
+            DocumentMaster, Document.documentmasterid == DocumentMaster.documentmasterid
+        ).join(
+            DocumentDeleted, DocumentMaster.filepath.contains(DocumentDeleted.filepath), isouter=True
+        ).filter(
+            Document.foiministryrequestid == requestid,
+            DocumentDeleted.deleted == False or DocumentDeleted.deleted == None,
+            Document.incompatible == False
         ).group_by(DocumentHashCodes.rank1hash)
 
 class DocumentSchema(ma.Schema):

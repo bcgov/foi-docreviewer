@@ -19,7 +19,7 @@ class DocumentPageflag(db.Model):
     documentid = db.Column(db.Integer, ForeignKey('Documents.documentid')) 
     documentversion = db.Column(db.Integer, ForeignKey('Documents.version')) 
     pageflag = db.Column(db.Text, unique=False, nullable=False)  
-    attributes = db.Column(db.Text, unique=False, nullable=False)  
+    attributes = db.Column(db.Text, unique=False, nullable=True)  
     createdby = db.Column(db.Text, unique=False, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime2.now)
     updatedby = db.Column(db.Text, unique=False, nullable=True)

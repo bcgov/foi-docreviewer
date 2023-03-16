@@ -18,7 +18,7 @@ class DocumentPageflagSchema(Schema):
     flagid = fields.Int(data_key="flagid",allow_none=False) 
     programareaid = fields.Int(data_key="programareaid",allow_none=True)
     other = fields.Str(data_key="other",allow_none=True)
-
+    publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)
 
 
 class FOIRequestDocumentPageflagSchema(Schema):

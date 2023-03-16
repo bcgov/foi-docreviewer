@@ -13,6 +13,7 @@ services:
         - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}
         - FOI_DOCREVIEWER_BASE_API_URL=${FOI_DOCREVIEWER_BASE_API_URL}
         - REACT_APP_FOI_BASE_API_URL=${REACT_APP_FOI_BASE_API_URL}
+        - REACT_APP_PDFVIEWERDISABLED=${REACT_APP_PDFVIEWERDISABLED}
     volumes:
       - ".:/web"
       - "/web/node_modules"
@@ -64,6 +65,8 @@ services:
       - JWT_OIDC_JWKS_CACHE_TIMEOUT=300
       - CACHE_TIMEOUT=${CACHE_TIMEOUT}
       - FOI_DOCREVIEWER_REDISURL=${FOI_DOCREVIEWER_REDISURL}
+      - FOI_REQ_MANAGEMENT_API_URL=${FOI_REQ_MANAGEMENT_API_URL}
+      - FOI_REQ_MANAGEMENT_API_TIMEOUT=${FOI_REQ_MANAGEMENT_API_TIMEOUT}
       - CACHE_ENABLED=${CACHE_ENABLED}
       - OSS_S3_FORMS_BUCKET=${OSS_S3_FORMS_BUCKET}
       - OSS_S3_FORMS_ACCESS_KEY_ID=${OSS_S3_FORMS_ACCESS_KEY_ID}
@@ -146,6 +149,37 @@ services:
       - DEDUPE_S3_REGION=${DEDUPE_S3_REGION}
       - DEDUPE_S3_SERVICE=${DEDUPE_S3_SERVICE}
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+
+  foi-docreviewer-pdfstitch:
+      container_name: foi-docreviewer-pdfstitch
+      depends_on:
+        - foi-docreviewer-db
+        - foi-docreviewer-redis
+      build:
+        context: ./computingservices/PDFStitchServices
+        dockerfile: Dockerfile.local
+      image: docreviewerpdfstitchimage
+      stdin_open: true
+      tty: true
+      networks:
+        services-network:
+          aliases:
+            - docreviewerdedupe     
+      environment:
+        - REDIS_HOST=${PDFSTITCH_REDIS_HOST}
+        - REDIS_PASSWORD=${PDFSTITCH_REDIS_PASSWORD}
+        - REDIS_PORT=${PDFSTITCH_REDIS_PORT}
+        - DIVISION_PDF_STITCH_STREAM_KEY=${DIVISION_PDF_STITCH_STREAM_KEY}
+        - PDFSTITCH_S3_ENV=${PDFSTITCH_S3_ENV}
+        - PDFSTITCH_DB_HOST=${PDFSTITCH_DB_HOST}
+        - PDFSTITCH_DB_NAME=${PDFSTITCH_DB_NAME}
+        - PDFSTITCH_DB_PORT=${PDFSTITCH_DB_PORT}
+        - PDFSTITCH_DB_USER=${PDFSTITCH_DB_USER}
+        - PDFSTITCH_DB_PASSWORD=${PDFSTITCH_DB_PASSWORD}
+        - PDFSTITCH_S3_HOST=${PDFSTITCH_S3_HOST}
+        - PDFSTITCH_S3_REGION=${PDFSTITCH_S3_REGION}
+        - PDFSTITCH_S3_SERVICE=${PDFSTITCH_S3_SERVICE}
+        - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
 
 volumes:
   dbdata:
