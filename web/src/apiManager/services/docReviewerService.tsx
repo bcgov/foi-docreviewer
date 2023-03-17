@@ -141,6 +141,96 @@ export const fetchSections = (
     });
 }
 
+export const fetchPageFlagsMasterData = (
+  foiministryrquestid:string,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_GET_ALL_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  );
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching pageflags master data");
+    });
+};
+
+export const savePageFlag = (
+  foiministryrquestid: string = "",
+  documentid: number = 1,
+  documentversion: number = 1,
+  pagenumber: number,
+  flagid: number,
+  callback: any,
+  errorCallback: any,
+  publicbodyaction? : string,
+  other? : string,
+  programareaid? : number,
+) => {
+  let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
+    API.DOCREVIEWER_POST_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  ), "<documentid>", documentid), "<documentversion>",documentversion);
+  let requestJSON = (programareaid || other) ?
+    {
+      "page": pagenumber,
+      "flagid": flagid,
+      "publicbodyaction":publicbodyaction,
+      "programareaid":programareaid,
+      "other":other
+    }
+  : {
+    "page": pagenumber,
+    "flagid": flagid,
+    }
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while saving page flag for (doc# ${documentid}, requestid ${foiministryrquestid})`);            
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in saving an page flag");
+    });
+};
+
+export const fetchPageFlag = (
+  foiministryrquestid: string = "",
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_GET_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  );
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching pageflags for a document");
+    });
+};
+
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
 };
