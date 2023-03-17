@@ -6,6 +6,8 @@ import json
 import psycopg2
 import requests
 from aws_requests_auth.aws_auth import AWSRequestsAuth
+from pypdf import PdfReader, PdfWriter
+from io import BytesIO
 import hashlib
 from utils import gets3credentialsobject,getdedupeproducermessage, dedupe_s3_region,dedupe_s3_host,dedupe_s3_service,dedupe_s3_env
 
@@ -33,7 +35,7 @@ def __getcredentialsbybcgovcode(bcgovcode):
 def gets3documenthashcode(producermessage): 
     
     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)
-
+    pagecount = 1
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
         
@@ -48,8 +50,21 @@ def gets3documenthashcode(producermessage):
     if extension not in ['.pdf']:
         filepath = path.splitext(filepath)[0] + extension
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
+    
+    if extension in ['.pdf']:
+        reader = PdfReader(BytesIO(response.content))
+        # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
+        pagecount = len(reader.pages)
+    elif extension in ['.doc','.docx','.xls','.xlsx','.msg']:
+        #"Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
+        pdfresponseofconverted = requests.get('{0}'.format(producermessage.s3filepath), auth=auth,stream=True)
+        reader = PdfReader(BytesIO(pdfresponseofconverted.content))
+        # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
+        pagecount = len(reader.pages)
+
+
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)
     
-    return sig.hexdigest()
+    return (sig.hexdigest(),pagecount)
