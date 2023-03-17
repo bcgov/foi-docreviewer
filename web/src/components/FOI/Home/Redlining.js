@@ -120,7 +120,6 @@ const Redlining = ({
           (data) => {
             if (data.length > 0) {
               const _annotations = annotationManager.importAnnotations(data)
-              console.log("Check Annot:",_annotations)
               _annotations.then(_annotation => {
                 annotationManager.redrawAnnotation(_annotation);
               });

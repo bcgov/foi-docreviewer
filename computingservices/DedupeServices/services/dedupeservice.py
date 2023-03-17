@@ -7,8 +7,8 @@ import traceback
 def processmessage(message):
     recordjobstart(message)
     try:
-        dochashcode = gets3documenthashcode(message)
-        savedocumentdetails(message,dochashcode)
+        resultdochashcode_pagecount = gets3documenthashcode(message)
+        savedocumentdetails(message,resultdochashcode_pagecount[0],resultdochashcode_pagecount[1])
         recordjobend(message, False)
     except(Exception) as error:
         recordjobend(message, True, traceback.format_exc())

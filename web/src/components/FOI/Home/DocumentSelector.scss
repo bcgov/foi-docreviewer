@@ -1,0 +1,136 @@
+
+.leftPanel {
+    margin: 10px 5px;
+}
+
+.pageFlagModal {
+    color: #808080;
+    margin:16px 0px;
+    font-size: 14px;
+
+    .heading {
+        margin-left: 16px;
+        margin-bottom:12px;
+    }
+}
+
+.pageLeftOffIcon {
+    float: right;
+    margin-right:12px;
+}
+
+.MuiList-padding{
+    padding: 4px !important;
+}
+
+.ministryCodeModal {
+    margin:16px 0px;
+    font-size: 14px;
+    max-width: 150px;
+    max-height: 450px;
+}
+
+.btnenabled {
+    border: none;
+    background-color: #38598A;
+    color: #FFFFFF;
+}
+
+.leftPanelIcons{
+    color: #808080 !important;
+}
+
+
+.other-pb-modal-message {
+    margin: 0px 10% 0px 3%;
+    width: 100%;
+}
+
+.MuiDialogActions-root {
+    padding: 20px 20px 30px !important;
+    justify-content: center !important;
+    flex-direction: row;
+}
+
+#state-change-dialog .MuiDialogContent-root, #state-change-dialog .MuiDialogActions-root {
+    padding: 20px 100px !important;
+}
+
+#state-change-dialog-title .MuiIconButton-root {
+    background-color: #036 ;
+    color: white;
+    border-radius: unset;
+}
+#state-change-content {
+    padding: 15px 50px 50px 50px;
+}
+
+#consult-modal-description {
+    display: flex;
+    justify-content: center;
+    color: black; 
+}
+
+.consult-modal-margin {
+    margin: 0px 20px !important;
+}
+
+.btn-bottom {
+    max-width: 50%;
+}
+
+.MuiDialogActions-spacing {
+    margin-left: 3% !important;
+    margin-right: 10% !important;
+}
+
+.MuiFormLabel-root{
+    line-height: 1;
+    letter-spacing: 0.00938em;
+    font-family: "BCSans-Bold", sans-serif !important;
+    color: black !important; 
+}
+
+.MuiOutlinedInput-notchedOutline {
+    border: 1px solid !important;     
+}
+
+.MuiMenuItem-root {
+    font-size: 14px !important;
+    font-family: "BCSans-Regular", sans-serif !important;
+    overflow-wrap: break-word;
+    white-space: break-spaces !important;
+}
+.PrivateNotchedOutline-legendLabelled-4 {
+    font-size: 0.80rem !important;
+}
+
+.style-float{
+    float: right;
+}
+
+.hrStyle {
+    margin: 10px 0px;
+}
+
+.pageLeftOff {
+    margin-left: 16px;
+    cursor: pointer;
+}
+
+.MuiTreeItem-label {
+    //max-width:20ch;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.MuiTreeItem-iconContainer {
+    color: #808080;
+}
+
+.otherOption {
+    margin: 6px 16px;
+    padding-bottom:16px;
+}
+
