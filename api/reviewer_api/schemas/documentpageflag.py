@@ -20,10 +20,3 @@ class DocumentPageflagSchema(Schema):
     other = fields.Str(data_key="other",allow_none=True)
     publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)
 
-
-class FOIRequestDocumentPageflagSchema(Schema):
-    class Meta:  # pylint: disable=too-few-public-methods
-        """Exclude unknown fields in the deserialized output."""
-
-        unknown = EXCLUDE
-    pageflag = fields.List(fields.Nested(DocumentPageflagSchema))
