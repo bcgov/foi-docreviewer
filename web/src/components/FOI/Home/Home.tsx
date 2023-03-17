@@ -19,6 +19,8 @@ function Home() {
   const [s3UrlReady, setS3UrlReady] = useState(false);
   const [s3Url, setS3Url] = useState('');
   const { foiministryrequestid } = useParams();
+  const [totalPageCount, setTotalPageCount] = useState(0);
+
 
   useEffect(() => {
     setS3UrlReady(false);
@@ -41,6 +43,12 @@ function Home() {
                   console.log(error);
               }
             );
+            let totalPageCountVal = 0;
+            data.forEach((file: any) => {
+                let filePageCount = file?.pagecount;
+                totalPageCountVal +=filePageCount;
+            });
+            setTotalPageCount(totalPageCountVal);
         }
       },
       (error: any) => {
@@ -53,7 +61,7 @@ function Home() {
     <div className="App">
       <Grid container spacing={1}>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-          { (files.length > 0) ? <DocumentSelector requestid={foiministryrequestid} documents={files} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
+          { (files.length > 0) ? <DocumentSelector requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
           { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? <Redlining currentPageInfo={currentPageInfo} user={user} requestid={foiministryrequestid} /> : <div>Loading</div> }

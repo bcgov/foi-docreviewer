@@ -31,6 +31,7 @@ import e from 'express';
 const DocumentSelector = ({
     requestid,
     documents,
+    totalPageCount,
     currentPageInfo,
     setCurrentPageInfo
 }: any) => {
@@ -42,7 +43,7 @@ const DocumentSelector = ({
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
     const [openModal, setOpenModal] = useState(false);
-    const [completionPercentage, setCompletionPercentage] = useState(0);
+    //const [completionPercentage, setCompletionPercentage] = useState(0);
     const [flagId, setFlagId] = React.useState(0);
     const [docId, setDocumentId] = React.useState(0);
     const [docVersion, setDocumentVersion] = React.useState(0);
@@ -51,6 +52,16 @@ const DocumentSelector = ({
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState([]);
     const [selectedPage, setSelectedPage] = useState(1);
+    // const [totalPageCount, setTotalPageCount] = useState(0);
+
+    // useEffect(() => {
+    //     let totalPageCountVal = 0;
+    //     files.forEach((file: any) => {
+    //         let filePageCount = file?.pagecount;
+    //         totalPageCountVal +=filePageCount;
+    //     });
+    //     setTotalPageCount(totalPageCountVal);
+    // }, [documents]);
 
     useEffect(() => {
         fetchPageFlagsMasterData(
@@ -91,6 +102,20 @@ const DocumentSelector = ({
     const updatePageFlag = (resp: any)=> {
         setPageFlags(resp);
         //setAdditionalData();
+        //updateCompletionCounter(resp);
+    }
+
+    const updateCompletionCounter = () =>{
+        let totalPagesWithFlags= 0;
+        pageFlags.forEach((element: any) => {
+            /**Page Flags to be avoided while 
+             * calculating % on left panel-  
+             * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
+            let documentSpecificCount = element?.pageflag?.filter((obj: any) =>(!([4,7,8].includes(obj.flagid))))?.length;
+            totalPagesWithFlags +=documentSpecificCount;
+        });
+        //setCompletionPercentage(totalPageCount >0 ?Math.round((totalPagesWithFlags / totalPageCount) * 100):0);
+        return totalPageCount >0 ?Math.round((totalPagesWithFlags / totalPageCount) * 100): 0 ;
     }
 
     const setAdditionalData = ()=> {
@@ -277,12 +302,13 @@ const DocumentSelector = ({
             <>
                 <MenuList key={pageFlag?.pageflagid}>
                     <MenuItem>
-                        <span style={{ marginRight: '10px' }}>
-                            <FontAwesomeIcon icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
-                        </span>
                         {(pageFlag?.name == 'Consult' ?
                             <>
+                                {/* <span style={{ marginRight: '10px' }}>
+                                    <FontAwesomeIcon icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
+                                </span> */}
                                 <div onClick={popoverEnter}>
+                                    <FontAwesomeIcon style={{ marginRight: '10px' }} icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
                                     {pageFlag?.name}
                                     <span style={{ float: 'right', marginLeft: '51px' }}>
                                         <FontAwesomeIcon icon={faAngleRight as IconProp} size='1x' />
@@ -323,7 +349,11 @@ const DocumentSelector = ({
                                 </Popover>
                             </>
                             :
+                            // <span style={{ marginRight: '10px' }}>
+                            //     <FontAwesomeIcon icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
+                            // </span>
                             <div onClick={() => savePageFlags(pageFlag.pageflagid, selectedPage, file.documentid, file.version)}>
+                                <FontAwesomeIcon style={{ marginRight: '10px' }} icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
                                 {pageFlag?.name}
                             </div>
                         )}
@@ -370,9 +400,9 @@ const DocumentSelector = ({
         );
     };
 
-    const completionCounter = () => {
-        setCompletionPercentage(0);
-    }
+    // const completionCounter = () => {
+    //     setCompletionPercentage(0);
+    // }
 
     const isConsult= (consults: Array<any>, pageNo: number) => {
         if(consults?.find((consult: any) => consult.page == pageNo))
@@ -453,7 +483,8 @@ const DocumentSelector = ({
                 <hr className='hrStyle'/>
                 <div className='row'>
                     <div className='col-lg-6'>
-                        {`Complete: ${completionPercentage}%`}
+                        {/* {`Complete: ${completionPercentage}%`} */}
+                        {`Complete: ${updateCompletionCounter()}%`}
                     </div>
                     {/* <div className='col-lg-6 style-float'>
                         Total Pages: 4875
@@ -483,20 +514,20 @@ const DocumentSelector = ({
                                         arrow
                                         key={i}
                                     >
-                                        {/* { file.consult?.length >0 ? */}
-                                            <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 0, e)} >
-                                                {[...Array(file.pagecount)].map((_x, p) =>
-                                                    (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
-                                                    <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />} 
-                                                    label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1,e)} />
-                                                    :
-                                                    <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1}
-                                                    label={`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1,e)} />
-                                                    )
-                                                    )
-                                                }
-                                                {ContextMenu(file)}
-                                            </TreeItem> 
+                                        <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 1, e)} >
+                                            {[...Array(file.pagecount)].map((_x, p) =>
+                                                (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
+                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />} 
+                                                label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} 
+                                                onClick={(e) => selectTreeItem(file, p + 1,e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
+                                                :
+                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1}
+                                                label={`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1,e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
+                                                )
+                                                )
+                                            }
+                                            {ContextMenu(file)}
+                                        </TreeItem> 
                                     </Tooltip>
                                 )}
                             </TreeItem>
@@ -516,12 +547,12 @@ const DocumentSelector = ({
                                 placement="bottom-end"
                                 arrow
                             >
-                            {/* { file.consult?.length >0 ? */}
-                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 0, e)} >
+                                <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 1, e)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
                                     (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p+1) as IconProp} size='1x' />} 
-                                            label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} /> :
+                                            label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)} 
+                                            onContextMenu={(e) => openContextMenu(file,p+1,e)} /> :
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
                                          onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
                                     )
