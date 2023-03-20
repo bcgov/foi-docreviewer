@@ -225,7 +225,10 @@ export const fetchPageFlag = (
     .then((res:any) => {
       if (res.data || res.data === "") {
         /** Checking if BOOKMARK set for package */
-        store.dispatch(setIsPageLeftOff(res.data?.some((obj: any) =>(obj.flagid === 8))) as any);
+        let bookmarkedDoc= res.data?.filter((element:any) => {
+          return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+        })
+        store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
         callback(res.data);
       } else {
         throw new Error();

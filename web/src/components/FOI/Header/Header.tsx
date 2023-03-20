@@ -20,7 +20,6 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
   const [openPageLeftOffModal, setOpenPageLeftOffModal] = useState(false);
 
   const showModalAndSignOut = () => {
-    console.log("redactionInfo:",redactionInfo);
     if(redactionInfo?.length > 0 && !isPageLeftOff)
       setOpenPageLeftOffModal(true);
     else{
