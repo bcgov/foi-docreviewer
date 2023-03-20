@@ -10,9 +10,11 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb,division_pdf_stitch_stream_key,notification_stream_key
-from . import jsonmessageparser
-from . import processmessage
+from utils import redisstreamdb
+from config import division_pdf_stitch_stream_key
+from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
+from services.pdfstichservice import pdfstitchservice
+
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -49,10 +51,8 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 if message is not None:
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'')
-                    print("_message == ",json.loads(_message))
                     try:
-                        producermessage = jsonmessageparser.getpdfstitchproducermessage(_message)
-                        processmessage(producermessage)
+                        pdfstitchservice().processmessage(get_in_divisionpdfmsg(_message))
                     except(Exception) as error: 
                         logging.exception(error)       
                     # simulate processing

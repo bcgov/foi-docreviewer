@@ -6,7 +6,8 @@ import requests
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 import hashlib
 import mimetypes
-from utils import gets3credentialsobject, pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
+from utils import gets3credentialsobject
+from config import pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
 
 def getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()

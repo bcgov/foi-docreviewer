@@ -8,9 +8,9 @@ from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 import json
 from os import path
-from .basestitchservice import basestitchservice
+from basestitchservice import basestitchservice
 
-class pdfstitchservice(basestitchservice):
+class blobpdfstitchservice(basestitchservice):
 
     def processmessage(self,_message):
         requestnumber = _message.requestnumber
@@ -40,10 +40,10 @@ class pdfstitchservice(basestitchservice):
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3filepath)
                     if extension in ['.pdf','.png','jpg']:
-                        #print("file = ", file)
-                        #_message = json.dumps({str(key): str(value) for (key, value) in file.items()})
-                        #_message = _message.replace("b'","'").replace("'",'')
-                        #producermessage = get_in_divisionpdfmsg(file)
+                        """
+                        Placeholder to handle blob
+                        """
+                         
                         docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
                         writer = self.mergepdf(docbytes, writer, extension)
                     count += 1
