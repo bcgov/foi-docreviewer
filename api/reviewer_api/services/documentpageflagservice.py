@@ -1,6 +1,9 @@
 from reviewer_api.models.DocumentPageflags import DocumentPageflag
 import json
 import copy
+import logging
+from reviewer_api.models.DocumentPageflags import DocumentPageflag
+from reviewer_api.models.default_method_result import DefaultMethodResult
 
 class documentpageflagservice:
 
@@ -17,8 +20,15 @@ class documentpageflagservice:
             return pageflag["pageflag"]
         return None
 
+    def removebookmark(self,requestid, userinfo):
+        pageflags = self.getpageflags(requestid)
+        for entry in pageflags:
+            new_pageflag = list(filter(lambda x: x['flagid'] != 8 , entry['pageflag']))
+            DocumentPageflag.updatepageflag(requestid, entry['documentid'],  entry['documentversion'], json.dumps(new_pageflag), json.dumps(userinfo))
     
     def savepageflag(self, requestid, documentid, version, data, userinfo):
+        if self.__isbookmark(data) == True: 
+            self.removebookmark(requestid, userinfo)
         pageflag = self.getdocumentpageflags(requestid, documentid, version)
         formattted_data = self.__formatpageflag(data)
         if pageflag is not None:
@@ -43,6 +53,11 @@ class documentpageflagservice:
         if "publicbodyaction" in _normalised:
             del _normalised["publicbodyaction"]
         return _normalised    
+
+    def __isbookmark(self, data):
+        if data["flagid"] == 8:
+            return True
+        return False    
 
     def handlepublicbody(self, requestid, documentid, version, data, userinfo):
         if "publicbodyaction" in data and data["publicbodyaction"] =="add":
