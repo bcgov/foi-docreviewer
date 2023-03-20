@@ -3,6 +3,9 @@ import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpReque
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { callbackify } from "util";
+import { setRedactionInfo, setIsPageLeftOff } from "../../actions/documentActions";
+import { store } from "../../services/StoreService";
+
 
 export const fetchDocuments = (
   foiministryrequestid: number = 1,
@@ -50,7 +53,7 @@ export const fetchAnnotations = (
 export const fetchAnnotationsInfo = (
   documentid: number = 1,
   documentversion: number = 1,
-  callback: any,
+  //callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/info`
@@ -58,7 +61,7 @@ export const fetchAnnotationsInfo = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        callback(res.data);
+        store.dispatch(setRedactionInfo(res.data) as any);
       } else {
         throw new Error();
       }
@@ -208,7 +211,7 @@ export const savePageFlag = (
 };
 
 export const fetchPageFlag = (
-  foiministryrquestid: string = "",
+  foiministryrquestid: string,
   callback: any,
   errorCallback: any
 ) => {
@@ -221,6 +224,8 @@ export const fetchPageFlag = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
+        /** Checking if BOOKMARK set for package */
+        store.dispatch(setIsPageLeftOff(res.data?.some((obj: any) =>(obj.flagid === 8))) as any);
         callback(res.data);
       } else {
         throw new Error();
