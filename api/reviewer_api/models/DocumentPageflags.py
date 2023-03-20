@@ -87,13 +87,13 @@ class DocumentPageflag(db.Model):
     def getpageflag_by_request(cls,  _foiministryrequestid):
         pageflags = []
         try:              
-            sql = """select distinct on (documentid) documentid, pageflag from "DocumentPageflags" dp  
+            sql = """select distinct on (documentid) documentid, documentversion, pageflag from "DocumentPageflags" dp  
                     where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
                     """
             rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid})
         
             for row in rs:
-                pageflags.append({"documentid":row["documentid"],"pageflag":row["pageflag"]})
+                pageflags.append({"documentid":row["documentid"],"documentversion":row["documentversion"],"pageflag":row["pageflag"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
