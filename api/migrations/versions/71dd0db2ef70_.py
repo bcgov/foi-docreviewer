@@ -14,7 +14,7 @@ from sqlalchemy.sql import func
 
 # revision identifiers, used by Alembic.
 revision = '71dd0db2ef70'
-down_revision = '118f76cb5ead'
+down_revision = 'b4b3356e00e2'
 branch_labels = None
 depends_on = None
 
@@ -49,7 +49,8 @@ def upgrade():
             {"name":"Consult","description":"Consult","isactive":True, "createdby": "System","sortorder":4},
             {"name":"Duplicate","description":"Duplicate","isactive":True, "createdby": "System","sortorder":5},
             {"name":"Not Responsive","description":"Not Responsive","isactive":True, "createdby": "System","sortorder":6},
-            {"name":"Page Left Off","description":"Page Left Off","isactive":True, "createdby": "System","sortorder":7}
+            {"name":"In Progress","description":"In Progress","isactive":True, "createdby": "System","sortorder":7},
+            {"name":"Page Left Off","description":"Page Left Off","isactive":True, "createdby": "System","sortorder":8}
         ]
     )
     # ### end Alembic commands ###
