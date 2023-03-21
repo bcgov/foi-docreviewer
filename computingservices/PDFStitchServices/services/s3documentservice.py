@@ -68,7 +68,7 @@ def gets3documentbytearray(producermessage, s3credentials):
                     aws_host=pdfstitch_s3_host,
                     aws_region=pdfstitch_s3_region,
                     aws_service=pdfstitch_s3_service)
-    filepath = producermessage.s3filepath
+    filepath = producermessage.s3uripath
     response= requests.get(filepath, auth=auth,stream=True)
     return response.content
 

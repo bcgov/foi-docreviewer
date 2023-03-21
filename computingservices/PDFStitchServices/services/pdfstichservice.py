@@ -9,6 +9,7 @@ from multiprocessing.pool import ThreadPool as Pool
 import json
 from os import path
 from .basestitchservice import basestitchservice
+from utils.constants import RECORDS_FOR
 
 class pdfstitchservice(basestitchservice):
 
@@ -23,7 +24,7 @@ class pdfstitchservice(basestitchservice):
             # loop through the atributes (currently divisions)
             for division in attributes:
                 print("division = ",division)
-                # pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
+                # self.pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
                 pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode))
             
             pool.close()
@@ -38,7 +39,7 @@ class pdfstitchservice(basestitchservice):
             writer = PdfWriter()
             for file in division.files:
                 if count < len(division.files):
-                    _, extension = path.splitext(file.s3filepath)
+                    _, extension = path.splitext(file.s3uripath)
                     if extension in ['.pdf','.png','jpg']:
                         #print("file = ", file)
                         #_message = json.dumps({str(key): str(value) for (key, value) in file.items()})
@@ -54,7 +55,8 @@ class pdfstitchservice(basestitchservice):
                     bytes_stream.seek(0)
                     paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
                     numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
-                    basestitchservice().zipfilesandupload(requestno + division.division, 'EDU-2022-12345', bcgovcode, s3credentials, numberedpdfbytes, division.files)
+                    filename = requestno + " - " +RECORDS_FOR+" - "+ division.divisionname
+                    basestitchservice().zipfilesandupload(filename, requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files)
         except(Exception) as error:
             print('error with file: ', error)
 

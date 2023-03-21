@@ -10,17 +10,26 @@ __author__      = "sumathi.thirumani@aot-technologies.com"
 """
 
 class FileSchema(Schema):
+
+    recordid = fields.Int(data_key="recordid",allow_none=False)
     filename = fields.Str(data_key="filename",allow_none=False)
-    s3filepath = fields.Str(data_key="s3filepath",allow_none=False)
+    s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
+    lastmodified = fields.Str(data_key="lastmodified",allow_none=False)
 
 class AttributeSchema(Schema):
-    division = fields.Str(data_key="division",allow_none=False)
-    files = fields.List(fields.Nested(FileSchema, allow_none=True))
+
+    files = fields.Nested(FileSchema, many=True,allow_none=False)
+    divisionname = fields.Str(data_key="divisionname",allow_none=False)
+    divisionid = fields.Int(data_key="divisionid", allow_none=False)
 
 class DivisionPdfStitchMsgSchema(Schema, baseobj):
+
     requestnumber = fields.Str(data_key="requestnumber",allow_none=False)
     bcgovcode = fields.Str(data_key="bcgovcode",allow_none=False)
-    attributes = fields.List(fields.Nested(AttributeSchema, allow_none=True))
+    attributes = fields.Nested(AttributeSchema, many=True, required=True,allow_none=False)
+    requestid = fields.Str(data_key="requestid",allow_none=False)
+    ministryrequestid = fields.Str(data_key="ministryrequestid",allow_none=False)
+    createdby = fields.Str(data_key="createdby",allow_none=False)
 
 def get_in_divisionpdfmsg(producer_json):    
     print("inside get_in_divisionpdfmsg")
