@@ -25,7 +25,7 @@ import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
 import ConsultModal from "./ConsultModal";
-import e from 'express';
+import PAGE_FLAGS from '../../../constants/PageFlags';
 
 
 const DocumentSelector = ({
@@ -213,10 +213,6 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number, e?:any) => {
-        // console.log("e:",e);
-        // if (e?.shiftKey) {
-        //     console.log("Clicked");
-        // }
         setCurrentPageInfo({ 'file': file, 'page': page });
         localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
     };
@@ -414,6 +410,15 @@ const DocumentSelector = ({
         return false;
     }
 
+
+    const getFlagName = (file:any, pageNo:number) => {
+        let iaoCode = "";
+        let flagId:number =file?.pageFlag?.find((flg: any) => flg.page === pageNo)?.flagid;
+        if(flagId === 4 && file.consult?.length >0)
+            iaoCode= ministryOrgCode(pageNo,file.consult);
+        return iaoCode? `Consult - [${iaoCode}]`: PAGE_FLAGS[flagId as keyof typeof PAGE_FLAGS];
+    }
+
     return (
         <>
         <div className='leftPanel'>
@@ -532,7 +537,8 @@ const DocumentSelector = ({
                                         <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 1, e)} >
                                             {[...Array(file.pagecount)].map((_x, p) =>
                                                 (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
-                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />} 
+                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon title={getFlagName(file,p+1)}
+                                                icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />} 
                                                 label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} 
                                                 onClick={(e) => selectTreeItem(file, p + 1,e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
                                                 :
@@ -565,7 +571,8 @@ const DocumentSelector = ({
                                 <TreeItem nodeId={`${index}`} label={file.filename} key={index} onClick={(e) => selectTreeItem(file, 1, e)} >
                                     {[...Array(file.pagecount)].map((_x, p) =>
                                     (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
-                                        <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p+1) as IconProp} size='1x' />} 
+                                        <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon title={getFlagName(file,p+1)}
+                                         icon={assignPageIcon(file.documentid, p+1) as IconProp} size='1x' />} 
                                             label={isConsult(file.consult,p+1)?`Page ${p + 1} (${ministryOrgCode(p+1,file.consult)})`:`Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)} 
                                             onContextMenu={(e) => openContextMenu(file,p+1,e)} /> :
                                         <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
