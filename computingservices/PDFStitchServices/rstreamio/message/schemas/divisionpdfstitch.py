@@ -24,6 +24,8 @@ class AttributeSchema(Schema):
 
 class DivisionPdfStitchMsgSchema(Schema, baseobj):
 
+    jobid = fields.Int(data_key="jobid", allow_none=False)
+    category = fields.Str(data_key="category",allow_none=False)
     requestnumber = fields.Str(data_key="requestnumber",allow_none=False)
     bcgovcode = fields.Str(data_key="bcgovcode",allow_none=False)
     attributes = fields.Nested(AttributeSchema, many=True, required=True,allow_none=False)
@@ -31,10 +33,12 @@ class DivisionPdfStitchMsgSchema(Schema, baseobj):
     ministryrequestid = fields.Str(data_key="ministryrequestid",allow_none=False)
     createdby = fields.Str(data_key="createdby",allow_none=False)
 
-def get_in_divisionpdfmsg(producer_json):    
-    print("inside get_in_divisionpdfmsg")
-    #print(producer_json)
+def get_in_divisionpdfmsg(producer_json):
     messageobject = DivisionPdfStitchMsgSchema().load(__formatmsg(producer_json))
+    return dict2obj(messageobject)
+
+def get_in_filepdfmsg(producer_json):
+    messageobject = FileSchema().load(__formatmsg(producer_json))
     return dict2obj(messageobject)
 
 def __formatmsg(producer_json):

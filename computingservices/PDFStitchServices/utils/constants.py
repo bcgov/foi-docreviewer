@@ -1,2 +1,2 @@
-S3_FOLDER_FOR_HARMS = "Harms for Sign Off"
+S3_FOLDER_FOR_HARMS = "Harms"
 RECORDS_FOR = "Harms"

@@ -1,5 +1,6 @@
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
+from reviewer_api.models.PDFStitchJob import PDFStitchJob
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from datetime import datetime as datetime2
@@ -11,6 +12,18 @@ class jobrecordservice:
     conversionstreamkey = os.getenv('FILE_CONVERSION_STREAM_KEY')
     dedupestreamkey = os.getenv('DEDUPE_STREAM_KEY')
 
+    def pdfstitchjobstatus(self, message, userid):
+        row = PDFStitchJob(
+                    version=1,
+                    ministryrequestid=message['ministryrequestid'],
+                    inputfiles=message['inputfiles'],
+                    status='pushedtostream',
+                    category= message['category'],
+                    createdby=userid
+                )
+        job = PDFStitchJob.insert(row)
+        return job
+    
     def recordjobstatus(self, batchinfo, userid):
         """ Insert entry into correct job record table.
         """

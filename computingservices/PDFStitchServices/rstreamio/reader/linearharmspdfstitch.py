@@ -40,8 +40,6 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     while True:
         print("Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
-        print("*********** Messages ***********")
-        print(messages)
         if messages:
             for _messages in messages:          
                 # message_id is the random id created to identify the message

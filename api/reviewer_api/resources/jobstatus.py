@@ -65,5 +65,25 @@ class GetDedupeStatus(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+        
+@cors_preflight('POST,OPTIONS')
+@API.route('/pdfstitchjobstatus')
+class AddPDFStitchJobStatus(Resource):
+    """Insert entries into job record table.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            result = jobrecordservice().pdfstitchjobstatus(requestjson, AuthHelper.getuserid())
+            respcode = 200 if result.success == True else 500
+            return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
 
 
