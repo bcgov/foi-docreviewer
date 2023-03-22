@@ -20,7 +20,7 @@ from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
@@ -38,6 +38,7 @@ from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
+TRACER = Tracer.get_instance()
 
 s3host = os.getenv('OSS_S3_HOST')
 s3region = os.getenv('OSS_S3_REGION')
@@ -46,7 +47,7 @@ s3region = os.getenv('OSS_S3_REGION')
 class FOIFlowS3Presigned(Resource):
 
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     # @auth.documentbelongstosameministry
