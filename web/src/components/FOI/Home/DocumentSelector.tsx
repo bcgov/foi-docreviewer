@@ -232,7 +232,6 @@ const DocumentSelector = ({
 
     const applyFilter = (flagId: number, event: any) => {
 
-        //const closeBtn = document.getElementById(flagId.toString());
         const flagFilterCopy = [...filterFlags];
         if (flagFilterCopy.includes(flagId)) {
             flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
@@ -362,7 +361,6 @@ const DocumentSelector = ({
                         aria-label="file system navigator"
                         defaultCollapseIcon={<ExpandMoreIcon />}
                         defaultExpandIcon={<ChevronRightIcon />}
-                        //expanded={(filterFlags.length > 0)?  ['0'] : []}
                         sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
                     >
                         {filesForDisplay.length <= 0 && filterBookmark ?
@@ -445,12 +443,9 @@ const DocumentSelector = ({
                                         >
                                             <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
                                                 {[...Array(file.pagecount)].map((_x, p) =>
-                                                // (file.pageFlag && file.pageFlag.find((obj:any)=> obj.page === p+1)?
                                                 (filterFlags.length > 0 ?
                                                     ((file.pageFlag.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                         <>
-                                                            {/* <span>{`file${index}page${p + 1}`}</span>
-                                                        { p+1 === 3 && localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': p+1 }))} */}
                                                             <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
@@ -466,10 +461,6 @@ const DocumentSelector = ({
                                                             onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                     )
                                                 )
-                                                    // :
-                                                    // <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                                    //  onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file,p+1,e)} />
-                                                    //)
                                                 )}
                                                 {pageFlagList && pageFlagList?.length > 0 &&
                                                     <ContextMenu
