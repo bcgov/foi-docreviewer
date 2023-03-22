@@ -36,13 +36,8 @@ namespace MCS.FOI.S3FileConversion
                         .AddJsonFile($"appsettings.json", true, true)
                         .AddEnvironmentVariables().Build();
 
-                //Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configurationbuilder).CreateLogger();
-
-                //string S3Host = configurationbuilder.GetSection("ConversionSettings:S3Host").Value;
-
 
                 //Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
-                //ConversionSettings.DeploymentPlatform = environmentName.ToLower().StartsWith("linux") ? Platform.Linux : Platform.Windows; //KEEPING MULTI PLATFORM CODE BASE LOGIC FOR FUTURE REFERENCE
                 ConversionSettings.DeploymentPlatform = Platform.Windows; //Fixing to Windows platform for Win Server VM deployment, once with Linux/OS , will take environment
                 ConversionSettings.FileWatcherStartDate = configurationbuilder.GetSection("ConversionSettings:FileWatcherStartDate").Value;
                 ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
@@ -142,7 +137,6 @@ namespace MCS.FOI.S3FileConversion
                                         else
                                         {
                                             db.StreamAdd(streamKey, new NameValueEntry[]
-                                            //{ new("s3filepath", attachments[i].Key), new NameValueEntry("RequestNumber", latest)});
                                             {
                                                 new("s3filepath", attachments[i]["filepath"]),
                                                 new("requestnumber", message["requestnumber"]),
@@ -215,14 +209,6 @@ namespace MCS.FOI.S3FileConversion
 
         }
 
-        //public static IHostBuilder CreateHostBuilder(string[] args) =>
-        //   Host.CreateDefaultBuilder(args)
-
-        //       .ConfigureServices((hostContext, services) =>
-        //       {
-        //           services.AddHostedService<Worker>(); // Dependency Injection of  Worker / BG Service               
-        //       })
-        //   .UseWindowsService(); // Marking as Windows Service to silently execute the process.
 
         private static void ValidateMessage(StreamEntry message)
         {
