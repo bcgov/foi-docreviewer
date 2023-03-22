@@ -32,7 +32,7 @@
 
 .btnenabled {
     border: none;
-    background-color: #38598A;
+    background-color: #003366;
     color: #FFFFFF;
 }
 
@@ -57,7 +57,7 @@
 }
 
 #state-change-dialog-title .MuiIconButton-root {
-    background-color: #036 ;
+    background-color: #003366 ;
     color: white;
     border-radius: unset;
 }
@@ -135,21 +135,13 @@
     vertical-align: middle;
     font-size: 20px;
     cursor: pointer;
-    
+
     &:active{
-        color: #036;
+        color: #003366;
     }
     &:focus{
-        color: #036;
+        color: #003366;
     }
-}
-
-.filterIcons.active {
-    color: #036;
-}
-
-.filterIcons.visited {
-    color: #036;
 }
 
 .filterText{
@@ -166,10 +158,6 @@
 }
 
 .selected {
-    // color: #808080;
-    // margin-right: 10px;
-    // vertical-align: middle;
-    // font-size: 20px;
-    color: #036;
+    color: #003366;
 }
 

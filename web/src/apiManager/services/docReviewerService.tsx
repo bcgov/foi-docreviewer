@@ -16,7 +16,6 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        console.log(res.data);
         callback(res.data);
       } else {
         throw new Error();

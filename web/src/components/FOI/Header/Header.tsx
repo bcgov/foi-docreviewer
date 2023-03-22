@@ -20,7 +20,6 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
   const [openPageLeftOffModal, setOpenPageLeftOffModal] = useState(false);
 
   const showModalAndSignOut = () => {
-    console.log("redactionInfo",redactionInfo);
     if(redactionInfo?.length > 0 && !isPageLeftOff)
       setOpenPageLeftOffModal(true);
     else{
@@ -34,24 +33,6 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
     UserService.userLogout();
 }
 
-  // useEffect(() => {
-  //   const handleTabClose = (event:any) => {
-  //     event.preventDefault();
-  //     showModalAndSignOut();
-  //     console.log('beforeunload event triggered');
-     
-  //     if(redactionInfo?.length > 0 && !isPageLeftOff)
-  //       return (event.returnValue =
-  //       'Page flag');
-  //   };
-  
-  //   window.addEventListener('beforeunload', (e) => handleTabClose(e));
-  
-  //   return () => {
-  //     window.removeEventListener('beforeunload', handleTabClose);
-  //   };
-  // }, [redactionInfo,isPageLeftOff]);
-  
 
   return (
     <>
