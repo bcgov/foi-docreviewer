@@ -517,7 +517,7 @@ const DocumentSelector = ({
                                             fontSize: 11
                                         }}
                                         title={<>
-                                            Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                            Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                                         </>}
                                         placement="bottom-end"
                                         arrow
@@ -543,7 +543,7 @@ const DocumentSelector = ({
                             </TreeItem>
                         )
                         :
-                        filesForDisplay.sort((a: any, b: any) => Date.parse(a.lastmodified) - Date.parse(b.lastmodified)).map((file: any, index: number) =>
+                        filesForDisplay.sort((a: any, b: any) => Date.parse(a.attributes.lastmodified) - Date.parse(b.attributes.lastmodified)).map((file: any, index: number) =>
                             <Tooltip
                                 sx={{
                                     backgroundColor: 'white',
@@ -552,7 +552,7 @@ const DocumentSelector = ({
                                     fontSize: 11
                                 }}
                                 title={<>
-                                    Last Modified Date: {new Date(file.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                    Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                                 </>}
                                 placement="bottom-end"
                                 arrow

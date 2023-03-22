@@ -1,7 +1,7 @@
 """empty message
 
 Revision ID: 92764562d406
-Revises: ea32c62c8f0f
+Revises: cb81f7d5bfca
 Create Date: 2022-12-20 13:45:40.663983
 
 """
@@ -12,7 +12,7 @@ from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = '92764562d406'
-down_revision = 'ea32c62c8f0f'
+down_revision = 'cb81f7d5bfca'
 branch_labels = None
 depends_on = None
 
