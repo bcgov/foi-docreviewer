@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import logo from "../../../assets/images/logo-banner.png";
@@ -20,12 +20,12 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
   const [openPageLeftOffModal, setOpenPageLeftOffModal] = useState(false);
 
   const showModalAndSignOut = () => {
+    console.log("redactionInfo",redactionInfo);
     if(redactionInfo?.length > 0 && !isPageLeftOff)
       setOpenPageLeftOffModal(true);
     else{
       signout();
     }
-    
   }
 
   const signout = () => {
@@ -33,6 +33,25 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
     localStorage.removeItem('authToken');
     UserService.userLogout();
 }
+
+  // useEffect(() => {
+  //   const handleTabClose = (event:any) => {
+  //     event.preventDefault();
+  //     showModalAndSignOut();
+  //     console.log('beforeunload event triggered');
+     
+  //     if(redactionInfo?.length > 0 && !isPageLeftOff)
+  //       return (event.returnValue =
+  //       'Page flag');
+  //   };
+  
+  //   window.addEventListener('beforeunload', (e) => handleTabClose(e));
+  
+  //   return () => {
+  //     window.removeEventListener('beforeunload', handleTabClose);
+  //   };
+  // }, [redactionInfo,isPageLeftOff]);
+  
 
   return (
     <>

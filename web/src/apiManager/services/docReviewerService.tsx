@@ -2,13 +2,12 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { callbackify } from "util";
 import { setRedactionInfo, setIsPageLeftOff } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
 export const fetchDocuments = (
-  foiministryrequestid: number = 1,
+  foiministryrequestid: number,
   callback: any,
   errorCallback: any
 ) => {
@@ -30,8 +29,8 @@ export const fetchDocuments = (
 };
 
 export const fetchAnnotations = (
-  documentid: number = 1,
-  documentversion: number = 1,
+  documentid: number,
+  documentversion: number,
   callback: any,
   errorCallback: any
 ) => {
@@ -51,7 +50,7 @@ export const fetchAnnotations = (
 };
 
 export const fetchAnnotationsInfo = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
   //callback: any,
   errorCallback: any
@@ -72,7 +71,7 @@ export const fetchAnnotationsInfo = (
 };
 
 export const saveAnnotation = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
   pagenumber: number = 0,
   annotationname: string = "",
@@ -103,7 +102,7 @@ export const saveAnnotation = (
 };
 
 export const deleteAnnotation = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
   annotationname: string = "",
   callback: any,
@@ -169,8 +168,8 @@ export const fetchPageFlagsMasterData = (
 };
 
 export const savePageFlag = (
-  foiministryrquestid: string = "",
-  documentid: number = 1,
+  foiministryrquestid: string,
+  documentid: number,
   documentversion: number = 1,
   pagenumber: number,
   flagid: number,

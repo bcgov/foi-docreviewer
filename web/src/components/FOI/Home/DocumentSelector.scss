@@ -134,6 +134,22 @@
     margin-right: 10px;
     vertical-align: middle;
     font-size: 20px;
+    cursor: pointer;
+    
+    &:active{
+        color: #036;
+    }
+    &:focus{
+        color: #036;
+    }
+}
+
+.filterIcons.active {
+    color: #036;
+}
+
+.filterIcons.visited {
+    color: #036;
 }
 
 .filterText{
@@ -147,5 +163,13 @@
 
 .bookmark-text-align {
     text-align: center;
+}
+
+.selected {
+    // color: #808080;
+    // margin-right: 10px;
+    // vertical-align: middle;
+    // font-size: 20px;
+    color: #036;
 }
 
