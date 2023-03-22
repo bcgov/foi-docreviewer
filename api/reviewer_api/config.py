@@ -122,17 +122,6 @@ class _Config():  # pylint: disable=too-few-public-methods
     except ValueError:  # pylint:disable=bare-except # noqa: B901, E722
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
     
-    # # email
-    # MAIL_FROM_ID = os.getenv('MAIL_FROM_ID')
-
-    # # CDOGS
-    # CDOGS_ACCESS_TOKEN = os.getenv('CDOGS_ACCESS_TOKEN')
-    # CDOGS_BASE_URL = os.getenv('CDOGS_BASE_URL')
-    # CDOGS_SERVICE_CLIENT = os.getenv('CDOGS_SERVICE_CLIENT')
-    # CDOGS_SERVICE_CLIENT_SECRET = os.getenv('CDOGS_SERVICE_CLIENT_SECRET')
-    # CDOGS_TOKEN_URL = os.getenv('CDOGS_TOKEN_URL')
-
-    
 
 
 class DevConfig(_Config):  # pylint: disable=too-few-public-methods

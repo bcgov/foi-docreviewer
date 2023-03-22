@@ -16,18 +16,14 @@
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
-
-# from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
 from flask import request
-
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.services.jobrecordservice import jobrecordservice
 
 API = Namespace('Job Status', description='Endpoints for getting and posting deduplication and file conversion job status of documents')
-# TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/dedupestatus/<requestid>')
@@ -35,7 +31,6 @@ class GetDedupeStatus(Resource):
     """Get document list.
     """
     @staticmethod
-    # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(requestid):
@@ -53,7 +48,6 @@ class GetDedupeStatus(Resource):
     """Insert entries into job record table.
     """
     @staticmethod
-    # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post():
