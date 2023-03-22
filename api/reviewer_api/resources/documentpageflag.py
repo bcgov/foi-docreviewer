@@ -18,7 +18,7 @@ from flask_cors import cross_origin
 from flask import request
 from reviewer_api.auth import auth, AuthHelper
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 from reviewer_api.schemas.documentpageflag import DocumentPageflagSchema
@@ -27,7 +27,7 @@ import json
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
-# TRACER = Tracer.get_instance()
+TRACER = Tracer.get_instance()
 
 @cors_preflight('POST,OPTIONS')
 @API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')

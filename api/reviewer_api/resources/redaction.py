@@ -19,7 +19,7 @@ from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
@@ -32,7 +32,7 @@ from marshmallow import ValidationError, EXCLUDE
 
 
 API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
-# TRACER = Tracer.get_instance()
+TRACER = Tracer.get_instance()
 
 
 
@@ -44,7 +44,7 @@ class Annotations(Resource):
     """Retrieves annotations for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(documentid, documentversion, pagenumber=None):
@@ -60,7 +60,7 @@ class Annotations(Resource):
     """save or update an annotation for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post(documentid, documentversion, pagenumber, annotationname):
@@ -82,7 +82,7 @@ class DeactivateAnnotations(Resource):
     """save or update an annotation for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def delete(documentid, documentversion, annotationname):
@@ -103,7 +103,7 @@ class DeactivateAnnotations(Resource):
     """save or update an annotation for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def delete(documentid, documentversion, annotationname):
@@ -123,7 +123,7 @@ class AnnotationSections(Resource):
     """save or update an annotation for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post(sectionannotationname):
@@ -150,7 +150,7 @@ class AnnotationMetadata(Resource):
     """Retrieves annotations for a document
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(documentid, documentversion, pagenumber=None):
@@ -170,7 +170,7 @@ class GetAccount(Resource):
     """Retrieves s3 accounts for user
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get():
