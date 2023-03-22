@@ -52,17 +52,6 @@ def upgrade():
         sa.ForeignKeyConstraint(['statusid'], ['DocumentStatus.statusid'], )
     )
 
-    op.bulk_insert(
-        documents_table,
-        [
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/sample1.pdf','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':1885},
-            {'version':1, 'filename':'sample2.pdf','filepath':'/files/sample2.pdf','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/sample1.pdf','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':2272},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/sample1.pdf','attributes':{},'foiministryrequestid':1,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9},
-            {'version':1, 'filename':'sample1.pdf','filepath':'/files/sample1.pdf','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':1885},
-            {'version':1, 'filename':'sample2.pdf','filepath':'/files/sample2.pdf','attributes':{},'foiministryrequestid':2,'createdby':{},'updated_at':datetime.now(),'statusid':1,'pagecount':9}
-        ]
-    )
 
     document_tag_table = op.create_table('DocumentTags',
         sa.Column('tagid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
@@ -75,17 +64,6 @@ def upgrade():
         sa.ForeignKeyConstraint(['documentid', 'documentversion'], ['Documents.documentid', 'Documents.version'], )
     )
 
-    op.bulk_insert(
-        document_tag_table,
-        [
-            {'documentid':1, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
-            {'documentid':2, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
-            {'documentid':3, 'documentversion':1,'tag':{'divisions':[{'divisionid':2}]},'createdby':{}},
-            {'documentid':4, 'documentversion':1,'tag':{'divisions':[{'divisionid':3}]},'createdby':{}},
-            {'documentid':5, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}},
-            {'documentid':6, 'documentversion':1,'tag':{'divisions':[{'divisionid':1}]},'createdby':{}}
-        ]
-    )
 
     op.create_table('Annotations',
         sa.Column('annotationid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
