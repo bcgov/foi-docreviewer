@@ -15,90 +15,73 @@
 
 from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
+from flask import request
 from reviewer_api.auth import auth, AuthHelper
 
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
+from reviewer_api.schemas.documentpageflag import DocumentPageflagSchema
 import json
-from flask import request
 
-from reviewer_api.services.documentservice import documentservice
-from reviewer_api.services.jobrecordservice import jobrecordservice
+from reviewer_api.services.documentpageflagservice import documentpageflagservice
 
-API = Namespace('Job Status', description='Endpoints for getting and posting deduplication and file conversion job status of documents')
+API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/dedupestatus/<requestid>')
-class GetDedupeStatus(Resource):
-    """Get document list.
+@cors_preflight('POST,OPTIONS')
+@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')
+class SaveDocumentPageflag(Resource):
+    """Add document to deleted list.
     """
     @staticmethod
-    @TRACER.trace()
+    # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    def post(requestid, documentid, documentversion):
+        try:
+            payload = request.get_json()
+            payload = DocumentPageflagSchema().load(payload)
+            result = documentpageflagservice().savepageflag(requestid, documentid, documentversion, payload, AuthHelper.getuserinfo())
+            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')
+class GetDocumentPageflag(Resource):
+    """Get document page flag list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    # @auth.ismemberofgroups(getrequiredmemberships())
+    def get(requestid, documentid, documentversion):
+        try:
+            result = documentpageflagservice().getdocumentpageflags(requestid, documentid, documentversion)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/ministryrequest/<requestid>/pageflag')
+class GetDocumentPageflag(Resource):
+    """Get document page flag list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
-            result = documentservice().getdedupestatus(requestid)
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-@cors_preflight('POST,OPTIONS')
-@API.route('/jobstatus')
-class GetDedupeStatus(Resource):
-    """Insert entries into job record table.
-    """
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def post():
-        try:
-            requestjson = request.get_json()
-            result = jobrecordservice().recordjobstatus(requestjson, AuthHelper.getuserid())
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-        
-@cors_preflight('POST,OPTIONS')
-@API.route('/pdfstitchjobstatus')
-class AddPDFStitchJobStatus(Resource):
-    """Insert entries into job record table.
-    """
-    @staticmethod
-    # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def post():
-        try:
-            requestjson = request.get_json()
-            result = jobrecordservice().insertpdfstitchjobstatus(requestjson, AuthHelper.getuserid())
-            respcode = 200 if result.success == True else 500
-            return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-
-@cors_preflight('GET,OPTIONS')
-@API.route('/pdfstitchjobstatus/<requestid>/<category>')
-class GetPDFStitchJobStatus(Resource):
-    """Get document list.
-    """
-    @staticmethod
-    # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def get(requestid, category):
-        try:
-            result = jobrecordservice().getpdfstitchjobstatus(requestid, category)
+            result = documentpageflagservice().getpageflags(requestid)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

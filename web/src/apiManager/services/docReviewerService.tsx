@@ -2,10 +2,12 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { callbackify } from "util";
+import { setRedactionInfo, setIsPageLeftOff } from "../../actions/documentActions";
+import { store } from "../../services/StoreService";
+
 
 export const fetchDocuments = (
-  foiministryrequestid: number = 1,
+  foiministryrequestid: number,
   callback: any,
   errorCallback: any
 ) => {
@@ -14,7 +16,6 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        console.log(res.data);
         callback(res.data);
       } else {
         throw new Error();
@@ -27,8 +28,8 @@ export const fetchDocuments = (
 };
 
 export const fetchAnnotations = (
-  documentid: number = 1,
-  documentversion: number = 1,
+  documentid: number,
+  documentversion: number,
   callback: any,
   errorCallback: any
 ) => {
@@ -48,9 +49,9 @@ export const fetchAnnotations = (
 };
 
 export const fetchAnnotationsInfo = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
-  callback: any,
+  //callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/info`
@@ -58,7 +59,7 @@ export const fetchAnnotationsInfo = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        callback(res.data);
+        store.dispatch(setRedactionInfo(res.data) as any);
       } else {
         throw new Error();
       }
@@ -69,7 +70,7 @@ export const fetchAnnotationsInfo = (
 };
 
 export const saveAnnotation = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
   pagenumber: number = 0,
   annotationname: string = "",
@@ -100,7 +101,7 @@ export const saveAnnotation = (
 };
 
 export const deleteAnnotation = (
-  documentid: number = 1,
+  documentid: number,
   documentversion: number = 1,
   annotationname: string = "",
   callback: any,
@@ -140,6 +141,101 @@ export const fetchSections = (
       errorCallback("Error in fetching annotations for a document");
     });
 }
+
+export const fetchPageFlagsMasterData = (
+  foiministryrquestid:string,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_GET_ALL_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  );
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching pageflags master data");
+    });
+};
+
+export const savePageFlag = (
+  foiministryrquestid: string,
+  documentid: number,
+  documentversion: number = 1,
+  pagenumber: number,
+  flagid: number,
+  callback: any,
+  errorCallback: any,
+  publicbodyaction? : string,
+  other? : string,
+  programareaid? : number,
+) => {
+  let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
+    API.DOCREVIEWER_POST_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  ), "<documentid>", documentid), "<documentversion>",documentversion);
+  let requestJSON = (programareaid || other) ?
+    {
+      "page": pagenumber,
+      "flagid": flagid,
+      "publicbodyaction":publicbodyaction,
+      "programareaid":programareaid,
+      "other":other
+    }
+  : {
+    "page": pagenumber,
+    "flagid": flagid,
+    }
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while saving page flag for (doc# ${documentid}, requestid ${foiministryrquestid})`);            
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in saving an page flag");
+    });
+};
+
+export const fetchPageFlag = (
+  foiministryrquestid: string,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_GET_PAGEFLAGS,
+    "<requestid>",
+    foiministryrquestid
+  );
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        /** Checking if BOOKMARK set for package */
+        let bookmarkedDoc= res.data?.filter((element:any) => {
+          return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+        })
+        store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching pageflags for a document");
+    });
+};
 
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);

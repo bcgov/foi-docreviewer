@@ -101,5 +101,5 @@ class jobrecordservice:
                 job = DeduplicationJob.insert(row)
                 jobids[record['s3uripath']] = {'masterid': masterid, 'jobid': job.identifier}
             else:
-                jobids[record['s3uripath']] = 'Invalid file type'
+                jobids[record['s3uripath']] = {'error': 'Invalid file type'}
         return jobids

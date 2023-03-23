@@ -18,45 +18,41 @@ from flask_cors import cross_origin
 from flask import request
 from reviewer_api.auth import auth
 
-from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins
 from reviewer_api.exceptions import BusinessException
 
-from reviewer_api.services.sectionservice import sectionservice
+from reviewer_api.services.pageflagservice import pageflagservice
 import json
 
-API = Namespace('Section Services', description='Endpoints for sections management')
-TRACER = Tracer.get_instance()
+API = Namespace('Pageflag Services', description='Endpoints for Pageflag management')
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/sections')
+@API.route('/pageflags')
 class GetSections(Resource):
-    """Add document to deleted list.
+    """Get Pageflags list.
     """
     @staticmethod
-    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get():
         try:
-            data = sectionservice().getsections()
+            data = pageflagservice().getpageflags()
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/sections/ministryrequest/<int:ministryrequestid>')
+@API.route('/pageflags/ministryrequest/<requestid>')
 class GetSections(Resource):
-    """Add document to deleted list.
+    """Get Pageflags list.
     """
     @staticmethod
-    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def get(ministryrequestid):
+    def get(requestid):
         try:
-            data = sectionservice().getsections_by_ministryid(ministryrequestid)
+            data = pageflagservice().getpageflag_by_request(requestid)
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500

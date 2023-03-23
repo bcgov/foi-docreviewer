@@ -1,6 +1,7 @@
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import React, { useRef, useEffect,useState } from 'react';
+import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
 import ReactModal from 'react-modal-resizable-draggable';
@@ -21,7 +22,7 @@ const Redlining = ({
   user,
   requestid
 }) =>{
-
+  const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const viewer = useRef(null);
   const saveButton = useRef(null);
   // const pdffile = '/files/PDFTRON_about.pdf';
@@ -41,7 +42,7 @@ const Redlining = ({
   const [defaultSections, setDefaultSections] = useState([]);
   const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
-  const [redactionInfo, setRedactionInfo] = useState([]);
+  //const [redactionInfo, setRedactionInfo] = useState([]);
   const [saveDisabled, setSaveDisabled]= useState(true);
   //xml parser
   const parser = new XMLParser();
@@ -120,7 +121,6 @@ const Redlining = ({
           (data) => {
             if (data.length > 0) {
               const _annotations = annotationManager.importAnnotations(data)
-              console.log("Check Annot:",_annotations)
               _annotations.then(_annotation => {
                 annotationManager.redrawAnnotation(_annotation);
               });
@@ -135,11 +135,6 @@ const Redlining = ({
         fetchAnnotationsInfo(
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
-          (data) => {
-            if (data.length > 0) {
-              setRedactionInfo(data);
-            }
-          },
           (error) => {
             console.log('error');
           }
@@ -249,9 +244,9 @@ const Redlining = ({
     let redaction = annotManager.getAnnotationById(redactionObj.name);
     let childRedaction;
     let childSection ="";
-    let i = redactionInfo.findIndex(a => a.annotationname === redactionObj.name);
+    let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj.name);
     if(i >= 0){
-      childSection = redactionInfo[i].sections.annotationname;
+      childSection = redactionInfo[i]?.sections.annotationname;
       childRedaction = annotManager.getAnnotationById(childSection);
 
     }
