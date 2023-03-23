@@ -17,7 +17,7 @@ from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
@@ -27,7 +27,7 @@ from reviewer_api.services.documentservice import documentservice
 from reviewer_api.services.jobrecordservice import jobrecordservice
 
 API = Namespace('Job Status', description='Endpoints for getting and posting deduplication and file conversion job status of documents')
-# TRACER = Tracer.get_instance()
+TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/dedupestatus/<requestid>')
@@ -35,7 +35,7 @@ class GetDedupeStatus(Resource):
     """Get document list.
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(requestid):
@@ -53,7 +53,7 @@ class GetDedupeStatus(Resource):
     """Insert entries into job record table.
     """
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post():
@@ -65,5 +65,42 @@ class GetDedupeStatus(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+        
+@cors_preflight('POST,OPTIONS')
+@API.route('/pdfstitchjobstatus')
+class AddPDFStitchJobStatus(Resource):
+    """Insert entries into job record table.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            result = jobrecordservice().insertpdfstitchjobstatus(requestjson, AuthHelper.getuserid())
+            respcode = 200 if result.success == True else 500
+            return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
 
 
+@cors_preflight('GET,OPTIONS')
+@API.route('/pdfstitchjobstatus/<requestid>/<category>')
+class GetPDFStitchJobStatus(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(requestid, category):
+        try:
+            result = jobrecordservice().getpdfstitchjobstatus(requestid, category)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500

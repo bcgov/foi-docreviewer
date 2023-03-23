@@ -1,2 +1,1 @@
 from utils import jsonmessageparser,getdbconnection,gets3credentialsobject
-from .pdfstichservice import processmessage
