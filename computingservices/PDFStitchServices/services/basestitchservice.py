@@ -84,7 +84,7 @@ class basestitchservice:
                 _file = get_in_filepdfmsg(_jsonfile)
                 _, extension = path.splitext(_file.s3uripath)
                 if extension not in ['.pdf','.png','jpg']:
-                    incompatabledocobj = self.__saveincompatablefiles(_file, s3credentials, requestnumber, bcgovcode, folderpath)
+                    incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
                     docobjs.append(incompatabledocobj)
             print(docobjs)
             return docobjs
@@ -92,7 +92,8 @@ class basestitchservice:
             print("error in writing the bytearray >> ", error)
             raise
     
-    def __saveincompatablefiles(self, _file, s3credentials, requestnumber, bcgovcode, folderpath):
-        _bytearray = self.getdocumentbytearray(_file, s3credentials)
-        filepath = folderpath + "/"+_file.filename
-        return uploadbytes(filepath, _bytearray, requestnumber, bcgovcode, s3credentials)
+    def __getincompatablefiles(self, _file, divisionname):
+        folderpath = S3_FOLDER_FOR_HARMS + "/"+ divisionname
+        filename = folderpath + "/" + _file.filename
+        incompatablefiledetails = {"success": True, 'filename': filename, 'documentpath': _file.s3uripath}
+        return incompatablefiledetails
