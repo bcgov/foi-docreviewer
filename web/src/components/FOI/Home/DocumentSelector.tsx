@@ -225,8 +225,7 @@ const DocumentSelector = ({
         setAnchorPosition(
             e.currentTarget.getBoundingClientRect()
         );
-        if( page > 1)
-            setDisableHover(true);
+        setDisableHover(true);
     }
 
     const isConsult = (consults: Array<any>, pageNo: number) => {
@@ -353,24 +352,6 @@ const DocumentSelector = ({
                             </Stack>
                         </div>
                     </div>
-
-                    {/* <div>Organize by: </div> */}
-                    {/* <Stack direction="row" sx={{paddingBottom: "5px" }} spacing={1}>
-                        <ClickableChip
-                            label="Division"
-                            color="primary"
-                            size="small"
-                            onClick={() => setOrganizeBy("division")}
-                            clicked={organizeBy === "division"}
-                        />
-                        <ClickableChip
-                            label="Modified Date"
-                            color="primary"
-                            size="small"
-                            onClick={() => setOrganizeBy("lastmodified")}
-                            clicked={organizeBy === "lastmodified"}
-                        />
-                    </Stack>  */}
                     <hr className='hrStyle' />
                     <div>
                         <span className='filterText'>
@@ -422,6 +403,7 @@ const DocumentSelector = ({
                                                     placement="bottom-end"
                                                     arrow
                                                     key={i}
+                                                    disableHoverListener={disableHover}
                                                 >
                                                     <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
                                                         {[...Array(file.pagecount)].map((_x, p) =>
@@ -475,7 +457,7 @@ const DocumentSelector = ({
                                             title={<>
                                                 Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                                             </>}
-                                            placement="bottom"
+                                            placement="bottom-end"
                                             arrow
                                             key={file?.documentid}
                                             disableHoverListener={disableHover}
