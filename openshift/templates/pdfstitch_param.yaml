@@ -1,0 +1,4 @@
+IMAGE_NAMESPACE=d106d6-tools
+TAG_NAME=dev
+DB_SECRETS=patroni-docreviewer
+APP_NAME=reviewer-pdfstitch
