@@ -1,6 +1,6 @@
-from rstreamio import linearharmspdfstitchconsumer
+from rstreamio.reader import linearharmspdfstitch
 
 
 
 if __name__ == '__main__':
-    linearharmspdfstitchconsumer.app()
+    linearharmspdfstitch.app()
