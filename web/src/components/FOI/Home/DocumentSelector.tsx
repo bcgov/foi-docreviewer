@@ -23,6 +23,7 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
 import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
+import { styled } from "@mui/material/styles";
 
 const DocumentSelector = ({
     requestid,
@@ -45,7 +46,16 @@ const DocumentSelector = ({
     const [filterFlags, setFilterFlags] = useState<any>([]);
     const [filteredFiles, setFilteredFiles] = useState(files);
     const [filterBookmark, setFilterBookmark] = useState(false);
+    const [disableHover, setDisableHover] = useState(false);
 
+    const StyledTreeItem = styled(TreeItem)(() => ({
+    [`& .${treeItemClasses.label}`]: {
+        fontSize:'14px'
+    },
+    [`& .${treeItemClasses.content}`]: {
+        padding: '0 16px'
+    }
+    }));
 
     useEffect(() => {
         fetchPageFlagsMasterData(
@@ -203,6 +213,8 @@ const DocumentSelector = ({
     const selectTreeItem = (file: any, page: number, e?: any) => {
         setCurrentPageInfo({ 'file': file, 'page': page });
         localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
+        if( page == 1)
+            setDisableHover(false);
     };
 
     const openContextMenu = (file: any, page: number, e: any) => {
@@ -213,6 +225,8 @@ const DocumentSelector = ({
         setAnchorPosition(
             e.currentTarget.getBoundingClientRect()
         );
+        if( page > 1)
+            setDisableHover(true);
     }
 
     const isConsult = (consults: Array<any>, pageNo: number) => {
@@ -315,8 +329,33 @@ const DocumentSelector = ({
                         </Grid>
                     </Paper>
                     <hr className='hrStyle' />
-                    <div>Organize by: </div>
-                    <Stack direction="row" sx={{ /*overflowX: "scroll",*/ paddingBottom: "5px" }} spacing={1}>
+
+                    <div className='row'>
+                        <div className='col-lg-4' style={{paddingRight: '0px'}}>
+                            Organize by:
+                        </div>
+                        <div className='col-lg-8' style={{paddingLeft: '0px'}}>
+                            <Stack direction="row" sx={{paddingBottom: "5px" }} spacing={1}>
+                            <ClickableChip
+                                label="Division"
+                                color="primary"
+                                size="small"
+                                onClick={() => setOrganizeBy("division")}
+                                clicked={organizeBy === "division"}
+                            />
+                            <ClickableChip
+                                label="Modified Date"
+                                color="primary"
+                                size="small"
+                                onClick={() => setOrganizeBy("lastmodified")}
+                                clicked={organizeBy === "lastmodified"}
+                            />
+                            </Stack>
+                        </div>
+                    </div>
+
+                    {/* <div>Organize by: </div> */}
+                    {/* <Stack direction="row" sx={{paddingBottom: "5px" }} spacing={1}>
                         <ClickableChip
                             label="Division"
                             color="primary"
@@ -331,7 +370,7 @@ const DocumentSelector = ({
                             onClick={() => setOrganizeBy("lastmodified")}
                             clicked={organizeBy === "lastmodified"}
                         />
-                    </Stack>
+                    </Stack>  */}
                     <hr className='hrStyle' />
                     <div>
                         <span className='filterText'>
@@ -348,7 +387,7 @@ const DocumentSelector = ({
                         </span>
                     </div>
                     <hr className='hrStyle' />
-                    <div className='row'>
+                    <div className='row counters'>
                         <div className='col-lg-6'>
                             {`Complete: ${updateCompletionCounter()}%`}
                         </div>
@@ -389,19 +428,18 @@ const DocumentSelector = ({
                                                         (filterFlags.length > 0 ?
                                                             ((file.pageFlag.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                                 <>
-                                                                    {/* <span>{(file.pageFlag.find((obj:any)=> filterFlags?.includes(obj.flagid)))?.page}</span> */}
-                                                                    <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                                    <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 </>
                                                             )
                                                             :
                                                             (file.pageFlag && file.pageFlag.find((obj: any) => obj.page === p + 1) ?
-                                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                                <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 :
-                                                                <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
+                                                                <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
                                                                     onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                             )
                                                         )
@@ -437,27 +475,28 @@ const DocumentSelector = ({
                                             title={<>
                                                 Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
                                             </>}
-                                            placement="bottom-end"
+                                            placement="bottom"
                                             arrow
                                             key={file?.documentid}
+                                            disableHoverListener={disableHover}
                                         >
                                             <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                 (filterFlags.length > 0 ?
                                                     ((file.pageFlag.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                         <>
-                                                            <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                            <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         </>
                                                     )
                                                     :
                                                     (file.pageFlag && file.pageFlag.find((obj: any) => obj.page === p + 1) ?
-                                                        <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                        <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                             title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         :
-                                                        <TreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
+                                                        <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
                                                             onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                     )
                                                 )

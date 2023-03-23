@@ -59,7 +59,7 @@ function Home() {
 
   return (
     <div className="App">
-      <Grid container spacing={1}>
+      <Grid container>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
           { (files.length > 0) ? <DocumentSelector requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
