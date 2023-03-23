@@ -1,5 +1,5 @@
 from utils import getdbconnection
-from utils.basicutils import SetEncoder, to_json
+from utils.basicutils import to_json
 from datetime import datetime
 import json
 
@@ -9,10 +9,10 @@ def savefinaldocumentpath(finalpackage, ministryid, category, userid):
         finalpackagepath = finalpackage.get("documentpath") if finalpackage is not None else ""
         conn = getdbconnection()
         cursor = conn.cursor()
-        cursor.execute('''INSERT INTO public."PDFStitchPackageMaster"
+        cursor.execute('''INSERT INTO public."PDFStitchPackage"
             (ministryrequestid, category, finalpackagepath, createdby)
-            VALUES (%s::integer, %s, %s, %s) returning pdfstitchpackagemasterid;''',
-            (ministryid, category, finalpackagepath, userid))
+            VALUES (%s::integer, %s, %s, %s) returning pdfstitchpackageid;''',
+            (ministryid, category.lower(), finalpackagepath, userid))
         conn.commit()
         cursor.close()
         conn.close()
@@ -26,7 +26,7 @@ def recordjobstart(message):
         cursor.execute('''INSERT INTO public."PDFStitchJob"
             (pdfstitchjobid, version, ministryrequestid, category, inputfiles, outputfiles, status, message, createdby)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning pdfstitchjobid;''',
-            (message.jobid, 2, message.ministryrequestid, message.category, to_json(message.attributes), None, "started", None, message.createdby))
+            (message.jobid, 2, message.ministryrequestid, message.category.lower(), to_json(message.attributes), None, "started", None, message.createdby))
         conn.commit()
         cursor.close()
         conn.close()
@@ -43,7 +43,7 @@ def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
         cursor.execute('''INSERT INTO public."PDFStitchJob"
             (pdfstitchjobid, version, ministryrequestid, category, inputfiles, outputfiles, status, message, createdby)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning pdfstitchjobid;''',
-            (pdfstitchmessage.jobid, 3, pdfstitchmessage.ministryrequestid, pdfstitchmessage.category, to_json(pdfstitchmessage.attributes), to_json(outputfiles), 'error' if error else 'completed', message if error else "", pdfstitchmessage.createdby))
+            (pdfstitchmessage.jobid, 3, pdfstitchmessage.ministryrequestid, pdfstitchmessage.category.lower(), to_json(pdfstitchmessage.attributes), to_json(outputfiles), 'error' if error else 'completed', message if error else "", pdfstitchmessage.createdby))
         
         conn.commit()
         cursor.close()

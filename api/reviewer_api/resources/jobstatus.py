@@ -78,7 +78,7 @@ class AddPDFStitchJobStatus(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            result = jobrecordservice().pdfstitchjobstatus(requestjson, AuthHelper.getuserid())
+            result = jobrecordservice().insertpdfstitchjobstatus(requestjson, AuthHelper.getuserid())
             respcode = 200 if result.success == True else 500
             return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
         except KeyError as err:
@@ -87,3 +87,20 @@ class AddPDFStitchJobStatus(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
+@cors_preflight('GET,OPTIONS')
+@API.route('/pdfstitchjobstatus/<requestid>/<category>')
+class GetPDFStitchJobStatus(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(requestid, category):
+        try:
+            result = jobrecordservice().getpdfstitchjobstatus(requestid, category)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500

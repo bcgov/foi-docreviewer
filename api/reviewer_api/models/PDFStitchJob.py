@@ -24,6 +24,11 @@ class PDFStitchJob(db.Model):
         db.session.commit()
         return DefaultMethodResult(True,'PDF Stitch Job recorded for ministryrequestid: {0}'.format(row.ministryrequestid), row.pdfstitchjobid)
 
+    @classmethod
+    def getpdfstitchpackage(cls, requestid, category):
+        pdfstitchjobschema = PDFStitchJobSchema(many=False)
+        query = db.session.query(PDFStitchJob).filter(PDFStitchJob.ministryrequestid == requestid, PDFStitchJob.category == category).order_by(PDFStitchJob.version.desc()).first()
+        return pdfstitchjobschema.dump(query)
 class PDFStitchJobSchema(ma.Schema):
     class Meta:
         fields = ('pdfstitchjobid', 'version', 'ministryrequestid', 'category', 'inputfiles', 'outputfiles', 'status', 'message', 'createdat', 'createdby')

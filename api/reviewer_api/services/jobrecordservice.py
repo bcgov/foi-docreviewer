@@ -12,7 +12,7 @@ class jobrecordservice:
     conversionstreamkey = os.getenv('FILE_CONVERSION_STREAM_KEY')
     dedupestreamkey = os.getenv('DEDUPE_STREAM_KEY')
 
-    def pdfstitchjobstatus(self, message, userid):
+    def insertpdfstitchjobstatus(self, message, userid):
         row = PDFStitchJob(
                     version=1,
                     ministryrequestid=message['ministryrequestid'],
@@ -22,6 +22,10 @@ class jobrecordservice:
                     createdby=userid
                 )
         job = PDFStitchJob.insert(row)
+        return job
+    
+    def getpdfstitchjobstatus(self, requestid, category):
+        job = PDFStitchJob.getpdfstitchpackage(requestid, category)
         return job
     
     def recordjobstatus(self, batchinfo, userid):
