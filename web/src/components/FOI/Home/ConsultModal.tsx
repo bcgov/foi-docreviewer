@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useState } from 'react'
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -6,7 +6,6 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@mui/material/IconButton";
-import { makeStyles } from '@material-ui/core/styles';
 import TextField from '@mui/material/TextField';
 
 
@@ -19,17 +18,6 @@ const ConsultModal = ({
     setOpenModal,
     savePageFlags
 }: any) => {
-
-
-    const useStyles = makeStyles((theme) => ({
-        root: {
-          "& .MuiTextField-root": {
-            margin: theme.spacing(1, "0px"),
-          },
-        },
-      }));
-
-    const classes = useStyles();
 
     const[newConsultBody,setNewConsultBody]= useState("");
     const[errorMessage, setErrorMessage] = useState("");
@@ -97,22 +85,17 @@ const ConsultModal = ({
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                {/* <div className='consult-modal-margin'> */}
-                    <button className={`btn-bottom btn-save btnenabled`} 
-                    disabled={newConsultBody?.length <=0}
-                    onClick={() => saveNewCode(newConsultBody)}>
-                        Save
-                    </button>
-                    <button className="btn-bottom btn-cancel" onClick={() => setOpenModal(false)}>
-                        Cancel
-                    </button>
-                {/* </div> */}
+                <button className={`btn-bottom btn-save btnenabled`} 
+                disabled={newConsultBody?.length <=0}
+                onClick={() => saveNewCode(newConsultBody)}>
+                    Save
+                </button>
+                <button className="btn-bottom btn-cancel" onClick={() => setOpenModal(false)}>
+                    Cancel
+                </button>
             </DialogActions>
         </Dialog >
         </div >
-       
-
-
     )
   }
 

@@ -18,6 +18,7 @@ from flask_cors import cross_origin
 from flask import request
 from reviewer_api.auth import auth
 
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins
 from reviewer_api.exceptions import BusinessException
 
@@ -25,6 +26,7 @@ from reviewer_api.services.sectionservice import sectionservice
 import json
 
 API = Namespace('Section Services', description='Endpoints for sections management')
+TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/sections')
@@ -32,6 +34,7 @@ class GetSections(Resource):
     """Add document to deleted list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get():
@@ -48,6 +51,7 @@ class GetSections(Resource):
     """Add document to deleted list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(ministryrequestid):
