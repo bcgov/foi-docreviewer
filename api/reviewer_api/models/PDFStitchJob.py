@@ -27,7 +27,7 @@ class PDFStitchJob(db.Model):
     @classmethod
     def getpdfstitchpackage(cls, requestid, category):
         pdfstitchjobschema = PDFStitchJobSchema(many=False)
-        query = db.session.query(PDFStitchJob).filter(PDFStitchJob.ministryrequestid == requestid, PDFStitchJob.category == category).order_by(PDFStitchJob.version.desc()).first()
+        query = db.session.query(PDFStitchJob).filter(PDFStitchJob.ministryrequestid == requestid, PDFStitchJob.category == category.lower()).order_by(PDFStitchJob.pdfstitchjobid.desc(), PDFStitchJob.version.desc()).first()
         return pdfstitchjobschema.dump(query)
 class PDFStitchJobSchema(ma.Schema):
     class Meta:

@@ -8,6 +8,7 @@ from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 import json
 from zipfile import ZipFile
+import zipfile
 from os import path
 from utils.constants import S3_FOLDER_FOR_HARMS
 from utils.basicutils import to_json
@@ -25,7 +26,7 @@ class basestitchservice:
     def __zipfiles(self, filename, s3credentials, stitchedpdfstream, files):
         archive = BytesIO()
 
-        with ZipFile(archive, 'w') as zip_archive:
+        with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:
             # zip stitched pdf first
             if stitchedpdfstream is not None:
                 with zip_archive.open(filename+'.pdf', 'w') as archivefile:
@@ -50,7 +51,7 @@ class basestitchservice:
     def zipfiles(self, s3credentials, files):
         archive = BytesIO()
 
-        with ZipFile(archive, 'w') as zip_archive:           
+        with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
             # zip final folders/files
             for file in files:
                 _message = to_json(file)
