@@ -20,7 +20,7 @@ from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
@@ -38,71 +38,16 @@ from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
-# TRACER = Tracer.get_instance()
+TRACER = Tracer.get_instance()
 
-# @cors_preflight('GET,OPTIONS')
-# @API.route('/foiflow/oss/authheader')
-# class FOIFlowDocumentStorage(Resource):
-#     """Retrieves authentication properties for document storage.
-#     """
-#     @staticmethod
-#     # @TRACER.trace()
-#     @cross_origin(origins=allowedorigins())       
-#     @auth.require
-#     @auth.ismemberofgroups(getrequiredmemberships())
-#     def post():
-#         try:
-
-#             formsbucket = os.getenv('OSS_S3_FORMS_BUCKET')
-#             accesskey = os.getenv('OSS_S3_FORMS_ACCESS_KEY_ID') 
-#             secretkey = os.getenv('OSS_S3_FORMS_SECRET_ACCESS_KEY')
-#             s3host = os.getenv('OSS_S3_HOST')
-#             s3region = os.getenv('OSS_S3_REGION')
-#             s3service = os.getenv('OSS_S3_SERVICE')
-
-#             if(accesskey is None or secretkey is None or s3host is None or formsbucket is None):
-#                 return {'status': "Configuration Issue", 'message':"accesskey is None or secretkey is None or S3 host is None or formsbucket is None"}, 500
-
-#             requestfilejson = request.get_json()
-
-#             for file in requestfilejson:                
-#                 foirequestform = FOIRequestsFormsList().load(file)                
-#                 ministrycode = foirequestform.get('ministrycode')
-#                 requestnumber = foirequestform.get('requestnumber')
-#                 filestatustransition = foirequestform.get('filestatustransition')
-#                 filename = foirequestform.get('filename')
-#                 s3sourceuri = foirequestform.get('s3sourceuri')
-#                 filenamesplittext = os.path.splitext(filename)
-#                 uniquefilename = '{0}{1}'.format(uuid.uuid4(),filenamesplittext[1])                
-#                 auth = AWSRequestsAuth(aws_access_key=accesskey,
-#                         aws_secret_access_key=secretkey,
-#                         aws_host=s3host,
-#                         aws_region=s3region,
-#                         aws_service=s3service) 
-
-#                 s3uri = s3sourceuri if s3sourceuri is not None else 'https://{0}/{1}/{2}/{3}/{4}/{5}'.format(s3host,formsbucket,ministrycode,requestnumber,filestatustransition,uniquefilename)        
-                
-#                 response = requests.put(s3uri,data=None,auth=auth) if s3sourceuri is None  else requests.get(s3uri,auth=auth)
-
-
-#                 file['filepath']=s3uri
-#                 file['authheader']=response.request.headers['Authorization'] 
-#                 file['amzdate']=response.request.headers['x-amz-date']
-#                 file['uniquefilename']=uniquefilename if s3sourceuri is None else ''
-#                 file['filestatustransition']=filestatustransition  if s3sourceuri is None else ''
-                
-                
-#             return json.dumps(requestfilejson) , 200
-#         except BusinessException as exception:            
-#             return {'status': exception.status_code, 'message':exception.message}, 500
-
-
+s3host = os.getenv('OSS_S3_HOST')
+s3region = os.getenv('OSS_S3_REGION')
 @cors_preflight('GET,OPTIONS')
 @API.route('/foiflow/oss/presigned/<documentid>')
 class FOIFlowS3Presigned(Resource):
 
     @staticmethod
-    # @TRACER.trace()
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     # @auth.documentbelongstosameministry
@@ -116,8 +61,6 @@ class FOIFlowS3Presigned(Resource):
             formsbucket = documentmapper["bucket"]
             accesskey = attribute["s3accesskey"]
             secretkey = attribute["s3secretkey"]
-            s3host = "citz-foi-prod.objectstore.gov.bc.ca"
-            s3region = "us-east-1"
             filepath = '/'.join(document["filepath"].split('/')[4:])
             s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
                 endpoint_url='https://{0}/'.format(s3host),
