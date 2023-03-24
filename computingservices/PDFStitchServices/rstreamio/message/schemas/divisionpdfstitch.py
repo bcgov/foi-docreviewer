@@ -11,7 +11,7 @@ __author__      = "sumathi.thirumani@aot-technologies.com"
 
 class FileSchema(Schema):
 
-    recordid = fields.Int(data_key="recordid",allow_none=False)
+    recordid = fields.Int(data_key="recordid",allow_none=True)
     filename = fields.Str(data_key="filename",allow_none=False)
     s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
     lastmodified = fields.Str(data_key="lastmodified",allow_none=False)
