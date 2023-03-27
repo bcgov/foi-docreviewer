@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import logo from "../../../assets/images/logo-banner.png";
@@ -25,7 +25,6 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
     else{
       signout();
     }
-    
   }
 
   const signout = () => {
@@ -33,6 +32,7 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
     localStorage.removeItem('authToken');
     UserService.userLogout();
 }
+
 
   return (
     <>

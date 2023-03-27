@@ -19,7 +19,7 @@ from flask import request
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
 
-# from reviewer_api.tracer import Tracer
+from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema
@@ -30,6 +30,7 @@ import logging
 from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
+TRACER = Tracer.get_instance()
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 requestapitimeout = getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
@@ -39,6 +40,7 @@ class GetDedupeStatus(Resource):
     """Add document to deleted list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post():
@@ -58,6 +60,7 @@ class GetDocuments(Resource):
     """Get document list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(requestid):

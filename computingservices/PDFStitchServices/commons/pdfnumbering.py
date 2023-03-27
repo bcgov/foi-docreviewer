@@ -16,8 +16,6 @@ position_to_width = {
     "right": 50,
 }
 w, h = letter
-print("W >>> ", w)
-print("H >>> ", h)
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
 pdfmetrics.registerFont(TTFont('BC-Sans', filepath))
 textcolor=colors.HexColor("#38598A")
@@ -53,7 +51,6 @@ def get_width_of_pages(original_pdf, position) -> list:
     for index in range(len(original_pdf.pages)):
         ratio = original_pdf.pages[index].mediabox.width/200
         width = position_to_width[position] * ratio * mm
-        print("page width >>>>> ", width)
         width_of_pages.append(width)
     return width_of_pages
 
@@ -61,7 +58,6 @@ def get_width_of_pages(original_pdf, position) -> list:
 def create_empty_numbered_pdf(paginationtext, width_of_pages, height, start_page, end_page, start_index, size, font,
                               number_of_pages) -> PdfReader:
     """Returns empty pdf file with numbering only"""
-    print("height >>> ", height)
     empty_canvas = canvas.Canvas("empty_canvas.pdf", pagesize=letter)
     for index in range(number_of_pages):
         empty_canvas.rotate(90) 
@@ -69,8 +65,6 @@ def create_empty_numbered_pdf(paginationtext, width_of_pages, height, start_page
         empty_canvas.setFillColor(textcolor)
         if index in range(start_page, end_page):
             number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
-            print("X >>>>>> ",(width_of_pages[index] - 175))
-            print("Y >>>>>> ", -(h-height))
             empty_canvas.drawString((width_of_pages[index] - 175), -(h-height), number)
         else:
             empty_canvas.drawString(width_of_pages[index], height, "")
@@ -83,7 +77,6 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     writer = PdfWriter()
     print("range(first_pdf.getNumPages()) >> ", len(first_pdf.pages))
     for number_of_page in range(len(first_pdf.pages)):
-        print("number_of_page >>> ", number_of_page)
         page_of_first_pdf = first_pdf.pages[number_of_page]
         page_of_second_pdf = second_pdf.pages[number_of_page]
         page_of_first_pdf.merge_page(page_of_second_pdf)

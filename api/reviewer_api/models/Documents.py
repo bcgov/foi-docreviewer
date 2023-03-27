@@ -235,7 +235,7 @@ class Document(db.Model):
             'createdby': document.createdby,            
             'created_at': created_at,
             'updatedby': document.updatedby,
-            'lastmodified': updated_at,
+            'updated_at': updated_at,
             'statusid': document.statusid,
             'status': document.status,
             'divisions': document.attributes['divisions'],

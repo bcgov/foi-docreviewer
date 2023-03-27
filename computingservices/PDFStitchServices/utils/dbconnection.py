@@ -1,5 +1,5 @@
 import psycopg2
-from . import pdfstitch_db_user,pdfstitch_db_port,pdfstitch_db_host,pdfstitch_db_name,pdfstitch_db_password
+from config import pdfstitch_db_user,pdfstitch_db_port,pdfstitch_db_host,pdfstitch_db_name,pdfstitch_db_password
 
 def getdbconnection():
     conn = psycopg2.connect(
