@@ -35,6 +35,7 @@ class SaveDocumentPageflag(Resource):
     """Add document to deleted list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def post(requestid, documentid, documentversion):
@@ -54,6 +55,7 @@ class GetDocumentPageflag(Resource):
     """Get document page flag list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(requestid, documentid, documentversion):
@@ -72,6 +74,7 @@ class GetDocumentPageflag(Resource):
     """Get document page flag list.
     """
     @staticmethod
+    @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     def get(requestid):
