@@ -10,11 +10,13 @@ from multiprocessing.pool import ThreadPool as Pool
 import json
 from os import path
 from .basestitchservice import basestitchservice
-from utils.constants import RECORDS_FOR
-from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath
+from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 
 class pdfstitchservice(basestitchservice):
+
+    def ispdfstitchjobcompleted(self, jobid, category):
+        return ispdfstichjobcompleted(jobid, category)
 
     def processmessage(self,_message):
         recordjobstart(_message)
@@ -22,6 +24,7 @@ class pdfstitchservice(basestitchservice):
         bcgovcode = _message.bcgovcode
         attributes = _message.attributes
         s3credentials = getcredentialsbybcgovcode(bcgovcode)
+        category = _message.category.capitalize()
         
         try:
             results = []
@@ -32,7 +35,7 @@ class pdfstitchservice(basestitchservice):
                 
                 print("division = ",division.divisionname)
                 # result = self.pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
-                result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode)).get()
+                result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
                 results = results + result
             pool.close()
             pool.join()
@@ -48,7 +51,7 @@ class pdfstitchservice(basestitchservice):
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
     
-    def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode):
+    def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
         try:
             print("division files : ",division.files)
             count = 0
@@ -66,7 +69,7 @@ class pdfstitchservice(basestitchservice):
                     bytes_stream.seek(0)
                     paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
                     numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
-                    filename = requestno + " - " +RECORDS_FOR+" - "+ division.divisionname
+                    filename = requestno + " - " +category+" - "+ division.divisionname
                     return basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
         except(Exception) as error:
             print('error with file: ', error)
@@ -85,7 +88,7 @@ class pdfstitchservice(basestitchservice):
     def createfinaldocument(self, _message, s3credentials):
         print("<<<<<<<<<<<<<<<<<<<<< createfinaldocument >>>>>>>>>>>>>>>>>>>>>")
         if _message is not None:
-            return basestitchservice().zipfilesandupload(_message.requestnumber, _message.requestnumber, _message.bcgovcode, s3credentials, _message.outputdocumentpath)
+            return basestitchservice().zipfilesandupload(_message, s3credentials)
     
     def __getmessageforrecordjobend(self, _message, results):
         documents = []
