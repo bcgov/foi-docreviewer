@@ -67,7 +67,7 @@ function Home() {
     <div className="App">
       <Grid container>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-          <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button>
+          {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
           { (files.length > 0) ? <DocumentSelector requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
