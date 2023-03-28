@@ -40,7 +40,6 @@ while True:
         ])
     }
     
-    print(jobs_dict)
     job_id = stream.add(jobs_dict, id="*")
     print(f"Created job {job_id}:")
     

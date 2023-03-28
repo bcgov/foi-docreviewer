@@ -10,9 +10,12 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb,division_pdf_stitch_stream_key,notification_stream_key
-from . import jsonmessageparser
-from . import processmessage
+from utils import redisstreamdb
+from config import division_pdf_stitch_stream_key, error_flag
+from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
+from services.pdfstichservice import pdfstitchservice
+from rstreamio.writer.redisstreamwriter import redisstreamwriter
+
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -38,8 +41,6 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     while True:
         print("Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
-        print("*********** Messages ***********")
-        print(messages)
         if messages:
             for _messages in messages:          
                 # message_id is the random id created to identify the message
@@ -49,10 +50,22 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 if message is not None:
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'')
-                    print("_message == ",json.loads(_message))
                     try:
-                        producermessage = jsonmessageparser.getpdfstitchproducermessage(_message)
-                        processmessage(producermessage)
+
+                        producermessage = get_in_divisionpdfmsg(_message)
+                        pdfstitchservice().processmessage(producermessage)
+                        
+                        # send message to notification stream once the zip file is ready to download
+                        complete, err = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+                        print("complete == ", complete)
+                        print("err == ", err)
+
+                        # send notification for both success and error cases
+                        if complete or err:
+                            err = True if error_flag else err
+                            redisstreamwriter().sendnotification(producermessage, err)
+                        else:
+                            print("pdfstitch not yet complete, no message sent")
                     except(Exception) as error: 
                         logging.exception(error)       
                     # simulate processing

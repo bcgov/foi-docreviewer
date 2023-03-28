@@ -1,112 +1,108 @@
 
-from .s3documentservice import gets3documentbytearray, uploadbytes, getcredentialsbybcgovcode
-from utils import add_numbering_to_pdf, add_spacing_around_special_character, getimagepdf
-from . import jsonmessageparser
+from .s3documentservice import getcredentialsbybcgovcode
+from utils import add_spacing_around_special_character
+from commons import add_numbering_to_pdf, getimagepdf
+from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
 import traceback
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 import json
-from zipfile import ZipFile
 from os import path
+from .basestitchservice import basestitchservice
+from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
+from datetime import datetime
 
+class pdfstitchservice(basestitchservice):
 
-def processmessage(_message):
-    decoder = json.JSONDecoder()
-    requestnumber = _message.requestnumber
-    bcgovcode = _message.bcgovcode
-    attributes = decoder.decode(_message.attributes)
-    s3credentials = getcredentialsbybcgovcode(bcgovcode)
- 
-    try:
-        pool = Pool(len(attributes))
-        # loop through the atributes (currently divisions)
-        for division in attributes:
-            print("division = ",division)
-            # pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
-            pool.apply_async(pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode))
+    def ispdfstitchjobcompleted(self, jobid, category):
+        return ispdfstichjobcompleted(jobid, category)
+
+    def processmessage(self,_message):
+        recordjobstart(_message)
+        requestnumber = _message.requestnumber
+        bcgovcode = _message.bcgovcode
+        attributes = _message.attributes
+        s3credentials = getcredentialsbybcgovcode(bcgovcode)
+        category = _message.category.capitalize()
         
-        pool.close()
-        pool.join()
-    except (Exception) as error:
-        print('error with Thread Pool: ', error)
- 
-def pdfstitchbasedondivision(requestno, division, s3credentials, bcgovcode):
-    try:
-        print("division files : ",division.get('files'))
-        count = 0
-        writer = PdfWriter()
-        for file in division.get('files'):
-            if count < len(division.get('files')):
-                _, extension = path.splitext(file.get('s3filepath'))
-                if extension in ['.pdf','.png','jpg']:
-                    print("file = ", file)
-                    _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
-                    _message = _message.replace("b'","'").replace("'",'')
-                    producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)
-                    print(file.get('filename'))
-                    docbytes = getdocumentbytearray(producermessage, s3credentials)
-                    writer = mergepdf(docbytes, writer, extension)
-                count += 1
-        if writer:
-            print("*********************write to PDF**********************")
-            with BytesIO() as bytes_stream:
-                writer.write(bytes_stream)
-                bytes_stream.seek(0)
-                paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
-                numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
-                zipfiles(requestno + division.get('division'), 'EDU-2022-12345', bcgovcode, s3credentials, numberedpdfbytes, division.get('files'))
-    except(Exception) as error:
-        print('error with file: ', error)
-
-
-def getdocumentbytearray(message, s3credentials):
-    try:
-        docbytearray = gets3documentbytearray(message, s3credentials)
-        return docbytearray
-    except(Exception) as error:
-        print("error in getting the bytearray >> ",error)
-        raise
-
-def uploadzipfile(filename, bytesarray, requestnumber, bcgovcode, s3credentials):
-    try:
-        print("zipfilename = ", filename)
-        docobj = uploadbytes(filename, bytesarray, requestnumber, bcgovcode, s3credentials)
-        print(docobj)
-        return docobj
-    except(Exception) as error:
-        print("error in writing the bytearray >> ", error)
-        raise
-
-def mergepdf(raw_bytes_data, writer, extension):
-    if extension in ['.png','jpg']:
-        # process the image bytes        
-        reader =  getimagepdf(raw_bytes_data)
-    else:
-        reader = PdfReader(BytesIO(raw_bytes_data))
+        try:
+            results = []
+            pool = Pool(len(attributes))
+            
+            # loop through the atributes (currently divisions)
+            for division in attributes:
+                
+                print("division = ",division.divisionname)
+                # result = self.pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
+                result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
+                results = results + result
+            pool.close()
+            pool.join()
+            print("Results >>>>>>>>>>>> ", results)
+            finalmessage = self.__getmessageforrecordjobend(_message, results)            
+            result = self.createfinaldocument(finalmessage, s3credentials)
+            if result.get("success") == True:
+                print("final document path =========== ", result.get("documentpath"))
+                savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
+                recordjobend(_message, False, finalmessage=finalmessage)
+        except (Exception) as error:
+            print('error with Thread Pool: ', error)
+            print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
+            recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
     
-    # Add all pages to the writer
-    for page in reader.pages:
-        print("**************Add Page*****************") 
-        writer.add_page(page)
-    return writer
+    def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
+        try:
+            print("division files : ",division.files)
+            count = 0
+            writer = PdfWriter()
+            for file in division.files:
+                if count < len(division.files):
+                    _, extension = path.splitext(file.s3uripath)
+                    if extension in ['.pdf','.png','jpg']:
+                        docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
+                        writer = self.mergepdf(docbytes, writer, extension)
+                    count += 1
+            if writer:
+                with BytesIO() as bytes_stream:
+                    writer.write(bytes_stream)
+                    bytes_stream.seek(0)
+                    paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
+                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
+                    filename = requestno + " - " +category+" - "+ division.divisionname
+                    return basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+        except(Exception) as error:
+            print('error with file: ', error)
 
-def zipfiles(filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files):
-    archive = BytesIO()
+    def mergepdf(self, raw_bytes_data, writer, extension):
+        if extension in ['.png','jpg']:
+            # process the image bytes        
+            reader =  getimagepdf(raw_bytes_data)
+        else:
+            reader = PdfReader(BytesIO(raw_bytes_data))
+        
+        # Add all pages to the writer
+        for page in reader.pages:
+            writer.add_page(page)
+        return writer
+    def createfinaldocument(self, _message, s3credentials):
+        print("<<<<<<<<<<<<<<<<<<<<< createfinaldocument >>>>>>>>>>>>>>>>>>>>>")
+        if _message is not None:
+            return basestitchservice().zipfilesandupload(_message, s3credentials)
+    
+    def __getmessageforrecordjobend(self, _message, results):
+        documents = []
+        for result in results:
+            if result is not None:
+                document = {
+                    "recordid": -1,
+                    "filename": result.get("filename"),
+                    "s3uripath": result.get("documentpath"),
+                    "lastmodified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+                }
+                documents.append(document)
+        setattr(_message, "outputdocumentpath", documents)
+        return _message
 
-    with ZipFile(archive, 'w') as zip_archive:
-        # zip stitched pdf first
-        with zip_archive.open(filename+'.pdf', 'w') as archivefile:
-            archivefile.write(stitchedpdfstream)
-        # zip any non pdf files
-        for file in files:
-            _, extension = path.splitext(file.get('s3filepath'))
-            if extension not in ['.pdf','.png','jpg']:
-                with zip_archive.open(file.get('filename'), 'w') as archivefile:
-                    _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
-                    _message = _message.replace("b'","'").replace("'",'')
-                    producermessage = jsonmessageparser.getpdfstitchfilesproducermessage(_message)
-                    archivefile.write(getdocumentbytearray(producermessage, s3credentials))
 
 
-    uploadzipfile(filename+'.zip', archive.getbuffer(), requestnumber, bcgovcode, s3credentials)
