@@ -76,6 +76,7 @@ services:
       - DEDUPE_S3_ENV=${DEDUPE_S3_ENV}
       - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
       - FILE_CONVERSION_STREAM_KEY=${FILE_CONVERSION_STREAM_KEY}
+      - FOI_RECORD_FORMATS=${FOI_RECORD_FORMATS}
 
   foi-docreviewer-db:
     image: postgres
