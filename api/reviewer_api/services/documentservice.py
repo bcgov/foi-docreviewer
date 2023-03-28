@@ -22,8 +22,8 @@ class documentservice:
         return documents
     
     def getdedupestatus(self,requestid):
-        records = DocumentMaster.getdocumentmaster(requestid)
         deleted = DocumentMaster.getdeleted(requestid)
+        records = DocumentMaster.getdocumentmaster(requestid, deleted)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
@@ -66,13 +66,23 @@ class documentservice:
                 record["pagecount"] = property["pagecount"]
                 record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] =  self.__isduplicate(properties, record)
                 record["filename"] = property["filename"]
+        """Begin        
+        Below block is a temporary workaround to verify duplicate in msg.
+        This verifies the duplicate with the parent hashcode and filename
+        """
         if record["isduplicate"] == False and record["parentid"] is not None and record["filepath"].endswith(".msg"):
             _uploaded = self.__getuploadedrecord(records, record["parentid"]) 
-            record["isduplicate"], record["duplicatemasterid"],record["duplicateof"]  =  self.__isduplicate(properties, _uploaded)
-            if record["isduplicate"] == True:
-                filtered = [x["processingparentid"] for x in properties if x["filename"] == record["filename"]]
-                record["duplicatemasterid"] = min(filtered)
-                record["duplicateof"] = self.__getduplicateof(properties, record, record["duplicatemasterid"] )
+            _occurances = [d for d in properties if d['filename']==record['filename']]
+            if len(_occurances) > 1:
+                record["isduplicate"], record["duplicatemasterid"],record["duplicateof"]  =  self.__isduplicate(properties, _uploaded)
+                if record["isduplicate"] == True:
+                    filtered = [x["processingparentid"] for x in properties if x["filename"] == record["filename"]]
+                    record["duplicatemasterid"] = min(filtered)
+                    record["duplicateof"] = self.__getduplicateof(properties, record, record["duplicatemasterid"] )
+        """End
+
+        Duplicate block check end
+        """
         return record   
     
     def __updateredactionstatus(self,redactions, record):
@@ -94,7 +104,7 @@ class documentservice:
             if x["rank1hash"] == matchedhash:
                 value = x["processingparentid"] if x["processingparentid"] is not None else x["documentmasterid"]
                 filtered.append(value)
-        if len(filtered) > 1:            
+        if len(filtered) > 1 and filtered not in (None, []):            
             originalid = min(filtered)
             if  originalid != record["documentmasterid"]:
                 isduplicate = True

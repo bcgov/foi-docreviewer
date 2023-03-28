@@ -27,7 +27,7 @@ class DocumentMaster(db.Model):
 
 
     @classmethod 
-    def getdocumentmaster(cls, ministryrequestid):
+    def getdocumentmaster(cls, ministryrequestid, deleted):
         documentmasters = []
         try:
             sql = """select recordid, parentid, filepath, dm.documentmasterid, da."attributes", 
@@ -36,7 +36,8 @@ class DocumentMaster(db.Model):
                     and dm.ministryrequestid = :ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"]})
+                if row["documentmasterid"] not in deleted:
+                    documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
