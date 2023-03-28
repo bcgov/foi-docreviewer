@@ -17,11 +17,11 @@ import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOS
 import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 
-const Redlining = ({
+const Redlining = React.forwardRef(({
   currentPageInfo,
   user,
-  requestid
-}) =>{
+  requestid,
+}, ref) =>{
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const viewer = useRef(null);
   const saveButton = useRef(null);
@@ -46,6 +46,12 @@ const Redlining = ({
   const [saveDisabled, setSaveDisabled]= useState(true);
   //xml parser
   const parser = new XMLParser();
+
+  useImperativeHandle(ref, () => ({
+    log() {
+      setModalOpen(true)
+    }
+  }));
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -534,6 +540,6 @@ const Redlining = ({
     </div>
   );
 
-}
+})
 
 export default Redlining;
