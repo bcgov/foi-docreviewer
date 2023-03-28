@@ -1,6 +1,6 @@
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import React, { useRef, useEffect,useState } from 'react';
+import React, { useRef, useEffect,useState,useImperativeHandle } from 'react';
 import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
@@ -16,15 +16,19 @@ import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotatio
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
+import FoippaSectionModal from "./FoippaSectionModal";
 
 const Redlining = ({
   currentPageInfo,
   user,
-  requestid
+  requestid,
 }) =>{
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
+  const sections = useSelector(state => state.documents?.sections);
+
   const viewer = useRef(null);
   const saveButton = useRef(null);
+  
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
   const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
@@ -37,15 +41,26 @@ const Redlining = ({
   const [saveAnnot, setSaveAnnot] = useState(null);
   const [deleteAnnot, setDeleteAnnot] = useState(null);
   const [deleteQueue, setDeleteQueue] = useState([]);
-  const [sections, setSections] = useState([]);
+  //const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
   const [defaultSections, setDefaultSections] = useState([]);
   const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
   //const [redactionInfo, setRedactionInfo] = useState([]);
   const [saveDisabled, setSaveDisabled]= useState(true);
+  const [redactionType, setRedactionType]= useState(null);
+  const [pageSelections, setPageSelections] = useState([]);
   //xml parser
   const parser = new XMLParser();
+
+  // useImperativeHandle(ref, () => setModalOpen(true)
+  
+  // );
+  // ({
+  //   log() {
+  //     setModalOpen(true)
+  //   }
+  // }));
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -54,7 +69,6 @@ const Redlining = ({
 
     fetchSections(
       requestid,
-      (data) => setSections(data),
       (error)=> console.log(error)
     );
 
@@ -171,7 +185,8 @@ const Redlining = ({
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
         if (info.imported) return;
-
+        console.log("--",annotations[0]?.type)
+        setRedactionType(annotations[0]?.type);
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
         _annotationtring.then(astr=>{
@@ -184,18 +199,42 @@ const Redlining = ({
               if (annot.name === 'redact') {
                 annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
               } else {
-                deleteAnnotation(
-                  localDocumentInfo['file']['documentid'],
-                  localDocumentInfo['file']['version'],
-                  annot.attributes.name,
-                  (data)=>{console.log(data)},
-                  (error)=>{console.log(error)}
-                );
+                if(annotations[0]?.type === 'fullPage'){
+                  deleteAnnotation(
+                    localDocumentInfo['file']['documentid'],
+                    localDocumentInfo['file']['version'],
+                    annot.attributes.name,
+                    (data)=>{console.log(data)},
+                    (error)=>{console.log(error)},
+                    (Number(annot.attributes.page))+1
+                  );
+                }
+                else{
+                  deleteAnnotation(
+                    localDocumentInfo['file']['documentid'],
+                    localDocumentInfo['file']['version'],
+                    annot.attributes.name,
+                    (data)=>{console.log(data)},
+                    (error)=>{console.log(error)}
+                  );
+                }
               }
             }
             setDeleteQueue(annotObjs);
           } 
           else if (action === 'add') {
+            let pageSelectionList= [...pageSelections];
+            if(annotations[0]?.type === 'fullPage' && annots[0].children?.length > 0){
+                annots[0].children?.forEach((annotatn)=> {
+                  pageSelectionList.push(
+                    {
+                     "page":(Number(annotatn.attributes.page))+1,
+                     "flagid":3
+                    });
+                })
+                setPageSelections(pageSelectionList);
+            }
+              
             let annot = annots[0].children[0];
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
@@ -241,10 +280,10 @@ const Redlining = ({
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    let redaction = annotManager.getAnnotationById(redactionObj.name);
+    let redaction = annotManager.getAnnotationById(redactionObj?.name);
     let childRedaction;
     let childSection ="";
-    let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj.name);
+    let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
     if(i >= 0){
       childSection = redactionInfo[i]?.sections.annotationname;
       childRedaction = annotManager.getAnnotationById(childSection);
@@ -280,6 +319,7 @@ const Redlining = ({
           astr,
           (data)=>{console.log(data)},
           (error)=>{console.log(error)},
+          [],
           sectn
         );
         setSelectedSections([]);
@@ -288,14 +328,25 @@ const Redlining = ({
       })
     }
     else {
+      // let pageFlags=null;
+      //   if(redactionType === 'fullPage'){
+      //     pageFlags=[
+      //       {
+      //       "page":2,
+      //       "flagid":3
+      //       }
+      //     ]
+      //   }
       saveAnnotation(
+        requestid,
         localDocumentInfo['file']['documentid'],
         localDocumentInfo['file']['version'],
         newRedaction.page,
         newRedaction.name,
         newRedaction.astr,
         (data)=>{console.log(data)},
-        (error)=>{console.log(error)}
+        (error)=>{console.log(error)},
+        pageSelections
       );
     //}
     // add section annotation
@@ -304,7 +355,7 @@ const Redlining = ({
     var coords = astr.getElementsByTagName("redact")[0]?.attributes.getNamedItem('coords')?.value;
     var X = coords?.substring(0, coords.indexOf(","));
     const annot = new annots.FreeTextAnnotation();
-    annot.PageNumber = redaction.getPageNumber()
+    annot.PageNumber = redaction?.getPageNumber()
     annot.X = X || redaction.X;
     annot.Y = redaction.Y;
     annot.FontSize = redaction.FontSize;
@@ -393,16 +444,27 @@ const Redlining = ({
           }
         } else {
           saveAnnotation(
+            requestid,
             localDocumentInfo['file']['documentid'],
             localDocumentInfo['file']['version'],
             saveAnnot.page,
             saveAnnot.name,
             saveAnnot.astr,
             (data)=>{console.log(data)},
-            (error)=>{console.log(error)}
+            (error)=>{console.log(error)},
+            pageSelections,
           );
         }
       } else {
+        // let pageFlags=null;
+        // if(redactionType === 'Full Page'){
+        //   pageFlags=[
+        //     {
+        //     "page":2,
+        //     "flagid":3
+        //     }
+        //   ]
+        // }
         let sectn = {
           "foiministryrequestid": requestid,
           "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section})),
@@ -412,6 +474,7 @@ const Redlining = ({
         setNewRedaction(null)
         setSelectedSections([]);
         saveAnnotation(
+          requestid,
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
           saveAnnot.page,
@@ -419,7 +482,9 @@ const Redlining = ({
           saveAnnot.astr,
           (data)=>{console.log(data)},
           (error)=>{console.log(error)},
-          sectn
+          [],
+          sectn,
+          //pageSelections
         );
       }
     }
@@ -466,7 +531,9 @@ const Redlining = ({
     <div>
       {/* <button onClick={gotopage}>Click here</button> */}
       <div className="webviewer" ref={viewer}></div>
-      <ReactModal
+        {/* <FoippaSectionModal sections={sections} /> */}
+      <div >
+      <ReactModal  
           initWidth={650}
           initHeight={700}
           minWidth ={400}
@@ -483,9 +550,8 @@ const Redlining = ({
           </DialogTitle>
           <DialogContent className={'dialog-content-nomargin'}>
             <DialogContentText id="state-change-dialog-description" component={'span'} >
-              {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
                 <List className="section-list">
-                  {sections.sort((a, b) => b.count - a.count).map((section, index) =>
+                  {sections?.sort((a, b) => b.count - a.count).map((section, index) =>
                     <ListItem key={section.id}>
                       <input
                           type="checkbox"
@@ -502,11 +568,6 @@ const Redlining = ({
                     </ListItem>
                   )}
                 </List>
-              {/* </div> */}
-              {/* <span className="confirmation-message">
-                    Are you sure you want to delete the attachments from this request? <br></br>
-                    <i>This will remove all attachments from the redaction app.</i>
-                  </span> */}
             </DialogContentText>
           </DialogContent>
           <DialogActions className="foippa-modal-actions">
@@ -531,9 +592,9 @@ const Redlining = ({
             </button>
           </DialogActions>
       </ReactModal>
+      </div>
     </div>
   );
 
-}
-
+};
 export default Redlining;

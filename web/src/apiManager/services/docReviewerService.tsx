@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -70,6 +70,7 @@ export const fetchAnnotationsInfo = (
 };
 
 export const saveAnnotation = (
+  requestid: string,
   documentid: number,
   documentversion: number = 1,
   pagenumber: number = 0,
@@ -77,15 +78,18 @@ export const saveAnnotation = (
   annotation: string = "",
   callback: any,
   errorCallback: any,
+  pageFlags?: Array<any>,
   sections?: object,
 ) => {
   let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
   let requestJSON = sections ?{
     "xml": annotation,
-    "sections": sections
+    "sections": sections,
     } : 
     {
-      "xml": annotation
+      "xml": annotation,
+      "pageflags":pageFlags,
+      "foiministryrequestid":requestid
     }
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -105,10 +109,11 @@ export const deleteAnnotation = (
   documentversion: number = 1,
   annotationname: string = "",
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  page?: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
-
+  let apiUrlDelete: string = page ?`${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}/${page}`;
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -132,7 +137,8 @@ export const fetchSections = (
   httpGETRequest(apiUrl, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
-        callback(res.data);
+        store.dispatch(setSections(res.data) as any);
+        //callback(res.data);
       } else {
         throw new Error();
       }

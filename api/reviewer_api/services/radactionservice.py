@@ -8,6 +8,7 @@ from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.OperatingTeamS3ServiceAccounts import OperatingTeamS3ServiceAccount
 from reviewer_api.models.DocumentPathMapper import DocumentPathMapper
 from reviewer_api.services.annotationservice import annotationservice
+from reviewer_api.services.documentpageflagservice import documentpageflagservice
 import json
 import os
 import base64
@@ -27,10 +28,16 @@ class redactionservice:
 
 
     def saveannotation(self, annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo):
-        return annotationservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo)
+         result= annotationservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo)
+         if result.success == True and "foiministryrequestid" in annotationschema and "pageflags" in annotationschema and annotationschema["pageflags"] is not None:
+            documentpageflagservice().bulksavepageflags(annotationschema["foiministryrequestid"], documentid, documentversion, annotationschema["pageflags"], userinfo)
+         return result
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
-        return annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,page):
+        result =  annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
+        if result.success == True:
+            documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
+        return result
 
     def getdocumentmapper(self, bucket):
         return DocumentPathMapper.getmapper(bucket)
