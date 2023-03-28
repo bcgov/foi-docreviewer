@@ -122,7 +122,7 @@ namespace MCS.FOI.S3FileConversion
                                         new() { Value = attachment["filepath"] , NpgsqlDbType = NpgsqlDbType.Varchar},
                                         new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                                         new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                                        new() { Value = true, NpgsqlDbType = NpgsqlDbType.Boolean},
+                                        new() { Value = false, NpgsqlDbType = NpgsqlDbType.Boolean},
                                         new() { Value = "conversionservice" , NpgsqlDbType = NpgsqlDbType.Varchar},
                                         new() { Value = attachment["attributes"] , NpgsqlDbType = NpgsqlDbType.Json},
                                         new() { Value = "{\"user\": \"conversionservice\"}" , NpgsqlDbType = NpgsqlDbType.Json},
@@ -212,7 +212,7 @@ namespace MCS.FOI.S3FileConversion
                             new() { Value = Path.ChangeExtension(message["s3filepath"], ".pdf"), NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                            new() { Value = true, NpgsqlDbType = NpgsqlDbType.Boolean},
+                            new() { Value = false, NpgsqlDbType = NpgsqlDbType.Boolean},
                             new() { Value = "conversionservice" , NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = (int) message["jobid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = 3 , NpgsqlDbType = NpgsqlDbType.Integer}, // Job end is always the third entry in db

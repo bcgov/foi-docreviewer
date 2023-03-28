@@ -82,6 +82,28 @@ def recordjobend(dedupeproducermessage, error, message=""):
         print(error)
         raise
 
+
+def updateredactionstatus(dedupeproducermessage):
+    try:
+        conn = getdbconnection()
+        cursor = conn.cursor()
+        cursor.execute('''update "DocumentMaster" dm
+                        set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now() 
+                        from(
+                        select distinct on (documentmasterid) documentmasterid, version, status
+                        from  "DeduplicationJob"
+                        where ministryrequestid= %s::integer 
+                        order by documentmasterid, version desc) as sq
+                        where dm.documentmasterid = sq.documentmasterid 
+                        and isredactionready = false and ministryrequestid = %s::integer''',
+            (dedupeproducermessage.ministryrequestid,dedupeproducermessage.ministryrequestid))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except(Exception) as error:
+        print(error)
+        raise
+
 def isbatchcompleted(batch):
     try:
         conn = getdbconnection()
