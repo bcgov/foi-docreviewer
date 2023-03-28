@@ -9,16 +9,12 @@ from reportlab.lib.utils import ImageReader
 def getimagepdf(raw_image_bytes):
     imgtemp = BytesIO()
     image = ImageReader(BytesIO(raw_image_bytes))
-    iw, ih = image.getSize()
-    pagesize = (iw, ih)
-    print("Image W >>> ", iw)
-    print("Image H >>> ", ih)
-    empty_canvas = canvas.Canvas(imgtemp, pagesize=pagesize)
+    iw, ih = A4
+    empty_canvas = canvas.Canvas(imgtemp, pagesize=A4)
     
     # Draw image on Canvas and save PDF in buffer
-    empty_canvas.drawImage(image, 160, 160, 399, 760, preserveAspectRatio=True)    ## at (399,760) with size 160x160
+    # empty_canvas.drawImage(image, 160, 160, 399, 760, preserveAspectRatio=True)    ## at (399,760) with size 160x160
+    empty_canvas.drawImage(image, 0, ih - 150, preserveAspectRatio=True)
     empty_canvas.save()
-    print("******DrawImage******")
     overlay = PdfReader(BytesIO(imgtemp.getvalue()))
-    print("overlay pages >>> ", len(overlay.pages))
     return overlay
