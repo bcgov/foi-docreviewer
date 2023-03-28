@@ -68,7 +68,7 @@ const Redlining = React.forwardRef(({
 
     fetchSections(
       requestid,
-      (data) => setSections(data),//.sort((a, b) => b.count - a.count)),
+      (data) => setSections(data),
       (error)=> console.log(error)
     );
 
