@@ -57,7 +57,7 @@ class DocumentMaster(db.Model):
             
             sql = """select distinct d.documentmasterid  
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%' 
-                  and d.ministryrequestid =:ministryrequestid"""
+                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 documentmasters.append(row["documentmasterid"])
