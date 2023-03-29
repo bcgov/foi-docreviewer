@@ -1,6 +1,6 @@
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import React, { useRef, useEffect,useState } from 'react';
+import React, { useRef, useEffect,useState,useImperativeHandle } from 'react';
 import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
@@ -11,17 +11,23 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@material-ui/core/IconButton";
+import Switch, { SwitchProps } from '@mui/material/Switch';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
+import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-const Redlining = ({
+const Redlining = React.forwardRef(({
   currentPageInfo,
   user,
-  requestid
-}) =>{
+  requestid,
+}, ref) =>{
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const viewer = useRef(null);
   const saveButton = useRef(null);
@@ -44,8 +50,16 @@ const Redlining = ({
   const [editAnnot, setEditAnnot] = useState(null);
   //const [redactionInfo, setRedactionInfo] = useState([]);
   const [saveDisabled, setSaveDisabled]= useState(true);
+  const [modalSortNumbered, setModalSortNumbered]= useState(false);
+  const [modalSortAsc, setModalSortAsc]= useState(true);
   //xml parser
   const parser = new XMLParser();
+
+  useImperativeHandle(ref, () => ({
+    log() {
+      setModalOpen(true)
+    }
+  }));
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -71,7 +85,7 @@ const Redlining = ({
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
-      
+
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
         return (
@@ -80,7 +94,7 @@ const Redlining = ({
             class="Button ActionButton"
             style={selectedAnnotations[0].Subject !== 'Redact' ? {cursor: "default"} : {}}
             onClick={() => {
-              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))              
+              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
             }}
             disabled={selectedAnnotations[0].Subject !== 'Redact'}
           >
@@ -194,7 +208,7 @@ const Redlining = ({
               }
             }
             setDeleteQueue(annotObjs);
-          } 
+          }
           else if (action === 'add') {
             let annot = annots[0].children[0];
             setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
@@ -325,7 +339,7 @@ const Redlining = ({
     // Always redraw annotation
     annotManager.redrawAnnotation(annot);
     // setNewRedaction(null)
-    redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});    
+    redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
     for(let id of redactionSectionsIds) {
       sections.find(s => s.id === id).count++;
     }
@@ -461,6 +475,60 @@ const Redlining = ({
     setSaveDisabled(selectedSections.length === 0);
   }
 
+  const AntSwitch = styled(Switch)(({ theme }) => ({
+    width: 28,
+    height: 16,
+    padding: 0,
+    display: 'flex',
+    '&:active': {
+      '& .MuiSwitch-thumb': {
+        width: 15,
+      },
+      '& .MuiSwitch-switchBase.Mui-checked': {
+        transform: 'translateX(9px)',
+      },
+    },
+    '& .MuiSwitch-switchBase': {
+      padding: 2,
+      '&.Mui-checked': {
+        transform: 'translateX(12px)',
+        color: '#fff',
+        '& + .MuiSwitch-track': {
+          opacity: 1,
+          backgroundColor: theme.palette.mode === 'dark' ? '#177ddc' : '#38598a',
+        },
+      },
+    },
+    '& .MuiSwitch-thumb': {
+      boxShadow: '0 2px 4px 0 rgb(0 35 11 / 20%)',
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      transition: theme.transitions.create(['width'], {
+        duration: 200,
+      }),
+    },
+    '& .MuiSwitch-track': {
+      borderRadius: 16 / 2,
+      opacity: 1,
+      backgroundColor:
+        theme.palette.mode === 'dark' ? '#177ddc' : '#38598a',
+      boxSizing: 'border-box',
+    },
+  }));
+
+  const changeModalSort = (e) => {
+    setModalSortNumbered(e.target.checked)
+    // setSections(sections.sort((a, b) => e.target.checked ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count))
+  }
+
+  const changeSortOrder = (e) => {
+    if (modalSortNumbered) {
+      setModalSortAsc(!modalSortAsc)
+      // setSections(sections.sort((a, b) => !modalSortAsc ? a.id - b.id : b.id - a.id))
+    }
+  }
+
 
   return (
     <div>
@@ -483,26 +551,40 @@ const Redlining = ({
           </DialogTitle>
           <DialogContent className={'dialog-content-nomargin'}>
             <DialogContentText id="state-change-dialog-description" component={'span'} >
-              {/* <div style={{overflowY: 'scroll', height: 'calc(100% - 318px)'}}> */}
+              <Stack direction="row-reverse" spacing={1} alignItems="center">
+                <button onClick={changeSortOrder} style={{border: "none", backgroundColor: "white", padding: 0}} disabled={!modalSortNumbered}>
+                  {modalSortAsc ?
+                    <FontAwesomeIcon icon={faArrowUp} size='1x' color="#666666"/> :
+                    <FontAwesomeIcon icon={faArrowDown} size='1x' color="#666666"/>
+                  }
+                </button>
+                <Typography>Numbered Order</Typography>
+                <AntSwitch
+                onChange={changeModalSort}
+                 checked={modalSortNumbered}
+                  inputProps={{ 'aria-label': 'ant design' }} />
+                <Typography>Most Used</Typography>
+              </Stack>
+              <div style={{overflowY: 'scroll'}}>
                 <List className="section-list">
-                  {sections.sort((a, b) => b.count - a.count).map((section, index) =>
-                    <ListItem key={section.id}>
+                  {sections.sort((a, b) => modalSortNumbered ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count).map((section, index) =>
+                    <ListItem key={"list-item" + section.id}>
                       <input
                           type="checkbox"
                           className="section-checkbox"
-                          key={section.id}
+                          key={"section-checkbox" + section.id}
                           id={"section" + section.id}
                           data-sectionid={section.id}
                           onChange={handleSectionSelected}
                           defaultChecked={selectedSections.includes(section.id)}
                       />
-                      <label key={index} className="check-item">
+                      <label key={"list-label" + section.id} className="check-item">
                         {section.section + ' - ' + section.description}
                       </label>
                     </ListItem>
                   )}
                 </List>
-              {/* </div> */}
+              </div>
               {/* <span className="confirmation-message">
                     Are you sure you want to delete the attachments from this request? <br></br>
                     <i>This will remove all attachments from the redaction app.</i>
@@ -534,6 +616,6 @@ const Redlining = ({
     </div>
   );
 
-}
+})
 
 export default Redlining;

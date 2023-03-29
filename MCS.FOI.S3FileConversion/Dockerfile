@@ -1,4 +1,5 @@
-FROM artifacts.developer.gov.bc.ca/docker-remote/mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+#FROM artifacts.developer.gov.bc.ca/docker-remote/mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+FROM artifacts.developer.gov.bc.ca/microsoft-docker-remote/dotnet/sdk:6.0 AS build-env
 WORKDIR /app
 
 COPY *.sln .
@@ -68,5 +69,4 @@ RUN apt-get update && \
      libx11-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-render0-dev libxcb-shm0-dev libxcb-util0-dev libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxfixes-dev libxrandr-dev libxrender-dev
 COPY --from=build-env /app/MCS.FOI.S3FileConversion/out ./
 RUN chmod a+rwx -R /app
-# RUN chmod a+rwx -R /vault/secrets/conversion
 ENTRYPOINT ["dotnet", "MCS.FOI.S3FileConversion.dll"]
