@@ -19,17 +19,12 @@ from flask_restx import Namespace, Resource
 from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
-
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 import json
-# import requests
-# from reviewer_api.schemas.foirequestsformslist import  FOIRequestsFormsList
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 import os
-# from reviewer_api.utils.cache import cache_filter, response_filter
-
 import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
@@ -50,7 +45,6 @@ class FOIFlowS3Presigned(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    # @auth.documentbelongstosameministry
     def get(documentid):
         try :
             document = documentservice().getdocument(documentid)

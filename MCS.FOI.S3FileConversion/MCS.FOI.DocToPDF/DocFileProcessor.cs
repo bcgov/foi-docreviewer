@@ -46,22 +46,12 @@ namespace MCS.FOI.DocToPDF
                 {
                     try
                     {
-                        //Load an existing Word document
-                        //WordDocument wordDocument = new WordDocument(SourceStream, FormatType.Docx);
                         DocIORenderer renderer = new DocIORenderer();
-                        //Initialize chart to image converter for converting charts during Word to pdf conversion
-                        //wordDocument.ChartToImageConverter = new ChartToImageConverter();
-                        //Create an instance of DocToPDFConverter
-
-                        //DocToPDFConverter converter = new DocToPDFConverter();
-                        //Convert Word document into PDF document
-                        //PdfDocument pdfDocument = converter.ConvertToPDF(wordDocument); 
                         PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
                         //Save the PDF file
                         //Close the instance of document objects
                         pdfDocument.Save(output);
                         pdfDocument.Close(true);
-                        //wordDocument.Close();
                         converted = true;
 
                     }

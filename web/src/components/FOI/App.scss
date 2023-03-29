@@ -81,10 +81,9 @@
 }
 
 #state-change-dialog-description {
-  // padding-left: 50px;
-  overflow: auto;
   height: 100%;
-  display: block;
+  display: flex;
+  flex-flow: column;
   color: black;
 }
 

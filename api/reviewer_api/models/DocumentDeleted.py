@@ -7,6 +7,7 @@ class DocumentDeleted(db.Model):
     # Defining the columns
     documentdeletedid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filepath = db.Column(db.String(500), nullable=False)
+    ministryrequestid = db.Column(db.Integer, nullable=True)
     deleted = db.Column(db.Boolean, unique=False, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime2.now)
     createdby = db.Column(db.String(120), unique=False, nullable=True)

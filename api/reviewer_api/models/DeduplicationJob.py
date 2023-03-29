@@ -2,6 +2,7 @@ from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import text
+import logging
 
 class DeduplicationJob(db.Model):
     __tablename__ = 'DeduplicationJob'
@@ -46,6 +47,24 @@ class DeduplicationJob(db.Model):
             error.append(row["filepath"])
 
         return completed, error
+    
+    @classmethod 
+    def getdedupestatus(cls, ministryrequestid):
+        executions = []
+        try:
+            sql = """select distinct on (deduplicationjobid) deduplicationjobid, version, 
+                    filename, status, documentmasterid, trigger   
+                    from "DeduplicationJob" fcj  where ministryrequestid = :ministryrequestid
+                    order by deduplicationjobid, "version" desc"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                executions.append({"deduplicationjobid": row["deduplicationjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["documentmasterid"], "trigger":row["trigger"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return executions
 
 class DeduplicationJobSchema(ma.Schema):
     class Meta:

@@ -258,7 +258,7 @@ class Document(db.Model):
             
         ).group_by(DocumentHashCodes.rank1hash)
     
-        # subquery to fetch the earliest uploaded, non-deleted duplicates AND incompatable FALSE in a request
+    # subquery to fetch the earliest uploaded, non-deleted duplicates AND incompatable FALSE in a request
     def __getcompatableoriginalsubquery(requestid):
         return db.session.query(
             func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash

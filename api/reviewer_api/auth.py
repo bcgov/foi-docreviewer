@@ -59,8 +59,6 @@ class Auth:
         """
 
         def decorated(f):
-            # Token verification is commented here with an expectation to use this decorator in conjuction with require.
-            #@Auth.require
             @wraps(f)
             def wrapper(*args, **kwargs):
                 _groups = groups.split(',')

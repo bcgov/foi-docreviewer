@@ -34,12 +34,10 @@ class pdfstitchservice(basestitchservice):
             for division in attributes:
                 
                 print("division = ",division.divisionname)
-                # result = self.pdfstitchbasedondivision(requestnumber, division, s3credentials, bcgovcode)
                 result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
                 results = results + result
             pool.close()
             pool.join()
-            print("Results >>>>>>>>>>>> ", results)
             finalmessage = self.__getmessageforrecordjobend(_message, results)            
             result = self.createfinaldocument(finalmessage, s3credentials)
             if result.get("success") == True:
@@ -53,13 +51,13 @@ class pdfstitchservice(basestitchservice):
     
     def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
         try:
-            print("division files : ",division.files)
             count = 0
             writer = PdfWriter()
             for file in division.files:
+                print("filename = ", file.filename)
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3uripath)
-                    if extension in ['.pdf','.png','jpg']:
+                    if extension in ['.pdf','.png','.jpg']:
                         docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
                         writer = self.mergepdf(docbytes, writer, extension)
                     count += 1
@@ -75,8 +73,8 @@ class pdfstitchservice(basestitchservice):
             print('error with file: ', error)
 
     def mergepdf(self, raw_bytes_data, writer, extension):
-        if extension in ['.png','jpg']:
-            # process the image bytes        
+        if extension in ['.png','.jpg']:
+            # process the image bytes  
             reader =  getimagepdf(raw_bytes_data)
         else:
             reader = PdfReader(BytesIO(raw_bytes_data))
