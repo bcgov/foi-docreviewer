@@ -86,7 +86,7 @@ class basestitchservice:
                 _jsonfile = to_json(file)
                 _file = get_in_filepdfmsg(_jsonfile)
                 _, extension = path.splitext(_file.s3uripath)
-                if extension not in ['.pdf','.png','jpg']:
+                if extension not in ['.pdf','.png','.jpg']:
                     incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
                     docobjs.append(incompatabledocobj)
             print(docobjs)
