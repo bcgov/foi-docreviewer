@@ -47,7 +47,7 @@ class GetDedupeStatus(Resource):
         try:
             payload = request.get_json()
             payload = FOIRequestDeleteRecordsSchema().load(payload)
-            result = documentservice().deletedocument(payload['filepaths'], AuthHelper.getuserid())
+            result = documentservice().deletedocument(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
