@@ -21,29 +21,6 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
         rank1hash,created_at) VALUES(%s::integer, %s,%s)', (id_of_new_row, hashcode,datetime.now()))
         conn.commit()
 
-
-        # cursor.execute('INSERT INTO public."DocumentTags"(\
-	    # documentid, documentversion, tag, createdby, created_at) VALUES (%s::integer, %s::integer, %s,%s,%s)',(id_of_new_row,1,dedupeproducermessage.attributes,'{"user":"dedupeservice"}',datetime.now()))
-        # conn.commit()
-
-        # combine list of divisions and save to original tag
-        # cursor.execute('''select d.documentid, dt.tag from public."DocumentHashCodes" hc
-        #     join public."Documents" d on hc.documentid = d.documentid
-        #     join public."DocumentTags" dt on dt.documentid = d.documentid
-        #     left outer join public."DocumentDeleted" dd on d.filepath ilike '%%' || dd.filepath || '%%'
-        #     where hc.rank1hash = %s and d.foiministryrequestid = %s and (dd.deleted is null or dd.deleted is false)
-        #     order by hc.created_at asc limit 1''',
-        #     (hashcode, dedupeproducermessage.ministryrequestid)
-        # )
-        # (originalid, attributes) = cursor.fetchone()
-        # messageattributes = json.loads(dedupeproducermessage.attributes)
-        # divid = lambda div : div['divisionid']
-        # divobj = lambda divid : {"divisionid" : divid}
-        # attributes['divisions'] = list(map(divobj, set(map(divid, attributes['divisions'])).union(set(map(divid, messageattributes['divisions'])))))
-
-        # cursor.execute('''update public."DocumentTags" set tag = %s where documentid = %s''', (json.dumps(attributes), originalid))
-        # conn.commit()
-
         cursor.close()
         conn.close()
         return True

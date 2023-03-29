@@ -56,105 +56,83 @@ namespace MCS.FOI.EMLToPDF
             PdfDocument document = new PdfDocument();
             try
             {
-                //string sourceFile = Path.Combine(MSGSourceFilePath, MSGFileName);
                 Dictionary<string, Object> problematicFiles = null;
-
                 
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                {
+                    try
                     {
-                        try
-                        {
                         var msg = MsgReader.Mime.Message.Load(SourceStream);
-                            string htmlString = generateHtmlfromEML(msg);
-                        //(output, document) = ConvertHTMLtoPDF(htmlString, output);
+                        string htmlString = generateHtmlfromEML(msg);
+
                         PdfAttachmentCollection attachmentList = new PdfAttachmentCollection();
                         var attachments = msg.Attachments;
-                            foreach (Object attachment in attachments)
+                        foreach (Object attachment in attachments)
+                        {
+                            var type = attachment.GetType().FullName;
+                            if (type.ToLower().Contains("message"))
                             {
-                                var type = attachment.GetType().FullName;
-                                if (type.ToLower().Contains("message"))
+                                var file = (MsgReader.Mime.MessagePart)attachment;
+                                problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                                problematicFiles.Add(file.FileName, file);
+
+                            }
+                            else
+                            {
+                                var file = (Storage.Attachment)attachment;
+                                if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
                                 {
-                                    var file = (MsgReader.Mime.MessagePart)attachment;
                                     problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
                                     problematicFiles.Add(file.FileName, file);
 
                                 }
-                                else
-                                {
-                                    var file = (Storage.Attachment)attachment;
-                                    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
-                                    {
-                                        problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                        problematicFiles.Add(file.FileName, file);
 
-                                    }
-
-                                }
                             }
+                        }
 
-                            if (problematicFiles != null)
+                        if (problematicFiles != null)
+                        {
+                            
+                            int cnt = 0;
+                            foreach (var attachmenttomove in problematicFiles)
                             {
-                                
-                                int cnt = 0;
-                                foreach (var attachmenttomove in problematicFiles)
-                                {
 
-                                    if (attachmenttomove.Key.ToLower().Contains(".msg"))
-                                    {
-                                        var _attachment = (MsgReader.Mime.MessagePart)attachmenttomove.Value;
-                                        string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
-                                    //foreach (var subattachment in _attachment)
-                                    //{
-                                    //    var type = subattachment.GetType().FullName;
-                                    //    if (type.ToLower().Contains("attachment"))
-                                    //    {
-                                    //        var file = (Storage.Attachment)subattachment;
-                                    //        CreateOutputFolder("subattachments");
-                                    //        string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{file.FileName}";
-                                    //        File.WriteAllBytes(_fileName, file.Data);
-                                    //    }
-                                    //}
+                                if (attachmenttomove.Key.ToLower().Contains(".msg"))
+                                {
+                                    var _attachment = (MsgReader.Mime.MessagePart)attachmenttomove.Value;
+                                    string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
+
                                     CreateOutputFolder("subattachments");
                                     string _fileName = @$"{OutputFilePath}\msgattachments\subattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{fileName}";
                                     FileInfo file = new FileInfo(fileName);
-                                    //document.Attachments.Add(AddAttachment(file, _attachment.Body));
                                     attachmentList.Add(AddAttachment(file, _attachment.Body));
-                                    }
-                                    else
-                                    {
-                                        var _attachment = (MsgReader.Mime.MessagePart)attachmenttomove.Value;
-                                        string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
-                                        CreateOutputFolder();
-                                        FileInfo file = new FileInfo(fileName);
-                                        //document.Attachments.Add(AddAttachment(file, _attachment.Body));
-                                        attachmentList.Add(AddAttachment(file, _attachment.Body));
-                                        System.IO.File.WriteAllBytes(fileName, _attachment.Body);
-                                        outputpath += fileName;
-                                    }
-                                    cnt++;
                                 }
-                                moved = true;
-                                message = string.Concat($"{cnt} problematic files moved", outputpath);
+                                else
+                                {
+                                    var _attachment = (MsgReader.Mime.MessagePart)attachmenttomove.Value;
+                                    string fileName = @$"{OutputFilePath}\msgattachments\{Path.GetFileNameWithoutExtension(MSGFileName)}_{_attachment.FileName}";
+                                    CreateOutputFolder();
+                                    FileInfo file = new FileInfo(fileName);
+                                    attachmentList.Add(AddAttachment(file, _attachment.Body));
+                                    System.IO.File.WriteAllBytes(fileName, _attachment.Body);
+                                    outputpath += fileName;
+                                }
+                                cnt++;
                             }
-                            (output, document) = ConvertHTMLtoPDF(htmlString, output, attachmentList);
-                            break;
-                        //}
-                       
-                    }
-                        catch(Exception e)
-                        {
-                            message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                            Log.Error(message);
-                            Console.WriteLine(message);                            
-                            Thread.Sleep(WaitTimeinMilliSeconds);
+                            moved = true;
+                            message = string.Concat($"{cnt} problematic files moved", outputpath);
                         }
+                        (output, document) = ConvertHTMLtoPDF(htmlString, output, attachmentList);
+                        break;
                     }
-                //}
-                //else
-                //{
-                //    message = $"{sourceFile} does not exist!";
-                //    Log.Error(message);
-                //}
+                    catch(Exception e)
+                    {
+                        message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
+                        Log.Error(message);
+                        Console.WriteLine(message);                            
+                        Thread.Sleep(WaitTimeinMilliSeconds);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -255,7 +233,6 @@ namespace MCS.FOI.EMLToPDF
                                 <td>" + emailHeader.Importance + "</td></tr>");
                 }
                 //Message body
-                //string message = @"" + msg.BodyText.Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br>");
                 string message = "";
                 if (!msg.MessagePart.IsMultiPart)
                 {
@@ -292,7 +269,6 @@ namespace MCS.FOI.EMLToPDF
             {
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
-                //Message = error;
                 throw;
                 return error;
             }
@@ -332,7 +308,6 @@ namespace MCS.FOI.EMLToPDF
                 document.Close(true);
                 
                 isConverted = true;
-                //Message = $"processed successfully!";
             }
             catch (Exception ex)
             {
@@ -340,7 +315,6 @@ namespace MCS.FOI.EMLToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 throw;
-                //Message = error;
             }
             finally
             {

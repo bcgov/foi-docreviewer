@@ -23,10 +23,6 @@ TEST_ANNOTATION_SCHEMA = {
 }
 
 
-# RAW_REQUEST_JSON = 'tests/samplerequestjson/rawrequest.json'
-# FOI_REQUEST_GENERAL_JSON = 'tests/samplerequestjson/foirequest-general.json'
-# FOI_REQUEST_GENERAL_UPDATE_JSON = 'tests/samplerequestjson/foirequest-general-update.json'
-# FOI_REQUEST_GENERAL_MINISTRY_UPDATE_JSON = 'tests/samplerequestjson/foirequest-ministry-general-update.json'
 DOCUMENT_API_URL = '/api/document/'
 REDACTION_API_URL = '/api/annotation/'
 
