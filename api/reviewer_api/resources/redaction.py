@@ -76,8 +76,8 @@ class Annotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>', defaults={'page':None})
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -86,13 +86,13 @@ class DeactivateAnnotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, annotationname, page:None):
+    def delete(requestid, documentid, documentversion, annotationname, page:None):
         
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), page)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {'status': False, 'message':err.message}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         
