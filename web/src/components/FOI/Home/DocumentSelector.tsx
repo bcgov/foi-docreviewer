@@ -16,7 +16,7 @@ import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/ser
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark
+    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -305,18 +305,19 @@ const DocumentSelector = ({
                         >
                             <label className="hideContent">Filter Records</label>
                             <InputBase
-                                id="foicommentfilter"
+                                id="documentfilter"
                                 placeholder="Filter Records ..."
                                 defaultValue={""}
                                 onChange={(e) => { onFilterChange(e.target.value.trim()) }}
-                                // inputProps={{'aria-labelledby': 'foi-status-dropdown-label'}}
+                                inputProps={{'aria-labelledby': 'document-filter'}}
                                 sx={{
                                     color: "#38598A",
                                 }}
                                 startAdornment={
-                                    <InputAdornment position="start">
-                                        <IconButton
+                                    <InputAdornment position="start" >
+                                        <IconButton aria-hidden="true"
                                             className="search-icon"
+                                            aria-label="search-icon"
                                         >
                                             <span className="hideContent">Filter Records ...</span>
                                             <SearchIcon />
