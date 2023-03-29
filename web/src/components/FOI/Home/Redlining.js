@@ -12,17 +12,17 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@material-ui/core/IconButton";
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
-import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteAnnotation, fetchSections } from '../../../apiManager/services/docReviewerService';
+import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, 
+  deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
-import FoippaSectionModal from "./FoippaSectionModal";
 
-const Redlining = ({
+const Redlining = React.forwardRef(({
   currentPageInfo,
   user,
   requestid,
-}) =>{
+}, ref) =>{
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
 
@@ -53,14 +53,7 @@ const Redlining = ({
   //xml parser
   const parser = new XMLParser();
 
-  // useImperativeHandle(ref, () => setModalOpen(true)
-  
-  // );
-  // ({
-  //   log() {
-  //     setModalOpen(true)
-  //   }
-  // }));
+ 
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -117,6 +110,7 @@ const Redlining = ({
       documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(currentStyle => ({
         FillColor: new Annotations.Color(255, 255, 255)
       }));
+      
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
 
@@ -155,6 +149,8 @@ const Redlining = ({
         );
 
         setDocViewer(documentViewer);
+
+        
       });
 
 
@@ -201,16 +197,23 @@ const Redlining = ({
               } else {
                 if(annotations[0]?.type === 'fullPage'){
                   deleteAnnotation(
+                    requestid,
                     localDocumentInfo['file']['documentid'],
                     localDocumentInfo['file']['version'],
                     annot.attributes.name,
-                    (data)=>{console.log(data)},
+                    (data)=>{
+                      fetchPageFlag(
+                        requestid,
+                        (error) => console.log(error)
+                      )
+                    },
                     (error)=>{console.log(error)},
                     (Number(annot.attributes.page))+1
                   );
                 }
                 else{
                   deleteAnnotation(
+                    requestid,
                     localDocumentInfo['file']['documentid'],
                     localDocumentInfo['file']['version'],
                     annot.attributes.name,
@@ -244,6 +247,23 @@ const Redlining = ({
       });
     });
   }, []);
+
+
+  useImperativeHandle(ref, () => ({
+
+    
+    log() {
+
+      // const txtannot = PDFNet.FreeTextAnnot.create(doc, new PDFNet.Rect(10, 400, 160, 570));
+      // txtannot.setContents('\n\nSome swift brown fox snatched a gray hare out of the air by freezing it with an angry glare.\n\nAha!\n\nAnd there was much rejoicing!');
+      // const solidLine = PDFNet.AnnotBorderStyle.create(PDFNet.AnnotBorderStyle.Style.e_solid, 1, 10, 20);
+      //  txtannot.setBorderStyle(solidLine, true);
+      //  txtannot.setQuaddingFormat(0);
+      //  //firstPage.annotPushBack(txtannot);
+      //  txtannot.refreshAppearance();
+      setModalOpen(true)
+    }
+  }));
 
   useEffect(() => {
     //update user name
@@ -344,7 +364,11 @@ const Redlining = ({
         newRedaction.page,
         newRedaction.name,
         newRedaction.astr,
-        (data)=>{console.log(data)},
+        (data)=>{
+          fetchPageFlag(
+          requestid,
+          (error) => console.log(error)
+        )},
         (error)=>{console.log(error)},
         pageSelections
       );
@@ -406,19 +430,38 @@ const Redlining = ({
       var annot = deleteQueue.pop();
       if (annot && annot.name !== newRedaction?.name) {
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-        deleteAnnotation(
-          localDocumentInfo['file']['documentid'],
-          localDocumentInfo['file']['version'],
-          annot.name,
-          (data)=>{console.log(data)},
-          (error)=>{console.log(error)}
-        );
+        if(redactionType == 'fullPage'){
+          deleteAnnotation(
+            requestid,
+            localDocumentInfo['file']['documentid'],
+            localDocumentInfo['file']['version'],
+            annot.name,
+            (data)=>{
+              fetchPageFlag(
+                requestid,
+                (error) => console.log(error)
+              )
+            },
+            (error)=>{console.log(error)},
+            (Number(annot.page))+1
+          );
+        } 
+        else {
+          deleteAnnotation(
+            requestid,
+            localDocumentInfo['file']['documentid'],
+            localDocumentInfo['file']['version'],
+            annot.name,
+            (data)=>{console.log(data)},
+            (error)=>{console.log(error)}
+          );
+        }
 
         if (annot.type === 'redact' && redactionInfo) {
           let i = redactionInfo.findIndex(a => a.annotationname === annot.name);
           if(i >= 0){
-            let childSections = redactionInfo[i].sections.annotationname;
-            let sectionids = redactionInfo[i].sections.ids;
+            let childSections = redactionInfo[i].sections?.annotationname;
+            let sectionids = redactionInfo[i].sections?.ids;
             for(let id of sectionids) {
               sections.find(s => s.id === id).count--;
             }
@@ -450,7 +493,12 @@ const Redlining = ({
             saveAnnot.page,
             saveAnnot.name,
             saveAnnot.astr,
-            (data)=>{console.log(data)},
+            (data)=>{
+              fetchPageFlag(
+                requestid,
+                (error) => console.log(error)
+              )
+            },
             (error)=>{console.log(error)},
             pageSelections,
           );
@@ -596,5 +644,5 @@ const Redlining = ({
     </div>
   );
 
-};
+});
 export default Redlining;

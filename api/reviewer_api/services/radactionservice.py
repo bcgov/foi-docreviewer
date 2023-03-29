@@ -33,9 +33,9 @@ class redactionservice:
             documentpageflagservice().bulksavepageflags(annotationschema["foiministryrequestid"], documentid, documentversion, annotationschema["pageflags"], userinfo)
          return result
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,page):
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page):
         result =  annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
-        if result.success == True:
+        if result.success == True and page is not None:
             documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
         return result
 

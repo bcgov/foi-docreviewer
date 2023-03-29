@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -105,6 +105,7 @@ export const saveAnnotation = (
 };
 
 export const deleteAnnotation = (
+  requestid: string,
   documentid: number,
   documentversion: number = 1,
   annotationname: string = "",
@@ -112,8 +113,8 @@ export const deleteAnnotation = (
   errorCallback: any,
   page?: number
 ) => {
-  let apiUrlDelete: string = page ?`${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -216,7 +217,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
-  callback: any,
+  //callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = replaceUrl(
@@ -228,12 +229,13 @@ export const fetchPageFlag = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
+        store.dispatch(setPageFlags(res.data) as any);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
           return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-        callback(res.data);
+        //callback(res.data);
       } else {
         throw new Error();
       }

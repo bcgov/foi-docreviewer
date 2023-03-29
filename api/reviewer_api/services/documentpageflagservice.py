@@ -79,9 +79,14 @@ class documentpageflagservice:
     
     def removepageflag(self,requestid, documentid, version, page, userinfo):
         pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        for entry in pageflags:
-            new_pageflag = list(filter(lambda x: (x['page'] != page) , entry['pageflag']))
-            DocumentPageflag.updatepageflag(requestid, entry['documentid'],  entry['documentversion'], json.dumps(new_pageflag), json.dumps(userinfo))
+        #for entry in pageflags:
+        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] == 3) ),None)
+        print("withheldinfullobj:",withheldinfullobj)
+        if withheldinfullobj is not None:
+            print("pageflags:",pageflags)
+            pageflags.remove(withheldinfullobj)
+            print("new_pageflag:",pageflags)
+            DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
     
     def __formatpageflag(self, data):
         _normalised = copy.deepcopy(data)

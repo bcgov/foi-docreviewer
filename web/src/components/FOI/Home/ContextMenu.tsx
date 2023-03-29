@@ -9,6 +9,7 @@ import { savePageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
 
 const ContextMenu = ({
+    openFOIPPAModal,
     requestId,
     pageFlagList,
     assignIcon,
@@ -48,6 +49,10 @@ const ContextMenu = ({
     }
 
     const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, publicbodyaction?: string, other?: string, programareaid?: number) => {
+        if(flagId === 3){
+            console.log("Withheld in Full Selection");
+            openFOIPPAModal();
+        }
         setOpenConsultPopup(false);
         setOpenContextPopup(false);
         savePageFlag(

@@ -11,6 +11,8 @@ const documents = (state = initialState, action:any)=> {
         return {...state, isPageLeftOff: action.payload};
     case ACTION_CONSTANTS.SET_SECTIONS:
       return {...state, sections: action.payload};
+    case ACTION_CONSTANTS.SET_PAGE_FLAGS:
+      return {...state, pageFlags: action.payload};
     default:
       return state;
   }

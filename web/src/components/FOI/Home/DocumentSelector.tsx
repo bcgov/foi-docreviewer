@@ -24,20 +24,25 @@ import "./DocumentSelector.scss";
 import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
+import { useAppSelector } from '../../../hooks/hook';
+
 
 const DocumentSelector = ({
+    openFOIPPAModal,
     requestid,
     documents,
     totalPageCount,
     currentPageInfo,
     setCurrentPageInfo
 }: any) => {
+
+    const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
-    const [pageFlags, setPageFlags] = useState([]);
+    //const [pageFlags, setPageFlags] = useState([]);
     const [pageFlagChanged, setPageFlagChanged] = useState(false);
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState([]);
@@ -58,6 +63,7 @@ const DocumentSelector = ({
     }));
 
     useEffect(() => {
+        //console.log("sectionModal-Doc:",forwardedRef.current);
         fetchPageFlagsMasterData(
             requestid,
             (data: any) => setPageData(data),
@@ -74,7 +80,6 @@ const DocumentSelector = ({
         );
         fetchPageFlag(
             requestid,
-            (data: any) => setPageFlags(data),
             (error: any) => console.log(error)
         )
     }, [pageFlagChanged]);
@@ -95,20 +100,20 @@ const DocumentSelector = ({
 
     const updateCompletionCounter = () => {
         let totalPagesWithFlags = 0;
-        pageFlags.forEach((element: any) => {
+        pageFlags?.forEach((element: any) => {
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
             let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
-        return totalPageCount > 0 ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        return (totalPageCount > 0 && totalPagesWithFlags>=0) ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
     }
 
 
     const updatePageCount = () => {
         let totalFilteredPages = 0;
-        pageFlags.forEach((element: any) => {
+        pageFlags?.forEach((element: any) => {
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
@@ -429,6 +434,7 @@ const DocumentSelector = ({
                                                         }
                                                         {pageFlagList && pageFlagList?.length > 0 &&
                                                             <ContextMenu
+                                                                openFOIPPAModal={openFOIPPAModal}
                                                                 requestId={requestid}
                                                                 pageFlagList={pageFlagList}
                                                                 assignIcon={assignIcon}
@@ -485,6 +491,7 @@ const DocumentSelector = ({
                                                 )}
                                                 {pageFlagList && pageFlagList?.length > 0 &&
                                                     <ContextMenu
+                                                        openFOIPPAModal={openFOIPPAModal}
                                                         requestId={requestid}
                                                         pageFlagList={pageFlagList}
                                                         assignIcon={assignIcon}
