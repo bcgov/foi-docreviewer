@@ -11,15 +11,10 @@ namespace MCS.FOI.ExcelToPDFUnitTests
     {
         public ExcelToPDFTests()
         {
-            //checkSourceRootPathENVVAR();
         }
 
         private void checkSourceRootPathENVVAR()
         {
-            //return;
-            //#if DEBUG
-            //    Environment.SetEnvironmentVariable("SourceRootPath","");//Enter local path, if required on debug execution.
-            //#endif
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SourceRootPath")))
             {
                 var errorENV = "SourceRootPath ENV VAR missing!";
@@ -37,8 +32,6 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             Stream testFile = new FileStream(Path.Combine(getExcelRootFolder(), "bc_fin_2021_supplement_estimates.xls"), FileMode.Open, FileAccess.Read);
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor();
 
-            //excelFileProcessor.ExcelFileName = "bc_fin_2021_supplement_estimates.xls";
-            //excelFileProcessor.ExcelSourceFilePath = getExcelRootFolder();
             excelFileProcessor.SourceStream = testFile;
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
@@ -47,12 +40,6 @@ namespace MCS.FOI.ExcelToPDFUnitTests
 
             Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed");
             Assert.IsTrue(output.Length > 0, $"Conversion failed: output file size is zero");
-
-            //string outputfile = Path.Combine(getExcelRootFolder(), "output", $"{Path.GetFileNameWithoutExtension(excelFileProcessor.ExcelFileName)}.pdf");
-            //bool fileexists = File.Exists(outputfile);
-            //Assert.IsTrue(fileexists == true, $"Converted PDF file does not exists {excelFileProcessor.ExcelFileName}");
-
-
         }
 
         [TestMethod]
@@ -64,8 +51,6 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getExcelRootFolder(), "capbudg.xlsx"), FileMode.Open, FileAccess.Read);
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor();
-            //excelFileProcessor.ExcelFileName = "capbudg.xlsx";
-            //excelFileProcessor.ExcelSourceFilePath = getExcelRootFolder();
             excelFileProcessor.SourceStream = testFile;
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
@@ -87,8 +72,6 @@ namespace MCS.FOI.ExcelToPDFUnitTests
             Stream testFile = new FileStream(Path.Combine(getExcelRootFolder(), "IRIS Export - Masked.xlsx"), FileMode.Open, FileAccess.Read);
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor();
             excelFileProcessor.SourceStream = testFile;
-            //excelFileProcessor.ExcelFileName = "IRIS Export - Masked.xlsx";
-            //excelFileProcessor.ExcelSourceFilePath = getExcelRootFolder();
             excelFileProcessor.IsSinglePDFOutput = true;
             excelFileProcessor.FailureAttemptCount = 5;
             excelFileProcessor.WaitTimeinMilliSeconds = 4000;
@@ -96,38 +79,7 @@ namespace MCS.FOI.ExcelToPDFUnitTests
 
             Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed");
             Assert.IsTrue(output.Length > 0, $"Conversion failed: output file size is zero");
-
-            //string outputfile = Path.Combine(getExcelRootFolder(), "output", $"{Path.GetFileNameWithoutExtension(excelFileProcessor.ExcelFileName)}.pdf");
-            //bool fileexists = File.Exists(outputfile);
-            //Assert.IsTrue(fileexists == true, $"Converted PDF file does not exists {excelFileProcessor.ExcelFileName}");
-
         }
-
-
-
-        [TestMethod]
-        //public void FolderLevelSetupExcelToPdfTest()
-        //{
-        //    checkSourceRootPathENVVAR();
-        //    bool isconverted;
-        //    string message = string.Empty;
-        //    string rootLocation = getExcelRootFolder();
-        //    ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor();
-        //    excelFileProcessor.ExcelFileName = "capbudg.xlsx";
-        //    excelFileProcessor.ExcelSourceFilePath = string.Concat(rootLocation, @"\Folder2\Folder21\Folder211\");
-        //    excelFileProcessor.IsSinglePDFOutput = true;
-        //    excelFileProcessor.FailureAttemptCount = 5;
-        //    excelFileProcessor.WaitTimeinMilliSeconds = 4000;
-        //    excelFileProcessor.PdfOutputFilePath = string.Concat(rootLocation, @"\output\", excelFileProcessor.ExcelSourceFilePath.Replace(rootLocation, ""));
-        //    (isconverted, message, excelFileProcessor.PdfOutputFilePath) = excelFileProcessor.ConvertToPDF();
-
-        //    Assert.IsTrue(isconverted == true, $"Excel to PDF Conversion failed for {excelFileProcessor.ExcelFileName}");
-
-        //    string outputfile = Path.Combine(excelFileProcessor.PdfOutputFilePath, $"{Path.GetFileNameWithoutExtension(excelFileProcessor.ExcelFileName)}.pdf");
-        //    bool fileexists = File.Exists(outputfile);
-        //    Assert.IsTrue(fileexists == true, $"Converted PDF file does not exists {excelFileProcessor.ExcelFileName}");
-        //}
-
 
         private string getExcelRootFolder()
         {

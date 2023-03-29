@@ -46,8 +46,6 @@ csp = (
     .default_src("'self'")
     .script_src("'self'","'unsafe-inline'")
     .style_src("'self'","'unsafe-inline'")
-    # .object_src("'self'")
-    # .connect_src("'self'")
 )
 hsts = secure.StrictTransportSecurity().include_subdomains().preload().max_age(31536000)
 referrer = secure.ReferrerPolicy().no_referrer()
