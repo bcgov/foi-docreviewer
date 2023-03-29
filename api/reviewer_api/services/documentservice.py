@@ -95,7 +95,7 @@ class documentservice:
         matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
-        duplicateof = record["filename"]
+        duplicateof = record["filename"] if "filename" in record else None
         for property in properties:
             if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
                 matchedhash = property["rank1hash"] 
@@ -113,7 +113,9 @@ class documentservice:
         return isduplicate, duplicatemasterid, duplicateof
     
     def __getduplicateof(self, properties, record, duplicatemasterid):
-        duplicateof = record["filename"]
+        duplicateof = record["filename"] if "filename" in record else None
+        if duplicateof is None:
+            return None
         for z in properties:
             if (duplicatemasterid == z["processingparentid"]) or (z["processingparentid"] is None and duplicatemasterid == z["documentmasterid"]):
                 duplicateof = z["filename"] 
