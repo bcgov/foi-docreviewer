@@ -13,6 +13,7 @@ import os
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
 pdfmetrics.registerFont(TTFont('BC-Sans', filepath))
 textcolor=colors.HexColor("#38598A")
+aw, ah = A4
 
 def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page=None,
                          start_index=1, size=14, font="BC-Sans") -> bytes:
@@ -45,10 +46,10 @@ def get_x_value(original_pdf) -> list:
         original_w = original_pdf.pages[index].mediabox.width
         original_h = original_pdf.pages[index].mediabox.height
         if original_w < original_h:
-            x = (original_h/2) - 47
+            x = (original_h/2) - 70
         else:
             #landscape pages
-            x = (original_h/2) - 105
+            x = (original_h/2) - 115
         x_value_of_pages.append(x)
     return x_value_of_pages
 
@@ -58,7 +59,12 @@ def get_y_value(original_pdf) -> list:
     y_value_of_pages = []
     for index in range(len(original_pdf.pages)):
         original_w = original_pdf.pages[index].mediabox.width
-        y = (original_w - 10)
+        original_h = original_pdf.pages[index].mediabox.height
+        # mostly image pages
+        if original_w == round(aw,4) and original_h == round(ah,4):
+            y = (original_w - 12)
+        else:
+            y = (original_w - 10)
         y_value_of_pages.append(y)
     return y_value_of_pages
 
@@ -102,9 +108,7 @@ def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
         empty_canvas.setFillColor(textcolor)
         if index in range(start_page, end_page):
             number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
-            print("processing page no ", index)
-            print("Page X = ", xvalue[index])
-            print("Page Y = ", yvalue[index])
+            print("processing page: ", index)
             empty_canvas.drawString(xvalue[index], -(yvalue[index]), number)
         empty_canvas.showPage()
         writer = merge_pdf_bytes(empty_canvas.getpdfdata(), writer)
