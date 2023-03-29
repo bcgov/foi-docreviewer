@@ -25,7 +25,7 @@ class jobrecordservice:
         return job
     
     def getpdfstitchjobstatus(self, requestid, category):
-        job = PDFStitchJob.getpdfstitchpackage(requestid, category)
+        job = PDFStitchJob.getpdfstitchjobstatus(requestid, category)
         return job
     
     def recordjobstatus(self, batchinfo, userid):

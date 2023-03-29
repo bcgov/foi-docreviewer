@@ -51,3 +51,27 @@ def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
     except(Exception) as error:
         print(error)
         raise
+
+def ispdfstichjobcompleted(jobid, category):
+    try:
+        conn = getdbconnection()
+        cursor = conn.cursor()
+        cursor.execute('''select count(1)  filter (where status = 'error') as error,
+                                 count(1) filter (where status = 'completed') as completed from (
+                                 (select max(version) as version,  pdfstitchjobid
+                                    from public."PDFStitchJob"
+                                    where pdfstitchjobid = %s::integer and category = %s
+                                    group by pdfstitchjobid) sq
+                                    join public."PDFStitchJob" pdfsj
+                                    on pdfsj.pdfstitchjobid = sq.pdfstitchjobid
+                                    and pdfsj.version = sq.version
+                                 )''',(jobid, category))
+        (joberr, jobcompleted) = cursor.fetchone()
+        print("joberr == ", joberr)
+        print("jobcompleted == ", jobcompleted)
+        cursor.close()
+        conn.close()
+        return jobcompleted == 1, joberr == 1
+    except(Exception) as error:
+        print(error)
+        raise

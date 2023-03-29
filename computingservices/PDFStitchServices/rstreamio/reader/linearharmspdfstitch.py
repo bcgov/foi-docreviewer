@@ -11,9 +11,10 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb
-from config import division_pdf_stitch_stream_key
+from config import division_pdf_stitch_stream_key, error_flag
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
+from rstreamio.writer.redisstreamwriter import redisstreamwriter
 
 
 LAST_ID_KEY = "{consumer_id}:lastid"
@@ -50,7 +51,21 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'')
                     try:
-                        pdfstitchservice().processmessage(get_in_divisionpdfmsg(_message))
+
+                        producermessage = get_in_divisionpdfmsg(_message)
+                        pdfstitchservice().processmessage(producermessage)
+                        
+                        # send message to notification stream once the zip file is ready to download
+                        complete, err = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+                        print("complete == ", complete)
+                        print("err == ", err)
+
+                        # send notification for both success and error cases
+                        if complete or err:
+                            err = True if error_flag else err
+                            redisstreamwriter().sendnotification(producermessage, err)
+                        else:
+                            print("pdfstitch not yet complete, no message sent")
                     except(Exception) as error: 
                         logging.exception(error)       
                     # simulate processing

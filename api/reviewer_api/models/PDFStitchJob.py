@@ -25,7 +25,7 @@ class PDFStitchJob(db.Model):
         return DefaultMethodResult(True,'PDF Stitch Job recorded for ministryrequestid: {0}'.format(row.ministryrequestid), row.pdfstitchjobid)
 
     @classmethod
-    def getpdfstitchpackage(cls, requestid, category):
+    def getpdfstitchjobstatus(cls, requestid, category):
         pdfstitchjobschema = PDFStitchJobSchema(many=False)
         query = db.session.query(PDFStitchJob).filter(PDFStitchJob.ministryrequestid == requestid, PDFStitchJob.category == category.lower()).order_by(PDFStitchJob.pdfstitchjobid.desc(), PDFStitchJob.version.desc()).first()
         return pdfstitchjobschema.dump(query)
