@@ -36,7 +36,7 @@ class documentservice:
 
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
-        divisions = ProgramAreaDivision.getallprogramareadivisons() # TODO: What cant we filter by ministry?
+        divisions = ProgramAreaDivision.getallprogramareadivisons()
 
         formated_documents = []
         for document in documents:
