@@ -24,17 +24,13 @@ from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequired
 from reviewer_api.exceptions import BusinessException
 import json
 import os
-
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.schemas.annotationrequest import AnnotationRequest, SectionRequestSchema, SectionSchema
 from marshmallow import ValidationError, EXCLUDE
 
-
 API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
 TRACER = Tracer.get_instance()
-
-
 
 @cors_preflight('GET,POST, OPTIONS')
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
@@ -183,7 +179,6 @@ class GetAccount(Resource):
 
         print(usergroup)
         try:
-            # redactionservice().gets3serviceaccount('test')
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200
         except KeyError as err:

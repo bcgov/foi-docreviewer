@@ -44,38 +44,8 @@ class redactionservice:
 
     def gets3serviceaccount(self, documentpathid):
         mapper =  DocumentPathMapper.getmapper(documentpathid)
-        # print(mapper["attributes"])
         attribute = mapper["attributes"]
-        # print(attribute)
         return attribute
-
-    # def uploadpersonaldocuments(self, requestid, attachments):
-    #     attachmentlist = []
-    #     if attachments:
-    #         for attachment in attachments:
-    #             attachment['filestatustransition'] = 'personal'
-    #             attachment['ministrycode'] = 'Misc'
-    #             attachment['requestnumber'] = str(requestid)
-    #             attachment['file'] = base64.b64decode(attachment['base64data'])
-    #             attachment.pop('base64data')
-    #             attachmentresponse = storageservice().upload(attachment)
-    #             attachmentlist.append(attachmentresponse)
-                
-    #         documentschema = CreateDocumentSchema().load({'documents': attachmentlist})
-    #         return self.createrequestdocument(requestid, documentschema, None, "rawrequest")        
-
-    # def getattachments(self, requestid, requesttype, category):        
-    #     documents = self.getlatestdocumentsforemail(requestid, requesttype, category)  
-    #     if(documents is None):
-    #         raise ValueError('No template found')
-    #     attachmentlist = []
-    #     for document in documents:  
-    #         filename = document.get('filename')
-    #         s3uri = document.get('documentpath')
-    #         attachment= storageservice().download(s3uri)
-    #         attachdocument = {"filename": filename, "file": attachment, "url": s3uri}
-    #         attachmentlist.append(attachdocument)
-    #     return attachmentlist
 
     def __formatcreateddate(self, items):
         for element in items:

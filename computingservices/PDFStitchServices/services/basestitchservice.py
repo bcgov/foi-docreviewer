@@ -3,15 +3,14 @@ from .s3documentservice import gets3documentbytearray, uploadbytes
 from commons import  getimagepdf
 from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
 import traceback
-from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
 import json
 from zipfile import ZipFile
 import zipfile
 from os import path
-from utils.constants import S3_FOLDER_FOR_HARMS
 from utils.basicutils import to_json
+from config import division_stitch_folder_path
 
 class basestitchservice:
 
@@ -60,10 +59,14 @@ class basestitchservice:
                     archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
         return archive.getbuffer()
         
-    def zipfilesandupload(self, filename, requestnumber, bcgovcode, s3credentials, files):
+    def zipfilesandupload(self, _message, s3credentials):
+        requestnumber = _message.requestnumber
+        bcgovcode = _message.bcgovcode
+        files = _message.outputdocumentpath
+        category = _message.category
         try:            
             bytesarray = self.zipfiles(s3credentials, files)
-            filepath = S3_FOLDER_FOR_HARMS + "/"+filename+".zip"
+            filepath = self.__getzipfilepath(category, requestnumber)
             print("zipfilename = ", filepath)
             docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
             print(docobj)
@@ -74,7 +77,7 @@ class basestitchservice:
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:
-            folderpath = S3_FOLDER_FOR_HARMS + "/"+ divisionname 
+            folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
             docobjs = []
             docobj = uploadbytes(filepath, stitchedpdfstream, requestnumber, bcgovcode, s3credentials)
@@ -83,7 +86,7 @@ class basestitchservice:
                 _jsonfile = to_json(file)
                 _file = get_in_filepdfmsg(_jsonfile)
                 _, extension = path.splitext(_file.s3uripath)
-                if extension not in ['.pdf','.png','jpg']:
+                if extension not in ['.pdf','.png','.jpg']:
                     incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
                     docobjs.append(incompatabledocobj)
             print(docobjs)
@@ -93,7 +96,13 @@ class basestitchservice:
             raise
     
     def __getincompatablefiles(self, _file, divisionname):
-        folderpath = S3_FOLDER_FOR_HARMS + "/"+ divisionname
+        folderpath = self.__getfolderpathfordivisionfiles(divisionname)
         filename = folderpath + "/" + _file.filename
         incompatablefiledetails = {"success": True, 'filename': filename, 'documentpath': _file.s3uripath}
         return incompatablefiledetails
+    
+    def __getfolderpathfordivisionfiles(self, divisionname):
+        return division_stitch_folder_path.replace("divisionname", divisionname)
+    
+    def __getzipfilepath(self, category, filename):
+        return category.capitalize() + "/"+filename+".zip" if category is not None else filename+".zip"

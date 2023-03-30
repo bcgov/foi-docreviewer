@@ -63,12 +63,6 @@ class Annotation(db.Model):
         finally:
             db.session.close()  
         
-    # @classmethod
-    # def updateannotation(cls, _annotationname, _documentid, _documentversion, _annotation, userinfo)->DefaultMethodResult:
-    #     db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"annotation": _annotation, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
-    #     db.session.commit()
-    #     return DefaultMethodResult(True,'Annotation updated',_annotationname)
-
     @classmethod
     def deactivateannotation(cls, _annotationname, _documentid, _documentversion, userinfo)->DefaultMethodResult:
         db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)

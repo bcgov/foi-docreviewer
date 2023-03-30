@@ -2,6 +2,7 @@ from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import text
+import logging
 
 class FileConversionJob(db.Model):
     __tablename__ = 'FileConversionJob'
@@ -46,6 +47,24 @@ class FileConversionJob(db.Model):
             error.append(row["filepath"])
 
         return completed, error
+    
+    @classmethod 
+    def getconversionstatus(cls, ministryrequestid):
+        executions = []
+        try:
+            sql = """select distinct on (fileconversionjobid) fileconversionjobid, version, 
+                        filename, status, inputdocumentmasterid, "trigger", outputdocumentmasterid    
+                        from "FileConversionJob" fcj  where ministryrequestid = :ministryrequestid
+                        order by fileconversionjobid, "version" desc"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                executions.append({"fileconversionjobid": row["fileconversionjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["inputdocumentmasterid"],  "trigger": row["trigger"], "outputdocumentmasterid": row["outputdocumentmasterid"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return executions
 
 class FileConversionJobSchema(ma.Schema):
     class Meta:

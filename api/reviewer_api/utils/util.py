@@ -39,7 +39,6 @@ def cors_preflight(methods):
         def options(self, *args, **kwargs):  # pylint: disable=unused-argument
             return {'Allow': 'GET, DELETE, PUT, POST'}, 200, \
                    {
-                    #'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': methods,
                     'Access-Control-Allow-Headers': 'Authorization, Content-Type, registries-trace-id, '
                                                     'invitation_token'}
@@ -103,9 +102,6 @@ def escape_wam_friendly_url(param):
 def pstformat(dt):
     if dt is not None:
         tolocaltime = maya.MayaDT.from_datetime(dt).datetime(to_timezone='America/Vancouver', naive=False)
-        # return tolocaltime.strftime('%Y %b %d | %I:%M %p')
         return tolocaltime.isoformat()
-        # formatedcreateddate = maya.parse(dt).datetime(to_timezone='America/Vancouver', naive=False)
-        # return formatedcreateddate.strftime('%Y %b %d | %I:%M %p')
     else:
         return ''

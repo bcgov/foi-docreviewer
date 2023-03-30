@@ -15,3 +15,4 @@ class FOIRequestDeleteRecordsSchema(Schema):
 
         unknown = EXCLUDE
     filepaths = fields.List(fields.String(validate=[validate.Length(max=1000, error=MAX_EXCEPTION_MESSAGE)]), data_key="filepaths",allow_none=False)
+    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)

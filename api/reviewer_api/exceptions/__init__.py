@@ -25,9 +25,6 @@ class BusinessException(Exception):
         self.status_code = error.status_code
         self.detail = exception
 
-        # log/tracing exception
-        #ExceptionTracing.trace(self, traceback.format_exc())
-
 
 class ServiceUnavailableException(Exception):
     """Exception to be raised if third party service is unavailable."""

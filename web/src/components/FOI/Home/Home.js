@@ -59,8 +59,8 @@ function Home() {
   }, [])
 
   const openFOIPPAModal = () => {
-    console.log("test",redliningRef?.current);
-    redliningRef?.current?.log();
+    console.log("test");
+    redliningRef.current.log();
   }
 
   return (

@@ -122,7 +122,7 @@ namespace MCS.FOI.S3FileConversion
                                         new() { Value = attachment["filepath"] , NpgsqlDbType = NpgsqlDbType.Varchar},
                                         new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                                         new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                                        new() { Value = true, NpgsqlDbType = NpgsqlDbType.Boolean},
+                                        new() { Value = false, NpgsqlDbType = NpgsqlDbType.Boolean},
                                         new() { Value = "conversionservice" , NpgsqlDbType = NpgsqlDbType.Varchar},
                                         new() { Value = attachment["attributes"] , NpgsqlDbType = NpgsqlDbType.Json},
                                         new() { Value = "{\"user\": \"conversionservice\"}" , NpgsqlDbType = NpgsqlDbType.Json},
@@ -194,38 +194,62 @@ namespace MCS.FOI.S3FileConversion
                     };
 
                     batch.BatchCommands.Add(cmd1);
-                }
 
 
-                // Update current task
-                var cmd2 = new NpgsqlBatchCommand(@"
-                    with masterid as (INSERT INTO ""DocumentMaster""
-                    (filepath, ministryrequestid, processingparentid, isredactionready, createdby)
-                    VALUES ($1, $2, $3, $4, $5) returning documentmasterid)
-                    INSERT INTO ""FileConversionJob""
-                    (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, outputdocumentmasterid, filename, status, message)
-                    VALUES ($6, $7, $8, $9, $10, $11, (select documentmasterid from masterid), $12, $13, $14) returning (select documentmasterid from masterid)")
 
+                    // Update current task
+                    var cmd2 = new NpgsqlBatchCommand(@"
+                        with masterid as (INSERT INTO ""DocumentMaster""
+                        (filepath, ministryrequestid, processingparentid, isredactionready, createdby)
+                        VALUES ($1, $2, $3, $4, $5) returning documentmasterid)
+                        INSERT INTO ""FileConversionJob""
+                        (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, outputdocumentmasterid, filename, status, message)
+                        VALUES ($6, $7, $8, $9, $10, $11, (select documentmasterid from masterid), $12, $13, $14) returning (select documentmasterid from masterid)")
+
+                        {
+                            Parameters =
+                        {
+                            new() { Value = Path.ChangeExtension(message["s3filepath"], ".pdf"), NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = false, NpgsqlDbType = NpgsqlDbType.Boolean},
+                            new() { Value = "conversionservice" , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = (int) message["jobid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = 3 , NpgsqlDbType = NpgsqlDbType.Integer}, // Job end is always the third entry in db
+                            new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = message["batch"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = message["trigger"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = message["filename"].ToString(), NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = "completed", NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = jobMessage, NpgsqlDbType = NpgsqlDbType.Text }
+                        }
+                    };
+                    batch.BatchCommands.Add(cmd2);
+                } else
                 {
-                    Parameters =
-                    {
-                        new() { Value = Path.ChangeExtension(message["s3filepath"], ".pdf"), NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                        new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                        new() { Value = true, NpgsqlDbType = NpgsqlDbType.Boolean},
-                        new() { Value = "conversionservice" , NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = (int) message["jobid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                        new() { Value = 3 , NpgsqlDbType = NpgsqlDbType.Integer}, // Job end is always the third entry in db
-                        new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                        new() { Value = message["batch"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = message["trigger"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
-                        new() { Value = message["filename"].ToString(), NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = error ? "error" : "completed", NpgsqlDbType = NpgsqlDbType.Varchar},
-                        new() { Value = jobMessage, NpgsqlDbType = NpgsqlDbType.Text }
-                    }
-                };
-                batch.BatchCommands.Add(cmd2);
+                    // Update current task
+                    var cmd2 = new NpgsqlBatchCommand(@"
+                        INSERT INTO ""FileConversionJob""
+                        (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, filename, status, message)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ")
+
+                        {
+                            Parameters =
+                        {
+                            new() { Value = (int) message["jobid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = 3 , NpgsqlDbType = NpgsqlDbType.Integer}, // Job end is always the third entry in db
+                            new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = message["batch"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = message["trigger"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
+                            new() { Value = message["filename"].ToString(), NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = "error", NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = jobMessage, NpgsqlDbType = NpgsqlDbType.Text }
+                        }
+                    };
+                    batch.BatchCommands.Add(cmd2);
+                }
                 if (error)
                 {
                     await batch.ExecuteNonQueryAsync();

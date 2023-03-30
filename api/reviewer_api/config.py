@@ -102,12 +102,9 @@ class _Config():  # pylint: disable=too-few-public-methods
         connect_timeout_int = int(connect_timeout_string)
         SQLALCHEMY_ENGINE_OPTIONS['connect_args'] = {'connect_timeout': connect_timeout_int}
 
-    print(SQLALCHEMY_ENGINE_OPTIONS)
     #Logging echo settings
     SQLALCHEMY_ECHO = db_sql_echo 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    print('SQLAlchemy URL (base): {}'.format(SQLALCHEMY_DATABASE_URI))
 
     # JWT_OIDC Settings
     JWT_OIDC_WELL_KNOWN_CONFIG = os.getenv('JWT_OIDC_WELL_KNOWN_CONFIG')
@@ -121,17 +118,6 @@ class _Config():  # pylint: disable=too-few-public-methods
         JWT_OIDC_JWKS_CACHE_TIMEOUT = int(os.getenv('JWT_OIDC_JWKS_CACHE_TIMEOUT'))
     except ValueError:  # pylint:disable=bare-except # noqa: B901, E722
         JWT_OIDC_JWKS_CACHE_TIMEOUT = 300
-    
-    # # email
-    # MAIL_FROM_ID = os.getenv('MAIL_FROM_ID')
-
-    # # CDOGS
-    # CDOGS_ACCESS_TOKEN = os.getenv('CDOGS_ACCESS_TOKEN')
-    # CDOGS_BASE_URL = os.getenv('CDOGS_BASE_URL')
-    # CDOGS_SERVICE_CLIENT = os.getenv('CDOGS_SERVICE_CLIENT')
-    # CDOGS_SERVICE_CLIENT_SECRET = os.getenv('CDOGS_SERVICE_CLIENT_SECRET')
-    # CDOGS_TOKEN_URL = os.getenv('CDOGS_TOKEN_URL')
-
     
 
 
@@ -162,7 +148,6 @@ class TestConfig(_Config):  # pylint: disable=too-few-public-methods
                                             name=DB_NAME,
                                         ))
     
-    print('SQLAlchemy URL (Test): {}'.format(SQLALCHEMY_DATABASE_URI))
     
     # JWT_OIDC Settings
     JWT_OIDC_WELL_KNOWN_CONFIG = os.getenv('JWT_OIDC_WELL_KNOWN_CONFIG')
@@ -186,6 +171,5 @@ class ProdConfig(_Config):  # pylint: disable=too-few-public-methods
         SECRET_KEY = os.urandom(24)
         print('WARNING: SECRET_KEY being set as a one-shot', file=sys.stderr)
 
-    print('SQLAlchemy URL (prod/base): {}'.format(_Config.SQLALCHEMY_DATABASE_URI))
     TESTING = False
     DEBUG = False

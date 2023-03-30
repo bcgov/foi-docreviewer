@@ -22,7 +22,6 @@ from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequired
 from reviewer_api.exceptions import BusinessException
 import json
 from flask import request
-
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.services.jobrecordservice import jobrecordservice
 

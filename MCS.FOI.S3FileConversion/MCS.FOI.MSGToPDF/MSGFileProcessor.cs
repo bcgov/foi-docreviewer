@@ -83,7 +83,6 @@ namespace MCS.FOI.MSGToPDF
                                 else
                                 {
                                     var _attachment = (Storage.Attachment)attachment;
-                                    //File.WriteAllBytes(_attachment.FileName, _attachment.Data);
                                     attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
                                     Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                     var filename = _attachment.FileName;
@@ -222,7 +221,6 @@ namespace MCS.FOI.MSGToPDF
             {
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
-                //Message = error;
                 return error;
                 throw;
             }
@@ -237,7 +235,6 @@ namespace MCS.FOI.MSGToPDF
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
                 BlinkConverterSettings settings = new BlinkConverterSettings();
                 settings.EnableHyperLink = false;
-                //settings.BlinkPath = Path.Combine("/", "BlinkBinariesLinux");
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
