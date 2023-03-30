@@ -16,7 +16,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
-import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, 
+import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation,
   deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
@@ -34,25 +34,22 @@ const Redlining = React.forwardRef(({
 
   const viewer = useRef(null);
   const saveButton = useRef(null);
-  
+
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
   const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
   const [annots, setAnnots] = useState(null);
+  const [docViewerMath, setDocViewerMath] = useState(null);
   const [docInstance, setDocInstance] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [newRedaction, setNewRedaction] = useState(null);
   const [saveAnnot, setSaveAnnot] = useState(null);
-  const [deleteAnnot, setDeleteAnnot] = useState(null);
   const [deleteQueue, setDeleteQueue] = useState([]);
-  //const [sections, setSections] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
   const [defaultSections, setDefaultSections] = useState([]);
-  const [parentAnnotation, setParentAnnotation] = useState("");
   const [editAnnot, setEditAnnot] = useState(null);
-  //const [redactionInfo, setRedactionInfo] = useState([]);
   const [saveDisabled, setSaveDisabled]= useState(true);
   const [redactionType, setRedactionType]= useState(null);
   const [pageSelections, setPageSelections] = useState([]);
@@ -61,11 +58,6 @@ const Redlining = React.forwardRef(({
   //xml parser
   const parser = new XMLParser();
 
-  useImperativeHandle(ref, () => ({
-    log() {
-      setModalOpen(true)
-    }
-  }));
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -88,7 +80,7 @@ const Redlining = React.forwardRef(({
       },
       viewer.current,
     ).then((instance) => {
-      const { documentViewer, annotationManager, Annotations,  PDFNet, Search } = instance.Core;
+      const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
 
       const Edit = () => {
@@ -122,7 +114,7 @@ const Redlining = React.forwardRef(({
       documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(currentStyle => ({
         FillColor: new Annotations.Color(255, 255, 255)
       }));
-      
+
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
 
@@ -161,8 +153,11 @@ const Redlining = React.forwardRef(({
         );
 
         setDocViewer(documentViewer);
+        setAnnotManager(annotationManager);
+        setAnnots(Annotations);
+        setDocViewerMath(Math);
 
-        
+
       });
 
 
@@ -193,8 +188,6 @@ const Redlining = React.forwardRef(({
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
         if (info.imported) return;
-        console.log("--",annotations[0]?.type)
-        setRedactionType(annotations[0]?.type);
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
         _annotationtring.then(astr=>{
@@ -238,23 +231,47 @@ const Redlining = React.forwardRef(({
             setDeleteQueue(annotObjs);
           }
           else if (action === 'add') {
-            let pageSelectionList= [...pageSelections];
-            if(annotations[0]?.type === 'fullPage' && annots[0].children?.length > 0){
-                annots[0].children?.forEach((annotatn)=> {
-                  pageSelectionList.push(
-                    {
-                     "page":(Number(annotatn.attributes.page))+1,
-                     "flagid":3
-                    });
-                })
-                setPageSelections(pageSelectionList);
+            if (annotations[0].Subject === 'Redact') {
+              let pageSelectionList= [...pageSelections];
+              setRedactionType(annotations[0]?.type);
+              annots[0].children?.forEach((annotatn, i)=> {
+                if(annotations[i]?.type === 'fullPage') {
+                pageSelectionList.push(
+                  {
+                  "page":(Number(annotatn.attributes.page))+1,
+                  "flagid":3
+                  });
+                }
+              })
+              setPageSelections(pageSelectionList);
+              let annot = annots[0].children[0];
+              setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
+            } else {
+              let sections = annotations[0].getCustomData("sections")
+              var sectn;
+              if (sections) {
+                sectn = {
+                  "foiministryrequestid": requestid,
+                  "ids": JSON.parse(sections),
+                  "redactannotation": annotations[0].getCustomData("parentRedaction")
+                }
+              }
+              setSelectedSections([]);
+              saveAnnotation(
+                requestid,
+                localDocumentInfo['file']['documentid'],
+                localDocumentInfo['file']['version'],
+                annotations[0].Id,
+                astr,
+                (data)=>{console.log(data)},
+                (error)=>{console.log(error)},
+                [],
+                sectn,
+                //pageSelections
+              );
             }
-              
-            let annot = annots[0].children[0];
-            setSaveAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           }
         })
-        setAnnotManager(annotationManager);
         setAnnots(Annotations);
       });
     });
@@ -262,18 +279,31 @@ const Redlining = React.forwardRef(({
 
 
   useImperativeHandle(ref, () => ({
-
-    
-    log() {
-
-      // const txtannot = PDFNet.FreeTextAnnot.create(doc, new PDFNet.Rect(10, 400, 160, 570));
-      // txtannot.setContents('\n\nSome swift brown fox snatched a gray hare out of the air by freezing it with an angry glare.\n\nAha!\n\nAnd there was much rejoicing!');
-      // const solidLine = PDFNet.AnnotBorderStyle.create(PDFNet.AnnotBorderStyle.Style.e_solid, 1, 10, 20);
-      //  txtannot.setBorderStyle(solidLine, true);
-      //  txtannot.setQuaddingFormat(0);
-      //  //firstPage.annotPushBack(txtannot);
-      //  txtannot.refreshAppearance();
-      setModalOpen(true)
+    addFullPageRedaction(pageNumber) {
+      let height = docViewer.getPageHeight(pageNumber)
+      let width = docViewer.getPageWidth(pageNumber)
+      let quads = [new docViewerMath.Quad(
+        0,
+        height,
+        width,
+        height,
+        width,
+        0,
+        0,
+        0,
+      )]
+      const annot = new annots.RedactionAnnotation({
+        PageNumber: pageNumber,
+        Quads: quads,
+        FillColor: new annots.Color(255, 255, 255),
+        IsText: false, // Create either a text or rectangular redaction
+        Author: user?.name || user?.preferred_username || ""
+      });
+      annot.type = "fullPage";
+      annot.setCustomData("trn-redaction-type", "fullPage");
+      annotManager.addAnnotation(annot);
+      annotManager.redrawAnnotation(annot);
+      // setModalOpen(true)
     }
   }));
 
@@ -312,27 +342,26 @@ const Redlining = React.forwardRef(({
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    let redaction = annotManager.getAnnotationById(redactionObj?.name);
-    let childRedaction;
+    let childAnnotation;
     let childSection ="";
     let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
     if(i >= 0){
       childSection = redactionInfo[i]?.sections.annotationname;
-      childRedaction = annotManager.getAnnotationById(childSection);
+      childAnnotation = annotManager.getAnnotationById(childSection);
 
     }
     if(editAnnot){
       let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
       var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
-      childRedaction.setContents(redactionSections);
+      childAnnotation.setContents(redactionSections);
       const doc = docViewer.getDocument();
       const pageNumber = parseInt(editAnnot.page) + 1;
       const pageInfo = doc.getPageInfo(pageNumber);
       const pageMatrix = doc.getPageMatrix(pageNumber);
       const pageRotation = doc.getPageRotation(pageNumber);
-      childRedaction.fitText(pageInfo, pageMatrix, pageRotation);
-      annotManager.redrawAnnotation(childRedaction);
-      let _annotationtring = annotManager.exportAnnotations({annotList: [childRedaction], useDisplayAuthor: true})
+      childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+      annotManager.redrawAnnotation(childAnnotation);
+      let _annotationtring = annotManager.exportAnnotations({annotList: [childAnnotation], useDisplayAuthor: true})
       let sectn = {
         "foiministryrequestid": 1,
         "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section})),
@@ -344,9 +373,9 @@ const Redlining = React.forwardRef(({
         let annots = jObj.getElementsByTagName("annots");
         let annot = annots[0].children[0];
         saveAnnotation(
+          requestid,
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
-          childRedaction.page,
           childSection,
           astr,
           (data)=>{console.log(data)},
@@ -373,7 +402,6 @@ const Redlining = React.forwardRef(({
         requestid,
         localDocumentInfo['file']['documentid'],
         localDocumentInfo['file']['version'],
-        newRedaction.page,
         newRedaction.name,
         newRedaction.astr,
         (data)=>{
@@ -385,38 +413,45 @@ const Redlining = React.forwardRef(({
         pageSelections
       );
     //}
-    // add section annotation
-    let parser = new DOMParser();
-    var astr = parser.parseFromString(redactionObj.astr,"text/xml");
-    var coords = astr.getElementsByTagName("redact")[0]?.attributes.getNamedItem('coords')?.value;
-    var X = coords?.substring(0, coords.indexOf(","));
-    const annot = new annots.FreeTextAnnotation();
-    annot.PageNumber = redaction?.getPageNumber()
-    annot.X = X || redaction.X;
-    annot.Y = redaction.Y;
-    annot.FontSize = redaction.FontSize;
-    annot.Color = 'red';
-    annot.StrokeThickness = 0;
-    annot.Author = user?.name || user?.preferred_username || "";
-    let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
-    var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
-    annot.setAutoSizeType('auto');
-    annot.setContents(redactionSections);
-    const doc = docViewer.getDocument();
-    const pageInfo = doc.getPageInfo(annot.PageNumber);
-    const pageMatrix = doc.getPageMatrix(annot.PageNumber);
-    const pageRotation = doc.getPageRotation(annot.PageNumber);
-    annot.fitText(pageInfo, pageMatrix, pageRotation);
+      // add section annotation
+      let parser = new DOMParser();
+      var astr = parser.parseFromString(redactionObj.astr,"text/xml");
+      for (const node of astr.getElementsByTagName("annots")[0].childNodes) {
+        let redaction = annotManager.getAnnotationById(node.attributes.getNamedItem('name').value);
+        var coords = node.attributes.getNamedItem('coords')?.value;
+        var X = coords?.substring(0, coords.indexOf(","));
+        const annot = new annots.FreeTextAnnotation();
+        annot.PageNumber = redaction?.getPageNumber()
+        annot.X = X || redaction.X;
+        annot.Y = redaction.Y;
+        annot.FontSize = redaction.FontSize;
+        annot.Color = 'red';
+        annot.StrokeThickness = 0;
+        annot.Author = user?.name || user?.preferred_username || "";
+        let redactionSectionsIds = defaultSections.length > 0 ? defaultSections : selectedSections
+        let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1);
+        var redactionSectionsString = redactionSections.map(s => s.section).join(", ");
+        annot.setAutoSizeType('auto');
+        annot.setContents(redactionSectionsString);
+        annot.setCustomData("parentRedaction", redaction.Id)
+        annot.setCustomData("sections", JSON.stringify(redactionSections.map((s) => ({"id":s.id, "section":s.section}))))
+        const doc = docViewer.getDocument();
+        const pageInfo = doc.getPageInfo(annot.PageNumber);
+        const pageMatrix = doc.getPageMatrix(annot.PageNumber);
+        const pageRotation = doc.getPageRotation(annot.PageNumber);
+        annot.fitText(pageInfo, pageMatrix, pageRotation);
 
-    annotManager.addAnnotation(annot);
-    // Always redraw annotation
-    annotManager.redrawAnnotation(annot);
-    // setNewRedaction(null)
-    redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
-    for(let id of redactionSectionsIds) {
-      sections.find(s => s.id === id).count++;
+        annotManager.addAnnotation(annot);
+        // Always redraw annotation
+        annotManager.redrawAnnotation(annot);
+        // setNewRedaction(null)
+        redactionInfo.push({annotationname: redactionObj.name, sections: {annotationname: annot.Id, ids: redactionSectionsIds}});
+        for(let section of redactionSections) {
+          section.count++;
+        }
+      }
     }
-    }
+    setNewRedaction(null)
   }
 
   const editAnnotation = (annotationManager, selectedAnnot) =>{
@@ -457,7 +492,7 @@ const Redlining = React.forwardRef(({
             (error)=>{console.log(error)},
             (Number(annot.page))+1
           );
-        } 
+        }
         else {
           deleteAnnotation(
             requestid,
@@ -491,7 +526,6 @@ const Redlining = React.forwardRef(({
       // if new redaction is not null, that means it is a section annotation
       let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
       if (newRedaction === null) {
-        setParentAnnotation(saveAnnot.name);
         if (saveAnnot.type === 'redact') {
           setNewRedaction(saveAnnot);
           if (defaultSections.length === 0) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is set
@@ -502,7 +536,6 @@ const Redlining = React.forwardRef(({
             requestid,
             localDocumentInfo['file']['documentid'],
             localDocumentInfo['file']['version'],
-            saveAnnot.page,
             saveAnnot.name,
             saveAnnot.astr,
             (data)=>{
@@ -525,27 +558,8 @@ const Redlining = React.forwardRef(({
         //     }
         //   ]
         // }
-        let sectn = {
-          "foiministryrequestid": requestid,
-          "ids": sections.filter(s => (defaultSections.length > 0 ? defaultSections : selectedSections).indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section})),
-          "redactannotation": parentAnnotation
-        }
-        // add the parent annotation info to section annotation
-        setNewRedaction(null)
-        setSelectedSections([]);
-        saveAnnotation(
-          requestid,
-          localDocumentInfo['file']['documentid'],
-          localDocumentInfo['file']['version'],
-          saveAnnot.page,
-          saveAnnot.name,
-          saveAnnot.astr,
-          (data)=>{console.log(data)},
-          (error)=>{console.log(error)},
-          [],
-          sectn,
-          //pageSelections
-        );
+
+
       }
     }
     setSaveAnnot(null);
@@ -571,8 +585,12 @@ const Redlining = React.forwardRef(({
   }
 
   useEffect(() => {
-    if (defaultSections.length > 0 && newRedaction) {
-      saveRedaction();
+    if (newRedaction) {
+      if (defaultSections.length > 0) {
+        saveRedaction();
+      } else {
+        setModalOpen(true);
+      }
     }
   }, [defaultSections, newRedaction])
 

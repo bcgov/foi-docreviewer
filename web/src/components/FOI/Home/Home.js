@@ -58,9 +58,9 @@ function Home() {
     );
   }, [])
 
-  const openFOIPPAModal = () => {
-    console.log("test");
-    redliningRef.current.log();
+  const openFOIPPAModal = (pageNo) => {
+    console.log("test",redliningRef?.current);
+    redliningRef?.current?.addFullPageRedaction(pageNo);
   }
 
   return (

@@ -73,7 +73,6 @@ export const saveAnnotation = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
-  pagenumber: number = 0,
   annotationname: string = "",
   annotation: string = "",
   callback: any,
@@ -81,7 +80,7 @@ export const saveAnnotation = (
   pageFlags?: Array<any>,
   sections?: object,
 ) => {
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
   let requestJSON = sections ?{
     "xml": annotation,
     "sections": sections,

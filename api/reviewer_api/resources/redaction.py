@@ -36,6 +36,7 @@ TRACER = Tracer.get_instance()
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
 class Annotations(Resource):
     """Retrieves annotations for a document
     """
@@ -59,11 +60,11 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion, pagenumber, annotationname):
+    def post(documentid, documentversion, annotationname):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, AuthHelper.getuserinfo())
+            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
