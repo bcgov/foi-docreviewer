@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -70,22 +70,25 @@ export const fetchAnnotationsInfo = (
 };
 
 export const saveAnnotation = (
+  requestid: string,
   documentid: number,
   documentversion: number = 1,
-  pagenumber: number = 0,
   annotationname: string = "",
   annotation: string = "",
   callback: any,
   errorCallback: any,
+  pageFlags?: Array<any>,
   sections?: object,
 ) => {
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${pagenumber}/${annotationname}`;
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
   let requestJSON = sections ?{
     "xml": annotation,
-    "sections": sections
+    "sections": sections,
     } : 
     {
-      "xml": annotation
+      "xml": annotation,
+      "pageflags":pageFlags,
+      "foiministryrequestid":requestid
     }
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -101,14 +104,16 @@ export const saveAnnotation = (
 };
 
 export const deleteAnnotation = (
+  requestid: string,
   documentid: number,
   documentversion: number = 1,
   annotationname: string = "",
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  page?: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
-
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -132,7 +137,8 @@ export const fetchSections = (
   httpGETRequest(apiUrl, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
-        callback(res.data);
+        store.dispatch(setSections(res.data) as any);
+        //callback(res.data);
       } else {
         throw new Error();
       }
@@ -210,7 +216,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
-  callback: any,
+  //callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = replaceUrl(
@@ -222,12 +228,13 @@ export const fetchPageFlag = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
+        store.dispatch(setPageFlags(res.data) as any);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
           return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-        callback(res.data);
+        //callback(res.data);
       } else {
         throw new Error();
       }

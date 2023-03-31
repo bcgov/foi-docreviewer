@@ -9,6 +9,10 @@ const documents = (state = initialState, action:any)=> {
       return {...state, redactionInfo: action.payload};
     case ACTION_CONSTANTS.SET_IS_PAGE_LEFT_OFF:
         return {...state, isPageLeftOff: action.payload};
+    case ACTION_CONSTANTS.SET_SECTIONS:
+      return {...state, sections: action.payload};
+    case ACTION_CONSTANTS.SET_PAGE_FLAGS:
+      return {...state, pageFlags: action.payload};
     default:
       return state;
   }
