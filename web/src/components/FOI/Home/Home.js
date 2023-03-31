@@ -1,5 +1,5 @@
 import { useAppSelector } from '../../../hooks/hook';
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, MutableRefObject } from 'react';
 import "../../../styles.scss";
 import "../App.scss"
 import DocumentSelector from './DocumentSelector';
@@ -20,10 +20,10 @@ function Home() {
   const [s3Url, setS3Url] = useState('');
   const { foiministryrequestid } = useParams();
   const [totalPageCount, setTotalPageCount] = useState(0);
-  const redliningRef = React.useRef();
 
+  const redliningRef = useRef();
 
-  useEffect(() => {
+   useEffect(() => {
     setS3UrlReady(false);
     fetchDocuments(
       parseInt(foiministryrequestid),
@@ -58,17 +58,17 @@ function Home() {
     );
   }, [])
 
-  const openFOIPPAModal = () => {
-    console.log("test");
-    redliningRef.current.log();
+  const openFOIPPAModal = (pageNo) => {
+    console.log("test",redliningRef?.current);
+    redliningRef?.current?.addFullPageRedaction(pageNo);
   }
 
   return (
     <div className="App">
       <Grid container>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-          {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
-          { (files.length > 0) ? <DocumentSelector requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
+        {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
+          { (files.length > 0) ? <DocumentSelector openFOIPPAModal={openFOIPPAModal} requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} /> : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
           { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? <Redlining ref={redliningRef} currentPageInfo={currentPageInfo} user={user} requestid={foiministryrequestid} /> : <div>Loading</div> }

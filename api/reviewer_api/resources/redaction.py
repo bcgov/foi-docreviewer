@@ -36,6 +36,7 @@ TRACER = Tracer.get_instance()
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>')
+@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
 class Annotations(Resource):
     """Retrieves annotations for a document
     """
@@ -59,11 +60,11 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion, pagenumber, annotationname):
+    def post(documentid, documentversion, annotationname):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema, pagenumber, AuthHelper.getuserinfo())
+            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -72,7 +73,8 @@ class Annotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>', defaults={'page':None})
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -81,13 +83,13 @@ class DeactivateAnnotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(documentid, documentversion, annotationname):
+    def delete(requestid, documentid, documentversion, annotationname, page:None):
         
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo())
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {'status': False, 'message':err.message}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         
@@ -175,8 +177,6 @@ class GetAccount(Resource):
             usergroup = usergroups[0]
         else:
             usergroup = AuthHelper.getiaotype()
-
-        print(usergroup)
         try:
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200

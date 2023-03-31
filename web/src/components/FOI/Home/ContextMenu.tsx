@@ -9,6 +9,7 @@ import { savePageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
 
 const ContextMenu = ({
+    openFOIPPAModal,
     requestId,
     pageFlagList,
     assignIcon,
@@ -48,20 +49,25 @@ const ContextMenu = ({
     }
 
     const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, publicbodyaction?: string, other?: string, programareaid?: number) => {
+        if(flagId === 3){
+            console.log("Withheld in Full Selection");
+            openFOIPPAModal(pageNo);
+        } else {
+            savePageFlag(
+                requestId,
+                documentid,
+                documentversion,
+                pageNo,
+                flagId,
+                (data: any) => setPageFlagChanged(true),
+                (error: any) => console.log(error),
+                publicbodyaction,
+                other,
+                programareaid
+            );
+        }
         setOpenConsultPopup(false);
         setOpenContextPopup(false);
-        savePageFlag(
-            requestId,
-            documentid,
-            documentversion,
-            pageNo,
-            flagId,
-            (data: any) => setPageFlagChanged(true),
-            (error: any) => console.log(error),
-            publicbodyaction,
-            other,
-            programareaid
-        );
     }
 
     const ministryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.programareas?.map((programarea: any, index: number) => {
