@@ -63,7 +63,6 @@ const DocumentSelector = ({
     }));
 
     useEffect(() => {
-        //console.log("sectionModal-Doc:",forwardedRef.current);
         fetchPageFlagsMasterData(
             requestid,
             (data: any) => setPageData(data),
@@ -125,7 +124,8 @@ const DocumentSelector = ({
 
 
     const setAdditionalData = () => {
-        filesForDisplay.forEach((file1: any) => {
+        let filesForDisplayCopy = [...filesForDisplay];
+        filesForDisplayCopy.forEach((file1: any) => {
             pageFlags?.forEach((pageFlag1: any) => {
                 if (file1.documentid == pageFlag1?.documentid) {
                     file1.pageFlag = pageFlag1?.pageflag;
@@ -144,7 +144,7 @@ const DocumentSelector = ({
                 }
             })
         });
-        //setFilesForDisplay(filesForDisplay);
+        setFilesForDisplay(filesForDisplayCopy);
     }
 
     useEffect(() => {

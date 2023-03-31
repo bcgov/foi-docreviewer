@@ -194,6 +194,7 @@ const Redlining = React.forwardRef(({
           //parse annotation xml
           let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
           let annots = jObj.getElementsByTagName("annots");
+          setRedactionType(annotations[0]?.type);
           if(action === 'delete') {
             let annotObjs = []
             for (let annot of annots[0].children) {
@@ -222,7 +223,7 @@ const Redlining = React.forwardRef(({
                     localDocumentInfo['file']['documentid'],
                     localDocumentInfo['file']['version'],
                     annot.attributes.name,
-                    (data)=>{console.log(data)},
+                    (data)=>{},
                     (error)=>{console.log(error)}
                   );
                 }
@@ -233,7 +234,7 @@ const Redlining = React.forwardRef(({
           else if (action === 'add') {
             if (annotations[0].Subject === 'Redact') {
               let pageSelectionList= [...pageSelections];
-              setRedactionType(annotations[0]?.type);
+              // setRedactionType(annotations[0]?.type);
               annots[0].children?.forEach((annotatn, i)=> {
                 if(annotations[i]?.type === 'fullPage') {
                 pageSelectionList.push(
@@ -248,7 +249,7 @@ const Redlining = React.forwardRef(({
               setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
             } else {
               let sections = annotations[0].getCustomData("sections")
-              var sectn;
+              let sectn;
               if (sections) {
                 sectn = {
                   "foiministryrequestid": requestid,
@@ -263,7 +264,7 @@ const Redlining = React.forwardRef(({
                 localDocumentInfo['file']['version'],
                 annotations[0].Id,
                 astr,
-                (data)=>{console.log(data)},
+                (data)=>{},
                 (error)=>{console.log(error)},
                 [],
                 sectn,
@@ -319,8 +320,6 @@ const Redlining = React.forwardRef(({
     if(pdffile !== (currentPageInfo.file['filepath'])) {
       localStorage.setItem("isDocumentLoaded", "false");
       setpdffile(currentPageInfo.file['filepath']);
-
-      let ministryrequestid = "1";
       getFOIS3DocumentPreSignedUrl(
           currentPageInfo.file['documentid'],
           (data) => {
@@ -352,7 +351,7 @@ const Redlining = React.forwardRef(({
     }
     if(editAnnot){
       let redactionSectionsIds = (defaultSections.length > 0 ? defaultSections : selectedSections);
-      var redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
+      let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
       childAnnotation.setContents(redactionSections);
       const doc = docViewer.getDocument();
       const pageNumber = parseInt(editAnnot.page) + 1;
@@ -378,7 +377,7 @@ const Redlining = React.forwardRef(({
           localDocumentInfo['file']['version'],
           childSection,
           astr,
-          (data)=>{console.log(data)},
+          (data)=>{},
           (error)=>{console.log(error)},
           [],
           sectn
@@ -389,15 +388,6 @@ const Redlining = React.forwardRef(({
       })
     }
     else {
-      // let pageFlags=null;
-      //   if(redactionType === 'fullPage'){
-      //     pageFlags=[
-      //       {
-      //       "page":2,
-      //       "flagid":3
-      //       }
-      //     ]
-      //   }
       saveAnnotation(
         requestid,
         localDocumentInfo['file']['documentid'],
@@ -415,11 +405,11 @@ const Redlining = React.forwardRef(({
     //}
       // add section annotation
       let parser = new DOMParser();
-      var astr = parser.parseFromString(redactionObj.astr,"text/xml");
+      let astr = parser.parseFromString(redactionObj.astr,"text/xml");
       for (const node of astr.getElementsByTagName("annots")[0].childNodes) {
         let redaction = annotManager.getAnnotationById(node.attributes.getNamedItem('name').value);
-        var coords = node.attributes.getNamedItem('coords')?.value;
-        var X = coords?.substring(0, coords.indexOf(","));
+        let coords = node.attributes.getNamedItem('coords')?.value;
+        let X = coords?.substring(0, coords.indexOf(","));
         const annot = new annots.FreeTextAnnotation();
         annot.PageNumber = redaction?.getPageNumber()
         annot.X = X || redaction.X;
@@ -430,7 +420,7 @@ const Redlining = React.forwardRef(({
         annot.Author = user?.name || user?.preferred_username || "";
         let redactionSectionsIds = defaultSections.length > 0 ? defaultSections : selectedSections
         let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1);
-        var redactionSectionsString = redactionSections.map(s => s.section).join(", ");
+        let redactionSectionsString = redactionSections.map(s => s.section).join(", ");
         annot.setAutoSizeType('auto');
         annot.setContents(redactionSectionsString);
         annot.setCustomData("parentRedaction", redaction.Id)
@@ -474,7 +464,7 @@ const Redlining = React.forwardRef(({
 
   useEffect(() => {
     while (deleteQueue?.length > 0) {
-      var annot = deleteQueue.pop();
+      let annot = deleteQueue.pop();
       if (annot && annot.name !== newRedaction?.name) {
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         if(redactionType == 'fullPage'){
@@ -499,7 +489,7 @@ const Redlining = React.forwardRef(({
             localDocumentInfo['file']['documentid'],
             localDocumentInfo['file']['version'],
             annot.name,
-            (data)=>{console.log(data)},
+            (data)=>{},
             (error)=>{console.log(error)}
           );
         }
@@ -509,8 +499,10 @@ const Redlining = React.forwardRef(({
           if(i >= 0){
             let childSections = redactionInfo[i].sections?.annotationname;
             let sectionids = redactionInfo[i].sections?.ids;
-            for(let id of sectionids) {
-              sections.find(s => s.id === id).count--;
+            if(sectionids){
+              for(let id of sectionids) {
+                sections.find(s => s.id === id).count--;
+              }
             }
             redactionInfo.splice(i, 1);
             annotManager.deleteAnnotation(annotManager.getAnnotationById(childSections));
@@ -549,17 +541,6 @@ const Redlining = React.forwardRef(({
           );
         }
       } else {
-        // let pageFlags=null;
-        // if(redactionType === 'Full Page'){
-        //   pageFlags=[
-        //     {
-        //     "page":2,
-        //     "flagid":3
-        //     }
-        //   ]
-        // }
-
-
       }
     }
     setSaveAnnot(null);
@@ -595,7 +576,7 @@ const Redlining = React.forwardRef(({
   }, [defaultSections, newRedaction])
 
   const handleSectionSelected = (e) => {
-    var sectionID = e.target.getAttribute('data-sectionid');
+    let sectionID = e.target.getAttribute('data-sectionid');
     if (e.target.checked) {
       selectedSections.push(Number(sectionID));
     } else {

@@ -177,8 +177,6 @@ class GetAccount(Resource):
             usergroup = usergroups[0]
         else:
             usergroup = AuthHelper.getiaotype()
-
-        print(usergroup)
         try:
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200

@@ -56,37 +56,38 @@ class documentpageflagservice:
             existingdocument = False
             # if self.__isbookmark(data) == True: 
             #     self.removebookmark(requestid, userinfo)
-            formattted_data = self.__formatpageflag(data)
-            if pageflag is not None:
-                existingdocument = True
-                isnew = True
-                for entry in pageflag:
-                    if entry["page"] == data["page"]:
-                        isnew = False
-                        pageflag.remove(entry)
-                        pageflag.append(formattted_data)
-                if isnew == True:
-                    pageflag.append(formattted_data)
-            else:
-                pageflag = []
-                pageflag.append(formattted_data)
+            existingdocument= self.__createnewpageflag(pageflag,data)
         if existingdocument == True:
             result = DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
         else:
             result = DocumentPageflag.createpageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
             #self.handlepublicbody(requestid, documentid, version, data, userinfo)
         return result
+        
     
     def removepageflag(self,requestid, documentid, version, page, userinfo):
         pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        #for entry in pageflags:
         withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] == 3) ),None)
-        print("withheldinfullobj:",withheldinfullobj)
         if withheldinfullobj is not None:
-            print("pageflags:",pageflags)
             pageflags.remove(withheldinfullobj)
-            print("new_pageflag:",pageflags)
             DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
+
+    def __createnewpageflag(self, pageflag,data):
+        formattted_data = self.__formatpageflag(data)
+        if pageflag is not None:
+            existingdocument = True
+            isnew = True
+            for entry in pageflag:
+                if entry["page"] == data["page"]:
+                    isnew = False
+                    pageflag.remove(entry)
+                    pageflag.append(formattted_data)
+            if isnew == True:
+                pageflag.append(formattted_data)
+        else:
+            pageflag = []
+            pageflag.append(formattted_data)  
+        return existingdocument
     
     def __formatpageflag(self, data):
         _normalised = copy.deepcopy(data)
