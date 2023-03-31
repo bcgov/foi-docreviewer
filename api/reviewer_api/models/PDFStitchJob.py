@@ -1,7 +1,10 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy import func, and_
 from .default_method_result import DefaultMethodResult
+from .DocumentDeleted import DocumentDeleted
+from .DocumentMaster import DocumentMaster
 
 
 class PDFStitchJob(db.Model):
@@ -29,6 +32,59 @@ class PDFStitchJob(db.Model):
         pdfstitchjobschema = PDFStitchJobSchema(many=False)
         query = db.session.query(PDFStitchJob).filter(PDFStitchJob.ministryrequestid == requestid, PDFStitchJob.category == category.lower()).order_by(PDFStitchJob.pdfstitchjobid.desc(), PDFStitchJob.version.desc()).first()
         return pdfstitchjobschema.dump(query)
+
+    @classmethod
+    def getrecordschanged(cls, requestid, category, jobid):
+        query1 = (
+            db.session.query(
+                func.max(PDFStitchJob.pdfstitchjobid).label('pdfstitchjobid'),
+                func.max(PDFStitchJob.version).label('version')
+            )
+            .join(DocumentMaster, DocumentMaster.ministryrequestid == PDFStitchJob.ministryrequestid)
+            .filter(
+                and_(
+                    PDFStitchJob.ministryrequestid == requestid,
+                    PDFStitchJob.pdfstitchjobid == jobid,
+                    PDFStitchJob.category == category,
+                    PDFStitchJob.status.in_(['completed', 'error']),
+                    DocumentMaster.created_at > PDFStitchJob.createdat
+                )
+            )
+            .group_by(PDFStitchJob.ministryrequestid, PDFStitchJob.category)
+        )   
+
+        query2 = (
+            db.session.query(
+                func.max(PDFStitchJob.pdfstitchjobid).label('pdfstitchjobid'),
+                func.max(PDFStitchJob.version).label('version')
+            )
+            .join(DocumentDeleted, DocumentDeleted.ministryrequestid == PDFStitchJob.ministryrequestid)
+            .filter(
+                and_(
+                    PDFStitchJob.ministryrequestid == requestid,
+                    PDFStitchJob.pdfstitchjobid == jobid,
+                    PDFStitchJob.category == category,
+                    PDFStitchJob.status.in_(['completed', 'error']),
+                    DocumentDeleted.created_at > PDFStitchJob.createdat
+                )
+            )
+            .group_by(PDFStitchJob.ministryrequestid, PDFStitchJob.category)
+        )
+
+        # Combine the two queries using union
+        final_query = query1.union(query2)
+        row = final_query.one_or_none()
+        print("row = ", row)
+        if row is not None and len(row) > 0:
+            print("Query returned at least one row.")
+            return {"recordchanged": True}
+        else:
+            print("Query returned no rows.")
+            return {"recordchanged": False}
+
+
+
+
 class PDFStitchJobSchema(ma.Schema):
     class Meta:
         fields = ('pdfstitchjobid', 'version', 'ministryrequestid', 'category', 'inputfiles', 'outputfiles', 'status', 'message', 'createdat', 'createdby')

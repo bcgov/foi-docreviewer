@@ -44,22 +44,34 @@ class pdfstitchservice(basestitchservice):
                 print("final document path =========== ", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
+        
+        except ValueError as value_error:
+            errorfilename, errormessage = value_error.args
+            print("errorfilename = ", errorfilename)
+            print("errormessage = ", errormessage)
+            errormessage = self.__geterrormessageforrecordjobend(_message, errorfilename)
+            recordjobend(_message, True, finalmessage=errormessage, message=traceback.format_exc())
+        #     raise ValueError(errorfilename, errormessage) 
         except (Exception) as error:
             print('error with Thread Pool: ', error)
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
+            finalmessage = self.__getmessageforrecordjobend(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
     
     def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
-        try:
-            count = 0
-            writer = PdfWriter()
+        stitchedfiles = []
+        count = 0
+        writer = PdfWriter()
+
+        try:            
             for file in division.files:
                 print("filename = ", file.filename)
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3uripath)
                     if extension in ['.pdf','.png','.jpg']:
                         docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
-                        writer = self.mergepdf(docbytes, writer, extension)
+                        writer = self.mergepdf(docbytes, writer, extension, file.filename)
+                        stitchedfiles.append(file)
                     count += 1
             if writer:
                 with BytesIO() as bytes_stream:
@@ -68,38 +80,66 @@ class pdfstitchservice(basestitchservice):
                     paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
                     numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
                     filename = requestno + " - " +category+" - "+ division.divisionname
+                    print("stitchedfiles = ", stitchedfiles)
                     return basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
-        except(Exception) as error:
-            print('error with file: ', error)
-
-    def mergepdf(self, raw_bytes_data, writer, extension):
-        if extension in ['.png','.jpg']:
-            # process the image bytes  
-            reader =  getimagepdf(raw_bytes_data)
-        else:
-            reader = PdfReader(BytesIO(raw_bytes_data))
         
-        # Add all pages to the writer
-        for page in reader.pages:
-            writer.add_page(page)
-        return writer
+        except ValueError as value_error:
+            errorfilename, errormessage = value_error.args
+            print("errorfilename = ", errorfilename)
+            print("errormessage = ", errormessage)
+            raise ValueError(errorfilename, errormessage)        
+        except(Exception) as error:
+            # print("stitchedfiles after error = ", json.dumps(stitchedfiles))
+            # print("******* stitchedfiles after error ******* ")
+            # for file in stitchedfiles:
+            #     print("filename : ", file.filename)
+            print('error with file: ', error)
+            raise ValueError("", error)
+
+    def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
+        try:
+            if extension in ['.png','.jpg']:
+                # process the image bytes  
+                reader =  getimagepdf(raw_bytes_data)
+            else:
+                reader = PdfReader(BytesIO(raw_bytes_data))
+            
+            # Add all pages to the writer
+            for page in reader.pages:
+                writer.add_page(page)
+            return writer
+        except(Exception) as error:
+            raise ValueError(filename, error)
+    
     def createfinaldocument(self, _message, s3credentials):
         print("<<<<<<<<<<<<<<<<<<<<< createfinaldocument >>>>>>>>>>>>>>>>>>>>>")
         if _message is not None:
             return basestitchservice().zipfilesandupload(_message, s3credentials)
     
-    def __getmessageforrecordjobend(self, _message, results):
+    def __getmessageforrecordjobend(self, _message, results=None):
         documents = []
-        for result in results:
-            if result is not None:
-                document = {
-                    "recordid": -1,
-                    "filename": result.get("filename"),
-                    "s3uripath": result.get("documentpath"),
-                    "lastmodified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
-                }
-                documents.append(document)
+        if results:
+            for result in results:
+                if result is not None:
+                    document = {
+                        "recordid": -1,
+                        "filename": result.get("filename"),
+                        "s3uripath": result.get("documentpath"),
+                        "lastmodified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+                    }
+                    documents.append(document)
         setattr(_message, "outputdocumentpath", documents)
+        return _message
+    
+    def __geterrormessageforrecordjobend(self, _message, errorfilename):
+        if errorfilename:
+            document = {
+                "recordid": -1,
+                "filename": errorfilename,
+                "s3uripath": "",
+                "lastmodified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+            }
+        setattr(_message, "outputdocumentpath", document)
         return _message
 
 

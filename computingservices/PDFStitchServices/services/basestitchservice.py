@@ -20,7 +20,7 @@ class basestitchservice:
             return docbytearray
         except(Exception) as error:
             print("error in getting the bytearray >> ",error)
-            raise
+            raise ValueError(message.filename, error)
     
     def __zipfiles(self, filename, s3credentials, stitchedpdfstream, files):
         archive = BytesIO()

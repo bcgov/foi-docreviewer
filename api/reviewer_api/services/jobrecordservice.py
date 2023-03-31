@@ -28,6 +28,14 @@ class jobrecordservice:
         job = PDFStitchJob.getpdfstitchjobstatus(requestid, category)
         return job
     
+    def getrecordschanged(self, requestid, category):
+        job = self.getpdfstitchjobstatus(requestid, category)
+        if job is not None and len(job) > 0:
+            jobid = job.get("pdfstitchjobid")
+            print("jobid = ", jobid)
+            return PDFStitchJob.getrecordschanged(requestid, category, jobid)
+        return {"recordchanged": False}
+    
     def recordjobstatus(self, batchinfo, userid):
         """ Insert entry into correct job record table.
         """
