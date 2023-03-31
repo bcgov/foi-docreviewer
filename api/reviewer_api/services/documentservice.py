@@ -87,11 +87,6 @@ class documentservice:
     
     def __updateredactionstatus(self,redactions, record):
         for entry in redactions:
-            print("debug redaction status")
-            print(record["documentmasterid"])
-            print(entry["processingparentid"])
-            print(entry["documentmasterid"])
-            print(entry["isredactionready"])
             if record["documentmasterid"] == entry["processingparentid"] or (entry["processingparentid"] is None and record["documentmasterid"]  == entry["documentmasterid"]):
                 record["isredactionready"] = entry["isredactionready"]
         return record
