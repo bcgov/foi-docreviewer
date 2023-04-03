@@ -60,6 +60,10 @@ namespace MCS.FOI.DocToPDF
                         message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                         Log.Error(message);
                         Console.WriteLine(message);
+                        if (attempt == FailureAttemptCount)
+                        {
+                            throw;
+                        }
                         Thread.Sleep(5000);
                     }
                 }
