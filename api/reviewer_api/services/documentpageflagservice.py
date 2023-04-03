@@ -52,6 +52,7 @@ class documentpageflagservice:
 
     def bulksavepageflags(self, requestid, documentid, version, pageflaglist, userinfo):
         pageflag = self.getdocumentpageflags(requestid, documentid, version)
+        existingdocument = False
         for data in pageflaglist:
             existingdocument = False
             # if self.__isbookmark(data) == True: 
