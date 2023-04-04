@@ -1,6 +1,6 @@
 
 from .s3documentservice import gets3documentbytearray, uploadbytes
-from commons import  getimagepdf
+from commons import  getimagepdf, convertimagetopdf
 from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
 import traceback
 from io import BytesIO
@@ -63,6 +63,7 @@ class basestitchservice:
         requestnumber = _message.requestnumber
         bcgovcode = _message.bcgovcode
         files = _message.outputdocumentpath
+        print("zipfilesandupload = files = ", files)
         category = _message.category
         try:            
             bytesarray = self.zipfiles(s3credentials, files)
@@ -73,7 +74,7 @@ class basestitchservice:
             return docobj
         except(Exception) as error:
             print("error in writing the bytearray >> ", error)
-            raise
+            raise # handle retry here
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:
@@ -93,12 +94,26 @@ class basestitchservice:
             return docobjs
         except(Exception) as error:
             print("error in writing the bytearray >> ", error)
-            raise
+            raise # handle retry here
+
+    def getskippedfiledetails(self, data):
+
+        total_skippedfilecount = 0
+        total_skippedfiles = []
+
+        for output in data['stitchedoutput']:
+            skippedfilecount = output['skippedfilecount']
+            skippedfiles = output['skippedfiles']
+            total_skippedfilecount += skippedfilecount
+            total_skippedfiles.extend(skippedfiles)
+        
+        total_skippedfiles = list(set(total_skippedfiles))
+        return total_skippedfilecount, total_skippedfiles
     
     def __getincompatablefiles(self, _file, divisionname):
         folderpath = self.__getfolderpathfordivisionfiles(divisionname)
         filename = folderpath + "/" + _file.filename
-        incompatablefiledetails = {"success": True, 'filename': filename, 'documentpath': _file.s3uripath}
+        incompatablefiledetails = {"success": True, "filename": filename, "documentpath": _file.s3uripath}
         return incompatablefiledetails
     
     def __getfolderpathfordivisionfiles(self, divisionname):

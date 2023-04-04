@@ -56,14 +56,14 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                         pdfstitchservice().processmessage(producermessage)
                         
                         # send message to notification stream once the zip file is ready to download
-                        complete, err = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+                        complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
                         print("complete == ", complete)
                         print("err == ", err)
 
                         # send notification for both success and error cases
                         if complete or err:
                             err = True if error_flag else err
-                            redisstreamwriter().sendnotification(producermessage, err)
+                            redisstreamwriter().sendnotification(producermessage, err, total_skippedfilecount, skippedfiles)
                         else:
                             print("pdfstitch not yet complete, no message sent")
                     except(Exception) as error: 

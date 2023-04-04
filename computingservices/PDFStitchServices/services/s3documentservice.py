@@ -95,8 +95,8 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
 
         #upload to S3
         requests.put(s3uri, data=bytes, headers=header)
-        attachmentobj = {"success": True, 'filename': filename, 'documentpath': s3uri}
+        attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
     except Exception as ex:
         print(ex)
-        attachmentobj = {"success": False, 'filename': filename, 'documentpath': None}   
+        attachmentobj = {"success": False, "filename": filename, "documentpath": None}   
     return attachmentobj
