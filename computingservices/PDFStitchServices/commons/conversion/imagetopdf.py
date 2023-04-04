@@ -18,3 +18,33 @@ def getimagepdf(raw_image_bytes):
     empty_canvas.save()
     overlay = PdfReader(BytesIO(imgtemp.getvalue()))
     return overlay
+
+
+
+def convertimagetopdf(image_bytes):
+
+    imgtemp = BytesIO()
+
+    # Create a canvas and set the dimensions to match the image
+    img = ImageReader(BytesIO(image_bytes))
+    img_width, img_height = img.getSize()
+    canvas = canvas.Canvas(imgtemp, pagesize=(img_width, img_height))
+
+    # Calculate the scaling factor to fit the image onto the canvas
+    canvas_width, canvas_height = canvas._pagesize
+    aspect_ratio = img_width / img_height
+    canvas_aspect_ratio = canvas_width / canvas_height
+
+    if aspect_ratio > canvas_aspect_ratio:
+        scaling_factor = canvas_width / img_width
+    else:
+        scaling_factor = canvas_height / img_height
+
+    # Draw the image onto the canvas
+    canvas.drawImage(img, 0, 0, img_width * scaling_factor, img_height * scaling_factor)
+
+    # Save the PDF file
+    canvas.save()
+
+    overlay = PdfReader(BytesIO(imgtemp.getvalue()))
+    return overlay
