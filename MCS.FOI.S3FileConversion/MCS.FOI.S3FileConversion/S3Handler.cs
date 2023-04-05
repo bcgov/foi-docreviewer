@@ -169,7 +169,7 @@ namespace MCS.FOI.S3FileConversion
         {
             ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input)
             {
-                IsSinglePDFOutput = false,
+                IsSinglePDFOutput = true,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
