@@ -16,7 +16,7 @@ import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/ser
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark
+    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -24,20 +24,25 @@ import "./DocumentSelector.scss";
 import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
+import { useAppSelector } from '../../../hooks/hook';
+
 
 const DocumentSelector = ({
+    openFOIPPAModal,
     requestid,
     documents,
     totalPageCount,
     currentPageInfo,
     setCurrentPageInfo
 }: any) => {
+
+    const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
-    const [pageFlags, setPageFlags] = useState([]);
+    //const [pageFlags, setPageFlags] = useState([]);
     const [pageFlagChanged, setPageFlagChanged] = useState(false);
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState([]);
@@ -74,7 +79,6 @@ const DocumentSelector = ({
         );
         fetchPageFlag(
             requestid,
-            (data: any) => setPageFlags(data),
             (error: any) => console.log(error)
         )
     }, [pageFlagChanged]);
@@ -95,20 +99,20 @@ const DocumentSelector = ({
 
     const updateCompletionCounter = () => {
         let totalPagesWithFlags = 0;
-        pageFlags.forEach((element: any) => {
+        pageFlags?.forEach((element: any) => {
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
             let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
-        return totalPageCount > 0 ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        return (totalPageCount > 0 && totalPagesWithFlags>=0) ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
     }
 
 
     const updatePageCount = () => {
         let totalFilteredPages = 0;
-        pageFlags.forEach((element: any) => {
+        pageFlags?.forEach((element: any) => {
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
@@ -120,7 +124,8 @@ const DocumentSelector = ({
 
 
     const setAdditionalData = () => {
-        filesForDisplay.forEach((file1: any) => {
+        let filesForDisplayCopy = [...filesForDisplay];
+        filesForDisplayCopy.forEach((file1: any) => {
             pageFlags?.forEach((pageFlag1: any) => {
                 if (file1.documentid == pageFlag1?.documentid) {
                     file1.pageFlag = pageFlag1?.pageflag;
@@ -139,7 +144,7 @@ const DocumentSelector = ({
                 }
             })
         });
-        //setFilesForDisplay(filesForDisplay);
+        setFilesForDisplay(filesForDisplayCopy);
     }
 
     useEffect(() => {
@@ -305,18 +310,19 @@ const DocumentSelector = ({
                         >
                             <label className="hideContent">Filter Records</label>
                             <InputBase
-                                id="foicommentfilter"
+                                id="documentfilter"
                                 placeholder="Filter Records ..."
                                 defaultValue={""}
                                 onChange={(e) => { onFilterChange(e.target.value.trim()) }}
-                                // inputProps={{'aria-labelledby': 'foi-status-dropdown-label'}}
+                                inputProps={{'aria-labelledby': 'document-filter'}}
                                 sx={{
                                     color: "#38598A",
                                 }}
                                 startAdornment={
-                                    <InputAdornment position="start">
-                                        <IconButton
+                                    <InputAdornment position="start" >
+                                        <IconButton aria-hidden="true"
                                             className="search-icon"
+                                            aria-label="search-icon"
                                         >
                                             <span className="hideContent">Filter Records ...</span>
                                             <SearchIcon />
@@ -429,6 +435,7 @@ const DocumentSelector = ({
                                                         }
                                                         {pageFlagList && pageFlagList?.length > 0 &&
                                                             <ContextMenu
+                                                                openFOIPPAModal={openFOIPPAModal}
                                                                 requestId={requestid}
                                                                 pageFlagList={pageFlagList}
                                                                 assignIcon={assignIcon}
@@ -485,6 +492,7 @@ const DocumentSelector = ({
                                                 )}
                                                 {pageFlagList && pageFlagList?.length > 0 &&
                                                     <ContextMenu
+                                                        openFOIPPAModal={openFOIPPAModal}
                                                         requestId={requestid}
                                                         pageFlagList={pageFlagList}
                                                         assignIcon={assignIcon}

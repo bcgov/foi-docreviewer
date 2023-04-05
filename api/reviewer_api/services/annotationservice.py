@@ -10,7 +10,8 @@ import os
 import maya
 import json
 
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
+from xml.dom.minidom import parseString
 
 class annotationservice:
     """ FOI Annotation management service
@@ -50,13 +51,18 @@ class annotationservice:
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
         return annotationsections
 
-    def saveannotation(self, annotationname, documentid, documentversion, annotationschema, pagenumber, userinfo):
-        _annotresponse = Annotation.saveannotation(annotationname, documentid, documentversion, self.__extractannotfromxml(annotationschema['xml']), pagenumber, userinfo)
-        if _annotresponse.success == True:
-            if "sections" in annotationschema:
-                self.saveannotationsection(annotationname, annotationschema, userinfo)
-            return DefaultMethodResult(True,'Annotation Section is saved',annotationname)          
-        return DefaultMethodResult(False,'Failed to save Annotation Section',annotationname)
+    def saveannotation(self, annotationname, documentid, documentversion, annotationschema, userinfo):
+        annots = self.__extractannotfromxml(annotationschema['xml'])
+        for annot in annots:
+            _annotresponse = Annotation.saveannotation(annot["name"], documentid, documentversion, annot["xml"], annot["page"], userinfo)
+            if _annotresponse.success == True:
+                if "sections" in annotationschema:
+                    sectionresponse = self.saveannotationsection(annotationname, annotationschema, userinfo)
+                    if not sectionresponse:
+                        return DefaultMethodResult(False,'Failed to save Annotation Section',annotationname)
+            else:
+                return DefaultMethodResult(False,'Failed to save Annotation',annotationname)
+        return DefaultMethodResult(True,'Annotation successfully saved',annotationname)
 
     def saveannotationsection(self, annotationname, annotsectionschema, userinfo):
         ministryid, sectionschema = self.__generateannotsection(annotsectionschema)
@@ -71,11 +77,16 @@ class annotationservice:
         return '%Y %b %d | %I:%M %p'
 
     def __extractannotfromxml(self, xmlstring):
-        firstlist = xmlstring.split('<annots>')
-        if len(firstlist) == 2: 
-            secondlist = firstlist[1].split('</annots>')
-            return secondlist[0]
-        return ''
+        xml = parseString(xmlstring)
+        annotations = xml.getElementsByTagName("annots")[0].childNodes
+        annots = []
+        for annot in annotations:
+            annots.append({
+                "name": annot.getAttribute("name"),
+                "page": annot.getAttribute("page"),
+                "xml": annot.toxml()
+            })
+        return annots
     
     def __generateannotationsxml(self, annotations):
         annotationsstring = ''.join(annotations)

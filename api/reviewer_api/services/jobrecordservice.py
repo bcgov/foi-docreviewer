@@ -82,7 +82,7 @@ class jobrecordservice:
                             ministryrequestid=batchinfo['ministryrequestid'],
                             recordid=record['recordid'] if batchinfo['trigger'] == 'recordupload' else None,
                             processingparentid=record.get('documentmasterid') if batchinfo['trigger'] == 'recordreplace' else None,
-                            isredactionready=True,
+                            isredactionready=False,
                             createdby=userid
                         )
                     )
