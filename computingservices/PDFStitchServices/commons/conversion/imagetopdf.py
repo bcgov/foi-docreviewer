@@ -1,7 +1,7 @@
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from io import StringIO, BytesIO
-from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.utils import ImageReader
 
 
@@ -19,32 +19,30 @@ def getimagepdf(raw_image_bytes):
     overlay = PdfReader(BytesIO(imgtemp.getvalue()))
     return overlay
 
-
-
 def convertimagetopdf(image_bytes):
+    try:
+        imgtemp = BytesIO()
 
-    imgtemp = BytesIO()
+        # Create a canvas and set the dimensions to match the image
+        image = ImageReader(BytesIO(image_bytes))
+        
+        image_width, image_height = image.getSize()
+              
+        c_image_width = image_width + 25
+        c_image_height = image_height + 25
 
-    # Create a canvas and set the dimensions to match the image
-    img = ImageReader(BytesIO(image_bytes))
-    img_width, img_height = img.getSize()
-    canvas = canvas.Canvas(imgtemp, pagesize=(img_width, img_height))
+        if c_image_height < 280:
+            c_image_height = 280
+        if image_width > image_height:
+            c = canvas.Canvas(imgtemp, pagesize=landscape((c_image_width, c_image_height)))
+        else:
+            c = canvas.Canvas(imgtemp, pagesize=portrait((c_image_width, c_image_height)))
+                
+        c.drawImage(image, 0, 0, image_width, image_height)
 
-    # Calculate the scaling factor to fit the image onto the canvas
-    canvas_width, canvas_height = canvas._pagesize
-    aspect_ratio = img_width / img_height
-    canvas_aspect_ratio = canvas_width / canvas_height
-
-    if aspect_ratio > canvas_aspect_ratio:
-        scaling_factor = canvas_width / img_width
-    else:
-        scaling_factor = canvas_height / img_height
-
-    # Draw the image onto the canvas
-    canvas.drawImage(img, 0, 0, img_width * scaling_factor, img_height * scaling_factor)
-
-    # Save the PDF file
-    canvas.save()
-
-    overlay = PdfReader(BytesIO(imgtemp.getvalue()))
-    return overlay
+        # Save the canvas to a PDF file
+        c.save()
+        overlay = PdfReader(BytesIO(imgtemp.getvalue()))
+        return overlay
+    except(Exception) as error: 
+        print(error)  

@@ -112,8 +112,8 @@ class pdfstitchservice(basestitchservice):
         try:
             if extension in ['.png','.jpg']:
                 # process the image bytes  
-                reader =  getimagepdf(raw_bytes_data)
-                # reader =  convertimagetopdf(raw_bytes_data)
+                # reader =  getimagepdf(raw_bytes_data)
+                reader =  convertimagetopdf(raw_bytes_data)
             else:
                 reader = PdfReader(BytesIO(raw_bytes_data))
             
