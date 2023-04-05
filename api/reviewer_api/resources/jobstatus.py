@@ -104,26 +104,4 @@ class GetPDFStitchJobStatus(Resource):
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         
-@cors_preflight('GET,OPTIONS')
-@API.route('/recordschanged/<requestid>/<category>')
-class GetPDFStitchJobStatus(Resource):
-    """Get document list.
-    """
-    @staticmethod
-    # @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def get(requestid, category):
-        try:
-            result = jobrecordservice().getrecordschanged(requestid, category)
-            print("getrecordschanged = ", result)
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            print("error = ", exception.message)
-            return {'status': exception.status_code, 'message':exception.message}, 500
-        except Exception as ex:
-            print("ex = ", ex)
-        
     

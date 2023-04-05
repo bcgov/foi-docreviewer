@@ -1,16 +1,13 @@
 
 from .s3documentservice import gets3documentbytearray, uploadbytes
-from commons import  getimagepdf, convertimagetopdf
 from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
-import traceback
 from io import BytesIO
-from multiprocessing.pool import ThreadPool as Pool
-import json
 from zipfile import ZipFile
 import zipfile
 from os import path
 from utils.basicutils import to_json
 from config import division_stitch_folder_path
+import logging
 
 class basestitchservice:
 
@@ -19,7 +16,8 @@ class basestitchservice:
             docbytearray = gets3documentbytearray(message, s3credentials)
             return docbytearray
         except(Exception) as error:
-            print("error in getting the bytearray >> ",error)
+            logging.error("error in getting the bytearray")
+            logging.error(error)
             raise ValueError(message.filename, error)
     
     def __zipfiles(self, filename, s3credentials, stitchedpdfstream, files):
@@ -32,7 +30,6 @@ class basestitchservice:
                     archivefile.write(stitchedpdfstream)
             # zip any non pdf files
             for file in files:
-                print("file Obj >>>>>>>> ",to_json(file))
                 _message = to_json(file)
                 producermessage = get_in_filepdfmsg(_message)
                 _, extension = path.splitext(producermessage.s3uripath)
@@ -42,7 +39,6 @@ class basestitchservice:
                         # _message = _message.replace("b'","'").replace("'",'')
                         # _message = to_json(file)
                         # producermessage = get_in_filepdfmsg(_message)
-                        print("fileproducermessage.s3uripath >>>>>>>> ", producermessage.s3uripath)
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
 
         return archive.getbuffer()
@@ -63,18 +59,21 @@ class basestitchservice:
         requestnumber = _message.requestnumber
         bcgovcode = _message.bcgovcode
         files = _message.outputdocumentpath
-        print("zipfilesandupload = files = ", files)
         category = _message.category
         try:            
             bytesarray = self.zipfiles(s3credentials, files)
             filepath = self.__getzipfilepath(category, requestnumber)
-            print("zipfilename = ", filepath)
+            logging.info("zipfilename = %s", filepath)
             docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
-            print(docobj)
             return docobj
-        except(Exception) as error:
-            print("error in writing the bytearray >> ", error)
-            raise # handle retry here
+        except(ValueError) as error:
+            errorattachmentobj, errormessage = error.args
+            logging.error(errormessage)
+            return errorattachmentobj
+        except(Exception) as ex:
+            logging.error("error in writing the bytearray")
+            logging.error(ex)
+            raise
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:
@@ -90,11 +89,15 @@ class basestitchservice:
                 if extension not in ['.pdf','.png','.jpg']:
                     incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
                     docobjs.append(incompatabledocobj)
-            print(docobjs)
             return docobjs
-        except(Exception) as error:
-            print("error in writing the bytearray >> ", error)
-            raise # handle retry here
+        except(ValueError) as error:
+            errorattachmentobj, errormessage = error.args
+            logging.error(errormessage)
+            raise
+        except(Exception) as ex:
+            logging.error("error in writing the bytearray")
+            logging.error(ex)
+            raise
 
     def getskippedfiledetails(self, data):
 

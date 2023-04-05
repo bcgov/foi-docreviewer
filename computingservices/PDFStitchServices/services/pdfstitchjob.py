@@ -1,7 +1,6 @@
 from utils import getdbconnection
 from utils.basicutils import to_json
-from datetime import datetime
-import json
+import logging
 
 
 def savefinaldocumentpath(finalpackage, ministryid, category, userid):
@@ -16,10 +15,12 @@ def savefinaldocumentpath(finalpackage, ministryid, category, userid):
         conn.commit()
         cursor.close()        
     except(Exception) as error:
-        print(error)
+        logging.error("Error in saving the final output files")
+        logging.error(error)
         raise
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 def recordjobstart(message):
     try:
@@ -32,10 +33,12 @@ def recordjobstart(message):
         conn.commit()
         cursor.close()
     except(Exception) as error:
-        print(error)
+        logging.error("Error in recordjobstart")
+        logging.error(error)
         raise
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
         
 
 def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
@@ -52,27 +55,18 @@ def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
         conn.commit()
         cursor.close()
     except(Exception) as error:
-        print(error)
+        logging.error("Error in recordjobend")
+        logging.error(error)
         raise
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
         
 
 def ispdfstichjobcompleted(jobid, category):
     try:
         conn = getdbconnection()
         cursor = conn.cursor()
-        # cursor.execute('''select count(1)  filter (where status = 'error') as error,
-        #                          count(1) filter (where status = 'completed') as completed from (
-        #                          (select max(version) as version,  pdfstitchjobid
-        #                             from public."PDFStitchJob"
-        #                             where pdfstitchjobid = %s::integer and category = %s
-        #                             group by pdfstitchjobid) sq
-        #                             join public."PDFStitchJob" pdfsj
-        #                             on pdfsj.pdfstitchjobid = sq.pdfstitchjobid
-        #                             and pdfsj.version = sq.version
-        #                          )''',(jobid, category))
-        # (joberr, jobcompleted) = cursor.fetchone()
         cursor.execute('''(SELECT COUNT(1) FILTER (WHERE status = 'error') AS error,
                         COUNT(1) FILTER (WHERE status = 'completed') AS completed,
                         sq.outputfiles
@@ -94,8 +88,10 @@ def ispdfstichjobcompleted(jobid, category):
         cursor.close()
         return jobcompleted == 1, joberr == 1, attributes
     except(Exception) as error:
-        print(error)
+        logging.error("Error in getting the complete job status")
+        logging.error(error)
         raise
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
         

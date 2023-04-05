@@ -12,6 +12,7 @@ from os import path
 from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
+import logging
 
 class pdfstitchservice(basestitchservice):
 
@@ -35,7 +36,7 @@ class pdfstitchservice(basestitchservice):
             # loop through the atributes (currently divisions)
             for division in attributes:
                 
-                print("division = ",division.divisionname)
+                logging.info("division = %s", division.divisionname)
                 result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
                 results.append(result)
             pool.close()
@@ -43,17 +44,13 @@ class pdfstitchservice(basestitchservice):
             finalmessage = self.__getfinalmessage(_message, results)            
             result = self.createfinaldocument(finalmessage, s3credentials)
             if result.get("success") == True:
-                print("final document path =========== ", result.get("documentpath"))
+                logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
-        
-        # except ValueError as value_error:
-        #     errorfilename, errormessage = value_error.args
-        #     print("errorfilename = ", errorfilename)
-        #     print("errormessage = ", errormessage)
-        #     errormessage = self.__geterrormessageforrecordjobend(_message, errorfilename)
-        #     recordjobend(_message, True, finalmessage=errormessage, message=traceback.format_exc())
-        # #     raise ValueError(errorfilename, errormessage) 
+            else:
+                errormessage = "Error in uploading the final document %s", result.get("filename")
+                logging.error(errormessage)
+                recordjobend(_message, True, finalmessage=finalmessage, message=errormessage) 
         except (Exception) as error:
             print('error with Thread Pool: ', error)
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
@@ -65,14 +62,18 @@ class pdfstitchservice(basestitchservice):
         stichedfilecount = 0
         skippedfiles = []
         skippedfilecount = 0
+        
         count = 0
         writer = PdfWriter()
 
-        try:            
+        try: 
+            # process each file in divisional files           
             for file in division.files:
+                # logging.info("filename = %s", file.filename)
                 print("filename = ", file.filename)
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3uripath)
+                    # stitch only ['.pdf','.png','.jpg']
                     if extension in ['.pdf','.png','.jpg']:
                         try:
                             docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
@@ -81,9 +82,11 @@ class pdfstitchservice(basestitchservice):
                             stichedfilecount += 1
                         except ValueError as value_error:
                             errorfilename, errormessage = value_error.args
+                            logging.error(errormessage)
+                            print("errorfilename = ", errorfilename)
                             skippedfiles.append(errorfilename)
                             skippedfilecount += 1
-                            continue                        
+                            continue
                     count += 1
             if writer:
                 with BytesIO() as bytes_stream:
@@ -95,24 +98,18 @@ class pdfstitchservice(basestitchservice):
                     stitchedoutput = self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount)
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
                     return self.__getfinaldivisionoutput(stitchedoutput, filestozip)
-        
-        # except ValueError as value_error:
-        #     errorfilename, errormessage = value_error.args
-        #     print("errorfilename = ", errorfilename)
-        #     print("errormessage = ", errormessage)
-        #     raise ValueError(errorfilename, errormessage)        
+        except ValueError as value_error:
+            errorattribute, errormessage = value_error.args
+            logging.error(errormessage)
         except(Exception) as error:
-            # print("******* stitchedfiles after error ******* ")
-            # for file in stitchedfiles:
-            #     print("filename : ", file.filename)
-            print('error with pdfstitchbasedondivision: ', error)
+            logging.error('Error with divisional stitch.')
+            logging.error(error)
             raise
 
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
         try:
             if extension in ['.png','.jpg']:
-                # process the image bytes  
-                # reader =  getimagepdf(raw_bytes_data)
+                # process the image bytes
                 reader =  convertimagetopdf(raw_bytes_data)
             else:
                 reader = PdfReader(BytesIO(raw_bytes_data))

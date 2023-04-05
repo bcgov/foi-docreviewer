@@ -42,7 +42,6 @@ class GetPDFStitchedDocuments(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    # @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, category):
         try:
             result = pdfstitchpackageservice().getpdfstitchpackage(requestid, category)
@@ -52,3 +51,24 @@ class GetPDFStitchedDocuments(Resource):
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/recordschanged/<requestid>/<category>')
+class GetRecordsChangedStatus(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(requestid, category):
+        try:
+            result = pdfstitchpackageservice().getrecordschanged(requestid, category)
+            return json.dumps(result), 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            print("error = ", exception.message)
+            return {'status': exception.status_code, 'message':exception.message}, 500
+        except Exception as ex:
+            print("ex = ", ex)
