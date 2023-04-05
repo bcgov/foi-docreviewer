@@ -11,13 +11,15 @@ class redisstreamwriter:
     rdb = redisstreamdb
     notificationstream = rdb.Stream(notification_stream_key)
 
-    def sendnotification(self, message, error=False):
+    def sendnotification(self, message, error=False, totalskippedfilecount=0, totalskippedfiles=[]):
         try:
             notification_msg = NotificationPublishSchema()
             notification_msg.serviceid = "pdfstitchforharms"
             notification_msg.errorflag = self.__booltostr(error)
             notification_msg.ministryrequestid = message.ministryrequestid
             notification_msg.createdby = message.createdby
+            notification_msg.totalskippedfilecount = totalskippedfilecount
+            notification_msg.totalskippedfiles = json.JSONEncoder().encode(totalskippedfiles)
             msgid = self.notificationstream.add(notification_msg.__dict__, id="*")
             logging.info("Notification message for msgid = %s ",  msgid)
         except RuntimeError as error:
