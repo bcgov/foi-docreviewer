@@ -43,6 +43,7 @@ namespace MCS.FOI.S3FileConversion
 
             List<Dictionary<string, string>> returnAttachments = new();
             Stream output = new MemoryStream();
+            var client = new HttpClient();
             try
             {
                 // Initialize S3 Client
@@ -59,10 +60,10 @@ namespace MCS.FOI.S3FileConversion
                     var fileKey = filePath.Split(S3Host + '/')[1];
                     var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
 
-                    var client = new HttpClient();
-                    HttpResponseMessage response = await client.GetAsync(presignedGetURL);
+                   
+                    using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
                     response.EnsureSuccessStatusCode();
-                    Stream responseStream = response.Content.ReadAsStream();
+                    using Stream responseStream = response.Content.ReadAsStream();
 
                     // Convert File
                     string extension = Path.GetExtension(fileKey);
@@ -98,7 +99,7 @@ namespace MCS.FOI.S3FileConversion
                     using (StreamContent strm = new(output))
                     {
                         strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                        HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
+                        using HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
 
                         if (attachments != null && attachments.Count > 0)
                         {
@@ -134,6 +135,8 @@ namespace MCS.FOI.S3FileConversion
                         }
                     }
 
+                    
+
                 }
             }
             catch (AmazonS3Exception ex)
@@ -143,6 +146,7 @@ namespace MCS.FOI.S3FileConversion
             }
             finally
             {
+                client.Dispose();
                 output.Dispose();
             }
             return returnAttachments;
