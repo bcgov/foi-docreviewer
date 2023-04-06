@@ -138,9 +138,17 @@ namespace MCS.FOI.S3FileConversion
                             StreamContent attachmentstrm = new StreamContent(attachment.Key);
                             strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                             HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+
+                            attachmentstrm.Dispose();
+                            putRespMsgAttachments.Dispose();
                         }
                     }
 
+                    output.Dispose();
+                    strm.Dispose();
+                    response.Dispose();
+                    responseStream.Dispose();
+                    putRespMsg.Dispose();
                 }
 
             }
