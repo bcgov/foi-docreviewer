@@ -41,10 +41,10 @@ WORKDIR /app
 # COPY ["Fonts/*.*", "/usr/local/share/fonts/"]
 # either copy fonts to font folder in project path, or run following command in cmd
 # docker cp C:/Windows/Fonts/. ** docker image hash code **:/usr/local/share/fonts
-RUN apt-get update && apt-get install -y curl unzip
-RUN curl -o /usr/local/share/fonts/fonts.zip "https://citz-foi-prod.objectstore.gov.bc.ca/records-upload-formats/fonts.zip"  \
-&& unzip /usr/local/share/fonts/fonts.zip -d /usr/local/share/fonts \
-&& rm /usr/local/share/fonts/fonts.zip
+# RUN apt-get update && apt-get install -y curl unzip
+# RUN curl -o /usr/local/share/fonts/fonts.zip "https://citz-foi-prod.objectstore.gov.bc.ca/records-upload-formats/fonts.zip"  \
+# && unzip /usr/local/share/fonts/fonts.zip -d /usr/local/share/fonts \
+# && rm /usr/local/share/fonts/fonts.zip
 
 RUN apt-get update && apt-get install -y libfontconfig1 xvfb
 # RUN echo "deb http://httpredir.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \ 
