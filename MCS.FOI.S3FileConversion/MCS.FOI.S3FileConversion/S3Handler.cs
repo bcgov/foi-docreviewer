@@ -53,14 +53,14 @@ namespace MCS.FOI.S3FileConversion
                 {
                     ServiceURL = S3Host
                 };
-                
+
                 using (s3 = new AmazonS3Client(AWSCredentials, config))
                 {
                     // Get File from s3
                     var fileKey = filePath.Split(S3Host + '/')[1];
                     var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
 
-                   
+
                     using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
                     response.EnsureSuccessStatusCode();
                     using Stream responseStream = response.Content.ReadAsStream();
@@ -127,22 +127,31 @@ namespace MCS.FOI.S3FileConversion
                                 returnAttachments.Add(attachment.Value);
                                 using (StreamContent attachmentstrm = new StreamContent(attachment.Key))
                                 {
-                                    strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                                    HttpResponseMessage putRespMsgAttachments = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm);
+                                    attachmentstrm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                                    using (HttpResponseMessage attachementresponse = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm))
+                                    {
+                                        attachementresponse.EnsureSuccessStatusCode();
+                                    }
+                                    
                                 }
 
                             }
                         }
                     }
 
-                    
+
 
                 }
             }
-            catch (AmazonS3Exception ex)
+            catch (AmazonS3Exception s3ex)
             {
-                Console.WriteLine($"Error encountered on server. Message:'{ex.Message}' getting list of objects.");
-                throw ex;
+                Console.WriteLine($"Error encountered on server. Message:'{s3ex.Message}' getting list of objects.");
+                throw s3ex;
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Error encountered on server. Message:'{exception.Message}' getting list of objects.");
+                throw exception;
             }
             finally
             {
