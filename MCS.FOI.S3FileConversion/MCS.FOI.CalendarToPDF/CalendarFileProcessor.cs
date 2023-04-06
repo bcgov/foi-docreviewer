@@ -96,6 +96,10 @@ namespace MCS.FOI.CalendarToPDF
                         {
                             Console.WriteLine($"Exception happened while accessing File, re-attempting count : {attempt}");
                             Thread.Sleep(WaitTimeinMilliSeconds);
+                            if (attempt == FailureAttemptCount)
+                            {
+                                throw;
+                            }
                         }
                     }
                     Calendar calendar = Calendar.Load(ical);

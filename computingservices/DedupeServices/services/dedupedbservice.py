@@ -72,7 +72,7 @@ def updateredactionstatus(dedupeproducermessage):
                         where ministryrequestid= %s::integer 
                         order by documentmasterid, version desc) as sq
                         where dm.documentmasterid = sq.documentmasterid 
-                        and isredactionready = false and ministryrequestid = %s::integer''',
+                        and isredactionready = false and sq.status = "completed" and ministryrequestid = %s::integer''',
             (dedupeproducermessage.ministryrequestid,dedupeproducermessage.ministryrequestid))
         conn.commit()
         cursor.close()
