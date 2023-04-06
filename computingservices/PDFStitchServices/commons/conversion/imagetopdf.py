@@ -1,7 +1,7 @@
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from io import StringIO, BytesIO
-from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.utils import ImageReader
 
 
@@ -18,3 +18,31 @@ def getimagepdf(raw_image_bytes):
     empty_canvas.save()
     overlay = PdfReader(BytesIO(imgtemp.getvalue()))
     return overlay
+
+def convertimagetopdf(image_bytes):
+    try:
+        imgtemp = BytesIO()
+
+        # Create a canvas and set the dimensions to match the image
+        image = ImageReader(BytesIO(image_bytes))
+        
+        image_width, image_height = image.getSize()
+              
+        c_image_width = image_width + 25
+        c_image_height = image_height + 25
+
+        if c_image_height < 280:
+            c_image_height = 280
+        if image_width > image_height:
+            c = canvas.Canvas(imgtemp, pagesize=landscape((c_image_width, c_image_height)))
+        else:
+            c = canvas.Canvas(imgtemp, pagesize=portrait((c_image_width, c_image_height)))
+                
+        c.drawImage(image, 0, 0, image_width, image_height)
+
+        # Save the canvas to a PDF file
+        c.save()
+        overlay = PdfReader(BytesIO(imgtemp.getvalue()))
+        return overlay
+    except(Exception) as error: 
+        print(error)  

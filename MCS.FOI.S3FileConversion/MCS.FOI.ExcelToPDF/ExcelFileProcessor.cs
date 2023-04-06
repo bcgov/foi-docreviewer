@@ -115,6 +115,10 @@ namespace MCS.FOI.ExcelToPDF
                                 {
                                     excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
                                 }
+                                if (attempt == FailureAttemptCount)
+                                {
+                                    throw;
+                                }
                             }
                         }
 
