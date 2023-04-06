@@ -1,25 +1,7 @@
-﻿using System;
-using System.IO;
+﻿using MCS.FOI.S3FileConversion.Utilities;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using MCS.FOI.S3FileConversion.Utilities;
 using Serilog;
-using System.Linq;
-using System.Net.Http;
-using Amazon;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using StackExchange.Redis;
-using System;
-using System.Threading.Tasks;
-using SkiaSharp;
-using ILogger = Serilog.ILogger;
-using System.Text.Json;
-using System.Reflection.Metadata;
-using System.Text.Json.Nodes;
-using System.Xml.Linq;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -31,17 +13,15 @@ namespace MCS.FOI.S3FileConversion
             try
             {
                 Log.Information("MCS FOI S3FileConversion Service is up");
-                Console.WriteLine("Hello World");
+                Console.WriteLine("MCS FOI S3FileConversion Service is up");
                 var configurationbuilder = new ConfigurationBuilder()
                         .AddJsonFile($"appsettings.json", true, true)
                         .AddEnvironmentVariables().Build();
 
 
                 //Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
-                ConversionSettings.DeploymentPlatform = Platform.Windows; //Fixing to Windows platform for Win Server VM deployment, once with Linux/OS , will take environment
-                ConversionSettings.FileWatcherStartDate = configurationbuilder.GetSection("ConversionSettings:FileWatcherStartDate").Value;
                 ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
-                ConversionSettings.CFRArchiveFoldertoSkip = configurationbuilder.GetSection("ConversionSettings:CFRArchiveFoldertoSkip").Value;
+               
                 IConfigurationSection ministryConfigSection = configurationbuilder.GetSection("ConversionSettings:MinistryIncomingPaths");
 
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FailureAttemptCount").Value, out int failureattempt);
@@ -52,9 +32,6 @@ namespace MCS.FOI.S3FileConversion
 
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FileWatcherMonitoringDelayInMilliSeconds").Value, out int fileWatcherMonitoringDelayInMilliSeconds);
                 ConversionSettings.FileWatcherMonitoringDelayInMilliSeconds = fileWatcherMonitoringDelayInMilliSeconds; // Delay between file directory fetch.
-
-                int.TryParse(configurationbuilder.GetSection("ConversionSettings:DayCountBehindToStart").Value, out int count);
-                ConversionSettings.DayCountBehindToStart = count; // days behind to start from for File watching, this is for DirectoryList Object to set up static algo for FileWacthing, till DB integration.
 
                 //Fetching Syncfusion License from settings
                 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(ConversionSettings.SyncfusionLicense);
@@ -80,9 +57,7 @@ namespace MCS.FOI.S3FileConversion
                     Password = eventHubPassword
                 });
 
-                var db = redis.GetDatabase();
-                var pong = await db.PingAsync();
-                Console.WriteLine(pong);
+                var db = redis.GetDatabase();                           
 
                 string latest = "$";
                 try
@@ -93,7 +68,7 @@ namespace MCS.FOI.S3FileConversion
                 {
                     if (ex.Message != "BUSYGROUP Consumer Group name already exists")
                     {
-                        throw ex;
+                        Console.WriteLine($"Error happened while accessing REDIS Stream : {streamKey} | Consumergrourp : {consumerGroup} | Host : {eventHubHost} | | HostPort : {eventHubPort}");
                     }
                 }
 
@@ -106,7 +81,7 @@ namespace MCS.FOI.S3FileConversion
                         {                            
                             try
                             {
-                                Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
+                                //Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
                                 ValidateMessage(message);
                                 await DBHandler.recordJobStart(message);
                                 List<Dictionary<string, String>> attachments = await S3Handler.ConvertFile(message);
@@ -190,7 +165,7 @@ namespace MCS.FOI.S3FileConversion
                     }
                     else
                     {
-                        Console.WriteLine("No new messages after {0}", latest);
+                        //Console.WriteLine("No new messages after {0}", latest);
                     }
                     Thread.Sleep(6000);
                 }

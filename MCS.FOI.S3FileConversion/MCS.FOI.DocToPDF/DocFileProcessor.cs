@@ -1,13 +1,7 @@
-﻿using static System.Net.Mime.MediaTypeNames;
-
-using Syncfusion.OfficeChart;
-using Syncfusion.DocIO;
-using Syncfusion.DocIO.DLS;
-using Syncfusion.DocIORenderer;
-//using Syncfusion.DocToPDFConverter;
-using Syncfusion.Pdf;
-//using Syncfusion.OfficeChartToImageConverter;
+﻿
 using Serilog;
+using Syncfusion.DocIORenderer;
+using Syncfusion.Pdf;
 
 
 
@@ -17,7 +11,7 @@ namespace MCS.FOI.DocToPDF
     {
 
 
-        public DocFileProcessor(){        }
+        public DocFileProcessor() { }
 
         public DocFileProcessor(Stream SourceStream)
         {
@@ -46,14 +40,16 @@ namespace MCS.FOI.DocToPDF
                 {
                     try
                     {
-                        DocIORenderer renderer = new DocIORenderer();
-                        PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
-                        //Save the PDF file
-                        //Close the instance of document objects
-                        pdfDocument.Save(output);
-                        pdfDocument.Close(true);
-                        converted = true;
+                        using (DocIORenderer renderer = new DocIORenderer())
+                        {
+                            using PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
+                            //Save the PDF file
+                            //Close the instance of document objects
+                            pdfDocument.Save(output);
+                            pdfDocument.Close(true);
+                            converted = true;
 
+                        }
                     }
                     catch (Exception e)
                     {
