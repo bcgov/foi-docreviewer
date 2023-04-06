@@ -42,7 +42,7 @@ namespace MCS.FOI.DocToPDF
             MemoryStream output = new MemoryStream();
             try
             {
-                for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                for (int attempt = 1; attempt < FailureAttemptCount && !converted; attempt++)
                 {
                     try
                     {
@@ -60,6 +60,10 @@ namespace MCS.FOI.DocToPDF
                         message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                         Log.Error(message);
                         Console.WriteLine(message);
+                        if (attempt == FailureAttemptCount)
+                        {
+                            throw;
+                        }
                         Thread.Sleep(5000);
                     }
                 }

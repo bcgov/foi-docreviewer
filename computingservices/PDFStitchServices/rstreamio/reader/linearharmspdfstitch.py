@@ -14,6 +14,7 @@ from utils import redisstreamdb
 from config import division_pdf_stitch_stream_key, error_flag
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
+from services.notificationservice import notificationservice
 from rstreamio.writer.redisstreamwriter import redisstreamwriter
 
 
@@ -47,31 +48,27 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 # message is the actual data passed to the stream 
                 message_id, message = _messages 
                 print(f"processing {message_id}::{message}")
-                if message is not None:
-                    _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    _message = _message.replace("b'","'").replace("'",'')
-                    try:
-
-                        producermessage = get_in_divisionpdfmsg(_message)
-                        pdfstitchservice().processmessage(producermessage)
-                        
-                        # send message to notification stream once the zip file is ready to download
-                        complete, err = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
-                        print("complete == ", complete)
-                        print("err == ", err)
-
-                        # send notification for both success and error cases
-                        if complete or err:
-                            err = True if error_flag else err
-                            redisstreamwriter().sendnotification(producermessage, err)
-                        else:
-                            print("pdfstitch not yet complete, no message sent")
-                    except(Exception) as error: 
-                        logging.exception(error)       
-                    # simulate processing
+                handlemessage(message)                
+                # simulate processing
                 time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                 print(f"finished processing {message_id}")
         else:
             print(f"No new messages after ID: {last_id}")
+
+def handlemessage(message):
+
+    if message is not None:
+                    
+        _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
+        _message = _message.replace("b'","'").replace("'",'')
+        try:
+
+            producermessage = get_in_divisionpdfmsg(_message)
+            pdfstitchservice().processmessage(producermessage)
+
+            # send notification for both success and error cases       
+            notificationservice().sendnotification(producermessage)
+        except(Exception) as error:
+            logging.exception(error) 
