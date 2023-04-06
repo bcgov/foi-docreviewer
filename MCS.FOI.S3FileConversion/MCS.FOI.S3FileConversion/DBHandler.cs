@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text.Json;
-using Ical.Net.DataTypes;
-using Npgsql;
+﻿using Npgsql;
 using NpgsqlTypes;
-using Serilog;
 using StackExchange.Redis;
+using System.Text.Json;
 
 
 namespace MCS.FOI.S3FileConversion
