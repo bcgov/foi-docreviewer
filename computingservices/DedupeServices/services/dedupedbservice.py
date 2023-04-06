@@ -22,11 +22,13 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
         conn.commit()
 
         cursor.close()
-        conn.close()
         return True
     except(Exception) as error:
         print(error)
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def recordjobstart(dedupeproducermessage):
     try:
@@ -38,10 +40,12 @@ def recordjobstart(dedupeproducermessage):
             (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
         print(error)
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def recordjobend(dedupeproducermessage, error, message=""):
     try:
@@ -54,11 +58,12 @@ def recordjobend(dedupeproducermessage, error, message=""):
             'error' if error else 'completed', message if error else ""))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
         print(error)
         raise
-
+    finally:
+        if conn is not None:
+            conn.close()
 
 def updateredactionstatus(dedupeproducermessage):
     try:
@@ -76,10 +81,12 @@ def updateredactionstatus(dedupeproducermessage):
             (dedupeproducermessage.ministryrequestid,dedupeproducermessage.ministryrequestid))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
         print(error)
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def isbatchcompleted(batch):
     try:
@@ -116,11 +123,13 @@ def isbatchcompleted(batch):
         )
         (dedupeinprogress, dedupeerr, _dedupecompleted) = cursor.fetchone()
         cursor.close()
-        conn.close()
         return dedupeinprogress == 0 and conversioninprogress == 0, dedupeerr+conversionerr > 0
     except(Exception) as error:
         print(error)
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 
