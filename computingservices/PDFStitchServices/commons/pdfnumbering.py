@@ -108,7 +108,6 @@ def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
         empty_canvas.setFillColor(textcolor)
         if index in range(start_page, end_page):
             number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
-            print("processing page: ", index)
             empty_canvas.drawString(xvalue[index], -(yvalue[index]), number)
         empty_canvas.showPage()
         writer = merge_pdf_bytes(empty_canvas.getpdfdata(), writer)
