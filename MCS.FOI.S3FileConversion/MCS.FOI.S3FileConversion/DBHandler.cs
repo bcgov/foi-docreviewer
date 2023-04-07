@@ -24,8 +24,7 @@ namespace MCS.FOI.S3FileConversion
                 {
                     while (await reader.ReadAsync())
                     {
-                        string res = reader.GetString(0);
-                        Console.WriteLine(res);
+                        string res = reader.GetString(0);                       
                         s3AccessKeys = JsonSerializer.Deserialize<S3AccessKeys>(res);
                     }
                 }
@@ -258,18 +257,16 @@ namespace MCS.FOI.S3FileConversion
                             await reader.ReadAsync();
                             string jobID = reader.GetInt32(0).ToString();
                             string attachmentMasterID = reader.GetInt32(1).ToString();
-                            Console.WriteLine(jobID);
+                            
                             jobIDs.Add(attachment["filepath"], new Dictionary<string, string> { { "jobID", jobID }, { "masterID", attachmentMasterID } });
                             await reader.NextResultAsync();
                         }
 
                         await reader.ReadAsync();
-                        string dedupeJobID = reader.GetInt32(0).ToString();
-                        Console.WriteLine(dedupeJobID);
+                        string dedupeJobID = reader.GetInt32(0).ToString();                       
                         await reader.NextResultAsync();
                         await reader.ReadAsync();
-                        string masterID = reader.GetInt32(0).ToString();
-                        Console.WriteLine(masterID);
+                        string masterID = reader.GetInt32(0).ToString();                       
                         jobIDs.Add(Path.ChangeExtension(message["s3filepath"], ".pdf"), new Dictionary<string, string> { { "jobID", dedupeJobID }, { "masterID", masterID } });
                     }
                 }

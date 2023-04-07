@@ -50,14 +50,14 @@ namespace MCS.FOI.S3FileConversion
                 string dedupeStreamKey = Environment.GetEnvironmentVariable("DEDUPE_STREAM_KEY");
                 string consumerGroup = Environment.GetEnvironmentVariable("REDIS_STREAM_CONSUMER_GROUP");
 
-                ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
+               using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
                 new ConfigurationOptions
                 {
                     EndPoints = { $"{eventHubHost}:{eventHubPort}" },
                     Password = eventHubPassword
                 });
 
-                var db = redis.GetDatabase();                           
+               var  db = redis.GetDatabase();                           
 
                 string latest = "$";
                 try
@@ -149,7 +149,7 @@ namespace MCS.FOI.S3FileConversion
                                 latest = message.Id;
                                 db.StringSet($"{latest}:lastid", latest);
                                 db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
-                                Console.WriteLine("Finished Converting: {0}", message["s3filepath"]);
+                                
                             }
                             catch (MissingFieldException ex)
                             {                                
