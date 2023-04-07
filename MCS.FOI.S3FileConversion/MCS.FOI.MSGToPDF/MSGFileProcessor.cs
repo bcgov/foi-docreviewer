@@ -1,20 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Xml;
-using MsgReader;
-using MsgReader.Helpers;
-using MsgReader.Outlook;
-using RtfPipe.Tokens;
+﻿using MsgReader.Outlook;
 using Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
-using Syncfusion.Pdf.Graphics;
+using System.Text;
 
 namespace MCS.FOI.MSGToPDF
 {
