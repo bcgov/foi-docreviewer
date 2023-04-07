@@ -43,7 +43,7 @@ namespace MCS.FOI.S3FileConversion
 
             List<Dictionary<string, string>> returnAttachments = new();
             Stream output = new MemoryStream();
-            var client = new HttpClient();
+            using var client = new HttpClient();
             try
             {
                 // Initialize S3 Client
