@@ -71,6 +71,7 @@ namespace MCS.FOI.CalendarToPDF
         {
             Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
             Calendar calendar = new Calendar();
+            bool isReadCompleted = false;
             try
             {
                 string ical = string.Empty;
@@ -78,7 +79,7 @@ namespace MCS.FOI.CalendarToPDF
 
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                    for (int attempt = 1; attempt < FailureAttemptCount && !isReadCompleted; attempt++)
                     {
                         try
                         {
@@ -87,6 +88,7 @@ namespace MCS.FOI.CalendarToPDF
                             using StreamReader sr = new(SourceStream);
                             ical = sr.ReadToEnd();
                             SourceStream.Seek(position, SeekOrigin.Begin);
+                            isReadCompleted = true;
                             break; // this is needed to escape out of loop above!
                         }
                         catch (Exception e)
@@ -259,7 +261,6 @@ namespace MCS.FOI.CalendarToPDF
             }
             catch (Exception ex)
             {
-                isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
