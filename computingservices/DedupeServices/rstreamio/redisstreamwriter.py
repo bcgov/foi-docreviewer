@@ -24,6 +24,7 @@ class redisstreamwriter:
             msgid = self.notificationstream.add(notification_msg.__dict__, id="*")
             logging.info("Notification message for msgid = %s ",  msgid)
         except RuntimeError as error:
+            print("Exception while sending notification, func sendnotification(p4), Error : {0} ".format(error))
             logging.error("Unable to write to notification stream for batch %s | ministryrequestid=%i", message.batch, message.ministryrequestid)
             logging.error(error)
 
