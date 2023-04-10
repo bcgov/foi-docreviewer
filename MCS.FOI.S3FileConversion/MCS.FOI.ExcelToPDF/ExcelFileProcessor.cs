@@ -66,15 +66,12 @@ namespace MCS.FOI.ExcelToPDF
                         IApplication application = excelEngine.Excel;
                         var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
 
-                        for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                        for (int attempt = 1; attempt <= FailureAttemptCount; attempt++)
                         {
-                            Stream excelStream;
                             
                             try
                             {
-                                using (excelStream = SourceStream)
-                                {
-                                    IWorkbook workbook = application.Workbooks.Open(excelStream, excelparseoptions);
+                                    IWorkbook workbook = application.Workbooks.Open(SourceStream, excelparseoptions);
 
                                     if (workbook.Worksheets.Count > 0)
                                     {
@@ -98,14 +95,12 @@ namespace MCS.FOI.ExcelToPDF
                                     converted = true;
                                     message = $"File processed successfully!";
                                     break;
-                                }
                             }
                             catch(Exception e)
                             {
                                 message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                                 Log.Error(message);
                                 Console.WriteLine(message);
-                                excelStream = null;
                                 Thread.Sleep(WaitTimeinMilliSeconds);
                                 if(attempt >= 3 && attempt < 5 && attempt < FailureAttemptCount)
                                 {
