@@ -4,8 +4,8 @@ from datetime import datetime
 import json
 
 def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
                
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
@@ -22,15 +22,17 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
         conn.commit()
 
         cursor.close()
-        conn.close()
         return True
     except(Exception) as error:
-        print(error)
+        print("Exception while executing func savedocumentdetails (p5), Error : {0} ".format(error))
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def recordjobstart(dedupeproducermessage):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."DeduplicationJob"
             (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
@@ -38,14 +40,16 @@ def recordjobstart(dedupeproducermessage):
             (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
-        print(error)
+        print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def recordjobend(dedupeproducermessage, error, message=""):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."DeduplicationJob"
             (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status, message)
@@ -54,15 +58,16 @@ def recordjobend(dedupeproducermessage, error, message=""):
             'error' if error else 'completed', message if error else ""))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
-        print(error)
+        print("Exception while executing func recordjobend (p7), Error : {0} ".format(error))
         raise
-
+    finally:
+        if conn is not None:
+            conn.close()
 
 def updateredactionstatus(dedupeproducermessage):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''update "DocumentMaster" dm
                         set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now() 
@@ -76,14 +81,16 @@ def updateredactionstatus(dedupeproducermessage):
             (dedupeproducermessage.ministryrequestid,dedupeproducermessage.ministryrequestid))
         conn.commit()
         cursor.close()
-        conn.close()
     except(Exception) as error:
-        print(error)
+        print("Exception while executing func updateredactionstatus (p8), Error : {0} ".format(error))
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 def isbatchcompleted(batch):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''select count(1) filter (where status = 'pushedtostream' or status = 'started') as inprogress,
             count(1) filter (where status = 'error') as error,
@@ -116,11 +123,13 @@ def isbatchcompleted(batch):
         )
         (dedupeinprogress, dedupeerr, _dedupecompleted) = cursor.fetchone()
         cursor.close()
-        conn.close()
         return dedupeinprogress == 0 and conversioninprogress == 0, dedupeerr+conversionerr > 0
     except(Exception) as error:
-        print(error)
+        print("Exception while executing func isbatchcompleted (p2), Error : {0} ".format(error))
         raise
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 

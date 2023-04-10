@@ -1,11 +1,7 @@
 ﻿using Ical.Net;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
-using System;
-using System.IO;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Threading;
 
 namespace MCS.FOI.CalendarToPDF
 {
@@ -32,8 +28,7 @@ namespace MCS.FOI.CalendarToPDF
 
         /// <summary>
         /// Deployment platform - Linux/Windows
-        /// </summary>
-        public Platform DeploymentPlatform { get; set; }
+        /// </summary>        
 
         /// <summary>
         /// Success/Failure message
@@ -75,22 +70,24 @@ namespace MCS.FOI.CalendarToPDF
         private (string, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendartoHTML()
         {
             Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
+            Calendar calendar = new Calendar();
             try
             {
                 string ical = string.Empty;
-                MemoryStream attachmentStream = new MemoryStream();
+
 
                 if (SourceStream != null && SourceStream.Length > 0)
-                { 
+                {
                     for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
                     {
                         try
                         {
                             long position = SourceStream.Position;
                             SourceStream.Seek(0, SeekOrigin.Begin);
-                            StreamReader sr = new(SourceStream);
+                            using StreamReader sr = new(SourceStream);
                             ical = sr.ReadToEnd();
                             SourceStream.Seek(position, SeekOrigin.Begin);
+                            break; // this is needed to escape out of loop above!
                         }
                         catch (Exception e)
                         {
@@ -102,8 +99,9 @@ namespace MCS.FOI.CalendarToPDF
                             }
                         }
                     }
-                    Calendar calendar = Calendar.Load(ical);
-                    var events = calendar.Events;
+                     calendar = Calendar.Load(ical);
+
+                        var events = calendar.Events;
                     StringBuilder htmlString = new();
                     htmlString.Append(@"
                         <html>
@@ -122,7 +120,7 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
-                                    attachmentStream = new MemoryStream();
+                                    using MemoryStream attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     //File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
@@ -200,6 +198,8 @@ namespace MCS.FOI.CalendarToPDF
                             </body>
                         </html>");
 
+                   
+
                     return (htmlString.ToString(), attachmentsObj);
                 }
                 else
@@ -213,13 +213,16 @@ namespace MCS.FOI.CalendarToPDF
                 string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
-                throw;
+                throw ex;
                 return (error, attachmentsObj);
             }
             finally
             {
                 if (SourceStream != null)
                     SourceStream.Dispose();
+
+                if(calendar!=null)
+                    calendar.Dispose();
             }
 
         }
@@ -264,11 +267,5 @@ namespace MCS.FOI.CalendarToPDF
             }
             return (output, isConverted);
         }
-      }
-
-    public enum Platform
-    {
-        Linux = 0,
-        Windows = 1
     }
 }

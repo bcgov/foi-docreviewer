@@ -1,10 +1,7 @@
-﻿using Syncfusion.Pdf;
+﻿using Serilog;
+using Syncfusion.Pdf;
 using Syncfusion.XlsIO;
 using Syncfusion.XlsIORenderer;
-using System;
-using System.IO;
-using System.Threading;
-using Serilog;
 
 namespace MCS.FOI.ExcelToPDF
 {
@@ -66,7 +63,7 @@ namespace MCS.FOI.ExcelToPDF
                         IApplication application = excelEngine.Excel;
                         var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
 
-                        for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                        for (int attempt = 1; attempt < FailureAttemptCount && !converted; attempt++)
                         {
                             Stream excelStream;
                             
@@ -96,8 +93,7 @@ namespace MCS.FOI.ExcelToPDF
                                     }
 
                                     converted = true;
-                                    message = $"File processed successfully!";
-                                    break;
+                                    message = $"File processed successfully!";                                    
                                 }
                             }
                             catch(Exception e)
