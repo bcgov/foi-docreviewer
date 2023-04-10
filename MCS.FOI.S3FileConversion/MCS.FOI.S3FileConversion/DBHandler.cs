@@ -179,7 +179,7 @@ namespace MCS.FOI.S3FileConversion
                             new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = message["batch"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = "rank1" , NpgsqlDbType = NpgsqlDbType.Varchar},
-                            new() { Value = "fileconversion" , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = message["trigger"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = message["filename"].ToString(), NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = "pushedtostream", NpgsqlDbType = NpgsqlDbType.Varchar }
