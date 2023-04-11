@@ -176,9 +176,10 @@ namespace MCS.FOI.S3FileConversion
                     }
                     else
                     {
+                       
                         //Console.WriteLine("No new messages after {0}", latest);
                     }
-                    //Thread.Sleep(6000); TODO: Do we need this ? Commenting for now!
+                    
                 }
             }
             catch (Exception ex)

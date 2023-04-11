@@ -25,6 +25,8 @@ namespace MCS.FOI.S3FileConversion
         Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
         ExcelFileProcessor excelFileProcessor = null;
         DocFileProcessor docFileProcessor = null;
+        MSGFileProcessor msgFileProcessor = null;
+        CalendarFileProcessor calendarFileProcessor = null;
         List<Dictionary<string, string>> returnAttachments = null;
         public S3Handler() { }
 
@@ -189,7 +191,7 @@ namespace MCS.FOI.S3FileConversion
 
         private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendarFiles(Stream input)
         {
-            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
+             calendarFileProcessor = new CalendarFileProcessor(input)
             {
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
@@ -200,7 +202,7 @@ namespace MCS.FOI.S3FileConversion
 
         private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
         {
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
+             msgFileProcessor = new MSGFileProcessor(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
@@ -242,6 +244,11 @@ namespace MCS.FOI.S3FileConversion
                 if (docFileProcessor != null)
                     docFileProcessor.Dispose();
 
+                if (msgFileProcessor != null)
+                    msgFileProcessor.Dispose();
+
+                if (calendarFileProcessor != null)
+                    calendarFileProcessor.Dispose();
 
                 attachments = null;
                 returnAttachments = null;

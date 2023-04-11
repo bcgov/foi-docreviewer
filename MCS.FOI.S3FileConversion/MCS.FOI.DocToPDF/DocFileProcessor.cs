@@ -60,7 +60,7 @@ namespace MCS.FOI.DocToPDF
                         {
                             throw;
                         }
-                        Thread.Sleep(5000);
+                        Thread.Sleep(WaitTimeinMilliSeconds);
                     }
                 }
             }
