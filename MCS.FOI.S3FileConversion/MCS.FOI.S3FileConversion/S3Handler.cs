@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Linq;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -118,7 +119,7 @@ namespace MCS.FOI.S3FileConversion
                                     string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
                                     attributes["extension"] = JsonValue.Create(attachmentExtension);
                                     attachment.Value.Add("extension", attachmentExtension);
-                                    string[] formats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pdf" };
+                                    string[] formats = ConversionSettings.ConversionFormats.Concat(ConversionSettings.DedupeFormats).Except(ConversionSettings.IncompatibleFormats).ToArray();
                                     attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
                                     attachment.Value.Add("attributes", attributes.ToJsonString());
                                     var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
