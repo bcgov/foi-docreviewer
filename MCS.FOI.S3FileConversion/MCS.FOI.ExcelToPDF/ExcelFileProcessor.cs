@@ -63,15 +63,12 @@ namespace MCS.FOI.ExcelToPDF
                     using (ExcelEngine excelEngine = new ExcelEngine())
                     {
                         IApplication application = excelEngine.Excel;
-                        var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
-
 
                         for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                         {
-                            
                             try
                             {
-                                    IWorkbook workbook = application.Workbooks.Open(SourceStream, excelparseoptions);
+                                    IWorkbook workbook = application.Workbooks.Open(SourceStream);
 
                                     if (workbook.Worksheets.Count > 0)
                                     {
@@ -89,36 +86,24 @@ namespace MCS.FOI.ExcelToPDF
                                         else
                                         {
                                             output = saveToPdf(workbook, output);
-
                                         }
                                     }
 
                                     converted = true;
-
                                     message = $"File processed successfully!";                                    
-                                }
                             }
                             catch(Exception e)
                             {
                                 message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                                 Log.Error(message);
                                 Console.WriteLine(message);
-                                Thread.Sleep(WaitTimeinMilliSeconds);
-                                if(attempt >= 3 && attempt < 5 && attempt < FailureAttemptCount)
-                                {
-                                    excelparseoptions = ExcelParseOptions.ParseWorksheetsOnDemand;
-                                }                                
-                                else
-                                {
-                                    excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
-                                }
                                 if (attempt == FailureAttemptCount)
                                 {
                                     throw;
                                 }
+                                Thread.Sleep(WaitTimeinMilliSeconds);
                             }
                         }
-
                     }
                 }
                 else
