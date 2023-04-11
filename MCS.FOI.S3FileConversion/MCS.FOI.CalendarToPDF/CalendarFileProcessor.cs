@@ -181,7 +181,7 @@ namespace MCS.FOI.CalendarToPDF
                         <td><b>End Time: </b></td>
                         <td>" + e.DtEnd.Date + "</td></tr>");
                         //Meeting Message
-                        string message = @"" + e.Description.Replace("\n", "<br>");
+                        string message = @"" + e.Description?.Replace("\n", "<br>");
                         message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
                         message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                         htmlString.Append(@"<tr>
