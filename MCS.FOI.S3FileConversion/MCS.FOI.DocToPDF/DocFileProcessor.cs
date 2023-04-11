@@ -36,7 +36,7 @@ namespace MCS.FOI.DocToPDF
             output = new MemoryStream();
             try
             {
-                for (int attempt = 1; attempt < FailureAttemptCount && !converted; attempt++)
+                for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                 {
                     try
                     {
