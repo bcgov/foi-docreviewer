@@ -19,127 +19,126 @@ namespace MCS.FOI.S3FileConversion
         public string s3accesskey { get; set; }
         public string s3secretkey { get; set; }
     }
-    internal class S3Handler
+    internal class S3Handler : IDisposable
     {
-        public static async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(StreamEntry message)
+        Stream? output = null;
+        Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
+        ExcelFileProcessor excelFileProcessor = null;
+        DocFileProcessor docFileProcessor = null;
+        List<Dictionary<string, string>> returnAttachments = null;
+        public S3Handler() { }
+
+
+        public async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(StreamEntry message, S3AccessKeys s3AccessKeys)
         {
             var filePath = (string)message["s3filepath"];
             // Get S3 Access credentials based on ministry
-            var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
-            string bucket = filePath.Split("/")[3];
+            //var cb = new ConfigurationBuilder().AddJsonFile($"s3access.json", true, true).AddEnvironmentVariables().Build();
+            //string bucket = filePath.Split("/")[3];
             // Comment in if running locally
             //string S3Host = cb.GetSection("S3Host").Value;
             //string S3AccessKeyID = cb.GetSection($"AccountMapping:{bucket}:S3AccessKeyID").Value;
             //string S3AccessSecretKey = cb.GetSection($"AccountMapping:{bucket}:S3AccessSecretKey").Value;
             //string S3ServiceAccount = cb.GetSection($"AccountMapping:{bucket}:S3ServiceAccount").Value;
-            S3AccessKeys s3AccessKeys = await DBHandler.getAccessKeyFromDB(bucket);
+            //S3AccessKeys s3AccessKeys = await DBHandler.getAccessKeyFromDB(bucket);
             string S3AccessKeyID = s3AccessKeys.s3accesskey;
             string S3AccessSecretKey = s3AccessKeys.s3secretkey;
-            string S3Host = Environment.GetEnvironmentVariable("S3_HOST");
-            if (!S3Host.Contains("https://"))
-            {
-                S3Host = "https://" + S3Host;
-            }
 
-            List<Dictionary<string, string>> returnAttachments = new();
-            Stream output = new MemoryStream();
+
+            returnAttachments = new();
             using var client = new HttpClient();
+
             try
             {
-                // Initialize S3 Client
-                IAmazonS3 s3;
-                AWSCredentials AWSCredentials = new BasicAWSCredentials(S3AccessKeyID, S3AccessSecretKey);
-                AmazonS3Config config = new()
+                using (FOIS3ObjectStorageClient fOIS3ObjectStorageClient = new FOIS3ObjectStorageClient(S3AccessKeyID, S3AccessSecretKey))
                 {
-                    ServiceURL = S3Host
-                };
-
-                using (s3 = new AmazonS3Client(AWSCredentials, config))
-                {
-                    // Get File from s3
-                    var fileKey = filePath.Split(S3Host + '/')[1];
-                    var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
-
-
-                    using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
-                    response.EnsureSuccessStatusCode();
-                    using Stream responseStream = response.Content.ReadAsStream();
-
-                    // Convert File
-                    string extension = Path.GetExtension(fileKey);
-
-
-                    Dictionary<MemoryStream, Dictionary<string, string>> attachments = new();
-
-
-                    switch (extension)
+                    using (IAmazonS3 s3 = fOIS3ObjectStorageClient.getS3Client())
                     {
-                        case ".xls":
-                        case ".xlsx":
-                            output = ConvertExcelFiles(responseStream);
-                            break;
-                        case ".ics":
-                            (output, attachments) = ConvertCalendarFiles(responseStream);
-                            break;
-                        case ".msg":
-                            (output, attachments) = ConvertMSGFiles(responseStream);
-                            break;
-                        case ".doc":
-                        case ".docx":
-                            output = ConvertDocFiles(responseStream);
-                            break;
-                    }
 
+                        string S3Host = fOIS3ObjectStorageClient.gets3host();
+                        // Get File from s3
+                        var fileKey = filePath.Split(S3Host + '/')[1];
+                        var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
 
-                    // Save converted pdf back to s3
-                    var newKey = Path.ChangeExtension(fileKey, ".pdf");
-                    var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
+                       
+                        using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
+                        response.EnsureSuccessStatusCode();
+                        using Stream responseStream = response.Content.ReadAsStream();
 
-                    output.Position = 0;
-                    using (StreamContent strm = new(output))
-                    {
-                        strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                        using HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
+                        // Convert File
+                        string extension = Path.GetExtension(fileKey);
 
-                        if (attachments != null && attachments.Count > 0)
+                        output = new MemoryStream();
+                        attachments = new();
+                        switch (extension)
                         {
-                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
-                            {
-                                attachment.Key.Position = 0;
-                                var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
-                                attributes["filesize"] = JsonValue.Create(attachment.Value["size"]);
-                                attributes["isattachment"] = JsonValue.Create(true);
-                                attributes["rootparentfilepath"] ??= JsonValue.Create((string)message["s3filepath"]);
-                                if (attachment.Value.ContainsKey("lastmodified"))
-                                {
-                                    attributes["lastmodified"] = JsonValue.Create(attachment.Value["lastmodified"]);
-                                }
-                                string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
-                                attributes["extension"] = JsonValue.Create(attachmentExtension);
-                                attachment.Value.Add("extension", attachmentExtension);
-                                string[] formats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pdf" };
-                                attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
-                                attachment.Value.Add("attributes", attributes.ToJsonString());
-                                var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
-                                var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["s3filename"];
-                                var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
-                                attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
-                                returnAttachments.Add(attachment.Value);
-                                using (StreamContent attachmentstrm = new StreamContent(attachment.Key))
-                                {
-                                    attachmentstrm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                                    using (HttpResponseMessage attachementresponse = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm))
-                                    {
-                                        attachementresponse.EnsureSuccessStatusCode();
-                                    }
-                                    
-                                }
+                            case ".xls":
+                            case ".xlsx":
+                                output = ConvertExcelFiles(responseStream);
+                                break;
+                            case ".ics":                                
+                                (output, attachments) = ConvertCalendarFiles(responseStream);
+                                break;
+                            case ".msg":                                
+                                (output, attachments) = ConvertMSGFiles(responseStream);
+                                break;
+                            case ".doc":
+                            case ".docx":
+                                output = ConvertDocFiles(responseStream);
+                                break;
+                        }
 
+
+                        // Save converted pdf back to s3
+                        var newKey = Path.ChangeExtension(fileKey, ".pdf");
+                        var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
+
+                        output.Position = 0;
+                        using (StreamContent strm = new(output))
+                        {
+                            strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                            using HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
+                            
+                            if (attachments != null && attachments.Count > 0)
+                            {
+                                
+                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
+                                {
+                                    attachment.Key.Position = 0;
+                                    var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                    attributes["filesize"] = JsonValue.Create(attachment.Value["size"]);
+                                    attributes["isattachment"] = JsonValue.Create(true);
+                                    attributes["rootparentfilepath"] ??= JsonValue.Create((string)message["s3filepath"]);
+                                    if (attachment.Value.ContainsKey("lastmodified"))
+                                    {
+                                        attributes["lastmodified"] = JsonValue.Create(attachment.Value["lastmodified"]);
+                                    }
+                                    string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
+                                    attributes["extension"] = JsonValue.Create(attachmentExtension);
+                                    attachment.Value.Add("extension", attachmentExtension);
+                                    string[] formats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pdf" };
+                                    attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
+                                    attachment.Value.Add("attributes", attributes.ToJsonString());
+                                    var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
+                                    var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["s3filename"];
+                                    var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
+                                    attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
+                                    returnAttachments.Add(attachment.Value);
+                                    using (StreamContent attachmentstrm = new StreamContent(attachment.Key))
+                                    {
+                                        attachmentstrm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                                        using (HttpResponseMessage attachementresponse = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm))
+                                        {
+                                            attachementresponse.EnsureSuccessStatusCode();
+                                        }
+
+                                    }
+
+                                }
                             }
                         }
+
                     }
-
-
 
                 }
             }
@@ -156,12 +155,11 @@ namespace MCS.FOI.S3FileConversion
             finally
             {
                 client.Dispose();
-                output.Dispose();
             }
             return returnAttachments;
         }
 
-        public static string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)
+        public string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)
         {
             AWSConfigsS3.UseSignatureVersion4 = true;
             GetPreSignedUrlRequest request = new()
@@ -174,19 +172,22 @@ namespace MCS.FOI.S3FileConversion
             return s3.GetPreSignedURL(request);
         }
 
-        private static Stream ConvertExcelFiles(Stream input)
+        private Stream ConvertExcelFiles(Stream input)
         {
-            ExcelFileProcessor excelFileProcessor = new ExcelFileProcessor(input)
+            excelFileProcessor = new ExcelFileProcessor(input)
             {
                 IsSinglePDFOutput = true,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
             };
+            
             var (converted, message, output) = excelFileProcessor.ConvertToPDF();
+            
+                
             return output;
         }
 
-        private static (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendarFiles(Stream input)
+        private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendarFiles(Stream input)
         {
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
             {
@@ -197,7 +198,7 @@ namespace MCS.FOI.S3FileConversion
             return (output, attachments);
         }
 
-        private static (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
+        private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
         {
             MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
             {
@@ -210,9 +211,9 @@ namespace MCS.FOI.S3FileConversion
         }
 
 
-        private static Stream ConvertDocFiles(Stream input)
+        private Stream ConvertDocFiles(Stream input)
         {
-            DocFileProcessor docFileProcessor = new DocFileProcessor(input)
+             docFileProcessor = new DocFileProcessor(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
@@ -220,6 +221,33 @@ namespace MCS.FOI.S3FileConversion
             };
             var (converted, output) = docFileProcessor.ConvertToPDF();
             return output;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (output != null)
+                    output.Dispose();
+
+                if(excelFileProcessor!=null)
+                    excelFileProcessor.Dispose();
+
+                if (docFileProcessor != null)
+                    docFileProcessor.Dispose();
+
+
+                attachments = null;
+                returnAttachments = null;
+                // free managed resources
+            }
+           
         }
 
     }
