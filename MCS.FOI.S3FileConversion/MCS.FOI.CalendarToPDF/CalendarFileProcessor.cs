@@ -122,12 +122,14 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
-                                    using MemoryStream attachmentStream = new MemoryStream();
+                                    MemoryStream attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     //File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
                                     Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                    attachmentInfo.Add("filename", attch.Parameters.Get("X-FILENAME"));
+                                    string filename = attch.Parameters.Get("X-FILENAME");
+                                    attachmentInfo.Add("filename", filename);
+                                    attachmentInfo.Add("s3filename", filename);
                                     attachmentInfo.Add("size", attch.Data.Length.ToString());
                                     attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     //attachmentsObj.Add(attachmentStream, file);
