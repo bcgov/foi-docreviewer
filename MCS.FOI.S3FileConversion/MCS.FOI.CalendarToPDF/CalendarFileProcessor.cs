@@ -71,6 +71,7 @@ namespace MCS.FOI.CalendarToPDF
         {
             Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
             Calendar calendar = new Calendar();
+            bool isReadCompleted = false;
             try
             {
                 string ical = string.Empty;
@@ -78,7 +79,7 @@ namespace MCS.FOI.CalendarToPDF
 
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                    for (int attempt = 1; attempt < FailureAttemptCount && !isReadCompleted; attempt++)
                     {
                         try
                         {
@@ -87,6 +88,7 @@ namespace MCS.FOI.CalendarToPDF
                             using StreamReader sr = new(SourceStream);
                             ical = sr.ReadToEnd();
                             SourceStream.Seek(position, SeekOrigin.Begin);
+                            isReadCompleted = true;
                             break; // this is needed to escape out of loop above!
                         }
                         catch (Exception e)
@@ -120,12 +122,14 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
-                                    using MemoryStream attachmentStream = new MemoryStream();
+                                    MemoryStream attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     //File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
                                     Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-                                    attachmentInfo.Add("filename", attch.Parameters.Get("X-FILENAME"));
+                                    string filename = attch.Parameters.Get("X-FILENAME");
+                                    attachmentInfo.Add("filename", filename);
+                                    attachmentInfo.Add("s3filename", filename);
                                     attachmentInfo.Add("size", attch.Data.Length.ToString());
                                     attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     //attachmentsObj.Add(attachmentStream, file);
@@ -259,7 +263,6 @@ namespace MCS.FOI.CalendarToPDF
             }
             catch (Exception ex)
             {
-                isConverted = false;
                 string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
