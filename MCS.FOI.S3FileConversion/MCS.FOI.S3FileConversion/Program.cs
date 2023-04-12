@@ -2,15 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using StackExchange.Redis;
-using System;
-using System.Threading.Tasks;
-using SkiaSharp;
-using ILogger = Serilog.ILogger;
 using System.Text.Json;
-using System.Reflection.Metadata;
 using System.Text.Json.Nodes;
-using System.Xml.Linq;
-using System.Net.Http.Json;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -33,17 +26,20 @@ namespace MCS.FOI.S3FileConversion
 
                 IConfigurationSection ministryConfigSection = configurationbuilder.GetSection("ConversionSettings:MinistryIncomingPaths");
 
+                int.TryParse(Environment.GetEnvironmentVariable("FILE_CONVERSION_FAILTUREATTEMPT"),out int _envvarfailureAttemptCount);
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FailureAttemptCount").Value, out int failureattempt);
-                ConversionSettings.FailureAttemptCount = failureattempt;// Max. recovery attempts after a failure.
+                ConversionSettings.FailureAttemptCount = _envvarfailureAttemptCount < 1 ? failureattempt: _envvarfailureAttemptCount;// Max. recovery attempts after a failure.
 
+                int.TryParse(Environment.GetEnvironmentVariable("FILE_CONVERSION_WAITTIME"),out int _envvarwaitTimeInMilliSeconds);
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:WaitTimeInMilliSeconds").Value, out int waittimemilliseconds);
-                ConversionSettings.WaitTimeInMilliSeconds = waittimemilliseconds; // Wait time between recovery attempts after a failure
+                ConversionSettings.WaitTimeInMilliSeconds = _envvarwaitTimeInMilliSeconds == 0 ? waittimemilliseconds : _envvarwaitTimeInMilliSeconds; // Wait time between recovery attempts after a failure
 
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FileWatcherMonitoringDelayInMilliSeconds").Value, out int fileWatcherMonitoringDelayInMilliSeconds);
                 ConversionSettings.FileWatcherMonitoringDelayInMilliSeconds = fileWatcherMonitoringDelayInMilliSeconds; // Delay between file directory fetch.
 
+                string syncfusionLicense =  Environment.GetEnvironmentVariable("FILE_CONVERSION_SYNCFUSIONKEY");
                 //Fetching Syncfusion License from settings
-                Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(ConversionSettings.SyncfusionLicense);
+                Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(string.IsNullOrEmpty(syncfusionLicense) ? ConversionSettings.SyncfusionLicense: syncfusionLicense);
 
                 // Comment in if running locally
                 //string eventHubHost = configurationbuilder.GetSection("EventHub:Host").Value;
@@ -54,7 +50,7 @@ namespace MCS.FOI.S3FileConversion
 
 
 
-                var client = new HttpClient();
+                using var client = new HttpClient();
                 HttpResponseMessage response = await client.GetAsync(Environment.GetEnvironmentVariable("RECORD_FORMATS"));
                 response.EnsureSuccessStatusCode();
                 string responseBody = await response.Content.ReadAsStringAsync();
