@@ -5,7 +5,7 @@ import psycopg2
 import requests
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from utils import gets3credentialsobject
-from config import pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
+from config import pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env, pdfstitch_failureattempt
 import logging
 
 def getcredentialsbybcgovcode(bcgovcode):
@@ -33,22 +33,22 @@ def getcredentialsbybcgovcode(bcgovcode):
 def gets3documentbytearray(producermessage, s3credentials): 
     
     retry = 0
-
-    s3_access_key_id= s3credentials.s3accesskey
-    s3_secret_access_key= s3credentials.s3secretkey
-
-    auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
-                    aws_secret_access_key=s3_secret_access_key,
-                    aws_host=pdfstitch_s3_host,
-                    aws_region=pdfstitch_s3_region,
-                    aws_service=pdfstitch_s3_service)
     filepath = producermessage.s3uripath
     while True:
         try:
+            s3_access_key_id= s3credentials.s3accesskey
+            s3_secret_access_key= s3credentials.s3secretkey
+
+            auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
+                            aws_secret_access_key=s3_secret_access_key,
+                            aws_host=pdfstitch_s3_host,
+                            aws_region=pdfstitch_s3_region,
+                            aws_service=pdfstitch_s3_service)
+    
             response= requests.get(filepath, auth=auth,stream=True)
             return response.content
         except Exception as ex:
-            if retry > 3:
+            if retry > pdfstitch_failureattempt:
                 logging.error("Error in connecting S3.")
                 logging.error(ex)
                 raise
@@ -84,7 +84,7 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
             attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
             return attachmentobj
         except Exception as ex:
-            if retry > 3:
+            if retry > pdfstitch_failureattempt:
                 logging.error("Error in uploading document to S3")
                 logging.error(ex)
                 attachmentobj = {"success": False, "filename": filename, "documentpath": None}

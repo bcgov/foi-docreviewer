@@ -60,8 +60,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
 def handlemessage(message):
 
     if message is not None:
-                    
-        _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
+        _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
         _message = _message.replace("b'","'").replace("'",'')
         try:
 
