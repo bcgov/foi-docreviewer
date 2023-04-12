@@ -50,7 +50,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 print(f"processing {message_id}::{message}")
                 handlemessage(message)                
                 # simulate processing
-                time.sleep(random.randint(1, 3)) #TODO : todo: remove!
+                # time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                 print(f"finished processing {message_id}")
