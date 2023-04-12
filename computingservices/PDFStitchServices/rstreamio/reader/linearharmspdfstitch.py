@@ -34,13 +34,13 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     stream = rdb.Stream(STREAM_KEY)
     last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
     if last_id:
-        print(f"Resume from ID: {last_id}")
+        logging.info(f"Resume from ID: {last_id}")
     else:
         last_id = start_from.value
-        print(f"Starting from {start_from.name}")
+        logging.info(f"Starting from {start_from.name}")
 
     while True:
-        print("Reading stream...")
+        logging.info("Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
         if messages:
             for _messages in messages:          
@@ -53,9 +53,9 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 # time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
-                print(f"finished processing {message_id}")
+                logging.info(f"finished processing {message_id}")
         else:
-            print(f"No new messages after ID: {last_id}")
+            logging.info(f"No new messages after ID: {last_id}")
 
 def handlemessage(message):
 
