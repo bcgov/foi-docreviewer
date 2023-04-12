@@ -29,3 +29,6 @@ division_blob_stitch_stream_key = os.getenv('DIVISION_BLOB_STITCH_STREAM_KEY')
 
 division_stitch_folder_path = os.getenv('DIVISION_STITCH_FOLDER_PATH')
 error_flag = os.getenv('ERROR_FLAG')
+
+pdfstitch_failureattempt = os.getenv('PDF_STITCH_FAILUREATTEMPT')
+
