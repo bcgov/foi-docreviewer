@@ -30,8 +30,7 @@ def getcredentialsbybcgovcode(bcgovcode):
     return s3cred
 
 
-def gets3documentbytearray(producermessage, s3credentials): 
-    
+def gets3documentbytearray(producermessage, s3credentials):
     retry = 0
     filepath = producermessage.s3uripath
     while True:
@@ -44,11 +43,10 @@ def gets3documentbytearray(producermessage, s3credentials):
                             aws_host=pdfstitch_s3_host,
                             aws_region=pdfstitch_s3_region,
                             aws_service=pdfstitch_s3_service)
-    
             response= requests.get(filepath, auth=auth,stream=True)
             return response.content
         except Exception as ex:
-            if retry > pdfstitch_failureattempt:
+            if retry > int(pdfstitch_failureattempt):
                 logging.error("Error in connecting S3.")
                 logging.error(ex)
                 raise
@@ -84,7 +82,7 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
             attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
             return attachmentobj
         except Exception as ex:
-            if retry > pdfstitch_failureattempt:
+            if retry > int(pdfstitch_failureattempt):
                 logging.error("Error in uploading document to S3")
                 logging.error(ex)
                 attachmentobj = {"success": False, "filename": filename, "documentpath": None}

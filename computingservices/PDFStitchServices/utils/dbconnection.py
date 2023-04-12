@@ -13,7 +13,7 @@ def getdbconnection():
                 password=pdfstitch_db_password,port=pdfstitch_db_port)
             return conn
         except psycopg2.Error as error:            
-            if retry > pdfstitch_failureattempt:
+            if retry > int(pdfstitch_failureattempt):
                 logging.error("Error in connecting DB.")
                 logging.error(error)
                 raise
