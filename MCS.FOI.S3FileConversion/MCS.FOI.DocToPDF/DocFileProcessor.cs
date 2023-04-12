@@ -7,7 +7,7 @@ using Syncfusion.Pdf;
 
 namespace MCS.FOI.DocToPDF
 {
-    public class DocFileProcessor : IDocFileProcessor
+    public class DocFileProcessor : IDocFileProcessor, IDisposable
     {
 
 
@@ -27,16 +27,16 @@ namespace MCS.FOI.DocToPDF
         public bool IsSinglePDFOutput { get; set; }
 
 
-
+        private MemoryStream? output = null;
         public (bool, Stream) ConvertToPDF()
         {
             bool converted = false;
             string message = string.Empty;
             bool _isSinglePDFOutput = IsSinglePDFOutput;
-            MemoryStream output = new MemoryStream();
+            output = new MemoryStream();
             try
             {
-                for (int attempt = 1; attempt < FailureAttemptCount && !converted; attempt++)
+                for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                 {
                     try
                     {
@@ -60,7 +60,7 @@ namespace MCS.FOI.DocToPDF
                         {
                             throw;
                         }
-                        Thread.Sleep(5000);
+                        Thread.Sleep(WaitTimeinMilliSeconds);
                     }
                 }
             }
@@ -73,6 +73,28 @@ namespace MCS.FOI.DocToPDF
                 throw;
             }
             return (converted, output);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (this.SourceStream != null)
+                {
+                    this.SourceStream.Close();
+                    this.SourceStream.Dispose();
+                }
+
+                if (output != null) output.Dispose();
+                // free managed resources
+            }
+
         }
     }
 }

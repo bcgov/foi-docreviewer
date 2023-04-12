@@ -48,9 +48,8 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         if messages:
             for message_id, message in messages:
                 print(f"processing {message_id}::{message}")
-                if message is not None:                    
-                    _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    _message = _message.replace("b'","'").replace("'",'') 
+                if message is not None:
+                    _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
                     try:
                         producermessage = jsonmessageparser.getdedupeproducermessage(_message)
                         processmessage(producermessage) 
