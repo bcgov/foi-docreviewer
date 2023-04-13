@@ -109,7 +109,7 @@ namespace MCS.FOI.S3FileConversion
                         foreach (var attachment in attachments)
                         {
                             string extension = Path.GetExtension(attachment["filename"]);
-                            if (Array.IndexOf(ConversionSettings.ConversionFormats, extension) == -1)
+                            if (Array.IndexOf(ConversionSettings.ConversionFormats, extension.ToLower()) == -1)
                             {
                                 var query = new NpgsqlBatchCommand(@"
                                     with masterid as (INSERT INTO ""DocumentMaster""
