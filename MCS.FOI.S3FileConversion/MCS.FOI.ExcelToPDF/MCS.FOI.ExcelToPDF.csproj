@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="19.2.0.56" />
-		<PackageReference Include="Syncfusion.XlsIORenderer.Net.Core" Version="19.2.0.56" />
-		<PackageReference Include="Syncfusion.Pdf.Net.Core" Version="19.2.0.56" />
-		<PackageReference Include="SkiaSharp" Version="2.80.2" />
-		<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.80.2" />
+		<PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="21.1.38" />
+		<PackageReference Include="Syncfusion.XlsIORenderer.Net.Core" Version="21.1.38" />
+		<PackageReference Include="Syncfusion.Pdf.Net.Core" Version="21.1.38" />
+		<PackageReference Include="SkiaSharp" Version="2.88.3" />
+		<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.3" />
 
 		<PackageReference Include="Serilog" Version="2.10.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />

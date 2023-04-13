@@ -1,17 +1,15 @@
-﻿using Syncfusion.Pdf;
+﻿using Serilog;
+using Syncfusion.Pdf;
 using Syncfusion.XlsIO;
 using Syncfusion.XlsIORenderer;
-using System;
-using System.IO;
-using System.Threading;
-using Serilog;
+using System.Net.Mail;
 
 namespace MCS.FOI.ExcelToPDF
 {
     /// <summary>
     /// Excel File Processor to convert XLS, XLSX to PDF, based on the Synfusion Libraries.
     /// </summary>
-    public class ExcelFileProcessor : IExcelFileProcessor
+    public class ExcelFileProcessor : IExcelFileProcessor, IDisposable
     {
 
         public ExcelFileProcessor() { }
@@ -47,6 +45,7 @@ namespace MCS.FOI.ExcelToPDF
         /// </summary>
         public int WaitTimeinMilliSeconds { get; set; }
 
+        private MemoryStream? output = null;
        /// <summary>
        /// Main Conversion Method, including Sysnfusion components, Failure recovery attempts and PDF conversion
        /// </summary>
@@ -56,7 +55,7 @@ namespace MCS.FOI.ExcelToPDF
             bool converted = false;
             string message = string.Empty;
             bool _isSinglePDFOutput = IsSinglePDFOutput;
-            MemoryStream output = new MemoryStream();
+            
             try
             {
                 if (SourceStream != null && SourceStream.Length > 0)
@@ -64,20 +63,22 @@ namespace MCS.FOI.ExcelToPDF
                     using (ExcelEngine excelEngine = new ExcelEngine())
                     {
                         IApplication application = excelEngine.Excel;
-                        var excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
+                        SourceStream.Position = 0;
+                        IWorkbook workbook = application.Workbooks.Open(SourceStream);;
 
-                        for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                        for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                         {
-                            Stream excelStream;
-                            
                             try
                             {
-                                using (excelStream = SourceStream)
-                                {
-                                    IWorkbook workbook = application.Workbooks.Open(excelStream, excelparseoptions);
+                                    if(attempt > 1)
+                                    {
+                                        SourceStream.Position = 0;
+                                        workbook = application.Workbooks.Open(SourceStream);
+                                    }
 
                                     if (workbook.Worksheets.Count > 0)
                                     {
+                                        output = new MemoryStream();
                                         if (!_isSinglePDFOutput) /// if not single output, then traverse through each sheet and make seperate o/p pdfs
                                         {
                                             foreach (IWorksheet worksheet in workbook.Worksheets)
@@ -91,37 +92,26 @@ namespace MCS.FOI.ExcelToPDF
                                         else
                                         {
                                             output = saveToPdf(workbook, output);
-
                                         }
                                     }
 
                                     converted = true;
                                     message = $"File processed successfully!";
-                                    break;
-                                }
+                                    workbook.Close();
                             }
                             catch(Exception e)
                             {
                                 message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                                 Log.Error(message);
                                 Console.WriteLine(message);
-                                excelStream = null;
-                                Thread.Sleep(WaitTimeinMilliSeconds);
-                                if(attempt >= 3 && attempt < 5 && attempt < FailureAttemptCount)
-                                {
-                                    excelparseoptions = ExcelParseOptions.ParseWorksheetsOnDemand;
-                                }                                
-                                else
-                                {
-                                    excelparseoptions = ExcelParseOptions.DoNotParsePivotTable;
-                                }
+                                workbook.Close();
                                 if (attempt == FailureAttemptCount)
                                 {
                                     throw;
                                 }
+                                Thread.Sleep(WaitTimeinMilliSeconds);
                             }
                         }
-
                     }
                 }
                 else
@@ -133,10 +123,11 @@ namespace MCS.FOI.ExcelToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string errorMessage = $"Exception occured while coverting an excel file, exception :  {ex.Message}";
+                string error = $"{errorMessage} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
-                throw;
+                throw new Exception(errorMessage);
             }
 
             return (converted, message, output);
@@ -156,6 +147,7 @@ namespace MCS.FOI.ExcelToPDF
                 pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
                 pdfDocument.Compression = PdfCompressionLevel.Normal;
                 pdfDocument.Save(output);
+               
             }
             catch (Exception ex)
             {
@@ -175,7 +167,7 @@ namespace MCS.FOI.ExcelToPDF
             try
             {
                 XlsIORenderer renderer = new XlsIORenderer();
-                PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
+                using PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.Save(output);
             }
             catch (Exception ex)
@@ -188,6 +180,27 @@ namespace MCS.FOI.ExcelToPDF
         }
 
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (this.SourceStream != null)
+                {
+                    this.SourceStream.Close();
+                    this.SourceStream.Dispose();
+                }
+
+                if(output!= null) output.Dispose();              
+                // free managed resources
+            }
+
+        }
 
     }
 }

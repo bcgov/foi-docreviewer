@@ -9,8 +9,7 @@ namespace MCS.FOI.S3FileConversion.Utilities
     /// </summary>
     public static class ConversionSettings
     {
-        public static Platform DeploymentPlatform { get; set; }
-       
+          
         public static int FailureAttemptCount { get; set; }
 
         public static int WaitTimeInMilliSeconds { get; set; }
@@ -21,15 +20,14 @@ namespace MCS.FOI.S3FileConversion.Utilities
 
         public static string SyncfusionLicense { get; set; }
 
-        public static string FileWatcherStartDate { get; set; }
+        public static string[] ConversionFormats { get; set; }
 
-        public static string CFRArchiveFoldertoSkip { get; set; }
+        public static string[] DedupeFormats { get; set; }
+
+        public static string[] IncompatibleFormats{ get; set; }
+
 
     }
 
-    public enum Platform
-    {
-        Linux=0,
-        Windows=1
-    }
+   
 }

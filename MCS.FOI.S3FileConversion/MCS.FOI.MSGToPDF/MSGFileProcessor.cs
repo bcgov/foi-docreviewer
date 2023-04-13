@@ -1,30 +1,22 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Xml;
-using MsgReader;
-using MsgReader.Helpers;
-using MsgReader.Outlook;
-using RtfPipe.Tokens;
+﻿using MsgReader.Outlook;
 using Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
-using Syncfusion.Pdf.Graphics;
+using System.Text;
 
 namespace MCS.FOI.MSGToPDF
 {
-    public class MSGFileProcessor : IMSGFileProcessor
+    public class MSGFileProcessor : IMSGFileProcessor , IDisposable
     {
         public Stream SourceStream { get; set; }
         public bool IsSinglePDFOutput { get; set; }
         public int FailureAttemptCount { get; set; }
         public int WaitTimeinMilliSeconds { get; set; }
 
+        Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = null;
+
+        private MemoryStream? output = null;
+        private MemoryStream? attachmentStream = null;
         public MSGFileProcessor() { }
 
 
@@ -40,12 +32,10 @@ namespace MCS.FOI.MSGToPDF
             string message = $"No attachments to move to output folder";
             bool moved = true;
             string outputpath = string.Empty;
-            MemoryStream output = new();
-            Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
+            output = new();
+            attachmentsObj = new();
             try
-            {
-                Dictionary<string, Object> problematicFiles = null;
-
+            {               
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
                     for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
@@ -60,7 +50,7 @@ namespace MCS.FOI.MSGToPDF
 
                             foreach (Object attachment in msg.Attachments)
                             {
-                                MemoryStream attachmentStream = new();
+                                 attachmentStream = new();
                                 if (attachment.GetType().FullName.ToLower().Contains("message"))
                                 {
                                     var _attachment = (Storage.Message)attachment;
@@ -101,17 +91,16 @@ namespace MCS.FOI.MSGToPDF
                                 }
                             }
                             break;
-                            moved = true;
-                            message = string.Concat($"MSG file converted", outputpath);
                         }
                         catch (Exception e)
                         {
-                            message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
+                            string errorMessage = $"Exception occured while coverting a message file, exception :  {e.Message}";
+                            message = $"Exception happened while accessing the File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                             Log.Error(message);
                             Console.WriteLine(message);
                             if (attempt == FailureAttemptCount)
                             {
-                                throw;
+                                throw new Exception(errorMessage);
                             }
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
@@ -245,6 +234,7 @@ namespace MCS.FOI.MSGToPDF
                 document.Save(output);
                 document.Close(true);
                 isConverted = true;
+                
             }
             catch (Exception ex)
             {
@@ -255,6 +245,30 @@ namespace MCS.FOI.MSGToPDF
             }
 
             return (output, isConverted);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (this.SourceStream != null)
+                {
+                    this.SourceStream.Close();
+                    this.SourceStream.Dispose();
+                }
+
+                if (output != null) output.Dispose();
+                if (attachmentStream != null) attachmentStream.Dispose();
+                if (attachmentsObj != null) attachmentsObj = null;
+                // free managed resources
+            }
+
         }
 
     }

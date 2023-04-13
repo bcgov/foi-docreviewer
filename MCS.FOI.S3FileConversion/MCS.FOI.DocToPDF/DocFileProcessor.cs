@@ -1,23 +1,17 @@
-﻿using static System.Net.Mime.MediaTypeNames;
-
-using Syncfusion.OfficeChart;
-using Syncfusion.DocIO;
-using Syncfusion.DocIO.DLS;
-using Syncfusion.DocIORenderer;
-//using Syncfusion.DocToPDFConverter;
-using Syncfusion.Pdf;
-//using Syncfusion.OfficeChartToImageConverter;
+﻿
 using Serilog;
+using Syncfusion.DocIORenderer;
+using Syncfusion.Pdf;
 
 
 
 namespace MCS.FOI.DocToPDF
 {
-    public class DocFileProcessor : IDocFileProcessor
+    public class DocFileProcessor : IDocFileProcessor, IDisposable
     {
 
 
-        public DocFileProcessor(){        }
+        public DocFileProcessor() { }
 
         public DocFileProcessor(Stream SourceStream)
         {
@@ -33,38 +27,41 @@ namespace MCS.FOI.DocToPDF
         public bool IsSinglePDFOutput { get; set; }
 
 
-
+        private MemoryStream? output = null;
         public (bool, Stream) ConvertToPDF()
         {
             bool converted = false;
             string message = string.Empty;
             bool _isSinglePDFOutput = IsSinglePDFOutput;
-            MemoryStream output = new MemoryStream();
+            output = new MemoryStream();
             try
             {
-                for (int attempt = 1; attempt < FailureAttemptCount && !converted; attempt++)
+                for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                 {
                     try
                     {
-                        DocIORenderer renderer = new DocIORenderer();
-                        PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
-                        //Save the PDF file
-                        //Close the instance of document objects
-                        pdfDocument.Save(output);
-                        pdfDocument.Close(true);
-                        converted = true;
+                        using (DocIORenderer renderer = new DocIORenderer())
+                        {
+                            using PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
+                            //Save the PDF file
+                            //Close the instance of document objects
+                            pdfDocument.Save(output);
+                            pdfDocument.Close(true);
+                            converted = true;
 
+                        }
                     }
                     catch (Exception e)
                     {
+                        string errorMessage = $"Exception occured while coverting a document file, exception :  {e.Message}";
                         message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                         Log.Error(message);
                         Console.WriteLine(message);
                         if (attempt == FailureAttemptCount)
                         {
-                            throw;
+                            throw new Exception(errorMessage);
                         }
-                        Thread.Sleep(5000);
+                        Thread.Sleep(WaitTimeinMilliSeconds);
                     }
                 }
             }
@@ -77,6 +74,28 @@ namespace MCS.FOI.DocToPDF
                 throw;
             }
             return (converted, output);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (this.SourceStream != null)
+                {
+                    this.SourceStream.Close();
+                    this.SourceStream.Dispose();
+                }
+
+                if (output != null) output.Dispose();
+                // free managed resources
+            }
+
         }
     }
 }

@@ -1,27 +1,26 @@
+﻿using Npgsql;
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Ical.Net.DataTypes;
-using Npgsql;
+using MCS.FOI.S3FileConversion.Utilities;
 using NpgsqlTypes;
-using Serilog;
 using StackExchange.Redis;
 
 
 namespace MCS.FOI.S3FileConversion
 {
-    internal class DBHandler
+    internal class DBHandler : IDisposable
     {
-        public static async System.Threading.Tasks.Task<S3AccessKeys> getAccessKeyFromDB(string bucket)
+        NpgsqlConnection conn = null;
+        public  async System.Threading.Tasks.Task<S3AccessKeys> getAccessKeyFromDB(string bucket)
         {
             S3AccessKeys s3AccessKeys = new S3AccessKeys();
             try
-            {
-                var connString = getConnectionString();
-
-                await using var conn = new NpgsqlConnection(connString);
+            {                
+                conn = getSqlConnection();
                 await conn.OpenAsync();
 
                 // Retrieve access key
@@ -30,8 +29,7 @@ namespace MCS.FOI.S3FileConversion
                 {
                     while (await reader.ReadAsync())
                     {
-                        string res = reader.GetString(0);
-                        Console.WriteLine(res);
+                        string res = reader.GetString(0);                       
                         s3AccessKeys = JsonSerializer.Deserialize<S3AccessKeys>(res);
                     }
                 }
@@ -42,16 +40,19 @@ namespace MCS.FOI.S3FileConversion
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
                 throw;
             }
+            finally 
+            {
+                if (conn != null)
+                    conn.Close();
+            }
             return s3AccessKeys;
         }
 
-        public static async System.Threading.Tasks.Task recordJobStart(StreamEntry message)
+        public  async System.Threading.Tasks.Task recordJobStart(StreamEntry message)
         {
             try
             {
-                var connString = getConnectionString();
-
-                await using var conn = new NpgsqlConnection(connString);
+                conn = getSqlConnection();
                 await conn.OpenAsync();
 
                 // Insert entry to mark job start
@@ -73,24 +74,28 @@ namespace MCS.FOI.S3FileConversion
                     }
                 };
                 await cmd.ExecuteNonQueryAsync();
-                conn.Close();
+                
             }
             catch (Exception ex)
             {
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
                 throw;
             }
+            finally
+            {
+                if (conn != null)
+                    conn.Close();
+            }
             return;
         }
 
-        public static async System.Threading.Tasks.Task<Dictionary<string, Dictionary<string, string>>> recordJobEnd(StreamEntry message, bool error, string jobMessage, List<Dictionary<string, string>> attachments)
+        public  async System.Threading.Tasks.Task<Dictionary<string, Dictionary<string, string>>> recordJobEnd(StreamEntry message, bool error, string jobMessage, List<Dictionary<string, string>> attachments)
         {
-            Dictionary<string, Dictionary<string, string>>  jobIDs = new();
+            Dictionary<string, Dictionary<string, string>> jobIDs = new();
             try
             {
-                var connString = getConnectionString();
+                conn = getSqlConnection();
 
-                await using var conn = new NpgsqlConnection(connString);
                 await conn.OpenAsync();
 
                 await using var batch = new NpgsqlBatch(conn);
@@ -100,11 +105,11 @@ namespace MCS.FOI.S3FileConversion
                     // Insert any child conversion / dedupe tasks first
                     if (attachments != null && attachments.Count > 0)
                     {
+                        
                         foreach (var attachment in attachments)
                         {
                             string extension = Path.GetExtension(attachment["filename"]);
-                            string[] conversionFormats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg" };
-                            if (Array.IndexOf(conversionFormats, extension) == -1)
+                            if (Array.IndexOf(ConversionSettings.ConversionFormats, extension.ToLower()) == -1)
                             {
                                 var query = new NpgsqlBatchCommand(@"
                                     with masterid as (INSERT INTO ""DocumentMaster""
@@ -169,7 +174,7 @@ namespace MCS.FOI.S3FileConversion
                                     }
                                 };
 
-                                batch.BatchCommands.Add(query);
+                                batch.BatchCommands.Add(query);                                
                             }
                         }
 
@@ -186,7 +191,7 @@ namespace MCS.FOI.S3FileConversion
                             new() { Value = (int) message["ministryrequestid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = message["batch"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = "rank1" , NpgsqlDbType = NpgsqlDbType.Varchar},
-                            new() { Value = "fileconversion" , NpgsqlDbType = NpgsqlDbType.Varchar},
+                            new() { Value = message["trigger"].ToString() , NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = (int) message["documentmasterid"] , NpgsqlDbType = NpgsqlDbType.Integer},
                             new() { Value = message["filename"].ToString(), NpgsqlDbType = NpgsqlDbType.Varchar},
                             new() { Value = "pushedtostream", NpgsqlDbType = NpgsqlDbType.Varchar }
@@ -253,50 +258,77 @@ namespace MCS.FOI.S3FileConversion
                 if (error)
                 {
                     await batch.ExecuteNonQueryAsync();
-
+                    
                 }
                 else
                 {
                     await using (var reader = await batch.ExecuteReaderAsync())
-                    {
+                    {                      
                         foreach (var attachment in attachments)
                         {
                             await reader.ReadAsync();
                             string jobID = reader.GetInt32(0).ToString();
                             string attachmentMasterID = reader.GetInt32(1).ToString();
-                            Console.WriteLine(jobID);
+                            
                             jobIDs.Add(attachment["filepath"], new Dictionary<string, string> { { "jobID", jobID }, { "masterID", attachmentMasterID } });
                             await reader.NextResultAsync();
                         }
 
                         await reader.ReadAsync();
-                        string dedupeJobID = reader.GetInt32(0).ToString();
-                        Console.WriteLine(dedupeJobID);
+                        string dedupeJobID = reader.GetInt32(0).ToString();                       
                         await reader.NextResultAsync();
                         await reader.ReadAsync();
-                        string masterID = reader.GetInt32(0).ToString();
-                        Console.WriteLine(masterID);
+                        string masterID = reader.GetInt32(0).ToString();                       
                         jobIDs.Add(Path.ChangeExtension(message["s3filepath"], ".pdf"), new Dictionary<string, string> { { "jobID", dedupeJobID }, { "masterID", masterID } });
                     }
                 }
-                conn.Close();
+                
             }
             catch (Exception ex)
             {
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
                 throw;
             }
+            finally
+            {
+                if (conn != null)
+                    conn.Close();
+            }
+
             return jobIDs;
         }
 
-        private static String getConnectionString()
+        private NpgsqlConnection getSqlConnection()
         {
             var host = Environment.GetEnvironmentVariable("DATABASE_HOST");
             var port = Environment.GetEnvironmentVariable("DATABASE_PORT");
             var dbname = Environment.GetEnvironmentVariable("DATABASE_NAME");
             var username = Environment.GetEnvironmentVariable("DATABASE_USERNAME");
             var password = Environment.GetEnvironmentVariable("DATABASE_PASSWORD");
-            return "Host=" + host + ";Port=" + port + ";Username=" + username + "; Password=" + password + ";Database=" + dbname + ";";
+            string _connectionString = "Host=" + host + ";Port=" + port + ";Username=" + username + "; Password=" + password + ";Database=" + dbname + ";";
+            return new NpgsqlConnection(_connectionString);            
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (conn != null)
+                {
+                    if (conn.State != System.Data.ConnectionState.Closed)
+                        conn.Close();
+                    conn.Dispose();
+                }
+                   
+                // free managed resources
+            }
+
         }
 
     }
