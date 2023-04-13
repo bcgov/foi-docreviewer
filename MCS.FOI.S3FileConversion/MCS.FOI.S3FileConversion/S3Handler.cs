@@ -120,7 +120,7 @@ namespace MCS.FOI.S3FileConversion
                                     attributes["extension"] = JsonValue.Create(attachmentExtension);
                                     attachment.Value.Add("extension", attachmentExtension);
                                     string[] formats = ConversionSettings.ConversionFormats.Concat(ConversionSettings.DedupeFormats).Except(ConversionSettings.IncompatibleFormats).ToArray();
-                                    attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
+                                    attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension.ToLower()) == -1);
                                     attachment.Value.Add("attributes", attributes.ToJsonString());
                                     var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
                                     var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["s3filename"];

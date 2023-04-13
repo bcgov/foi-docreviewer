@@ -118,7 +118,7 @@ namespace MCS.FOI.S3FileConversion
                                         {
                                             for (int i = 0; i < attachments.Count; i++)
                                             {
-                                                if (Array.IndexOf(ConversionSettings.ConversionFormats, attachments[i]["extension"]) == -1)
+                                                if (Array.IndexOf(ConversionSettings.ConversionFormats, attachments[i]["extension"].ToLower()) == -1)
                                                 {
                                                     db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                                     {
@@ -183,7 +183,7 @@ namespace MCS.FOI.S3FileConversion
                                 }
                                 catch (Exception ex)
                                 {
-                                    var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}";
+                                    var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message}";
                                     Console.WriteLine(errorMessage);
                                     await dbhandler.recordJobEnd(message, true, errorMessage, new List<Dictionary<string, String>>());
                                 }
