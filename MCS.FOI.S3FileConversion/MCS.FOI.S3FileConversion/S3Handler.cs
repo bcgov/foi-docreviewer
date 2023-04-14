@@ -69,7 +69,7 @@ namespace MCS.FOI.S3FileConversion
                         using Stream responseStream = response.Content.ReadAsStream();
 
                         // Convert File
-                        string extension = Path.GetExtension(fileKey);
+                        string extension = Path.GetExtension(fileKey).ToLower();
 
                         output = new MemoryStream();
                         attachments = new();
