@@ -74,6 +74,7 @@ class pdfstitchservice(basestitchservice):
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3uripath)
                     # stitch only ['.pdf','.png','.jpg']
+                    extension = extension.lower()
                     if extension in ['.pdf','.png','.jpg']:
                         try:
                             docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
