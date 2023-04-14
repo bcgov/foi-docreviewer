@@ -34,6 +34,7 @@ class jobrecordservice:
         jobids = {}
         for record in batchinfo['records']:
             _filename, extension = os.path.splitext(record['s3uripath'])
+            extension = extension.lower()
             if extension in FILE_CONVERSION_FILE_TYPES:
                 if batchinfo['trigger'] == 'recordupload':
                     master = DocumentMaster.create(

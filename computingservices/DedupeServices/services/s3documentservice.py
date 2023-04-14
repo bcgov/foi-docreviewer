@@ -46,11 +46,11 @@ def gets3documenthashcode(producermessage):
                     aws_service=dedupe_s3_service)
    
     _filename, extension = path.splitext(producermessage.filename)
+    extension = extension.lower()
     filepath = producermessage.s3filepath
     if extension not in ['.pdf']:
         filepath = path.splitext(filepath)[0] + extension
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
-    
     if extension in ['.pdf']:
         reader = PdfReader(BytesIO(response.content))
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
