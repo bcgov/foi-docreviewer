@@ -37,7 +37,7 @@ def recordjobstart(dedupeproducermessage):
             cursor = conn.cursor()
             cursor.execute('''INSERT INTO public."DeduplicationJob"
                 (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
-                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) on conflict (deduplicationjobid, version) do nothing returning deduplicationjobid;''',
                 (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
             conn.commit()
             cursor.close()
@@ -57,7 +57,7 @@ def recordjobend(dedupeproducermessage, error, message=""):
             cursor = conn.cursor()
             cursor.execute('''INSERT INTO public."DeduplicationJob"
                 (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status, message)
-                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s, %s) on conflict (deduplicationjobid, version) do nothing returning deduplicationjobid;''',
                 (dedupeproducermessage.jobid, 3, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename,
                 'error' if error else 'completed', message if error else ""))
             conn.commit()
