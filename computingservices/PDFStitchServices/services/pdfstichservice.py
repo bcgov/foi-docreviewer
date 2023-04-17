@@ -78,6 +78,7 @@ class pdfstitchservice(basestitchservice):
                     if extension in ['.pdf','.png','.jpg']:
                         try:
                             docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
+                            print("got bytes from s3 for file: ", filename)
                             writer = self.mergepdf(docbytes, writer, extension, file.filename)
                             stitchedfiles.append(file.filename)
                             stichedfilecount += 1
@@ -110,9 +111,11 @@ class pdfstitchservice(basestitchservice):
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
         try:
             if extension in ['.png','.jpg']:
+                print("processing image")
                 # process the image bytes
                 reader =  convertimagetopdf(raw_bytes_data)
             else:
+                print("processing pdf")
                 reader = PdfReader(BytesIO(raw_bytes_data))
             
             # Add all pages to the writer
