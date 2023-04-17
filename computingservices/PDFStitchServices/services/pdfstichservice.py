@@ -78,7 +78,7 @@ class pdfstitchservice(basestitchservice):
                     if extension in ['.pdf','.png','.jpg']:
                         try:
                             docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
-                            print("got bytes from s3 for file: ", filename)
+                            print("got bytes from s3 for file: ", file.filename)
                             writer = self.mergepdf(docbytes, writer, extension, file.filename)
                             stitchedfiles.append(file.filename)
                             stichedfilecount += 1
