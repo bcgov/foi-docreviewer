@@ -36,11 +36,13 @@ def convertimagetopdf(image_bytes):
 
         if c_image_height < 280:
             c_image_height = 280
-        if image_width > image_height:
+        if image_width > image_height:            
             c = canvas.Canvas(imgtemp, pagesize=landscape((c_image_width, c_image_height)))
+            print("if")
         else:
             c = canvas.Canvas(imgtemp, pagesize=portrait((c_image_width, c_image_height)))
-                
+            print("else")
+        print("before drawImage")        
         c.drawImage(image, 0, 0, image_width, image_height)
         print("completed drawImage")
         # Save the canvas to a PDF file
