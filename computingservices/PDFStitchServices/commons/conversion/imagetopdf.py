@@ -25,9 +25,12 @@ def convertimagetopdf(image_bytes):
 
         # Create a canvas and set the dimensions to match the image
         image = ImageReader(BytesIO(image_bytes))
+        print("convert bytes to image completed")
         
         image_width, image_height = image.getSize()
-              
+        
+        print("image size: ",(image_width, image_height))
+
         c_image_width = image_width + 25
         c_image_height = image_height + 25
 
@@ -39,10 +42,12 @@ def convertimagetopdf(image_bytes):
             c = canvas.Canvas(imgtemp, pagesize=portrait((c_image_width, c_image_height)))
                 
         c.drawImage(image, 0, 0, image_width, image_height)
-
+        print("completed drawImage")
         # Save the canvas to a PDF file
         c.save()
+        print("completed save")
         overlay = PdfReader(BytesIO(imgtemp.getvalue()))
+        print("get the reader")
         return overlay
-    except(Exception) as error: 
-        print(error)  
+    except(Exception) as error:
+        print("Error in converting image to pdf, error: ", error)  
