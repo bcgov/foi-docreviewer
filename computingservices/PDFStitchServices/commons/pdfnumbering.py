@@ -128,8 +128,11 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     """Returns file with combined pages of first and second pdf"""
     writer = PdfWriter()
     for number_of_page in range(len(first_pdf.pages)):
+        print("number_of_page = ", number_of_page)
         page_of_first_pdf = first_pdf.pages[number_of_page]
         page_of_second_pdf = second_pdf.pages[number_of_page]
+        text = page_of_second_pdf.extract_text()
+        print("merge_pdf_pages = ", text)
         page_of_first_pdf.merge_page(page_of_second_pdf)
         writer.add_page(page_of_first_pdf)
     result = BytesIO()
