@@ -7,7 +7,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter, PdfMerger
 import os
 
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
@@ -98,7 +98,8 @@ def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
     start_index = parameters.get("start_index")
     xvalue = parameters.get("xvalue")
     yvalue = parameters.get("yvalue")
-    writer = PdfWriter()
+    merger = PdfMerger()
+    final_array = []
     for index in range(number_of_pages):
         pagesize = (original_width_of_pages[index], original_height_of_pages[index])
         # creating the canvas for each page based on the pagesize
@@ -110,14 +111,18 @@ def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
             number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
             empty_canvas.drawString(xvalue[index], -(yvalue[index]), number)
         empty_canvas.showPage()
-        writer = merge_pdf_bytes(empty_canvas.getpdfdata(), writer)
+        final_array.append(BytesIO(empty_canvas.getpdfdata()))
 
-    if writer:
+    merge_numbered_pdf_bytes(final_array, merger)
+    if merger:
         with BytesIO() as bytes_stream:
-            writer.write(bytes_stream)
+            merger.write(bytes_stream)
             bytes_stream.seek(0)
             return merge_pdf_pages(original_pdf_bytes, PdfReader(bytes_stream)) 
 
+def merge_numbered_pdf_bytes(final_array, merger):
+    for pdf_bytes in final_array:
+        merger.append(PdfReader(pdf_bytes))
 
 def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     """Returns file with combined pages of first and second pdf"""
@@ -130,10 +135,3 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     result = BytesIO()
     writer.write(result)
     return result.getvalue()
-
-def merge_pdf_bytes(raw_bytes_data, writer):
-        reader = PdfReader(BytesIO(raw_bytes_data))
-        # Add all pages to the writer
-        for page in reader.pages: 
-            writer.add_page(page)
-        return writer
