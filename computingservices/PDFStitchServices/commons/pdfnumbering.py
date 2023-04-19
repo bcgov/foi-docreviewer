@@ -1,6 +1,7 @@
 from io import BytesIO
 import logging
 import os
+import gc
 
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -9,7 +10,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from pypdf import PdfReader, PdfWriter
-import os
 
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
 pdfmetrics.registerFont(TTFont('BC-Sans', filepath))
@@ -20,9 +20,21 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
                          start_index=1, size=14, font="BC-Sans") -> bytes:
     """Adds numbering to pdf file"""   
     original_pdf_bytes = PdfReader(original_pdf)
-    parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, size, font)
-    empty_numbered_pdf_bytes = create_empty_numbered_pdf(parameters)
-    return merge_pdf_pages(original_pdf_bytes, empty_numbered_pdf_bytes)
+    empty_numbered_pdf_bytes = None
+    try:
+        parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, size, font)
+        empty_numbered_pdf_bytes = create_empty_numbered_pdf(parameters)
+        return merge_pdf_pages(original_pdf_bytes, empty_numbered_pdf_bytes)
+    except(Exception) as error:
+        logging.error('Error in creating the numbered pdf.')
+        logging.error(error)
+        raise
+    finally:
+        original_pdf_bytes = None
+        empty_numbered_pdf_bytes = None
+        del original_pdf_bytes
+        del empty_numbered_pdf_bytes
+        gc.collect()
 
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, size, font) -> dict:
@@ -124,8 +136,8 @@ def create_empty_numbered_pdf(parameters):
 def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     """Returns file with combined pages of first and second pdf"""
     result = BytesIO()
-    try:
-        writer = PdfWriter()
+    writer = PdfWriter()
+    try:        
         print("len second_pdf = ", len(second_pdf.pages))
         for number_of_page in range(len(first_pdf.pages)):
             print("number_of_page = ", number_of_page)
@@ -145,5 +157,10 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
         data = result.getvalue()
         # release the reference to the data
         memoryview(data).release()
-        # result.getbuffer_release()
         result.close()
+        result = None
+        first_pdf = None
+        second_pdf = None
+        # del first_pdf
+        # del second_pdf
+        # gc.collect()

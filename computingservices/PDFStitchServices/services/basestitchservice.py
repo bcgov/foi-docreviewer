@@ -10,7 +10,7 @@ from config import division_stitch_folder_path
 import logging
 
 class basestitchservice:
-
+    archive = BytesIO()
     def getdocumentbytearray(self, message, s3credentials):
         try:
             docbytearray = gets3documentbytearray(message, s3credentials)
@@ -21,9 +21,8 @@ class basestitchservice:
             raise ValueError(message.filename, error)
     
     def __zipfiles(self, filename, s3credentials, stitchedpdfstream, files):
-        archive = BytesIO()
 
-        with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:
+        with ZipFile(self.archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:
             # zip stitched pdf first
             if stitchedpdfstream is not None:
                 with zip_archive.open(filename+'.pdf', 'w') as archivefile:
@@ -41,19 +40,18 @@ class basestitchservice:
                         # producermessage = get_in_filepdfmsg(_message)
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
 
-        return archive.getbuffer()
+        return self.archive.getbuffer()
     
     def zipfiles(self, s3credentials, files):
-        archive = BytesIO()
         try:
-            with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
+            with ZipFile(self.archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
                 # zip final folders/files
                 for file in files:
                     _message = to_json(file)
                     producermessage = get_in_filepdfmsg(_message)
                     with zip_archive.open(producermessage.filename, 'w') as archivefile:
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
-            return archive.getbuffer()
+            return self.archive.getbuffer()
         except(Exception) as error:
             print("Error in zipping the file, error: ", error)
             raise
@@ -66,7 +64,7 @@ class basestitchservice:
         try:            
             bytesarray = self.zipfiles(s3credentials, files)
             filepath = self.__getzipfilepath(category, requestnumber)
-            logging.info("zipfilename = %s", filepath)
+            print("zipfilename = %s", filepath)
             docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
             return docobj
         except(ValueError) as error:
@@ -77,6 +75,8 @@ class basestitchservice:
             logging.error("error in uploading the zip file")
             logging.error(ex)
             raise
+        finally:
+            self.archive = None
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:

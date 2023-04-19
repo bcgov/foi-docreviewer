@@ -3,6 +3,7 @@ from reportlab.pdfgen import canvas
 from io import StringIO, BytesIO
 from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.utils import ImageReader
+import gc
 
 
 # Using ReportLab to insert image into PDF
@@ -20,8 +21,9 @@ def getimagepdf(raw_image_bytes):
     return overlay
 
 def convertimagetopdf(image_bytes):
+    imgtemp = BytesIO()
+    overlay = None
     try:
-        imgtemp = BytesIO()
 
         # Create a canvas and set the dimensions to match the image
         image = ImageReader(BytesIO(image_bytes))
@@ -53,3 +55,6 @@ def convertimagetopdf(image_bytes):
         memoryview(data).release()
         # imgtemp.getbuffer_release()
         imgtemp.close()
+        imgtemp = None
+        overlay = None
+        # gc.collect()
