@@ -8,6 +8,7 @@ from os import path
 from utils.basicutils import to_json
 from config import division_stitch_folder_path
 import logging
+import gc
 
 class basestitchservice:
     archive = BytesIO()
@@ -61,10 +62,11 @@ class basestitchservice:
         bcgovcode = _message.bcgovcode
         files = _message.outputdocumentpath
         category = _message.category
+        bytesarray = None
         try:            
             bytesarray = self.zipfiles(s3credentials, files)
             filepath = self.__getzipfilepath(category, requestnumber)
-            print("zipfilename = %s", filepath)
+            print("zipfilename = ", filepath)
             docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
             return docobj
         except(ValueError) as error:
@@ -76,7 +78,9 @@ class basestitchservice:
             logging.error(ex)
             raise
         finally:
+            bytesarray = None
             self.archive = None
+            gc.collect()
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:

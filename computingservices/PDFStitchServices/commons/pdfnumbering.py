@@ -161,6 +161,8 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
         result = None
         first_pdf = None
         second_pdf = None
-        # del first_pdf
-        # del second_pdf
-        # gc.collect()
+        writer = None
+        del writer
+        del first_pdf
+        del second_pdf
+        gc.collect()
