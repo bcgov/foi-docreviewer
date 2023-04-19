@@ -32,8 +32,8 @@ def convertimagetopdf(image_bytes):
         c_image_width = image_width + 25
         c_image_height = image_height + 25
 
-        if c_image_height < 280:
-            c_image_height = 280
+        if c_image_height < 420:
+            c_image_height = 420
         if image_width > image_height:            
             c = canvas.Canvas(imgtemp, pagesize=landscape((c_image_width, c_image_height)))
         else:
@@ -47,3 +47,9 @@ def convertimagetopdf(image_bytes):
     except(Exception) as error:
         print("Error in converting image to pdf, error: ", error)
         raise
+    finally:
+        data = imgtemp.getvalue()
+        # release the reference to the data
+        memoryview(data).release()
+        # imgtemp.getbuffer_release()
+        imgtemp.close()

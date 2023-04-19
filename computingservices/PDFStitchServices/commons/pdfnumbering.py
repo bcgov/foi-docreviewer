@@ -1,4 +1,5 @@
 from io import BytesIO
+import logging
 import os
 
 from reportlab.lib.units import mm
@@ -6,8 +7,8 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter
-from pypdf import PdfReader, PdfWriter, PdfMerger
+from reportlab.lib.pagesizes import A4
+from pypdf import PdfReader, PdfWriter
 import os
 
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
@@ -20,7 +21,8 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
     """Adds numbering to pdf file"""   
     original_pdf_bytes = PdfReader(original_pdf)
     parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, size, font)
-    return create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters)
+    empty_numbered_pdf_bytes = create_empty_numbered_pdf(parameters)
+    return merge_pdf_pages(original_pdf_bytes, empty_numbered_pdf_bytes)
 
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, size, font) -> dict:
@@ -84,7 +86,7 @@ def get_original_height_of_pages(original_pdf)-> list:
         height_of_pages.append(height)
     return height_of_pages
 
-def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
+def create_empty_numbered_pdf(parameters):
     """Returns empty pdf file with numbering only"""
 
     number_of_pages = parameters.get("number_of_pages")
@@ -98,43 +100,50 @@ def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
     start_index = parameters.get("start_index")
     xvalue = parameters.get("xvalue")
     yvalue = parameters.get("yvalue")
-    merger = PdfMerger()
-    final_array = []
-    for index in range(number_of_pages):
-        pagesize = (original_width_of_pages[index], original_height_of_pages[index])
-        # creating the canvas for each page based on the pagesize
-        empty_canvas = canvas.Canvas("empty_canvas.pdf", pagesize=pagesize)
-        empty_canvas.rotate(90) 
-        empty_canvas.setFont(font, size)
-        empty_canvas.setFillColor(textcolor)
-        if index in range(start_page, end_page):
-            number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
-            empty_canvas.drawString(xvalue[index], -(yvalue[index]), number)
-        empty_canvas.showPage()
-        final_array.append(BytesIO(empty_canvas.getpdfdata()))
+    try:
+        number_canvas = canvas.Canvas("empty_canvas.pdf")    
+        for index in range(number_of_pages):
+            currentpagesize = (original_width_of_pages[index], original_height_of_pages[index])
+            number_canvas.setPageSize(currentpagesize)
+            number_canvas.rotate(90)
+            number_canvas.setFont(font, size)
+            number_canvas.setFillColor(textcolor)
 
-    merge_numbered_pdf_bytes(final_array, merger)
-    if merger:
-        with BytesIO() as bytes_stream:
-            merger.write(bytes_stream)
-            bytes_stream.seek(0)
-            return merge_pdf_pages(original_pdf_bytes, PdfReader(bytes_stream)) 
+            if index in range(start_page, end_page):
+                number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
+                number_canvas.drawString(xvalue[index], -(yvalue[index]), number)
+            
+            number_canvas.showPage()
+        return PdfReader(BytesIO(number_canvas.getpdfdata()))
+    except(Exception) as error:
+            logging.error('Error with creating the numbered pdf.')
+            logging.error(error)
+            raise
 
-def merge_numbered_pdf_bytes(final_array, merger):
-    for pdf_bytes in final_array:
-        merger.append(PdfReader(pdf_bytes))
 
 def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     """Returns file with combined pages of first and second pdf"""
-    writer = PdfWriter()
-    for number_of_page in range(len(first_pdf.pages)):
-        print("number_of_page = ", number_of_page)
-        page_of_first_pdf = first_pdf.pages[number_of_page]
-        page_of_second_pdf = second_pdf.pages[number_of_page]
-        text = page_of_second_pdf.extract_text()
-        print("merge_pdf_pages = ", text)
-        page_of_first_pdf.merge_page(page_of_second_pdf)
-        writer.add_page(page_of_first_pdf)
     result = BytesIO()
-    writer.write(result)
-    return result.getvalue()
+    try:
+        writer = PdfWriter()
+        print("len second_pdf = ", len(second_pdf.pages))
+        for number_of_page in range(len(first_pdf.pages)):
+            print("number_of_page = ", number_of_page)
+            page_of_first_pdf = first_pdf.pages[number_of_page]
+            page_of_second_pdf = second_pdf.pages[number_of_page]
+            text = page_of_second_pdf.extract_text()
+            print("text = ", text)        
+            page_of_first_pdf.merge_page(page_of_second_pdf)
+            writer.add_page(page_of_first_pdf)        
+        writer.write(result)
+        return result.getvalue()
+    except(Exception) as error:
+            logging.error('Error with adding number to the stitched pdf.')
+            logging.error(error)
+            raise
+    finally:
+        data = result.getvalue()
+        # release the reference to the data
+        memoryview(data).release()
+        # result.getbuffer_release()
+        result.close()
