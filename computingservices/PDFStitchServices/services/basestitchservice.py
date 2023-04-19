@@ -45,15 +45,18 @@ class basestitchservice:
     
     def zipfiles(self, s3credentials, files):
         archive = BytesIO()
-
-        with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
-            # zip final folders/files
-            for file in files:
-                _message = to_json(file)
-                producermessage = get_in_filepdfmsg(_message)
-                with zip_archive.open(producermessage.filename, 'w') as archivefile:
-                    archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
-        return archive.getbuffer()
+        try:
+            with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
+                # zip final folders/files
+                for file in files:
+                    _message = to_json(file)
+                    producermessage = get_in_filepdfmsg(_message)
+                    with zip_archive.open(producermessage.filename, 'w') as archivefile:
+                        archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
+            return archive.getbuffer()
+        except(Exception) as error:
+            print("Error in zipping the file, error: ", error)
+            raise
         
     def zipfilesandupload(self, _message, s3credentials):
         requestnumber = _message.requestnumber
@@ -71,7 +74,7 @@ class basestitchservice:
             logging.error(errormessage)
             return errorattachmentobj
         except(Exception) as ex:
-            logging.error("error in writing the bytearray")
+            logging.error("error in uploading the zip file")
             logging.error(ex)
             raise
     
