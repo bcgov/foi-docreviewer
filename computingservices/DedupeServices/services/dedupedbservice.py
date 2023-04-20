@@ -32,14 +32,17 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
 
 def recordjobstart(dedupeproducermessage):
     conn = getdbconnection()
-    try:        
-        cursor = conn.cursor()
-        cursor.execute('''INSERT INTO public."DeduplicationJob"
-            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
-            VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
-            (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
-        conn.commit()
-        cursor.close()
+    try:
+        if __doesjobversionexists(dedupeproducermessage.jobid, 2) == False:        
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."DeduplicationJob"
+                (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) on conflict (deduplicationjobid, version) do nothing returning deduplicationjobid;''',
+                (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
+            conn.commit()
+            cursor.close()
+        else:
+            print("Dedupe Job  already exists for file {0} with JOB ID {1} and version {2}".format(dedupeproducermessage.filename,dedupeproducermessage.jobid,2))    
     except(Exception) as error:
         print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
         raise
@@ -49,21 +52,42 @@ def recordjobstart(dedupeproducermessage):
 
 def recordjobend(dedupeproducermessage, error, message=""):
     conn = getdbconnection()
-    try:        
-        cursor = conn.cursor()
-        cursor.execute('''INSERT INTO public."DeduplicationJob"
-            (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status, message)
-            VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s, %s) returning deduplicationjobid;''',
-            (dedupeproducermessage.jobid, 3, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename,
-            'error' if error else 'completed', message if error else ""))
-        conn.commit()
-        cursor.close()
+    try: 
+        if __doesjobversionexists(dedupeproducermessage.jobid, 3) == False:
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."DeduplicationJob"
+                (deduplicationjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status, message)
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s, %s) on conflict (deduplicationjobid, version) do nothing returning deduplicationjobid;''',
+                (dedupeproducermessage.jobid, 3, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename,
+                'error' if error else 'completed', message if error else ""))
+            conn.commit()
+            cursor.close()
+        else:
+            print("Dedupe Job  already exists for file {0} with JOB ID {1} and version {2}".format(dedupeproducermessage.filename,dedupeproducermessage.jobid,3))        
     except(Exception) as error:
         print("Exception while executing func recordjobend (p7), Error : {0} ".format(error))
         raise
     finally:
         if conn is not None:
             conn.close()
+
+def __doesjobversionexists(jobid, version):
+    conn = getdbconnection()
+    result = 0
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''SELECT count(deduplicationjobid) FROM public."DeduplicationJob"  where deduplicationjobid = %s::integer and version = %s::integer''',(jobid, version))        
+        count = cursor.fetchone()[0] 
+        result = count             
+        cursor.close()
+       
+    except(Exception) as error:
+        print("Exception while executing func __doesversionexists (p9), Error : {0} ".format(error))        
+        raise
+    finally:
+        if conn is not None:
+            conn.close()
+    return False if result == 0 else True    
 
 def updateredactionstatus(dedupeproducermessage):
     conn = getdbconnection()

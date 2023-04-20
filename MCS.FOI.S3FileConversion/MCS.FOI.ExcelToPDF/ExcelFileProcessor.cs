@@ -123,10 +123,11 @@ namespace MCS.FOI.ExcelToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string errorMessage = $"Exception occured while coverting an excel file, exception :  {ex.Message}";
+                string error = $"{errorMessage} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
-                throw;
+                throw new Exception(errorMessage);
             }
 
             return (converted, message, output);

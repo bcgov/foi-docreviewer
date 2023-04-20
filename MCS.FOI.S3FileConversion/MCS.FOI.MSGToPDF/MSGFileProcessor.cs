@@ -91,17 +91,16 @@ namespace MCS.FOI.MSGToPDF
                                 }
                             }
                             break;
-                            moved = true;
-                            message = string.Concat($"MSG file converted", outputpath);
                         }
                         catch (Exception e)
                         {
-                            message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
+                            string errorMessage = $"Exception occured while coverting a message file, exception :  {e.Message}";
+                            message = $"Exception happened while accessing the File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                             Log.Error(message);
                             Console.WriteLine(message);
                             if (attempt == FailureAttemptCount)
                             {
-                                throw;
+                                throw new Exception(errorMessage);
                             }
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }

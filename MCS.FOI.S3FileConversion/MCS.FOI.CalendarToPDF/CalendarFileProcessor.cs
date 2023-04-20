@@ -1,6 +1,7 @@
 ﻿using Ical.Net;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace MCS.FOI.CalendarToPDF
@@ -217,13 +218,19 @@ namespace MCS.FOI.CalendarToPDF
                     return (errorMessage, attachmentsObj);
                 }
             }
+            catch (SerializationException ex)
+            {
+                string error = $"SerializationException Occured while coverting calendar file to HTML.";
+                Console.WriteLine(error);
+                throw new SerializationException(error);
+
+            }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting calendar file to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
-                throw ex;
-                return (error, attachmentsObj);
+                throw new Exception(ex.Message);
             }
             finally
             {

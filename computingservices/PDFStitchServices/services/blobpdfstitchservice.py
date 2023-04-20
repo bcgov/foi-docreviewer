@@ -39,6 +39,7 @@ class blobpdfstitchservice(basestitchservice):
             for file in division.files:
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3filepath)
+                    extension = extension.lower()
                     if extension in ['.pdf','.png','jpg']:
                         """
                         Placeholder to handle blob

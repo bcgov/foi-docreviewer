@@ -65,7 +65,7 @@ class FOIFlowS3Presigned(Resource):
             filename, file_extension = os.path.splitext(filepath)
             response = s3client.generate_presigned_url(
                 ClientMethod='get_object',
-                Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
+                Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
                 ExpiresIn=3600,HttpMethod='GET'
                 )
 

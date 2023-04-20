@@ -3,6 +3,7 @@ from reportlab.pdfgen import canvas
 from io import StringIO, BytesIO
 from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.utils import ImageReader
+import gc
 
 
 # Using ReportLab to insert image into PDF
@@ -20,29 +21,40 @@ def getimagepdf(raw_image_bytes):
     return overlay
 
 def convertimagetopdf(image_bytes):
+    imgtemp = BytesIO()
+    overlay = None
     try:
-        imgtemp = BytesIO()
 
         # Create a canvas and set the dimensions to match the image
         image = ImageReader(BytesIO(image_bytes))
         
         image_width, image_height = image.getSize()
-              
+        
+
         c_image_width = image_width + 25
         c_image_height = image_height + 25
 
-        if c_image_height < 280:
-            c_image_height = 280
-        if image_width > image_height:
+        if c_image_height < 420:
+            c_image_height = 420
+        if image_width > image_height:            
             c = canvas.Canvas(imgtemp, pagesize=landscape((c_image_width, c_image_height)))
         else:
             c = canvas.Canvas(imgtemp, pagesize=portrait((c_image_width, c_image_height)))
-                
-        c.drawImage(image, 0, 0, image_width, image_height)
 
+        c.drawImage(image, 0, 0, image_width, image_height)
         # Save the canvas to a PDF file
         c.save()
         overlay = PdfReader(BytesIO(imgtemp.getvalue()))
         return overlay
-    except(Exception) as error: 
-        print(error)  
+    except(Exception) as error:
+        print("Error in converting image to pdf, error: ", error)
+        raise
+    finally:
+        data = imgtemp.getvalue()
+        # release the reference to the data
+        memoryview(data).release()
+        # imgtemp.getbuffer_release()
+        imgtemp.close()
+        imgtemp = None
+        overlay = None
+        # gc.collect()
