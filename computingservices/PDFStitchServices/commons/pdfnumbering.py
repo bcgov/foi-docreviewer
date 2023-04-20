@@ -112,6 +112,8 @@ def create_empty_numbered_pdf(parameters):
         number_canvas = canvas.Canvas("empty_canvas.pdf")    
         for index in range(number_of_pages):
             currentpagesize = (original_width_of_pages[index], original_height_of_pages[index])
+            print("currentpagesize = ",currentpagesize)
+            print("(x, y)) = ", (xvalue[index], -(yvalue[index])))
             number_canvas.setPageSize(currentpagesize)
             number_canvas.rotate(90)
             number_canvas.setFont(font, size[index])
