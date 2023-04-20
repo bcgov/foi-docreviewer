@@ -1,7 +1,6 @@
 from io import BytesIO
 import logging
 import os
-import gc
 
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -38,7 +37,6 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
         del original_pdf_bytes
         empty_numbered_pdf_bytes.stream.close()
         del empty_numbered_pdf_bytes
-        gc.collect()
 
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, font) -> dict:
@@ -142,17 +140,23 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
             page_of_second_pdf = second_pdf.pages[number_of_page]
             text = page_of_second_pdf.extract_text()
             print("text = ", text) 
-            stream = page_of_first_pdf.get_contents().get_object()
-            for s in stream:
-                print("Object:",s.get_object())
-                print("Type:",type(s.get_object()))
+            if "/Type" in page_of_first_pdf.keys() and page_of_first_pdf["/Type"] == "/Page" and "/Type" in page_of_second_pdf.keys() and page_of_second_pdf["/Type"] == "/Page":
                 try:
-                    print("Data:",type(s.get_object().get_data()))
+                    page_of_first_pdf.merge_page(page_of_second_pdf)
                 except Exception as err:
                     print(str(err))
+                    stream = page_of_first_pdf.get_contents().get_object()
+                    for s in stream:
+                        print("Object:",s.get_object())
+                        print("Type:",type(s.get_object()))
+                        try:
+                            print("Data:",type(s.get_object().get_data()))
+                        except Exception as err:
+                            print(str(err))
+                            stream = None
+                            continue
+                    stream = None
                     continue
-            if "/Type" in page_of_first_pdf.keys() and page_of_first_pdf["/Type"] == "/Page" and "/Type" in page_of_second_pdf.keys() and page_of_second_pdf["/Type"] == "/Page":
-                page_of_first_pdf.merge_page(page_of_second_pdf)
             else:
                 print("********* pass ***********")
                 # handle the case where one or both of the objects is not a PDF page
@@ -178,4 +182,3 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
         del first_pdf
         second_pdf.stream.close()
         del second_pdf
-        gc.collect()

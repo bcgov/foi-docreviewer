@@ -14,7 +14,6 @@ from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 import logging
-import gc
 
 class pdfstitchservice(basestitchservice):
 
@@ -60,8 +59,6 @@ class pdfstitchservice(basestitchservice):
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
-        finally:
-            gc.collect()
     
     def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
         stitchedfiles = []
