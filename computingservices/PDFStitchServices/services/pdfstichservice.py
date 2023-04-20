@@ -143,7 +143,8 @@ class pdfstitchservice(basestitchservice):
         except(Exception) as error:
             raise ValueError(filename, error)
         finally:
-            reader.stream.close()
+            if reader:
+                reader.stream.close()
             # reader = None
             # del reader
     
