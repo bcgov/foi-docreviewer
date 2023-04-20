@@ -62,12 +62,16 @@ def handlemessage(message):
     if message is not None:
         _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
         _message = _message.replace("b'","'").replace("'",'')
+        pdfstitch_service = pdfstitchservice()
         try:
 
-            producermessage = get_in_divisionpdfmsg(_message)
-            pdfstitchservice().processmessage(producermessage)
+            producermessage = get_in_divisionpdfmsg(_message)            
+            pdfstitch_service.processmessage(producermessage)
 
             # send notification for both success and error cases       
             notificationservice().sendnotification(producermessage)
         except(Exception) as error:
-            logging.exception(error) 
+            logging.exception(error)
+        finally:
+            pdfstitch_service = None
+            del pdfstitch_service
