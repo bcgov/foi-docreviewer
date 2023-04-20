@@ -39,12 +39,14 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, size, font) -> dict:
     """Setting parameters for numbering"""
+
+    width_of_pages, height_of_pages, x_value_of_pages, y_value_of_pages = get_original_pdf_page_details(original_pdf)
     return {
         "paginationtext": paginationtext,
-        "original_width_of_pages": get_original_width_of_pages(original_pdf),
-        "original_height_of_pages": get_original_height_of_pages(original_pdf),
-        "xvalue":get_x_value(original_pdf),
-        "yvalue":get_y_value(original_pdf),
+        "original_width_of_pages": width_of_pages,
+        "original_height_of_pages": height_of_pages,
+        "xvalue":x_value_of_pages,
+        "yvalue":y_value_of_pages,
         "start_page": start_page - 1,
         "end_page": end_page or len(original_pdf.pages) + 1,
         "start_index": start_index,
@@ -53,50 +55,32 @@ def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_p
         "number_of_pages": len(original_pdf.pages),
     }
 
-def get_x_value(original_pdf) -> list:
-    """Returns X value for the pages"""
+def get_original_pdf_page_details(original_pdf):
+    width_of_pages = []
+    height_of_pages = []
     x_value_of_pages = []
+    y_value_of_pages = []
+    
     for index in range(len(original_pdf.pages)):
-        original_w = original_pdf.pages[index].mediabox.width
-        original_h = original_pdf.pages[index].mediabox.height
-        if original_w < original_h:
-            x = (original_h/2) - 70
+        width = original_pdf.pages[index].mediabox.width  
+        height = original_pdf.pages[index].mediabox.height   
+        width_of_pages.append(width)        
+        height_of_pages.append(height)
+
+        if width < height:
+            x = (height/2) - 70
         else:
             #landscape pages
-            x = (original_h/2) - 115
+            x = (height/2) - 115
         x_value_of_pages.append(x)
-    return x_value_of_pages
 
-def get_y_value(original_pdf) -> list:
-    """Returns Y value for the pages"""
-
-    y_value_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        original_w = original_pdf.pages[index].mediabox.width
-        original_h = original_pdf.pages[index].mediabox.height
-        # mostly image pages
-        if original_w == round(aw,4) and original_h == round(ah,4):
-            y = (original_w - 12)
+        if width == round(aw,4) and height == round(ah,4):
+            y = (width - 12)
         else:
-            y = (original_w - 10)
+            y = (width - 10)
         y_value_of_pages.append(y)
-    return y_value_of_pages
 
-def get_original_width_of_pages(original_pdf) -> list:
-    """Returns width of pages"""
-
-    width_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        width = original_pdf.pages[index].mediabox.width     
-        width_of_pages.append(width)
-    return width_of_pages
-
-def get_original_height_of_pages(original_pdf)-> list:
-    height_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        height = original_pdf.pages[index].mediabox.height
-        height_of_pages.append(height)
-    return height_of_pages
+    return width_of_pages, height_of_pages, x_value_of_pages, y_value_of_pages
 
 def create_empty_numbered_pdf(parameters):
     """Returns empty pdf file with numbering only"""
