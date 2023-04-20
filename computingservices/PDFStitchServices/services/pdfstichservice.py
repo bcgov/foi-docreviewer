@@ -13,6 +13,7 @@ from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 import logging
+import gc
 
 class pdfstitchservice(basestitchservice):
 
@@ -31,16 +32,17 @@ class pdfstitchservice(basestitchservice):
         
         try:
             results = []
-            pool = Pool(len(attributes))
+            # pool = Pool(len(attributes))
+            with Pool(len(attributes)) as pool:
             
-            # loop through the atributes (currently divisions)
-            for division in attributes:
-                
-                logging.info("division = %s", division.divisionname)
-                result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
-                results.append(result)
-            pool.close()
-            pool.join()
+                # loop through the atributes (currently divisions)
+                for division in attributes:
+                    
+                    logging.info("division = %s", division.divisionname)
+                    result = pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, division, s3credentials, bcgovcode, category)).get()
+                    results.append(result)
+                pool.close()
+                pool.join()
             finalmessage = self.__getfinalmessage(_message, results)            
             result = self.createfinaldocument(finalmessage, s3credentials)
             if result.get("success") == True:
@@ -56,6 +58,8 @@ class pdfstitchservice(basestitchservice):
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
+        finally:
+            gc.collect()
     
     def pdfstitchbasedondivision(self, requestno, division, s3credentials, bcgovcode, category):
         stitchedfiles = []
@@ -107,8 +111,12 @@ class pdfstitchservice(basestitchservice):
             logging.error('Error with divisional stitch.')
             logging.error(error)
             raise
+        finally:
+            writer = None
+            del writer
 
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
+        reader = None
         try:
             if extension in ['.png','.jpg']:
                 print("processing image")
@@ -124,6 +132,9 @@ class pdfstitchservice(basestitchservice):
             return writer
         except(Exception) as error:
             raise ValueError(filename, error)
+        finally:
+            reader = None
+            del reader
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
