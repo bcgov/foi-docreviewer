@@ -31,9 +31,12 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
         logging.error(error)
         raise
     finally:
-        original_pdf_bytes = None
-        empty_numbered_pdf_bytes = None
+        #original_pdf_bytes = None
+        #empty_numbered_pdf_bytes = None
+        #del original_pdf_bytes
+        original_pdf_bytes.stream.close()
         del original_pdf_bytes
+        empty_numbered_pdf_bytes.stream.close()
         del empty_numbered_pdf_bytes
         gc.collect()
 
@@ -109,6 +112,8 @@ def create_empty_numbered_pdf(parameters):
         number_canvas = canvas.Canvas("empty_canvas.pdf")    
         for index in range(number_of_pages):
             currentpagesize = (original_width_of_pages[index], original_height_of_pages[index])
+            print("currentpagesize = ",currentpagesize)
+            print("(x, y)) = ", (xvalue[index], -(yvalue[index])))
             number_canvas.setPageSize(currentpagesize)
             number_canvas.rotate(90)
             number_canvas.setFont(font, size[index])
@@ -136,7 +141,16 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
             page_of_first_pdf = first_pdf.pages[number_of_page]
             page_of_second_pdf = second_pdf.pages[number_of_page]
             text = page_of_second_pdf.extract_text()
-            print("text = ", text)        
+            print("text = ", text) 
+            stream = page_of_first_pdf.get_contents().get_object()
+            for s in stream:
+                print("Object:",s.get_object())
+                print("Type:",type(s.get_object()))
+                try:
+                    print("Data:",type(s.get_object().get_data()))
+                except Exception as err:
+                    print(str(err))
+                    continue
             if "/Type" in page_of_first_pdf.keys() and page_of_first_pdf["/Type"] == "/Page" and "/Type" in page_of_second_pdf.keys() and page_of_second_pdf["/Type"] == "/Page":
                 page_of_first_pdf.merge_page(page_of_second_pdf)
             else:
@@ -151,15 +165,17 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
             logging.error(error)
             raise
     finally:
-        data = result.getvalue()
+        #data = result.getvalue()
         # release the reference to the data
-        memoryview(data).release()
+        #memoryview(data).release()
         result.close()
-        result = None
-        first_pdf = None
-        second_pdf = None
-        writer = None
-        del writer
+        # first_pdf = None
+        # second_pdf = None
+        # writer = None
+        # del writer
+        writer.close()
+        first_pdf.stream.close()
         del first_pdf
+        second_pdf.stream.close()
         del second_pdf
         gc.collect()
