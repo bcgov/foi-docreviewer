@@ -112,8 +112,9 @@ class pdfstitchservice(basestitchservice):
             logging.error(error)
             raise
         finally:
-            writer = None
-            del writer
+            writer.close()
+            # writer = None
+            # del writer
 
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
         reader = None
@@ -133,8 +134,9 @@ class pdfstitchservice(basestitchservice):
         except(Exception) as error:
             raise ValueError(filename, error)
         finally:
-            reader = None
-            del reader
+            reader.stream.close()
+            # reader = None
+            # del reader
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
