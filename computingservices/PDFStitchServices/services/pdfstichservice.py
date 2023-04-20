@@ -7,6 +7,7 @@ import traceback
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
+from config import numbering_enabled
 import json
 from os import path
 from .basestitchservice import basestitchservice
@@ -16,6 +17,7 @@ import logging
 import gc
 
 class pdfstitchservice(basestitchservice):
+
 
     def ispdfstitchjobcompleted(self, jobid, category):
         complete, err, attributes = ispdfstichjobcompleted(jobid, category)
@@ -84,6 +86,8 @@ class pdfstitchservice(basestitchservice):
                             docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
                             print("got bytes from s3 for file: ", file.filename)
                             writer = self.mergepdf(docbytes, writer, extension, file.filename)
+                            docbytes=None
+                            del docbytes
                             stitchedfiles.append(file.filename)
                             stichedfilecount += 1
                         except ValueError as value_error:
@@ -98,11 +102,15 @@ class pdfstitchservice(basestitchservice):
                 with BytesIO() as bytes_stream:
                     writer.write(bytes_stream)
                     bytes_stream.seek(0)
-                    paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
-                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)
                     filename = requestno + " - " +category+" - "+ division.divisionname
                     stitchedoutput = self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount)
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                    if numbering_enabled:
+                        paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
+                        numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)                        
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                        del numberedpdfbytes
+                    else:
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
                     return self.__getfinaldivisionoutput(stitchedoutput, filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
@@ -128,6 +136,7 @@ class pdfstitchservice(basestitchservice):
                 reader = PdfReader(BytesIO(raw_bytes_data))
             
             # Add all pages to the writer
+            print("total number of pages = ",len(reader.pages))
             for page in reader.pages:
                 writer.add_page(page)
             return writer

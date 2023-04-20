@@ -32,3 +32,6 @@ error_flag = os.getenv('ERROR_FLAG')
 
 pdfstitch_failureattempt = os.getenv('PDF_STITCH_FAILUREATTEMPT')
 
+numbering_enabled = os.getenv('NUMBERING_ENABLED')
+
+

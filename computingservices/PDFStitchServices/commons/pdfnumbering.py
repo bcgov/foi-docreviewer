@@ -139,8 +139,13 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
             page_of_first_pdf = first_pdf.pages[number_of_page]
             page_of_second_pdf = second_pdf.pages[number_of_page]
             text = page_of_second_pdf.extract_text()
+            stream = page_of_first_pdf.get_contents().get_object()
+            for s in stream:
+                print("Object:",s.get_object())
+                print("Type:",type(s.get_object()))
+                #print("Data:",type(s.get_object().get_data()))
             print("text = ", text)        
-            if "/Type" in page_of_first_pdf.keys() and page_of_first_pdf["/Type"] == "/Page" and "/Type" in page_of_second_pdf.keys() and page_of_second_pdf["/Type"] == "/Page" and hasattr(page_of_first_pdf, 'Contents') and hasattr(page_of_second_pdf, 'Contents'):
+            if "/Type" in page_of_first_pdf.keys() and page_of_first_pdf["/Type"] == "/Page" and "/Type" in page_of_second_pdf.keys() and page_of_second_pdf["/Type"] == "/Page":
                 page_of_first_pdf.merge_page(page_of_second_pdf)
             else:
                 print("********* pass ***********")
@@ -154,11 +159,10 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
             logging.error(error)
             raise
     finally:
-        data = result.getvalue()
+        #data = result.getvalue()
         # release the reference to the data
-        memoryview(data).release()
+        #memoryview(data).release()
         result.close()
-        #result = None
         # first_pdf = None
         # second_pdf = None
         # writer = None
