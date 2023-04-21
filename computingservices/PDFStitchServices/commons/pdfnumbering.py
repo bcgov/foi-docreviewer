@@ -24,11 +24,11 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
     try:
         parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, font)
         empty_numbered_pdf_bytes = create_empty_numbered_pdf(parameters)
-        return merge_pdf_pages(original_pdf_bytes, empty_numbered_pdf_bytes)
+        # return merge_pdf_pages(original_pdf_bytes, empty_numbered_pdf_bytes)
+        return merge_pdf_pages_test(empty_numbered_pdf_bytes)
     except(Exception) as error:
         logging.error('Error in creating the numbered pdf.')
         logging.error(error)
-        raise
     finally:
         #original_pdf_bytes = None
         #empty_numbered_pdf_bytes = None
@@ -66,23 +66,14 @@ def get_original_pdf_page_details(original_pdf):
     
     for index in range(len(original_pdf.pages)):
         width = original_pdf.pages[index].mediabox.width  
-        height = original_pdf.pages[index].mediabox.height   
+        height = original_pdf.pages[index].mediabox.height
         width_of_pages.append(width)        
         height_of_pages.append(height)
 
-        if width < height:
-            x = (height/2) - 70
-        else:
-            #landscape pages
-            x = (height/2) - 115
+        x = get_original_pdf_x_value(width, height)
         x_value_of_pages.append(x)
 
-        if width == round(aw,4) and height == round(ah,4):
-            y = (width - 12)
-        elif width == round(lw,4) and height == round(lh,4):
-            y = (width - 52)
-        else:
-            y = (width - 10)
+        y = get_original_pdf_y_value(width, height)
         y_value_of_pages.append(y)
 
         if height < 450:
@@ -91,6 +82,22 @@ def get_original_pdf_page_details(original_pdf):
             fontsize.append(14)
 
     return width_of_pages, height_of_pages, x_value_of_pages, y_value_of_pages, fontsize
+
+def get_original_pdf_x_value(width, height):
+    if width < height:
+        return (height/2) - 70
+    #landscape pages
+    return (height/2) - 115
+
+def get_original_pdf_y_value(width, height):
+    if width == round(aw,4) and height == round(ah,4):
+        return (width - 12)
+    elif width == round(lw,4) and height == round(lh,4):
+        if isinstance(width, float):
+            return (width - 15)
+        else:
+            return(width - 52)
+    return (width - 10)
 
 def create_empty_numbered_pdf(parameters):
     """Returns empty pdf file with numbering only"""
@@ -110,8 +117,6 @@ def create_empty_numbered_pdf(parameters):
         number_canvas = canvas.Canvas("empty_canvas.pdf")    
         for index in range(number_of_pages):
             currentpagesize = (original_width_of_pages[index], original_height_of_pages[index])
-            print("currentpagesize = ",currentpagesize)
-            print("(x, y)) = ", (xvalue[index], -(yvalue[index])))
             number_canvas.setPageSize(currentpagesize)
             number_canvas.rotate(90)
             number_canvas.setFont(font, size[index])
@@ -126,7 +131,18 @@ def create_empty_numbered_pdf(parameters):
     except(Exception) as error:
             logging.error('Error with creating the numbered pdf.')
             logging.error(error)
-            raise
+
+
+def merge_pdf_pages_test(second_pdf) -> bytes:
+    """Returns file with combined pages of first and second pdf"""
+    writer = PdfWriter()
+    for page in second_pdf.pages:
+        text = page.extract_text()
+        print("merge_pdf_pages_test = ", text)
+        writer.add_page(page)
+    result = BytesIO()
+    writer.write(result)
+    return result.getvalue()
 
 
 def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
@@ -167,7 +183,6 @@ def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
     except(Exception) as error:
             logging.error('Error with adding number to the stitched pdf.')
             logging.error(error)
-            raise
     finally:
         #data = result.getvalue()
         # release the reference to the data
