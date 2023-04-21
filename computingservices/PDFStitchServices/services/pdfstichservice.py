@@ -68,7 +68,6 @@ class pdfstitchservice(basestitchservice):
         skippedfilecount = 0
         
         count = 0
-        # writer = PdfWriter()
         writer = fitz.Document()
 
         try: 
@@ -99,8 +98,7 @@ class pdfstitchservice(basestitchservice):
                     count += 1
             if writer:
                 with BytesIO() as bytes_stream:
-                    writer.save(bytes_stream)
-                    writer.close()
+                    writer.save(bytes_stream)                    
                     bytes_stream.seek(0)
                     filename = requestno + " - " +category+" - "+ division.divisionname
                     stitchedoutput = self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount)
@@ -120,10 +118,9 @@ class pdfstitchservice(basestitchservice):
             logging.error('Error with divisional stitch.')
             logging.error(error)
             raise
-        # finally:
-        #     writer.close()
-            # writer = None
-            # del writer
+        finally:
+            if writer:
+                writer.close()
 
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
         try:
@@ -145,11 +142,6 @@ class pdfstitchservice(basestitchservice):
         except(Exception) as error:
             print(error)
             raise ValueError(filename, error)
-        # finally:
-        #     if reader:
-        #         reader.stream.close()
-        #     # reader = None
-        #     # del reader
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
@@ -157,7 +149,6 @@ class pdfstitchservice(basestitchservice):
     
     def __getfinaldivisionoutput(self, stitchedoutput, filestozip):
         formattedfilestozip = self.__formatfilestozip(filestozip)
-        del filestozip
         return {
             "stitchedoutput": stitchedoutput,
             "filestozip": formattedfilestozip

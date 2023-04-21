@@ -3,13 +3,8 @@ import logging
 import os
 import fitz
 
-from reportlab.lib.units import mm
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
-from pypdf import PdfReader, PdfWriter
+
 
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
 color_hex = "#38598A"
