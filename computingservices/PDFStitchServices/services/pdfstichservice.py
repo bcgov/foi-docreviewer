@@ -132,7 +132,7 @@ class pdfstitchservice(basestitchservice):
                 # process the image bytes
                 imagebytes = convertimagetopdf(raw_bytes_data)
                 pdf_doc = fitz.open(stream=BytesIO(imagebytes))
-                
+                del imagebytes
             else:          
                 print("processing pdf")
                 pdf_doc = fitz.open(stream=BytesIO(raw_bytes_data))
@@ -157,6 +157,7 @@ class pdfstitchservice(basestitchservice):
     
     def __getfinaldivisionoutput(self, stitchedoutput, filestozip):
         formattedfilestozip = self.__formatfilestozip(filestozip)
+        del filestozip
         return {
             "stitchedoutput": stitchedoutput,
             "filestozip": formattedfilestozip
