@@ -28,8 +28,6 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
     font = parameters.get("font")
     size = parameters.get("size")  
     paginationtext = parameters.get("paginationtext")
-    xvalue = parameters.get("xvalue")
-    yvalue = parameters.get("yvalue")
 
     output_buffer = BytesIO()
     doc =  fitz.Document(stream=original_pdf, filetype="pdf")      
@@ -38,18 +36,25 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
          # Get the width and height of the current page
         w, h = page.bound().width, page.bound().height
         print("(w, h) = ", (w, h))
-        print("(xvalue[i], yvalue[i]) = ", (xvalue[i], yvalue[i]))
+        
+        print("iswrapped? = ", page.is_wrapped)
+        if not page.is_wrapped:
+            page.wrap_contents()
 
-        text = paginationtext.replace("[x]", str(i + 1)).replace("[totalpages]", str(number_of_pages)).upper()
-        print("textvalue = ", text)
+        pagetext = paginationtext.replace("[x]", str(i + 1)).replace("[totalpages]", str(number_of_pages)).upper()
+        print("textvalue = ", pagetext)
 
         fontsize = size[i]
-        textsize = len(text) + fontsize
-        pos = fitz.Point(w-15, yvalue[i] - (textsize/2))
-
-        font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
-        page.insert_text(pos, text, fontsize=fontsize, rotate=90, color=font_color)
+        textsize = len(pagetext) + fontsize
+        # print("textsize = ", textsize)
         
+        x =  w-10
+        y = (h/2) + (textsize)
+        print("text pos (x, y) = ", (round(x,2), round(y,2)))
+        pos = fitz.Point(round(x,2), round(y,2))
+        font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
+        page.insert_text(pos, pagetext, fontsize=fontsize, rotate=90, color=font_color)
+
     doc.save(output_buffer)
     # Close the input PDF
     doc.close()
@@ -99,7 +104,7 @@ def get_original_pdf_page_details(original_pdf):
         if height < 450:
             fontsize.append(10)
         else:
-            fontsize.append(14)
+            fontsize.append(12)
 
     return width_of_pages, height_of_pages, x_value_of_pages, y_value_of_pages, fontsize
 
