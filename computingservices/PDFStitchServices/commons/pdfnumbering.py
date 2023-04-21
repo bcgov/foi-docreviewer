@@ -43,7 +43,7 @@ def add_numbering_to_pdf(original_pdf, paginationtext="") -> bytes:
             font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
 
             page.insert_text(pos, pagetext, fontsize=fontsize, rotate=90, color=font_color)
-
+            page = None
         doc.save(output_buffer)
         
         output_buffer.seek(0)

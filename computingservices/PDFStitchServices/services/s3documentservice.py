@@ -55,7 +55,7 @@ def gets3documentbytearray(producermessage, s3credentials):
             continue
 
 
-def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
+def uploadbytes(filename, filebytes, requestnumber, bcgovcode, s3credentials):
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
@@ -78,7 +78,7 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
             }
 
             #upload to S3
-            requests.put(s3uri, data=bytes, headers=header)
+            requests.put(s3uri, data=filebytes, headers=header)
             attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
             return attachmentobj
         except Exception as ex:
@@ -89,5 +89,7 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
                 raise ValueError(attachmentobj, ex)
             print("uploadbytes s3retry = ", retry)
             retry += 1
-            continue 
-        
+            continue
+        finally:
+            if filebytes:
+                filebytes = None
