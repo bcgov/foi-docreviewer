@@ -20,11 +20,8 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
                          start_index=1, font="BC-Sans") -> bytes:
     try:
         """Adds numbering to pdf file"""   
-        # original_pdf_bytes = PdfReader(original_pdf)
         print("add_numbering_to_pdf")
-        original_pdf_bytes = fitz.Document(stream=original_pdf, filetype="pdf")
-        parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, font)
-
+        parameters = get_parameters_for_numbering(original_pdf,paginationtext, start_page, end_page, start_index, font)
         number_of_pages = parameters.get("number_of_pages")
         font = parameters.get("font")
         size = parameters.get("size")  
@@ -52,8 +49,7 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
             page.insert_text(pos, text, fontsize=fontsize, rotate=90, color=font_color)
             
         doc.save(output_buffer)
-        # Close the input PDF
-        doc.close()
+        
         output_buffer.seek(0)
         # Return the output buffer containing the generated PDF
         return output_buffer.getvalue()
@@ -62,9 +58,11 @@ def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page
         logging.error(error)
         raise
     finally:
-        del original_pdf_bytes
-        del original_pdf
-        output_buffer.close()
+        if doc:
+            doc.close()
+        if output_buffer:
+            output_buffer.close()
+        original_pdf = None
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, font) -> dict:
     """Setting parameters for numbering"""
@@ -85,30 +83,35 @@ def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_p
     }
 
 def get_original_pdf_page_details(original_pdf):
-    width_of_pages = []
-    height_of_pages = []
-    x_value_of_pages = []
-    y_value_of_pages = []
-    fontsize = []
-    
-    for index in range(original_pdf.page_count):
-        page = original_pdf[index]
-        width = page.rect.width  
-        height = page.rect.height
+    original_pdf_bytes = None
+    width_of_pages = height_of_pages = x_value_of_pages = y_value_of_pages = fontsize =[]
+    try:
+        original_pdf_bytes = fitz.Document(stream=original_pdf, filetype="pdf")
+        for index in range(original_pdf_bytes.page_count):
+            page = original_pdf_bytes[index]
+            width = page.rect.width  
+            height = page.rect.height
 
-        width_of_pages.append(width)        
-        height_of_pages.append(height)
+            width_of_pages.append(width)        
+            height_of_pages.append(height)
 
-        x = get_original_pdf_x_value(width, height)
-        x_value_of_pages.append(x)
+            x = get_original_pdf_x_value(width, height)
+            x_value_of_pages.append(x)
 
-        y = get_original_pdf_y_value(height)
-        y_value_of_pages.append(y)
+            y = get_original_pdf_y_value(height)
+            y_value_of_pages.append(y)
 
-        if height < 450:
-            fontsize.append(10)
-        else:
-            fontsize.append(14)
+            if height < 450:
+                fontsize.append(10)
+            else:
+                fontsize.append(14)
+    except Exception as ex:
+        logging.error(ex)
+    finally:
+        if original_pdf_bytes:
+            original_pdf_bytes.close()
+        original_pdf_bytes = None
+        
 
     return width_of_pages, height_of_pages, x_value_of_pages, y_value_of_pages, fontsize
 
