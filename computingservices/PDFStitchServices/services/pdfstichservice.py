@@ -1,7 +1,7 @@
 
 from .s3documentservice import getcredentialsbybcgovcode
 from utils import add_spacing_around_special_character
-from commons import add_numbering_to_pdf, getimagepdf, convertimagetopdf
+from commons import add_numbering_to_pdf, convertimagetopdf
 from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
 import traceback
 from pypdf import PdfReader, PdfWriter
@@ -14,6 +14,7 @@ from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 import logging
+import fitz
 
 class pdfstitchservice(basestitchservice):
 
@@ -67,7 +68,8 @@ class pdfstitchservice(basestitchservice):
         skippedfilecount = 0
         
         count = 0
-        writer = PdfWriter()
+        # writer = PdfWriter()
+        writer = fitz.Document()
 
         try: 
             # process each file in divisional files           
@@ -97,13 +99,14 @@ class pdfstitchservice(basestitchservice):
                     count += 1
             if writer:
                 with BytesIO() as bytes_stream:
-                    writer.write(bytes_stream)
+                    writer.save(bytes_stream)
+                    writer.close()
                     bytes_stream.seek(0)
                     filename = requestno + " - " +category+" - "+ division.divisionname
                     stitchedoutput = self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount)
                     if numbering_enabled:
                         paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
-                        numberedpdfbytes = add_numbering_to_pdf(bytes_stream, paginationtext=paginationtext)                        
+                        numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)                        
                         filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
                         del numberedpdfbytes
                     else:
@@ -116,34 +119,36 @@ class pdfstitchservice(basestitchservice):
             logging.error('Error with divisional stitch.')
             logging.error(error)
             raise
-        finally:
-            writer.close()
+        # finally:
+        #     writer.close()
             # writer = None
             # del writer
 
     def mergepdf(self, raw_bytes_data, writer, extension, filename = None):
-        reader = None
         try:
             if extension in ['.png','.jpg']:
                 print("processing image")
                 # process the image bytes
-                reader =  convertimagetopdf(raw_bytes_data)
-            else:
+                imagebytes = convertimagetopdf(raw_bytes_data)
+                pdf_doc = fitz.open(stream=BytesIO(imagebytes))
+                
+            else:          
                 print("processing pdf")
-                reader = PdfReader(BytesIO(raw_bytes_data))
-            
-            # Add all pages to the writer
-            print("total number of pages = ",len(reader.pages))
-            for page in reader.pages:
-                writer.add_page(page)
+                pdf_doc = fitz.open(stream=BytesIO(raw_bytes_data))
+
+
+            for page in pdf_doc:
+                    writer.insert_pdf(pdf_doc, from_page=page.number, to_page=page.number)
+            pdf_doc.close()
             return writer
         except(Exception) as error:
+            print(error)
             raise ValueError(filename, error)
-        finally:
-            if reader:
-                reader.stream.close()
-            # reader = None
-            # del reader
+        # finally:
+        #     if reader:
+        #         reader.stream.close()
+        #     # reader = None
+        #     # del reader
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
