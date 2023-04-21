@@ -102,7 +102,7 @@ class pdfstitchservice(basestitchservice):
                     bytes_stream.seek(0)
                     filename = requestno + " - " +category+" - "+ division.divisionname
                     stitchedoutput = self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount)
-                    if numbering_enabled:
+                    if numbering_enabled == "True":
                         paginationtext = add_spacing_around_special_character("-",requestno) + " | page [x] of [totalpages]"
                         numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)                        
                         filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
