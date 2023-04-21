@@ -18,44 +18,53 @@ lw, lh = letter
 
 def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page=None,
                          start_index=1, font="BC-Sans") -> bytes:
-    """Adds numbering to pdf file"""   
-    # original_pdf_bytes = PdfReader(original_pdf)
-    print("add_numbering_to_pdf")
-    original_pdf_bytes = fitz.Document(stream=original_pdf, filetype="pdf")
-    parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, font)
+    try:
+        """Adds numbering to pdf file"""   
+        # original_pdf_bytes = PdfReader(original_pdf)
+        print("add_numbering_to_pdf")
+        original_pdf_bytes = fitz.Document(stream=original_pdf, filetype="pdf")
+        parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, font)
 
-    number_of_pages = parameters.get("number_of_pages")
-    font = parameters.get("font")
-    size = parameters.get("size")  
-    paginationtext = parameters.get("paginationtext")
-    xvalue = parameters.get("xvalue")
-    yvalue = parameters.get("yvalue")
+        number_of_pages = parameters.get("number_of_pages")
+        font = parameters.get("font")
+        size = parameters.get("size")  
+        paginationtext = parameters.get("paginationtext")
+        xvalue = parameters.get("xvalue")
+        yvalue = parameters.get("yvalue")
 
-    output_buffer = BytesIO()
-    doc =  fitz.Document(stream=original_pdf, filetype="pdf")      
-    # Iterate through each page
-    for i, page in enumerate(doc):
-         # Get the width and height of the current page
-        w, h = page.bound().width, page.bound().height
-        print("(w, h) = ", (w, h))
-        print("(xvalue[i], yvalue[i]) = ", (xvalue[i], yvalue[i]))
+        output_buffer = BytesIO()
+        doc =  fitz.Document(stream=original_pdf, filetype="pdf")      
+        # Iterate through each page
+        for i, page in enumerate(doc):
+            # Get the width and height of the current page
+            w, h = page.bound().width, page.bound().height
+            print("(w, h) = ", (w, h))
+            print("(xvalue[i], yvalue[i]) = ", (xvalue[i], yvalue[i]))
 
-        text = paginationtext.replace("[x]", str(i + 1)).replace("[totalpages]", str(number_of_pages)).upper()
-        print("textvalue = ", text)
+            text = paginationtext.replace("[x]", str(i + 1)).replace("[totalpages]", str(number_of_pages)).upper()
+            print("textvalue = ", text)
 
-        fontsize = size[i]
-        textsize = len(text) + fontsize
-        pos = fitz.Point(w-15, yvalue[i] - (textsize/2))
+            fontsize = size[i]
+            textsize = len(text) + fontsize
+            pos = fitz.Point(w-15, yvalue[i] - (textsize/2))
 
-        font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
-        page.insert_text(pos, text, fontsize=fontsize, rotate=90, color=font_color)
-        
-    doc.save(output_buffer)
-    # Close the input PDF
-    doc.close()
-    output_buffer.seek(0)
-    # Return the output buffer containing the generated PDF
-    return output_buffer.getvalue()
+            font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
+            page.insert_text(pos, text, fontsize=fontsize, rotate=90, color=font_color)
+            
+        doc.save(output_buffer)
+        # Close the input PDF
+        doc.close()
+        output_buffer.seek(0)
+        # Return the output buffer containing the generated PDF
+        return output_buffer.getvalue()
+    except(Exception) as error:
+        #logging.error('Error with divisional stitch.')
+        logging.error(error)
+        raise
+    finally:
+        del original_pdf_bytes
+        del original_pdf
+        output_buffer.close()
 
 def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, font) -> dict:
     """Setting parameters for numbering"""

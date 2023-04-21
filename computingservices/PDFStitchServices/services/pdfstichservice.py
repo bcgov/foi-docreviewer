@@ -111,6 +111,7 @@ class pdfstitchservice(basestitchservice):
                         del numberedpdfbytes
                     else:
                         filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+                        del bytes_stream
                     return self.__getfinaldivisionoutput(stitchedoutput, filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
