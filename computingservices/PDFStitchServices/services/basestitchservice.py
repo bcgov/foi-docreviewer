@@ -80,7 +80,6 @@ class basestitchservice:
         finally:
             bytesarray = None
             self.archive = None
-            gc.collect()
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:

@@ -1,2 +1,2 @@
-from .pdfnumberingtest import add_numbering_to_pdf
+from .pdfnumbering import add_numbering_to_pdf
 from .conversion.imagetopdf import convertimagetopdf
