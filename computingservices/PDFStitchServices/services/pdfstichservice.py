@@ -111,6 +111,7 @@ class pdfstitchservice(basestitchservice):
                         del numberedpdfbytes
                     else:
                         filestozip = basestitchservice().uploaddivionalfiles(filename,requestno, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+                        del bytes_stream
                     return self.__getfinaldivisionoutput(stitchedoutput, filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
@@ -131,7 +132,7 @@ class pdfstitchservice(basestitchservice):
                 # process the image bytes
                 imagebytes = convertimagetopdf(raw_bytes_data)
                 pdf_doc = fitz.open(stream=BytesIO(imagebytes))
-                
+                del imagebytes
             else:          
                 print("processing pdf")
                 pdf_doc = fitz.open(stream=BytesIO(raw_bytes_data))
@@ -156,6 +157,7 @@ class pdfstitchservice(basestitchservice):
     
     def __getfinaldivisionoutput(self, stitchedoutput, filestozip):
         formattedfilestozip = self.__formatfilestozip(filestozip)
+        del filestozip
         return {
             "stitchedoutput": stitchedoutput,
             "filestozip": formattedfilestozip
