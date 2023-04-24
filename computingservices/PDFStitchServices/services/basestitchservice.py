@@ -14,8 +14,7 @@ class basestitchservice:
     archive = BytesIO()
     def getdocumentbytearray(self, message, s3credentials):
         try:
-            docbytearray = gets3documentbytearray(message, s3credentials)
-            return docbytearray
+            return gets3documentbytearray(message, s3credentials)
         except(Exception) as error:
             logging.error("error in getting the bytearray")
             logging.error(error)
