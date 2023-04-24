@@ -20,18 +20,18 @@ class pdfstitchservice(basestitchservice):
         total_skippedfilecount, skippedfiles = basestitchservice().getskippedfiledetails(attributes)
         return complete, err, total_skippedfilecount, skippedfiles
 
-    def processmessage(self,_message):
-        recordjobstart(_message)
-        
+    def processmessage(self, _message):        
+        results = []
         category = _message.category.capitalize()
         requestnumber = _message.requestnumber
         bcgovcode = _message.bcgovcode
         attributes = _message.attributes
     
-        s3credentials = getcredentialsbybcgovcode(bcgovcode)
+        
         
         try:
-            results = []
+            recordjobstart(_message)
+            s3credentials = getcredentialsbybcgovcode(bcgovcode)
             # with Pool(len(attributes)) as pool:
             
                 # loop through the atributes (currently divisions)
@@ -52,12 +52,14 @@ class pdfstitchservice(basestitchservice):
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
-    
+        finally:
+            result = []    
+
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
-        stitchedfiles = []
-        skippedfiles = []        
-        writer = fitz.Document()
+        stitchedfiles = skippedfiles = []
+        writer = None
         try: 
+            writer = fitz.Document()
             # process each file in divisional files           
             for file in division.files:
                 # logging.info("filename = %s", file.filename)
@@ -66,18 +68,19 @@ class pdfstitchservice(basestitchservice):
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
-                        docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
+                        #docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
                         print("got bytes from s3 for file: ", file.filename)
-                        writer = self.mergepdf(docbytes, writer, extension.lower(), file.filename)
-                        docbytes=None
-                        del docbytes
+                        #writer = self.mergepdf(docbytes, writer, extension.lower(), file.filename)
+                        with self.getpdfbytes(extension.lower(), file, s3credentials) as pdf_doc:
+                            for page_num, page in enumerate(pdf_doc):
+                                writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
                         stitchedfiles.append(file.filename)
-                    except ValueError as value_error:
-                        errorfilename, errormessage = value_error.args
-                        logging.error(errormessage)
-                        print("errorfilename = ", errorfilename)
-                        skippedfiles.append(errorfilename)
+                    except Exception as exp:
+                        logging.error(exp)
+                        print("errorfilename = ", file.filename)
+                        skippedfiles.append(file.filename)
                         continue
+
             with BytesIO() as bytes_stream:
                 writer.save(bytes_stream)                    
                 bytes_stream.seek(0)
@@ -107,25 +110,25 @@ class pdfstitchservice(basestitchservice):
             if writer:
                 writer.close()
 
-    def mergepdf(self, raw_bytes_data, writer, extension, filename=None):
+    def getpdfbytes(self, extension, file, s3credentials):
+        raw_bytes_data = None        
         try:
+            raw_bytes_data = basestitchservice().getdocumentbytearray(file, s3credentials)
             if extension in ['.png', '.jpg']:
                 print("Processing image...")
                 # Process the image bytes
-                pdf_doc = fitz.open(stream=BytesIO(convertimagetopdf(raw_bytes_data)))
+                _bytes =convertimagetopdf(raw_bytes_data)
             else:
                 print("Processing PDF...")
-                pdf_doc = fitz.open(stream=BytesIO(raw_bytes_data))
-
-            for page_num, page in enumerate(pdf_doc):
-                writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-
-            pdf_doc.close()
-            return writer
+                _bytes = raw_bytes_data
+            return fitz.open(stream=BytesIO(_bytes))
 
         except Exception as e:
-            print(f"Error merging {filename}:", e)
-            raise ValueError(filename, e)
+            print(f"Error merging {file.filename}:", e)
+            raise ValueError(file.filename, e)
+        finally:
+            raw_bytes_data = None
+        
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
