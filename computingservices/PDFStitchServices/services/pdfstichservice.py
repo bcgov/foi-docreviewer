@@ -120,10 +120,6 @@ class pdfstitchservice(basestitchservice):
             print(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
         finally:
-            if _bytes is not None:
-                _bytes.close()
-            if raw_bytes_data is not None:
-                raw_bytes_data.close()
             raw_bytes_data = _bytes = None
         
     
