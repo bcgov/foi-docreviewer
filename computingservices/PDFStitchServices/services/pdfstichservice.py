@@ -79,15 +79,12 @@ class pdfstitchservice(basestitchservice):
                 bytes_stream.seek(0)
 
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
-                numberedpdfbytes = None
                 if numbering_enabled == "True":
                     paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)                        
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
-                    del numberedpdfbytes
+                    with add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext) as numberedpdfbytes:
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
                 else:
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-                    del bytes_stream
                 return self.__getfinaldivisionoutput(
             self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)),
             filestozip
@@ -116,10 +113,6 @@ class pdfstitchservice(basestitchservice):
             print(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
         finally:
-            if _bytes is not None:
-                _bytes.close()
-            if raw_bytes_data is not None:
-                raw_bytes_data.close()
             raw_bytes_data = _bytes = None
         
     
