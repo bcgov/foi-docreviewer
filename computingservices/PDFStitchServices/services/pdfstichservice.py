@@ -12,10 +12,8 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
-from functools import partial
 
 class pdfstitchservice(basestitchservice):
-
 
     def ispdfstitchjobcompleted(self, jobid, category):
         complete, err, attributes = ispdfstichjobcompleted(jobid, category)
@@ -34,10 +32,11 @@ class pdfstitchservice(basestitchservice):
         
         try:
             results = []
-            with Pool(len(attributes)) as pool:
+            # with Pool(len(attributes)) as pool:
             
                 # loop through the atributes (currently divisions)
-                results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
+            results = [self.pdfstitchbasedondivision(requestnumber, s3credentials, bcgovcode, category, division) for division in attributes]
+                # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)            
             result = self.createfinaldocument(finalmessage, s3credentials)
             if result.get("success"):
@@ -60,7 +59,7 @@ class pdfstitchservice(basestitchservice):
         writer = fitz.Document()
         try: 
             # process each file in divisional files           
-            for count, file in enumerate(division.files):
+            for file in division.files:
                 # logging.info("filename = %s", file.filename)
                 print("filename = ", file.filename)
                 _, extension = path.splitext(file.s3uripath)
