@@ -27,8 +27,7 @@ class basestitchservice:
             with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
                 # zip final folders/files
                 for file in _message.outputdocumentpath:
-                    _message = to_json(file)
-                    producermessage = get_in_filepdfmsg(_message)
+                    producermessage = get_in_filepdfmsg(to_json(file))
                     with zip_archive.open(producermessage.filename, 'w') as archivefile:
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
                     #bytesarray = self.zipfiles(s3credentials, files)
