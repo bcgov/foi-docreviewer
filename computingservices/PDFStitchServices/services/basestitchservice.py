@@ -22,7 +22,8 @@ class basestitchservice:
         
     def zipfilesandupload(self, _message, s3credentials):
         bytesarray = None
-        try:    
+        try:
+            print("inside zipfilesandupload")   
             bytesarray = BytesIO()        
             with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
                 # zip final folders/files

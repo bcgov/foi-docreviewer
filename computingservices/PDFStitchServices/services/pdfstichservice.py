@@ -29,9 +29,11 @@ class pdfstitchservice(basestitchservice):
             
                 # loop through the atributes (currently divisions)
             results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
+            print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
             if zip_enabled == "True":
+                print("Zipping final file")
                 result = self.createfinaldocument(finalmessage, s3credentials)
             else:
                 result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
