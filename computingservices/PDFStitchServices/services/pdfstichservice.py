@@ -5,7 +5,7 @@ from commons import add_numbering_to_pdf, convertimagetopdf
 import traceback
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
-from config import numbering_enabled
+from config import numbering_enabled, zip_enabled
 from os import path
 from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
@@ -30,9 +30,11 @@ class pdfstitchservice(basestitchservice):
                 # loop through the atributes (currently divisions)
             results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
-            finalmessage = self.__getfinalmessage(_message, results)            
-            # result = self.createfinaldocument(finalmessage, s3credentials)
-            result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
+            finalmessage = self.__getfinalmessage(_message, results)
+            if zip_enabled == "True":
+                result = self.createfinaldocument(finalmessage, s3credentials)
+            else:
+                result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
