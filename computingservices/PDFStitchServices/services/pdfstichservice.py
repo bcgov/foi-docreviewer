@@ -56,7 +56,7 @@ class pdfstitchservice(basestitchservice):
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = skippedfiles = []
         try: 
-            writer = fitz.Document()
+            writer = fitz.open()
             
             # process each file in divisional files           
             for file in division.files:
@@ -79,10 +79,8 @@ class pdfstitchservice(basestitchservice):
                         continue
             
             with BytesIO() as bytes_stream:
-                writer.save(bytes_stream)
-                if writer:
-                    writer.close()
-                    writer = None                   
+                writer.save(bytes_stream)                
+                writer.close()                                 
                 bytes_stream.seek(0)
 
                 filename = f"{requestnumber} - {category} - {division.divisionname}"

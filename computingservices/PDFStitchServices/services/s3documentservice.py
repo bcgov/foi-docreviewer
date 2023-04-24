@@ -93,3 +93,4 @@ def uploadbytes(filename, filebytes, requestnumber, bcgovcode, s3credentials):
         finally:
             if filebytes:
                 filebytes = None
+            del filebytes
