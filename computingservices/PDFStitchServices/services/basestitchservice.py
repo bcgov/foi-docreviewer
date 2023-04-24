@@ -43,15 +43,12 @@ class basestitchservice:
                 bytesarray.close()
             bytesarray = None
     
-    def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
+    def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
         docobjs = []
         try:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"       
-            with stitchedpdfstream as _stream:
-
-
-            docobj = uploadbytes(filepath, stitchedpdfstream, requestnumber, bcgovcode, s3credentials)
+            docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
             docobjs.append(docobj)
             for file in files:
                 _jsonfile = to_json(file)
