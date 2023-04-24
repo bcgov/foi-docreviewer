@@ -38,7 +38,8 @@ class pdfstitchservice(basestitchservice):
             results = [self.pdfstitchbasedondivision(requestnumber, s3credentials, bcgovcode, category, division) for division in attributes]
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)            
-            result = self.createfinaldocument(finalmessage, s3credentials)
+            # result = self.createfinaldocument(finalmessage, s3credentials)
+            result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
@@ -69,7 +70,6 @@ class pdfstitchservice(basestitchservice):
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         #docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
-                        print("got bytes from s3 for file: ", file.filename)
                         #writer = self.mergepdf(docbytes, writer, extension.lower(), file.filename)
                         with self.getpdfbytes(extension.lower(), file, s3credentials) as pdf_doc:
                             for page_num, page in enumerate(pdf_doc):
@@ -89,7 +89,9 @@ class pdfstitchservice(basestitchservice):
                 numberedpdfbytes = None
                 if numbering_enabled == "True":
                     paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
+                    print("Numbering of stitched PDF")
                     numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)                        
+                    print("Before uploaddivionalfiles")
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
                     del numberedpdfbytes
                 else:
