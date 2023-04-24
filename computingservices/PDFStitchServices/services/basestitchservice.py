@@ -41,6 +41,8 @@ class basestitchservice:
             logging.error(ex)
             raise
         finally:
+            if bytesarray is None:
+                bytesarray.close()
             bytesarray = None
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
