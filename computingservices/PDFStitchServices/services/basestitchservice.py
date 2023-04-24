@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import zipfile
 from os import path
 from utils.basicutils import to_json
-from config import division_stitch_folder_path
+from config import division_stitch_folder_path, zip_enabled
 import logging
 import gc
 
@@ -15,7 +15,6 @@ class basestitchservice:
         try:
             return gets3documentbytearray(message, s3credentials)
         except(Exception) as error:
-            logging.error("error in getting the bytearray")
             logging.error(error)
             raise ValueError(message.filename, error)
     
@@ -44,16 +43,16 @@ class basestitchservice:
                 bytesarray.close()
             bytesarray = None
     
-    def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
+    def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
         docobjs = []
         try:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
-            docobjs = []
-            print("uploading divisional files to s3, filepath: ", filepath)
-            docobj = uploadbytes(filepath, stitchedpdfstream, requestnumber, bcgovcode, s3credentials)
-            print("uploaded divisional files to s3, filepath: ", filepath)
-            docobjs.append(docobj)
+            if zip_enabled == "True":
+                print("uploading divisional files to s3, filepath: ", filepath)
+                docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
+                print("uploaded divisional files to s3, filepath: ", filepath)
+                docobjs.append(docobj)
             for file in files:
                 _jsonfile = to_json(file)
                 _file = get_in_filepdfmsg(_jsonfile)

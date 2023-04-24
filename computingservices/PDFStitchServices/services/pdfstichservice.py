@@ -32,11 +32,11 @@ class pdfstitchservice(basestitchservice):
             print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
-            if zip_enabled == "True":
-                print("Zipping final file")
-                result = self.createfinaldocument(finalmessage, s3credentials)
-            else:
-                result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
+            # if zip_enabled == "True":
+            print("Zipping final file")
+            result = self.createfinaldocument(finalmessage, s3credentials)
+            # else:
+            #     result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
@@ -55,47 +55,44 @@ class pdfstitchservice(basestitchservice):
 
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = skippedfiles = []
-        writer = None
         try: 
-            writer = fitz.Document()
+            with fitz.Document() as writer:
             # process each file in divisional files           
-            for file in division.files:
+                for file in division.files:
                 # logging.info("filename = %s", file.filename)
-                print("filename = ", file.filename)
-                _, extension = path.splitext(file.s3uripath)
-                # stitch only ['.pdf','.png','.jpg']
-                if extension.lower() in ['.pdf','.png','.jpg']:
-                    try:
-                        #docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
-                        #writer = self.mergepdf(docbytes, writer, extension.lower(), file.filename)
-                        with self.getpdfbytes(extension.lower(), file, s3credentials) as pdf_doc:
-                            for page_num, page in enumerate(pdf_doc):
-                                writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        stitchedfiles.append(file.filename)
-                    except Exception as exp:
-                        logging.error(exp)
-                        print("errorfilename = ", file.filename)
-                        skippedfiles.append(file.filename)
-                        continue
+                    print("filename = ", file.filename)
+                    _, extension = path.splitext(file.s3uripath)
+                    # stitch only ['.pdf','.png','.jpg']
+                    if extension.lower() in ['.pdf','.png','.jpg']:
+                        try:
+                            with self.getpdfbytes(extension.lower(), file, s3credentials) as pdf_doc:
+                                for page_num, page in enumerate(pdf_doc):
+                                    writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
+                            pdf_doc = None
+                            stitchedfiles.append(file.filename)
+                        except Exception as exp:
+                            logging.error(exp)
+                            print("errorfilename = ", file.filename)
+                            skippedfiles.append(file.filename)
+                            continue
+                                        
 
-            with BytesIO() as bytes_stream:
-                writer.save(bytes_stream)                    
-                bytes_stream.seek(0)
+                with BytesIO() as bytes_stream:
+                    writer.save(bytes_stream)                    
+                    bytes_stream.seek(0)
 
-                filename = f"{requestnumber} - {category} - {division.divisionname}"
-                if numbering_enabled == "True":
-                    paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                    print("Numbering of stitched PDF")
-                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)                        
-                    print("Before uploaddivionalfiles")
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
-                    del numberedpdfbytes
-                else:
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-                return self.__getfinaldivisionoutput(
-            self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)),
-            filestozip
-        )
+                    filename = f"{requestnumber} - {category} - {division.divisionname}"
+                    if numbering_enabled == "True":
+                        paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
+                        print("Numbering of stitched PDF")
+                        numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
+                        print("Before uploaddivionalfiles")
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                        numberedpdfbytes = None
+                    else:
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+                    return self.__getfinaldivisionoutput(
+                self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
             logging.error(errormessage)
@@ -103,9 +100,6 @@ class pdfstitchservice(basestitchservice):
             logging.error('Error with divisional stitch.')
             logging.error(error)
             raise
-        finally:
-            if writer:
-                writer.close()
 
     def getpdfbytes(self, extension, file, s3credentials):
         raw_bytes_data = _bytes = None        
