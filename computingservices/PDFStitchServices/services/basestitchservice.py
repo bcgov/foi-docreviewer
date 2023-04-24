@@ -22,7 +22,8 @@ class basestitchservice:
         
     def zipfilesandupload(self, _message, s3credentials):
         bytesarray = None
-        try:    
+        try:
+            print("inside zipfilesandupload")   
             bytesarray = BytesIO()        
             with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
                 # zip final folders/files
@@ -44,6 +45,7 @@ class basestitchservice:
             bytesarray = None
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
+        docobjs = []
         try:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
@@ -70,7 +72,6 @@ class basestitchservice:
             raise
 
     def getskippedfiledetails(self, data):
-
         total_skippedfilecount = 0
         total_skippedfiles = []
 

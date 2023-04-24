@@ -8,7 +8,8 @@ def convertimagetopdf(image_bytes):
     try:
         # Create a canvas and set the dimensions to match the image
         #image = 
-        with ImageReader(BytesIO(image_bytes)) as image:
+        with  BytesIO(image_bytes) as imagebytes:
+            image = ImageReader(imagebytes)
             image_width, image_height = image.getSize()
             c_image_width = image_width + 25
             c_image_height = max(image_height + 25, 420)

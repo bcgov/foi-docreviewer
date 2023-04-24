@@ -29,9 +29,11 @@ class pdfstitchservice(basestitchservice):
             
                 # loop through the atributes (currently divisions)
             results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
+            print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
             if zip_enabled == "True":
+                print("Zipping final file")
                 result = self.createfinaldocument(finalmessage, s3credentials)
             else:
                 result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
@@ -81,7 +83,6 @@ class pdfstitchservice(basestitchservice):
                 bytes_stream.seek(0)
 
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
-                numberedpdfbytes = None
                 if numbering_enabled == "True":
                     paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
                     print("Numbering of stitched PDF")
@@ -91,7 +92,6 @@ class pdfstitchservice(basestitchservice):
                     del numberedpdfbytes
                 else:
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-                    del bytes_stream
                 return self.__getfinaldivisionoutput(
             self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)),
             filestozip
@@ -120,10 +120,6 @@ class pdfstitchservice(basestitchservice):
             print(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
         finally:
-            if _bytes is not None:
-                _bytes.close()
-            if raw_bytes_data is not None:
-                raw_bytes_data.close()
             raw_bytes_data = _bytes = None
         
     
