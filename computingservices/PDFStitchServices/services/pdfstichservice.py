@@ -5,7 +5,7 @@ from commons import add_numbering_to_pdf, convertimagetopdf
 import traceback
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
-from config import numbering_enabled
+from config import numbering_enabled, zip_enabled
 from os import path
 from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
@@ -29,9 +29,14 @@ class pdfstitchservice(basestitchservice):
             
                 # loop through the atributes (currently divisions)
             results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
+            print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
-            finalmessage = self.__getfinalmessage(_message, results)            
+            finalmessage = self.__getfinalmessage(_message, results)
+            # if zip_enabled == "True":
+            print("Zipping final file")
             result = self.createfinaldocument(finalmessage, s3credentials)
+            # else:
+            #     result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
@@ -83,14 +88,15 @@ class pdfstitchservice(basestitchservice):
                     filename = f"{requestnumber} - {category} - {division.divisionname}"
                     if numbering_enabled == "True":
                         paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                        with add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext) as numberedpdfbytes:
-                            filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                        print("Numbering of stitched PDF")
+                        numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
+                        print("Before uploaddivionalfiles")
+                        filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                        numberedpdfbytes = None
                     else:
                         filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
                     return self.__getfinaldivisionoutput(
-                self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)),
-                filestozip
-            )
+                self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
             logging.error(errormessage)
