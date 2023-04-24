@@ -22,20 +22,13 @@ class pdfstitchservice(basestitchservice):
 
     def processmessage(self, _message):        
         results = []
-        category = _message.category.capitalize()
-        requestnumber = _message.requestnumber
-        bcgovcode = _message.bcgovcode
-        attributes = _message.attributes
-    
-        
-        
         try:
             recordjobstart(_message)
-            s3credentials = getcredentialsbybcgovcode(bcgovcode)
+            s3credentials = getcredentialsbybcgovcode(_message.bcgovcode)
             # with Pool(len(attributes)) as pool:
             
                 # loop through the atributes (currently divisions)
-            results = [self.pdfstitchbasedondivision(requestnumber, s3credentials, bcgovcode, category, division) for division in attributes]
+            results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)            
             result = self.createfinaldocument(finalmessage, s3credentials)
@@ -111,23 +104,23 @@ class pdfstitchservice(basestitchservice):
                 writer.close()
 
     def getpdfbytes(self, extension, file, s3credentials):
-        raw_bytes_data = None        
+        raw_bytes_data = _bytes = None        
         try:
             raw_bytes_data = basestitchservice().getdocumentbytearray(file, s3credentials)
             if extension in ['.png', '.jpg']:
-                print("Processing image...")
-                # Process the image bytes
                 _bytes =convertimagetopdf(raw_bytes_data)
             else:
-                print("Processing PDF...")
                 _bytes = raw_bytes_data
             return fitz.open(stream=BytesIO(_bytes))
-
         except Exception as e:
             print(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
         finally:
-            raw_bytes_data = None
+            if _bytes is not None:
+                _bytes.close()
+            if raw_bytes_data is not None:
+                raw_bytes_data.close()
+            raw_bytes_data = _bytes = None
         
     
     def createfinaldocument(self, _message, s3credentials):
@@ -140,6 +133,7 @@ class pdfstitchservice(basestitchservice):
             "stitchedoutput": stitchedoutput,
             "filestozip": formattedfilestozip
         }
+    
     def __getdivisionstitchoutput(self, divisionname, stitchedfiles, stichedfilecount, skippedfiles, skippedfilecount):
         return {
             "divisionname": divisionname,
@@ -150,8 +144,7 @@ class pdfstitchservice(basestitchservice):
         }
 
     def __formatfilestozip(self, filestozip):
-        documents = []
-    
+        documents = []    
         for file in filter(None, filestozip):
             document = {
                 "recordid": -1,
@@ -159,27 +152,19 @@ class pdfstitchservice(basestitchservice):
                 "s3uripath": file.get("documentpath"),
                 "lastmodified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
             }
-            documents.append(document)
-        
+            documents.append(document)        
         return documents
     
     def __getfinalmessage(self, _message, results=None):
         stitchedoutput = []
-        filestozip = []
-        
+        filestozip = []        
         if not results:
             finaloutput = {"stitchedoutput": [], "filestozip": []}
         else:
             for result in filter(None, results):
                 stitchedoutput.append(result.get("stitchedoutput"))
-                filestozip.extend(result.get("filestozip"))
-            
-            finaloutput = {"stitchedoutput": stitchedoutput, "filestozip": filestozip}
-        
+                filestozip.extend(result.get("filestozip"))            
+            finaloutput = {"stitchedoutput": stitchedoutput, "filestozip": filestozip}        
         _message.finaloutput = finaloutput
-        _message.outputdocumentpath = filestozip
-        
+        _message.outputdocumentpath = filestozip        
         return _message
-
-
-

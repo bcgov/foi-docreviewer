@@ -36,7 +36,6 @@ class basestitchservice:
                 docobj = uploadbytes(filepath, bytesarray.getbuffer(), _message.requestnumber, _message.bcgovcode, s3credentials)
             return docobj
         except(Exception) as ex:
-            logging.error("error in uploading the zip file")
             logging.error(ex)
             raise
         finally:
