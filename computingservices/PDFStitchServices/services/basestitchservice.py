@@ -11,7 +11,6 @@ import logging
 import gc
 
 class basestitchservice:
-    archive = BytesIO()
     def getdocumentbytearray(self, message, s3credentials):
         try:
             return gets3documentbytearray(message, s3credentials)
@@ -20,65 +19,29 @@ class basestitchservice:
             logging.error(error)
             raise ValueError(message.filename, error)
     
-    def __zipfiles(self, filename, s3credentials, stitchedpdfstream, files):
-
-        with ZipFile(self.archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:
-            # zip stitched pdf first
-            if stitchedpdfstream is not None:
-                with zip_archive.open(filename+'.pdf', 'w') as archivefile:
-                    archivefile.write(stitchedpdfstream)
-            # zip any non pdf files
-            for file in files:
-                _message = to_json(file)
-                producermessage = get_in_filepdfmsg(_message)
-                _, extension = path.splitext(producermessage.s3uripath)
-                if extension not in ['.pdf','.png','jpg']:
-                    with zip_archive.open(producermessage.filename, 'w') as archivefile:                        
-                        # _message = json.dumps({str(key): str(value) for (key, value) in file.items()})
-                        # _message = _message.replace("b'","'").replace("'",'')
-                        # _message = to_json(file)
-                        # producermessage = get_in_filepdfmsg(_message)
-                        archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
-
-        return self.archive.getbuffer()
-    
-    def zipfiles(self, s3credentials, files):
-        try:
-            with ZipFile(self.archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
+        
+    def zipfilesandupload(self, _message, s3credentials):
+        bytesarray = None
+        try:    
+            bytesarray = BytesIO()        
+            with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
                 # zip final folders/files
-                for file in files:
+                for file in _message.outputdocumentpath:
                     _message = to_json(file)
                     producermessage = get_in_filepdfmsg(_message)
                     with zip_archive.open(producermessage.filename, 'w') as archivefile:
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
-            return self.archive.getbuffer()
-        except(Exception) as error:
-            print("Error in zipping the file, error: ", error)
-            raise
-        
-    def zipfilesandupload(self, _message, s3credentials):
-        requestnumber = _message.requestnumber
-        bcgovcode = _message.bcgovcode
-        files = _message.outputdocumentpath
-        category = _message.category
-        bytesarray = None
-        try:            
-            bytesarray = self.zipfiles(s3credentials, files)
-            filepath = self.__getzipfilepath(category, requestnumber)
-            print("zipfilename = ", filepath)
-            docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
+                    #bytesarray = self.zipfiles(s3credentials, files)
+                filepath = self.__getzipfilepath(_message.category, _message.requestnumber)
+                print("zipfilename = ", filepath)
+                docobj = uploadbytes(filepath, bytesarray.getbuffer(), _message.requestnumber, _message.bcgovcode, s3credentials)
             return docobj
-        except(ValueError) as error:
-            errorattachmentobj, errormessage = error.args
-            logging.error(errormessage)
-            return errorattachmentobj
         except(Exception) as ex:
             logging.error("error in uploading the zip file")
             logging.error(ex)
             raise
         finally:
             bytesarray = None
-            self.archive = None
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, stitchedpdfstream, files, divisionname):
         try:

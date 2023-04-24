@@ -121,8 +121,7 @@ class pdfstitchservice(basestitchservice):
             else:
                 print("Processing PDF...")
                 _bytes = raw_bytes_data
-            with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
-                return pdf_doc
+            return fitz.open(stream=BytesIO(_bytes))
 
         except Exception as e:
             print(f"Error merging {file.filename}:", e)
