@@ -21,7 +21,7 @@ class pdfstitchservice(basestitchservice):
         return complete, err, total_skippedfilecount, skippedfiles
 
     def processmessage(self, _message):        
-        results = []
+        result = None
         try:
             recordjobstart(_message)
             s3credentials = getcredentialsbybcgovcode(_message.bcgovcode)
@@ -46,7 +46,7 @@ class pdfstitchservice(basestitchservice):
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
         finally:
-            result = []    
+            result = None  
 
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = skippedfiles = []
@@ -63,10 +63,11 @@ class pdfstitchservice(basestitchservice):
                             #docbytes = basestitchservice().getdocumentbytearray(file, s3credentials)
                             print("got bytes from s3 for file: ", file.filename)
                             #writer = self.mergepdf(docbytes, writer, extension.lower(), file.filename)
-                            with self.getpdfbytes(extension.lower(), file, s3credentials) as pdf_doc:
+                            _bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
+                            with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
                                 for page_num, page in enumerate(pdf_doc):
                                     writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                            pdf_doc = None
+                            pdf_doc = _bytes = None
                             stitchedfiles.append(file.filename)
                         except Exception as exp:
                             logging.error(exp)
@@ -97,24 +98,19 @@ class pdfstitchservice(basestitchservice):
             logging.error('Error with divisional stitch.')
             logging.error(error)
             raise
-        finally:
-            if writer:
-                writer.close()
+        
 
     def getpdfbytes(self, extension, file, s3credentials):
         raw_bytes_data = _bytes = None        
         try:
             raw_bytes_data = basestitchservice().getdocumentbytearray(file, s3credentials)
             if extension in ['.png', '.jpg']:
-                _bytes =convertimagetopdf(raw_bytes_data)
-            else:
-                _bytes = raw_bytes_data
-            return fitz.open(stream=BytesIO(_bytes))
+                return convertimagetopdf(raw_bytes_data)
+            return raw_bytes_data
         except Exception as e:
             print(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
-        finally:
-            raw_bytes_data = _bytes = None
+        
         
     
     def createfinaldocument(self, _message, s3credentials):
