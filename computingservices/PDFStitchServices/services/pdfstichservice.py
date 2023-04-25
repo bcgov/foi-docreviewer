@@ -80,7 +80,6 @@ class pdfstitchservice(basestitchservice):
                             #     writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
                         
                         _bytes.close()
-                        pdf_doc = _bytes = None
                         del _bytes
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
@@ -91,10 +90,14 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             # with BytesIO() as bytes_stream:
-            writer.save(bytes_stream)                
+            writer.save(bytes_stream)  
+            #writer.write(bytes_stream)             
             writer.close()                                 
             # bytes_stream.seek(0)
             filename = f"{requestnumber} - {category} - {division.divisionname}"
+            #numbering_enabled = True
+            #print(numbering_enabled)
+            
             if numbering_enabled == "True":
                 paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
                 print("Numbering of stitched PDF")
@@ -106,7 +109,6 @@ class pdfstitchservice(basestitchservice):
                 filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
             
             bytes_stream.close()
-            del bytes_stream
             return self.__getfinaldivisionoutput(
                 self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
         except ValueError as value_error:
