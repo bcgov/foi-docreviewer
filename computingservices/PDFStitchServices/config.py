@@ -10,6 +10,10 @@ redishost = os.getenv('REDIS_HOST')
 redisport = os.getenv('REDIS_PORT')
 redispassword = os.getenv('REDIS_PASSWORD')
 
+notification_redishost = os.getenv('NOTIFICATION_REDIS_HOST') 
+notification_redisport = os.getenv('NOTIFICATION_REDIS_PORT')
+notification_redispassword = os.getenv('NOTIFICATION_REDIS_PASSWORD')
+
 pdfstitch_db_host = os.getenv('PDFSTITCH_DB_HOST')
 pdfstitch_db_name = os.getenv('PDFSTITCH_DB_NAME')
 pdfstitch_db_port = os.getenv('PDFSTITCH_DB_PORT')
