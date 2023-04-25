@@ -2,6 +2,7 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import landscape, portrait
 from reportlab.lib.utils import ImageReader
+import logging
 
 
 def convertimagetopdf(image_bytes):
@@ -20,5 +21,5 @@ def convertimagetopdf(image_bytes):
                 c.save()
                 return output.getvalue()
     except Exception as e:
-        print("Error in converting image to PDF:", e)
+        logging.info(f"Error in converting image to PDF:{e}")
         raise

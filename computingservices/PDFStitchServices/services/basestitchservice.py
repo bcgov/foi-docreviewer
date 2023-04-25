@@ -45,9 +45,7 @@ class basestitchservice:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
             if zip_enabled == "True":
-                print("uploading divisional files to s3, filepath: ", filepath)
                 docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
-                print("uploaded divisional files to s3, filepath: ", filepath)
                 docobjs.append(docobj)
             for file in files:
                 _jsonfile = to_json(file)

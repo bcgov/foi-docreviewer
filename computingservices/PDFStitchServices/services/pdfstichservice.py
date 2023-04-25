@@ -35,14 +35,9 @@ class pdfstitchservice(basestitchservice):
                 
                 result = self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division)
                 results.append(result)
-            print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
-            # if zip_enabled == "True":
-            print("Zipping final file")
             result = self.createfinaldocument(finalmessage, s3credentials)
-            # else:
-            #     result = {"success": True, "filename": "filename", "documentpath": "s3uri"}
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
@@ -52,7 +47,6 @@ class pdfstitchservice(basestitchservice):
                 logging.error(errormessage)
                 recordjobend(_message, True, finalmessage=finalmessage, message=errormessage) 
         except (Exception) as error:
-            print('error with Thread Pool: ', error)
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
@@ -67,17 +61,18 @@ class pdfstitchservice(basestitchservice):
             
             # process each file in divisional files           
             for file in division.files:
-            # logging.info("filename = %s", file.filename)
-                print("filename = ", file.filename)
+                logging.info("filename = %s", file.filename)                
                 _, extension = path.splitext(file.s3uripath)
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
                         pdf_doc = fitz.open(stream=_bytes)
-                        # with fitz.open(stream=_bytes) as pdf_doc:
-                        writer.insert_pdf(pdf_doc)
-                        pdf_doc.close()                        
+                        if pdf_doc.needs_pass:
+                            raise ValueError("Password-protected PDF document")                            
+                        else:
+                            writer.insert_pdf(pdf_doc)
+                        pdf_doc.close()                     
                         _bytes.close()
                         del pdf_doc
                         del _bytes
@@ -85,7 +80,7 @@ class pdfstitchservice(basestitchservice):
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
                         logging.error(exp)
-                        print("errorfilename = ", file.filename)
+                        logging.info("errorfilename = %s", file.filename)
                         skippedfiles.append(file.filename)
                         continue
             
@@ -97,9 +92,7 @@ class pdfstitchservice(basestitchservice):
             
             if numbering_enabled == "True":
                 paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                print("Numbering of stitched PDF")
                 numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
-                print("Before uploaddivionalfiles")
                 filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
                 numberedpdfbytes = None
             else:
@@ -125,7 +118,7 @@ class pdfstitchservice(basestitchservice):
                 return convertimagetopdf(raw_bytes_data)
             return raw_bytes_data
         except Exception as e:
-            print(f"Error merging {file.filename}:", e)
+            logging.error(f"Error merging {file.filename}:", e)
             raise ValueError(file.filename, e)
         
         

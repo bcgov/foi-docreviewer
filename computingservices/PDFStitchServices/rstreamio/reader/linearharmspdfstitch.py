@@ -47,7 +47,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 # message_id is the random id created to identify the message
                 # message is the actual data passed to the stream 
                 message_id, message = _messages 
-                print(f"processing {message_id}::{message}")
+                logging.info(f"processing {message_id}::{message}")
                 handlemessage(message)                
                 # simulate processing
                 # time.sleep(random.randint(1, 3)) #TODO : todo: remove!

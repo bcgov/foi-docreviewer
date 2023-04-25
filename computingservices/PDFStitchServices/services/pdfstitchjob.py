@@ -81,10 +81,6 @@ def ispdfstichjobcompleted(jobid, category):
                                  )''',(jobid, category))
         
         (joberr, jobcompleted, attributes) = cursor.fetchone()
-        
-        print("joberr == ", joberr)
-        print("jobcompleted == ", jobcompleted)
-        # print("attributes == ", attributes)
         cursor.close()
         return jobcompleted == 1, joberr == 1, attributes
     except(Exception) as error:
