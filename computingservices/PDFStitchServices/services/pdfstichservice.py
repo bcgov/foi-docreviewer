@@ -11,8 +11,8 @@ from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 import logging
-#import fitz
-from pypdf import PdfReader, PdfWriter
+import fitz
+from pypdf import PdfReader, PdfWriter, PdfMerger
 class pdfstitchservice(basestitchservice):
 
     def ispdfstitchjobcompleted(self, jobid, category):
@@ -56,8 +56,8 @@ class pdfstitchservice(basestitchservice):
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = skippedfiles = []
         try: 
-            #writer = fitz.Document()
-            writer = PdfWriter()
+            writer = fitz.open()
+            #writer =  PdfMerger()
             
             # process each file in divisional files           
             for file in division.files:
@@ -67,14 +67,14 @@ class pdfstitchservice(basestitchservice):
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
-                        #_bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        _bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
-                        #with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
+                        _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
+                        #_bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
+                        with fitz.open(stream=_bytes) as pdf_doc:
                             #for page_num, page in enumerate(pdf_doc):
+                            writer.insert_pdf(pdf_doc)
                                 #writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        writer = self.mergepdf(_bytes, writer, extension, file.filename)
-                        #_bytes.close()
-                        pdf_doc = _bytes = None
+                        #writer.append(PdfReader(_bytes))
+                        _bytes.close()
                         del _bytes
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
@@ -85,11 +85,14 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             # with BytesIO() as bytes_stream:
-            #writer.save(bytes_stream)  
-            writer.write(bytes_stream)             
+            writer.save(bytes_stream)  
+            #writer.write(bytes_stream)             
             writer.close()                                 
             # bytes_stream.seek(0)
             filename = f"{requestnumber} - {category} - {division.divisionname}"
+            #numbering_enabled = True
+            #print(numbering_enabled)
+            
             if numbering_enabled == "True":
                 paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
                 print("Numbering of stitched PDF")
@@ -101,7 +104,6 @@ class pdfstitchservice(basestitchservice):
                 filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
             
             bytes_stream.close()
-            del bytes_stream
             return self.__getfinaldivisionoutput(
                 self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
         except ValueError as value_error:
