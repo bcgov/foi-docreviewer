@@ -12,7 +12,7 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
-
+from pypdf import PdfReader, PdfWriter, PdfMerger
 class pdfstitchservice(basestitchservice):
 
     def ispdfstitchjobcompleted(self, jobid, category):
@@ -57,6 +57,7 @@ class pdfstitchservice(basestitchservice):
         stitchedfiles = skippedfiles = []
         try: 
             writer = fitz.open()
+            #writer =  PdfMerger()
             
             # process each file in divisional files           
             for file in division.files:
@@ -66,11 +67,15 @@ class pdfstitchservice(basestitchservice):
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
-                        _bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
-                        with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
-                            for page_num, page in enumerate(pdf_doc):
-                                writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        pdf_doc = _bytes = None
+                        _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
+                        #_bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
+                        with fitz.open(stream=_bytes) as pdf_doc:
+                            #for page_num, page in enumerate(pdf_doc):
+                            writer.insert_pdf(pdf_doc)
+                                #writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
+                        #writer.append(PdfReader(_bytes))
+                        _bytes.close()
+                        del _bytes
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
                         logging.error(exp)
@@ -78,22 +83,28 @@ class pdfstitchservice(basestitchservice):
                         skippedfiles.append(file.filename)
                         continue
             
-            with BytesIO() as bytes_stream:
-                writer.save(bytes_stream)                
-                writer.close()                                 
-                bytes_stream.seek(0)
-
-                filename = f"{requestnumber} - {category} - {division.divisionname}"
-                if numbering_enabled == "True":
-                    paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                    print("Numbering of stitched PDF")
-                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
-                    print("Before uploaddivionalfiles")
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
-                    numberedpdfbytes = None
-                else:
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-                return self.__getfinaldivisionoutput(
+            bytes_stream = BytesIO()
+            # with BytesIO() as bytes_stream:
+            writer.save(bytes_stream)  
+            #writer.write(bytes_stream)             
+            writer.close()                                 
+            # bytes_stream.seek(0)
+            filename = f"{requestnumber} - {category} - {division.divisionname}"
+            #numbering_enabled = True
+            #print(numbering_enabled)
+            
+            if numbering_enabled == "True":
+                paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
+                print("Numbering of stitched PDF")
+                numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
+                print("Before uploaddivionalfiles")
+                filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                numberedpdfbytes = None
+            else:
+                filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+            
+            bytes_stream.close()
+            return self.__getfinaldivisionoutput(
                 self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
         except ValueError as value_error:
             errorattribute, errormessage = value_error.args
