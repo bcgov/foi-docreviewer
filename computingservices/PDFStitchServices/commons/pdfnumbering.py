@@ -50,6 +50,6 @@ def add_numbering_to_pdf(original_pdf, paginationtext="") -> bytes:
     finally:
         if doc:
             doc.close()
-        if output_buffer:
+        if doc:
             output_buffer.close()
         original_pdf = None
