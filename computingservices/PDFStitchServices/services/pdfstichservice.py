@@ -86,7 +86,6 @@ class pdfstitchservice(basestitchservice):
             writer.save(bytes_stream)                
             writer.close()                                 
             # bytes_stream.seek(0)
-
             filename = f"{requestnumber} - {category} - {division.divisionname}"
             if numbering_enabled == "True":
                 paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
