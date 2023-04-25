@@ -68,7 +68,11 @@ class pdfstitchservice(basestitchservice):
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
                         pdf_doc = fitz.open(stream=_bytes)
-                        writer.insert_pdf(pdf_doc)
+                        # writer.insert_pdf(pdf_doc)
+                        if pdf_doc.needs_pass:
+                            raise ValueError("Password-protected PDF document")                            
+                        else:
+                            writer.insert_pdf(pdf_doc)
                         pdf_doc.close()                     
                         _bytes.close()
                         del pdf_doc

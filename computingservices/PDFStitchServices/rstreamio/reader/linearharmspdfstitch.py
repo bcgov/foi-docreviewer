@@ -11,7 +11,7 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb
-from config import division_pdf_stitch_stream_key, error_flag
+from config import division_pdf_stitch_stream_key, error_flag, zip_enabled
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
@@ -66,8 +66,8 @@ def handlemessage(message):
 
             producermessage = get_in_divisionpdfmsg(_message)            
             pdfstitchservice().processmessage(producermessage)
-
-            # send notification for both success and error cases       
-            notificationservice().sendnotification(producermessage)
+            if zip_enabled == "True":
+                # send notification for both success and error cases       
+                notificationservice().sendnotification(producermessage)
         except(Exception) as error:
             logging.exception(error)
