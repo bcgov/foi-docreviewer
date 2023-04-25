@@ -26,6 +26,8 @@ class redisstreamwriter:
         except RuntimeError as error:
             logging.error("Unable to write to notification stream for pdfstitch | ministryrequestid=%i", message.ministryrequestid)
             logging.error(error)
+        except Exception as error:
+            print("error during the notification: ", error)
 
     def __booltostr(self, value):
         return "YES" if value == True else "NO"
