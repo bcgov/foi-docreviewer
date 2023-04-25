@@ -11,8 +11,8 @@ from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
 from datetime import datetime
 import logging
-import fitz
-
+#import fitz
+from pypdf import PdfReader, PdfWriter
 class pdfstitchservice(basestitchservice):
 
     def ispdfstitchjobcompleted(self, jobid, category):
@@ -56,7 +56,8 @@ class pdfstitchservice(basestitchservice):
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = skippedfiles = []
         try: 
-            writer = fitz.Document()
+            #writer = fitz.Document()
+            writer = PdfWriter()
             
             # process each file in divisional files           
             for file in division.files:
@@ -66,12 +67,13 @@ class pdfstitchservice(basestitchservice):
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
-                        _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
-                            for page_num, page in enumerate(pdf_doc):
-                                writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        
-                        _bytes.close()
+                        #_bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
+                        _bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
+                        #with fitz.open(stream=BytesIO(_bytes)) as pdf_doc:
+                            #for page_num, page in enumerate(pdf_doc):
+                                #writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
+                        writer = self.mergepdf(_bytes, writer, extension, file.filename)
+                        #_bytes.close()
                         pdf_doc = _bytes = None
                         del _bytes
                         stitchedfiles.append(file.filename)
@@ -83,7 +85,8 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             # with BytesIO() as bytes_stream:
-            writer.save(bytes_stream)                
+            #writer.save(bytes_stream)  
+            writer.write(bytes_stream)             
             writer.close()                                 
             # bytes_stream.seek(0)
             filename = f"{requestnumber} - {category} - {division.divisionname}"
