@@ -74,13 +74,14 @@ class pdfstitchservice(basestitchservice):
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        with fitz.open(stream=_bytes) as pdf_doc:
-                            writer.insert_pdf(pdf_doc)
-                            # for page_num, page in enumerate(pdf_doc):
-                            #     writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        
+                        pdf_doc = fitz.open(stream=_bytes)
+                        # with fitz.open(stream=_bytes) as pdf_doc:
+                        writer.insert_pdf(pdf_doc)
+                        pdf_doc.close()                        
                         _bytes.close()
+                        del pdf_doc
                         del _bytes
+                        
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
                         logging.error(exp)
@@ -89,14 +90,10 @@ class pdfstitchservice(basestitchservice):
                         continue
             
             bytes_stream = BytesIO()
-            # with BytesIO() as bytes_stream:
-            writer.save(bytes_stream)  
-            #writer.write(bytes_stream)             
-            writer.close()                                 
-            # bytes_stream.seek(0)
+            writer.save(bytes_stream)
+            writer.close()
+            del writer
             filename = f"{requestnumber} - {category} - {division.divisionname}"
-            #numbering_enabled = True
-            #print(numbering_enabled)
             
             if numbering_enabled == "True":
                 paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"

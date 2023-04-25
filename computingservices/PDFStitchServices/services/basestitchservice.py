@@ -19,37 +19,25 @@ class basestitchservice:
             raise ValueError(message.filename, error)
     
         
-    def zipfiles(self, s3credentials, files):
-        archive = BytesIO()
-
-        with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
-            # zip final folders/files
-            for file in files:
-                _message = to_json(file)
-                producermessage = get_in_filepdfmsg(_message)
-                with zip_archive.open(producermessage.filename, 'w') as archivefile:
-                    archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
-        return archive.getbuffer()
-        
     def zipfilesandupload(self, _message, s3credentials):
-        requestnumber = _message.requestnumber
-        bcgovcode = _message.bcgovcode
-        files = _message.outputdocumentpath
-        category = _message.category
-        try:            
-            bytesarray = self.zipfiles(s3credentials, files)
-            filepath = self.__getzipfilepath(category, requestnumber)
+        archive = BytesIO()
+        try:
+            with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zip_archive:           
+            # zip final folders/files
+                for file in _message.outputdocumentpath:
+                    producermessage = get_in_filepdfmsg(to_json(file))
+                    with zip_archive.open(producermessage.filename, 'w') as archivefile:
+                        archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
+            filepath = self.__getzipfilepath(_message.category, _message.requestnumber)
             logging.info("zipfilename = %s", filepath)
-            docobj = uploadbytes(filepath, bytesarray, requestnumber, bcgovcode, s3credentials)
+            docobj = uploadbytes(filepath, archive.getbuffer(), _message.requestnumber, _message.bcgovcode, s3credentials)
             return docobj
-        except(ValueError) as error:
-            errorattachmentobj, errormessage = error.args
-            logging.error(errormessage)
-            return errorattachmentobj
         except(Exception) as ex:
             logging.error("error in writing the bytearray")
             logging.error(ex)
             raise
+        finally:
+            archive.close()
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
         docobjs = []
