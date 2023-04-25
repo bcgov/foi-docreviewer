@@ -30,7 +30,7 @@ division_blob_stitch_stream_key = os.getenv('DIVISION_BLOB_STITCH_STREAM_KEY')
 division_stitch_folder_path = os.getenv('DIVISION_STITCH_FOLDER_PATH')
 error_flag = os.getenv('ERROR_FLAG')
 
-pdfstitch_failureattempt = os.getenv('PDF_STITCH_FAILUREATTEMPT')
+pdfstitch_failureattempt = os.getenv('PDF_STITCH_FAILUREATTEMPT', 3)
 
 numbering_enabled = os.getenv('NUMBERING_ENABLED')
 zip_enabled = os.getenv('ZIP_ENABLED')
