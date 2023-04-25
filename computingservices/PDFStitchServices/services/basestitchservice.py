@@ -24,7 +24,7 @@ class basestitchservice:
         try:
             print("inside zipfilesandupload")   
             bytesarray = BytesIO()        
-            with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED) as zip_archive:           
+            with ZipFile(bytesarray, 'w', zipfile.ZIP_DEFLATED, compresslevel=5) as zip_archive:           
                 # zip final folders/files
                 for file in _message.outputdocumentpath:
                     producermessage = get_in_filepdfmsg(to_json(file))
