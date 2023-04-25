@@ -21,11 +21,10 @@ def getcredentialsbybcgovcode(bcgovcode):
             s3cred = gets3credentialsobject(str(attributes[0]))
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        logging.error(error)
     finally:
         if _conn is not None:
-            _conn.close()
-            print('Database connection closed.') 
+            _conn.close() 
 
     return s3cred
 
@@ -50,7 +49,6 @@ def gets3documentbytearray(producermessage, s3credentials):
                 logging.error("Error in connecting S3.")
                 logging.error(ex)
                 raise
-            print("s3retry = ", retry)
             retry += 1
             continue
 
@@ -87,7 +85,8 @@ def uploadbytes(filename, filebytes, requestnumber, bcgovcode, s3credentials):
                 logging.error(ex)
                 attachmentobj = {"success": False, "filename": filename, "documentpath": None}
                 raise ValueError(attachmentobj, ex)
-            print("uploadbytes s3retry = ", retry)
+            logging.info(f"uploadbytes s3retry = {retry}")
+            
             retry += 1
             continue
         finally:
