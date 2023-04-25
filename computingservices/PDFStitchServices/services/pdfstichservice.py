@@ -12,7 +12,7 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
-from pypdf import PdfReader, PdfWriter, PdfMerger
+
 class pdfstitchservice(basestitchservice):
 
     def ispdfstitchjobcompleted(self, jobid, category):
@@ -22,13 +22,19 @@ class pdfstitchservice(basestitchservice):
 
     def processmessage(self, _message):        
         result = None
+        results = []
         try:
             recordjobstart(_message)
             s3credentials = getcredentialsbybcgovcode(_message.bcgovcode)
             # with Pool(len(attributes)) as pool:
             
                 # loop through the atributes (currently divisions)
-            results = [self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division) for division in _message.attributes]
+            for division in _message.attributes:
+                
+                logging.info("division = %s", division.divisionname)
+                
+                result = self.pdfstitchbasedondivision(_message.requestnumber, s3credentials, _message.bcgovcode, _message.category.capitalize(), division)
+                results.append(result)
             print("stitching and divisional file upload completed")
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
@@ -54,10 +60,10 @@ class pdfstitchservice(basestitchservice):
             result = None  
 
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
-        stitchedfiles = skippedfiles = []
+        stitchedfiles = []
+        skippedfiles = []
         try: 
             writer = fitz.open()
-            #writer =  PdfMerger()
             
             # process each file in divisional files           
             for file in division.files:
@@ -68,12 +74,11 @@ class pdfstitchservice(basestitchservice):
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        #_bytes = self.getpdfbytes(extension.lower(), file, s3credentials)
                         with fitz.open(stream=_bytes) as pdf_doc:
-                            #for page_num, page in enumerate(pdf_doc):
                             writer.insert_pdf(pdf_doc)
-                                #writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
-                        #writer.append(PdfReader(_bytes))
+                            # for page_num, page in enumerate(pdf_doc):
+                            #     writer.insert_pdf(pdf_doc, from_page=page_num, to_page=page_num)
+                        
                         _bytes.close()
                         del _bytes
                         stitchedfiles.append(file.filename)
@@ -116,7 +121,7 @@ class pdfstitchservice(basestitchservice):
         
 
     def getpdfbytes(self, extension, file, s3credentials):
-        raw_bytes_data = _bytes = None        
+        raw_bytes_data = None        
         try:
             raw_bytes_data = basestitchservice().getdocumentbytearray(file, s3credentials)
             if extension in ['.png', '.jpg']:
@@ -162,14 +167,17 @@ class pdfstitchservice(basestitchservice):
     
     def __getfinalmessage(self, _message, results=None):
         stitchedoutput = []
-        filestozip = []        
-        if not results:
-            finaloutput = {"stitchedoutput": [], "filestozip": []}
-        else:
-            for result in filter(None, results):
-                stitchedoutput.append(result.get("stitchedoutput"))
-                filestozip.extend(result.get("filestozip"))            
-            finaloutput = {"stitchedoutput": stitchedoutput, "filestozip": filestozip}        
-        _message.finaloutput = finaloutput
-        _message.outputdocumentpath = filestozip        
+        filestozip = []
+        
+        if results:
+            for result in results:
+                if result is not None:
+                    stitchedoutput.append(result.get("stitchedoutput"))
+                    filestozip += result.get("filestozip")
+        finaloutput = {
+            "stitchedoutput": stitchedoutput,
+            "filestozip": filestozip
+        }
+        setattr(_message, "finaloutput", finaloutput)
+        setattr(_message, "outputdocumentpath", filestozip)
         return _message
