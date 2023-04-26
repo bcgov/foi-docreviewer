@@ -11,13 +11,13 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb, redisstreamdbwithparam
-from config import division_pdf_stitch_stream_key, error_flag, notification_enabled, zip_enabled
+from config import division_pdf_stitch_stream_key, error_flag, notification_enabled, zip_enabled, message_block_time
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
 
 LAST_ID_KEY = "{consumer_id}:lastid"
-BLOCK_TIME = 5000
+BLOCK_TIME = message_block_time
 STREAM_KEY = division_pdf_stitch_stream_key
 
 app = typer.Typer()
