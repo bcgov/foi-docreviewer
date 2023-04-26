@@ -40,13 +40,15 @@ class basestitchservice:
             archive.close()
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
+        
         docobjs = []
         try:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
-            if zip_enabled == "True":
-                docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
-                docobjs.append(docobj)
+            print("<<<< uploading divisional stitched file >>>>> filepath = ", filepath)
+            docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
+            docobjs.append(docobj)
+            print("<<<< uploaded divisional stitched file >>>>> ")
             for file in files:
                 _jsonfile = to_json(file)
                 _file = get_in_filepdfmsg(_jsonfile)

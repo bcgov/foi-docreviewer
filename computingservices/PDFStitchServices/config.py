@@ -39,4 +39,5 @@ pdfstitch_failureattempt = os.getenv('PDF_STITCH_FAILUREATTEMPT', 3)
 numbering_enabled = os.getenv('NUMBERING_ENABLED')
 zip_enabled = os.getenv('ZIP_ENABLED')
 
+notification_enabled = os.getenv('NOTIFICATION_ENABLED')
 
