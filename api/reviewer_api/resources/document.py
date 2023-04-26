@@ -43,6 +43,7 @@ class GetDedupeStatus(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try:
             payload = request.get_json()
