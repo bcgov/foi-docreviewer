@@ -1,6 +1,6 @@
 import logging
-from utils import notifcationstreamdb
-from config import notification_stream_key, pdfstitch_failureattempt
+from utils import notifcationstreamdb, notifcationstreamdbwithparam
+from config import notification_stream_key, pdfstitch_failureattempt, zip_enabled
 from rstreamio.message.schemas.notification import NotificationPublishSchema
 
 
@@ -8,7 +8,11 @@ import json
 
 class redisstreamwriter:
     max_retry_attempt = int(pdfstitch_failureattempt)
-    rdb = notifcationstreamdb
+    if zip_enabled == "True":
+        rdb = notifcationstreamdbwithparam
+    else:
+        rdb = notifcationstreamdb
+    
     notificationstream = rdb.Stream(notification_stream_key)
 
     def sendnotification(self, message, error=False, totalskippedfilecount=0, totalskippedfiles=[]):

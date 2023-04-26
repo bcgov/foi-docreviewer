@@ -10,8 +10,8 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb
-from config import division_pdf_stitch_stream_key, error_flag, notification_enabled
+from utils import redisstreamdb, redisstreamdbwithparam
+from config import division_pdf_stitch_stream_key, error_flag, notification_enabled, zip_enabled
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
@@ -29,7 +29,11 @@ class StartFrom(str, Enum):
 @app.command()
 def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     try:
-        rdb = redisstreamdb
+        if zip_enabled == "True":
+            rdb = redisstreamdbwithparam
+        else:
+            rdb = redisstreamdb
+
         stream = rdb.Stream(STREAM_KEY)
         last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
         if last_id:
@@ -48,15 +52,16 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     message_id, message = _messages 
                     logging.info(f"processing {message_id}::{message}")
                     print(f"processing {message_id}::{message}")
-                    handlemessage(message)
-                    # simulate processing
-                    time.sleep(random.randint(1, 3)) #TODO : todo: remove!
-                    
+
+                    handlemessage(message)                    
+                    print(f"{message_id} has been processed...")
                     last_id = message_id
                     rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                     logging.info(f"finished processing {message_id}")
-                    print(f"finished processing {message_id}")
-                    stream.delete(message_id)                
+                    print(f"finished processing {message_id}")                    
+                    stream.delete(message_id)
+                    # simulate processing
+                    time.sleep(random.randint(1, 3)) #TODO : todo: remove!             
             else:
                 logging.info(f"No new messages after ID: {last_id}")
 
@@ -75,9 +80,10 @@ def handlemessage(message):
                 print("this job is completed!")
                 return
             else:
-                pdfstitchservice().processmessage(producermessage)            
+                pdfstitchservice().processmessage(producermessage)
+                print("Process message completed.")            
                 if notification_enabled == "True":
-                    print("Message has been processed, Starting to send the notification")
+                    print("Starting to send the notification")
                     notificationservice().sendnotification(producermessage)
         except(Exception) as error:
             logging.exception(error)
