@@ -50,7 +50,8 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     print(f"processing {message_id}::{message}")
                     handlemessage(message)
                     # simulate processing
-                    # time.sleep(random.randint(1, 3)) #TODO : todo: remove!
+                    time.sleep(random.randint(1, 3)) #TODO : todo: remove!
+                    
                     last_id = message_id
                     rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                     logging.info(f"finished processing {message_id}")
@@ -68,11 +69,15 @@ def handlemessage(message):
         _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for key, value in message.items()})
         _message = _message.replace("b'","'").replace("'",'')
         try:
-
-            producermessage = get_in_divisionpdfmsg(_message)            
-            pdfstitchservice().processmessage(producermessage)
-            print("Message has been processed, Starting to send the notification")
-            if notification_enabled == "True":
-                notificationservice().sendnotification(producermessage)
+            producermessage = get_in_divisionpdfmsg(_message)
+            complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+            if complete or err:
+                print("this job is completed!")
+                return
+            else:
+                pdfstitchservice().processmessage(producermessage)            
+                if notification_enabled == "True":
+                    print("Message has been processed, Starting to send the notification")
+                    notificationservice().sendnotification(producermessage)
         except(Exception) as error:
             logging.exception(error)
