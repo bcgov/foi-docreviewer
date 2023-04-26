@@ -19,7 +19,7 @@ from flask import request
 from reviewer_api.auth import auth
 
 from reviewer_api.tracer import Tracer
-from reviewer_api.utils.util import  cors_preflight, allowedorigins
+from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 
 from reviewer_api.services.sectionservice import sectionservice
@@ -37,6 +37,7 @@ class GetSections(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get():
         try:
             data = sectionservice().getsections()
