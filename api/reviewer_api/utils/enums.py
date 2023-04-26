@@ -42,18 +42,20 @@ class MinistryTeamWithKeycloackGroup(Enum):
     EAO = "EAO Ministry Team"
     EDU = "EDU Ministry Team"
     EMBC = "EMBC Ministry Team"
+    EMC = "EMC Ministry Team"
     EMLI = "EMLI Ministry Team"
     ENV = "ENV Ministry Team"
     FIN = "FIN Ministry Team"
     FOR = "FOR Ministry Team"
     GCPE = "GCPE Ministry Team"
-    HLTH = "HLTH Ministry Team"
+    HTH = "HTH Ministry Team"
     IIO = "IIO Ministry Team"
     IRR = "IRR Ministry Team"
     JERI = "JERI Ministry Team"
     LBR = "LBR Ministry Team"
     LDB = "LDB Ministry Team"
     LWR = "LWR Ministry Team"
+    WLR = "WLR Ministry Team"
     MCF = "MCF Ministry Team"
     MGC = "MGC Ministry Team"
     MMHA = "MMHA Ministry Team"
@@ -67,6 +69,11 @@ class MinistryTeamWithKeycloackGroup(Enum):
     TACS = "TACS Ministry Team"
     TIC = "TIC Ministry Team"
     TRAN = "TRAN Ministry Team"
+    PSE = "PSE Ministry Team"
+    ECC = "ECC Ministry Team"
+    JED = "JED Ministry Team"
+    COR = "COR Ministry Team"
+    HSG = "HSG Ministry Team"
 
     @staticmethod
     def list():
@@ -74,12 +81,17 @@ class MinistryTeamWithKeycloackGroup(Enum):
 
 class ProcessingTeamWithKeycloackGroup(Enum):
     scanningteam = "Scanning Team"
-    businessteam = "Business Team"
     centralteam = "Central Team"
     justicehealthteam = "Justice Health Team"
     mcfdpersonalteam = "MCFD Personals Team"
     resouceteam = "Resource Team"
     socialtechteam = "Social Education"
+    centraleconteam = "Central and Economy Team"
+    resourcejusticeteam = "Resource and Justice Team"
+    communityhealthteam = "Community and Health Team"
+    childrenfamilyteam = "Children and Family Team"
+    childreneducationteam = "Children and Education Team"
+    coordinatedresponseunit = "Coordinated Response Unit"
 
     @staticmethod
     def list():

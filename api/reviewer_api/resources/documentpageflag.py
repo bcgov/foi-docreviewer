@@ -38,6 +38,7 @@ class SaveDocumentPageflag(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def post(requestid, documentid, documentversion):
         try:
             payload = request.get_json()
@@ -58,6 +59,7 @@ class GetDocumentPageflag(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, documentid, documentversion):
         try:
             result = documentpageflagservice().getdocumentpageflags(requestid, documentid, documentversion)
@@ -77,6 +79,7 @@ class GetDocumentPageflag(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
             result = documentpageflagservice().getpageflags(requestid)

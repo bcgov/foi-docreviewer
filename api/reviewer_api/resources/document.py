@@ -43,6 +43,7 @@ class GetDedupeStatus(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try:
             payload = request.get_json()
@@ -63,6 +64,7 @@ class GetDocuments(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
             response = requests.request(
