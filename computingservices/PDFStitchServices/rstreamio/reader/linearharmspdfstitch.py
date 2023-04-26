@@ -17,7 +17,7 @@ from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
 
 LAST_ID_KEY = "{consumer_id}:lastid"
-BLOCK_TIME = message_block_time
+BLOCK_TIME = int(message_block_time)
 STREAM_KEY = division_pdf_stitch_stream_key
 
 app = typer.Typer()
