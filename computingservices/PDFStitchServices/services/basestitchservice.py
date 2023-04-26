@@ -24,12 +24,14 @@ class basestitchservice:
         try:
             with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zip_archive:           
             # zip final folders/files
-                for file in _message.outputdocumentpath:
+                for file in _message.outputdocumentpath:                    
                     producermessage = get_in_filepdfmsg(to_json(file))
+                    print("file name before zipping = ", producermessage.filename)
                     with zip_archive.open(producermessage.filename, 'w') as archivefile:
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
             filepath = self.__getzipfilepath(_message.category, _message.requestnumber)
             logging.info("zipfilename = %s", filepath)
+            print("zipfilename = ", filepath)
             docobj = uploadbytes(filepath, archive.getbuffer(), _message.requestnumber, _message.bcgovcode, s3credentials)
             return docobj
         except(Exception) as ex:

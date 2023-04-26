@@ -39,7 +39,9 @@ class pdfstitchservice(basestitchservice):
                 results.append(result)
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
+            print("<<< Start Zipping >>>>> ")
             result = self.createfinaldocument(finalmessage, s3credentials)
+            print("<<< End Zipping >>>>> ")
             if result.get("success"):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
@@ -81,12 +83,12 @@ class pdfstitchservice(basestitchservice):
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        pdf_doc = fitz.open(stream=_bytes)
-                        # writer.insert_pdf(pdf_doc)
+                        pdf_doc = fitz.open(stream=_bytes)                        
                         if pdf_doc.needs_pass:
                             raise ValueError("Password-protected PDF document")                            
                         else:
                             writer.insert_pdf(pdf_doc)
+                        print("pagecount = ", pdf_doc.page_count)
                         pdf_doc.close()                     
                         _bytes.close()
                         del pdf_doc
@@ -120,12 +122,12 @@ class pdfstitchservice(basestitchservice):
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
                     filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
                     
-                    bytes_stream.close()
-                    return self.__getfinaldivisionoutput(filestozip,
+                bytes_stream.close()
+                return self.__getfinaldivisionoutput(filestozip,
                         self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)))
             else:
                 filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files)
-                return self.__getfinaldivisionoutput(filestozip)
+                return self.__getfinaldivisionoutput(filestozip, None)
         except(Exception) as error:
             logging.error('Error with divisional stitch.')
             logging.error(error)
@@ -147,10 +149,11 @@ class pdfstitchservice(basestitchservice):
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
+            print("<<< zipfilesandupload >>> ")
             return basestitchservice().zipfilesandupload(_message, s3credentials)
         return {"success": False, "filename": "", "documentpath": ""}
     
-    def __getfinaldivisionoutput(self, filestozip=None, stitchedoutput=None):
+    def __getfinaldivisionoutput(self, filestozip, stitchedoutput):
         formattedfilestozip = self.__formatfilestozip(filestozip)
         return {
             "stitchedoutput": stitchedoutput,
