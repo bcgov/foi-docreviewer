@@ -12,6 +12,7 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
+from services.notificationservice import notificationservice
 
 class pdfstitchservice(basestitchservice):
 
@@ -46,12 +47,16 @@ class pdfstitchservice(basestitchservice):
                 errormessage = "Error in uploading the final document %s", result.get("filename")
                 logging.error(errormessage)
                 recordjobend(_message, True, finalmessage=finalmessage, message=errormessage) 
+                notificationservice().sendnotification(_message)
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
+            print(error)
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
+            notificationservice().sendnotification(_message)
         finally:
             result = None  
+            
 
     def pdfstitchbasedondivision(self, requestnumber, s3credentials, bcgovcode, category, division):
         stitchedfiles = []

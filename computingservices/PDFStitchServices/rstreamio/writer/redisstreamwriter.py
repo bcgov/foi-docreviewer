@@ -30,7 +30,7 @@ class redisstreamwriter:
             if retry < self.max_retry_attempt:
                 self.sendnotification(message, error, totalskippedfilecount, totalskippedfiles, retry + 1)
             else:
-                print("Exceeded retry attempts for notification | ministryrequestid=%i", message.ministryrequestid)
+                print("Exceeded retry attempts for notification | ministryrequestid=%s", str(message.ministryrequestid))
 
     def __booltostr(self, value):
         return "YES" if value == True else "NO"
