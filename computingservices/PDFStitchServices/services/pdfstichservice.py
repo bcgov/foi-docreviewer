@@ -105,23 +105,27 @@ class pdfstitchservice(basestitchservice):
                 writer.save(bytes_stream)
                 writer.close()
                 del writer
+            
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
-                
+                    
                 if numbering_enabled == "True":
                     paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
                     print("<<<< Numbering started >>>>")
                     numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
                     print("<<<< Numbering finished >>>>")
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                    filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
                     numberedpdfbytes = None
                 else:
                     filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-                
-                bytes_stream.close()
-                return self.__getfinaldivisionoutput(
-                    self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
+                    filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
+                    
+                    bytes_stream.close()
+                    return self.__getfinaldivisionoutput(filestozip,
+                        self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)))
             else:
-                return self.__getfinaldivisionoutput()
+                filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files)
+                return self.__getfinaldivisionoutput(filestozip)
         except(Exception) as error:
             logging.error('Error with divisional stitch.')
             logging.error(error)
@@ -146,7 +150,7 @@ class pdfstitchservice(basestitchservice):
             return basestitchservice().zipfilesandupload(_message, s3credentials)
         return {"success": False, "filename": "", "documentpath": ""}
     
-    def __getfinaldivisionoutput(self, stitchedoutput=None, filestozip=None):
+    def __getfinaldivisionoutput(self, filestozip=None, stitchedoutput=None):
         formattedfilestozip = self.__formatfilestozip(filestozip)
         return {
             "stitchedoutput": stitchedoutput,

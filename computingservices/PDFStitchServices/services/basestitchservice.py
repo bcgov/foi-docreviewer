@@ -49,13 +49,14 @@ class basestitchservice:
             docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
             docobjs.append(docobj)
             print("<<<< uploaded divisional stitched file >>>>> ")
-            for file in files:
-                _jsonfile = to_json(file)
-                _file = get_in_filepdfmsg(_jsonfile)
-                _, extension = path.splitext(_file.s3uripath)
-                if extension.lower() not in ['.pdf','.png','.jpg']:
-                    incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
-                    docobjs.append(incompatabledocobj)
+            print("<<< Getting incompatable file paths >>>")
+            # for file in files:
+            #     _jsonfile = to_json(file)
+            #     _file = get_in_filepdfmsg(_jsonfile)
+            #     _, extension = path.splitext(_file.s3uripath)
+            #     if extension.lower() not in ['.pdf','.png','.jpg']:
+            #         incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
+            #         docobjs.append(incompatabledocobj)
             return docobjs
         except(ValueError) as error:
             errorattachmentobj, errormessage = error.args
@@ -66,6 +67,19 @@ class basestitchservice:
             logging.error(ex)
             raise
 
+    def getincompatablefilepaths(self, divisionname, files, docobjs=None):
+        if not docobjs:
+            docobjs = []
+        
+        for file in files:
+            _jsonfile = to_json(file)
+            _file = get_in_filepdfmsg(_jsonfile)
+            _, extension = path.splitext(_file.s3uripath)
+            if extension.lower() not in ['.pdf','.png','.jpg']:
+                incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
+                docobjs.append(incompatabledocobj)
+        return docobjs
+    
     def getskippedfiledetails(self, data):
         total_skippedfilecount = 0
         total_skippedfiles = []
