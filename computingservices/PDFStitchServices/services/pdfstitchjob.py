@@ -81,9 +81,13 @@ def ispdfstichjobcompleted(jobid, category):
                             GROUP BY sq.outputfiles
                                  )''',(jobid, category))
         
-        (joberr, jobcompleted, attributes) = cursor.fetchone()
+        result = cursor.fetchone()
         cursor.close()
-        return jobcompleted == 1, joberr == 1, attributes
+        if result is not None:
+            (joberr, jobcompleted, attributes) = result
+            return jobcompleted == 1, joberr == 1, attributes
+        return False, False, None
+        
     except(Exception) as error:
         logging.error("Error in getting the complete job status")
         logging.error(error)

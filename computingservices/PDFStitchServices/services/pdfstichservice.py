@@ -17,8 +17,11 @@ import fitz
 class pdfstitchservice(basestitchservice):
 
     def ispdfstitchjobcompleted(self, jobid, category):
+        total_skippedfilecount = 0
+        skippedfiles = None
         complete, err, attributes = ispdfstichjobcompleted(jobid, category)
-        total_skippedfilecount, skippedfiles = basestitchservice().getskippedfiledetails(attributes)
+        if attributes:
+            total_skippedfilecount, skippedfiles = basestitchservice().getskippedfiledetails(attributes)
         return complete, err, total_skippedfilecount, skippedfiles
 
     def processmessage(self, _message):        
