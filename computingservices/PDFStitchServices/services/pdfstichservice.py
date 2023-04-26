@@ -43,17 +43,21 @@ class pdfstitchservice(basestitchservice):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
+                complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+                notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
             else:
                 errormessage = "Error in uploading the final document %s", result.get("filename")
                 logging.error(errormessage)
                 recordjobend(_message, True, finalmessage=finalmessage, message=errormessage) 
-                notificationservice().sendnotification(_message)
+                complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+                notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             print(error)
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
-            notificationservice().sendnotification(_message)
+            complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+            notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         finally:
             result = None  
             
