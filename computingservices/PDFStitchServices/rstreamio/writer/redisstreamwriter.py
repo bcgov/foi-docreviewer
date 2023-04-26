@@ -25,12 +25,12 @@ class redisstreamwriter:
             msgid = self.notificationstream.add(notification_msg.__dict__, id="*")
             logging.info("Notification message for msgid = %s ",  msgid)
         except Exception as error:
-            logging.error("Unable to write to notification stream for pdfstitch | ministryrequestid=%i", message.ministryrequestid)
+            logging.error(f"Unable to write to notification stream for pdfstitch | ministryrequestid= {message.ministryrequestid}")
             logging.error(error)
             if retry < self.max_retry_attempt:
                 self.sendnotification(message, error, totalskippedfilecount, totalskippedfiles, retry + 1)
             else:
-                print("Exceeded retry attempts for notification | ministryrequestid=%i", message.ministryrequestid)
+                print(f"Exceeded retry attempts for notification | ministryrequestid= {message.ministryrequestid}")
 
     def __booltostr(self, value):
         return "YES" if value == True else "NO"
