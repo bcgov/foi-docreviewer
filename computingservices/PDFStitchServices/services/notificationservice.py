@@ -1,14 +1,14 @@
 
 from config import error_flag
-# from .pdfstichservice import pdfstitchservice
+from .pdfstichservice import pdfstitchservice
 from rstreamio.writer.redisstreamwriter import redisstreamwriter
 import logging
 
 class notificationservice:
 
-    def sendnotification(self, producermessage, complete, err, total_skippedfilecount, skippedfiles):
+    def sendnotification(self, producermessage):
         # send message to notification stream once the zip file is ready to download
-        # complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+        complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
         # send notification for both success and error cases
         if complete or err:
             err = True if error_flag else err

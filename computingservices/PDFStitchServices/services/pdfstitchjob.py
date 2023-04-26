@@ -43,6 +43,7 @@ def recordjobstart(message):
 
 def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
     conn = getdbconnection()
+    print("Inside recordjobend")
     try:
         cursor = conn.cursor()
         outputfiles = finalmessage.finaloutput if finalmessage is not None else None

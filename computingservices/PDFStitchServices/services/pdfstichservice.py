@@ -12,7 +12,7 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
-from services.notificationservice import notificationservice
+
 
 class pdfstitchservice(basestitchservice):
 
@@ -25,6 +25,7 @@ class pdfstitchservice(basestitchservice):
         result = None
         results = []
         try:
+            print("<<<< recordjobstart >>>>")
             recordjobstart(_message)
             s3credentials = getcredentialsbybcgovcode(_message.bcgovcode)
             # with Pool(len(attributes)) as pool:
@@ -43,21 +44,24 @@ class pdfstitchservice(basestitchservice):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
-                complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-                notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
+                print("<<<< recordjobend complete >>>>")
+                # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+                # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
             else:
                 errormessage = "Error in uploading the final document %s", result.get("filename")
                 logging.error(errormessage)
-                recordjobend(_message, True, finalmessage=finalmessage, message=errormessage) 
-                complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-                notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
+                recordjobend(_message, True, finalmessage=finalmessage, message=errormessage)
+                print("<<<< recordjobend ERROR >>>>")
+                # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+                # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             print(error)
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
-            complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-            notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
+            print("<<<< recordjobend Exception >>>>")
+            # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
+            # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         finally:
             result = None  
             
@@ -70,7 +74,8 @@ class pdfstitchservice(basestitchservice):
             
             # process each file in divisional files           
             for file in division.files:
-                logging.info("filename = %s", file.filename)                
+                logging.info("filename = %s", file.filename)
+                print(f"filename = {file.filename}")
                 _, extension = path.splitext(file.s3uripath)
                 # stitch only ['.pdf','.png','.jpg']
                 if extension.lower() in ['.pdf','.png','.jpg']:
@@ -91,29 +96,36 @@ class pdfstitchservice(basestitchservice):
                     except Exception as exp:
                         logging.error(exp)
                         logging.info("errorfilename = %s", file.filename)
+                        print(f"errorfilename = {file.filename}")
                         skippedfiles.append(file.filename)
                         continue
             
             bytes_stream = BytesIO()
-            writer.save(bytes_stream)
-            writer.close()
-            del writer
-            filename = f"{requestnumber} - {category} - {division.divisionname}"
+            if writer:
+                writer.save(bytes_stream)
+                writer.close()
+                del writer
             
-            if numbering_enabled == "True":
-                paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
-                numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
-                filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
-                numberedpdfbytes = None
+                filename = f"{requestnumber} - {category} - {division.divisionname}"
+                    
+                if numbering_enabled == "True":
+                    paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
+                    print("<<<< Numbering started >>>>")
+                    numberedpdfbytes = add_numbering_to_pdf(bytes_stream.getvalue(), paginationtext=paginationtext)
+                    print("<<<< Numbering finished >>>>")
+                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, numberedpdfbytes, division.files, division.divisionname)
+                    filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
+                    numberedpdfbytes = None
+                else:
+                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+                    filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
+                    
+                    bytes_stream.close()
+                    return self.__getfinaldivisionoutput(filestozip,
+                        self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)))
             else:
-                filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
-            
-            bytes_stream.close()
-            return self.__getfinaldivisionoutput(
-                self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)), filestozip)
-        except ValueError as value_error:
-            errorattribute, errormessage = value_error.args
-            logging.error(errormessage)
+                filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files)
+                return self.__getfinaldivisionoutput(filestozip)
         except(Exception) as error:
             logging.error('Error with divisional stitch.')
             logging.error(error)
@@ -136,8 +148,9 @@ class pdfstitchservice(basestitchservice):
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
             return basestitchservice().zipfilesandupload(_message, s3credentials)
+        return {"success": False, "filename": "", "documentpath": ""}
     
-    def __getfinaldivisionoutput(self, stitchedoutput, filestozip):
+    def __getfinaldivisionoutput(self, filestozip=None, stitchedoutput=None):
         formattedfilestozip = self.__formatfilestozip(filestozip)
         return {
             "stitchedoutput": stitchedoutput,

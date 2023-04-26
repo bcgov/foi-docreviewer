@@ -11,12 +11,10 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb
-from config import division_pdf_stitch_stream_key, error_flag, zip_enabled
+from config import division_pdf_stitch_stream_key, error_flag, notification_enabled
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
-
-from rstreamio.writer.redisstreamwriter import redisstreamwriter
-
+from services.notificationservice import notificationservice
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -73,6 +71,8 @@ def handlemessage(message):
 
             producermessage = get_in_divisionpdfmsg(_message)            
             pdfstitchservice().processmessage(producermessage)
-               
+            print("Message has been processed, Starting to send the notification")
+            if notification_enabled == "True":
+                notificationservice().sendnotification(producermessage)
         except(Exception) as error:
             logging.exception(error)
