@@ -17,6 +17,5 @@ def getdbconnection():
                 logging.error("Error in connecting DB.")
                 logging.error(error)
                 raise
-            print("DB Connection retry = ", retry)
             retry += 1
             continue

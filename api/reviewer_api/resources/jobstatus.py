@@ -37,6 +37,7 @@ class GetDedupeStatus(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
             result = documentservice().getdedupestatus(requestid)
@@ -55,6 +56,7 @@ class GetDedupeStatus(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try:
             requestjson = request.get_json()
@@ -74,6 +76,7 @@ class AddPDFStitchJobStatus(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try:
             requestjson = request.get_json()
@@ -95,6 +98,7 @@ class GetPDFStitchJobStatus(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, category):
         try:
             result = jobrecordservice().getpdfstitchjobstatus(requestid, category)

@@ -44,6 +44,7 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid, documentversion, pagenumber=None):
         try:
             result = redactionservice().getannotations(documentid, documentversion, pagenumber)

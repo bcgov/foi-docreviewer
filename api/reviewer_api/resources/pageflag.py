@@ -18,7 +18,7 @@ from flask_cors import cross_origin
 from flask import request
 from reviewer_api.auth import auth
 
-from reviewer_api.utils.util import  cors_preflight, allowedorigins
+from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 
 from reviewer_api.services.pageflagservice import pageflagservice
@@ -34,6 +34,7 @@ class GetSections(Resource):
     @staticmethod
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get():
         try:
             data = pageflagservice().getpageflags()
@@ -50,6 +51,7 @@ class GetSections(Resource):
     @staticmethod
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
             data = pageflagservice().getpageflag_by_request(requestid)
