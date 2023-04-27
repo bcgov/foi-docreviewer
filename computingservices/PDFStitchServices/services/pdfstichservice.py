@@ -5,7 +5,7 @@ from commons import add_numbering_to_pdf, convertimagetopdf
 import traceback
 from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
-from config import numbering_enabled, zip_enabled
+from config import numbering_enabled
 from os import path
 from .basestitchservice import basestitchservice
 from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
@@ -50,23 +50,17 @@ class pdfstitchservice(basestitchservice):
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
                 print("<<<< recordjobend complete >>>>")
-                # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-                # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
             else:
                 errormessage = "Error in uploading the final document %s", result.get("filename")
                 logging.error(errormessage)
                 recordjobend(_message, True, finalmessage=finalmessage, message=errormessage)
                 print("<<<< recordjobend ERROR >>>>")
-                # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-                # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             print(error)
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
             print("<<<< recordjobend Exception >>>>")
-            # complete, err, total_skippedfilecount, skippedfiles = self.ispdfstitchjobcompleted(_message.jobid, _message.category.lower())
-            # notificationservice().sendnotification(_message, complete, err, total_skippedfilecount, skippedfiles)
         finally:
             result = None  
             
@@ -191,7 +185,8 @@ class pdfstitchservice(basestitchservice):
         if results:
             for result in results:
                 if result is not None:
-                    stitchedoutput.append(result.get("stitchedoutput"))
+                    if result.get("stitchedoutput"):
+                        stitchedoutput.append(result.get("stitchedoutput"))
                     filestozip += result.get("filestozip")
         finaloutput = {
             "stitchedoutput": stitchedoutput,
