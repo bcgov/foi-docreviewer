@@ -10,8 +10,8 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb, redisstreamdbwithparam
-from config import division_pdf_stitch_stream_key, error_flag, notification_enabled, zip_enabled, message_block_time
+from utils import redisstreamdbwithparam
+from config import division_pdf_stitch_stream_key, notification_enabled, message_block_time
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
@@ -29,11 +29,7 @@ class StartFrom(str, Enum):
 @app.command()
 def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     try:
-        if zip_enabled == "True":
-            rdb = redisstreamdbwithparam
-        else:
-            rdb = redisstreamdb
-
+        rdb = redisstreamdbwithparam
         stream = rdb.Stream(STREAM_KEY)
         last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
         if last_id:

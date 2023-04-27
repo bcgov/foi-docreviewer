@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import zipfile
 from os import path
 from utils.basicutils import to_json
-from config import division_stitch_folder_path, zip_enabled
+from config import division_stitch_folder_path
 import logging
 import gc
 
