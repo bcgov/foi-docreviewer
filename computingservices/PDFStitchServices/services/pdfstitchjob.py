@@ -95,4 +95,30 @@ def ispdfstichjobcompleted(jobid, category):
     finally:
         if conn is not None:
             conn.close()
+
+def ispdfstichjobstarted(jobid, category):
+    conn = getdbconnection()
+    try:        
+        cursor = conn.cursor()
+        cursor.execute('''(SELECT 
+                        COUNT(1) FILTER (WHERE status in ('started')) AS started,
+                        COUNT(1) FILTER (WHERE status in ('completed')) AS completed,
+                        COUNT(1) FILTER (WHERE status in ('error')) AS error
+                            FROM public."PDFStitchJob" where pdfstitchjobid = %s::integer and category = %s
+                                 )''',(jobid, category))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        if result is not None:
+            (jobstarted, jobcompleted, joberror) = result
+            return jobstarted == 1, jobcompleted == 1 , joberror == 1
+        return False
+        
+    except(Exception) as error:
+        logging.error("Error in getting the complete job status")
+        logging.error(error)
+        raise
+    finally:
+        if conn is not None:
+            conn.close()
         
