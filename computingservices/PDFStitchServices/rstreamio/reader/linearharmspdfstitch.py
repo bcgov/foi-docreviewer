@@ -15,6 +15,7 @@ from config import division_pdf_stitch_stream_key, notification_enabled, message
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
+from services.pdfstitchjob import recordjobend
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = int(message_block_time)
@@ -71,9 +72,14 @@ def handlemessage(message):
         _message = _message.replace("b'","'").replace("'",'')
         try:
             producermessage = get_in_divisionpdfmsg(_message)
-            complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
-            if complete or err:
-                print("this job is completed!")
+            started, complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
+            print("(started, complete, err) = ", (started, complete, err))
+            if started or complete or err:
+                print("this job is completed or a restart has happened!")
+                if started:
+                    errormessage = "The service has been restarted due to insufficient resources"
+                    print("errormessage = ", errormessage)
+                    recordjobend(producermessage, True, finalmessage=None, message=errormessage)
                 return
             else:
                 pdfstitchservice().processmessage(producermessage)
