@@ -106,7 +106,9 @@ class documentpageflagservice:
             pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
             attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
             publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody.append({"name": data["other"]})    
+            publicbody = set(map(lambda x : x['name'], publicbody))
+            publicbody.update(data["other"])
+            publicbody = list(map(lambda x : {"name": x}, publicbody))
             DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
         else:
             return
