@@ -72,20 +72,20 @@ def handlemessage(message):
         _message = _message.replace("b'","'").replace("'",'')
         try:
             producermessage = get_in_divisionpdfmsg(_message)
-            started, complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
-            print("(started, complete, err) = ", (started, complete, err))
-            if started or complete or err:
-                print("this job is completed or a restart has happened!")
-                if started:
-                    errormessage = "The service has been restarted due to insufficient resources"
-                    print("errormessage = ", errormessage)
-                    recordjobend(producermessage, True, finalmessage=None, message=errormessage)
-                return
+            started, complete, err = pdfstitchservice().ispdfstitchjobstarted(producermessage.jobid, producermessage.category.lower())
+            print("started = ", started)
+            if started and (complete or err):
+                print("this job is completed!")
+            elif started:
+                errormessage = "The service is restared due to insufficient resources"
+                print(errormessage)
+                recordjobend(producermessage, True, finalmessage=None, message=errormessage)
             else:
                 pdfstitchservice().processmessage(producermessage)
                 print("Process message completed.")            
                 if notification_enabled == "True":
                     print("Starting to send the notification")
                     notificationservice().sendnotification(producermessage)
+            return
         except(Exception) as error:
             logging.exception(error)

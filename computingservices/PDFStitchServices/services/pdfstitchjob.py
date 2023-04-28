@@ -68,29 +68,14 @@ def ispdfstichjobcompleted(jobid, category):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
-        # cursor.execute('''(SELECT COUNT(1) FILTER (WHERE status = 'error') AS error,
-        #                 COUNT(1) FILTER (WHERE status = 'completed') AS completed,
-        #                 sq.outputfiles
-        #                     FROM (
-        #                     SELECT MAX(version) AS version, pdfstitchjobid, outputfiles::jsonb
-        #                     FROM public."PDFStitchJob"
-        #                     WHERE pdfstitchjobid = %s::integer and category = %s and outputfiles is not null
-        #                     GROUP BY pdfstitchjobid, outputfiles::jsonb
-        #                     ) sq
-        #                     JOIN public."PDFStitchJob" pdfsj ON pdfsj.pdfstitchjobid = sq.pdfstitchjobid AND pdfsj.version = sq.version
-        #                     GROUP BY sq.outputfiles
-        #                          )''',(jobid, category))
-        
-        cursor.execute('''(SELECT 
-                        COUNT(1) FILTER (WHERE status = 'started') AS started,
-                        COUNT(1) FILTER (WHERE status = 'error') AS error,
+        cursor.execute('''(SELECT COUNT(1) FILTER (WHERE status = 'error') AS error,
                         COUNT(1) FILTER (WHERE status = 'completed') AS completed,
                         sq.outputfiles
                             FROM (
                             SELECT MAX(version) AS version, pdfstitchjobid, outputfiles::jsonb
                             FROM public."PDFStitchJob"
-                            WHERE pdfstitchjobid = %s::integer and category = %s
-                            GROUP BY pdfstitchjobid, outputfiles::jsonb limit 1
+                            WHERE pdfstitchjobid = %s::integer and category = %s and outputfiles is not null
+                            GROUP BY pdfstitchjobid, outputfiles::jsonb
                             ) sq
                             JOIN public."PDFStitchJob" pdfsj ON pdfsj.pdfstitchjobid = sq.pdfstitchjobid AND pdfsj.version = sq.version
                             GROUP BY sq.outputfiles
@@ -99,9 +84,35 @@ def ispdfstichjobcompleted(jobid, category):
         result = cursor.fetchone()
         cursor.close()
         if result is not None:
-            (jobstarted, joberr, jobcompleted, attributes) = result
-            return jobstarted == 1, jobcompleted == 1, joberr == 1, attributes
-        return False, False, False, None
+            (joberr, jobcompleted, attributes) = result
+            return jobcompleted == 1, joberr == 1, attributes
+        return False, False, None
+        
+    except(Exception) as error:
+        logging.error("Error in getting the complete job status")
+        logging.error(error)
+        raise
+    finally:
+        if conn is not None:
+            conn.close()
+
+def ispdfstichjobstarted(jobid, category):
+    conn = getdbconnection()
+    try:        
+        cursor = conn.cursor()
+        cursor.execute('''(SELECT 
+                        COUNT(1) FILTER (WHERE status in ('started')) AS started,
+                        COUNT(1) FILTER (WHERE status in ('completed')) AS completed,
+                        COUNT(1) FILTER (WHERE status in ('error')) AS error
+                            FROM public."PDFStitchJob" where pdfstitchjobid = %s::integer and category = %s
+                                 )''',(jobid, category))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        if result is not None:
+            (jobstarted, jobcompleted, joberror) = result
+            return jobstarted == 1, jobcompleted == 1 , joberror == 1
+        return False
         
     except(Exception) as error:
         logging.error("Error in getting the complete job status")
