@@ -20,6 +20,11 @@ namespace MCS.FOI.S3FileConversion.Utilities
 
         public static string SyncfusionLicense { get; set; }
 
+        public static string[] ConversionFormats { get; set; }
+
+        public static string[] DedupeFormats { get; set; }
+
+        public static string[] IncompatibleFormats{ get; set; }
 
 
     }

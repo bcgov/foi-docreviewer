@@ -1,7 +1,13 @@
 ﻿using Npgsql;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text.Json;
+using Ical.Net.DataTypes;
+using MCS.FOI.S3FileConversion.Utilities;
 using NpgsqlTypes;
 using StackExchange.Redis;
-using System.Text.Json;
 
 
 namespace MCS.FOI.S3FileConversion
@@ -103,8 +109,7 @@ namespace MCS.FOI.S3FileConversion
                         foreach (var attachment in attachments)
                         {
                             string extension = Path.GetExtension(attachment["filename"]);
-                            string[] conversionFormats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg" };
-                            if (Array.IndexOf(conversionFormats, extension) == -1)
+                            if (Array.IndexOf(ConversionSettings.ConversionFormats, extension.ToLower()) == -1)
                             {
                                 var query = new NpgsqlBatchCommand(@"
                                     with masterid as (INSERT INTO ""DocumentMaster""

@@ -1,6 +1,7 @@
 ﻿using Ical.Net;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace MCS.FOI.CalendarToPDF
@@ -8,7 +9,7 @@ namespace MCS.FOI.CalendarToPDF
     /// <summary>
     /// Calendar files (.ics) are processed and converted to pdf using syncfusion libraries
     /// </summary>
-    public class CalendarFileProcessor : ICalendarFileProcessor
+    public class CalendarFileProcessor : ICalendarFileProcessor ,  IDisposable
     {
 
         /// <summary>
@@ -36,6 +37,11 @@ namespace MCS.FOI.CalendarToPDF
         public string Message { get; set; }
 
 
+        private Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = null;
+        private Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
+        private MemoryStream? attachmentStream = null;
+        private MemoryStream? output = null;
+
         public CalendarFileProcessor()
         {
 
@@ -48,9 +54,9 @@ namespace MCS.FOI.CalendarToPDF
 
         public (bool, string, Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ProcessCalendarFiles()
         {
-            MemoryStream output = new();
+            output = new();
             bool isConverted;
-            Dictionary<MemoryStream, Dictionary<string, string>> attachments;
+            
             try
             {
                 (string htmlString, attachments) = ConvertCalendartoHTML();
@@ -68,8 +74,7 @@ namespace MCS.FOI.CalendarToPDF
         /// </summary>
         /// <returns>HTML as a string</returns>
         private (string, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendartoHTML()
-        {
-            Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = new();
+        {           
             Calendar calendar = new Calendar();
             bool isReadCompleted = false;
             try
@@ -79,6 +84,7 @@ namespace MCS.FOI.CalendarToPDF
 
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
+                    attachmentsObj = new();
                     for (int attempt = 1; attempt < FailureAttemptCount && !isReadCompleted; attempt++)
                     {
                         try
@@ -122,7 +128,7 @@ namespace MCS.FOI.CalendarToPDF
                             {
                                 if (attch.Data != null)
                                 {
-                                    MemoryStream attachmentStream = new MemoryStream();
+                                    attachmentStream = new MemoryStream();
                                     var file = attch.Parameters.Get("X-FILENAME");
                                     //File.WriteAllBytes(file, attch.Data);
                                     attachmentStream.Write(attch.Data, 0, attch.Data.Length);
@@ -212,13 +218,19 @@ namespace MCS.FOI.CalendarToPDF
                     return (errorMessage, attachmentsObj);
                 }
             }
+            catch (SerializationException ex)
+            {
+                string error = $"SerializationException Occured while coverting calendar file to HTML.";
+                Console.WriteLine(error);
+                throw new SerializationException(error);
+
+            }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting calendar file to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
-                throw ex;
-                return (error, attachmentsObj);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -269,6 +281,32 @@ namespace MCS.FOI.CalendarToPDF
                 throw;
             }
             return (output, isConverted);
+        }
+
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (this.SourceStream != null)
+                {
+                    this.SourceStream.Close();
+                    this.SourceStream.Dispose();
+                }
+
+                if (output != null) output.Dispose();
+                if (attachmentStream != null) attachmentStream.Dispose();
+                if (attachmentsObj != null) attachmentsObj = null;
+                if (attachments != null) attachments = null;
+                // free managed resources
+            }
+
         }
     }
 }

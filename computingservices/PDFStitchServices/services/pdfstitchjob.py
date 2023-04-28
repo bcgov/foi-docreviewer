@@ -23,8 +23,8 @@ def savefinaldocumentpath(finalpackage, ministryid, category, userid):
             conn.close()
 
 def recordjobstart(message):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."PDFStitchJob"
             (pdfstitchjobid, version, ministryrequestid, category, inputfiles, outputfiles, status, message, createdby)
@@ -42,8 +42,9 @@ def recordjobstart(message):
         
 
 def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
+    conn = getdbconnection()
+    print("Inside recordjobend")
     try:
-        conn = getdbconnection()
         cursor = conn.cursor()
         outputfiles = finalmessage.finaloutput if finalmessage is not None else None
 
@@ -64,8 +65,8 @@ def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
         
 
 def ispdfstichjobcompleted(jobid, category):
-    try:
-        conn = getdbconnection()
+    conn = getdbconnection()
+    try:        
         cursor = conn.cursor()
         cursor.execute('''(SELECT COUNT(1) FILTER (WHERE status = 'error') AS error,
                         COUNT(1) FILTER (WHERE status = 'completed') AS completed,
@@ -80,13 +81,13 @@ def ispdfstichjobcompleted(jobid, category):
                             GROUP BY sq.outputfiles
                                  )''',(jobid, category))
         
-        (joberr, jobcompleted, attributes) = cursor.fetchone()
-        
-        print("joberr == ", joberr)
-        print("jobcompleted == ", jobcompleted)
-        print("attributes == ", attributes)
+        result = cursor.fetchone()
         cursor.close()
-        return jobcompleted == 1, joberr == 1, attributes
+        if result is not None:
+            (joberr, jobcompleted, attributes) = result
+            return jobcompleted == 1, joberr == 1, attributes
+        return False, False, None
+        
     except(Exception) as error:
         logging.error("Error in getting the complete job status")
         logging.error(error)

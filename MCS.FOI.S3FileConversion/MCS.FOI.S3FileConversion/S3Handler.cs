@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Linq;
 
 namespace MCS.FOI.S3FileConversion
 {
@@ -25,6 +26,8 @@ namespace MCS.FOI.S3FileConversion
         Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
         ExcelFileProcessor excelFileProcessor = null;
         DocFileProcessor docFileProcessor = null;
+        MSGFileProcessor msgFileProcessor = null;
+        CalendarFileProcessor calendarFileProcessor = null;
         List<Dictionary<string, string>> returnAttachments = null;
         public S3Handler() { }
 
@@ -66,7 +69,7 @@ namespace MCS.FOI.S3FileConversion
                         using Stream responseStream = response.Content.ReadAsStream();
 
                         // Convert File
-                        string extension = Path.GetExtension(fileKey);
+                        string extension = Path.GetExtension(fileKey).ToLower();
 
                         output = new MemoryStream();
                         attachments = new();
@@ -116,8 +119,8 @@ namespace MCS.FOI.S3FileConversion
                                     string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
                                     attributes["extension"] = JsonValue.Create(attachmentExtension);
                                     attachment.Value.Add("extension", attachmentExtension);
-                                    string[] formats = { ".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pdf" };
-                                    attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension) == -1);
+                                    string[] formats = ConversionSettings.ConversionFormats.Concat(ConversionSettings.DedupeFormats).Except(ConversionSettings.IncompatibleFormats).ToArray();
+                                    attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension.ToLower()) == -1);
                                     attachment.Value.Add("attributes", attributes.ToJsonString());
                                     var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
                                     var newAttachmentKey = parentFolder.Split(".")[0] + "/" + attachment.Value["s3filename"];
@@ -189,7 +192,7 @@ namespace MCS.FOI.S3FileConversion
 
         private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertCalendarFiles(Stream input)
         {
-            CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(input)
+             calendarFileProcessor = new CalendarFileProcessor(input)
             {
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
                 FailureAttemptCount = ConversionSettings.FailureAttemptCount
@@ -200,7 +203,7 @@ namespace MCS.FOI.S3FileConversion
 
         private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
         {
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(input)
+             msgFileProcessor = new MSGFileProcessor(input)
             {
                 IsSinglePDFOutput = false,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
@@ -242,6 +245,11 @@ namespace MCS.FOI.S3FileConversion
                 if (docFileProcessor != null)
                     docFileProcessor.Dispose();
 
+                if (msgFileProcessor != null)
+                    msgFileProcessor.Dispose();
+
+                if (calendarFileProcessor != null)
+                    calendarFileProcessor.Dispose();
 
                 attachments = null;
                 returnAttachments = null;

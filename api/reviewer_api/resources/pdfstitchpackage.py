@@ -42,6 +42,7 @@ class GetPDFStitchedDocuments(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, category):
         try:
             result = pdfstitchpackageservice().getpdfstitchpackage(requestid, category)
@@ -61,6 +62,7 @@ class GetRecordsChangedStatus(Resource):
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, category):
         try:
             result = pdfstitchpackageservice().getrecordschanged(requestid, category)

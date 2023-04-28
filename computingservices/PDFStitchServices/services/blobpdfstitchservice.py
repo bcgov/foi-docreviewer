@@ -1,7 +1,7 @@
 
 from .s3documentservice import getcredentialsbybcgovcode
 from utils import add_spacing_around_special_character
-from commons import add_numbering_to_pdf, getimagepdf
+from commons import add_numbering_to_pdf
 import traceback
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
@@ -39,6 +39,7 @@ class blobpdfstitchservice(basestitchservice):
             for file in division.files:
                 if count < len(division.files):
                     _, extension = path.splitext(file.s3filepath)
+                    extension = extension.lower()
                     if extension in ['.pdf','.png','jpg']:
                         """
                         Placeholder to handle blob
@@ -59,11 +60,11 @@ class blobpdfstitchservice(basestitchservice):
             print('error with file: ', error)
 
     def mergepdf(self, raw_bytes_data, writer, extension):
-        if extension in ['.png','jpg']:
-            # process the image bytes        
-            reader =  getimagepdf(raw_bytes_data)
-        else:
-            reader = PdfReader(BytesIO(raw_bytes_data))
+        # if extension in ['.png','jpg']:
+        #     # process the image bytes        
+        #     reader =  getimagepdf(raw_bytes_data)
+        # else:
+        reader = PdfReader(BytesIO(raw_bytes_data))
         
         # Add all pages to the writer
         for page in reader.pages:

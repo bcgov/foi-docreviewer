@@ -63,12 +63,18 @@ namespace MCS.FOI.ExcelToPDF
                     using (ExcelEngine excelEngine = new ExcelEngine())
                     {
                         IApplication application = excelEngine.Excel;
+                        SourceStream.Position = 0;
+                        IWorkbook workbook = application.Workbooks.Open(SourceStream);;
 
                         for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                         {
                             try
                             {
-                                    IWorkbook workbook = application.Workbooks.Open(SourceStream);
+                                    if(attempt > 1)
+                                    {
+                                        SourceStream.Position = 0;
+                                        workbook = application.Workbooks.Open(SourceStream);
+                                    }
 
                                     if (workbook.Worksheets.Count > 0)
                                     {
@@ -90,13 +96,15 @@ namespace MCS.FOI.ExcelToPDF
                                     }
 
                                     converted = true;
-                                    message = $"File processed successfully!";                                    
+                                    message = $"File processed successfully!";
+                                    workbook.Close();
                             }
                             catch(Exception e)
                             {
                                 message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                                 Log.Error(message);
                                 Console.WriteLine(message);
+                                workbook.Close();
                                 if (attempt == FailureAttemptCount)
                                 {
                                     throw;
@@ -115,10 +123,11 @@ namespace MCS.FOI.ExcelToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string errorMessage = $"Exception occured while coverting an excel file, exception :  {ex.Message}";
+                string error = $"{errorMessage} , stacktrace : {ex.StackTrace}";
                 Log.Error(error);
                 Console.WriteLine(error);
-                throw;
+                throw new Exception(errorMessage);
             }
 
             return (converted, message, output);

@@ -1,139 +1,55 @@
 from io import BytesIO
+import logging
 import os
-
-from reportlab.lib.units import mm
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter
-from pypdf import PdfReader, PdfWriter
-import os
+import fitz
 
 filepath = os.path.dirname(os.path.abspath(__file__)) +"/fonts/BCSans-Bold.ttf"
-pdfmetrics.registerFont(TTFont('BC-Sans', filepath))
-textcolor=colors.HexColor("#38598A")
-aw, ah = A4
+color_hex = "#38598A"
 
-def add_numbering_to_pdf(original_pdf, paginationtext="", start_page=1, end_page=None,
-                         start_index=1, size=14, font="BC-Sans") -> bytes:
+def add_numbering_to_pdf(original_pdf, paginationtext="") -> bytes:
     """Adds numbering to pdf file"""   
-    original_pdf_bytes = PdfReader(original_pdf)
-    parameters = get_parameters_for_numbering(original_pdf_bytes,paginationtext, start_page, end_page, start_index, size, font)
-    return create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters)
+    doc = None
+    output_buffer = BytesIO()
 
+    try:
 
-def get_parameters_for_numbering(original_pdf, paginationtext, start_page, end_page, start_index, size, font) -> dict:
-    """Setting parameters for numbering"""
-    return {
-        "paginationtext": paginationtext,
-        "original_width_of_pages": get_original_width_of_pages(original_pdf),
-        "original_height_of_pages": get_original_height_of_pages(original_pdf),
-        "xvalue":get_x_value(original_pdf),
-        "yvalue":get_y_value(original_pdf),
-        "start_page": start_page - 1,
-        "end_page": end_page or len(original_pdf.pages) + 1,
-        "start_index": start_index,
-        "size": size,
-        "font": font,
-        "number_of_pages": len(original_pdf.pages),
-    }
+        doc =  fitz.Document(stream=original_pdf, filetype="pdf")
+        number_of_pages = doc.page_count
 
-def get_x_value(original_pdf) -> list:
-    """Returns X value for the pages"""
-    x_value_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        original_w = original_pdf.pages[index].mediabox.width
-        original_h = original_pdf.pages[index].mediabox.height
-        if original_w < original_h:
-            x = (original_h/2) - 70
-        else:
-            #landscape pages
-            x = (original_h/2) - 115
-        x_value_of_pages.append(x)
-    return x_value_of_pages
+        # Iterate through each page
+        for i, page in enumerate(doc):
+            # Get the width and height of the current page
+            w, h = page.bound().width, page.bound().height
+            
+            if not page.is_wrapped:
+                page.wrap_contents()
 
-def get_y_value(original_pdf) -> list:
-    """Returns Y value for the pages"""
+            pagetext = paginationtext.replace("[x]", str(i + 1)).replace("[totalpages]", str(number_of_pages)).upper()
 
-    y_value_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        original_w = original_pdf.pages[index].mediabox.width
-        original_h = original_pdf.pages[index].mediabox.height
-        # mostly image pages
-        if original_w == round(aw,4) and original_h == round(ah,4):
-            y = (original_w - 12)
-        else:
-            y = (original_w - 10)
-        y_value_of_pages.append(y)
-    return y_value_of_pages
+            if h < 450:
+                fontsize = 10
+            else:
+                fontsize = 12
+            textsize = len(pagetext) + fontsize
+            
+            x =  w-10
+            y = (h/2) + (textsize)
+            pos = fitz.Point(round(x,2), round(y,2))
 
-def get_original_width_of_pages(original_pdf) -> list:
-    """Returns width of pages"""
+            font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
 
-    width_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        width = original_pdf.pages[index].mediabox.width     
-        width_of_pages.append(width)
-    return width_of_pages
-
-def get_original_height_of_pages(original_pdf)-> list:
-    height_of_pages = []
-    for index in range(len(original_pdf.pages)):
-        height = original_pdf.pages[index].mediabox.height
-        height_of_pages.append(height)
-    return height_of_pages
-
-def create_empty_numbered_pdf_and_merge_pages(original_pdf_bytes, parameters):
-    """Returns empty pdf file with numbering only"""
-
-    number_of_pages = parameters.get("number_of_pages")
-    original_width_of_pages = parameters.get("original_width_of_pages")
-    original_height_of_pages = parameters.get("original_height_of_pages")
-    font = parameters.get("font")
-    size = parameters.get("size")
-    start_page = parameters.get("start_page")
-    end_page = parameters.get("end_page")
-    paginationtext = parameters.get("paginationtext")
-    start_index = parameters.get("start_index")
-    xvalue = parameters.get("xvalue")
-    yvalue = parameters.get("yvalue")
-    writer = PdfWriter()
-    for index in range(number_of_pages):
-        pagesize = (original_width_of_pages[index], original_height_of_pages[index])
-        # creating the canvas for each page based on the pagesize
-        empty_canvas = canvas.Canvas("empty_canvas.pdf", pagesize=pagesize)
-        empty_canvas.rotate(90) 
-        empty_canvas.setFont(font, size)
-        empty_canvas.setFillColor(textcolor)
-        if index in range(start_page, end_page):
-            number = paginationtext.replace("[x]", str(index - start_page + start_index)).replace("[totalpages]", str(number_of_pages)).upper()
-            empty_canvas.drawString(xvalue[index], -(yvalue[index]), number)
-        empty_canvas.showPage()
-        writer = merge_pdf_bytes(empty_canvas.getpdfdata(), writer)
-
-    if writer:
-        with BytesIO() as bytes_stream:
-            writer.write(bytes_stream)
-            bytes_stream.seek(0)
-            return merge_pdf_pages(original_pdf_bytes, PdfReader(bytes_stream)) 
-
-
-def merge_pdf_pages(first_pdf, second_pdf) -> bytes:
-    """Returns file with combined pages of first and second pdf"""
-    writer = PdfWriter()
-    for number_of_page in range(len(first_pdf.pages)):
-        page_of_first_pdf = first_pdf.pages[number_of_page]
-        page_of_second_pdf = second_pdf.pages[number_of_page]
-        page_of_first_pdf.merge_page(page_of_second_pdf)
-        writer.add_page(page_of_first_pdf)
-    result = BytesIO()
-    writer.write(result)
-    return result.getvalue()
-
-def merge_pdf_bytes(raw_bytes_data, writer):
-        reader = PdfReader(BytesIO(raw_bytes_data))
-        # Add all pages to the writer
-        for page in reader.pages: 
-            writer.add_page(page)
-        return writer
+            page.insert_text(pos, pagetext, fontsize=fontsize, rotate=90, color=font_color)
+            page = pos = None
+        doc.save(output_buffer)
+        
+        output_buffer.seek(0)
+        # Return the output buffer containing the generated PDF
+        return output_buffer.getvalue()
+    except(Exception) as error:
+        logging.error(error)
+    finally:
+        if doc:
+            doc.close()
+        if output_buffer:
+            output_buffer.close()
+        original_pdf = None

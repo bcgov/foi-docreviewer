@@ -53,14 +53,15 @@ namespace MCS.FOI.DocToPDF
                     }
                     catch (Exception e)
                     {
+                        string errorMessage = $"Exception occured while coverting a document file, exception :  {e.Message}";
                         message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
                         Log.Error(message);
                         Console.WriteLine(message);
                         if (attempt == FailureAttemptCount)
                         {
-                            throw;
+                            throw new Exception(errorMessage);
                         }
-                        Thread.Sleep(5000);
+                        Thread.Sleep(WaitTimeinMilliSeconds);
                     }
                 }
             }

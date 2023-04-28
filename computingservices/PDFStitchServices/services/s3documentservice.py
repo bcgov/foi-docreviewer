@@ -5,7 +5,7 @@ import psycopg2
 import requests
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from utils import gets3credentialsobject
-from config import pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env
+from config import pdfstitch_s3_region,pdfstitch_s3_host,pdfstitch_s3_service,pdfstitch_s3_env, pdfstitch_failureattempt
 import logging
 
 def getcredentialsbybcgovcode(bcgovcode):
@@ -21,43 +21,39 @@ def getcredentialsbybcgovcode(bcgovcode):
             s3cred = gets3credentialsobject(str(attributes[0]))
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        logging.error(error)
     finally:
         if _conn is not None:
-            _conn.close()
-            print('Database connection closed.') 
+            _conn.close() 
 
     return s3cred
 
 
-def gets3documentbytearray(producermessage, s3credentials): 
-    
+def gets3documentbytearray(producermessage, s3credentials):
     retry = 0
-
-    s3_access_key_id= s3credentials.s3accesskey
-    s3_secret_access_key= s3credentials.s3secretkey
-
-    auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
-                    aws_secret_access_key=s3_secret_access_key,
-                    aws_host=pdfstitch_s3_host,
-                    aws_region=pdfstitch_s3_region,
-                    aws_service=pdfstitch_s3_service)
     filepath = producermessage.s3uripath
     while True:
         try:
+            s3_access_key_id= s3credentials.s3accesskey
+            s3_secret_access_key= s3credentials.s3secretkey
+
+            auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
+                            aws_secret_access_key=s3_secret_access_key,
+                            aws_host=pdfstitch_s3_host,
+                            aws_region=pdfstitch_s3_region,
+                            aws_service=pdfstitch_s3_service)
             response= requests.get(filepath, auth=auth,stream=True)
             return response.content
         except Exception as ex:
-            if retry > 3:
+            if retry > int(pdfstitch_failureattempt):
                 logging.error("Error in connecting S3.")
                 logging.error(ex)
                 raise
-            print("s3retry = ", retry)
             retry += 1
             continue
 
 
-def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
+def uploadbytes(filename, filebytes, requestnumber, bcgovcode, s3credentials):
 
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
@@ -80,16 +76,20 @@ def uploadbytes(filename, bytes, requestnumber, bcgovcode, s3credentials):
             }
 
             #upload to S3
-            requests.put(s3uri, data=bytes, headers=header)
+            requests.put(s3uri, data=filebytes, headers=header)
             attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
             return attachmentobj
         except Exception as ex:
-            if retry > 3:
+            if retry > int(pdfstitch_failureattempt):
                 logging.error("Error in uploading document to S3")
                 logging.error(ex)
                 attachmentobj = {"success": False, "filename": filename, "documentpath": None}
                 raise ValueError(attachmentobj, ex)
-            print("uploadbytes s3retry = ", retry)
+            logging.info(f"uploadbytes s3retry = {retry}")
+            
             retry += 1
-            continue 
-        
+            continue
+        finally:
+            if filebytes:
+                filebytes = None
+            del filebytes
