@@ -10,16 +10,15 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb
-from config import division_pdf_stitch_stream_key, error_flag, zip_enabled
+from utils import redisstreamdbwithparam
+from config import division_pdf_stitch_stream_key, notification_enabled, message_block_time
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
-
-from rstreamio.writer.redisstreamwriter import redisstreamwriter
-
+from services.notificationservice import notificationservice
+from services.pdfstitchjob import recordjobend
 
 LAST_ID_KEY = "{consumer_id}:lastid"
-BLOCK_TIME = 5000
+BLOCK_TIME = int(message_block_time)
 STREAM_KEY = division_pdf_stitch_stream_key
 
 app = typer.Typer()
@@ -31,7 +30,7 @@ class StartFrom(str, Enum):
 @app.command()
 def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     try:
-        rdb = redisstreamdb
+        rdb = redisstreamdbwithparam
         stream = rdb.Stream(STREAM_KEY)
         last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
         if last_id:
@@ -50,18 +49,21 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     message_id, message = _messages 
                     logging.info(f"processing {message_id}::{message}")
                     print(f"processing {message_id}::{message}")
-                    handlemessage(message)
-                    # simulate processing
-                    # time.sleep(random.randint(1, 3)) #TODO : todo: remove!
+
+                    handlemessage(message)                    
+                    print(f"{message_id} has been processed...")
                     last_id = message_id
                     rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                     logging.info(f"finished processing {message_id}")
-                    print(f"finished processing {message_id}")
-                    stream.delete(message_id)                
+                    print(f"finished processing {message_id}")                    
+                    stream.delete(message_id)
+                    # simulate processing
+                    time.sleep(random.randint(1, 3)) #TODO : todo: remove!             
             else:
                 logging.info(f"No new messages after ID: {last_id}")
+
     except(Exception) as error:
-            print(error)
+        print("Exception happened at the top level: ",error)
 
 def handlemessage(message):
 
@@ -69,7 +71,21 @@ def handlemessage(message):
         _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for key, value in message.items()})
         _message = _message.replace("b'","'").replace("'",'')
         try:
-            producermessage = get_in_divisionpdfmsg(_message)            
-            pdfstitchservice().processmessage(producermessage)               
+            producermessage = get_in_divisionpdfmsg(_message)
+            started, complete, err = pdfstitchservice().ispdfstitchjobstarted(producermessage.jobid, producermessage.category.lower())
+            print("started = ", started)
+            if started and (complete or err):
+                print("this job is completed!")
+            elif started:
+                errormessage = "The service is restared due to insufficient resources"
+                print(errormessage)
+                recordjobend(producermessage, True, finalmessage=None, message=errormessage)
+            else:
+                pdfstitchservice().processmessage(producermessage)
+                print("Process message completed.")            
+                if notification_enabled == "True":
+                    print("Starting to send the notification")
+                    notificationservice().sendnotification(producermessage)
+            return
         except(Exception) as error:
             print(error)

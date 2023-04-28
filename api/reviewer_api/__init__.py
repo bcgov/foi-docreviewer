@@ -20,22 +20,17 @@ import json
 import os
 import logging
 from flask import Flask
-
 import reviewer_api.config as config
 from reviewer_api.config import _Config
-
 from reviewer_api.models import db, ma
 from reviewer_api.utils.util_logging import configure_logging
 from reviewer_api.auth import jwt
 from flask_cors import CORS
 import re
-from flask_caching import Cache
 import secure
 
 app = Flask(__name__)
-#Cache Initialization
-app.config.from_object('reviewer_api.utils.cache.Config') 
-cache = Cache(app) 
+
 
 #Setup log
 configure_logging()

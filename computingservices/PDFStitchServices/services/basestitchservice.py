@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import zipfile
 from os import path
 from utils.basicutils import to_json
-from config import division_stitch_folder_path, zip_enabled
+from config import division_stitch_folder_path
 import logging
 import gc
 
@@ -24,12 +24,14 @@ class basestitchservice:
         try:
             with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zip_archive:           
             # zip final folders/files
-                for file in _message.outputdocumentpath:
+                for file in _message.outputdocumentpath:                    
                     producermessage = get_in_filepdfmsg(to_json(file))
+                    print("file name before zipping = ", producermessage.filename)
                     with zip_archive.open(producermessage.filename, 'w') as archivefile:
                         archivefile.write(self.getdocumentbytearray(producermessage, s3credentials))
             filepath = self.__getzipfilepath(_message.category, _message.requestnumber)
             logging.info("zipfilename = %s", filepath)
+            print("zipfilename = ", filepath)
             docobj = uploadbytes(filepath, archive.getbuffer(), _message.requestnumber, _message.bcgovcode, s3credentials)
             return docobj
         except(Exception) as ex:
@@ -40,20 +42,23 @@ class basestitchservice:
             archive.close()
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
+        
         docobjs = []
         try:
             folderpath = self.__getfolderpathfordivisionfiles(divisionname)
             filepath = folderpath + "/" +filename+".pdf"
-            if zip_enabled == "True":
-                docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
-                docobjs.append(docobj)
-            for file in files:
-                _jsonfile = to_json(file)
-                _file = get_in_filepdfmsg(_jsonfile)
-                _, extension = path.splitext(_file.s3uripath)
-                if extension.lower() not in ['.pdf','.png','.jpg']:
-                    incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
-                    docobjs.append(incompatabledocobj)
+            print("<<<< uploading divisional stitched file >>>>> filepath = ", filepath)
+            docobj = uploadbytes(filepath, filebytes, requestnumber, bcgovcode, s3credentials)
+            docobjs.append(docobj)
+            print("<<<< uploaded divisional stitched file >>>>> ")
+            print("<<< Getting incompatable file paths >>>")
+            # for file in files:
+            #     _jsonfile = to_json(file)
+            #     _file = get_in_filepdfmsg(_jsonfile)
+            #     _, extension = path.splitext(_file.s3uripath)
+            #     if extension.lower() not in ['.pdf','.png','.jpg']:
+            #         incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
+            #         docobjs.append(incompatabledocobj)
             return docobjs
         except(ValueError) as error:
             errorattachmentobj, errormessage = error.args
@@ -64,6 +69,19 @@ class basestitchservice:
             logging.error(ex)
             raise
 
+    def getincompatablefilepaths(self, divisionname, files, docobjs=None):
+        if not docobjs:
+            docobjs = []
+        
+        for file in files:
+            _jsonfile = to_json(file)
+            _file = get_in_filepdfmsg(_jsonfile)
+            _, extension = path.splitext(_file.s3uripath)
+            if extension.lower() not in ['.pdf','.png','.jpg']:
+                incompatabledocobj = self.__getincompatablefiles(_file, divisionname)
+                docobjs.append(incompatabledocobj)
+        return docobjs
+    
     def getskippedfiledetails(self, data):
         total_skippedfilecount = 0
         total_skippedfiles = []

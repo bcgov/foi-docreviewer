@@ -3,14 +3,13 @@ from os import stat
 from re import VERBOSE
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
-from reviewer_api.utils.commons.datetimehandler import datetimehandler
+
 from reviewer_api.models.default_method_result import DefaultMethodResult
 
 import os
 import maya
 import json
 
-# import xml.etree.ElementTree as ET
 from xml.dom.minidom import parseString
 
 class annotationservice:
