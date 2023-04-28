@@ -76,16 +76,17 @@ def handlemessage(message):
             print("started = ", started)
             if started and (complete or err):
                 print("this job is completed!")
+                return
             elif started:
                 errormessage = "The service is restared due to insufficient resources"
                 print(errormessage)
                 recordjobend(producermessage, True, finalmessage=None, message=errormessage)
+                return
             else:
                 pdfstitchservice().processmessage(producermessage)
                 print("Process message completed.")            
                 if notification_enabled == "True":
                     print("Starting to send the notification")
                     notificationservice().sendnotification(producermessage)
-            return
         except(Exception) as error:
             logging.exception(error)
