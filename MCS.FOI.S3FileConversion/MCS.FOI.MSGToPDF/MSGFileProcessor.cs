@@ -137,7 +137,7 @@ namespace MCS.FOI.MSGToPDF
                                 <body style='border: 50px solid white;'>
                                     ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:15px;'>");
+                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:35px;'>");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -196,7 +196,7 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.SentOn + "</td></tr>");
 
                 //Message body
-                string message = @"" + msg.BodyText.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
+                string message = @"" + msg.BodyText?.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>")?.Replace("&lt;br/&gt;", "<br/>");
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                 htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
                                     <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");

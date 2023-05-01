@@ -8,13 +8,16 @@ from multiprocessing.pool import ThreadPool as Pool
 from config import numbering_enabled
 from os import path
 from .basestitchservice import basestitchservice
-from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted
+from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, ispdfstichjobcompleted, ispdfstichjobstarted
 from datetime import datetime
 import logging
 import fitz
 
 
 class pdfstitchservice(basestitchservice):
+
+    def ispdfstitchjobstarted(self, jobid, category):
+        return ispdfstichjobstarted(jobid, category)
 
     def ispdfstitchjobcompleted(self, jobid, category):
         total_skippedfilecount = 0
@@ -86,7 +89,8 @@ class pdfstitchservice(basestitchservice):
                         else:
                             writer.insert_pdf(pdf_doc)
                         print("pagecount = ", pdf_doc.page_count)
-                        pdf_doc.close()                     
+                        pdf_doc.close()
+                        fitz.TOOLS.store_shrink(100)                    
                         _bytes.close()
                         del pdf_doc
                         del _bytes
@@ -103,6 +107,7 @@ class pdfstitchservice(basestitchservice):
             if writer:
                 writer.save(bytes_stream)
                 writer.close()
+                fitz.TOOLS.store_shrink(100)
                 del writer
             
                 filename = f"{requestnumber} - {category} - {division.divisionname}"

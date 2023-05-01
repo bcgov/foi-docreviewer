@@ -143,7 +143,7 @@ namespace MCS.FOI.CalendarToPDF
                             }
                         }
                         //Meeting Title
-                        htmlString.Append(@"<div class='header" + i + "' style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><h1>" + e.Summary + "</h1><hr><table style='border: 5px; padding: 0; font-size:15px;'>");
+                        htmlString.Append(@"<div class='header" + i + "' style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><h1 style='font-size: 3em'>" + e.Summary + "</h1><hr><table style='border: 5px; padding: 0; font-size:35px;'>");
 
                         string organizer = string.Empty;
                         //Organizer Name and Email
