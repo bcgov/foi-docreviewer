@@ -68,7 +68,7 @@ class documentpageflagservice:
     
     def removepageflag(self,requestid, documentid, version, page, userinfo):
         pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] == 3) ),None)
+        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] in [1, 3]) ),None)
         if withheldinfullobj is not None:
             pageflags.remove(withheldinfullobj)
             DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
