@@ -38,7 +38,7 @@ namespace MCS.FOI.MSGToPDF
             {               
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                    for (int attempt = 1; attempt <= FailureAttemptCount; attempt++)
                     {
                         try
                         {
@@ -208,9 +208,8 @@ namespace MCS.FOI.MSGToPDF
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
-                return error;
                 throw;
             }
         }
