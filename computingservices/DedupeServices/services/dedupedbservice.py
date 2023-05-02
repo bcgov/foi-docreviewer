@@ -17,6 +17,10 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
+        cursor.execute('''UPDATE public."DocumentAttributes" SET attributes = %s WHERE documentmasterid = %s''',
+          (dedupeproducermessage.attributes, dedupeproducermessage.documentmasterid))
+        conn.commit()
+
         cursor.execute('INSERT INTO public."DocumentHashCodes" (documentid, \
         rank1hash,created_at) VALUES(%s::integer, %s,%s)', (id_of_new_row, hashcode,datetime.now()))
         conn.commit()
