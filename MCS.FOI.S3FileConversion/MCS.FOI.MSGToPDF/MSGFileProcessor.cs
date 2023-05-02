@@ -238,7 +238,7 @@ namespace MCS.FOI.MSGToPDF
             catch (Exception ex)
             {
                 isConverted = false;
-                string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 throw;
             }

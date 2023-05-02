@@ -85,7 +85,7 @@ namespace MCS.FOI.CalendarToPDF
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
                     attachmentsObj = new();
-                    for (int attempt = 1; attempt < FailureAttemptCount && !isReadCompleted; attempt++)
+                    for (int attempt = 1; attempt <= FailureAttemptCount && !isReadCompleted; attempt++)
                     {
                         try
                         {
@@ -275,7 +275,7 @@ namespace MCS.FOI.CalendarToPDF
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 Message = error;
                 throw;
