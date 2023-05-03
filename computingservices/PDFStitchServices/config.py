@@ -29,6 +29,7 @@ pdfstitch_s3_bucket = os.getenv('PDFSTITCH_S3_BUCKET')
 #stream config
 notification_stream_key = os.getenv('NOTIFICATION_STREAM_KEY')
 division_pdf_stitch_stream_key = os.getenv('DIVISION_PDF_STITCH_STREAM_KEY')
+division_pdf_stitch_large_file_stream_key = os.getenv('DIVISION_PDF_STITCH_LARGE_FILE_STREAM_KEY')
 division_blob_stitch_stream_key = os.getenv('DIVISION_BLOB_STITCH_STREAM_KEY')
 
 division_stitch_folder_path = os.getenv('DIVISION_STITCH_FOLDER_PATH')
