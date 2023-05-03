@@ -7,6 +7,7 @@ EXPOSE 6402
 
 ARG JFROG_USERNAME
 ARG JFROG_PASSWORD
+ARG foo
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -16,6 +17,7 @@ ENV PYTHONUNBUFFERED=1
 
 RUN echo "$JFROG_USERNAME"
 RUN echo "$JFROG_PASSWORD"
+RUN echo "$foo"
 
 COPY ./ /app
 WORKDIR /app
