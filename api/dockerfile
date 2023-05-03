@@ -14,6 +14,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
+RUN echo "$JFROG_USERNAME"
+RUN echo "$JFROG_PASSWORD"
+
 COPY ./ /app
 WORKDIR /app
 RUN pip3 install --no-cache-dir -r requirements.txt --index-url https://${JFROG_USERNAME}:${JFROG_PASSWORD}@artifacts.developer.gov.bc.ca/artifactory/api/pypi/pypi-remote/simple
