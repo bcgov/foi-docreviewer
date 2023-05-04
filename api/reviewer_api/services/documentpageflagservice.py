@@ -75,6 +75,7 @@ class documentpageflagservice:
 
     def __createnewpageflag(self, pageflag,data):
         formattted_data = self.__formatpageflag(data)
+        existingdocument = False
         if pageflag is not None:
             existingdocument = True
             isnew = True
