@@ -12,6 +12,8 @@ ARG REACT_APP_KEYCLOAK_URL_REALM
 ARG REACT_APP_KEYCLOAK_URL
 ARG FOI_DOCREVIEWER_BASE_API_URL
 ARG JFROG_AUTH_TOKEN
+ARG JFROG_USERNAME
+ARG JFROG_PASSWORD
 
 
 ENV NODE_ENV ${NODE_ENV}
@@ -35,7 +37,10 @@ COPY package.json /web/package.json
 
 
 RUN echo "$JFROG_AUTH_TOKEN"
-RUN echo "https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\n//artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/:_authToken=$JFROG_AUTH_TOKEN" > .npmrc
+RUN echo "https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\n \
+_auth = $JFROG_USERNAME:$JFROG_PASSWORD\n \
+email = loren.mullane@gov.bc.ca\n \
+always-auth = true" > .npmrc
 RUN npm install --unsafe-perm
 # delete config file for security
 RUN rm -f .npmrc
