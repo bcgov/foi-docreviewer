@@ -41,6 +41,7 @@ RUN echo "https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\
 _auth = $JFROG_USERNAME:$JFROG_PASSWORD\n \
 email = loren.mullane@gov.bc.ca\n \
 always-auth = true" > .npmrc
+RUN npm config set registry https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/
 RUN npm install --unsafe-perm
 # delete config file for security
 RUN rm -f .npmrc
