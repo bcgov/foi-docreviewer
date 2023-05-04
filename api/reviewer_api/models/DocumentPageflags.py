@@ -80,7 +80,7 @@ class DocumentPageflag(db.Model):
     @classmethod
     def getpageflag(cls,  _foiministryrequestid, _documentid, _documentversion):
         pageflag_schema = DocumentPageflagSchema(many=False)
-        query = db.session.query(DocumentPageflag).filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion)).one_or_none()
+        query = db.session.query(DocumentPageflag).filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion)).order_by(DocumentPageflag.documentversion.desc()).first()
         return pageflag_schema.dump(query)
     
     @classmethod
