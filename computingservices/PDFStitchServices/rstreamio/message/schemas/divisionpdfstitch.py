@@ -15,12 +15,14 @@ class FileSchema(Schema):
     filename = fields.Str(data_key="filename",allow_none=False)
     s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
     lastmodified = fields.Str(data_key="lastmodified",allow_none=False)
+    filesize = fields.Number(data_key="filesize")
 
 class AttributeSchema(Schema):
 
     files = fields.Nested(FileSchema, many=True,allow_none=False)
     divisionname = fields.Str(data_key="divisionname",allow_none=False)
     divisionid = fields.Int(data_key="divisionid", allow_none=False)
+    divisionfilesize = fields.Number(data_key="divisionfilesize")
 
 class DivisionPdfStitchMsgSchema(Schema, baseobj):
 
@@ -32,6 +34,7 @@ class DivisionPdfStitchMsgSchema(Schema, baseobj):
     requestid = fields.Str(data_key="requestid",allow_none=False)
     ministryrequestid = fields.Str(data_key="ministryrequestid",allow_none=False)
     createdby = fields.Str(data_key="createdby",allow_none=False)
+    totalfilesize = fields.Number(data_key="totalfilesize")
 
 def get_in_divisionpdfmsg(producer_json):
     messageobject = DivisionPdfStitchMsgSchema().load(__formatmsg(producer_json))
