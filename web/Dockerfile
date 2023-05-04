@@ -11,6 +11,7 @@ ARG REACT_APP_KEYCLOAK_CLIENT
 ARG REACT_APP_KEYCLOAK_URL_REALM
 ARG REACT_APP_KEYCLOAK_URL
 ARG FOI_DOCREVIEWER_BASE_API_URL
+ARG JFROG_AUTH_TOKEN
 
 
 ENV NODE_ENV ${NODE_ENV}
@@ -33,7 +34,11 @@ COPY package-lock.json /web/package-lock.json
 COPY package.json /web/package.json
 
 
+RUN echo "$JFROG_AUTH_TOKEN"
+RUN echo "https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\n//artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/:_authToken=$JFROG_AUTH_TOKEN" > .npmrc
 RUN npm install --unsafe-perm
+# delete config file for security
+RUN rm -f .npmrc
 #RUN npm install react-scripts@3.0.1 -g --silent
 COPY . /web
 RUN npm run build
