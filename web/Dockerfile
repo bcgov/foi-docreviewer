@@ -34,8 +34,10 @@ COPY package-lock.json /web/package-lock.json
 COPY package.json /web/package.json
 
 
-RUN echo "$JFROG_AUTH_TOKEN"
-RUN echo "registry=https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\n//artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/:_authToken=$JFROG_AUTH_TOKEN" > .npmrc
+# RUN echo "$JFROG_AUTH_TOKEN"
+# RUN echo "registry=https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/\n//artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/:_authToken=$JFROG_AUTH_TOKEN" > .npmrc
+RUN npm config set registry https://artifacts.developer.gov.bc.ca/artifactory/api/npm/npm-remote/
+RUN npm login
 RUN npm install --unsafe-perm
 # delete config file for security
 RUN rm -f .npmrc
