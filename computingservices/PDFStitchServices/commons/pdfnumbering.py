@@ -50,7 +50,6 @@ def add_numbering_to_pdf(original_pdf, paginationtext="") -> bytes:
     finally:
         if doc:
             doc.close()
-            fitz.TOOLS.store_shrink(100)
         if output_buffer:
             output_buffer.close()
         original_pdf = None
