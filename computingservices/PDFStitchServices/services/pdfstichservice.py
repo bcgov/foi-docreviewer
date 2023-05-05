@@ -107,7 +107,6 @@ class pdfstitchservice(basestitchservice):
             if writer:
                 writer.save(bytes_stream)
                 writer.close()
-                fitz.TOOLS.store_shrink(100)
                 del writer
             
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
@@ -121,7 +120,7 @@ class pdfstitchservice(basestitchservice):
                     filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
                     numberedpdfbytes = None
                 else:
-                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream, division.files, division.divisionname)
+                    filestozip = basestitchservice().uploaddivionalfiles(filename,requestnumber, bcgovcode, s3credentials, bytes_stream.getvalue(), division.files, division.divisionname)
                     filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
                     
                 bytes_stream.close()
