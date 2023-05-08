@@ -16,7 +16,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
-import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation,
+import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
   deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
@@ -237,11 +237,17 @@ const Redlining = React.forwardRef(({
               // setRedactionType(annotations[0]?.type);
               annots[0].children?.forEach((annotatn, i)=> {
                 if(annotations[i]?.type === 'fullPage') {
-                pageSelectionList.push(
-                  {
-                  "page":(Number(annotatn.attributes.page))+1,
-                  "flagid":3
-                  });
+                  pageSelectionList.push(
+                    {
+                    "page":(Number(annotatn.attributes.page))+1,
+                    "flagid":3
+                    });
+                } else {
+                  pageSelectionList.push(
+                    {
+                    "page":(Number(annotatn.attributes.page))+1,
+                    "flagid":1
+                    });
                 }
               })
               setPageSelections(pageSelectionList);
@@ -467,32 +473,21 @@ const Redlining = React.forwardRef(({
       let annot = deleteQueue.pop();
       if (annot && annot.name !== newRedaction?.name) {
         let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-        if(redactionType == 'fullPage'){
-          deleteAnnotation(
-            requestid,
-            localDocumentInfo['file']['documentid'],
-            localDocumentInfo['file']['version'],
-            annot.name,
-            (data)=>{
-              fetchPageFlag(
-                requestid,
-                (error) => console.log(error)
-              )
-            },
-            (error)=>{console.log(error)},
-            (Number(annot.page))+1
-          );
-        }
-        else {
-          deleteAnnotation(
-            requestid,
-            localDocumentInfo['file']['documentid'],
-            localDocumentInfo['file']['version'],
-            annot.name,
-            (data)=>{},
-            (error)=>{console.log(error)}
-          );
-        }
+
+        deleteRedaction(
+          requestid,
+          localDocumentInfo['file']['documentid'],
+          localDocumentInfo['file']['version'],
+          annot.name,
+          (data)=>{
+            fetchPageFlag(
+              requestid,
+              (error) => console.log(error)
+            )
+          },
+          (error)=>{console.log(error)},
+          (Number(annot.page))+1
+        );
 
         if (annot.type === 'redact' && redactionInfo) {
           let i = redactionInfo.findIndex(a => a.annotationname === annot.name);

@@ -29,6 +29,19 @@ class Annotation(db.Model):
         annotation_schema = AnnotationSchema(many=True)
         query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
         return annotation_schema.dump(query)
+
+    @classmethod
+    def getredactionsbypage(cls, _documentid, _documentversion, _pagenum):
+        annotation_schema = AnnotationSchema(many=True)
+        query = db.session.query(Annotation).filter(
+            and_(
+                Annotation.documentid == _documentid,
+                Annotation.documentversion == _documentversion,
+                Annotation.isactive==True,
+                Annotation.pagenumber == _pagenum-1,
+                Annotation.annotation.ilike('%<redact %')
+            )).order_by(Annotation.annotationid.asc()).all()
+        return annotation_schema.dump(query)
     
     @classmethod
     def getannotationinfo(cls, _documentid, _documentversion):

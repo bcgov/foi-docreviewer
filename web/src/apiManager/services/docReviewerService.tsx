@@ -127,6 +127,29 @@ export const deleteAnnotation = (
     });
 };
 
+export const deleteRedaction = (
+  requestid: string,
+  documentid: number,
+  documentversion: number = 1,
+  annotationname: string = "",
+  callback: any,
+  errorCallback: any,
+  page: number
+) => {
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while deleting a redaction for (doc# ${documentid}, annotationname ${annotationname})`);            
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in deleting a redaction");
+    });
+};
+
 export const fetchSections = (
   foiministryrquestid: number,
   callback: any,
