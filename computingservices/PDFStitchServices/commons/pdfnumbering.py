@@ -37,9 +37,12 @@ def add_numbering_to_pdf(original_pdf, paginationtext="") -> bytes:
             pos = fitz.Point(round(x,2), round(y,2))
 
             font_color = (int(color_hex[1:3], 16)/255, int(color_hex[3:5], 16)/255, int(color_hex[5:7], 16)/255)
-
+            print("pagetext = ", pagetext)
             page.insert_text(pos, pagetext, fontsize=fontsize, rotate=90, color=font_color)
-            page = pos = None
+            
+            pos = None
+            page = None
+            
         doc.save(output_buffer)
         
         output_buffer.seek(0)
