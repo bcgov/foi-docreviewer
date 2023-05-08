@@ -105,7 +105,7 @@ const ConsultModal = ({
                 <DialogContentText id="consult-modal-description" component={'span'}>
                     <div style={{textAlign: "left", marginLeft: 25}}>Select one or more Ministry you with the send the selected page(s) to for consult.</div>
                     <div className="consult-modal-ministries-list">
-                        {programAreaList.programareas.map((programArea: any, index: number) => (
+                        {programAreaList.programareas?.map((programArea: any, index: number) => (
                             <label  id={"lbl"+programArea.iaocode}  key={index} className="check-item">
                             <input
                                 type="checkbox"
@@ -125,7 +125,7 @@ const ConsultModal = ({
                     </div>
 
                     <div className="consult-modal-ministries-list">
-                        {programAreaList.others.map((programArea: any, index: number) => (
+                        {programAreaList.others?.map((programArea: any, index: number) => (
                             <label  id={"lbl"+programArea}  key={index} className="check-item other-ministry">
                             <input
                                 type="checkbox"
