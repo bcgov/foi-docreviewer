@@ -32,7 +32,7 @@ namespace MCS.FOI.S3FileConversion
         public S3Handler() { }
 
 
-        public async System.Threading.Tasks.Task<List<Dictionary<string, string>>> ConvertFile(StreamEntry message, S3AccessKeys s3AccessKeys)
+        public async System.Threading.Tasks.Task<(List<Dictionary<string, string>>, long)> ConvertFile(StreamEntry message, S3AccessKeys s3AccessKeys)
         {
             var filePath = (string)message["s3filepath"];
             // Get S3 Access credentials based on ministry
@@ -49,6 +49,7 @@ namespace MCS.FOI.S3FileConversion
 
 
             returnAttachments = new();
+            long convertedSize;
             using var client = new HttpClient();
 
             try
@@ -97,6 +98,7 @@ namespace MCS.FOI.S3FileConversion
                         var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
 
                         output.Position = 0;
+                        convertedSize = output.Length;
                         using (StreamContent strm = new(output))
                         {
                             strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
@@ -159,7 +161,7 @@ namespace MCS.FOI.S3FileConversion
             {
                 client.Dispose();
             }
-            return returnAttachments;
+            return (returnAttachments, convertedSize);
         }
 
         public string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)

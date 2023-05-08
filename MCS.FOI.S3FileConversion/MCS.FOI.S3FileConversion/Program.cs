@@ -111,7 +111,7 @@ namespace MCS.FOI.S3FileConversion
                                         var filePath = (string)message["s3filepath"];
                                         string bucket = filePath.Split("/")[3];
                                         S3AccessKeys s3AccessKeys = await dbhandler.getAccessKeyFromDB(bucket);
-                                        List<Dictionary<string, String>> attachments = await s3handler.ConvertFile(message, s3AccessKeys);
+                                        var (attachments, convertedSize) = await s3handler.ConvertFile(message, s3AccessKeys);
                                         // Record any child tasks before sending them to Redis Streams
                                         Dictionary<string, Dictionary<string, string>> jobIDs = await dbhandler.recordJobEnd(message, false, "", attachments);
                                         if (attachments != null && attachments.Count > 0)
@@ -157,6 +157,8 @@ namespace MCS.FOI.S3FileConversion
                                             }
                                         }
                                         string newFilename = Path.ChangeExtension(message["s3filepath"], ".pdf");
+                                        var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                        attributes["convertedfilesize"] = JsonValue.Create(convertedSize);
                                         db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                         {
                                             new("s3filepath", Path.ChangeExtension(message["s3filepath"], ".pdf")),
@@ -164,7 +166,7 @@ namespace MCS.FOI.S3FileConversion
                                             new("bcgovcode", message["bcgovcode"]),
                                             new("filename", message["filename"]),
                                             new("ministryrequestid", message["ministryrequestid"]),
-                                            new("attributes", message["attributes"].ToString()),
+                                            new("attributes", attributes.ToJsonString()),
                                             new("batch", message["batch"]),
                                             new("jobid", jobIDs[newFilename]["jobID"]),
                                             new("documentmasterid", message["documentmasterid"]),

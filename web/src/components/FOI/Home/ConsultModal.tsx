@@ -7,37 +7,39 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from "@mui/material/IconButton";
 import TextField from '@mui/material/TextField';
+import _ from 'lodash';
 
 
 const ConsultModal = ({
     flagId,
-    selectedPage,
+    initialPageFlag,
     documentId,
     documentVersion,
     openModal,
     setOpenModal,
-    savePageFlags
+    savePageFlags,
+    programAreaList,
 }: any) => {
 
     const[newConsultBody,setNewConsultBody]= useState("");
     const[errorMessage, setErrorMessage] = useState("");
+    const[selectedPageFlag, setSelectedPageFlag] = useState(_.cloneDeep(initialPageFlag));
 
-    const saveNewCode = (newConsultBody: string) => {
+    const saveConsult = () => {
         if(newConsultBody?.length >100){
-            setErrorMessage("Character limit cannot exceeded.")
+            setErrorMessage("Character limit exceeded.")
         }
         else{
             setOpenModal(false);
-            setNewConsultBody(newConsultBody);
-            if(newConsultBody){
+            if(_.isEqual(selectedPageFlag.others, initialPageFlag.others)) {
+                selectedPageFlag.publicbodyaction = 'add';
+            }
                 savePageFlags(flagId,
-                    selectedPage,
+                    selectedPageFlag.page,
                     documentId,
                     documentVersion,
-                    "add",
-                    newConsultBody
+                    selectedPageFlag
                     );
-            }
         }
     }
 
@@ -48,6 +50,39 @@ const ConsultModal = ({
         else{
             setNewConsultBody(e.target.value);
         }
+    }
+
+    const addNewConsultBody = () => {
+        programAreaList.others.push(newConsultBody)
+        selectedPageFlag.other.push(newConsultBody)
+        setSelectedPageFlag(selectedPageFlag)
+        setNewConsultBody("");
+    }
+
+    const handleSelectMinistry = (e: any) => {
+        let pageFlag = {...selectedPageFlag}
+        if (e.target.checked) {
+            pageFlag.programareaid.push(Number(e.target.getAttribute('data-programareaid')))
+        } else {
+            let i = pageFlag.programareaid.findIndex((m: any) => m === Number(e.target.getAttribute('data-programareaid')));
+            pageFlag.programareaid.splice(i, 1)
+        }
+        setSelectedPageFlag(pageFlag)
+    }
+
+    const handleSelectCustomMinistry = (e: any) => {
+        let pageFlag = {...selectedPageFlag}
+        if (e.target.checked) {
+            pageFlag.other.push(e.target.getAttribute('data-iaocode'))
+        } else {
+            let i = pageFlag.other.findIndex((m: any) => m === e.target.getAttribute('data-iaocode'));
+            pageFlag.other.splice(i, 1)
+        }
+        setSelectedPageFlag(pageFlag)
+    }
+
+    const isSaveDisabled = () => {
+        return _.isEqual(selectedPageFlag, initialPageFlag);
     }
 
     return (
@@ -61,14 +96,55 @@ const ConsultModal = ({
                 fullWidth={true}
             >
             <DialogTitle disableTypography id="state-change-dialog-title" className="consult-modal-margin">
-                <h2 className="state-change-header">Add Other Public Body for Consult</h2>
+                <h2 className="state-change-header">Consultations</h2>
                 <IconButton aria-label="close" onClick={() => setOpenModal(false)}>
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
             <DialogContent>
                 <DialogContentText id="consult-modal-description" component={'span'}>
-                    <div className={`row other-pb-modal-message`}>
+                    <div style={{textAlign: "left", marginLeft: 25}}>Select one or more Ministry you with the send the selected page(s) to for consult.</div>
+                    <div className="consult-modal-ministries-list">
+                        {programAreaList.programareas?.map((programArea: any, index: number) => (
+                            <label  id={"lbl"+programArea.iaocode}  key={index} className="check-item">
+                            <input
+                                type="checkbox"
+                                className="checkmark"
+                                id={"selectchk"+programArea.iaocode}
+                                key={programArea.programareaid}
+                                data-programareaid={programArea.programareaid}
+                                data-iaocode={programArea.iaocode}
+                                onChange={handleSelectMinistry}
+                                required
+                                defaultChecked={selectedPageFlag?.programareaid?.findIndex((e:any) => e === programArea.programareaid) > -1}
+                            />
+                            <span id={"selectspan"+programArea.iaocode} key={index + 1} className="checkmark"></span>
+                            {programArea.iaocode}
+                            </label>
+                        ))}
+                    </div>
+
+                    <div className="consult-modal-ministries-list">
+                        {programAreaList.others?.map((programArea: any, index: number) => (
+                            <label  id={"lbl"+programArea}  key={index} className="check-item other-ministry">
+                            <input
+                                type="checkbox"
+                                className="checkmark"
+                                id={"selectchk"+programArea}
+                                key={programArea + index}
+                                data-iaocode={programArea}
+                                onChange={handleSelectCustomMinistry}
+                                required
+                                defaultChecked={selectedPageFlag?.other?.findIndex((e:any) => e === programArea) > -1}
+                            />
+                            <span id={"selectspan"+programArea} key={index + 1} className="checkmark"></span>
+                            {programArea}
+                            </label>
+                        ))}
+                    </div>
+
+                    <div style={{textAlign: "left", marginLeft: 25}}>If you do not see the name of the Ministry you would like to send for consult above please type it below.</div>
+                    <div className={`other-pb-modal-message`}>
                         <TextField
                             id="new-public-body"
                             label="Type Name of Other Public Body for Consult"
@@ -81,13 +157,16 @@ const ConsultModal = ({
                             error={newConsultBody?.length >100}
                             helperText={errorMessage}
                         />
+                        <button disabled={newConsultBody.length === 0} className="add-consult-ministry" onClick={addNewConsultBody}>
+                            <div>+</div>
+                        </button>
                     </div>
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
                 <button className={`btn-bottom btn-save btnenabled`} 
-                disabled={newConsultBody?.length <=0}
-                onClick={() => saveNewCode(newConsultBody)}>
+                disabled={isSaveDisabled()}
+                onClick={saveConsult}>
                     Save
                 </button>
                 <button className="btn-bottom btn-cancel" onClick={() => setOpenModal(false)}>

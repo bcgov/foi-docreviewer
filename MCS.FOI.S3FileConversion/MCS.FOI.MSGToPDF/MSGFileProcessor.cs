@@ -38,7 +38,7 @@ namespace MCS.FOI.MSGToPDF
             {               
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
-                    for (int attempt = 1; attempt < FailureAttemptCount; attempt++)
+                    for (int attempt = 1; attempt <= FailureAttemptCount; attempt++)
                     {
                         try
                         {
@@ -137,7 +137,7 @@ namespace MCS.FOI.MSGToPDF
                                 <body style='border: 50px solid white;'>
                                     ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:15px;'>");
+                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:35px;'>");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -196,7 +196,7 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.SentOn + "</td></tr>");
 
                 //Message body
-                string message = @"" + msg.BodyText.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
+                string message = @"" + msg.BodyText?.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>")?.Replace("&lt;br/&gt;", "<br/>");
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                 htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
                                     <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
@@ -208,9 +208,8 @@ namespace MCS.FOI.MSGToPDF
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
-                return error;
                 throw;
             }
         }
@@ -239,7 +238,7 @@ namespace MCS.FOI.MSGToPDF
             catch (Exception ex)
             {
                 isConverted = false;
-                string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 throw;
             }

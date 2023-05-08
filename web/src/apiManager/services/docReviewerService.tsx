@@ -203,24 +203,14 @@ export const savePageFlag = (
   flagid: number,
   callback: any,
   errorCallback: any,
-  publicbodyaction? : string,
-  other? : string,
-  programareaid? : number,
+  data?: any
 ) => {
   let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
     API.DOCREVIEWER_POST_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
   ), "<documentid>", documentid), "<documentversion>",documentversion);
-  let requestJSON = (programareaid || other) ?
-    {
-      "page": pagenumber,
-      "flagid": flagid,
-      "publicbodyaction":publicbodyaction,
-      "programareaid":programareaid,
-      "other":other
-    }
-  : {
+  let requestJSON = data || {
     "page": pagenumber,
     "flagid": flagid,
     }

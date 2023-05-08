@@ -79,6 +79,7 @@ class documentpageflagservice:
 
     def __createnewpageflag(self, pageflag, data):
         formattted_data = self.__formatpageflag(data)
+        existingdocument = False
         if pageflag is not None:
             isnew = True
             for entry in pageflag:
@@ -108,7 +109,9 @@ class documentpageflagservice:
             pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
             attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
             publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody.append({"name": data["other"]})    
+            publicbody = set(map(lambda x : x['name'], publicbody))
+            publicbody.update(data["other"])
+            publicbody = list(map(lambda x : {"name": x}, publicbody))
             DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
         else:
             return

@@ -15,6 +15,7 @@ from config import division_pdf_stitch_stream_key, notification_enabled, message
 from rstreamio.message.schemas.divisionpdfstitch import get_in_divisionpdfmsg
 from services.pdfstichservice import pdfstitchservice
 from services.notificationservice import notificationservice
+from services.pdfstitchjob import recordjobend
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = int(message_block_time)
@@ -71,15 +72,24 @@ def handlemessage(message):
         _message = _message.replace("b'","'").replace("'",'')
         try:
             producermessage = get_in_divisionpdfmsg(_message)
-            complete, err, total_skippedfilecount, skippedfiles = pdfstitchservice().ispdfstitchjobcompleted(producermessage.jobid, producermessage.category.lower())
-            if complete or err:
+            started, complete, err = pdfstitchservice().ispdfstitchjobstarted(producermessage.jobid, producermessage.category.lower())
+            print("started = ", started)
+            if started and (complete or err):
                 print("this job is completed!")
                 return
+            elif started:
+                errormessage = "The service is restared due to insufficient resources"
+                print(errormessage)
+                recordjobend(producermessage, True, finalmessage=None, message=errormessage)
+                notificationrequired = True
             else:
                 pdfstitchservice().processmessage(producermessage)
-                print("Process message completed.")            
-                if notification_enabled == "True":
-                    print("Starting to send the notification")
-                    notificationservice().sendnotification(producermessage)
+                print("Process message completed.")
+                notificationrequired = True
+
+            if notification_enabled == "True" and notificationrequired:
+                print("Starting to send the notification")
+                notificationservice().sendnotification(producermessage)
+                return
         except(Exception) as error:
-            logging.exception(error)
+            print(error)

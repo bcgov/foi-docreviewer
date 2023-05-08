@@ -43,8 +43,27 @@
 
 
 .other-pb-modal-message {
-    margin: 0px 10% 0px 3%;
-    width: 100%;
+    margin: 10px 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    > div {
+        flex: 1;
+    }
+}
+
+.add-consult-ministry {
+    background-color: #003366;
+    margin-left: 20px;
+    height: 36px;
+    width: 36px;
+    border-radius: 50%;
+    color: white;
+    border: none;
+    > div {
+        font-size: 36px;
+        margin-top: -9px;
+    }
 }
 
 .MuiDialogActions-root {
@@ -70,11 +89,49 @@
     display: flex;
     justify-content: center;
     color: black; 
+    flex-direction: column;
+    text-align: center;
 }
 
 .consult-modal-margin {
     margin: 0px 20px !important;
 }
+
+.consult-modal-ministries-list {
+    text-align: left;
+    margin: 10px;
+
+    .check-item {
+        position: relative;
+        margin: 0 1.6%;
+        padding: 0;
+        width: 13%;
+        padding-left: min(3.5%, 30px);
+        font-size: 14px;
+    }
+
+    .check-item.other-ministry {        
+        width: 29.2%;
+    }
+    
+    .checkmark{
+        position:absolute;
+        top:3px;
+        left:0;
+        
+        height:14px;
+        width:14px;
+        // background-color:#eee;
+        border-radius: 3px;
+        border: 1px solid;
+    }
+
+    .checkmark:checked{
+        accent-color: #178100;
+    }
+}
+
+
 
 .btn-bottom {
     max-width: 50%;
@@ -82,7 +139,7 @@
 
 .MuiDialogActions-spacing {
     margin-left: 3% !important;
-    margin-right: 10% !important;
+    margin-right: 3% !important;
 }
 
 .MuiFormLabel-root{
