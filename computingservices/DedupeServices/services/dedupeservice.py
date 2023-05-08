@@ -14,4 +14,3 @@ def processmessage(message):
     except(Exception) as error:
         print("Exception while processing redis message, func processmessage(p3), Error : {0} ".format(error))
         recordjobend(message, True, traceback.format_exc())
-        raise

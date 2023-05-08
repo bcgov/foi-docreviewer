@@ -62,8 +62,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                             print("batch not yet complete, no message sent")
                     except(Exception) as error:
                         print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
-                        logging.exception(error)
-                                            
+                                             
                 # simulate processing
                 #time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
