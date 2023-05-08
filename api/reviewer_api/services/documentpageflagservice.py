@@ -68,7 +68,7 @@ class documentpageflagservice:
     
     def removepageflag(self,requestid, documentid, version, page, userinfo):
         pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] == 3) ),None)
+        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] in [1, 3]) ),None)
         if withheldinfullobj is not None:
             pageflags.remove(withheldinfullobj)
             DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
@@ -107,7 +107,9 @@ class documentpageflagservice:
             pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
             attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
             publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody.append({"name": data["other"]})    
+            publicbody = set(map(lambda x : x['name'], publicbody))
+            publicbody.update(data["other"])
+            publicbody = list(map(lambda x : {"name": x}, publicbody))
             DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
         else:
             return

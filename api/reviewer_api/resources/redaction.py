@@ -93,6 +93,27 @@ class DeactivateAnnotations(Resource):
             return {'status': False, 'message':err.message}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('DELETE,OPTIONS')
+@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
+class DeactivateRedactions(Resource):
+    
+    """save or update an annotation for a document
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def delete(requestid, documentid, documentversion, annotationname, page):
+        
+        try:
+            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page)
+            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
+        except KeyError as err:
+            return {'status': False, 'message':err.message}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
         
 
 @cors_preflight('DELETE,OPTIONS')

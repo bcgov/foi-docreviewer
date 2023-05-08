@@ -39,6 +39,14 @@ class redactionservice:
             documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
         return result
 
+    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page):
+        result = annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
+        if result.success == True:
+            newresult = Annotation.getredactionsbypage(documentid, documentversion, page)
+            if len(newresult) == 0:
+                documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
+        return result
+
     def getdocumentmapper(self, bucket):
         return DocumentPathMapper.getmapper(bucket)
 

@@ -48,7 +48,7 @@ const ContextMenu = ({
         setOpenConsultPopup(false);
     }
 
-    const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, publicbodyaction?: string, other?: string, programareaid?: number) => {
+    const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, data?: any) => {
         if(flagId === 3){
             console.log("Withheld in Full Selection");
             openFOIPPAModal(pageNo);
@@ -61,38 +61,47 @@ const ContextMenu = ({
                 flagId,
                 (data: any) => setPageFlagChanged(true),
                 (error: any) => console.log(error),
-                publicbodyaction,
-                other,
-                programareaid
+                data
             );
         }
         setOpenConsultPopup(false);
         setOpenContextPopup(false);
     }
 
-    const ministryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.programareas?.map((programarea: any, index: number) => {
-        return (
-            <div key={programarea?.programareaid} onClick={() => savePageFlags(pageFlag.pageflagid, selectedPage, documentId, documentVersion, "", "", programarea?.programareaid)}>
-                <MenuList>
-                    <MenuItem>
-                        {programarea?.iaocode}
-                    </MenuItem>
-                </MenuList>
-            </div>
-        )
-    })
+    // const ministryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.programareas?.map((programarea: any, index: number) => {
+    //     return (
+    //         <div key={programarea?.programareaid} onClick={() => savePageFlags(pageFlag.pageflagid, selectedPage, documentId, documentVersion, "", "", programarea?.programareaid)}>
+    //             <MenuList>
+    //                 <MenuItem>
+    //                     {programarea?.iaocode}
+    //                 </MenuItem>
+    //             </MenuList>
+    //         </div>
+    //     )
+    // })
 
-    const otherMinistryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.others?.map((other: any, index: number) => {
-        return (
-            <div onClick={() => savePageFlags(pageFlag.pageflagid, selectedPage, documentId, documentVersion, "", other)} key={index}>
-                <MenuList>
-                    <MenuItem>
-                        {other}
-                    </MenuItem>
-                </MenuList>
-            </div>
-        )
-    })
+    // const otherMinistryOrgCodes = (pageFlag: any, documentId: number, documentVersion: number) => pageFlag.others?.map((other: any, index: number) => {
+    //     return (
+    //         <div onClick={() => savePageFlags(pageFlag.pageflagid, selectedPage, documentId, documentVersion, "", other)} key={index}>
+    //             <MenuList>
+    //                 <MenuItem>
+    //                     {other}
+    //                 </MenuItem>
+    //             </MenuList>
+    //         </div>
+    //     )
+    // })
+
+    const getProgramAreas = () => {
+        let consult = pageFlagList.find((pageFlag: any) => pageFlag.name === 'Consult')
+        return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
+    }
+
+    const getSelectedPageFlag = () => {
+        return selectedFile.consult?.find((flag: any) => flag.page === selectedPage) || {
+            flagid: 4, other: [], programareaid: [], page: selectedPage
+        }
+    }
 
     const showPageFlagList = () => pageFlagList?.map((pageFlag: any, index: number) => {
         return (pageFlag?.name === 'Page Left Off' ?
@@ -110,7 +119,8 @@ const ContextMenu = ({
                     <MenuItem>
                         {(pageFlag?.name == 'Consult' ?
                             <>
-                                <div onClick={popoverEnter}>
+                                <div onClick={() => setOpenModal(true)}>
+                                {/* <div onClick={popoverEnter}> */}
                                     <FontAwesomeIcon style={{ marginRight: '10px' }} icon={assignIcon(pageFlag?.name) as IconProp} size='1x' />
                                     {pageFlag?.name}
                                     <span style={{ float: 'right', marginLeft: '51px' }}>
@@ -140,8 +150,8 @@ const ContextMenu = ({
                                     disableRestoreFocus
                                 >
                                     <div className='ministryCodeModal' >
-                                        {ministryOrgCodes(pageFlag, selectedFile.documentid, selectedFile.version)}
-                                        {otherMinistryOrgCodes(pageFlag, selectedFile.documentid, selectedFile.version)}
+                                        {/* {ministryOrgCodes(pageFlag, selectedFile.documentid, selectedFile.version)} */}
+                                        {/* {otherMinistryOrgCodes(pageFlag, selectedFile.documentid, selectedFile.version)} */}
                                         <div className="otherOption" onClick={() => addOtherPublicBody(pageFlag.pageflagid, selectedFile.documentid, selectedFile.version)}>
                                             <span style={{ marginRight: '10px' }}>
                                                 <FontAwesomeIcon icon={faCirclePlus as IconProp} size='1x' />
@@ -200,12 +210,14 @@ const ContextMenu = ({
             {openModal &&
                 <ConsultModal
                     flagId={flagId}
-                    selectedPage={selectedPage}
-                    documentId={docId}
-                    documentVersion={docVersion}
+                    initialPageFlag={getSelectedPageFlag()}
+                    documentId={selectedFile.documentid}
+                    documentVersion={selectedFile.version}
                     openModal={openModal}
                     setOpenModal={setOpenModal}
-                    savePageFlags={savePageFlags} />
+                    savePageFlags={savePageFlags} 
+                    programAreaList={getProgramAreas()}
+                />
             }
         </>
     );
