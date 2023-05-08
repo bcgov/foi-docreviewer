@@ -17,7 +17,10 @@ class documentpageflagservice:
     def getdocumentpageflags(self, requestid, documentid=None, version=None):
         pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version)
         if pageflag not in (None, {}):
-            return pageflag["pageflag"]
+            if pageflag["pageflag"] is not None:
+                return pageflag["pageflag"]
+            else:
+                return []
         return None
 
     def removebookmark(self,requestid, userinfo):
@@ -52,12 +55,13 @@ class documentpageflagservice:
 
     def bulksavepageflags(self, requestid, documentid, version, pageflaglist, userinfo):
         pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        existingdocument = False
-        for data in pageflaglist:
+        existingdocument = True
+        if(pageflag is None):
             existingdocument = False
+        for data in pageflaglist:
             # if self.__isbookmark(data) == True: 
             #     self.removebookmark(requestid, userinfo)
-            existingdocument= self.__createnewpageflag(pageflag,data)
+            self.__createnewpageflag(pageflag, data)
         if existingdocument == True:
             result = DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
         else:
@@ -73,10 +77,9 @@ class documentpageflagservice:
             pageflags.remove(withheldinfullobj)
             DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
 
-    def __createnewpageflag(self, pageflag,data):
+    def __createnewpageflag(self, pageflag, data):
         formattted_data = self.__formatpageflag(data)
         if pageflag is not None:
-            existingdocument = True
             isnew = True
             for entry in pageflag:
                 if entry["page"] == data["page"]:
@@ -88,7 +91,6 @@ class documentpageflagservice:
         else:
             pageflag = []
             pageflag.append(formattted_data)  
-        return existingdocument
     
     def __formatpageflag(self, data):
         _normalised = copy.deepcopy(data)
