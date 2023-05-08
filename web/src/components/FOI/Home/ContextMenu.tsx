@@ -94,7 +94,7 @@ const ContextMenu = ({
 
     const getProgramAreas = () => {
         let consult = pageFlagList.find((pageFlag: any) => pageFlag.name === 'Consult')
-        return (({others , programareas }) => ({ others, programareas }))(consult);
+        return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
     }
 
     const getSelectedPageFlag = () => {
