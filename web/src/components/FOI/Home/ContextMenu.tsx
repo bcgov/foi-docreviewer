@@ -98,7 +98,7 @@ const ContextMenu = ({
     }
 
     const getSelectedPageFlag = () => {
-        return selectedFile.consult.find((flag: any) => flag.page === selectedPage) || {
+        return selectedFile.consult?.find((flag: any) => flag.page === selectedPage) || {
             flagid: 4, other: [], programareaid: [], page: selectedPage
         }
     }
