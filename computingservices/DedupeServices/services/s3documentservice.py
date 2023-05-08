@@ -61,7 +61,8 @@ def gets3documenthashcode(producermessage):
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
 
-
+    BytesIO().close()
+    reader.stream.close()
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)
