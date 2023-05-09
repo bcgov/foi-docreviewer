@@ -105,8 +105,9 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             if writer:
-                writer.save(bytes_stream)
+                writer.save(bytes_stream, garbage=4)
                 writer.close()
+                fitz.TOOLS.store_shrink(100)
                 del writer
             
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
