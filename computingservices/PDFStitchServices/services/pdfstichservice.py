@@ -105,11 +105,12 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             if writer:
-                writer.save(bytes_stream, garbage=4)
+                print(f"save stitched doc to the bytes_stream: {datetime.now()}")
+                writer.save(bytes_stream)
                 writer.close()
                 fitz.TOOLS.store_shrink(100)
                 del writer
-            
+                print(f"save stitched doc to the bytes_stream completed: {datetime.now()}")
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
                     
                 if numbering_enabled == "True":
