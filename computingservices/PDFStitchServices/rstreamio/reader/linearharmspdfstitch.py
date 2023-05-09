@@ -73,12 +73,11 @@ def handlemessage(message):
         try:
             producermessage = get_in_divisionpdfmsg(_message)
             started, complete, err = pdfstitchservice().ispdfstitchjobstarted(producermessage.jobid, producermessage.category.lower())
-            print("started = ", started)
             if started and (complete or err):
                 print("this job is completed!")
                 return
             elif started:
-                errormessage = "The service is restared due to insufficient resources"
+                errormessage = "The service is restared."
                 print(errormessage)
                 recordjobend(producermessage, True, finalmessage=None, message=errormessage)
                 notificationrequired = True
