@@ -112,7 +112,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_STREAM_KEY
+                  key: REDIS_STREAM_KEY_LARGEFILES
             - name: DEDUPE_STREAM_KEY
               valueFrom:
                 secretKeyRef:
