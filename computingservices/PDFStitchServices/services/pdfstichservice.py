@@ -88,7 +88,6 @@ class pdfstitchservice(basestitchservice):
                             raise ValueError("Password-protected PDF document")                            
                         else:
                             writer.insert_pdf(pdf_doc)
-                        print("pagecount = ", pdf_doc.page_count)
                         pdf_doc.close()
                         fitz.TOOLS.store_shrink(100)                    
                         _bytes.close()
@@ -153,7 +152,6 @@ class pdfstitchservice(basestitchservice):
     
     def createfinaldocument(self, _message, s3credentials):
         if _message is not None:
-            print("<<< zipfilesandupload >>> ")
             return basestitchservice().zipfilesandupload(_message, s3credentials)
         return {"success": False, "filename": "", "documentpath": ""}
     
