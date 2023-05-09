@@ -4,6 +4,7 @@ from rstreamio.message.schemas.divisionpdfstitch  import get_in_filepdfmsg
 from io import BytesIO
 from zipfile import ZipFile
 import zipfile
+import tempfile
 from os import path
 from utils.basicutils import to_json
 from config import division_stitch_folder_path
@@ -19,7 +20,7 @@ class basestitchservice:
             raise ValueError(message.filename, error)
     
         
-    def zipfilesandupload(self, _message, s3credentials):
+    def zipfilesandupload_1(self, _message, s3credentials):
         archive = BytesIO()
         try:
             with ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9, allowZip64=True) as zip_archive:           
@@ -40,6 +41,33 @@ class basestitchservice:
             raise
         finally:
             archive.close()
+            del archive
+
+    def zipfilesandupload(self, _message, s3credentials):
+        zipped_bytes = None
+        try:
+            print("<<< Start Zip >>>")
+            with tempfile.SpooledTemporaryFile() as tp:
+                with zipfile.ZipFile(tp, 'w',zipfile.ZIP_DEFLATED, compresslevel=9, allowZip64=True) as zip:
+                    for file in _message.outputdocumentpath:
+                        fileobj = get_in_filepdfmsg(to_json(file))
+                        print("file name before zipping = ", fileobj.filename)
+                        zip.writestr(fileobj.filename, self.getdocumentbytearray(fileobj, s3credentials))
+                        print(f"{fileobj.filename} is zipped")
+                tp.seek(0)
+                zipped_bytes = tp.read()
+                print("<<< End Zip >>>")
+                filepath = self.__getzipfilepath(_message.category, _message.requestnumber)
+                logging.info("zipfilename = %s", filepath)
+                print("upload zipfilename = ", filepath)
+                docobj = uploadbytes(filepath, zipped_bytes, _message.requestnumber, _message.bcgovcode, s3credentials)
+                return docobj
+        except(Exception) as ex:
+            logging.error("error in writing the bytearray")
+            logging.error(ex)
+            raise
+        finally:
+            zipped_bytes = None
     
     def uploaddivionalfiles(self, filename, requestnumber, bcgovcode, s3credentials, filebytes, files, divisionname):
         
