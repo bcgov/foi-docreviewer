@@ -92,4 +92,4 @@ def handlemessage(message):
                 notificationservice().sendnotification(producermessage)
                 return
         except(Exception) as error:
-            logging.exception(error)
+            print(error)

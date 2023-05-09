@@ -17,7 +17,10 @@ class documentpageflagservice:
     def getdocumentpageflags(self, requestid, documentid=None, version=None):
         pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version)
         if pageflag not in (None, {}):
-            return pageflag["pageflag"]
+            if pageflag["pageflag"] is not None:
+                return pageflag["pageflag"]
+            else:
+                return []
         return None
 
     def removebookmark(self,requestid, userinfo):
@@ -52,12 +55,14 @@ class documentpageflagservice:
 
     def bulksavepageflags(self, requestid, documentid, version, pageflaglist, userinfo):
         pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        existingdocument = False
-        for data in pageflaglist:
+        existingdocument = True
+        if(pageflag is None):
             existingdocument = False
+            pageflag = []
+        for data in pageflaglist:
             # if self.__isbookmark(data) == True: 
             #     self.removebookmark(requestid, userinfo)
-            existingdocument= self.__createnewpageflag(pageflag,data)
+            self.__createnewpageflag(pageflag, data)
         if existingdocument == True:
             result = DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
         else:
@@ -68,16 +73,15 @@ class documentpageflagservice:
     
     def removepageflag(self,requestid, documentid, version, page, userinfo):
         pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] == 3) ),None)
+        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] in [1, 3]) ),None)
         if withheldinfullobj is not None:
             pageflags.remove(withheldinfullobj)
             DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
 
-    def __createnewpageflag(self, pageflag,data):
+    def __createnewpageflag(self, pageflag, data):
         formattted_data = self.__formatpageflag(data)
         existingdocument = False
         if pageflag is not None:
-            existingdocument = True
             isnew = True
             for entry in pageflag:
                 if entry["page"] == data["page"]:
@@ -89,7 +93,6 @@ class documentpageflagservice:
         else:
             pageflag = []
             pageflag.append(formattted_data)  
-        return existingdocument
     
     def __formatpageflag(self, data):
         _normalised = copy.deepcopy(data)
@@ -107,7 +110,9 @@ class documentpageflagservice:
             pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
             attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
             publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody.append({"name": data["other"]})    
+            publicbody = set(map(lambda x : x['name'], publicbody))
+            publicbody.update(data["other"])
+            publicbody = list(map(lambda x : {"name": x}, publicbody))
             DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
         else:
             return

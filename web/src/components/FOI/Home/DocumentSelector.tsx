@@ -85,11 +85,14 @@ const DocumentSelector = ({
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
-        if (consultVal?.programareaid) {
-            return consultVal?.iaocode;
+        if (consultVal?.programareaid?.length === 1 && consultVal?.other?.length === 0) {
+            let ministry: any = consultMinistries?.find((ministry: any) => ministry.programareaid === consultVal.programareaid[0]);
+            return ministry?.iaocode;
+        } else if (consultVal?.other?.length === 1 && consultVal?.programareaid?.length === 0) {
+            return consultVal?.other[0];
+        } else {
+            return consultVal?.programareaid?.length + consultVal?.other?.length;
         }
-        else
-            return consultVal?.other;
     }
 
     const setPageData = (data: any) => {
@@ -274,10 +277,13 @@ const DocumentSelector = ({
 
     const getFlagName = (file: any, pageNo: number) => {
         let iaoCode = "";
-        let flagId: number = file?.pageFlag?.find((flg: any) => flg.page === pageNo)?.flagid;
-        if (flagId === 4 && file.consult?.length > 0)
-            iaoCode = ministryOrgCode(pageNo, file.consult);
-        return iaoCode ? `Consult - [${iaoCode}]` : PAGE_FLAGS[flagId as keyof typeof PAGE_FLAGS];
+        let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
+        if (flag.flagid === 4 && file.consult?.length > 0) {
+            let ministries = flag.programareaid.map((m: any) => (consultMinistries?.find((ministry: any) => ministry.programareaid === m) as any)?.iaocode);
+            ministries.push(...flag.other);
+            return `Consult - [` + ministries.join(`]\nConsult - [`) + ']';
+        }
+        return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
     }
 
     return (
