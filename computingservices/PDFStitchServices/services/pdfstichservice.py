@@ -126,6 +126,7 @@ class pdfstitchservice(basestitchservice):
                     filestozip = basestitchservice().getincompatablefilepaths(division.divisionname, division.files, filestozip)
                     
                 bytes_stream.close()
+                del bytes_stream
                 return self.__getfinaldivisionoutput(filestozip,
                         self.__getdivisionstitchoutput(division.divisionname, stitchedfiles, len(stitchedfiles), skippedfiles, len(skippedfiles)))
             else:
