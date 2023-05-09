@@ -31,7 +31,7 @@ class pdfstitchservice(basestitchservice):
         result = None
         results = []
         try:
-            print("<<<< recordjobstart >>>>")
+            print(f"<<<< recordjobstart: {datetime.now()} >>>>")
             recordjobstart(_message)
             s3credentials = getcredentialsbybcgovcode(_message.bcgovcode)
             # with Pool(len(attributes)) as pool:
@@ -52,18 +52,18 @@ class pdfstitchservice(basestitchservice):
                 logging.info("final document path = %s", result.get("documentpath"))
                 savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
                 recordjobend(_message, False, finalmessage=finalmessage)
-                print("<<<< recordjobend complete >>>>")
+                print(f"<<<< recordjobend complete: {datetime.now()} >>>>")
             else:
                 errormessage = "Error in uploading the final document %s", result.get("filename")
                 logging.error(errormessage)
                 recordjobend(_message, True, finalmessage=finalmessage, message=errormessage)
-                print("<<<< recordjobend ERROR >>>>")
+                print(f"<<<< recordjobend ERROR: {datetime.now()} >>>>")
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             print(error)
             finalmessage = self.__getfinalmessage(_message)
             recordjobend(_message, True, finalmessage=finalmessage, message=traceback.format_exc())
-            print("<<<< recordjobend Exception >>>>")
+            print(f"<<<< recordjobend Exception: {datetime.now()} >>>>")
         finally:
             result = None  
             
@@ -105,11 +105,12 @@ class pdfstitchservice(basestitchservice):
             
             bytes_stream = BytesIO()
             if writer:
-                writer.save(bytes_stream, garbage=4)
+                print(f"save stitched doc to the bytes_stream: {datetime.now()}")
+                writer.save(bytes_stream)
                 writer.close()
                 fitz.TOOLS.store_shrink(100)
                 del writer
-            
+                print(f"save stitched doc to the bytes_stream completed: {datetime.now()}")
                 filename = f"{requestnumber} - {category} - {division.divisionname}"
                     
                 if numbering_enabled == "True":
