@@ -58,6 +58,7 @@ class documentpageflagservice:
         existingdocument = True
         if(pageflag is None):
             existingdocument = False
+            pageflag = []
         for data in pageflaglist:
             # if self.__isbookmark(data) == True: 
             #     self.removebookmark(requestid, userinfo)
