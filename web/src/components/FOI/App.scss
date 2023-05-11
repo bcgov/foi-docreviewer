@@ -148,6 +148,14 @@
   margin-right: 10px;
 }
 
+#new-public-body + fieldset {
+  legend {
+    span {
+      width: 280px;
+    }
+  }
+}
+
 /* width */
 ::-webkit-scrollbar {
   width: 10px;

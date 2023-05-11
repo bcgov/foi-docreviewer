@@ -82,7 +82,7 @@ const ConsultModal = ({
     }
 
     const isSaveDisabled = () => {
-        return _.isEqual(selectedPageFlag, initialPageFlag);
+        return _.isEqual(selectedPageFlag, initialPageFlag) || (selectedPageFlag.other.length + selectedPageFlag.programareaid.length) === 0;
     }
 
     return (
