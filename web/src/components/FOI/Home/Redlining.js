@@ -77,6 +77,7 @@ const Redlining = React.forwardRef(({
         initialDoc: currentDocumentS3Url,
         fullAPI: true,
         enableRedaction: true,
+        disabledElements: ['modalRedactButton']
       },
       viewer.current,
     ).then((instance) => {
