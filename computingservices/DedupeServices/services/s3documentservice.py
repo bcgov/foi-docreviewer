@@ -50,6 +50,7 @@ def gets3documenthashcode(producermessage):
     if extension.lower() not in ['.pdf']:
         filepath = path.splitext(filepath)[0] + extension
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
+    reader = None
     if extension.lower() in ['.pdf']:
         reader = PdfReader(BytesIO(response.content))
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
@@ -61,8 +62,9 @@ def gets3documenthashcode(producermessage):
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
 
-    BytesIO().close()
-    reader.stream.close()
+    if reader:
+        BytesIO().close()
+        reader.stream.close()
     sig = hashlib.sha1()
     for line in response.iter_lines():
         sig.update(line)
