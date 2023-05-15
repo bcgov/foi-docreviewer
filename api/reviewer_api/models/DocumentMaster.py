@@ -27,17 +27,20 @@ class DocumentMaster(db.Model):
 
 
     @classmethod 
-    def getdocumentmaster(cls, ministryrequestid, deleted):
+    def getdocumentmaster(cls, ministryrequestid):
         documentmasters = []
         try:
             sql = """select recordid, parentid, filepath, dm.documentmasterid, da."attributes", 
-                    dm.created_at, dm.createdby  from "DocumentMaster" dm, "DocumentAttributes" da  
-                    where dm.documentmasterid = da.documentmasterid 
-                    and dm.ministryrequestid = :ministryrequestid"""
+                    dm.created_at, dm.createdby  from "DocumentMaster" dm, "DocumentAttributes" da
+                    where dm.documentmasterid = da.documentmasterid
+                    and dm.ministryrequestid = :ministryrequestid
+                    and dm.documentmasterid not in (select distinct d.documentmasterid
+                        from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
+                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                if row["documentmasterid"] not in deleted:
-                    documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"]})
+                # if row["documentmasterid"] not in deleted:
+                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
@@ -72,16 +75,18 @@ class DocumentMaster(db.Model):
     
     
     @classmethod 
-    def getredactionready(cls, ministryrequestid, deleted):
+    def getredactionready(cls, ministryrequestid):
         documentmasters = []
         try:
-            sql = """select documentmasterid, processingparentid, isredactionready, parentid  
-                        from "DocumentMaster" dm where dm.ministryrequestid = :ministryrequestid 
-                        and isredactionready = true;"""
+            sql = """select documentmasterid, processingparentid, isredactionready, parentid
+                        from "DocumentMaster" dm where dm.ministryrequestid = :ministryrequestid
+                        and isredactionready = true and (processingparentid not in (select distinct d.documentmasterid
+                        from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
+                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid) or processingparentid is null);"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                if row["processingparentid"] not in deleted:
-                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "parentid": row["parentid"]})
+                # if row["processingparentid"] not in deleted:
+                documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "parentid": row["parentid"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
