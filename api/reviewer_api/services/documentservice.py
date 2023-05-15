@@ -23,11 +23,11 @@ class documentservice:
     
     def getdedupestatus(self,requestid):
         deleted = DocumentMaster.getdeleted(requestid)
-        records = DocumentMaster.getdocumentmaster(requestid, deleted)
+        records = DocumentMaster.getdocumentmaster(requestid)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
-        redactions = DocumentMaster.getredactionready(requestid, deleted)
+        redactions = DocumentMaster.getredactionready(requestid)
         
         records = [entry for entry in records if entry['documentmasterid'] not in deleted]
         for record in records:
