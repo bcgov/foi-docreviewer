@@ -19,15 +19,45 @@ spec:
                 - "sh"
                 - "-c"
                 - |
+                  oc patch dc/reviewer-dedupe -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
                   oc rollout latest reviewer-dedupe
+                  sleep 30s
+                  oc patch dc/reviewer-dedupe -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-dedupe-largefiles -p "{\"spec\":{\"replicas\": 0}}"
                   sleep 30s
                   oc rollout latest reviewer-dedupe-largefiles
                   sleep 30s
+                  oc patch dc/reviewer-dedupe-largefiles -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-conversion -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
                   oc rollout latest reviewer-conversion
+                  sleep 30s
+                  oc patch dc/reviewer-conversion -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-conversion-largefiles -p "{\"spec\":{\"replicas\": 0}}"
                   sleep 30s
                   oc rollout latest reviewer-conversion-largefiles
                   sleep 30s
+                  oc patch dc/reviewer-conversion-largefiles -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-pdfstitch -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
                   oc rollout latest reviewer-pdfstitch
                   sleep 30s
+                  oc patch dc/reviewer-pdfstitch -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-pdfstitch-largefiles -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
                   oc rollout latest reviewer-pdfstitch-largefiles
+                  sleep 30s
+                  oc patch dc/reviewer-pdfstitch-largefiles -p "{\"spec\":{\"replicas\": 1}}"
+
           restartPolicy: OnFailure
