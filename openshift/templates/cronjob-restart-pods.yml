@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: restart-pods
-  namespace: d106d6-dev #d106d6-test/d106d6-prod
+  namespace: xxxxx-dev
 spec:
   schedule: "0 11 * * *"
   concurrencyPolicy: Allow
