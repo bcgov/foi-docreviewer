@@ -1,6 +1,7 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import and_
+import logging
 
 class DocumentStatus(db.Model):
     __tablename__ = 'DocumentStatus' 
@@ -12,9 +13,14 @@ class DocumentStatus(db.Model):
 
     @classmethod
     def getdocumentstatus(cls, statusid):
-        documentstatus_schema = DocumentStatusSchema(many=False)
-        query = db.session.query(DocumentStatus).filter_by(and_(statusid = statusid, isactive = True)).first()
-        return documentstatus_schema.dump(query)
+        try:
+            documentstatus_schema = DocumentStatusSchema(many=False)
+            query = db.session.query(DocumentStatus).filter_by(and_(statusid = statusid, isactive = True)).first()
+            return documentstatus_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class DocumentStatusSchema(ma.Schema):
     class Meta:

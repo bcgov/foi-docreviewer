@@ -21,10 +21,15 @@ class DocumentMaster(db.Model):
 
     @classmethod
     def create(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Document(s) Added: {0}'.format(row.filepath), row.documentmasterid)
-
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Document(s) Added: {0}'.format(row.filepath), row.documentmasterid)
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
 
     @classmethod 
     def getdocumentmaster(cls, ministryrequestid):
@@ -52,13 +57,6 @@ class DocumentMaster(db.Model):
     def getdeleted(cls, ministryrequestid):
         documentmasters = []
         try:
-            """
-            
-            sql = select distinct d.documentmasterid  
-                        from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%' 
-                  and d.ministryrequestid =:ministryrequestid
-            """
-            
             sql = """select distinct d.documentmasterid  
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%' 
                         and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid"""

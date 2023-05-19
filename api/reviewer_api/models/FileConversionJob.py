@@ -21,32 +21,43 @@ class FileConversionJob(db.Model):
 
     @classmethod
     def insert(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Conversion Job recorded for documentmaster id: {0}'.format(row.inputdocumentmasterid), row.fileconversionjobid)
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Conversion Job recorded for documentmaster id: {0}'.format(row.inputdocumentmasterid), row.fileconversionjobid)
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
 
     @classmethod
     def getfilesconverted(cls, requestid):
-        sql = """select  count(1)  as completed
-                        FROM "FileConversionJob" fcj
-                        left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
-						where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
+        try:
+            sql = """select  count(1)  as completed
+                            FROM "FileConversionJob" fcj
+                            left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
+                            where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
 
-        rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
-        completed = rs.fetchone()["completed"]
+            rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
+            completed = rs.fetchone()["completed"]
 
-        sql = """select inputfilepath as filepath, status from public."FileConversionJob" dj
-                join (select max(fileconversionjobid) from public."FileConversionJob" fcj
-                left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
-                where (deleted is false or deleted is null)
-                group by inputfilepath) sq on sq.max = dj.fileconversionjobid
-                where status = 'error' and ministryrequestid = :ministryrequestid"""
-        rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
-        error = []
-        for row in rs:
-            error.append(row["filepath"])
-
-        return completed, error
+            sql = """select inputfilepath as filepath, status from public."FileConversionJob" dj
+                    join (select max(fileconversionjobid) from public."FileConversionJob" fcj
+                    left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
+                    where (deleted is false or deleted is null)
+                    group by inputfilepath) sq on sq.max = dj.fileconversionjobid
+                    where status = 'error' and ministryrequestid = :ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
+            error = []
+            for row in rs:
+                error.append(row["filepath"])
+            return completed, error
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
     
     @classmethod 
     def getconversionstatus(cls, ministryrequestid):

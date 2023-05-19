@@ -1,7 +1,7 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
-
+import logging
 
 class PDFStitchPackage(db.Model):
     __tablename__ = 'PDFStitchPackage'
@@ -16,15 +16,26 @@ class PDFStitchPackage(db.Model):
 
     @classmethod
     def create(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Final package path Added: {0}'.format(row.finalpackagepath), row.pdfstitchpackageid)
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Final package path Added: {0}'.format(row.finalpackagepath), row.pdfstitchpackageid)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getpdfstitchpackage(cls, requestid, category):
-        pdfstitchpackageschema = PDFStitchPackageSchema(many=False)
-        query = db.session.query(PDFStitchPackage).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == category).order_by(PDFStitchPackage.pdfstitchpackageid.desc()).first()
-        return pdfstitchpackageschema.dump(query)
+        try:
+            pdfstitchpackageschema = PDFStitchPackageSchema(many=False)
+            query = db.session.query(PDFStitchPackage).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == category).order_by(PDFStitchPackage.pdfstitchpackageid.desc()).first()
+            return pdfstitchpackageschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
 class PDFStitchPackageSchema(ma.Schema):
     class Meta:
         fields = ('pdfstitchpackageid', 'finalpackagepath', 'ministryrequestid', 'category', 'createdat', 'createdby')
