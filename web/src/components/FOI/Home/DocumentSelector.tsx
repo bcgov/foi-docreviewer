@@ -43,7 +43,7 @@ const DocumentSelector = ({
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
     //const [pageFlags, setPageFlags] = useState([]);
-    const [pageFlagChanged, setPageFlagChanged] = useState(false);
+    //const [pageFlagChanged, setPageFlagChanged] = useState(false);
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState([]);
     const [selectedPage, setSelectedPage] = useState(1);
@@ -68,20 +68,25 @@ const DocumentSelector = ({
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
-    }, []);
-
-    useEffect(() => {
-        setPageFlagChanged(false);
-        fetchPageFlagsMasterData(
-            requestid,
-            (data: any) => setPageData(data),
-            (error: any) => console.log(error)
-        );
         fetchPageFlag(
             requestid,
             (error: any) => console.log(error)
         )
-    }, [pageFlagChanged]);
+    }, []);
+    
+    // useEffect(() => {
+    //     //setPageFlagChanged(false);
+    //     // fetchPageFlagsMasterData(
+    //     //     requestid,
+    //     //     (data: any) => setPageData(data),
+    //     //     (error: any) => console.log(error)
+    //     // );
+    //     console.log("Pageflag fetching:",pageFlagChanged)
+    //     fetchPageFlag(
+    //         requestid,
+    //         (error: any) => console.log(error)
+    //     )
+    // }, [pageFlagChanged]);
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
@@ -450,7 +455,7 @@ const DocumentSelector = ({
                                                                 setOpenContextPopup={setOpenContextPopup}
                                                                 selectedPage={selectedPage}
                                                                 selectedFile={selectedFile}
-                                                                setPageFlagChanged={setPageFlagChanged}
+                                                                //setPageFlagChanged={setPageFlagChanged}
                                                             />
                                                         }
                                                     </TreeItem>
@@ -507,7 +512,7 @@ const DocumentSelector = ({
                                                         setOpenContextPopup={setOpenContextPopup}
                                                         selectedPage={selectedPage}
                                                         selectedFile={selectedFile}
-                                                        setPageFlagChanged={setPageFlagChanged}
+                                                        //setPageFlagChanged={setPageFlagChanged}
                                                     />
                                                 }
                                             </TreeItem>

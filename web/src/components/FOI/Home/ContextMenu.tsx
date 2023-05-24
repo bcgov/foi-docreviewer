@@ -5,7 +5,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCirclePlus, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import { savePageFlag } from '../../../apiManager/services/docReviewerService';
+import { savePageFlag, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
 
 const ContextMenu = ({
@@ -50,7 +50,6 @@ const ContextMenu = ({
 
     const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, data?: any) => {
         if(flagId === 3){
-            console.log("Withheld in Full Selection");
             openFOIPPAModal(pageNo);
         } else {
             savePageFlag(
@@ -59,7 +58,10 @@ const ContextMenu = ({
                 documentversion,
                 pageNo,
                 flagId,
-                (data: any) => setPageFlagChanged(true),
+                (data: any) => fetchPageFlag(
+                    requestId,
+                    (error: any) => console.log(error)
+                ),
                 (error: any) => console.log(error),
                 data
             );
