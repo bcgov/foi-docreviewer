@@ -33,23 +33,13 @@ class documentservice:
             record["isattachment"] = True if record["parentid"] is not None else False
             record["isduplicate"] = False
             record = self.__updatedocumenthashproperties(documenthashproperties, record)
-            document = self.__preparedocument(record, requestid)
+            document = self.__preparedocument(record, requestid, divisions)
             if document:
                 documents.append(document)
 
-        formated_documents = []
-        for document in documents:
-            doc_divisions = []
-            for division in document['divisions']:
-                doc_division = [div for div in divisions if div['divisionid']==division['divisionid']][0]
-                doc_divisions.append(doc_division)
+        return documents
 
-            document['divisions'] = doc_divisions
-            formated_documents.append(document)
-        print("formated_documents >>>>>>>>>>>>> ", formated_documents)
-        return formated_documents
-
-    def __preparedocument(self, record, requestid):
+    def __preparedocument(self, record, requestid, divisions):
         
         if record["isduplicate"] or record["incompatible"]:
             return
@@ -60,7 +50,6 @@ class documentservice:
         document["filename"] = record["filename"]
         document["filepath"] = record["filepath"]
         document["attributes"] = record["attributes"]
-        document["divisions"] = record["attributes"]["divisions"]
         document["foiministryrequestid"] = requestid
         document["createdby"] = record["createdby"]
         document["created_at"] = record["created_at"]
@@ -69,6 +58,12 @@ class documentservice:
         document["statusid"] = record["statusid"]
         document["status"] = record["status"]
         document["pagecount"] = record["pagecount"]
+        doc_divisions = []
+        for division in record["attributes"]["divisions"]:
+                doc_division = [div for div in divisions if div['divisionid']==division['divisionid']][0]
+                doc_divisions.append(doc_division)
+
+        document['divisions'] = doc_divisions
         return document
     
     def __updatedocumenthashproperties(self, properties, record):
@@ -161,8 +156,7 @@ class documentservice:
                 record["isredactionready"] = entry["isredactionready"]
         return record
         
-    def __isduplicate(self, properties, record):        
-        # print("ministryid = ", record["ministryrequestid"])
+    def __isduplicate(self, properties, record):
         matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
@@ -173,15 +167,11 @@ class documentservice:
         filtered = []
         for x in properties:
             if x["rank1hash"] == matchedhash:
-                # print("__isduplicate filename =", x["filename"])
                 value = x["processingparentid"] if x["processingparentid"] is not None else x["documentmasterid"]
                 filtered.append(value)
         if len(filtered) > 1 and filtered not in (None, []):            
             originalid = min(filtered)
             if  originalid != record["documentmasterid"] and record["parentid"] is None:
-                # print("parentid = ", record["parentid"])
-                # print("isattachment = ", record["isattachment"])
-                # print("__isduplicate inside if filename = ", record["filename"])
                 isduplicate = True
                 duplicatemasterid = originalid
                 duplicateof = self.__getduplicateof(properties, record, originalid)
