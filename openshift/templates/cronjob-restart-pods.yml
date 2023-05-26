@@ -4,7 +4,8 @@ metadata:
   name: restart-pods
   namespace: xxxxxx-xxx
 spec:
-  schedule: "0 11 * * *"
+  schedule: "0 3 * * *"
+  timeZone: America/Vancouver
   concurrencyPolicy: Allow
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
