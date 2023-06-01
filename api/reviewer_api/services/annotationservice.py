@@ -3,6 +3,7 @@ from os import stat
 from re import VERBOSE
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
+from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
 from reviewer_api.models.default_method_result import DefaultMethodResult
 
@@ -50,24 +51,17 @@ class annotationservice:
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
         return annotationsections
 
-    def saveannotation(self, annotationname, documentid, documentversion, annotationschema, userinfo):
+    def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
-        for annot in annots:
-            _annotresponse = Annotation.saveannotation(annot["name"], documentid, documentversion, annot["xml"], annot["page"], userinfo)
-            if _annotresponse.success == True:
-                if "sections" in annotationschema:
-                    sectionresponse = self.saveannotationsection(annotationname, annotationschema, userinfo)
-                    if not sectionresponse:
-                        return DefaultMethodResult(False,'Failed to save Annotation Section',annotationname)
-            else:
-                return DefaultMethodResult(False,'Failed to save Annotation',annotationname)
-        return DefaultMethodResult(True,'Annotation successfully saved',annotationname)
-
-    def saveannotationsection(self, annotationname, annotsectionschema, userinfo):
-        ministryid, sectionschema = self.__generateannotsection(annotsectionschema)
-        _annotsectionresponse = AnnotationSection.savesection(ministryid, annotationname, sectionschema,userinfo)
-        if _annotsectionresponse.success == True:
-            return DefaultMethodResult(True,'Annotation is saved',annotationname)     
+        _annotresponse = Annotation.saveannotations(annots, documentid, documentversion, userinfo)
+        if _annotresponse.success == True:
+            if "sections" in annotationschema:
+                sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
+                if not sectionresponse:
+                    return DefaultMethodResult(False,'Failed to save Annotation Section',_annotresponse)
+        else:
+            return DefaultMethodResult(False,'Failed to save Annotation', _annotresponse.identifier)
+        return DefaultMethodResult(True,'Annotation successfully saved',_annotresponse.identifier)
 
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
@@ -83,7 +77,8 @@ class annotationservice:
             annots.append({
                 "name": annot.getAttribute("name"),
                 "page": annot.getAttribute("page"),
-                "xml": annot.toxml()
+                "xml": annot.toxml(),
+                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
             })
         return annots
     
@@ -96,9 +91,5 @@ class annotationservice:
         xmltemplatelines = f.readlines()
         xmltemplatestring = ''.join(xmltemplatelines)
         return xmltemplatestring.replace("{{annotations}}", annotationsstring)
-
-    def __generateannotsection(self, annotsectionschema):
-        _sectionsschema = annotsectionschema['sections'] if 'sections' in annotsectionschema else annotsectionschema
-        return _sectionsschema.pop("foiministryrequestid"), _sectionsschema
     
     

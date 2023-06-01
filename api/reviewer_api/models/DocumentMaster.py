@@ -114,6 +114,61 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
+    
+    @classmethod 
+    def getdocumentshashproperty(cls, ministryrequestid, deleted):
+        documentmasters = []
+        try:
+            sql = """select 
+                    dm.documentmasterid,  
+                    dm.processingparentid,
+                    dm.parentid,
+                    d.documentid,
+                    d.version, 
+                    dm.filepath,
+                    d.filename,
+                    d.incompatible,
+                    dhc.rank1hash,
+                    d.attributes,
+                    d.pagecount,
+                    d.createdby,
+                    d.created_at,
+                    d.updatedby,
+                    d.updated_at,
+                    d.statusid,
+                    ds.name as status 
+                    from "DocumentMaster" dm, "Documents" d, "DocumentHashCodes" dhc, "DocumentStatus" ds 
+                    where dm.ministryrequestid = :ministryrequestid
+                    and dm.ministryrequestid  = d.foiministryrequestid   
+                    and dm.documentmasterid = d.documentmasterid 
+                    and d.documentid = dhc.documentid
+                    and d.statusid = ds.statusid;"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
+                    documentmasters.append({"documentmasterid": row["documentmasterid"], 
+                                            "processingparentid": row["processingparentid"], 
+                                            "documentid": row["documentid"], 
+                                            "version": row["version"],
+                                            "rank1hash": row["rank1hash"], 
+                                            "filepath": row["filepath"],
+                                            "filename": row["filename"],
+                                            "incompatible" : row["incompatible"],
+                                            "attributes": row["attributes"],
+                                            "createdby": row["createdby"],
+                                            "created_at": row["created_at"],
+                                            "updatedby": row["updatedby"],
+                                            "updated_at": row["updated_at"],
+                                            "statusid": row["statusid"],
+                                            "status": row["status"],
+                                            "pagecount": row["pagecount"], 
+                                            "parentid": row["parentid"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
 
 class DeduplicationJobSchema(ma.Schema):
     class Meta:
