@@ -18,11 +18,12 @@ import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
   deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
-import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
+import { getFOIS3DocumentPreSignedUrl, getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3 } from '../../../apiManager/services/foiOSSService';
 import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useAppSelector } from '../../../hooks/hook';
 
 const Redlining = React.forwardRef(({
   currentPageInfo,
@@ -37,7 +38,8 @@ const Redlining = React.forwardRef(({
 
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
-  const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
+  const documentList = useAppSelector((state) => state.documents?.documentList);
+  const [pdffile, setpdffile] = useState(currentPageInfo.file['filepath']);
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
   const [annots, setAnnots] = useState(null);
@@ -82,6 +84,67 @@ const Redlining = React.forwardRef(({
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
+
+      //customize header
+      const document = instance.UI.iframeWindow.document;
+      instance.UI.setHeaderItems(header => {
+        const parent = documentViewer.getScrollViewElement().parentElement;
+  
+        const menu = document.createElement('div');
+        menu.classList.add('Overlay');
+        menu.classList.add('FlyoutMenu');
+        menu.style.padding = '1em';
+  
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Download';
+        downloadBtn.onclick = () => {
+          // Download
+          console.log("download button");
+        };
+  
+        menu.appendChild(downloadBtn);
+  
+        let isMenuOpen = false;
+  
+        const renderCustomMenu = () => {
+          const menuBtn = document.createElement('button');
+          menuBtn.textContent = 'My Menu';
+  
+          menuBtn.onclick = async () => {
+            console.log("my menu button");
+            // saveDocument(pageInfo.file['documentid'], blob);
+            // console.log("xml: ", await annotationManager.exportAnnotations());
+            saveDocument(instance);
+
+            if (isMenuOpen) {
+              parent.removeChild(menu);
+            } else {
+              menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 40)}px`;
+              menu.style.right = 'auto';
+              menu.style.top = '40px';
+              parent.appendChild(menu);
+            }
+  
+            isMenuOpen = !isMenuOpen;
+          };
+  
+          return menuBtn;
+        };
+  
+        const newCustomElement = {
+          type: 'customElement',
+          render: renderCustomMenu,
+        };
+  
+        header.push(newCustomElement);
+        console.log("header", header);
+      });
+
+
+
+
+
+
 
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
@@ -606,6 +669,50 @@ const Redlining = React.forwardRef(({
     }
   }
 
+  const saveDocument = (_instance) => {
+    getFOIS3DocumentRedlinePreSignedUrl(
+      documentList,
+      (res) => {
+        // console.log(res);
+        for(let doc of res) {
+          console.log("doc", doc);
+
+          const downloadType = 'pdf';
+          const xfdfString  = doc.annotationXML;
+          _instance.Core.createDocument(doc.s3path_load)
+          .then(docObj => {
+
+            docObj.getFileData({
+              // saves the document with annotations in it
+              xfdfString,
+              downloadType
+            }).then(data => {
+              const arr = new Uint8Array(data);
+              const blob = new Blob([arr], { type: 'application/octet-stream' });
+              // const blob = new Blob([arr], { type: 'application/pdf' });
+
+              console.log("s3path_save", doc.s3path_save);
+              saveFilesinS3(
+                {filepath: doc.s3path_save},
+                blob,
+                (_res) => {
+                  console.log(_res);
+                },
+                (_err) => {
+                  console.log(_err);
+                }
+              );
+            });
+
+          })
+          .catch(err => {console.log("create doc error: ", err)})
+        }
+      },
+      (error) => {
+          console.log('Error fetching document:',error);
+      }
+    );
+  }
 
   return (
     <div>

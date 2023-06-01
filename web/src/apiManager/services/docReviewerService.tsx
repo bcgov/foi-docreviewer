@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -16,6 +16,7 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
+        store.dispatch(setDocumentList(res.data) as any);
         callback(res.data);
       } else {
         throw new Error();
