@@ -73,14 +73,13 @@ export const saveAnnotation = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
-  annotationname: string = "",
   annotation: string = "",
   callback: any,
   errorCallback: any,
   pageFlags?: Array<any>,
   sections?: object,
 ) => {
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/${annotationname}`;
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}`;
   let requestJSON = sections ?{
     "xml": annotation,
     "sections": sections,
@@ -95,7 +94,7 @@ export const saveAnnotation = (
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while saving an annotation for (doc# ${documentid}, annotationname ${annotationname})`);            
+        throw new Error(`Error while saving an annotation for (doc# ${documentid})`);
       }
     })
     .catch((error:any) => {
