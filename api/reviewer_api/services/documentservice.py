@@ -20,70 +20,6 @@ class documentservice:
             document['updated_at'] = pstformat(document['updated_at'])
 
         return documents
-    def getdocuments(self, requestid):
-        deleted = DocumentMaster.getdeleted(requestid)
-        documenthashproperties = DocumentMaster.getdocumentshashproperty(requestid, deleted)
-        records = DocumentMaster.getdocumentmaster(requestid)
-        divisions = ProgramAreaDivision.getallprogramareadivisons()
-        
-        records = [entry for entry in records if entry['documentmasterid'] not in deleted]
-        documents = []
-        for record in records:
-            record["ministryrequestid"] =  requestid
-            record["isattachment"] = True if record["parentid"] is not None else False
-            record["isduplicate"] = False
-            record = self.__updatedocumenthashproperties(documenthashproperties, record)
-            document = self.__preparedocument(record, requestid, divisions)
-            if document:
-                documents.append(document)
-
-        return documents
-
-    def __preparedocument(self, record, requestid, divisions):
-        
-        if record["isduplicate"] or record["incompatible"]:
-            return
-        
-        document = {}
-        document["documentid"] = record["documentid"]
-        document["version"] = record["version"]
-        document["filename"] = record["filename"]
-        document["filepath"] = record["filepath"]
-        document["attributes"] = record["attributes"]
-        document["foiministryrequestid"] = requestid
-        document["createdby"] = record["createdby"]
-        document["created_at"] = record["created_at"]
-        document["updatedby"] = record["updatedby"]
-        document["updated_at"] = record["updated_at"]
-        document["statusid"] = record["statusid"]
-        document["status"] = record["status"]
-        document["pagecount"] = record["pagecount"]
-        doc_divisions = []
-        for division in record["attributes"]["divisions"]:
-                doc_division = [div for div in divisions if div['divisionid']==division['divisionid']][0]
-                doc_divisions.append(doc_division)
-
-        document['divisions'] = doc_divisions
-        return document
-    
-    def __updatedocumenthashproperties(self, properties, record):
-        for property in properties:
-            if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
-                record["pagecount"] = property["pagecount"]
-                record["filename"] = property["filename"]
-                record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] =  self.__isduplicate(properties, record)
-                record["incompatible"] = property["incompatible"]
-                record["documentid"] = property["documentid"]
-                record["version"] = property["version"]
-                record["filepath"] = property["filepath"]
-                record["createdby"] = property["createdby"]
-                record["created_at"] = pstformat(property["created_at"])
-                record["updatedby"] = property["updatedby"]
-                record["updated_at"] = pstformat(property["updated_at"])
-                record["statusid"] = property["statusid"]
-                record["status"] = property["status"]
-        return record
-
     def getdedupestatus(self,requestid):
         deleted = DocumentMaster.getdeleted(requestid)
         records = DocumentMaster.getdocumentmaster(requestid)
@@ -133,17 +69,15 @@ class documentservice:
         Below block is a temporary workaround to verify duplicate in msg.
         This verifies the duplicate with the parent hashcode and filename
         """
-        # if record["isduplicate"] == False and record["parentid"] is not None and record["filepath"].endswith(".msg"):
-        #     print("__updateproperties filename = ",record["filename"])
-        #     _uploaded = self.__getuploadedrecord(records, record["parentid"]) 
-        #     _occurances = [d for d in properties if d['filename']==record['filename']]
-        #     if len(_occurances) > 1:
-        #         print("_occurances > 1 = ", _occurances)
-        #         record["isduplicate"], record["duplicatemasterid"],record["duplicateof"]  =  self.__isduplicate(properties, _uploaded)
-        #         if record["isduplicate"] == True:
-        #             filtered = [x["processingparentid"] for x in properties if x["filename"] == record["filename"]]
-        #             record["duplicatemasterid"] = min(filtered)
-        #             record["duplicateof"] = self.__getduplicateof(properties, record, record["duplicatemasterid"] )
+        if record["isduplicate"] == False and record["parentid"] is not None and record["filepath"].endswith(".msg"):
+            _uploaded = self.__getuploadedrecord(records, record["parentid"]) 
+            _occurances = [d for d in properties if d['filename']==record['filename']]
+            if len(_occurances) > 1:
+                record["isduplicate"], record["duplicatemasterid"],record["duplicateof"]  =  self.__isduplicate(properties, _uploaded)
+                if record["isduplicate"] == True:
+                    filtered = [x["processingparentid"] for x in properties if x["filename"] == record["filename"]]
+                    record["duplicatemasterid"] = min(filtered)
+                    record["duplicateof"] = self.__getduplicateof(properties, record, record["duplicatemasterid"] )
         """End
 
         Duplicate block check end
@@ -156,11 +90,14 @@ class documentservice:
                 record["isredactionready"] = entry["isredactionready"]
         return record
         
-    def __isduplicate(self, properties, record):
+    def __isduplicate(self, properties, record):        
+        matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
         duplicateof = record["filename"] if "filename" in record else None
-        matchedhash = self.__getmatchedhash(properties, record)
+        for property in properties:
+            if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
+                matchedhash = property["rank1hash"] 
         filtered = []
         for x in properties:
             if x["rank1hash"] == matchedhash:
@@ -168,18 +105,12 @@ class documentservice:
                 filtered.append(value)
         if len(filtered) > 1 and filtered not in (None, []):            
             originalid = min(filtered)
-            if  originalid != record["documentmasterid"] and record["parentid"] is None:
+            if  originalid != record["documentmasterid"]:
                 isduplicate = True
                 duplicatemasterid = originalid
                 duplicateof = self.__getduplicateof(properties, record, originalid)
         return isduplicate, duplicatemasterid, duplicateof
 
-    def __getmatchedhash(self, properties, record):
-        matchedhash = None
-        for property in properties:
-            if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
-                 matchedhash = property["rank1hash"]
-        return matchedhash
     def __getduplicateof(self, properties, record, duplicatemasterid):
         duplicateof = record["filename"] if "filename" in record else None
         if duplicateof is None:
@@ -213,10 +144,9 @@ class documentservice:
         ])
 
 
-    def getdocuments_1(self, requestid):
+    def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
         divisions = ProgramAreaDivision.getallprogramareadivisons()
-        print("documents = ", documents)
 
         formated_documents = []
         for document in documents:
