@@ -41,7 +41,7 @@ class documentservice:
 
     def __preparedocument(self, record, requestid, divisions):
         
-        if record["isduplicate"] or record["incompatible"]:
+        if record["isduplicate"] or record.get("incompatible", True): # If incompatible value is not set, processing is either stalled or not finished yet, so exclude record
             return
         
         document = {}
