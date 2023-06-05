@@ -20,7 +20,7 @@ class documentservice:
             document['updated_at'] = pstformat(document['updated_at'])
 
         return documents
-    def getdocuments(self, requestid):
+    def getdocuments_updated(self, requestid):
         deleted = DocumentMaster.getdeleted(requestid)
         documenthashproperties = DocumentMaster.getdocumentshashproperty(requestid, deleted)
         records = DocumentMaster.getdocumentmaster(requestid)
@@ -229,7 +229,9 @@ class documentservice:
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
         duplicateof = record["filename"] if "filename" in record else None
-        matchedhash = self.__getmatchedhash(properties, record)
+        for property in properties:
+            if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
+                matchedhash = property["rank1hash"] 
         filtered = []
         for x in properties:
             if x["rank1hash"] == matchedhash:
@@ -243,12 +245,6 @@ class documentservice:
                 duplicateof = self.__getduplicateof(properties, record, originalid)
         return isduplicate, duplicatemasterid, duplicateof
 
-    def __getmatchedhash(self, properties, record):
-        matchedhash = None
-        for property in properties:
-            if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
-                 matchedhash = property["rank1hash"]
-        return matchedhash
     def __getduplicateof(self, properties, record, duplicatemasterid):
         duplicateof = record["filename"] if "filename" in record else None
         if duplicateof is None:
@@ -288,10 +284,9 @@ class documentservice:
         ])
 
 
-    def getdocuments_1(self, requestid):
+    def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
         divisions = ProgramAreaDivision.getallprogramareadivisons()
-        print("documents = ", documents)
 
         formated_documents = []
         for document in documents:
