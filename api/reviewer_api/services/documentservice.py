@@ -11,15 +11,7 @@ from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 
 class documentservice:
 
-    def getdedupestatus(self, requestid):
-        """ Returns the active records
-        """
-        documents = Document.getdocumentsdedupestatus(requestid)
-        for document in documents:
-            document['created_at'] = pstformat(document['created_at'])
-            document['updated_at'] = pstformat(document['updated_at'])
-
-        return documents
+    
     def getdedupestatus(self,requestid):
         deleted = DocumentMaster.getdeleted(requestid)
         records = DocumentMaster.getdocumentmaster(requestid)
