@@ -74,12 +74,11 @@ class documentservice:
                     # print("attachment == ", attachment)
                     if len(_att_in_properties) > 0:
                         if attachment["filepath"].endswith(".msg"):
-                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(_att_in_properties, attachment)
+                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(records, _att_in_properties, attachment)
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
                     
                         attachment["pagecount"], attachment["filename"] = self.__getpagecountandfilename(attachment, _att_in_properties)
-                # print("attachments_2 == ", record["attachments"] if "attachments" in record else [])   
         return record
     def __getparentrecords(self, records):
         filtered = []
@@ -97,20 +96,32 @@ class documentservice:
                 filename = property["filename"]
         return pagecount, filename
 
-    def __getduplicatemsgattachment(self, attachmentproperties, attachment):
-        _occurances = [d for d in attachmentproperties if d['filename'] == attachment['filename']]
+    def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
+        _occurances = []
+        for entry in attachmentproperties:
+            if entry["filename"] == attachment['filename']:
+                _lhsattribute = self.__getrecordproperty(records, entry["processingparentid"], "attributes")
+                _rhsattribute = self.__getrecordproperty(records, attachment["documentmasterid"], "attributes")
+                if _lhsattribute["filesize"] ==  _rhsattribute["filesize"] and _lhsattribute["lastmodified"] ==  _rhsattribute["lastmodified"]:
+                    _occurances.append(entry)  
         if len(_occurances) > 1:
-            attachment["isduplicate"] = True
-            filtered = [x["processingparentid"] for x in attachmentproperties if x["filename"] == attachment["filename"]]
-            attachment["duplicatemasterid"] = min(filtered)
-            attachment["duplicateof"] = self.__getduplicateof(attachmentproperties, attachment, attachment["duplicatemasterid"] )
-            return attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"]
+            filtered = [x["processingparentid"] for x in _occurances] 
+            _firstupload = min(filtered)
+            if _firstupload != attachment["documentmasterid"]:
+                attachment["isduplicate"] = True            
+                attachment["duplicatemasterid"] = _firstupload
+                attachment["duplicateof"] = self.__getduplicateof(attachmentproperties, attachment, attachment["duplicatemasterid"] )
+                return attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"]
         return False, attachment["documentmasterid"], attachment["filename"]
     
     def __getduplicatemasterattachments(self, records, duplicatemasterid):
-            for x in records:
-                if x["documentmasterid"] == duplicatemasterid:
-                    return x["attachments"]
+            return self.__getrecordproperty(records, duplicatemasterid, "attachments")
+
+    def __getrecordproperty(self, records, documentmasterid, property):
+        for x in records:
+            if x["documentmasterid"] == documentmasterid:
+                return x[property] 
+        return None  
 
     def __getrecordsproperties(self, records, properties):
         filtered = [] 
