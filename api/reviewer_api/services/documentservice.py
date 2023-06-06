@@ -37,10 +37,10 @@ class documentservice:
         #Duplicate check
         for record in records:
             #record["isduplicate"] = self.__isduplicatenew(records, properties, record)     
-            record = self.__updatepropertiesnew(records, properties, record)
+            record = self.__updateproperties(records, properties, record)
         return records
     
-    def __updatepropertiesnew(self, records, properties, record): 
+    def __updateproperties(self, records, properties, record): 
         if record["recordid"] is not None:
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(properties, record)
             if len(record["attachments"]) > 0:
@@ -56,10 +56,6 @@ class documentservice:
                         attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(_att_in_properties, attachment)
                     else:
                         attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
-                    
-                
-                    # for attachment in record["attachments"]:
-                    #     attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_within_properties, attachment)           
         return record
 
     def __getduplicatemsgattachment(self, attachmentproperties, attachment):
@@ -118,7 +114,7 @@ class documentservice:
                 record["trigger"] = dedupe["trigger"]
         return record 
     
-    def __updateproperties(self, properties, records, record):
+    def __updateproperties_old(self, properties, records, record):
         for property in properties:
             if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
                 record["pagecount"] = property["pagecount"]
