@@ -40,25 +40,37 @@ class documentservice:
             record = self.__updatepropertiesnew(records, properties, record)
         return records
     
-    def __updatepropertiesnew(self, records, properties, record):        
+    def __updatepropertiesnew(self, records, properties, record): 
         if record["recordid"] is not None:
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(properties, record)
-            print("Main if not nuone record ==== ", record)
-            if record["isduplicate"] == True and len(record["attachments"]) > 0:
-                print("isduplicate true parent record ==== ", record)
-                duplicatemaster_attachments = self.__getduplicatemasterattachments(records, record["duplicatemasterid"])
-                print("duplicatemaster_attachments = ", duplicatemaster_attachments)
-                for attachment in record["attachments"]:
+            if len(record["attachments"]) > 0:
+                if record["isduplicate"] == True:
+                    duplicatemaster_attachments = self.__getduplicatemasterattachments(records, record["duplicatemasterid"])
+                    duplicatemaster_attachments.extend(record["attachments"])
                     _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments, properties)
-                    attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)                
-            
-            if record["isduplicate"] == False:
-                print("isduplicate false parent record ==== ", record)
-                if len(record["attachments"]) > 0 and record["isduplicate"] == False: 
+                else: 
                     _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
-                    for attachment in record["attachments"]:
-                        attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)           
+                for attachment in record["attachments"]:
+                    print("attachment == ", attachment)                   
+                    if attachment["filepath"].endswith(".msg"):
+                        attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(_att_in_properties, attachment)
+                    else:
+                        attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
+                    
+                
+                    # for attachment in record["attachments"]:
+                    #     attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_within_properties, attachment)           
         return record
+
+    def __getduplicatemsgattachment(self, attachmentproperties, attachment):
+        _occurances = [d for d in attachmentproperties if d['filename'] == attachment['filename']]
+        if len(_occurances) > 1:
+            attachment["isduplicate"] = True
+            filtered = [x["processingparentid"] for x in attachmentproperties if x["filename"] == attachment["filename"]]
+            attachment["duplicatemasterid"] = min(filtered)
+            attachment["duplicateof"] = self.__getduplicateof(attachmentproperties, attachment, attachment["duplicatemasterid"] )
+            return attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"]
+        return False, attachment["documentmasterid"], attachment["filename"]
     
     def __getduplicatemasterattachments(self, records, duplicatemasterid):
             for x in records:
