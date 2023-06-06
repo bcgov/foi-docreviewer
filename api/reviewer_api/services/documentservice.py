@@ -35,10 +35,13 @@ class documentservice:
             #record = self.__updateproperties(properties, records, record)       
             record = self.__updateredactionstatus(redactions, record)     
         #Duplicate check
+        result = []
         for record in records:
-            #record["isduplicate"] = self.__isduplicatenew(records, properties, record)     
+            #record["isduplicate"] = self.__isduplicatenew(records, properties, record)    
             record = self.__updatepropertiesnew(records, properties, record)
-        return records
+            if record["recordid"] is not None:
+                result.append(record)
+        return result
     
     def __updatepropertiesnew(self, records, properties, record): 
         if record["recordid"] is not None:
