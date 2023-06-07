@@ -4,6 +4,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using MCS.FOI.CalendarToPDF;
 using MCS.FOI.DocToPDF;
+using MCS.FOI.PPTToPDF;
 using MCS.FOI.ExcelToPDF;
 using MCS.FOI.MSGToPDF;
 using MCS.FOI.S3FileConversion.Utilities;
@@ -26,6 +27,7 @@ namespace MCS.FOI.S3FileConversion
         Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
         ExcelFileProcessor excelFileProcessor = null;
         DocFileProcessor docFileProcessor = null;
+        PptFileProcessor pptFileProcessor = null;
         MSGFileProcessor msgFileProcessor = null;
         CalendarFileProcessor calendarFileProcessor = null;
         List<Dictionary<string, string>> returnAttachments = null;
@@ -89,6 +91,10 @@ namespace MCS.FOI.S3FileConversion
                             case ".doc":
                             case ".docx":
                                 output = ConvertDocFiles(responseStream);
+                                break;
+                            case ".ppt":
+                            case ".pptx":
+                                output = ConvertPptFiles(responseStream);
                                 break;
                         }
 
@@ -228,6 +234,19 @@ namespace MCS.FOI.S3FileConversion
             return output;
         }
 
+        private Stream ConvertPptFiles(Stream input)
+        {
+            pptFileProcessor = new PptFileProcessor(input)
+            {
+                IsSinglePDFOutput = false,
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
+            var (converted, output) = pptFileProcessor.ConvertToPDF();
+            return output;
+        }
+
+
         public void Dispose()
         {
             Dispose(true);
@@ -252,6 +271,9 @@ namespace MCS.FOI.S3FileConversion
 
                 if (calendarFileProcessor != null)
                     calendarFileProcessor.Dispose();
+
+                if (pptFileProcessor != null)
+                    pptFileProcessor.Dispose();
 
                 attachments = null;
                 returnAttachments = null;
