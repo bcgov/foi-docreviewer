@@ -4,6 +4,7 @@ WORKDIR /app
 COPY *.sln .
 COPY MCS.FOI.S3FileConversion/*.csproj ./MCS.FOI.S3FileConversion/
 COPY MCS.FOI.ExcelToPDF/*.csproj ./MCS.FOI.ExcelToPDF/
+COPY MCS.FOI.PptToPDF/*.csproj ./MCS.FOI.PptToPDF/
 COPY MCS.FOI.CalendarToPDF/*.csproj ./MCS.FOI.CalendarToPDF/
 COPY MCS.FOI.MSGToPDF/*.csproj ./MCS.FOI.MSGToPDF/
 COPY MCS.FOI.ExcelToPDFUnitTests/*.csproj ./MCS.FOI.ExcelToPDFUnitTests/
@@ -13,12 +14,16 @@ COPY MCS.FOI.MSGToPDFUnitTests/*.csproj ./MCS.FOI.MSGToPDFUnitTests/
 COPY MCS.FOI.DocToPDFUnitTests/*.csproj ./MCS.FOI.DocToPDFUnitTests/
 COPY MCS.FOI.DocToPDF/*.csproj ./MCS.FOI.DocToPDF/
 
+# COPY NuGet.Config /
+# RUN ["cp", "/NuGet.Config", "/root/.nuget/NuGet/NuGet.Config"]
+
 # Restore as distinct layers
 RUN dotnet restore
 
 # Copy everything else
 COPY MCS.FOI.S3FileConversion/. ./MCS.FOI.S3FileConversion/
 COPY MCS.FOI.ExcelToPDF/. ./MCS.FOI.ExcelToPDF/
+COPY MCS.FOI.PptToPDF/. ./MCS.FOI.PptToPDF/
 COPY MCS.FOI.CalendarToPDF/. ./MCS.FOI.CalendarToPDF/
 COPY MCS.FOI.MSGToPDF/. ./MCS.FOI.MSGToPDF/
 COPY MCS.FOI.DocToPDF/. ./MCS.FOI.DocToPDF/
