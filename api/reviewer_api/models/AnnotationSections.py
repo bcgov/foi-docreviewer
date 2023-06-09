@@ -24,18 +24,19 @@ class AnnotationSection(db.Model):
     annotationname =db.Column(db.Integer, ForeignKey('Annotations.annotationname'))
     
     @classmethod
-    def savesection(cls, _foiministryrequestid, _annotationname, _section, userinfo)->DefaultMethodResult:
+    def savesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
         try:
-            insertstmt = insert(AnnotationSection).values(
-                                            foiministryrequestid = _foiministryrequestid,
-                                            annotationname = _annotationname,
-                                            section = _section,
-                                            createdby = userinfo                                            
-                                        )
-            updatestmt = insertstmt.on_conflict_do_update(index_elements=[AnnotationSection.annotationname], set_={"section": _section,"updatedby":userinfo,"updated_at":datetime.now()})
+            values = [{
+                "foiministryrequestid": _foiministryrequestid,
+                "annotationname": annot["name"],
+                "section": annot["sectionsschema"],
+                "createdby": userinfo
+            } for annot in annots]
+            insertstmt = insert(AnnotationSection).values(values)
+            updatestmt = insertstmt.on_conflict_do_update(index_elements=[AnnotationSection.annotationname], set_={"section": insertstmt.excluded.section,"updatedby":userinfo,"updated_at":datetime.now()})
             db.session.execute(updatestmt)               
             db.session.commit() 
-            return DefaultMethodResult(True, 'Annotation Sections are saved', _annotationname)  
+            return DefaultMethodResult(True, 'Annotation Sections are saved', [annot["name"] for annot in annots])
         except Exception as ex:
             logging.error(ex)
             raise ex

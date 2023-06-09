@@ -114,7 +114,6 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
-
 class DeduplicationJobSchema(ma.Schema):
     class Meta:
         fields = ('documentmasterid', 'filepath', 'ministryrequestid', 'recordid', 'processingparentid', 'parentid', 'isredactionready', 'created_at', 'createdby', 'updated_at', 'updatedby')
