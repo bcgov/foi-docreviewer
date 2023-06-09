@@ -30,6 +30,8 @@ const Redlining = React.forwardRef(({
   user,
   requestid,
 }, ref) =>{
+
+  const pageFlags = useAppSelector(state => state.documents?.pageFlags);
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
 
@@ -39,6 +41,7 @@ const Redlining = React.forwardRef(({
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
   const documentList = useAppSelector((state) => state.documents?.documentList);
+  const [enableSavingRedline, setEnableSavingRedline] = useState();
   const [pdffile, setpdffile] = useState(currentPageInfo.file['filepath']);
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
@@ -46,6 +49,7 @@ const Redlining = React.forwardRef(({
   const [docViewerMath, setDocViewerMath] = useState(null);
   const [docInstance, setDocInstance] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [redlineModalOpen, setRedlineModalOpen] = useState(false);
   const [newRedaction, setNewRedaction] = useState(null);
   const [deleteQueue, setDeleteQueue] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
@@ -85,7 +89,7 @@ const Redlining = React.forwardRef(({
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
 
-      //customize header
+      //customize header - insert a dropdown button
       const document = instance.UI.iframeWindow.document;
       instance.UI.setHeaderItems(header => {
         const parent = documentViewer.getScrollViewElement().parentElement;
@@ -93,35 +97,75 @@ const Redlining = React.forwardRef(({
         const menu = document.createElement('div');
         menu.classList.add('Overlay');
         menu.classList.add('FlyoutMenu');
-        menu.style.padding = '1em';
   
-        const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = 'Download';
-        downloadBtn.onclick = () => {
+        const createRecordsPackageBtn = document.createElement('button');
+        createRecordsPackageBtn.textContent = 'Create Records Package';
+        createRecordsPackageBtn.style.backgroundColor = 'transparent';
+        createRecordsPackageBtn.style.border = 'none';
+        createRecordsPackageBtn.style.padding = '8px 8px 8px 10px';
+        createRecordsPackageBtn.style.cursor= 'pointer';
+        createRecordsPackageBtn.style.alignItems= 'left';
+        // createRecordsPackageBtn.style.color = '#069';
+
+        createRecordsPackageBtn.onclick = () => {
           // Download
-          console.log("download button");
+          console.log("Create Records Package");
         };
   
-        menu.appendChild(downloadBtn);
+        menu.appendChild(createRecordsPackageBtn);
+  
+        const redlineForSignOffBtn = document.createElement('button');
+        redlineForSignOffBtn.textContent = 'Redline for Sign Off';
+        redlineForSignOffBtn.style.backgroundColor = 'transparent';
+        redlineForSignOffBtn.style.border = 'none';
+        redlineForSignOffBtn.style.padding = '8px 8px 8px 10px';
+        redlineForSignOffBtn.style.cursor= 'pointer';
+        redlineForSignOffBtn.style.alignItems= 'left';
+        // redlineForSignOffBtn.style.color = '#069';
+
+        redlineForSignOffBtn.onclick = () => {
+          // Download
+          console.log("Redline for Sign Off");
+
+          // saveDocument(pageInfo.file['documentid'], blob);
+          // console.log("xml: ", await annotationManager.exportAnnotations());
+          setRedlineModalOpen(true);
+          // saveDocument(instance);
+        };
+  
+        menu.appendChild(redlineForSignOffBtn);
+  
+        const responsePackageBtn = document.createElement('button');
+        responsePackageBtn.textContent = 'Response Package for Application';
+        responsePackageBtn.style.backgroundColor = 'transparent';
+        responsePackageBtn.style.border = 'none';
+        responsePackageBtn.style.padding = '8px 8px 8px 10px';
+        responsePackageBtn.style.cursor= 'pointer';
+        responsePackageBtn.style.alignItems= 'left';
+        // responsePackageBtn.style.color = '#069';
+
+        responsePackageBtn.onclick = () => {
+          // Download
+          console.log("Response Package for Application");
+        };
+  
+        menu.appendChild(responsePackageBtn);
   
         let isMenuOpen = false;
   
         const renderCustomMenu = () => {
           const menuBtn = document.createElement('button');
-          menuBtn.textContent = 'My Menu';
+          menuBtn.textContent = 'Create Response PDF';
   
           menuBtn.onclick = async () => {
-            console.log("my menu button");
-            // saveDocument(pageInfo.file['documentid'], blob);
-            // console.log("xml: ", await annotationManager.exportAnnotations());
-            saveDocument(instance);
-
             if (isMenuOpen) {
               parent.removeChild(menu);
             } else {
-              menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 40)}px`;
+              menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 110)}px`;
               menu.style.right = 'auto';
-              menu.style.top = '40px';
+              menu.style.top = '30px';
+              menu.style.minWidth = '200px'
+              menu.padding = '0px'
               parent.appendChild(menu);
             }
   
@@ -135,14 +179,11 @@ const Redlining = React.forwardRef(({
           type: 'customElement',
           render: renderCustomMenu,
         };
-  
-        header.push(newCustomElement);
-        console.log("header", header);
+
+        // header.push(newCustomElement);
+        // insert dropdown button in front of search button
+        header.headers.default.splice((header.headers.default.length-3), 0, newCustomElement);
       });
-
-
-
-
 
 
 
@@ -373,6 +414,46 @@ const Redlining = React.forwardRef(({
       // setModalOpen(true)
     }
   }));
+
+
+
+  const checkSavingRedlineButton = () => {
+    let pageFlagArray = [];
+    let stopLoop = false;
+
+    documentList.every(docInfo => {
+
+      pageFlags?.every(pageFlagInfo => {
+        if (docInfo.documentid == pageFlagInfo?.documentid) {
+          if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
+            // setEnableSavingRedline(false);
+            stopLoop = true;
+            return false;
+          } else {
+            // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
+            pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
+            if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+              // setEnableSavingRedline(false);
+              stopLoop = true;
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+
+      if(stopLoop)
+        return false;
+
+      return true;
+    });
+
+    setEnableSavingRedline(!stopLoop);
+  }
+
+  useEffect(() => {
+    checkSavingRedlineButton();
+  }, [pageFlags]);
 
   useEffect(() => {
     //update user name
@@ -714,6 +795,15 @@ const Redlining = React.forwardRef(({
     );
   }
 
+  const saveRedlineDoc = () => {
+    setRedlineModalOpen(false);
+    saveDocument(docInstance);
+  }
+
+  const cancelSaveRedlineDoc = () => {
+    setRedlineModalOpen(false);
+  }
+
   return (
     <div>
     {/* <button onClick={gotopage}>Click here</button> */}
@@ -793,6 +883,37 @@ const Redlining = React.forwardRef(({
             </button>
           }
           <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+            Cancel
+          </button>
+        </DialogActions>
+    </ReactModal>
+    <ReactModal
+        initWidth={800}
+        initHeight={300}
+        minWidth ={600}
+        minHeight ={250}
+        className={"state-change-dialog"}
+        onRequestClose={cancelRedaction}
+        isOpen={redlineModalOpen}>
+        <DialogTitle disableTypography id="state-change-dialog-title">
+          <h2 className="state-change-header">Redline for Sign Off</h2>
+          <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
+            <i className="dialog-close-button">Close</i>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent className={'dialog-content-nomargin'}>
+          <DialogContentText id="state-change-dialog-description" component={'span'} >
+            <span className="confirmation-message">
+              Are you sure want to create the redline PDF for ministry sign off? <br></br>
+            </span>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="foippa-modal-actions" disabled={!enableSavingRedline}>
+          <button className="btn-bottom btn-save btn" onClick={saveRedlineDoc}>
+            Create Redline PDF
+          </button>
+          <button className="btn-bottom btn-cancel" onClick={cancelSaveRedlineDoc}>
             Cancel
           </button>
         </DialogActions>
