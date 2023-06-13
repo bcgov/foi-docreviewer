@@ -33,7 +33,9 @@ const DocumentSelector = ({
     documents,
     totalPageCount,
     currentPageInfo,
-    setCurrentPageInfo
+    setCurrentPageInfo,
+    setCurrentDocument,
+    setLoadPage
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -52,6 +54,8 @@ const DocumentSelector = ({
     const [filteredFiles, setFilteredFiles] = useState(files);
     const [filterBookmark, setFilterBookmark] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
+
+   //console.log("stitchedDocument",stitchedDocument);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
     [`& .${treeItemClasses.label}`]: {
@@ -219,11 +223,34 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number, e?: any) => {
-        setCurrentPageInfo({ 'file': file, 'page': page });
+        //setLoadPage(page);
+        let pageNo = getPageNoOfStitchedDoc(file, page);
+        setCurrentPageInfo({ 'file': {}, 'page': pageNo });
         localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
+        console.log("firstDoc selected:",{ 'file': file, 'page': page })
+        setCurrentDocument({ 'file': file, 'page': page })
         if( page == 1)
             setDisableHover(false);
     };
+
+    const getPageNoOfStitchedDoc= (file: any, page: number) => {
+        let doclist1= files?.sort(function(a: any, b: any) {
+            return Date.parse(a.attributes.lastmodified) - Date.parse(b.attributes.lastmodified);
+        });
+        let pageNo = 0;
+        let stopIncrement = false;
+        doclist1.map((doc: any) => 
+        {
+        if(!stopIncrement && doc.documentid !== file.documentid){
+            pageNo+= doc.pagecount;
+        }
+        else if(!stopIncrement && doc.documentid === file.documentid){
+            pageNo+= page;
+            stopIncrement= true;
+        }
+        })
+        return pageNo;
+    }
 
     const openContextMenu = (file: any, page: number, e: any) => {
         setSelectedPage(page);
@@ -417,7 +444,7 @@ const DocumentSelector = ({
                                                     key={i}
                                                     disableHoverListener={disableHover}
                                                 >
-                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
+                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} >
                                                         {[...Array(file.pagecount)].map((_x, p) =>
                                                         (filterFlags.length > 0 ?
                                                             ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
@@ -475,7 +502,7 @@ const DocumentSelector = ({
                                             key={file?.documentid}
                                             disableHoverListener={disableHover}
                                         >
-                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
+                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} >
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                 (filterFlags.length > 0 ?
                                                     ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&

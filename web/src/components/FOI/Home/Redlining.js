@@ -28,6 +28,11 @@ const Redlining = React.forwardRef(({
   currentPageInfo,
   user,
   requestid,
+  docsForStitcing,
+  currentDocument,
+  stitchedDoc,
+  setStitchedDoc,
+  loadPage
 }, ref) =>{
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
@@ -37,7 +42,7 @@ const Redlining = React.forwardRef(({
 
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
-  const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
+  //const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
   const [annots, setAnnots] = useState(null);
@@ -55,6 +60,7 @@ const Redlining = React.forwardRef(({
   const [pageSelections, setPageSelections] = useState([]);
   const [modalSortNumbered, setModalSortNumbered]= useState(false);
   const [modalSortAsc, setModalSortAsc]= useState(true);
+  //const [stitchedDoc, setStitchedDoc] = useState();
   //xml parser
   const parser = new XMLParser();
 
@@ -62,8 +68,9 @@ const Redlining = React.forwardRef(({
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
-    let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
-
+    //let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
+    localStorage.setItem("isDocumentStitched", "false");
+    let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
     fetchSections(
       requestid,
       (error)=> console.log(error)
@@ -77,11 +84,12 @@ const Redlining = React.forwardRef(({
         initialDoc: currentDocumentS3Url,
         fullAPI: true,
         enableRedaction: true,
+        useDownloader: false,
         disabledElements: ['modalRedactButton', 'annotationRedactButton']
       },
       viewer.current,
     ).then((instance) => {
-      const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math } = instance.Core;
+      const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
 
       const Edit = () => {
@@ -116,9 +124,41 @@ const Redlining = React.forwardRef(({
         FillColor: new Annotations.Color(255, 255, 255)
       }));
 
-      documentViewer.addEventListener('documentLoaded', () => {
-        PDFNet.initialize(); // Only needs to be initialized once
+      //let doclist=JSON.parse(localStorage.getItem("foireviewdocslist"))
+      let doclist= docsForStitcing?.sort(function(a, b) {
+        return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
+      });
 
+      let mergelocal = async (doc) => {
+          let doclist1 = doclist.shift();
+          doclist.forEach((file,index) => {   
+            //if(index > 0){               
+              createDocument(file.s3url, {} /* , license key here */).then(newDoc => {
+              const pages = [];
+              for (let i = 0; i < newDoc.getPageCount(); i++) {
+                pages.push(i + 1);
+              }
+              // Insert (merge) pages
+              doc.insertPages(newDoc, pages, doc.getPageCount() + 1);
+              });
+            //}
+        });
+        setStitchedDoc(doc);
+        console.log("updated DOC:", doc);
+      }
+
+      documentViewer.addEventListener('documentLoaded', () => {
+
+        let isDocStitched = localStorage.getItem("isDocumentStitched");
+        const doc1 = documentViewer.getDocument();
+        console.log("PRINT now loaded:",doc1)
+        if(isDocStitched !== 'true'){
+          const doc = documentViewer.getDocument();
+          console.log("PRINT:",doc)
+          mergelocal(doc);
+          localStorage.setItem("isDocumentStitched", "true");
+          PDFNet.initialize(); // Only needs to be initialized once
+        }
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
@@ -127,7 +167,9 @@ const Redlining = React.forwardRef(({
         //update isloaded flag
         localStorage.setItem("isDocumentLoaded", "true");
 
-        let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        let localDocumentInfo = currentDocument;
+
         fetchAnnotations(
           localDocumentInfo['file']['documentid'],
           localDocumentInfo['file']['version'],
@@ -135,7 +177,9 @@ const Redlining = React.forwardRef(({
             if (data.length > 0) {
               const _annotations = annotationManager.importAnnotations(data)
               _annotations.then(_annotation => {
-                annotationManager.redrawAnnotation(_annotation);
+                //console.log("_annotation",_annotation)
+                if(!!_annotation && _annotation.length > 0)
+                  annotationManager.redrawAnnotation(_annotation);
               });
               documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
             }
@@ -189,7 +233,8 @@ const Redlining = React.forwardRef(({
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
         if (info.imported) return;
-        let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        let localDocumentInfo = currentDocument;
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
         _annotationtring.then(astr=>{
           //parse annotation xml
@@ -323,31 +368,43 @@ const Redlining = React.forwardRef(({
   }, [user])
 
   useEffect(() => {
+    console.log("stitchedDoc-",stitchedDoc);
+    // let stitched= new Document(stitchedDoc?.id,'pdf');
+    // console.log("stitchedDoc-val",stitched);
+
     //load a new document
-    if(pdffile !== (currentPageInfo.file['filepath'])) {
+    //if(pdffile !== (currentPageInfo.file['filepath'])) {
       localStorage.setItem("isDocumentLoaded", "false");
-      setpdffile(currentPageInfo.file['filepath']);
+      //setpdffile(currentPageInfo.file['filepath']);
+      //docViewer?.displayPageLocation(5, 0, 0);
+      //setpdffile("https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/QAW-093-099/b5f68dcf-886f-4eca-8536-520f1fe3db0f.pdf?response-content-type=application%2Fpdf&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA118D92D31F43C8A4%2F20230609%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230609T224704Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=bf252a02d28f723d2c9f6017c5dfe84460577dd0d9ce4c68b1bd799cfc2c84d6");
       getFOIS3DocumentPreSignedUrl(
           currentPageInfo.file['documentid'],
+          //stitchedDoc?.id,
           (data) => {
-              docInstance?.UI?.loadDocument(data);
+              docInstance?.UI?.loadDocument(data);// this is the part to change- can bring mapping & save stitched doc to s3?
           },
           (error) => {
               console.log('Error fetching document:',error);
           }
         );
-    }
+   // }
     //change page from document selector
     let isDocLoaded = localStorage.getItem("isDocumentLoaded");
-    if(isDocLoaded === 'true')
+    //if(isDocLoaded === 'true'){
       docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
+      console.log("stitchedDoc!!",stitchedDoc);
+      //docViewer?.displayPageLocation(5, 0, 0);
+   // }
+
   }, [currentPageInfo])
 
   const saveRedaction = () => {
     setModalOpen(false);
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
-    let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+    //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+    let localDocumentInfo = currentDocument;
     let childAnnotation;
     let childSection ="";
     let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
@@ -473,8 +530,8 @@ const Redlining = React.forwardRef(({
     while (deleteQueue?.length > 0) {
       let annot = deleteQueue.pop();
       if (annot && annot.name !== newRedaction?.name) {
-        let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-
+        //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        let localDocumentInfo = currentDocument;
         deleteRedaction(
           requestid,
           localDocumentInfo['file']['documentid'],
@@ -512,7 +569,8 @@ const Redlining = React.forwardRef(({
   useEffect(() => {
     if (saveAnnot) {
       // if new redaction is not null, that means it is a section annotation
-      let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+      let localDocumentInfo = currentDocument;
       if (newRedaction === null) {
         if (saveAnnot.type === 'redact') {
           setNewRedaction(saveAnnot);
