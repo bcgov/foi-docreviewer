@@ -61,11 +61,11 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion, annotationname):
+    def post(documentid, documentversion):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(annotationname, documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
+            result = redactionservice().saveannotation(documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
