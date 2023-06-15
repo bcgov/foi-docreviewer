@@ -8,18 +8,21 @@ from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
+from reviewer_api.models.DocumentAttributes import DocumentAttributes
 
 class documentservice:
 
-    def getdedupestatus(self, requestid):
-        """ Returns the active records
-        """
-        documents = Document.getdocumentsdedupestatus(requestid)
-        for document in documents:
-            document['created_at'] = pstformat(document['created_at'])
-            document['updated_at'] = pstformat(document['updated_at'])
+    # def getdedupestatus(self, requestid):
+    #     """ Returns the active records
+    #     """
+        
+    #     documents = Document.getdocumentsdedupestatus(requestid)
+    #     for document in documents:
+    #         document['created_at'] = pstformat(document['created_at'])
+    #         document['updated_at'] = pstformat(document['updated_at'])
 
-        return documents
+    #     return documents
+
     def getdedupestatus(self,requestid):
         deleted = DocumentMaster.getdeleted(requestid)
         records = DocumentMaster.getdocumentmaster(requestid)
@@ -143,6 +146,42 @@ class documentservice:
             ) for filepath in payload['filepaths']
         ])
 
+    def updatedocumentattributes(self, payload, userid):
+        """ update document attributes
+        """
+
+        docattributeslist = DocumentAttributes.getdocumentattributesbyid(payload['documentmasterids'])
+        print("docattributeslist: ", docattributeslist)
+        oldRows = []
+        newRows = []
+        for docattributes in docattributeslist:
+            olddocattributes = docattributes['attributes']
+            oldRows.append(
+                {
+                    'attributeid': docattributes['attributeid'],
+                    'version': docattributes['version'],
+                    'documentmasterid': docattributes['documentmasterid'],
+                    'attributes': olddocattributes,
+                    'createdby': docattributes['createdby'],
+                    'created_at': docattributes['created_at'],
+                    'updatedby': userid,
+                    'updated_at': datetime2.now(),
+                    'isactive': False
+                }
+            )
+            docattributes['attributes']['divisions'] = payload['divisions']
+            newRows.append(
+                DocumentAttributes(
+                    version = docattributes['version']+1,
+                    documentmasterid = docattributes['documentmasterid'],
+                    attributes = docattributes['attributes'],
+                    createdby = docattributes['createdby'],
+                    created_at = docattributes['created_at'],
+                    isactive = True
+                )
+            )
+
+        return DocumentAttributes.create(newRows, oldRows)
 
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
