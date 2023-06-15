@@ -47,6 +47,7 @@
     <ProjectReference Include="..\MCS.FOI.ExcelToPDF\MCS.FOI.ExcelToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.DocToPDF\MCS.FOI.DocToPDF.csproj" />
 	<ProjectReference Include="..\MCS.FOI.MSGToPDF\MCS.FOI.MSGToPDF.csproj" />
+	<ProjectReference Include="..\MCS.FOI.PptToPDF\MCS.FOI.PPTToPDF.csproj" />
   </ItemGroup>
 	
 

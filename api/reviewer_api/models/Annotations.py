@@ -55,21 +55,22 @@ class Annotation(db.Model):
        
     #upsert
     @classmethod
-    def saveannotation(cls, _annotationname, _documentid, _documentversion, _annotation, _pagenumber, userinfo)->DefaultMethodResult:
+    def saveannotations(cls, annots, _documentid, _documentversion, userinfo)->DefaultMethodResult:
         try:
-            insertstmt = insert(Annotation).values(
-                                            annotationname=_annotationname,
-                                            documentid=_documentid,
-                                            documentversion=_documentversion,
-                                            annotation=_annotation,
-                                            pagenumber=_pagenumber,
-                                            createdby=userinfo,
-                                            isactive=True
-                                        )
-            updatestmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname], set_={"annotation": _annotation,"updatedby":userinfo,"updated_at":datetime.now()})
+            values = [{
+                "annotationname": annot["name"],
+                "documentid": _documentid,
+                "documentversion": _documentversion,
+                "annotation": annot["xml"],
+                "pagenumber": annot["page"],
+                "createdby": userinfo,
+                "isactive": True
+            } for annot in annots]
+            insertstmt = insert(Annotation).values(values)
+            updatestmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname], set_={"annotation": insertstmt.excluded.annotation,"updatedby":userinfo,"updated_at":datetime.now()})
             db.session.execute(updatestmt)     
             db.session.commit() 
-            return DefaultMethodResult(True, 'Annotation added', _annotationname)
+            return DefaultMethodResult(True, 'Annotation added', [annot["name"] for annot in annots])
         except Exception as ex:
             logging.error(ex)
             raise ex
