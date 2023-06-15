@@ -57,9 +57,6 @@ class DocumentAttributes(db.Model):
 
     @classmethod
     def create(cls, rows, oldrows):
-        print("old: ", oldrows)
-        print("new: ", rows)
-
         # disable old rows
         db.session.bulk_update_mappings(DocumentAttributes, oldrows)
 

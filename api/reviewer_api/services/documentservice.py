@@ -151,7 +151,6 @@ class documentservice:
         """
 
         docattributeslist = DocumentAttributes.getdocumentattributesbyid(payload['documentmasterids'])
-        print("docattributeslist: ", docattributeslist)
         oldRows = []
         newRows = []
         for docattributes in docattributeslist:
