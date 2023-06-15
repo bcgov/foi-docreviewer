@@ -17,8 +17,13 @@ def savedocumentdetails(dedupeproducermessage, hashcode,pagecount = 1 ):
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
+        if (json.loads(dedupeproducermessage.attributes).get('isattachment', False) and dedupeproducermessage.trigger == 'recordreplace'):
+            documentmasterid = dedupeproducermessage.originaldocumentmasterid or dedupeproducermessage.documentmasterid
+        else:
+            documentmasterid = dedupeproducermessage.documentmasterid
+
         cursor.execute('''UPDATE public."DocumentAttributes" SET attributes = %s WHERE documentmasterid = %s''',
-          (dedupeproducermessage.attributes, dedupeproducermessage.documentmasterid))
+          (dedupeproducermessage.attributes, documentmasterid))
         conn.commit()
 
         cursor.execute('INSERT INTO public."DocumentHashCodes" (documentid, \
