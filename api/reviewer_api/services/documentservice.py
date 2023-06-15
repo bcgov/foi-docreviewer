@@ -155,13 +155,12 @@ class documentservice:
         oldRows = []
         newRows = []
         for docattributes in docattributeslist:
-            olddocattributes = docattributes['attributes']
             oldRows.append(
                 {
                     'attributeid': docattributes['attributeid'],
                     'version': docattributes['version'],
                     'documentmasterid': docattributes['documentmasterid'],
-                    'attributes': olddocattributes,
+                    'attributes': docattributes['attributes'],
                     'createdby': docattributes['createdby'],
                     'created_at': docattributes['created_at'],
                     'updatedby': userid,
@@ -169,12 +168,13 @@ class documentservice:
                     'isactive': False
                 }
             )
-            docattributes['attributes']['divisions'] = payload['divisions']
+            newdocattributes = json.loads(json.dumps(docattributes['attributes']))
+            newdocattributes['divisions'] = payload['divisions']
             newRows.append(
                 DocumentAttributes(
                     version = docattributes['version']+1,
                     documentmasterid = docattributes['documentmasterid'],
-                    attributes = docattributes['attributes'],
+                    attributes = newdocattributes,
                     createdby = docattributes['createdby'],
                     created_at = docattributes['created_at'],
                     isactive = True
