@@ -2,6 +2,7 @@
 using Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
+using System.Net;
 using System.Text;
 
 namespace MCS.FOI.MSGToPDF
@@ -54,40 +55,51 @@ namespace MCS.FOI.MSGToPDF
                                 if (attachment.GetType().FullName.ToLower().Contains("message"))
                                 {
                                     var _attachment = (Storage.Message)attachment;
-                                    _attachment.Save(attachmentStream);
-                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                     var filename = _attachment.FileName;
-                                    if (fileNameHash.ContainsKey(filename))
+                                    var extension = Path.GetExtension(filename);
+                                    if (!string.IsNullOrEmpty(extension))
                                     {
-                                        var extension = Path.GetExtension(filename);
-                                        filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        _attachment.Save(attachmentStream);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+
+                                        if (fileNameHash.ContainsKey(filename))
+                                        {
+
+                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        }
+                                        fileNameHash.Add(filename, true);
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     }
-                                    fileNameHash.Add(filename, true);
-                                    attachmentInfo.Add("filename", _attachment.FileName);
-                                    attachmentInfo.Add("s3filename", filename);
-                                    attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
-                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
                                 }
                                 else
                                 {
                                     var _attachment = (Storage.Attachment)attachment;
-                                    attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                    Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                     var filename = _attachment.FileName;
-                                    if (fileNameHash.ContainsKey(filename))
+                                    var extension = Path.GetExtension(filename);
+
+                                    if (!string.IsNullOrEmpty(extension))
                                     {
-                                        var extension = Path.GetExtension(filename);
-                                        filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+
+                                        if (fileNameHash.ContainsKey(filename))
+                                        {
+
+                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        }
+                                        fileNameHash.Add(filename, true);
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     }
-                                    fileNameHash.Add(filename, true);
-                                    attachmentInfo.Add("filename", _attachment.FileName);
-                                    attachmentInfo.Add("s3filename", filename);
-                                    attachmentInfo.Add("size", _attachment.Data.Length.ToString());
-                                    attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                    attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                    attachmentsObj.Add(attachmentStream, attachmentInfo);
                                 }
                             }
                             break;
@@ -196,10 +208,11 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.SentOn + "</td></tr>");
 
                 //Message body
-                string message = @"" + msg.BodyText?.Replace("\n", "<br>").Replace("&lt;br&gt;", "<br>")?.Replace("&lt;br/&gt;", "<br/>");
+                string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
+              
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                 htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
-                                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
                 htmlString.Append(@"
                                     </table>
                                 </div>");
