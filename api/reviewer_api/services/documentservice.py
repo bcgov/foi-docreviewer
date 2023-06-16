@@ -180,7 +180,7 @@ class documentservice:
                 )
             )
 
-        return DocumentAttributes.create(newRows, oldRows)
+        return DocumentAttributes.update(newRows, oldRows)
 
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)
