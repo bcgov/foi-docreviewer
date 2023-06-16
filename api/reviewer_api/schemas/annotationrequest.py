@@ -1,23 +1,28 @@
-from marshmallow import EXCLUDE, Schema, fields
+from marshmallow import EXCLUDE, Schema, fields, pre_load
+import json
 
 class SectionSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         """Exclude unknown fields in the deserialized output."""
         unknown = EXCLUDE
+
     id = fields.Int(data_key="id",allow_none=False) 
     section = fields.Str(data_key="section",allow_none=False) 
-    
-"""
+
+
 class SectionAnnotationSchema(Schema):
+    @pre_load(pass_many=True)
+    def decode_sections_json(self, data, many, **kwargs):
+        data['sections'] = json.loads(data.get('sections', '[]'))
+        return data
     class Meta:  # pylint: disable=too-few-public-methods        
         unknown = EXCLUDE
-    annotation = fields.Str(data_key="annotation",allow_none=False) 
-"""
+    ids = fields.List(fields.Nested(SectionSchema), data_key="sections")
+    redactannotation = fields.Str(data_key="parentRedaction",allow_none=False)
+
 
 class SectionRequestSchema(Schema):       
     foiministryrequestid = fields.Int(data_key="foiministryrequestid",allow_none=False)
-    ids = fields.List(fields.Nested(SectionSchema))
-    redactannotation = fields.Str(data_key="redactannotation",allow_none=False) 
 
 class BulkPageFlagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
