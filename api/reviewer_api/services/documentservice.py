@@ -50,7 +50,7 @@ class documentservice:
         print("**************************************************")
 
         print("records massage 1 Started {0}".format(datetime2.now()))
-        records = [entry for entry in records if entry['documentmasterid'] not in deleted]
+        #records = [entry for entry in records if entry['documentmasterid'] not in deleted]
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
             record["ministryrequestid"] =  requestid
@@ -89,6 +89,7 @@ class documentservice:
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(parentproperties, record)
             if len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
+                    
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(records, record["duplicatemasterid"])                    
                     _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
                 elif len(record["attachments"]) > 1: 
