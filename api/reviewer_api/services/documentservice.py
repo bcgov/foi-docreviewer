@@ -70,18 +70,19 @@ class documentservice:
         #Duplicate check
         print("finalresults massage 1 Started {0}".format(datetime2.now()))
         finalresults = []
-        parentrecords = self.__getparentrecords(records)
+        # parentrecords = self.__getparentrecords(records)
+        parentrecords, parentwithattachmentsrecords, attachmentsrecords = self.__filterrecords(records)
         parentproperties = self.__getrecordsproperties(parentrecords, properties)
-        compatiblerecords = self.__filterstandalonerecords(records)
+        
         for record in records:            
             if record["recordid"] is not None:
-                finalresult = self.__updateproperties(records, properties, record,parentproperties, compatiblerecords)
+                finalresult = self.__updateproperties(records, properties, record, parentproperties, parentwithattachmentsrecords, attachmentsrecords)
                 finalresults.append(finalresult)
         #print("finalresults ======= >>>>>>>> ", finalresults)
         print("finalresults massage 1 ended {0}".format(datetime2.now()))    
         return finalresults
     
-    def __updateproperties(self, records, properties, record,parentproperties, compatiblerecords):
+    def __updateproperties(self, records, properties, record, parentproperties, parentwithattachmentsrecords, attachmentsrecords):
         if record["recordid"] is not None:
             _att_in_properties = []
             #parentrecords = self.__getparentrecords(records)
@@ -92,19 +93,34 @@ class documentservice:
 
                 if record["isduplicate"] == True:
 
-                    duplicatemaster_attachments = self.__getduplicatemasterattachments(compatiblerecords, record["duplicatemasterid"])                    
+                    duplicatemaster_attachments = self.__getduplicatemasterattachments(parentwithattachmentsrecords, record["duplicatemasterid"])
                     _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
                 elif len(record["attachments"]) > 1: 
                     _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                 for attachment in record["attachments"]:
                     if len(_att_in_properties) > 0:
                         if attachment["filepath"].endswith(".msg"):
-                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(compatiblerecords, _att_in_properties, attachment)
+                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(attachmentsrecords, _att_in_properties, attachment)
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
                     
                         attachment["pagecount"], attachment["filename"] = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
+    
+    def __filterrecords(self, records):
+        parentrecords = []
+        parentswithattachments = []
+        attchments = []
+        for record in records:
+            if record["recordid"] is not None:
+                parentrecords.append(record)
+            if "attachments" in record and len(record["attachments"]) > 0:
+                parentswithattachments.append(record)
+            if record["recordid"] is None:
+                attchments.append(record)
+        return parentrecords, parentswithattachments, attchments
+    
+
     def __getparentrecords(self, records):
         filtered = []
         for record in records:
@@ -112,12 +128,23 @@ class documentservice:
                 filtered.append(record)
         return filtered
     
-    def __filterstandalonerecords(self, records):
+    def __filterattachmentsrecords(self, records):
         filtered = []
         for record in records:
-            if record["parentid"] is not None:
+            if record["recordid"] is None:
                 filtered.append(record)
         return filtered
+    
+    def __getduplicateattachments(self, masterattachments, attachments):
+        for attachment in attachments:
+            for masterattachment in masterattachments:
+                if masterattachment["filename"] == attachment['filename']:
+                    _lhsattribute = masterattachment["attributes"]
+                    _rhsattribute = attachment["attributes"]
+                    if _lhsattribute["filesize"] ==  _rhsattribute["filesize"] and _lhsattribute["lastmodified"] ==  _rhsattribute["lastmodified"]:
+                        attachment["isduplicate"] = True            
+                        attachment["duplicatemasterid"] = masterattachment["documentmasterid"]
+                        attachment["duplicateof"] = masterattachment["filename"]
     
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
@@ -130,10 +157,13 @@ class documentservice:
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
+        print("attachmentproperties >>>> ", attachmentproperties)
         for entry in attachmentproperties:
             if entry["filename"] == attachment['filename']:
                 _lhsattribute = self.__getrecordproperty(records, entry["processingparentid"], "attributes")
                 _rhsattribute = self.__getrecordproperty(records, attachment["documentmasterid"], "attributes")
+                print("_lhsattribute == ", _lhsattribute)
+                print("_rhsattribute == ", _rhsattribute)
                 if _lhsattribute["filesize"] ==  _rhsattribute["filesize"] and _lhsattribute["lastmodified"] ==  _rhsattribute["lastmodified"]:
                     _occurances.append(entry)  
         if len(_occurances) > 1:
