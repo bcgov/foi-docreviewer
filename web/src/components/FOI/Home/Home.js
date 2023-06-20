@@ -23,7 +23,9 @@ function Home() {
   const [currentDocument, setCurrentDocument] = useState({});
   const [docsForStitcing, setDocsForStitcing] = useState([]);
   const [stitchedDoc, setStitchedDoc] = useState();
-  const [loadPage, setLoadPage] = useState(0);
+  const [individualDoc, setIndividualDoc] = useState({'file': {}, 'page': 0});
+  const [pageMappedDocs, setPageMappedDocs] = useState();
+
 
   const redliningRef = useRef();
 
@@ -65,7 +67,12 @@ function Home() {
               }
             );
           });
+          //let doclist= [...documentObjs];
+          let doclist=documentObjs?.sort(function(a, b) {
+            return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
+          });
           setDocsForStitcing(documentObjs);
+          console.log("\ndoclist:",documentObjs);
           // getFOIS3DocumentPreSignedUrl(
           //     data[0]?.documentid,
           //     (s3data) => {
@@ -118,14 +125,15 @@ function Home() {
         {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
           { (files.length > 0) ? 
           <DocumentSelector openFOIPPAModal={openFOIPPAModal} requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} 
-          currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} setCurrentDocument={setCurrentDocument} 
-          stitchedDoc={stitchedDoc} setLoadPage={setLoadPage}/> 
+          currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} setCurrentDocument={setCurrentDocument} docsForStitcing={docsForStitcing}
+          stitchedDoc={stitchedDoc} individualDoc={individualDoc} setIndividualDoc={setIndividualDoc} pageMappedDocs={pageMappedDocs} /> 
           : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
           { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? 
           <Redlining ref={redliningRef} currentPageInfo={currentPageInfo} user={user} requestid={foiministryrequestid} docsForStitcing={docsForStitcing} 
-          currentDocument={currentDocument} stitchedDoc={stitchedDoc} setStitchedDoc={setStitchedDoc} loadPage={loadPage} /> : <div>Loading</div> }
+          currentDocument={currentDocument} stitchedDoc={stitchedDoc} setStitchedDoc={setStitchedDoc} individualDoc={individualDoc} 
+          pageMappedDocs={pageMappedDocs} setPageMappedDocs={setPageMappedDocs} /> : <div>Loading</div> }
         </Grid>
       </Grid>
     </div>
