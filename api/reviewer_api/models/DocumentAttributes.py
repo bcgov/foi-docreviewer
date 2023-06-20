@@ -58,6 +58,8 @@ class DocumentAttributes(db.Model):
     @classmethod
     def create(cls, row):
         db.session.add(row)
+        db.session.commit()
+        return DefaultMethodResult(True,'Attributes added for document master id Added: {0}'.format(row.documentmasterid), row.attributeid)
 
     @classmethod
     def update(cls, rows, oldrows):
@@ -66,7 +68,7 @@ class DocumentAttributes(db.Model):
 
         db.session.add_all(rows)
         db.session.commit()
-        return DefaultMethodResult(True,'Attributes added for document master ids', -1, [{"id": row.documentmasterid} for row in rows])
+        return DefaultMethodResult(True,'Attributes updated for document master ids', -1, [{"id": row.documentmasterid} for row in rows])
 
 
 class DocumentAttributeSchema(ma.Schema):
