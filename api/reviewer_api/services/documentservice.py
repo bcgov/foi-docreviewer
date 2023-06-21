@@ -13,44 +13,13 @@ class documentservice:
 
     
     def getdedupestatus(self,requestid):
-        print("Deleted Fetch Started {0}".format(datetime2.now()))
+        
         deleted = DocumentMaster.getdeleted(requestid)
-        print("Deleted Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("records Fetch Started {0}".format(datetime2.now()))
         records = DocumentMaster.getdocumentmaster(requestid)
-        print("records Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("conversions Fetch Started {0}".format(datetime2.now()))
-        conversions = FileConversionJob.getconversionstatus(requestid)
-        print("conversions Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("dedupes Fetch Started {0}".format(datetime2.now()))
-        dedupes = DeduplicationJob.getdedupestatus(requestid)
-        print("dedupes Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("properties Fetch Started {0}".format(datetime2.now()))
-        properties = DocumentMaster.getdocumentproperty(requestid, deleted)
-        print("properties Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("redactions Fetch Started {0}".format(datetime2.now()))
-        redactions = DocumentMaster.getredactionready(requestid)
-        print("redactions Fetch ended {0}".format(datetime2.now()))
-
-        print("**************************************************")
-
-        print("records massage 1 Started {0}".format(datetime2.now()))
-        #records = [entry for entry in records if entry['documentmasterid'] not in deleted]
+        conversions = FileConversionJob.getconversionstatus(requestid)       
+        dedupes = DeduplicationJob.getdedupestatus(requestid)      
+        properties = DocumentMaster.getdocumentproperty(requestid, deleted)       
+        redactions = DocumentMaster.getredactionready(requestid)                
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
             record["ministryrequestid"] =  requestid
@@ -63,12 +32,9 @@ class documentservice:
             record = self.__updateredactionstatus(redactions, record)
             if record["recordid"] is not None:
                 record['attachments'] = self.__getattachments(records, record["documentmasterid"])
-        print("records massage 2 ended {0}".format(datetime2.now()))
+        
 
-        print("**************************************************")
-
-        #Duplicate check
-        print("finalresults massage 1 Started {0}".format(datetime2.now()))
+        #Duplicate check        
         finalresults = []
         parentrecords, parentswithattachmentsrecords, attachmentsrecords = self.__filterrecords(records)
         parentproperties = self.__getrecordsproperties(parentrecords, properties)
@@ -77,15 +43,12 @@ class documentservice:
             if record["recordid"] is not None:
                 finalresult = self.__updateproperties(records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords)
                 finalresults.append(finalresult)
-        #print("finalresults ======= >>>>>>>> ", finalresults)
-        print("finalresults massage 1 ended {0}".format(datetime2.now()))    
+    
         return finalresults
     
     def __updateproperties(self, records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords):
         if record["recordid"] is not None:
             _att_in_properties = []
-            #parentrecords = self.__getparentrecords(records)
-            #parentproperties = self.__getrecordsproperties(parentrecords, properties)
             record["pagecount"], record["filename"] = self.__getpagecountandfilename(record, parentproperties)
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(parentproperties, record)
             if len(record["attachments"]) > 0:
