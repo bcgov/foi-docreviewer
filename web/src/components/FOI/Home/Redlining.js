@@ -176,59 +176,11 @@ const Redlining = React.forwardRef(({
     // }
 
 
-      let mergelocal = async (doc) => {
-          console.log("Merge local :", docsForStitcing);
-          const promises = [];
-          let docCopy = [...docsForStitcing];
-          let removedFirstElement = docCopy?.shift();
-          let mappedDocArray = [];
-          let mappedDoc = {"docId": 0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
-          let finalPageNo;
-          docCopy?.forEach((file,index) => {   
-            mappedDoc = {"docId": 0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
-            promises.push(createDocument(file.s3url, {} /* , license key here */).then(newDoc => {
-            const pages = [];
-            // mappedDoc.docId = file.file.documentid;
-            // mappedDoc.division = file.file.divisions[0].divisionid;
-            
-            mappedDoc = {"pageMappings":[ ] };
-            let stitchedPageNo= 0;
-            for (let i = 0; i < newDoc.getPageCount(); i++) {
-              pages.push(i + 1);
-              let pageNo = i+1;
-              stitchedPageNo= (doc.getPageCount() + (i+1));
-              // if(index == 0){
-              //   stitchedPageNo =removedFirstElement.file.pagecount + i
-              // }
-              // else if (index > 0){
-              //   stitchedPageNo = finalPageNo+i;
-              // }
-              // if (i == newDoc.getPageCount() - 1){
-              //   finalPageNo = stitchedPageNo;
-              // }
-              let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
-              mappedDoc.pageMappings.push(pageMappings);
-            }
-            // Insert (merge) pages
-            doc.insertPages(newDoc, pages, doc.getPageCount() + 1);
-            console.log("\nnewDoc:",newDoc)
-            console.log("\npages:",pages)
-            //assignMappings(newDoc, pages, file?.file);
-            mappedDocArray.push({"docId": file.file.documentid, 
-            "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
-            console.log("\nMappedDocArray:",mappedDocArray);
-            }))
-          });
-          Promise.all(promises).then(arrOfResults => {
-            setPageMappedDocs(mappedDocArray);
-            doc?.getFileData()?.then(data => {
-              const arr = new Uint8Array(data);
-              const blob = new Blob([arr], { type: doc?.type });
-              setStitchedDoc(blob);
-              // add code for handling Blob here
-            })
-          });
-      }
+      
+
+      
+
+      
 
 
       // documentViewer.addEventListener('documentLoaded', () => {
@@ -288,14 +240,15 @@ const Redlining = React.forwardRef(({
       // });
 
       documentViewer.addEventListener('documentLoaded', () => {
+        PDFNet.initialize(); // Only needs to be initialized once
 
         let isDocStitched = localStorage.getItem("isDocumentStitched");
-        if(isDocStitched !== 'true'){
-          const doc = documentViewer.getDocument();
-          mergelocal(doc);
-          localStorage.setItem("isDocumentStitched", "true");
-          PDFNet.initialize(); // Only needs to be initialized once
-        }
+        // if(isDocStitched !== 'true'){
+        //   const doc = documentViewer.getDocument();
+        //   mergelocal(doc);
+        //   localStorage.setItem("isDocumentStitched", "true");
+        //   PDFNet.initialize(); // Only needs to be initialized once
+        // }
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
@@ -501,6 +454,68 @@ const Redlining = React.forwardRef(({
       // setModalOpen(true)
     }
   }));
+
+  const mergelocal = async (doc) => {
+    console.log("Merge local :", docsForStitcing);
+    const promises = [];
+    let docCopy = [...docsForStitcing];
+    let removedFirstElement = docCopy?.shift();
+    let mappedDocArray = [];
+    let mappedDoc = {"docId": 0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
+    let finalPageNo;
+    for (let file of docCopy) {
+      mappedDoc = {"docId": 0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
+      await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
+      const pages = [];
+      // mappedDoc.docId = file.file.documentid;
+      // mappedDoc.division = file.file.divisions[0].divisionid;
+      
+      mappedDoc = {"pageMappings":[ ] };
+      let stitchedPageNo= 0;
+      for (let i = 0; i < newDoc.getPageCount(); i++) {
+        pages.push(i + 1);
+        let pageNo = i+1;
+        stitchedPageNo= (doc.getPageCount() + (i+1));
+        // if(index == 0){
+        //   stitchedPageNo =removedFirstElement.file.pagecount + i
+        // }
+        // else if (index > 0){
+        //   stitchedPageNo = finalPageNo+i;
+        // }
+        // if (i == newDoc.getPageCount() - 1){
+        //   finalPageNo = stitchedPageNo;
+        // }
+        let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
+        mappedDoc.pageMappings.push(pageMappings);
+      }
+      // Insert (merge) pages
+      await doc.insertPages(newDoc, pages);
+      console.log("\nnewDoc:",newDoc)
+      console.log("\npages:",pages)
+      //assignMappings(newDoc, pages, file?.file);
+      mappedDocArray.push({"docId": file.file.documentid, 
+      "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
+      console.log("\nMappedDocArray:",mappedDocArray);
+      })
+    }
+    setPageMappedDocs(mappedDocArray);
+    doc?.getFileData()?.then(data => {
+      const arr = new Uint8Array(data);
+      const blob = new Blob([arr], { type: doc?.type });
+      setStitchedDoc(blob);
+      // add code for handling Blob here
+    })
+    
+  }
+
+  useEffect(() => {
+    if(localStorage.getItem("isDocumentStitched") !== 'true' && docsForStitcing.length > 0 && docViewer){
+      const doc = docViewer.getDocument();
+      mergelocal(doc);
+      localStorage.setItem("isDocumentStitched", "true");
+    }
+  }, [docsForStitcing, docViewer])
+
 
   useEffect(() => {
     //update user name

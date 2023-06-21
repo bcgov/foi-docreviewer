@@ -36,25 +36,20 @@ function Home() {
     let presignedurls = []
     fetchDocuments(
       parseInt(foiministryrequestid),
-      (data) => {
+      async (data) => {
         setFiles(data);
         setCurrentPageInfo({'file': data[0] || {}, 'page': 1})
         localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': data[0] || {}, 'page': 1}));
         // setCurrentDocument(JSON.stringify({'file': data[0] || {}, 'page': 1}));
         if (data.length > 0) {
+          let urlPromises = [];
           data.forEach((file, index) => {
             let documentObj={ file: {}, s3url: "" };
             let filePageCount = file?.pagecount;
             totalPageCountVal +=filePageCount;
-            getFOIS3DocumentPreSignedUrl(
+            urlPromises.push(getFOIS3DocumentPreSignedUrl(
               file.documentid,
               (s3data) => {
-                  if(index == 0){
-                    setCurrentDocument({'file': file || {}, 'page': 1,"currentDocumentS3Url": s3data});
-                    // localStorage.setItem("currentDocumentS3Url", s3data);
-                    setS3Url(s3data);
-                    setS3UrlReady(true);
-                  }
                   presignedurls.push(s3data)                    
                   localStorage.setItem("foireviewdocslist", JSON.stringify(presignedurls));
                   documentObj.file = file;
@@ -65,12 +60,17 @@ function Home() {
               (error) => {
                   console.log(error);
               }
-            );
+            ));
           });
+          await Promise.all(urlPromises);
           //let doclist= [...documentObjs];
-          let doclist=documentObjs?.sort(function(a, b) {
+          let doclist=documentObjs?.sort((a, b) => {
             return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
-          });
+          });          
+          setCurrentDocument({'file': documentObjs[0].file || {}, 'page': 1,"currentDocumentS3Url": documentObjs[0].s3url});
+          // localStorage.setItem("currentDocumentS3Url", s3data);
+          setS3Url(documentObjs[0].s3url);
+          setS3UrlReady(true);
           setDocsForStitcing(documentObjs);
           console.log("\ndoclist:",documentObjs);
           // getFOIS3DocumentPreSignedUrl(
