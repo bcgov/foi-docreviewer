@@ -1,5 +1,6 @@
 ﻿
 using Serilog;
+using Syncfusion.DocIO.DLS;
 using Syncfusion.DocIORenderer;
 using Syncfusion.Pdf;
 
@@ -40,15 +41,23 @@ namespace MCS.FOI.DocToPDF
                 {
                     try
                     {
-                        using (DocIORenderer renderer = new DocIORenderer())
+                        using (WordDocument wordDocument = new WordDocument(SourceStream, Syncfusion.DocIO.FormatType.Automatic))
                         {
-                            using PdfDocument pdfDocument = renderer.ConvertToPDF(SourceStream);
-                            //Save the PDF file
-                            //Close the instance of document objects
-                            pdfDocument.Save(output);
-                            pdfDocument.Close(true);
-                            converted = true;
+                            //Sets ShowInBalloons to render a document comments in converted PDF document.
+                            wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
+                            //Sets the color to be used for Comment Balloon.
+                            wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
+                            //Creates an instance of DocIORenderer.
+                            using (DocIORenderer renderer = new DocIORenderer())
+                            {
+                                using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
+                                //Save the PDF file
+                                //Close the instance of document objects
+                                pdfDocument.Save(output);
+                                pdfDocument.Close(true);
+                                converted = true;
 
+                            }
                         }
                     }
                     catch (Exception e)
