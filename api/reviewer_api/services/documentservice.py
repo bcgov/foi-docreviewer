@@ -8,6 +8,7 @@ from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
+from reviewer_api.models.DocumentAttributes import DocumentAttributes
 
 class documentservice:
 
@@ -244,6 +245,41 @@ class documentservice:
             ) for filepath in payload['filepaths']
         ])
 
+    def updatedocumentattributes(self, payload, userid):
+        """ update document attributes
+        """
+
+        docattributeslist = DocumentAttributes.getdocumentattributesbyid(payload['documentmasterids'])
+        oldRows = []
+        newRows = []
+        for docattributes in docattributeslist:
+            oldRows.append(
+                {
+                    'attributeid': docattributes['attributeid'],
+                    'version': docattributes['version'],
+                    'documentmasterid': docattributes['documentmasterid'],
+                    'attributes': docattributes['attributes'],
+                    'createdby': docattributes['createdby'],
+                    'created_at': docattributes['created_at'],
+                    'updatedby': userid,
+                    'updated_at': datetime2.now(),
+                    'isactive': False
+                }
+            )
+            newdocattributes = json.loads(json.dumps(docattributes['attributes']))
+            newdocattributes['divisions'] = payload['divisions']
+            newRows.append(
+                DocumentAttributes(
+                    version = docattributes['version']+1,
+                    documentmasterid = docattributes['documentmasterid'],
+                    attributes = newdocattributes,
+                    createdby = docattributes['createdby'],
+                    created_at = docattributes['created_at'],
+                    isactive = True
+                )
+            )
+
+        return DocumentAttributes.update(newRows, oldRows)
 
     def getdocuments(self, requestid):
         documents = Document.getdocuments(requestid)

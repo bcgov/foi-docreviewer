@@ -33,6 +33,7 @@ class DocumentMaster(db.Model):
             sql = """select recordid, parentid, filepath, dm.documentmasterid, da."attributes", 
                     dm.created_at, dm.createdby  from "DocumentMaster" dm, "DocumentAttributes" da
                     where dm.documentmasterid = da.documentmasterid
+                    and da.isactive = True
                     and dm.ministryrequestid = :ministryrequestid
                     and dm.documentmasterid not in (select distinct d.documentmasterid
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
