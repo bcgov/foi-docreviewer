@@ -37,7 +37,8 @@ const DocumentSelector = ({
     docsForStitcing,
     setCurrentDocument,
     individualDoc,
-    setIndividualDoc
+    setIndividualDoc,
+    pageMappedDocs
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -223,39 +224,32 @@ const DocumentSelector = ({
         return pages;
     }
 
-    const selectPage = (file: any, page: number, e?: any) => {
-        let pageNo = getPageNoOfStitchedDoc(file, page);
-        setCurrentPageInfo({ 'file': {}, 'page': pageNo });
-        localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': pageNo }));
+    const selectTreeItem = (file: any, page: number, e?: any) => {
+        let pageNo: number = getPageNoOfStitchedDoc(file, page);
+        console.log("PG No of selectTreeItem :",pageNo)
+        setIndividualDoc({ 'file': file, 'page': pageNo})
+        setCurrentPageInfo({ 'file': file, 'page': page });
+        localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
         // setCurrentDocument({ 'file': file, 'page': page })
         if( page == 1)
             setDisableHover(false);
     };
 
-    const selectTreeItem = (file: any, page: number, e?: any) => {
-        let pageNo = getPageNoOfStitchedDoc(file, page);
-        setIndividualDoc({ 'file': file, 'page': pageNo})
-        //setCurrentPageInfo({ 'file': {}, 'page': pageNo });
-        localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': pageNo }));
-    };
+    // const selectTreeItem = (file: any, page: number, e?: any) => {
+    //     let pageNo = getPageNoOfStitchedDoc(file, page);
+    //     console.log("PG No:",pageNo)
+    //     setIndividualDoc({ 'file': file, 'page': pageNo})
+    //     setCurrentPageInfo({ 'file': file, 'page': page });
+    //     localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
+    // };
 
-    const getPageNoOfStitchedDoc= (file: any, page: number) => {
-        let doclist1= files?.sort(function(a: any, b: any) {
-            return Date.parse(a.attributes.lastmodified) - Date.parse(b.attributes.lastmodified);
-        });
-        let pageNo = 0;
-        let stopIncrement = false;
-        doclist1.map((doc: any) => 
-        {
-        if(!stopIncrement && doc.documentid !== file.documentid){
-            pageNo+= doc.pagecount;
-        }
-        else if(!stopIncrement && doc.documentid === file.documentid){
-            pageNo+= page;
-            stopIncrement= true;
-        }
-        })
-        return pageNo;
+
+
+    const getPageNoOfStitchedDoc = (file: any, page: number) => {
+        let stitchedPageNo: number = 0;
+        let doc = pageMappedDocs?.find((mappedDoc: any)=>file.documentid === mappedDoc.docId);
+        stitchedPageNo = doc?.pageMappings?.find((mappedPage: any)=>mappedPage.pageNo == page)?.stitchedPageNo;
+        return stitchedPageNo;
     }
 
     const openContextMenu = (file: any, page: number, e: any) => {
@@ -457,18 +451,18 @@ const DocumentSelector = ({
                                                             ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                                 <>
                                                                     <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectPage(file, p + 1, e)}
+                                                                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 </>
                                                             )
                                                             :
                                                             (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
                                                                 <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectPage(file, p + 1, e)}
+                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 :
                                                                 <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                                                    onClick={(e) => selectPage(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                                    onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                             )
                                                         )
                                                         )
@@ -515,18 +509,18 @@ const DocumentSelector = ({
                                                     ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                         <>
                                                             <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectPage(file, p + 1, e)}
+                                                                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         </>
                                                     )
                                                     :
                                                     (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
                                                         <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                            title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectPage(file, p + 1, e)}
+                                                            title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${p + 1}`} onClick={(e) => selectTreeItem(file, p + 1, e)}
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         :
                                                         <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                                            onClick={(e) => selectPage(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                     )
                                                 )
                                                 )}
