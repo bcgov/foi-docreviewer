@@ -7,7 +7,7 @@ import Redlining from './Redlining';
 import Grid from "@material-ui/core/Grid";
 import WebViewer from '@pdftron/webviewer';
 
-import { fetchDocuments } from '../../../apiManager/services/docReviewerService';
+import { fetchDocuments, fetchAnnotations } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
 
@@ -63,7 +63,25 @@ function Home() {
             ));
           });
           await Promise.all(urlPromises);
-          //let doclist= [...documentObjs];
+
+          // fetchAnnotations(
+          //   crrntDocumentInfo['file']['documentid'],
+          //   crrntDocumentInfo['file']['version'],
+          //   (data) => {
+          //     if (data.length > 0) {
+          //       const _annotations = annotationManager.importAnnotations(data)
+          //       _annotations.then(_annotation => {
+          //         if(!!_annotation && _annotation.length > 0)
+          //           annotationManager.redrawAnnotation(_annotation);
+          //       });
+          //       documentViewer.displayPageLocation(crrntDocumentInfo['page'], 0, 0)
+          //     }
+          //   },
+          //   (error) => {
+          //     console.log('error');
+          //   }
+          // );
+
           let doclist=documentObjs?.sort((a, b) => {
             return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
           });          
@@ -73,37 +91,7 @@ function Home() {
           setS3UrlReady(true);
           setDocsForStitcing(documentObjs);
           console.log("\ndoclist:",documentObjs);
-          // getFOIS3DocumentPreSignedUrl(
-          //     data[0]?.documentid,
-          //     (s3data) => {
-          //         localStorage.setItem("currentDocumentS3Url", s3data);
-          //         setS3Url(s3data);
-          //         setS3UrlReady(true);
-          //     },
-          //     (error) => {
-          //         console.log(error);
-          //     }
-          //   );
-
-            // data.forEach((file) => {
-            //     let filePageCount = file?.pagecount;
-            //     totalPageCountVal +=filePageCount;
-            //     getFOIS3DocumentPreSignedUrl(
-            //       file.documentid,
-            //       (_s3data) => {
-            //         if(_arrindex > 0)
-            //         {
-            //           presignedurls.push(_s3data)                    
-            //           localStorage.setItem("foireviewdocslist", JSON.stringify(presignedurls));
-            //         }
-            //         _arrindex++;
-            //       },
-            //       (error) => {
-            //           console.log(error);
-            //       }
-            //     );
-            // });
-            setTotalPageCount(totalPageCountVal);
+          setTotalPageCount(totalPageCountVal);
         }
       },
       (error) => {
