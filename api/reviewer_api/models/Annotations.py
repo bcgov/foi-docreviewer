@@ -36,6 +36,7 @@ class Annotation(db.Model):
                 from "Annotations" a
                 join (select distinct on (d.documentid) d.*
 					  from  "Documents" d
+                      where d.foiministryrequestid = :ministryrequestid
 					  order by d.documentid, d.version desc) d
 				on (d.documentid = a.documentid and d.version = a.documentversion)
                 where d.foiministryrequestid = :ministryrequestid

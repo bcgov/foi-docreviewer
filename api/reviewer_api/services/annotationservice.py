@@ -46,6 +46,12 @@ class annotationservice:
                 annotationlist.append(entry)
         return annotationlist
     
+    def getrequestannotationinfo(self, ministryrequestid):
+        annotationsections = AnnotationSection.getsectionmappingbyrequestid(ministryrequestid)
+        for entry in annotationsections:
+            entry['sections'] = {"annotationname": entry.pop("sectionannotation"), "ids": list(map(lambda id: id['id'], json.loads(entry.pop("ids"))))}            
+        return annotationsections
+
     def __issection(self, annotationsections, annotationname):
         for entry in annotationsections:
             if entry["sectionannotationname"] == annotationname:

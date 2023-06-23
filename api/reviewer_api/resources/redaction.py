@@ -164,6 +164,7 @@ class AnnotationSections(Resource):
 
 
 @cors_preflight('GET,POST,DELETE,OPTIONS')
+@API.route('/annotation/<int:ministryrequestid>/info')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/info')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/info')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>/info')
@@ -174,9 +175,9 @@ class AnnotationMetadata(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def get(documentid, documentversion, pagenumber=None):
+    def get(ministryrequestid):
         try:
-            result = redactionservice().getannotationinfo(documentid, documentversion, pagenumber)
+            result = redactionservice().getannotationinfobyrequest(ministryrequestid)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

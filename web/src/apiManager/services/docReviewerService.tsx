@@ -48,12 +48,11 @@ export const fetchAnnotations = (
 };
 
 export const fetchAnnotationsInfo = (
-  documentid: number,
-  documentversion: number = 1,
+  ministryrequestid: number,
   //callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/info`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/info`
 
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {

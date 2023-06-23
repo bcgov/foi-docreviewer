@@ -228,8 +228,7 @@ const Redlining = React.forwardRef(({
         );
 
         fetchAnnotationsInfo(
-          individualDoc['file']['documentid'],
-          individualDoc['file']['version'],
+          requestid,
           (error) => {
             console.log('error');
           }

@@ -29,6 +29,9 @@ class redactionservice:
     def getannotationinfo(self, documentid, documentversion, pagenumber):
         return annotationservice().getannotationinfo(documentid, documentversion, pagenumber)
 
+    def getannotationinfobyrequest(self, requestid):
+        return annotationservice().getrequestannotationinfo(requestid)
+
 
     def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
          result= annotationservice().saveannotation(documentid, documentversion, annotationschema,userinfo)
