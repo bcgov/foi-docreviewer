@@ -61,6 +61,7 @@ const Redlining = React.forwardRef(({
   const [pageSelections, setPageSelections] = useState([]);
   const [modalSortNumbered, setModalSortNumbered]= useState(false);
   const [modalSortAsc, setModalSortAsc]= useState(true);
+  const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
   //const [stitchedDoc, setStitchedDoc] = useState();
   //xml parser
   const parser = new XMLParser();
@@ -217,17 +218,9 @@ const Redlining = React.forwardRef(({
         if(Object.entries(individualDoc['file'])?.length <= 0 )
           individualDoc= localDocumentInfo;
         fetchAnnotations(
-          crrntDocumentInfo['file']['documentid'],
-          crrntDocumentInfo['file']['version'],
+          requestid,
           (data) => {
-            if (data.length > 0) {
-              const _annotations = annotationManager.importAnnotations(data)
-              _annotations.then(_annotation => {
-                if(!!_annotation && _annotation.length > 0)
-                  annotationManager.redrawAnnotation(_annotation);
-              });
-              documentViewer.displayPageLocation(crrntDocumentInfo['page'], 0, 0)
-            }
+            setFetchAnnotResponse(data);
           },
           (error) => {
             console.log('error');
@@ -281,6 +274,12 @@ const Redlining = React.forwardRef(({
         if (info.imported) return;
         //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         let localDocumentInfo = currentDocument;
+        let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"))
+        annotations.forEach((annot) => {
+          let displayedDoc= getDataFromMappedDoc(annot.getPageNumber());
+          let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (annot.getPageNumber()))?.pageNo;                
+          annot.setCustomData("originalPageNo", individualPageNo - 1)
+        });
         let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
         _annotationtring.then(astr=>{
           //parse annotation xml
@@ -422,7 +421,7 @@ const Redlining = React.forwardRef(({
     let removedFirstElement = docCopy?.shift();
     let mappedDocArray = [];
     let mappedDoc = {"docId": 0, "division": "", "pageMappings":[] };
-    let finalPageNo;
+    let domParser = new DOMParser()
     for(let i = 0; i < removedFirstElement.file.pagecount; i++){
       let firstDocMappings= {"pageNo": i+1, "stitchedPageNo" : i+1};
       mappedDoc.pageMappings.push(firstDocMappings);
@@ -459,6 +458,20 @@ const Redlining = React.forwardRef(({
       mappedDocArray.push({"docId": file.file.documentid, 
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
       console.log("\nMappedDocArray:",mappedDocArray);
+      if (fetchAnnotResponse[file.file.documentid]) {
+        let xml = parser.parseFromString(fetchAnnotResponse[file.file.documentid]);
+        for (let annot of xml.getElementsByTagName("annots")[0].children) {
+          let txt = domParser.parseFromString(annot.getElementsByTagName('trn-custom-data')[0].attributes.bytes, 'text/html')
+          let customData = JSON.parse(txt.documentElement.textContent);
+          let originalPageNo = customData.originalPageNo;
+          annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo)).stitchedPageNo - 1).toString()
+        }
+        xml = parser.toString(xml)
+        const _annotations = await annotManager.importAnnotations(xml)
+        _annotations.forEach(_annotation => {
+          annotManager.redrawAnnotation(_annotation);
+        });
+      }
       })
     }
     setPageMappedDocs(mappedDocArray);
@@ -473,12 +486,13 @@ const Redlining = React.forwardRef(({
   }
 
   useEffect(() => {
-    if(localStorage.getItem("isDocumentStitched") !== 'true' && docsForStitcing.length > 0 && docViewer){
+    if(localStorage.getItem("isDocumentStitched") !== 'true' && docsForStitcing.length > 0 && 
+    Object.keys(fetchAnnotResponse).length > 0 && docViewer){
       const doc = docViewer.getDocument();
       mergelocal(doc);
       localStorage.setItem("isDocumentStitched", "true");
     }
-  }, [docsForStitcing, docViewer])
+  }, [docsForStitcing, fetchAnnotResponse, docViewer])
 
 
   useEffect(() => {
