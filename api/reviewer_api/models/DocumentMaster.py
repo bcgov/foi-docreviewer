@@ -104,7 +104,7 @@ class DocumentMaster(db.Model):
                         "Documents" d, "DocumentHashCodes" dhc  
                         where dm.ministryrequestid = :ministryrequestid and dm.ministryrequestid  = d.foiministryrequestid   
                         and dm.documentmasterid = d.documentmasterid 
-                        and d.documentid = dhc.documentid;"""
+                        and d.documentid = dhc.documentid order by dm.documentmasterid;"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
