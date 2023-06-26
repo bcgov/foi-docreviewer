@@ -32,7 +32,7 @@ class documentservice:
             record = self.__updatededupestatus(dedupes, record)
             record = self.__updateredactionstatus(redactions, record)
             if record["recordid"] is not None:
-                record['attachments'] = self.__getattachments(records, record["documentmasterid"])
+                record['attachments'] = self.__getattachments(records, record["documentmasterid"], [])
         
 
         #Duplicate check        
@@ -133,27 +133,17 @@ class documentservice:
                 if property["processingparentid"] == attachment["documentmasterid"] or (property["processingparentid"] is None and attachment["documentmasterid"] == property["documentmasterid"]):
                     filtered.append(property)
         return filtered
-
-    def __getattachments(self, records, documentmasterid):
-        result = []
-        filtered, result = self.__attachments2(records, result, documentmasterid)
-        for subentry in result:
-            filtered, result = self.__attachments2(filtered, result, subentry["documentmasterid"])
-        return result
     
-    def __attachments2(self, records, result, documentmasterid):
+    def __getattachments(self, records, documentmasterid, result=[]):
         # print("documentmasterid === ", documentmasterid)
-        filtered = []
         for entry in records:            
             if entry["recordid"] is None:
                 # print("entry === ", entry)
                 if entry["parentid"] not in [None, ""] and int(entry["parentid"]) == int(documentmasterid):
                     # print("<<<< inside if >>>>")
                     result.append(entry)
-                else:
-                    # print("<<<< inside else >>>>")
-                    filtered.append(entry)
-        return filtered, result  
+                    result = self.__getattachments(records, entry['documentmasterid'], result)
+        return result
 
     def __updatecoversionstatus(self, conversions, record):
         for conversion in conversions:

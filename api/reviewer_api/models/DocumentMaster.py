@@ -30,18 +30,21 @@ class DocumentMaster(db.Model):
     def getdocumentmaster(cls, ministryrequestid):
         documentmasters = []
         try:
-            sql = """select recordid, parentid, filepath, dm.documentmasterid, da."attributes", 
-                    dm.created_at, dm.createdby  from "DocumentMaster" dm, "DocumentAttributes" da
-                    where dm.documentmasterid = da.documentmasterid
-                    and da.isactive = True
-                    and dm.ministryrequestid = :ministryrequestid
+            sql = """select dm.recordid, dm.parentid, d.filename as attachmentof, dm.filepath, dm.documentmasterid, da."attributes", 
+                    dm.created_at, dm.createdby  
+					from "DocumentMaster" dm
+					join "DocumentAttributes" da on dm.documentmasterid = da.documentmasterid
+					left join "DocumentMaster" dm2 on dm2.processingparentid = dm.parentid
+					left join  "Documents" d on dm2.documentmasterid = d.documentmasterid
+                    where dm.ministryrequestid = :ministryrequestid
+					and da.isactive = true
                     and dm.documentmasterid not in (select distinct d.documentmasterid
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
                         and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 # if row["documentmasterid"] not in deleted:
-                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"]})
+                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"], "attachmentof": row["attachmentof"]})
         except Exception as ex:
             logging.error(ex)
             raise ex
