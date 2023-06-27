@@ -46,10 +46,10 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 print(f"processing {message_id}::{message}")
                 if message is not None:
                     _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
-                    # try:
-                        
-                    # except(Exception) as error:
-                    #     print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
+                    try:
+                        print(_message)
+                    except(Exception) as error:
+                        print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
                                              
                 # simulate processing
                 #time.sleep(random.randint(1, 3)) #TODO : todo: remove!

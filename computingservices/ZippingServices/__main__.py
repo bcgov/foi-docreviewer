@@ -1,6 +1,6 @@
-from services import foiredisdedupeconsumer
+from services import foirediszipperconsumer
 
 
 
 if __name__ == '__main__':
-    foiredisdedupeconsumer.app()
+    foirediszipperconsumer.app()
