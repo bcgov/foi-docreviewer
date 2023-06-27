@@ -24,7 +24,7 @@ function Home() {
   const [docsForStitcing, setDocsForStitcing] = useState([]);
   const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({'file': {}, 'page': 0});
-  const [pageMappedDocs, setPageMappedDocs] = useState();
+  const [pageMappedDocs, setPageMappedDocs] = useState([]);
 
 
   const redliningRef = useRef();
@@ -39,7 +39,7 @@ function Home() {
       async (data) => {
         setFiles(data);
         setCurrentPageInfo({'file': data[0] || {}, 'page': 1})
-        localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': data[0] || {}, 'page': 1}));
+        //localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': data[0] || {}, 'page': 1}));
         // setCurrentDocument(JSON.stringify({'file': data[0] || {}, 'page': 1}));
         if (data.length > 0) {
           let urlPromises = [];
@@ -51,11 +51,9 @@ function Home() {
               file.documentid,
               (s3data) => {
                   presignedurls.push(s3data)                    
-                  localStorage.setItem("foireviewdocslist", JSON.stringify(presignedurls));
                   documentObj.file = file;
                   documentObj.s3url = s3data;
                   documentObjs.push(documentObj);
-                  // setDocsForStitcing(documentObjs);
               },
               (error) => {
                   console.log(error);
@@ -63,25 +61,6 @@ function Home() {
             ));
           });
           await Promise.all(urlPromises);
-
-          // fetchAnnotations(
-          //   crrntDocumentInfo['file']['documentid'],
-          //   crrntDocumentInfo['file']['version'],
-          //   (data) => {
-          //     if (data.length > 0) {
-          //       const _annotations = annotationManager.importAnnotations(data)
-          //       _annotations.then(_annotation => {
-          //         if(!!_annotation && _annotation.length > 0)
-          //           annotationManager.redrawAnnotation(_annotation);
-          //       });
-          //       documentViewer.displayPageLocation(crrntDocumentInfo['page'], 0, 0)
-          //     }
-          //   },
-          //   (error) => {
-          //     console.log('error');
-          //   }
-          // );
-
           let doclist=documentObjs?.sort((a, b) => {
             return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
           });          
@@ -90,7 +69,6 @@ function Home() {
           setS3Url(documentObjs[0].s3url);
           setS3UrlReady(true);
           setDocsForStitcing(documentObjs);
-          console.log("\ndoclist:",documentObjs);
           setTotalPageCount(totalPageCountVal);
         }
       },
@@ -113,13 +91,12 @@ function Home() {
         {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
           { (files.length > 0) ? 
           <DocumentSelector openFOIPPAModal={openFOIPPAModal} requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} 
-          currentPageInfo={currentPageInfo} setCurrentPageInfo={setCurrentPageInfo} setCurrentDocument={setCurrentDocument} docsForStitcing={docsForStitcing}
-          stitchedDoc={stitchedDoc} individualDoc={individualDoc} setIndividualDoc={setIndividualDoc} pageMappedDocs={pageMappedDocs} /> 
+          setCurrentPageInfo={setCurrentPageInfo} setIndividualDoc={setIndividualDoc} pageMappedDocs={pageMappedDocs} /> 
           : <div>Loading</div> }
         </Grid>
         <Grid item xs={true}>
           { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? 
-          <Redlining ref={redliningRef} currentPageInfo={currentPageInfo} user={user} requestid={foiministryrequestid} docsForStitcing={docsForStitcing} 
+          <Redlining ref={redliningRef} user={user} requestid={foiministryrequestid} docsForStitcing={docsForStitcing} 
           currentDocument={currentDocument} stitchedDoc={stitchedDoc} setStitchedDoc={setStitchedDoc} individualDoc={individualDoc} 
           pageMappedDocs={pageMappedDocs} setPageMappedDocs={setPageMappedDocs} /> : <div>Loading</div> }
         </Grid>

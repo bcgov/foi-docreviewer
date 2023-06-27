@@ -18,14 +18,13 @@ import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
   deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
-import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
-import { element } from 'prop-types';
+//import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
+//import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const Redlining = React.forwardRef(({
-  currentPageInfo,
   user,
   requestid,
   docsForStitcing,
@@ -44,7 +43,7 @@ const Redlining = React.forwardRef(({
 
   // const pdffile = '/files/PDFTRON_about.pdf';
   // const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath'] + currentPageInfo.file['filename']));
-  const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
+  //const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
   const [annots, setAnnots] = useState(null);
@@ -62,7 +61,8 @@ const Redlining = React.forwardRef(({
   const [modalSortNumbered, setModalSortNumbered]= useState(false);
   const [modalSortAsc, setModalSortAsc]= useState(true);
   const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
-  //const [stitchedDoc, setStitchedDoc] = useState();
+  const [merge, setMerge] = useState(false);
+  const [mapper, setMapper] = useState([]);
   //xml parser
   const parser = new XMLParser();
 
@@ -71,8 +71,9 @@ const Redlining = React.forwardRef(({
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
     //let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
-    localStorage.setItem("isDocumentStitched", "false");
-    console.log("Doc Stitched - Set as FALSE!")
+    //localStorage.setItem("isDocumentStitched", "false");
+    //console.log("Doc Stitched - Set as FALSE!")
+
     let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
     fetchSections(
       requestid,
@@ -123,114 +124,41 @@ const Redlining = React.forwardRef(({
 
 
       PDFNet.initialize();
-      documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(currentStyle => ({
+      documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION).setStyles(() => ({
         FillColor: new Annotations.Color(255, 255, 255)
       }));
       
-      // const getDataFromMappedDoc = (page) => {
-      //   let localMappedDocArray = JSON.parse(localStorage.getItem("mappedDocArray"));
-      //   let stitchedPageNo= 0;
-      //   //let doc = pageMappedDocs?.find((mappedDoc)=>{
-      //   let doc = localMappedDocArray?.find((mappedDoc)=>{
-      //     return mappedDoc.pageMappings?.find((mappedPage)=>mappedPage.stitchedPageNo == page)
-      //   });
-      //   console.log("OO:",doc)
-      //   //stitchedPageNo = doc?.pageMappings?.find((mappedPage)=>mappedPage.pageNo == page)?.stitchedPageNo;
-      //   return doc;
-      // }
-
-      // documentViewer.addEventListener('documentLoaded', () => {
-
-      //   let isDocStitched = localStorage.getItem("isDocumentStitched");
-      //   if(isDocStitched !== 'true'){
-      //     const doc = documentViewer.getDocument();
-      //     console.log("isDocStitched - FALSE")
-      //     mergelocal(doc);
-      //     localStorage.setItem("isDocumentStitched", "true");
-      //     console.log("isDocStitched - set as TRUE")
-      //     PDFNet.initialize(); // Only needs to be initialized once
-      //   }
-      //   //update user info
-      //   let newusername = user?.name || user?.preferred_username || "";
-      //   let username = annotationManager.getCurrentUser();
-      //   if(newusername && newusername !== username) annotationManager.setCurrentUser(newusername);
-
-      //   //update isloaded flag
-      //   localStorage.setItem("isDocumentLoaded", "true");
-
-      //   //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-      //   let localDocumentInfo = currentDocument;
-
-      //   fetchAnnotations(
-      //     localDocumentInfo['file']['documentid'],
-      //     localDocumentInfo['file']['version'],
-      //     (data) => {
-      //       if (data.length > 0) {
-      //         const _annotations = annotationManager.importAnnotations(data)
-      //         _annotations.then(_annotation => {
-      //           if(!!_annotation && _annotation.length > 0)
-      //             annotationManager.redrawAnnotation(_annotation);
-      //         });
-      //         documentViewer.displayPageLocation(localDocumentInfo['page'], 0, 0)
-      //       }
-      //     },
-      //     (error) => {
-      //       console.log('error');
-      //     }
-      //   );
-
-      //   fetchAnnotationsInfo(
-      //     localDocumentInfo['file']['documentid'],
-      //     localDocumentInfo['file']['version'],
-      //     (error) => {
-      //       console.log('error');
-      //     }
-      //   );
-
-      //   setDocViewer(documentViewer);
-      //   setAnnotManager(annotationManager);
-      //   setAnnots(Annotations);
-      //   setDocViewerMath(Math);
-
-
-      // });
-
+      
       documentViewer.addEventListener('documentLoaded', () => {
         PDFNet.initialize(); // Only needs to be initialized once
-
-        let isDocStitched = localStorage.getItem("isDocumentStitched");
-        // if(isDocStitched !== 'true'){
-        //   const doc = documentViewer.getDocument();
-        //   mergelocal(doc);
-        //   localStorage.setItem("isDocumentStitched", "true");
-        //   PDFNet.initialize(); // Only needs to be initialized once
-        // }
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
         if(newusername && newusername !== username) annotationManager.setCurrentUser(newusername);
 
         //update isloaded flag
-        localStorage.setItem("isDocumentLoaded", "true");
+        //localStorage.setItem("isDocumentLoaded", "true");
 
-        let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+        //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         let localDocumentInfo = currentDocument;
         if(Object.entries(individualDoc['file'])?.length <= 0 )
           individualDoc= localDocumentInfo;
         fetchAnnotations(
           requestid,
           (data) => {
+            if(data && Object.entries(data).length > 0)
+              setMerge(true);
             setFetchAnnotResponse(data);
           },
           (error) => {
-            console.log('error');
+            console.log('Error:',error);
           }
         );
 
         fetchAnnotationsInfo(
           requestid,
           (error) => {
-            console.log('error');
+            console.log('Error:',error);
           }
         );
 
@@ -239,150 +167,124 @@ const Redlining = React.forwardRef(({
         setAnnots(Annotations);
         setDocViewerMath(Math);
 
-
       });
-
-
-      // documentViewer.addEventListener('pageComplete', (pageNumber, canvas) => {
-      //   // here it's guaranteed that page {pageNumber} is fully rendered
-      //   // you can get or set pixels on the canvas, etc
-
-      //   console.log(`Page Loaded # ${pageNumber}`)
-      // })
-
-
-      // //update current page
-      // documentViewer.addEventListener('pageNumberUpdated', (pageNumber) => {
-      //   console.log("current page:");
-      //   console.log(pageNumber);
-      //   setCurrentPageInfo({'file': currentPageInfo['file'], 'page': pageNumber});
-
-      //   let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-      //   localDocumentInfo.page = pageNumber;
-      //   localStorage.setItem("currentDocumentInfo", JSON.stringify(localDocumentInfo));
-      // });
-
-
-
-
-      // later save the annotation data as transaction command for every change
-      annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
-        // If the event is triggered by importing then it can be ignored
-        // This will happen when importing the initial annotations
-        // from the server or individual changes from other users
-        if (info.imported) return;
-        //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-        let localDocumentInfo = currentDocument;
-        let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"))
-        annotations.forEach((annot) => {
-          let displayedDoc= getDataFromMappedDoc(annot.getPageNumber());
-          let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (annot.getPageNumber()))?.pageNo;                
-          annot.setCustomData("originalPageNo", individualPageNo - 1)
-        });
-        let _annotationtring = annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
-        _annotationtring.then(astr=>{
-          //parse annotation xml
-          let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
-          let annots = jObj.getElementsByTagName("annots");
-          setRedactionType(annotations[0]?.type);
-          if(action === 'delete') {
-            let annotObjs = []
-            for (let annot of annots[0].children) {
-              if (annot.name === 'redact') {
-                annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
-              } else {
-                if(annotations[0]?.type === 'fullPage'){
-                  deleteAnnotation(
-                    requestid,
-                    localDocumentInfo['file']['documentid'],
-                    localDocumentInfo['file']['version'],
-                    annot.attributes.name,
-                    (data)=>{
-                      fetchPageFlag(
-                        requestid,
-                        (error) => console.log(error)
-                      )
-                    },
-                    (error)=>{console.log(error)},
-                    (Number(annot.attributes.page))+1
-                  );
-                }
-                else{
-                  deleteAnnotation(
-                    requestid,
-                    localDocumentInfo['file']['documentid'],
-                    localDocumentInfo['file']['version'],
-                    annot.attributes.name,
-                    (data)=>{},
-                    (error)=>{console.log(error)}
-                  );
-                }
-              }
-            }
-            setDeleteQueue(annotObjs);
-          }
-          else if (action === 'add') {
-            let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-            let displayedDoc;
-            let individualPageNo;
-            if (annotations[0].Subject === 'Redact') {
-              let pageSelectionList= [...pageSelections];
-              console.log("pageSelectionList:",pageSelectionList);
-              // setRedactionType(annotations[0]?.type);
-              annots[0].children?.forEach((annotatn, i)=> {
-                displayedDoc= getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
-                individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(annotatn.attributes.page)+1))?.pageNo;
-                if(annotations[i]?.type === 'fullPage') {
-                  console.log("pageno!:",Number(annotatn.attributes.page));
-                  pageSelectionList.push(
-                    {
-                    "page": Number(individualPageNo),
-                    "flagid":3
-                    });
-                } else {
-                  pageSelectionList.push(
-                    {
-                    "page": Number(localInfo['page']), //(Number(localInfo['page'])),(Number(annotatn.attributes.page))+1,
-                    "flagid":1
-                    });
-                }
-              })
-              setPageSelections(pageSelectionList);
-              let annot = annots[0].children[0];
-              setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
-            } else {
-              displayedDoc= getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
-              //individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(annotations[0]?.PageNumber))-1)?.pageNo;
-              console.log("kk:", annotations[0]?.PageNumber)
-              let sections = annotations[0].getCustomData("sections")
-              let sectn;
-              if (sections) {
-                sectn = {
-                  "foiministryrequestid": requestid
-                }
-              }
-              setSelectedSections([]);
-              saveAnnotation(
-                requestid,
-                // localInfo['file']['documentid'],
-                // localInfo['file']['version'],
-                displayedDoc.docId,
-                1,
-                astr,
-                (data)=>{},
-                (error)=>{console.log(error)},
-                [],
-                sectn,
-                //pageSelections
-              );
-            }
-          }
-        })
-        setAnnots(Annotations);
-      });
+        
     });
   }, []);
 
+  useEffect(() => {
+    docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
+      // If the event is triggered by importing then it can be ignored
+      // This will happen when importing the initial annotations
+      // from the server or individual changes from other users
+
+      if (info.imported) return;
+      let localDocumentInfo = currentDocument;
+      annotations.forEach((annot) => {
+        let displayedDoc= getDataFromMappedDoc(annot.getPageNumber());
+        let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (annot.getPageNumber()))?.pageNo;                
+        annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
+      });
+      let _annotationtring = docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
+      _annotationtring.then(astr=>{
+        //parse annotation xml
+        let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+        let annots = jObj.getElementsByTagName("annots");
+        setRedactionType(annotations[0]?.type);
+        if(action === 'delete') {
+          let annotObjs = []
+          for (let annot of annots[0].children) {
+            let displayedDoc= getDataFromMappedDoc(Number(annot.attributes.page)+1);
+            let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == Number(annot.attributes.page)+1)?.pageNo; 
+            if (annot.name === 'redact') {
+              annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+            } else {
+              if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
+                deleteAnnotation(
+                  requestid,
+                  displayedDoc.docId,
+                  displayedDoc.version,
+                  annot.attributes.name,
+                  (data)=>{
+                    fetchPageFlag(
+                      requestid,
+                      (error) => console.log(error)
+                    )
+                  },
+                  (error)=>{console.log(error)},
+                  individualPageNo
+                );
+              }
+              else{
+                deleteAnnotation(
+                  requestid,
+                  displayedDoc.docId,
+                  displayedDoc.version,
+                  annot.attributes.name,
+                  (data)=>{},
+                  (error)=>{console.log(error)}
+                );
+              }
+            }
+          }
+          setDeleteQueue(annotObjs);
+        }
+        else if (action === 'add') {
+          //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+          let displayedDoc;
+          let individualPageNo;
+          if (annotations[0].Subject === 'Redact') {
+            let pageSelectionList= [...pageSelections];
+            // setRedactionType(annotations[0]?.type);
+            annots[0].children?.forEach((annotatn, i)=> {
+              displayedDoc= getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
+              individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(annotatn.attributes.page)+1))?.pageNo;
+              if(annotations[i]?.type === 'fullPage') {
+                //annotations[i].setCustomData("trn-redaction-type", "fullPage");
+
+                pageSelectionList.push(
+                  {
+                  "page": Number(individualPageNo),
+                  "flagid":3
+                  });
+              } else {
+                pageSelectionList.push(
+                  {
+                  "page": Number(individualPageNo),
+                  "flagid":1
+                  });
+              }
+            })
+            setPageSelections(pageSelectionList);
+            let annot = annots[0].children[0];
+            setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
+          } else {
+            displayedDoc= getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
+            let sections = annotations[0].getCustomData("sections")
+            let sectn;
+            if (sections) {
+              sectn = {
+                "foiministryrequestid": requestid
+              }
+            }
+            setSelectedSections([]);
+            saveAnnotation(
+              requestid,
+              displayedDoc.docId,
+              displayedDoc.version,
+              astr,
+              (data)=>{},
+              (error)=>{console.log(error)},
+              [],
+              sectn,
+              //pageSelections
+            );
+          }
+        }
+      })
+      setAnnots(docInstance.Core.Annotations);
+    });
+  }, [pageMappedDocs]);
 
   useImperativeHandle(ref, () => ({
     addFullPageRedaction(pageNumber) {
@@ -413,22 +315,20 @@ const Redlining = React.forwardRef(({
     }
   }));
 
-  const mergelocal = async (doc) => {
-    console.log("Merge local :", docsForStitcing);
-    const promises = [];
+  const stitchDocumentsFunc = async (doc) => {
     let docCopy = [...docsForStitcing];
     let removedFirstElement = docCopy?.shift();
     let mappedDocArray = [];
-    let mappedDoc = {"docId": 0, "division": "", "pageMappings":[] };
+    let mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[] };
     let domParser = new DOMParser()
     for(let i = 0; i < removedFirstElement.file.pagecount; i++){
       let firstDocMappings= {"pageNo": i+1, "stitchedPageNo" : i+1};
       mappedDoc.pageMappings.push(firstDocMappings);
     }
-    mappedDocArray.push({"docId": removedFirstElement.file.documentid, 
+    mappedDocArray.push({"docId": removedFirstElement.file.documentid, "version":removedFirstElement.file.version,
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
     for (let file of docCopy) {
-      mappedDoc = {"docId": 0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
+      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
       await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
       const pages = [];
       mappedDoc = {"pageMappings":[ ] };
@@ -437,26 +337,13 @@ const Redlining = React.forwardRef(({
         pages.push(i + 1);
         let pageNo = i+1;
         stitchedPageNo= (doc.getPageCount() + (i+1));
-        // if(index == 0){
-        //   stitchedPageNo =removedFirstElement.file.pagecount + i
-        // }
-        // else if (index > 0){
-        //   stitchedPageNo = finalPageNo+i;
-        // }
-        // if (i == newDoc.getPageCount() - 1){
-        //   finalPageNo = stitchedPageNo;
-        // }
         let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
         mappedDoc.pageMappings.push(pageMappings);
       }
       // Insert (merge) pages
       await doc.insertPages(newDoc, pages);
-      console.log("\nnewDoc:",newDoc)
-      console.log("\npages:",pages)
-      //assignMappings(newDoc, pages, file?.file);
-      mappedDocArray.push({"docId": file.file.documentid, 
+      mappedDocArray.push({"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
-      console.log("\nMappedDocArray:",mappedDocArray);
       if (fetchAnnotResponse[file.file.documentid]) {
         let xml = parser.parseFromString(fetchAnnotResponse[file.file.documentid]);
         for (let annot of xml.getElementsByTagName("annots")[0].children) {
@@ -474,22 +361,20 @@ const Redlining = React.forwardRef(({
       })
     }
     setPageMappedDocs(mappedDocArray);
-    localStorage.setItem("mappedDocArray", JSON.stringify(mappedDocArray));
-    doc?.getFileData()?.then(data => {
-      const arr = new Uint8Array(data);
-      const blob = new Blob([arr], { type: doc?.type });
-      setStitchedDoc(blob);
-      // add code for handling Blob here
-    })
+    //setMapper(mappedDocArray);
+    //localStorage.setItem("mappedDocArray", JSON.stringify(mappedDocArray));
+    // doc?.getFileData()?.then(data => {
+    //   const arr = new Uint8Array(data);
+    //   const blob = new Blob([arr], { type: doc?.type });
+    //   setStitchedDoc(blob);
+    // })
     
   }
 
   useEffect(() => {
-    if(localStorage.getItem("isDocumentStitched") !== 'true' && docsForStitcing.length > 0 && 
-    Object.keys(fetchAnnotResponse).length > 0 && docViewer){
+    if(docsForStitcing.length > 0 && merge && docViewer){
       const doc = docViewer.getDocument();
-      mergelocal(doc);
-      localStorage.setItem("isDocumentStitched", "true");
+      stitchDocumentsFunc(doc);
     }
   }, [docsForStitcing, fetchAnnotResponse, docViewer])
 
@@ -501,41 +386,8 @@ const Redlining = React.forwardRef(({
     if(newusername !== username) docViewer?.getAnnotationManager()?.setCurrentUser(newusername);
   }, [user])
 
-  // useEffect(() => {
-  //   //load a new document
-  //   //if(pdffile !== (currentPageInfo.file['filepath'])) {
-  //     localStorage.setItem("isDocumentLoaded", "false");
-  //     //setpdffile(currentPageInfo.file['filepath']);
-  //     // getFOIS3DocumentPreSignedUrl(
-  //     //     currentPageInfo.file['documentid'],
-  //     //     (data) => {
-  //     //         docInstance?.UI?.loadDocument(data);// this is the part to change- can bring mapping & save stitched doc to s3?
-  //     //     },
-  //     //     (error) => {
-  //     //         console.log('Error fetching document:',error);
-  //     //     }
-  //     //   );
-  //  // }
-  //   //change page from document selector
-  //   let isDocLoaded = localStorage.getItem("isDocumentLoaded");
-  //   //if(isDocLoaded === 'true'){
-  //     docViewer?.displayPageLocation(currentPageInfo['page'], 0, 0);
-  //  // }
-
-  // }, [currentPageInfo])
 
   useEffect(() => {
-    //load a new document
-    // if(pdffile !== (individualDoc.file['filepath'])) {
-    //   setpdffile(individualDoc.file['filepath']);
-    //   // stitchedDoc?.getFileData()?.then(data => {
-    //   //   const arr = new Uint8Array(data);
-    //   //   const blob = new Blob([arr], { type: stitchedDoc?.type });
-    //   //   // add code for handling Blob here
-    //   // });
-    //   let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    //   docInstance?.UI?.loadDocument(stitchedDoc, { filename: localDocumentInfo.file['filename'] })
-    // }
     docViewer?.displayPageLocation(individualDoc['page'], 0, 0);
   }, [individualDoc])
 
@@ -545,14 +397,10 @@ const Redlining = React.forwardRef(({
     setModalOpen(false);
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
-    //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
     let displayedDoc= getDataFromMappedDoc(Number(redactionObj['pages'])+1);
     let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
-    let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-    let localDocumentInfo = currentDocument;
     let childAnnotation;
     let childSection ="";
-   // getPageNoOfStitchedDoc();
     let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
     if(i >= 0){
       childSection = redactionInfo[i]?.sections.annotationname;
@@ -600,10 +448,8 @@ const Redlining = React.forwardRef(({
     else {
       saveAnnotation(
         requestid,
-        // localInfo['file']['documentid'],
-        // localInfo['file']['version'],
         displayedDoc.docId,
-        1,
+        displayedDoc.version,
         newRedaction.astr,
         (data)=>{
           fetchPageFlag(
@@ -641,7 +487,8 @@ const Redlining = React.forwardRef(({
         const pageMatrix = doc.getPageMatrix(annot.PageNumber);
         const pageRotation = doc.getPageRotation(annot.PageNumber);
         annot.fitText(pageInfo, pageMatrix, pageRotation);
-
+        if(redaction.type == 'fullPage')
+          annot.setCustomData("trn-redaction-type", "fullPage");
 
         sectionAnnotations.push(annot);
         // annotManager.addAnnotation(annot);
@@ -679,14 +526,11 @@ const Redlining = React.forwardRef(({
   }, [editAnnot])
 
   const getDataFromMappedDoc = (page) => {
-    let localMappedDocArray = JSON.parse(localStorage.getItem("mappedDocArray"));
-    let stitchedPageNo= 0;
+    //let localMappedDocArray = JSON.parse(localStorage.getItem("mappedDocArray"));
     //let doc = pageMappedDocs?.find((mappedDoc)=>{
-    let doc = localMappedDocArray?.find((mappedDoc)=>{
+    let doc = pageMappedDocs?.find((mappedDoc)=>{
       return mappedDoc.pageMappings?.find((mappedPage)=>mappedPage.stitchedPageNo == page)
     });
-    console.log("OO:",doc)
-    //stitchedPageNo = doc?.pageMappings?.find((mappedPage)=>mappedPage.pageNo == page)?.stitchedPageNo;
     return doc;
   }
 
@@ -695,13 +539,12 @@ const Redlining = React.forwardRef(({
       let annot = deleteQueue.pop();
       if (annot && annot.name !== newRedaction?.name) {
         //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-        let localDocumentInfo = currentDocument;
+        //let localDocumentInfo = currentDocument;
+        let displayedDoc= getDataFromMappedDoc(Number(annot.page)+1);
         deleteRedaction(
           requestid,
-          localDocumentInfo['file']['documentid'],
-          localDocumentInfo['file']['version'],
-          // displayedDoc.docId,
-          // 1,
+          displayedDoc.docId,
+          displayedDoc.version,
           annot.name,
           (data)=>{
             fetchPageFlag(
@@ -732,39 +575,6 @@ const Redlining = React.forwardRef(({
     }
   }, [deleteQueue, newRedaction])
 
-  // useEffect(() => {
-  //   if (saveAnnot) {
-  //     // if new redaction is not null, that means it is a section annotation
-  //     //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-  //     let localDocumentInfo = currentDocument;
-  //     if (newRedaction === null) {
-  //       if (saveAnnot.type === 'redact') {
-  //         setNewRedaction(saveAnnot);
-  //         if (defaultSections.length === 0) { // newRedaction effect hook automatically calls saveRedaction if defaultSections is set
-  //           setModalOpen(true);
-  //         }
-  //       } else {
-  //         saveAnnotation(
-  //           requestid,
-  //           localDocumentInfo['file']['documentid'],
-  //           localDocumentInfo['file']['version'],
-  //           saveAnnot.name,
-  //           saveAnnot.astr,
-  //           (data)=>{
-  //             fetchPageFlag(
-  //               requestid,
-  //               (error) => console.log(error)
-  //             )
-  //           },
-  //           (error)=>{console.log(error)},
-  //           pageSelections,
-  //         );
-  //       }
-  //     } else {
-  //     }
-  //   }
-  //   setSaveAnnot(null);
-  // }, [saveAnnot])
 
   const cancelRedaction = () => {
     setModalOpen(false);

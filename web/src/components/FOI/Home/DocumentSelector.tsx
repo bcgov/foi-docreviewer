@@ -25,18 +25,14 @@ import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
-
+import {getPageNoOfStitchedDoc} from "./utils";
 
 const DocumentSelector = ({
     openFOIPPAModal,
     requestid,
     documents,
     totalPageCount,
-    currentPageInfo,
     setCurrentPageInfo,
-    docsForStitcing,
-    setCurrentDocument,
-    individualDoc,
     setIndividualDoc,
     pageMappedDocs
 }: any) => {
@@ -58,7 +54,6 @@ const DocumentSelector = ({
     const [filterBookmark, setFilterBookmark] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
 
-   //console.log("stitchedDocument",stitchedDocument);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
     [`& .${treeItemClasses.label}`]: {
@@ -208,14 +203,6 @@ const DocumentSelector = ({
 
     }
 
-    // const getDivisionFiles = (division) => {
-    //     let filteredFiles = filesForDisplay.filter(file => file.divisions.map(d => d.divisionid = division.divisionid).includes(division.divisionid))
-    //     console.log(division)
-    //     return filteredFiles.map((file, index) => {
-    //                 return <TreeItem nodeId={`${index}`} label={file.filename}/>
-    //             })
-    // }
-
     const getFilePages = (pagecount: number, index: number) => {
         let pages = []
         for (var p = 1; p <= pagecount; p++) {
@@ -225,32 +212,15 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number, e?: any) => {
-        let pageNo: number = getPageNoOfStitchedDoc(file, page);
-        console.log("PG No of selectTreeItem :",pageNo)
-        setIndividualDoc({ 'file': file, 'page': pageNo})
-        setCurrentPageInfo({ 'file': file, 'page': page });
-        localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
-        // setCurrentDocument({ 'file': file, 'page': page })
-        if( page == 1)
-            setDisableHover(false);
+        if(pageMappedDocs.length > 0 ){
+            let pageNo: number = getPageNoOfStitchedDoc(file, page, pageMappedDocs);
+            setIndividualDoc({ 'file': file, 'page': pageNo})
+            setCurrentPageInfo({ 'file': file, 'page': page });
+            // setCurrentDocument({ 'file': file, 'page': page })
+            if( page == 1)
+                setDisableHover(false);
+        }
     };
-
-    // const selectTreeItem = (file: any, page: number, e?: any) => {
-    //     let pageNo = getPageNoOfStitchedDoc(file, page);
-    //     console.log("PG No:",pageNo)
-    //     setIndividualDoc({ 'file': file, 'page': pageNo})
-    //     setCurrentPageInfo({ 'file': file, 'page': page });
-    //     localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
-    // };
-
-
-
-    const getPageNoOfStitchedDoc = (file: any, page: number) => {
-        let stitchedPageNo: number = 0;
-        let doc = pageMappedDocs?.find((mappedDoc: any)=>file.documentid === mappedDoc.docId);
-        stitchedPageNo = doc?.pageMappings?.find((mappedPage: any)=>mappedPage.pageNo == page)?.stitchedPageNo;
-        return stitchedPageNo;
-    }
 
     const openContextMenu = (file: any, page: number, e: any) => {
         setSelectedPage(page);
@@ -445,7 +415,7 @@ const DocumentSelector = ({
                                                     disableHoverListener={disableHover}
                                                 >
         
-                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} onClick={(e) => selectTreeItem(file, 1, e)}>
+                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0} onClick={(e) => selectTreeItem(file, 1, e)}>
                                                         {[...Array(file.pagecount)].map((_x, p) =>
                                                         (filterFlags.length > 0 ?
                                                             ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
@@ -477,6 +447,7 @@ const DocumentSelector = ({
                                                                 openContextPopup={openContextPopup}
                                                                 setOpenContextPopup={setOpenContextPopup}
                                                                 selectedPage={selectedPage}
+                                                                stitchedPage={getPageNoOfStitchedDoc(file, selectedPage, pageMappedDocs)}
                                                                 selectedFile={selectedFile}
                                                                 setPageFlagChanged={setPageFlagChanged}
                                                             />
@@ -503,7 +474,7 @@ const DocumentSelector = ({
                                             key={file?.documentid}
                                             disableHoverListener={disableHover}
                                         >
-                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
+                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)}>
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                 (filterFlags.length > 0 ?
                                                     ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
@@ -520,7 +491,7 @@ const DocumentSelector = ({
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         :
                                                         <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                                            onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)}/>
                                                     )
                                                 )
                                                 )}
@@ -534,6 +505,7 @@ const DocumentSelector = ({
                                                         openContextPopup={openContextPopup}
                                                         setOpenContextPopup={setOpenContextPopup}
                                                         selectedPage={selectedPage}
+                                                        stitchedPage={getPageNoOfStitchedDoc(file, selectedPage, pageMappedDocs)}
                                                         selectedFile={selectedFile}
                                                         setPageFlagChanged={setPageFlagChanged}
                                                     />
