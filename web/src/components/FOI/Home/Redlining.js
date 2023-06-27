@@ -146,7 +146,7 @@ const Redlining = React.forwardRef(({
         fetchAnnotations(
           requestid,
           (data) => {
-            if(data && Object.entries(data).length > 0)
+            if(data)
               setMerge(true);
             setFetchAnnotResponse(data);
           },
