@@ -43,10 +43,9 @@ namespace MCS.FOI.DocToPDF
                     {
                         using (WordDocument wordDocument = new WordDocument(SourceStream, Syncfusion.DocIO.FormatType.Automatic))
                         {
-                            //Sets ShowInBalloons to render a document comments in converted PDF document.
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
-                            //Sets the color to be used for Comment Balloon.
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
+
                             //Creates an instance of DocIORenderer.
                             using (DocIORenderer renderer = new DocIORenderer())
                             {
