@@ -35,6 +35,9 @@ class DocumentMaster(db.Model):
 					from "DocumentMaster" dm
 					join "DocumentAttributes" da on dm.documentmasterid = da.documentmasterid
 					left join "DocumentMaster" dm2 on dm2.processingparentid = dm.parentid
+                    -- replace attachment will create 2 or more rows with the same processing parent id
+                    -- we always take the first one since we only need the filename and user cannot update filename with replace anyways
+                    and dm2.createdby = 'conversionservice' 
 					left join  "Documents" d on dm2.documentmasterid = d.documentmasterid
                     where dm.ministryrequestid = :ministryrequestid
 					and da.isactive = true
