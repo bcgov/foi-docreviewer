@@ -350,7 +350,7 @@ const Redlining = React.forwardRef(({
           let txt = domParser.parseFromString(annot.getElementsByTagName('trn-custom-data')[0].attributes.bytes, 'text/html')
           let customData = JSON.parse(txt.documentElement.textContent);
           let originalPageNo = customData.originalPageNo;
-          annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo)).stitchedPageNo - 1).toString()
+          annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo))?.stitchedPageNo - 1)?.toString()
         }
         xml = parser.toString(xml)
         const _annotations = await annotManager.importAnnotations(xml)
