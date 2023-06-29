@@ -207,6 +207,30 @@ namespace MCS.FOI.MSGToPDF
                             <td><b>Sent: </b></td>
                             <td>" + msg.SentOn + "</td></tr>");
 
+                //Message Attachments
+                string attachmentsList = "";
+                foreach (Object attachment in msg.Attachments)
+                {
+                    if (attachment.GetType().FullName.ToLower().Contains("message"))
+                    {
+                        var _attachment = (Storage.Message)attachment;
+                        attachmentsList += (_attachment.FileName + ", ");
+                    }
+                    else
+                    {
+                        var _attachment = (Storage.Attachment)attachment;
+                        attachmentsList += _attachment.FileName + ", ";
+                    }
+
+                }
+                if (!string.IsNullOrEmpty(recipientName))
+                {
+
+                    htmlString.Append(@"<tr>
+                            <td><b>Attachments: </b></td>
+                            <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
+                }
+
                 //Message body
                 string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
               
