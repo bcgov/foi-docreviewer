@@ -12,9 +12,9 @@ class zipperproducerservice:
 
     def producezipevent(self,finalmessage):        
         try:
-            _zipperrequest = zipperproducer(requestid=finalmessage.requestid,category=finalmessage.category,requestnumber=finalmessage.requestnumber,
+            _zipperrequest = zipperproducer(jobid=finalmessage.jobid,requestid=finalmessage.requestid,category=finalmessage.category,requestnumber=finalmessage.requestnumber,
                                             bcgovcode=finalmessage.bcgovcode,createdby=finalmessage.createdby,ministryrequestid=finalmessage.ministryrequestid,
-                                            filestozip=to_json(finalmessage.outputdocumentpath))
+                                            filestozip=to_json(finalmessage.outputdocumentpath),finaloutput=to_json(finalmessage.finaloutput),attributes=to_json(finalmessage.attributes))
             _zipperredisstream = self.zipperredisstream                      
             if _zipperredisstream is not None:
                 return _zipperredisstream.add(_zipperrequest.__dict__,id="*")                    

@@ -1,7 +1,7 @@
 import json
 from models import zipperproducermessage, s3credentials
 
-def getdedupeproducermessage(producer_json):
+def getzipperproducermessage(producer_json):
     j = json.loads(producer_json)
     messageobject = zipperproducermessage(**j)
     return messageobject

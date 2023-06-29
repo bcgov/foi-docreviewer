@@ -23,3 +23,5 @@ s3_env = os.getenv('S3_ENV')
 
 #Notification stream config
 notification_stream_key = os.getenv('NOTIFICATION_STREAM_KEY')
+
+failureattempt = os.getenv('FAILUREATTEMPT', 3)

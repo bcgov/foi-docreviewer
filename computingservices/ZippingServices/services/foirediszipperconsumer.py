@@ -10,7 +10,9 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdb,zipper_stream_key,notification_stream_key
+from utils import redisstreamdb,zipper_stream_key,jsonmessageparser
+from .zipperservice import processmessage
+
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -45,16 +47,15 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
             for message_id, message in messages:
                 print(f"processing {message_id}::{message}")
                 if message is not None:
-                    _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
+                    
                     try:
-                        print(_message)
+                        _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})                        
+                        producermessage = jsonmessageparser.getzipperproducermessage(_message)
+                        processmessage(producermessage)
                     except(Exception) as error:
                         print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
                                              
-                # simulate processing
-                #time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
-                rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
-                print(f"finished processing {message_id}")
+                rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)               
         #else:
             #print(f"No new messages after ID: {last_id}")
