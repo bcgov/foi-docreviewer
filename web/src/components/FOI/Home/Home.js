@@ -7,7 +7,7 @@ import Redlining from './Redlining';
 import Grid from "@material-ui/core/Grid";
 import WebViewer from '@pdftron/webviewer';
 
-import { fetchDocuments } from '../../../apiManager/services/docReviewerService';
+import { fetchDocuments, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
 
@@ -28,6 +28,7 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       (data) => {
+        console.log("fetchDocuments: ", data);
         setFiles(data);
         setCurrentPageInfo({'file': data[0] || {}, 'page': 1})
         localStorage.setItem("currentDocumentInfo", JSON.stringify({'file': data[0] || {}, 'page': 1}));
@@ -56,6 +57,10 @@ function Home() {
         console.log(error);
       }
     );
+    fetchPageFlag(
+      parseInt(foiministryrequestid),
+      (error) => console.log(error)
+    )
   }, [])
 
   const openFOIPPAModal = (pageNo) => {

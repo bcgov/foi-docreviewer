@@ -26,13 +26,14 @@ export const getFOIS3DocumentPreSignedUrl = (
 };
 
 export const getFOIS3DocumentRedlinePreSignedUrl = (
+    filename: any,
     documentList: any[],
     callback: any,
     errorCallback: any
 ) => {	
     const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_REDLINE;
 
-    httpPOSTRequest({url: apiurl, data: documentList, token: UserService.getToken() || ''})
+    httpPOSTRequest({url: apiurl, data: {"filename":filename, "documentList":documentList}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

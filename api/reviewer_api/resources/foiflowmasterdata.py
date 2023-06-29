@@ -86,7 +86,9 @@ class FOIFlowS3PresignedRedline(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try :
-            documentList = request.get_json()
+            data = request.get_json()
+            filename = data["filename"]
+            documentList = data["documentList"]
             print("doc list: ", documentList)
             documentmapper = redactionservice().getdocumentmapper(documentList[0]["filepath"].split('/')[3])
             attribute = json.loads(documentmapper["attributes"])
@@ -101,6 +103,20 @@ class FOIFlowS3PresignedRedline(Resource):
                 aws_secret_access_key= secretkey,region_name= s3region
                 )
 
+            # generate save url for stitched file
+            filepathlist = documentList[0]["filepath"].split('/')[4:]
+            print("filepathlist", filepathlist)
+            filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
+            print("filepath_put", filepath_put)
+
+            # filename_put, file_extension_put = os.path.splitext(filepath_put)
+            # filepath_put = filename_put+'.pdf'
+            s3path_save = s3client.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
+                    ExpiresIn=3600,HttpMethod='PUT'
+                    )
+
             for doc in documentList:
                 filepathlist = doc["filepath"].split('/')[4:]
 
@@ -114,16 +130,7 @@ class FOIFlowS3PresignedRedline(Resource):
                     )
                 
                 # for save/put
-                filepathlist[0] = '{0}/redline'.format(filepathlist[0])
-                filepath_put = '/'.join(filepathlist)
-
-                filename_put, file_extension_put = os.path.splitext(filepath_put)
-                filepath_put = filename_put+'.pdf'
-                doc["s3path_save"] = s3client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
-                    ExpiresIn=3600,HttpMethod='PUT'
-                    )
+                doc["s3path_save"] = s3path_save
                 
                 # retrieve annotations
                 doc["annotationXML"] = redactionservice().getannotations(doc["documentid"], doc["version"], None)
