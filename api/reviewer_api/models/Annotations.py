@@ -1,6 +1,6 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, text
 from sqlalchemy.dialects.postgresql import JSON, insert
 from datetime import datetime
 from sqlalchemy.orm import relationship, backref, aliased
@@ -31,6 +31,33 @@ class Annotation(db.Model):
         return annotation_schema.dump(query)
 
     @classmethod
+    def getrequestannotations(cls, ministryrequestid):
+        sql = '''select a.*
+                from "Annotations" a
+                join (select distinct on (d.documentid) d.*
+					  from  "Documents" d
+                      where d.foiministryrequestid = :ministryrequestid
+					  order by d.documentid, d.version desc) d
+				on (d.documentid = a.documentid and d.version = a.documentversion)
+                where d.foiministryrequestid = :ministryrequestid
+                and a.isactive = true
+            '''
+        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+        return [{
+            'annotationid': row['annotationid'],
+            'annotationname': row['annotationname'],
+            'documentid': row['documentid'],
+            'documentversion': row['documentversion'],
+            'annotation': row['annotation'],
+            'pagenumber': row['pagenumber'],
+            'isactive': row['isactive'],
+            'createdby': row['createdby'],
+            'created_at': row['created_at'],
+            'updatedby': row['updatedby'],
+            'updated_at': row['updated_at']
+        } for row in rs]
+
+    @classmethod
     def getredactionsbypage(cls, _documentid, _documentversion, _pagenum):
         annotation_schema = AnnotationSchema(many=True)
         query = db.session.query(Annotation).filter(
@@ -42,7 +69,7 @@ class Annotation(db.Model):
                 Annotation.annotation.ilike('%<redact %')
             )).order_by(Annotation.annotationid.asc()).all()
         return annotation_schema.dump(query)
-    
+
     @classmethod
     def getannotationinfo(cls, _documentid, _documentversion):
         annotation_schema = AnnotationSchema(many=True)
@@ -52,7 +79,7 @@ class Annotation(db.Model):
     @classmethod
     def getannotationid(cls, _annotationname):
         return db.session.query(Annotation.annotationid).filter(and_(Annotation.annotationname == _annotationname, Annotation.isactive==True)).first()[0]
-       
+
     #upsert
     @classmethod
     def saveannotations(cls, annots, _documentid, _documentversion, userinfo)->DefaultMethodResult:
