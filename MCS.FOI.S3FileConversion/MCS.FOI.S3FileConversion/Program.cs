@@ -101,7 +101,7 @@ namespace MCS.FOI.S3FileConversion
                             {
                                 try
                                 {
-                                    Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
+                                    // Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
 
 
                                     ValidateMessage(message);
@@ -199,7 +199,7 @@ namespace MCS.FOI.S3FileConversion
                     else
                     {
 
-                        Console.WriteLine("No new messages after {0}", latest);
+                        // Console.WriteLine("No new messages after {0}", latest);
                     }
                     
                 }
