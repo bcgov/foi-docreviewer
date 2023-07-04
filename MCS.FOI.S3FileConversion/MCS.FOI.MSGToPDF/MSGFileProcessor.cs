@@ -223,7 +223,7 @@ namespace MCS.FOI.MSGToPDF
                     }
 
                 }
-                if (!string.IsNullOrEmpty(recipientName))
+                if (!string.IsNullOrEmpty(attachmentsList))
                 {
 
                     htmlString.Append(@"<tr>
