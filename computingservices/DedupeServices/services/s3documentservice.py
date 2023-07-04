@@ -47,7 +47,7 @@ def gets3documenthashcode(producermessage):
    
     _filename, extension = path.splitext(producermessage.filename)
     filepath = producermessage.s3filepath
-    if extension.lower() not in ['.pdf']:
+    if extension.lower() not in ['.pdf'] and not (json.loads(producermessage.attributes).get('isattachment', False) and producermessage.trigger == 'recordreplace'):
         filepath = path.splitext(filepath)[0] + extension
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
     reader = None
