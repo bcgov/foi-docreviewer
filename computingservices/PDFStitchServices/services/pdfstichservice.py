@@ -85,31 +85,16 @@ class pdfstitchservice(basestitchservice):
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
                         pdf_doc_in = fitz.open(stream=_bytes) #input PDF
                         pdf_doc = fitz.open()  # output PDF
-                        print("isformpdf:",pdf_doc_in.is_form_pdf)
                         if pdf_doc_in.is_form_pdf is not False and pdf_doc_in.is_form_pdf > 0:  #check if form field exists, if so convert doc to series of page images & combine to 1 pdf
                             for page in pdf_doc_in:
                                 w, h = page.rect.br  # page width / height taken from bottom right point coords
-                                print("Inside each page",page.rect.br)
                                 outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
-                                print("outpage:",outpage)
                                 pix = page.get_pixmap(dpi=150)  # set desired resolution
-                                if not page.is_wrapped:
-                                    page.wrap_contents()     
-                                print("pix:",pix)                          
                                 outpage.insert_image(page.rect, pixmap=pix)
-                                print("outpage-2:",outpage)                          
                             #pdf_doc.save("Output.pdf", garbage=3, deflate=True)
-                            print("pdf_doc-2:",pdf_doc)                          
                         else:
                             pdf_doc= pdf_doc_in
-                        print("pdf_doc:",pdf_doc)
-                        # for page in pdf_doc:  # Code to print the form field values.
-                        #     widgets = page.widgets()
-                        #     for widget in widgets:
-                        #         print("\nwidget:",widget)  
-                        #         print("FIELD VALUE:",widget.field_value)  
                         if pdf_doc.needs_pass:
-                            print(f"Is protected = {file.filename}")
                             raise ValueError("Password-protected PDF document")                            
                         else:
                             writer.insert_pdf(pdf_doc)
@@ -121,7 +106,6 @@ class pdfstitchservice(basestitchservice):
                         
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
-                        print("Warnings:",fitz.TOOLS.mupdf_warnings())
                         logging.error(exp)
                         logging.info("errorfilename = %s", file.filename)
                         print(f"errorfilename = {file.filename}")
