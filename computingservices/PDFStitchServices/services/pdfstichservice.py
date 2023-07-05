@@ -98,7 +98,7 @@ class pdfstitchservice(basestitchservice):
                                 print("pix:",pix)                          
                                 outpage.insert_image(page.rect, pixmap=pix)
                                 print("outpage-2:",outpage)                          
-                            pdf_doc.save("Output.pdf", garbage=3, deflate=True)
+                            #pdf_doc.save("Output.pdf", garbage=3, deflate=True)
                             print("pdf_doc-2:",pdf_doc)                          
                         else:
                             pdf_doc= pdf_doc_in
