@@ -26,14 +26,14 @@ export const getFOIS3DocumentPreSignedUrl = (
 };
 
 export const getFOIS3DocumentRedlinePreSignedUrl = (
-    filename: any,
+    ministryrequestID: any,
     documentList: any[],
     callback: any,
     errorCallback: any
 ) => {	
-    const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_REDLINE;
+    const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_REDLINE + "/" + ministryrequestID;
 
-    httpPOSTRequest({url: apiurl, data: {"filename":filename, "documentList":documentList}, token: UserService.getToken() || ''})
+    httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

@@ -76,7 +76,7 @@ class FOIFlowS3Presigned(Resource):
 
 
 @cors_preflight('POST,OPTIONS')
-@API.route('/foiflow/oss/presigned/redline')
+@API.route('/foiflow/oss/presigned/redline/<int:ministryrequestid>')
 class FOIFlowS3PresignedRedline(Resource):
 
     @staticmethod
@@ -84,13 +84,10 @@ class FOIFlowS3PresignedRedline(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post():
+    def post(ministryrequestid):
         try :
             data = request.get_json()
-            filename = data["filename"]
-            documentList = data["documentList"]
-            print("doc list: ", documentList)
-            documentmapper = redactionservice().getdocumentmapper(documentList[0]["filepath"].split('/')[3])
+            documentmapper = redactionservice().getdocumentmapper(data["divdocumentList"][0]["documentlist"][0]["filepath"].split('/')[3])
             attribute = json.loads(documentmapper["attributes"])
 
             # current_app.logger.debug("Inside Presigned api!!")
@@ -103,39 +100,43 @@ class FOIFlowS3PresignedRedline(Resource):
                 aws_secret_access_key= secretkey,region_name= s3region
                 )
 
-            # generate save url for stitched file
-            filepathlist = documentList[0]["filepath"].split('/')[4:]
-            print("filepathlist", filepathlist)
-            filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
-            print("filepath_put", filepath_put)
+            for div in data["divdocumentList"]:
+                filename = div["divisionid"]
 
-            # filename_put, file_extension_put = os.path.splitext(filepath_put)
-            # filepath_put = filename_put+'.pdf'
-            s3path_save = s3client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
-                    ExpiresIn=3600,HttpMethod='PUT'
-                    )
+                # generate save url for stitched file
+                filepathlist = div["documentlist"][0]["filepath"].split('/')[4:]
+                print("filepathlist", filepathlist)
+                filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
+                print("filepath_put", filepath_put)
 
-            for doc in documentList:
-                filepathlist = doc["filepath"].split('/')[4:]
-
-                # for load/get
-                filepath_get = '/'.join(filepathlist)
-                filename_get, file_extension_get = os.path.splitext(filepath_get)
-                doc["s3path_load"] = s3client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_get),'ResponseContentType': '{0}/{1}'.format('image' if file_extension_get.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension_get.replace('.',''))},
-                    ExpiresIn=3600,HttpMethod='GET'
-                    )
+                # filename_put, file_extension_put = os.path.splitext(filepath_put)
+                # filepath_put = filename_put+'.pdf'
+                s3path_save = s3client.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
+                        ExpiresIn=3600,HttpMethod='PUT'
+                        )
                 
-                # for save/put
-                doc["s3path_save"] = s3path_save
-                
-                # retrieve annotations
-                doc["annotationXML"] = redactionservice().getannotations(doc["documentid"], doc["version"], None)
+                # for save/put - stitch by division
+                div["s3path_save"] = s3path_save
 
-            return json.dumps(documentList),200
+                # retrieve annotations for stitch by division
+                div["annotationXML"] = redactionservice().getannotationsbyrequestdivision(ministryrequestid, div["divisionid"])
+
+                for doc in div["documentlist"]: 
+                    filepathlist = doc["filepath"].split('/')[4:]
+
+                    # for load/get
+                    filepath_get = '/'.join(filepathlist)
+                    filename_get, file_extension_get = os.path.splitext(filepath_get)
+                    doc["s3path_load"] = s3client.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_get),'ResponseContentType': '{0}/{1}'.format('image' if file_extension_get.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension_get.replace('.',''))},
+                        ExpiresIn=3600,HttpMethod='GET'
+                        )
+
+            print("updated list: ", data)
+            return json.dumps(data),200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500 
 
