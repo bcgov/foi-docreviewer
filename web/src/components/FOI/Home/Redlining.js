@@ -82,6 +82,7 @@ const Redlining = React.forwardRef(({
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
+      instance.UI.enableElements(['attachmentPanelButton']);
 
       const Edit = () => {
         let selectedAnnotations = annotationManager.getSelectedAnnotations();
