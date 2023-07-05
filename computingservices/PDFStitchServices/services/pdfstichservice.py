@@ -88,10 +88,14 @@ class pdfstitchservice(basestitchservice):
                         print("isformpdf:",pdf_doc_in.is_form_pdf)
                         if pdf_doc_in.is_form_pdf is not False and pdf_doc_in.is_form_pdf > 0:  #check if form field exists, if so convert doc to series of page images & combine to 1 pdf
                             for page in pdf_doc_in:
-                                print("Inside each page",page.rect.br)
                                 w, h = page.rect.br  # page width / height taken from bottom right point coords
+                                print("Inside each page",page.rect.br)
                                 outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
+                                print("outpage:",outpage)
                                 pix = page.get_pixmap(dpi=150)  # set desired resolution
+                                if not page.is_wrapped:
+                                    page.wrap_contents()     
+                                print("pix:",pix)                          
                                 outpage.insert_image(page.rect, pixmap=pix)
                             pdf_doc.save(file.filename, deflate=True)
                         else:
@@ -115,6 +119,7 @@ class pdfstitchservice(basestitchservice):
                         
                         stitchedfiles.append(file.filename)
                     except Exception as exp:
+                        print("Warnings:",fitz.TOOLS.mupdf_warnings())
                         logging.error(exp)
                         logging.info("errorfilename = %s", file.filename)
                         print(f"errorfilename = {file.filename}")
