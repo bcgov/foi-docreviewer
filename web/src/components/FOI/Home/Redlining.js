@@ -857,90 +857,51 @@ const Redlining = React.forwardRef(({
             docCount++;
             console.log("docCount: ", docCount);
 
-            await _instance.Core.createDocument(doc.s3path_load, {}).then(async docObj => {
-              docObj.getFileData({
-                downloadType
-              }).then(async data => {
-                console.log("????????");
-                const arr = new Uint8Array(data);
-                const blob = new Blob([arr], { type: 'application/octet-stream' });
-                // const blob = new Blob([arr], { type: 'application/pdf' });
-    
-                // ************** starts here ****************
-                if(docCount == 1) {
-                  console.log("here: ", docCount);
-                  stitchedDocObj = await _instance.Core.createDocument(blob, {});
-                  console.log("here-created: ", docCount);
-                } else {
-                  console.log("here: ", docCount);
-                  let newDocObj = await _instance.Core.createDocument(blob, {});
-                  console.log("here-created: ", docCount);
-    
-                  // create an array containing 1…N
-                  let pages = Array.from({ length: doc.pagecount }, (v, k) => k + 1);
-                  // let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-                  console.log("there: ", docCount);
-                  // await stitchedDocObj.insertPages(newDocObj, pages, pageIndexToInsert);
-                  await stitchedDocObj.insertPages(newDocObj, pages);
-                  console.log("where: ", docCount);
-                }
-    
-                // console.log("-docCount: ", docCount);
-                // console.log("-divDocList.length: ", divObj.documentlist.length);
-                // if(docCount == divObj.documentlist.length) {
-                //   console.log("s3path_save", stitchedDocPath);
-                //   stitchedDocObj.getFileData({
-                //     // saves the document with annotations in it
-                //     stitchedXML,
-                //     downloadType
-                //   }).then(async _data => {
-                //     const _arr = new Uint8Array(_data);
-                //     const _blob = new Blob([_arr], { type: 'application/octet-stream' });
-                //     // const _blob = new Blob([_arr], { type: 'application/pdf' });
-                //     // const url = URL.createObjectURL(blob);
-                //     // window.open(url);
-        
-                //     await saveFilesinS3(
-                //       {filepath: stitchedDocPath},
-                //       _blob,
-                //       (_res) => {
-                //         console.log(_res);
-                //       },
-                //       (_err) => {
-                //         console.log(_err);
-                //       }
-                //     );
-                //   });
-                // }
-              });
-            });
-          }
+            await _instance.Core.createDocument(doc.s3path_load, {loadAsPDF:true}).then(async docObj => {
 
-          console.log("-docCount: ", docCount);
-          console.log("-divDocList.length: ", divObj.documentlist.length);
-          if(docCount == divObj.documentlist.length) {
-            console.log("s3path_save", stitchedDocPath);
-            stitchedDocObj.getFileData({
-              // saves the document with annotations in it
-              stitchedXML,
-              downloadType
-            }).then(async _data => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], { type: 'application/octet-stream' });
-              // const _blob = new Blob([_arr], { type: 'application/pdf' });
-              // const url = URL.createObjectURL(blob);
-              // window.open(url);
+              // ************** starts here ****************
+              if(docCount == 1) {
+                console.log("here: ", docCount);
+                stitchedDocObj = docObj;
+                console.log("here-created: ", docCount);
+              } else {
+                // create an array containing 1…N
+                let pages = Array.from({ length: doc.pagecount }, (v, k) => k + 1);
+                let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                console.log("there: ", docCount);
+                await stitchedDocObj.insertPages(docObj, pages, pageIndexToInsert);
+                // await stitchedDocObj.insertPages(newDocObj, pages);
+                console.log("where: ", docCount);
+              }
   
-              await saveFilesinS3(
-                {filepath: stitchedDocPath},
-                _blob,
-                (_res) => {
-                  console.log(_res);
-                },
-                (_err) => {
-                  console.log(_err);
-                }
-              );
+              console.log("-docCount: ", docCount);
+              console.log("-divDocList.length: ", divObj.documentlist.length);
+              if(docCount == divObj.documentlist.length) {
+                console.log("s3path_save", stitchedDocPath);
+                stitchedDocObj.getFileData({
+                  // saves the document with annotations in it
+                  "xfdfString": stitchedXML,
+                  "downloadType": downloadType
+                }).then(async _data => {
+                  const _arr = new Uint8Array(_data);
+                  // const _blob = new Blob([_arr], { type: 'application/octet-stream' });
+                  const _blob = new Blob([_arr], { type: 'application/pdf' });
+                  // const url = URL.createObjectURL(blob);
+                  // window.open(url);
+      
+                  await saveFilesinS3(
+                    {filepath: stitchedDocPath},
+                    _blob,
+                    (_res) => {
+                      console.log(_res);
+                    },
+                    (_err) => {
+                      console.log(_err);
+                    }
+                  );
+                });
+              }
+
             });
           }
         }
