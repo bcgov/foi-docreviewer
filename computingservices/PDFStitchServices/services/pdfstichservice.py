@@ -91,14 +91,9 @@ class pdfstitchservice(basestitchservice):
                                 outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
                                 pix = page.get_pixmap(dpi=150)  # set desired resolution
                                 outpage.insert_image(page.rect, pixmap=pix)
-                            pdf_doc.save(file.filename, deflate=True)
+                            #pdf_doc.save("Output.pdf", garbage=3, deflate=True)
                         else:
                             pdf_doc= pdf_doc_in
-                        # for page in pdf_doc:  # Code to print the form field values.
-                        #     widgets = page.widgets()
-                        #     for widget in widgets:
-                        #         print("\nwidget:",widget)  
-                        #         print("FIELD VALUE:",widget.field_value)  
                         if pdf_doc.needs_pass:
                             raise ValueError("Password-protected PDF document")                            
                         else:
