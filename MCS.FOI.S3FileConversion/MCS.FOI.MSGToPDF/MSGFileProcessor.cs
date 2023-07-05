@@ -165,10 +165,6 @@ namespace MCS.FOI.MSGToPDF
 
                                     doc.ImportContent(rtfDoc, ImportOptions.UseDestinationStyles);
 
-                                    var fs = new FileStream("C:/folder/test.docx", FileMode.Create, FileAccess.Write);
-
-                                    doc.Save(fs, Syncfusion.DocIO.FormatType.Docx);
-
                                     using (DocIORenderer renderer = new DocIORenderer())
                                     {
                                         using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
