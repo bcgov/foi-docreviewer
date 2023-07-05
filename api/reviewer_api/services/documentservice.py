@@ -56,7 +56,10 @@ class documentservice:
                 if record["isduplicate"] == True:
 
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(parentswithattachmentsrecords, record["duplicatemasterid"])
-                    _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
+                    if(duplicatemaster_attachments is None):
+                        _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
+                    else:
+                        _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
                 elif len(record["attachments"]) > 1: 
                     _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                 for attachment in record["attachments"]:

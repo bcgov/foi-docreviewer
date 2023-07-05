@@ -101,7 +101,7 @@ namespace MCS.FOI.S3FileConversion
                             {
                                 try
                                 {
-                                    //Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
+                                    // Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
 
 
                                     ValidateMessage(message);
@@ -132,7 +132,8 @@ namespace MCS.FOI.S3FileConversion
                                                         new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
                                                         new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
                                                         new("trigger", "attachment"),
-                                                        new("createdby", message["createdby"])
+                                                        new("createdby", message["createdby"]),
+                                                        new("usertoken", message["usertoken"])
                                                     });
                                                 }
                                                 else
@@ -151,7 +152,8 @@ namespace MCS.FOI.S3FileConversion
                                                         new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
                                                         new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
                                                         new("trigger", "attachment"),
-                                                        new("createdby", message["createdby"])
+                                                        new("createdby", message["createdby"]),
+                                                        new("usertoken", message["usertoken"])
                                                     });
                                                 }
                                             }
@@ -172,7 +174,8 @@ namespace MCS.FOI.S3FileConversion
                                             new("documentmasterid", message["documentmasterid"]),
                                             new("outputdocumentmasterid", jobIDs[newFilename]["masterID"]),
                                             new("trigger", message["trigger"]),
-                                            new("createdby", message["createdby"])
+                                            new("createdby", message["createdby"]),
+                                            new("usertoken", message["usertoken"])
                                         });
                                         latest = message.Id;
                                         db.StringSet($"{latest}:lastid", latest);
@@ -195,8 +198,8 @@ namespace MCS.FOI.S3FileConversion
                     }
                     else
                     {
-                       
-                        //Console.WriteLine("No new messages after {0}", latest);
+
+                        // Console.WriteLine("No new messages after {0}", latest);
                     }
                     
                 }
@@ -227,6 +230,7 @@ namespace MCS.FOI.S3FileConversion
             if (message["documentmasterid"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'documentmasterid'"); }
             if (message["trigger"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'trigger'"); }
             if (message["createdby"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'createdby'"); }
+            if (message["usertoken"].IsNull) { throw new MissingFieldException($"Redis stream message missing field 'usertoken'"); }
         }
     }
 }
