@@ -327,6 +327,7 @@ const Redlining = React.forwardRef(({
     }
     mappedDocArray.push({"docId": removedFirstElement.file.documentid, "version":removedFirstElement.file.version,
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
+    assignAnnotations(removedFirstElement.file.documentid, mappedDoc, domParser)
     for (let file of docCopy) {
       mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
       await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
@@ -344,20 +345,7 @@ const Redlining = React.forwardRef(({
       await doc.insertPages(newDoc, pages);
       mappedDocArray.push({"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
-      if (fetchAnnotResponse[file.file.documentid]) {
-        let xml = parser.parseFromString(fetchAnnotResponse[file.file.documentid]);
-        for (let annot of xml.getElementsByTagName("annots")[0].children) {
-          let txt = domParser.parseFromString(annot.getElementsByTagName('trn-custom-data')[0].attributes.bytes, 'text/html')
-          let customData = JSON.parse(txt.documentElement.textContent);
-          let originalPageNo = customData.originalPageNo;
-          annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo))?.stitchedPageNo - 1)?.toString()
-        }
-        xml = parser.toString(xml)
-        const _annotations = await annotManager.importAnnotations(xml)
-        _annotations.forEach(_annotation => {
-          annotManager.redrawAnnotation(_annotation);
-        });
-      }
+      assignAnnotations(file.file.documentid, mappedDoc, domParser)
       })
     }
     setPageMappedDocs(mappedDocArray);
@@ -369,6 +357,23 @@ const Redlining = React.forwardRef(({
     //   setStitchedDoc(blob);
     // })
     
+  }
+
+  const assignAnnotations= async(documentid, mappedDoc, domParser) => {
+    if (fetchAnnotResponse[documentid]) {
+      let xml = parser.parseFromString(fetchAnnotResponse[documentid]);
+      for (let annot of xml.getElementsByTagName("annots")[0].children) {
+        let txt = domParser.parseFromString(annot.getElementsByTagName('trn-custom-data')[0].attributes.bytes, 'text/html')
+        let customData = JSON.parse(txt.documentElement.textContent);
+        let originalPageNo = customData.originalPageNo;
+        annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo))?.stitchedPageNo - 1)?.toString()
+      }
+      xml = parser.toString(xml)
+      const _annotations = await annotManager.importAnnotations(xml)
+      _annotations.forEach(_annotation => {
+        annotManager.redrawAnnotation(_annotation);
+      });
+    }
   }
 
   useEffect(() => {
