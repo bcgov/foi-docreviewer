@@ -42,7 +42,8 @@ class annotationservice:
                 annotationobj[annot['documentid']] = []
             annotationobj[annot['documentid']].append(annot["annotation"])
         for documentid in annotationobj:
-            annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
+            annotationobj[documentid] = annotationobj[documentid]
+            # annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
         return annotationobj
 
     def getannotationinfo(self, documentid, documentversion, pagenumber):

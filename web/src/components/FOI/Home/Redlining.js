@@ -153,7 +153,7 @@ const Redlining = React.forwardRef(({
 
         createRecordsPackageBtn.onclick = () => {
           // Download
-          console.log("Create Records Package");
+          // console.log("Create Records Package");
         };
   
         menu.appendChild(createRecordsPackageBtn);
@@ -174,7 +174,7 @@ const Redlining = React.forwardRef(({
 
         redlineForSignOffBtn.onclick = () => {
           // Download
-          console.log("Redline for Sign Off");
+          // console.log("Redline for Sign Off");
 
           // console.log("xml: ", await annotationManager.exportAnnotations());
           setRedlineModalOpen(true);
@@ -193,7 +193,7 @@ const Redlining = React.forwardRef(({
 
         responsePackageBtn.onclick = () => {
           // Download
-          console.log("Response Package for Application");
+          // console.log("Response Package for Application");
         };
   
         menu.appendChild(responsePackageBtn);
@@ -287,6 +287,7 @@ const Redlining = React.forwardRef(({
             if(data)
               setMerge(true);
             setFetchAnnotResponse(data);
+            console.log("fetchAnnotations", data);
           },
           (error) => {
             console.log('Error:',error);
@@ -848,39 +849,65 @@ const Redlining = React.forwardRef(({
       async (res) => {
         console.log("getFOIS3DocumentRedlinePreSignedUrl: ", res);
 
+        let domParser = new DOMParser()
         for(let divObj of res.divdocumentList) {
           let stitchedDocObj = null;
           let stitchedDocPath = divObj.s3path_save;
-          let stitchedXML = divObj.annotationXML;
+          let stitchedXMLArray = [];
+
           let docCount = 0;
+          let totalPageCount = 0;
           for(let doc of divObj.documentlist) {
             docCount++;
-            console.log("docCount: ", docCount);
+            // console.log("docCount: ", docCount);
+
+            // update annotation xml
+            if(divObj.annotationXML[doc.documentid]) {
+              let updatedXML = divObj.annotationXML[doc.documentid].map(x => {
+                // get original/individual page num
+                let customfield = parser.parseFromString(x).children.find(xmlfield => xmlfield.name == 'trn-custom-data');
+                let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
+                let customData = JSON.parse(txt.documentElement.textContent);
+                let originalPageNo = parseInt(customData.originalPageNo);
+                // domParser.parseFromString(customfield.attributes.bytes, 'text/html')
+                // console.log("originalPageNo: ", originalPageNo);
+
+                // page num from annot xml
+                let y = x.split('page="');
+                // console.log("page=", y);
+                let z = y[1].split('"');
+                let oldPageNum = 'page="'+z[0]+'"';
+                // console.log("originalPageNum", oldPageNum);
+                let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
+                // console.log("newPageNum", newPage);
+                x = x.replace(oldPageNum, newPage);
+                // console.log("updated: ", x);
+                return x;
+              });
+              // console.log("xml str: ", updatedXML.join());
+              stitchedXMLArray.push(updatedXML.join());
+            }
+            totalPageCount += doc.pagecount;
 
             await _instance.Core.createDocument(doc.s3path_load, {loadAsPDF:true}).then(async docObj => {
 
               // ************** starts here ****************
               if(docCount == 1) {
-                console.log("here: ", docCount);
                 stitchedDocObj = docObj;
-                console.log("here-created: ", docCount);
               } else {
                 // create an array containing 1…N
                 let pages = Array.from({ length: doc.pagecount }, (v, k) => k + 1);
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-                console.log("there: ", docCount);
                 await stitchedDocObj.insertPages(docObj, pages, pageIndexToInsert);
-                // await stitchedDocObj.insertPages(newDocObj, pages);
-                console.log("where: ", docCount);
               }
   
-              console.log("-docCount: ", docCount);
-              console.log("-divDocList.length: ", divObj.documentlist.length);
+              // save to s3 once all doc stitched
               if(docCount == divObj.documentlist.length) {
-                console.log("s3path_save", stitchedDocPath);
+                // console.log("s3path_save", stitchedDocPath);
+                let xfdfString = '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>'+stitchedXMLArray.join()+'</annots></xfdf>';
                 stitchedDocObj.getFileData({
                   // saves the document with annotations in it
-                  "xfdfString": stitchedXML,
+                  "xfdfString": xfdfString,
                   "downloadType": downloadType
                 }).then(async _data => {
                   const _arr = new Uint8Array(_data);
@@ -910,7 +937,6 @@ const Redlining = React.forwardRef(({
           console.log('Error fetching document:',error);
       }
     );
-
   }
 
   const saveRedlineDoc = () => {
