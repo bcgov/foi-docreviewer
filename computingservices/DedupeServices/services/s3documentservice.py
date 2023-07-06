@@ -11,6 +11,8 @@ from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from html import escape
 import hashlib
+import uuid
+from re import sub
 from utils import gets3credentialsobject,getdedupeproducermessage, dedupe_s3_region,dedupe_s3_host,dedupe_s3_service,dedupe_s3_env, request_management_api
 
 def __getcredentialsbybcgovcode(bcgovcode):
@@ -65,12 +67,12 @@ def gets3documenthashcode(producermessage):
             else:
                 producermessage.attributes['hasattachment'] = True
             for name in reader.attachments:
-                s3uripath = path.splitext(filepath)[0] + '/' + name
+                s3uripath = path.splitext(filepath)[0] + '/' + '{0}{1}'.format(uuid.uuid4(),path.splitext(name)[1])
                 data = b''.join(reader.attachments[name])
                 uploadresponse = requests.put(s3uripath, data=data, auth=auth)
                 uploadresponse.raise_for_status()
                 attachment = {
-                    'filename': escape(name),
+                    'filename': escape(sub('<[0-9]+>', '', name, 1)),
                     's3uripath': s3uripath,
                     'attributes': deepcopy(producermessage.attributes)
                 }
