@@ -84,14 +84,22 @@ namespace MCS.FOI.ExcelToPDF
                                             foreach (IWorksheet worksheet in workbook.Worksheets)
                                             {
                                                 if (worksheet.Visibility == WorksheetVisibility.Visible)
-                                                {                                                   
-                                                    output = saveToPdf(worksheet, output);
+                                                {
+                                                    output = SaveToPdf(worksheet, output);
                                                 }
                                             }
                                         }
                                         else
                                         {
-                                            output = saveToPdf(workbook, output);
+                                            foreach (IWorksheet worksheet in workbook.Worksheets)
+                                            {
+                                                if (worksheet.Visibility == WorksheetVisibility.Visible)
+                                                {
+                                                    worksheet.PageSetup.PrintComments = ExcelPrintLocation.PrintSheetEnd;
+                                                }
+                                            }
+
+                                            output = SaveToPdf(workbook, output);
                                         }
                                     }
 
@@ -138,11 +146,12 @@ namespace MCS.FOI.ExcelToPDF
         /// Save to pdf method, based on input from Excel file - Workbook vs Worksheet
         /// </summary>
         /// <param name="worksheet">worksheet object</param>
-        private MemoryStream saveToPdf(IWorksheet worksheet, MemoryStream output)
+        private MemoryStream SaveToPdf(IWorksheet worksheet, MemoryStream output)
         {
             try
             {
                 XlsIORenderer renderer = new XlsIORenderer();
+                worksheet.PageSetup.PrintComments = ExcelPrintLocation.PrintSheetEnd;
                 using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
                 pdfDocument.Compression = PdfCompressionLevel.Normal;
@@ -162,7 +171,7 @@ namespace MCS.FOI.ExcelToPDF
         ///  Save to pdf method, based on input from Excel file - Workbook vs Worksheet
         /// </summary>
         /// <param name="workbook">workbook object</param>
-        private MemoryStream saveToPdf(IWorkbook workbook, MemoryStream output)
+        private MemoryStream SaveToPdf(IWorkbook workbook, MemoryStream output)
         {
             try
             {
