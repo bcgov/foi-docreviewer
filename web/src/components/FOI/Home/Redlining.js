@@ -66,6 +66,7 @@ const Redlining = React.forwardRef(({
   const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
   const [merge, setMerge] = useState(false);
   const [mapper, setMapper] = useState([]);
+  const [isSavingMenuOpen, setIsSavingMenuOpen] = useState(false);
   //xml parser
   const parser = new XMLParser();
 
@@ -141,6 +142,7 @@ const Redlining = React.forwardRef(({
         const menu = document.createElement('div');
         menu.classList.add('Overlay');
         menu.classList.add('FlyoutMenu');
+        menu.id = 'saving_menu';
   
         const createRecordsPackageBtn = document.createElement('button');
         createRecordsPackageBtn.textContent = 'Create Records Package';
@@ -203,17 +205,21 @@ const Redlining = React.forwardRef(({
         const renderCustomMenu = () => {
           const menuBtn = document.createElement('button');
           menuBtn.textContent = 'Create Response PDF';
+          menuBtn.id = 'create_response_pdf';
+
+          menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 230)}px`;
+          menu.style.right = 'auto';
+          menu.style.top = '30px';
+          menu.style.minWidth = '200px';
+          menu.padding = '0px';
+          menu.style.display = 'none';
+          parent.appendChild(menu);
   
           menuBtn.onclick = async () => {
             if (isMenuOpen) {
-              parent.removeChild(menu);
+              menu.style.display = 'none';
             } else {
-              menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 110)}px`;
-              menu.style.right = 'auto';
-              menu.style.top = '30px';
-              menu.style.minWidth = '200px'
-              menu.padding = '0px'
-              parent.appendChild(menu);
+              menu.style.display = 'flex';
             }
   
             isMenuOpen = !isMenuOpen;
@@ -231,7 +237,6 @@ const Redlining = React.forwardRef(({
         // insert dropdown button in front of search button
         header.headers.default.splice((header.headers.default.length-3), 0, newCustomElement);
       });
-
 
 
       const Edit = () => {
@@ -287,7 +292,6 @@ const Redlining = React.forwardRef(({
             if(data)
               setMerge(true);
             setFetchAnnotResponse(data);
-            console.log("fetchAnnotations", data);
           },
           (error) => {
             console.log('Error:',error);
@@ -309,6 +313,24 @@ const Redlining = React.forwardRef(({
       });
         
     });
+
+    // // add event listener for pop up saving menu
+    // document.getElementById("create_response_pdf")?.addEventListener("click", () => {
+    //   if(isSavingMenuOpen) {
+    //     document.getElementById("saving_menu").style.display = 'none';
+    //   } else {
+    //     document.getElementById("saving_menu").style.display = 'block';
+    //   }
+    //   setIsSavingMenuOpen(!isSavingMenuOpen);
+    // });
+
+    // // add event listener for hiding saving menu
+    // document.body.addEventListener("click", () => {
+    //   if(isSavingMenuOpen) {
+    //     document.getElementById("saving_menu")?.style.display = 'none';
+    //     setIsSavingMenuOpen(!isSavingMenuOpen);
+    //   }
+    // });
   }, []);
 
   useEffect(() => {
@@ -455,7 +477,6 @@ const Redlining = React.forwardRef(({
   }));
 
 
-
   const checkSavingRedlineButton = (_instance) => {
     let _enableSavingRedline = isReadyForSignOff();
 
@@ -545,7 +566,6 @@ const Redlining = React.forwardRef(({
   useEffect(() => {
     docViewer?.displayPageLocation(individualDoc['page'], 0, 0);
   }, [individualDoc])
-
 
 
   const saveRedaction = () => {
