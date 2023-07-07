@@ -158,8 +158,6 @@ const Redlining = React.forwardRef(({
   
         menu.appendChild(createRecordsPackageBtn);
   
-        // const _enableSavingRedline = isReadyForSignOff();
-        // console.log("hello - enable: ", _enableSavingRedline);
         const redlineForSignOffBtn = document.createElement('button');
         redlineForSignOffBtn.textContent = 'Redline for Sign Off';
         redlineForSignOffBtn.id = 'redline_for_sign_off';
@@ -173,10 +171,7 @@ const Redlining = React.forwardRef(({
         // redlineForSignOffBtn.style.color = '#069';
 
         redlineForSignOffBtn.onclick = () => {
-          // Download
-          // console.log("Redline for Sign Off");
-
-          // console.log("xml: ", await annotationManager.exportAnnotations());
+          // Save to s3
           setRedlineModalOpen(true);
         };
   
@@ -877,7 +872,6 @@ const Redlining = React.forwardRef(({
           let totalPageCount = 0;
           for(let doc of divObj.documentlist) {
             docCount++;
-            // console.log("docCount: ", docCount);
 
             // update annotation xml
             if(divObj.annotationXML[doc.documentid]) {
@@ -887,22 +881,16 @@ const Redlining = React.forwardRef(({
                 let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
                 let customData = JSON.parse(txt.documentElement.textContent);
                 let originalPageNo = parseInt(customData.originalPageNo);
-                // domParser.parseFromString(customfield.attributes.bytes, 'text/html')
-                // console.log("originalPageNo: ", originalPageNo);
 
                 // page num from annot xml
                 let y = x.split('page="');
-                // console.log("page=", y);
                 let z = y[1].split('"');
                 let oldPageNum = 'page="'+z[0]+'"';
-                // console.log("originalPageNum", oldPageNum);
                 let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
-                // console.log("newPageNum", newPage);
                 x = x.replace(oldPageNum, newPage);
-                // console.log("updated: ", x);
                 return x;
               });
-              // console.log("xml str: ", updatedXML.join());
+
               stitchedXMLArray.push(updatedXML.join());
             }
             totalPageCount += doc.pagecount;
@@ -929,7 +917,6 @@ const Redlining = React.forwardRef(({
                   "downloadType": downloadType
                 }).then(async _data => {
                   const _arr = new Uint8Array(_data);
-                  // const _blob = new Blob([_arr], { type: 'application/octet-stream' });
                   const _blob = new Blob([_arr], { type: 'application/pdf' });
                   // const url = URL.createObjectURL(blob);
                   // window.open(url);

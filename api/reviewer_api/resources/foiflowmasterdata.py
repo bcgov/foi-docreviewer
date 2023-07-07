@@ -105,9 +105,7 @@ class FOIFlowS3PresignedRedline(Resource):
 
                 # generate save url for stitched file
                 filepathlist = div["documentlist"][0]["filepath"].split('/')[4:]
-                print("filepathlist", filepathlist)
                 filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
-                print("filepath_put", filepath_put)
 
                 # filename_put, file_extension_put = os.path.splitext(filepath_put)
                 # filepath_put = filename_put+'.pdf'
@@ -135,7 +133,6 @@ class FOIFlowS3PresignedRedline(Resource):
                         ExpiresIn=3600,HttpMethod='GET'
                         )
 
-            print("updated list: ", data)
             return json.dumps(data),200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500 
