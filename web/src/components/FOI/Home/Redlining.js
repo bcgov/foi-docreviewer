@@ -98,9 +98,7 @@ const Redlining = React.forwardRef(({
       return true;
     });
 
-    // ############## enable for now for testing #######################
-    // return !stopLoop;
-    return true;
+    return !stopLoop;
   };
   const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
 
@@ -867,7 +865,7 @@ const Redlining = React.forwardRef(({
       requestid,
       newDocList,
       async (res) => {
-        console.log("getFOIS3DocumentRedlinePreSignedUrl: ", res);
+        // console.log("getFOIS3DocumentRedlinePreSignedUrl: ", res);
 
         let domParser = new DOMParser()
         for(let divObj of res.divdocumentList) {
