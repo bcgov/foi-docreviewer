@@ -930,7 +930,8 @@ const Redlining = React.forwardRef(({
                     {filepath: stitchedDocPath},
                     _blob,
                     (_res) => {
-                      console.log(_res);
+                      // ######### call another process for zipping and generate download here ##########
+                      // console.log(_res);
                     },
                     (_err) => {
                       console.log(_err);
