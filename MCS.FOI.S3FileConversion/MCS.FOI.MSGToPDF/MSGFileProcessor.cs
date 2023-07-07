@@ -6,6 +6,7 @@ using Syncfusion.DocIO.DLS;
 using Syncfusion.DocIORenderer;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -52,6 +53,11 @@ namespace MCS.FOI.MSGToPDF
                             {
                                 using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
                                 {
+                                    // Replace leading tabs, issue with syncfusion
+                                    rtfDoc.ReplaceFirst = true;
+                                    var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
+                                    var occurences = rtfDoc.Replace(regex, "\r\n");
+
                                     WordDocument doc = new WordDocument();
                                     IWSection section = doc.AddSection();
                                     IWParagraph paragraph = section.AddParagraph();
@@ -80,8 +86,8 @@ namespace MCS.FOI.MSGToPDF
                                     {
                                         recipientCCName += recipient;
                                     }
-                                    if (!string.IsNullOrEmpty(recipientCCName)) 
-                                    { 
+                                    if (!string.IsNullOrEmpty(recipientCCName))
+                                    {
                                         paragraph.AppendText("Cc: ").CharacterFormat.Bold = true;
                                         paragraph.AppendText(recipientCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
                                         paragraph.AppendBreak(BreakType.LineBreak);
@@ -103,7 +109,7 @@ namespace MCS.FOI.MSGToPDF
                                     paragraph.AppendBreak(BreakType.LineBreak);
 
                                     paragraph.AppendText("Sent: ").CharacterFormat.Bold = true;
-                                    paragraph.AppendText(""+msg.SentOn).CharacterFormat.Bold = false;
+                                    paragraph.AppendText("" + msg.SentOn).CharacterFormat.Bold = false;
                                     paragraph.AppendBreak(BreakType.LineBreak);
 
 
