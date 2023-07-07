@@ -30,7 +30,10 @@ export const setPageFlags = (data: any) => (dispatch:any) =>{
     })
 }
 
-
-
-
+export const setDocumentList = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_DOCUMENT_LIST,
+        payload:data
+    })
+}
     
