@@ -33,18 +33,6 @@ class annotationservice:
         for documentid in annotationobj:
             annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
         return annotationobj
-    
-    def getrequestdivisionannotations(self, ministryrequestid, divisionid):
-        annotations = Annotation.getrequestdivisionannotations(ministryrequestid, divisionid)
-        annotationobj = {}
-        for annot in annotations:
-            if annot['documentid'] not in annotationobj:
-                annotationobj[annot['documentid']] = []
-            annotationobj[annot['documentid']].append(annot["annotation"])
-        for documentid in annotationobj:
-            annotationobj[documentid] = annotationobj[documentid]
-            # annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
-        return annotationobj
 
     def getannotationinfo(self, documentid, documentversion, pagenumber):
         annotations = Annotation.getannotationinfo(documentid, documentversion)

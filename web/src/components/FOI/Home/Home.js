@@ -5,7 +5,9 @@ import "../App.scss"
 import DocumentSelector from './DocumentSelector';
 import Redlining from './Redlining';
 import Grid from "@material-ui/core/Grid";
-import { fetchDocuments, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
+import WebViewer from '@pdftron/webviewer';
+
+import { fetchDocuments, fetchAnnotations } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
 
@@ -75,10 +77,6 @@ function Home() {
       }
       
     );
-    fetchPageFlag(
-      parseInt(foiministryrequestid),
-      (error) => console.log(error)
-    )
   }, [])
 
 

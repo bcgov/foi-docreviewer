@@ -58,39 +58,6 @@ class Annotation(db.Model):
         } for row in rs]
 
     @classmethod
-    def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
-        sql = '''
-                select a.*
-                from "Annotations" a
-                join (
-                    select distinct on (d.documentid) d.*
-					from  "Documents" d
-                    where d.foiministryrequestid = :ministryrequestid
-					order by d.documentid, d.version desc
-                ) d on (d.documentid = a.documentid and d.version = a.documentversion)
-				inner join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid or dm.processingparentid = d.documentmasterid
-                inner join "DocumentAttributes" da
-                    on (da.documentmasterid = dm.documentmasterid or da.documentmasterid = dm.processingparentid)
-					and da.isactive = true
-					and (da.attributes ->> 'divisions')::jsonb @> '[{"divisionid": :divisionid}]'
-					and a.isactive = true
-            '''
-        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid, 'divisionid': divisionid})
-        return [{
-            'annotationid': row['annotationid'],
-            'annotationname': row['annotationname'],
-            'documentid': row['documentid'],
-            'documentversion': row['documentversion'],
-            'annotation': row['annotation'],
-            'pagenumber': row['pagenumber'],
-            'isactive': row['isactive'],
-            'createdby': row['createdby'],
-            'created_at': row['created_at'],
-            'updatedby': row['updatedby'],
-            'updated_at': row['updated_at']
-        } for row in rs]
-
-    @classmethod
     def getredactionsbypage(cls, _documentid, _documentversion, _pagenum):
         annotation_schema = AnnotationSchema(many=True)
         query = db.session.query(Annotation).filter(
