@@ -89,7 +89,7 @@ class Annotation(db.Model):
                 "documentid": _documentid,
                 "documentversion": _documentversion,
                 "annotation": annot["xml"],
-                "pagenumber": annot["page"],
+                "pagenumber": annot["originalpageno"],
                 "createdby": userinfo,
                 "isactive": True
             } for annot in annots]

@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
-  deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
+  deleteAnnotation, fetchSections, fetchPageFlag, fetchKeywordsMasterData } from '../../../apiManager/services/docReviewerService';
 //import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 //import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
@@ -63,6 +63,7 @@ const Redlining = React.forwardRef(({
   const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
   const [merge, setMerge] = useState(false);
   const [mapper, setMapper] = useState([]);
+  const [searchKeywords, setSearchKeywords] = useState("");
   //xml parser
   const parser = new XMLParser();
 
@@ -70,10 +71,6 @@ const Redlining = React.forwardRef(({
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
-    //let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
-    //localStorage.setItem("isDocumentStitched", "false");
-    //console.log("Doc Stitched - Set as FALSE!")
-
     let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
     fetchSections(
       requestid,
@@ -130,7 +127,22 @@ const Redlining = React.forwardRef(({
       
       
       documentViewer.addEventListener('documentLoaded', () => {
-        PDFNet.initialize(); // Only needs to be initialized once
+        PDFNet.initialize(); // Only needs to be initialized once         
+        fetchKeywordsMasterData(
+          (data) => {
+            if(data){
+              let keywordArray= data.map(elmnt => elmnt.keyword);
+              var regexFromMyArray = new String(keywordArray.join("|"));
+              setSearchKeywords(regexFromMyArray);
+              instance.UI.searchTextFull(regexFromMyArray, {
+                //wholeWord: true,
+                regex: true
+              });  
+            }
+              
+          },
+          (error)=> console.log(error)
+        );
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
@@ -361,6 +373,9 @@ const Redlining = React.forwardRef(({
       })
     }
     setPageMappedDocs(mappedDocArray);
+    docInstance.UI.searchTextFull(searchKeywords, {
+      regex: true
+    });
     //setMapper(mappedDocArray);
     //localStorage.setItem("mappedDocArray", JSON.stringify(mappedDocArray));
     // doc?.getFileData()?.then(data => {
@@ -398,7 +413,7 @@ const Redlining = React.forwardRef(({
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let displayedDoc= getDataFromMappedDoc(Number(redactionObj['pages'])+1);
-    let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
+    //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
     let childSection ="";
     let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
@@ -412,7 +427,7 @@ const Redlining = React.forwardRef(({
       let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
       childAnnotation.setContents(redactionSections);
       const doc = docViewer.getDocument();
-      const pageNumber = parseInt(editAnnot.page) + 1;
+      const pageNumber = parseInt(editAnnot.pages) + 1;
       const pageInfo = doc.getPageInfo(pageNumber);
       const pageMatrix = doc.getPageMatrix(pageNumber);
       const pageRotation = doc.getPageRotation(pageNumber);
@@ -430,10 +445,8 @@ const Redlining = React.forwardRef(({
         let annot = annots[0].children[0];
         saveAnnotation(
           requestid,
-          // localInfo['file']['documentid'],
-          // localInfo['file']['version'],
-          individualPageNo.docId,
-          1,
+          displayedDoc.docId,
+          displayedDoc.version,
           astr,
           (data)=>{},
           (error)=>{console.log(error)},
@@ -513,7 +526,7 @@ const Redlining = React.forwardRef(({
       let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
       let annots = jObj.getElementsByTagName("annots");
       let annot = annots[0].children[0];
-      setEditAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
+      setEditAnnot({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
     })
     setAnnotManager(annotationManager);
   }
