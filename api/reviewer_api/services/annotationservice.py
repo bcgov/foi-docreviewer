@@ -95,7 +95,8 @@ class annotationservice:
                 "name": annot.getAttribute("name"),
                 "page": annot.getAttribute("page"),
                 "xml": annot.toxml(),
-                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
+                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
+                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo']
             })
         return annots
     
