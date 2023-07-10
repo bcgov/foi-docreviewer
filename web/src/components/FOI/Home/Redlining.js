@@ -996,7 +996,7 @@ const Redlining = React.forwardRef(({
             </Stack>
             <div style={{overflowY: 'scroll'}}>
               <List className="section-list">
-                {sections?.sort((a, b) => modalSortNumbered ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count).map((section, index) =>
+                {sections?.sort((a, b) => modalSortNumbered ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count).map((section, _index) =>
                   <ListItem key={"list-item" + section.id}>
                     <input
                         type="checkbox"
@@ -1005,6 +1005,7 @@ const Redlining = React.forwardRef(({
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
+                        disabled={selectedSections.length > 0 && (section.id === 25 ? !selectedSections.includes(25) : selectedSections.includes(25))}
                         defaultChecked={selectedSections.includes(section.id)}
                     />
                     <label key={"list-label" + section.id} className="check-item">
