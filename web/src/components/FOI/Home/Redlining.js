@@ -75,22 +75,27 @@ const Redlining = React.forwardRef(({
     let stopLoop = false;
 
     documentList.every(docInfo => {
-      pageFlags?.every(pageFlagInfo => {
-        if (docInfo.documentid == pageFlagInfo?.documentid) {
-          if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
-            stopLoop = true;
-            return false;
-          } else {
-            // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
-            pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
-            if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+
+      if(pageFlags?.length > 0) {
+        pageFlags.every(pageFlagInfo => {
+          if (docInfo.documentid == pageFlagInfo?.documentid) {
+            if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
               stopLoop = true;
               return false;
+            } else {
+              // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
+              pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
+              if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+                stopLoop = true;
+                return false;
+              }
             }
           }
-        }
-        return true;
-      });
+          return true;
+        });
+      } else {
+        stopLoop = true;
+      }
 
       if(stopLoop)
         return false;
