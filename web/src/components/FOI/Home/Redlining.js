@@ -293,6 +293,21 @@ const Redlining = React.forwardRef(({
             );
           }
         }
+        else if (action === 'modify') {
+          let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
+          if (selectedAnnotations[0].Subject === 'Redact') {
+            const displayedDoc= getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
+            saveAnnotation(
+              requestid,
+              displayedDoc.docId,
+              displayedDoc.version,
+              astr,
+              (data)=>{},
+              (error)=>{console.log(error)},
+              []
+            );
+          }
+        }
       })
       setAnnots(docInstance.Core.Annotations);
     });
@@ -387,6 +402,12 @@ const Redlining = React.forwardRef(({
       const _annotations = await annotManager.importAnnotations(xml)
       _annotations.forEach(_annotation => {
         annotManager.redrawAnnotation(_annotation);
+        annotManager.setPermissionCheckCallback((author, _annotation) => { 
+          if (_annotation.Subject !== 'Redact' && author !== username) {
+           _annotation.NoResize = true;
+          }
+          return true;
+          })  
       });
     }
   }
