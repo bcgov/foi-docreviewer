@@ -255,6 +255,25 @@ export const fetchPageFlag = (
     });
 };
 
+
+export const fetchKeywordsMasterData = (
+  callback: any,
+  errorCallback: any
+) => {
+  //let apiUrlGet: string = API.DOCREVIEWER_GET_ALL_PAGEFLAGS;
+  httpGETRequest(API.DOCREVIEWER_GET_ALL_KEYWORDS, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching keywords master data:",error);
+    });
+};
+
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
 };

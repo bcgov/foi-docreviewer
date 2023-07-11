@@ -36,4 +36,10 @@ export const setDocumentList = (data: any) => (dispatch:any) =>{
         payload:data
     })
 }
-    
+
+export const setKeywords = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_KEYWORDS,
+        payload:data
+    })
+} 

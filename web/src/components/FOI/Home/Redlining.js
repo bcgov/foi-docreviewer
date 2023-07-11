@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
-  deleteAnnotation, fetchSections, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
+  deleteAnnotation, fetchSections, fetchPageFlag, fetchKeywordsMasterData } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3 } from '../../../apiManager/services/foiOSSService';
 //import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
@@ -38,14 +38,14 @@ const Redlining = React.forwardRef(({
 }, ref) =>{
 
   const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
-  const redactionInfo = useSelector((state)=> state.documents?.redactionInfo);
-  const sections = useSelector((state) => state.documents?.sections);
+  const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
+  const sections = useSelector(state => state.documents?.sections);
 
   const viewer = useRef(null);
   const saveButton = useRef(null);
 
   const documentList = useAppSelector((state) => state.documents?.documentList);
-  //const [pdffile, setpdffile] = useState((currentPageInfo.file['filepath']));
+
   const [docViewer, setDocViewer] = useState(null);
   const [annotManager, setAnnotManager] = useState(null);
   const [annots, setAnnots] = useState(null);
@@ -66,7 +66,8 @@ const Redlining = React.forwardRef(({
   const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
   const [merge, setMerge] = useState(false);
   const [mapper, setMapper] = useState([]);
-  const [isSavingMenuOpen, setIsSavingMenuOpen] = useState(false);
+  const [searchKeywords, setSearchKeywords] = useState("");
+  const [iframeDocument, setIframeDocument] = useState(null);
   //xml parser
   const parser = new XMLParser();
 
@@ -110,10 +111,6 @@ const Redlining = React.forwardRef(({
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
   useEffect(() => {
-    //let currentDocumentS3Url = localStorage.getItem("currentDocumentS3Url");
-    //localStorage.setItem("isDocumentStitched", "false");
-    //console.log("Doc Stitched - Set as FALSE!")
-
     let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
     fetchSections(
       requestid,
@@ -129,7 +126,7 @@ const Redlining = React.forwardRef(({
         fullAPI: true,
         enableRedaction: true,
         useDownloader: false,
-        disabledElements: ['modalRedactButton', 'annotationRedactButton'],
+        disabledElements: ['modalRedactButton', 'annotationRedactButton', 'richTextFormats', 'colorPalette'],
         css: '/stylesheets/webviewer.css'
       },
       viewer.current,
@@ -139,6 +136,7 @@ const Redlining = React.forwardRef(({
 
       //customize header - insert a dropdown button
       const document = instance.UI.iframeWindow.document;
+      setIframeDocument(document);
       instance.UI.setHeaderItems(header => {
         const parent = documentViewer.getScrollViewElement().parentElement;
   
@@ -198,14 +196,11 @@ const Redlining = React.forwardRef(({
   
         menu.appendChild(responsePackageBtn);
   
-        let isMenuOpen = false;
-  
         const renderCustomMenu = () => {
           const menuBtn = document.createElement('button');
           menuBtn.textContent = 'Create Response PDF';
           menuBtn.id = 'create_response_pdf';
 
-          menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 230)}px`;
           menu.style.right = 'auto';
           menu.style.top = '30px';
           menu.style.minWidth = '200px';
@@ -214,13 +209,12 @@ const Redlining = React.forwardRef(({
           parent.appendChild(menu);
   
           menuBtn.onclick = async () => {
-            if (isMenuOpen) {
+            if (menu.style.display == 'flex') {
               menu.style.display = 'none';
             } else {
+              menu.style.left = `${document.body.clientWidth - (menuBtn.clientWidth + 96)}px`;
               menu.style.display = 'flex';
             }
-  
-            isMenuOpen = !isMenuOpen;
           };
   
           return menuBtn;
@@ -271,7 +265,22 @@ const Redlining = React.forwardRef(({
       
       
       documentViewer.addEventListener('documentLoaded', () => {
-        PDFNet.initialize(); // Only needs to be initialized once
+        PDFNet.initialize(); // Only needs to be initialized once         
+        fetchKeywordsMasterData(
+          (data) => {
+            if(data){
+              let keywordArray= data.map(elmnt => elmnt.keyword);
+              var regexFromMyArray = new String(keywordArray.join("|"));
+              setSearchKeywords(regexFromMyArray);
+              instance.UI.searchTextFull(regexFromMyArray, {
+                //wholeWord: true,
+                regex: true
+              });  
+            }
+              
+          },
+          (error)=> console.log(error)
+        );
         //update user info
         let newusername = user?.name || user?.preferred_username || "";
         let username = annotationManager.getCurrentUser();
@@ -309,27 +318,23 @@ const Redlining = React.forwardRef(({
         setDocViewerMath(Math);
 
       });
-        
+
+      // add event listener for hiding saving menu
+      document.body.addEventListener("click", () => {
+        document.getElementById("saving_menu").style.display = 'none';
+      }, true);
     });
 
-    // // add event listener for pop up saving menu
-    // document.getElementById("create_response_pdf")?.addEventListener("click", () => {
-    //   if(isSavingMenuOpen) {
-    //     document.getElementById("saving_menu").style.display = 'none';
-    //   } else {
-    //     document.getElementById("saving_menu").style.display = 'block';
-    //   }
-    //   setIsSavingMenuOpen(!isSavingMenuOpen);
-    // });
-
-    // // add event listener for hiding saving menu
-    // document.body.addEventListener("click", () => {
-    //   if(isSavingMenuOpen) {
-    //     document.getElementById("saving_menu")?.style.display = 'none';
-    //     setIsSavingMenuOpen(!isSavingMenuOpen);
-    //   }
-    // });
   }, []);
+
+  useEffect(() => {
+    // add event listener for hiding saving menu
+    if(iframeDocument) {
+      document.body.addEventListener("click", () => {
+        iframeDocument.getElementById("saving_menu").style.display = 'none';
+      }, true);
+    }
+  }, [iframeDocument]);
 
   useEffect(() => {
     docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
@@ -523,6 +528,9 @@ const Redlining = React.forwardRef(({
       })
     }
     setPageMappedDocs(mappedDocArray);
+    docInstance.UI.searchTextFull(searchKeywords, {
+      regex: true
+    });
     //setMapper(mappedDocArray);
     //localStorage.setItem("mappedDocArray", JSON.stringify(mappedDocArray));
     // doc?.getFileData()?.then(data => {
@@ -571,12 +579,13 @@ const Redlining = React.forwardRef(({
   }, [individualDoc])
 
 
+
   const saveRedaction = () => {
     setModalOpen(false);
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let displayedDoc= getDataFromMappedDoc(Number(redactionObj['pages'])+1);
-    let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
+    //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
     let childSection ="";
     let i = redactionInfo?.findIndex(a => a.annotationname === redactionObj?.name);
@@ -590,7 +599,7 @@ const Redlining = React.forwardRef(({
       let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
       childAnnotation.setContents(redactionSections);
       const doc = docViewer.getDocument();
-      const pageNumber = parseInt(editAnnot.page) + 1;
+      const pageNumber = parseInt(editAnnot.pages) + 1;
       const pageInfo = doc.getPageInfo(pageNumber);
       const pageMatrix = doc.getPageMatrix(pageNumber);
       const pageRotation = doc.getPageRotation(pageNumber);
@@ -608,10 +617,8 @@ const Redlining = React.forwardRef(({
         let annot = annots[0].children[0];
         saveAnnotation(
           requestid,
-          // localInfo['file']['documentid'],
-          // localInfo['file']['version'],
-          individualPageNo.docId,
-          1,
+          displayedDoc.docId,
+          displayedDoc.version,
           astr,
           (data)=>{},
           (error)=>{console.log(error)},
@@ -691,7 +698,7 @@ const Redlining = React.forwardRef(({
       let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
       let annots = jObj.getElementsByTagName("annots");
       let annot = annots[0].children[0];
-      setEditAnnot({page: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
+      setEditAnnot({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
     })
     setAnnotManager(annotationManager);
   }
@@ -964,6 +971,7 @@ const Redlining = React.forwardRef(({
     setRedlineModalOpen(false);
   }
 
+
   return (
     <div>
     {/* <button onClick={gotopage}>Click here</button> */}
@@ -1001,7 +1009,7 @@ const Redlining = React.forwardRef(({
             </Stack>
             <div style={{overflowY: 'scroll'}}>
               <List className="section-list">
-                {sections?.sort((a, b) => modalSortNumbered ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count).map((section, _index) =>
+                {sections?.sort((a, b) => modalSortNumbered ? (modalSortAsc ? a.id - b.id : b.id - a.id) : b.count - a.count).map((section, index) =>
                   <ListItem key={"list-item" + section.id}>
                     <input
                         type="checkbox"
@@ -1010,7 +1018,6 @@ const Redlining = React.forwardRef(({
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
-                        disabled={selectedSections.length > 0 && (section.id === 25 ? !selectedSections.includes(25) : selectedSections.includes(25))}
                         defaultChecked={selectedSections.includes(section.id)}
                     />
                     <label key={"list-label" + section.id} className="check-item">
