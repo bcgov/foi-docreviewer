@@ -241,7 +241,7 @@ const Redlining = React.forwardRef(({
           }
           setDeleteQueue(annotObjs);
         }
-        else if (action === 'add') {
+        else if (action === 'add' && annotations[0].Subject !== 'Note') {
           //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
           let displayedDoc;
           let individualPageNo;
