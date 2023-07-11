@@ -23,6 +23,17 @@ class annotationservice:
             annotationlist.append(entry["annotation"])
         return self.__generateannotationsxml(annotationlist)
     
+    def getrequestannotations(self, ministryrequestid):
+        annotations = Annotation.getrequestannotations(ministryrequestid)
+        annotationobj = {}
+        for annot in annotations:
+            if annot['documentid'] not in annotationobj:
+                annotationobj[annot['documentid']] = []
+            annotationobj[annot['documentid']].append(annot["annotation"])
+        for documentid in annotationobj:
+            annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
+        return annotationobj
+
     def getannotationinfo(self, documentid, documentversion, pagenumber):
         annotations = Annotation.getannotationinfo(documentid, documentversion)
         annotationsections = AnnotationSection.getsectionmapping(documentid, documentversion)
@@ -35,6 +46,12 @@ class annotationservice:
                 annotationlist.append(entry)
         return annotationlist
     
+    def getrequestannotationinfo(self, ministryrequestid):
+        annotationsections = AnnotationSection.getsectionmappingbyrequestid(ministryrequestid)
+        for entry in annotationsections:
+            entry['sections'] = {"annotationname": entry.pop("sectionannotation"), "ids": list(map(lambda id: id['id'], json.loads(entry.pop("ids"))))}            
+        return annotationsections
+
     def __issection(self, annotationsections, annotationname):
         for entry in annotationsections:
             if entry["sectionannotationname"] == annotationname:
@@ -78,7 +95,8 @@ class annotationservice:
                 "name": annot.getAttribute("name"),
                 "page": annot.getAttribute("page"),
                 "xml": annot.toxml(),
-                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
+                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
+                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo']
             })
         return annots
     

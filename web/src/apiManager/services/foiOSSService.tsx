@@ -8,7 +8,7 @@ export const getFOIS3DocumentPreSignedUrl = (
     errorCallback: any
 ) => {
     const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL + "/" + documentid
-    httpGETRequest(apiurl, {}, UserService.getToken())
+    return httpGETRequest(apiurl, {}, UserService.getToken())
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

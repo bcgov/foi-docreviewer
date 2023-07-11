@@ -116,8 +116,8 @@ namespace MCS.FOI.S3FileConversion
                                     (filepath, ministryrequestid, parentid, isredactionready, createdby)
                                     VALUES ($1, $2, $3, $4, $5) returning documentmasterid),
                                     attributeid as (INSERT INTO ""DocumentAttributes""
-                                    (documentmasterid, attributes, createdby)
-                                    VALUES ((select documentmasterid from masterid), $6, $7))
+                                    (documentmasterid, attributes, createdby, version, isactive)
+                                    VALUES ((select documentmasterid from masterid), $6, $7, 1, true))
                                     INSERT INTO ""DeduplicationJob""
                                     (version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
                                     VALUES ($8, $9, $10, $11, $12,  (select documentmasterid from masterid), $13, $14) returning deduplicationjobid, (select documentmasterid from masterid)")
@@ -150,8 +150,8 @@ namespace MCS.FOI.S3FileConversion
                                     (filepath, ministryrequestid, parentid, isredactionready, createdby)
                                     VALUES ($1, $2, $3, $4, $5) returning documentmasterid),
                                     attributeid as (INSERT INTO ""DocumentAttributes""
-                                    (documentmasterid, attributes, createdby)
-                                    VALUES ((select documentmasterid from masterid), $6, $7))
+                                    (documentmasterid, attributes, createdby, version, isactive)
+                                    VALUES ((select documentmasterid from masterid), $6, $7, 1, true))
                                     INSERT INTO ""FileConversionJob""
                                     (version, ministryrequestid, batch, trigger, inputdocumentmasterid, filename, status)
                                     VALUES ($8, $9, $10, $11, (select documentmasterid from masterid), $12, $13) returning fileconversionjobid, (select documentmasterid from masterid)")
