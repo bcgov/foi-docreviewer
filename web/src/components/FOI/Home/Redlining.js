@@ -133,6 +133,7 @@ const Redlining = React.forwardRef(({
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
+      instance.UI.enableElements(['attachmentPanelButton']);
 
       //customize header - insert a dropdown button
       const document = instance.UI.iframeWindow.document;
