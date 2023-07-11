@@ -50,7 +50,7 @@ class documentservice:
     def __updateproperties(self, records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords):
         if record["recordid"] is not None:
             _att_in_properties = []
-            record["pagecount"], record["filename"] = self.__getpagecountandfilename(record, parentproperties)
+            record["pagecount"], record["filename"], record["documentid"] = self.__getpagecountandfilename(record, parentproperties)
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(parentproperties, record)
             if len(record["attachments"]) > 0:
 
@@ -67,7 +67,7 @@ class documentservice:
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
                     
-                        attachment["pagecount"], attachment["filename"] = self.__getpagecountandfilename(attachment, _att_in_properties)
+                        attachment["pagecount"], attachment["filename"], attachment["documentid"] = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
     
     def __filterrecords(self, records):
@@ -90,7 +90,8 @@ class documentservice:
             if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
                 pagecount = property["pagecount"]
                 filename = property["filename"]
-        return pagecount, filename
+                documentid = property["documentid"]
+        return pagecount, filename, documentid
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
@@ -283,20 +284,34 @@ class documentservice:
         return DocumentAttributes.update(newRows, oldRows)
 
     def getdocuments(self, requestid):
-        documents = Document.getdocuments(requestid)
-        divisions = ProgramAreaDivision.getallprogramareadivisons()
+        divisions = {div['divisionid']: div for div in ProgramAreaDivision.getallprogramareadivisons()}
 
-        formated_documents = []
-        for document in documents:
-            doc_divisions = []
-            for division in document['divisions']:
-                doc_division = [div for div in divisions if div['divisionid']==division['divisionid']][0]
-                doc_divisions.append(doc_division)
+        documents = {document['documentmasterid']: document for document in self.getdedupestatus(requestid)}
+        attachments = []
 
-            document['divisions'] = doc_divisions
-            formated_documents.append(document)
+        for documentid in documents:
+            attachments.extend(documents[documentid].pop('attachments', []))
 
-        return documents
+        for attachment in attachments:
+            documents[attachment['documentmasterid']] = attachment
+
+        removeids = []
+        for documentid in documents:
+            document = documents[documentid]
+            if document['isduplicate']:
+                documents[document['duplicatemasterid']]['attributes']['divisions'].extend(document['attributes']['divisions'])
+                removeids.append(document['documentmasterid'])
+
+        for id in removeids:
+            documents.pop(id)
+
+        for documentid in documents:
+            document = documents[documentid]
+            documentdivisions = set(map(lambda d: d['divisionid'], document['attributes']['divisions']))
+            document['attributes']['divisions'] = list(map(lambda d: {"divisionid": d}, documentdivisions))
+            document['divisions'] = list(map(lambda d: divisions[d], documentdivisions))
+
+        return [documents[documentid] for documentid in documents]
     
     def getdocument(self, documentid):
         return Document.getdocument(documentid)    
