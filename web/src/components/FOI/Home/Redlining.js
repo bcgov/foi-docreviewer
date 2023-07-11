@@ -407,7 +407,10 @@ const Redlining = React.forwardRef(({
         annotManager.setPermissionCheckCallback((author, _annotation) => { 
           if (_annotation.Subject !== 'Redact' && author !== username) {
            _annotation.NoResize = true;
-          }
+          } 
+          if (author !== username) {
+            _annotation.LockedContents = true
+          }          
           return true;
           })  
       });
