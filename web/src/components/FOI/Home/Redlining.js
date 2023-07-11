@@ -390,6 +390,7 @@ const Redlining = React.forwardRef(({
   }
 
   const assignAnnotations= async(documentid, mappedDoc, domParser) => {
+    let username = docViewer?.getAnnotationManager()?.getCurrentUser();
     if (fetchAnnotResponse[documentid]) {
       let xml = parser.parseFromString(fetchAnnotResponse[documentid]);
       for (let annot of xml.getElementsByTagName("annots")[0].children) {
