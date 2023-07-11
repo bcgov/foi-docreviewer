@@ -293,6 +293,22 @@ const Redlining = React.forwardRef(({
             );
           }
         }
+        else if (action === 'modify') {
+          let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
+          let username = docViewer?.getAnnotationManager()?.getCurrentUser();
+          if (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)) {             
+            const displayedDoc= getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
+            saveAnnotation(
+              requestid,
+              displayedDoc.docId,
+              displayedDoc.version,
+              astr,
+              (data)=>{},
+              (error)=>{console.log(error)},
+              []
+            );
+          }
+        }
       })
       setAnnots(docInstance.Core.Annotations);
     });
@@ -375,6 +391,7 @@ const Redlining = React.forwardRef(({
   }
 
   const assignAnnotations= async(documentid, mappedDoc, domParser) => {
+    let username = docViewer?.getAnnotationManager()?.getCurrentUser();
     if (fetchAnnotResponse[documentid]) {
       let xml = parser.parseFromString(fetchAnnotResponse[documentid]);
       for (let annot of xml.getElementsByTagName("annots")[0].children) {
@@ -387,6 +404,12 @@ const Redlining = React.forwardRef(({
       const _annotations = await annotManager.importAnnotations(xml)
       _annotations.forEach(_annotation => {
         annotManager.redrawAnnotation(_annotation);
+        annotManager.setPermissionCheckCallback((author, _annotation) => { 
+          if (_annotation.Subject !== 'Redact' && author !== username) {
+           _annotation.NoResize = true;
+          }
+          return true;
+          })  
       });
     }
   }
