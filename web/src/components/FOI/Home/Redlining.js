@@ -133,6 +133,7 @@ const Redlining = React.forwardRef(({
     ).then((instance) => {
       const { documentViewer, annotationManager, Annotations, PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
+      instance.UI.enableElements(['attachmentPanelButton']);
 
       //customize header - insert a dropdown button
       const document = instance.UI.iframeWindow.document;
@@ -394,7 +395,7 @@ const Redlining = React.forwardRef(({
           }
           setDeleteQueue(annotObjs);
         }
-        else if (action === 'add') {
+        else if (action === 'add' && annotations[0].Subject !== 'Note') {
           //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
           let displayedDoc;
           let individualPageNo;
@@ -575,7 +576,10 @@ const Redlining = React.forwardRef(({
         annotManager.setPermissionCheckCallback((author, _annotation) => { 
           if (_annotation.Subject !== 'Redact' && author !== username) {
            _annotation.NoResize = true;
-          }
+          } 
+          if (author !== username) {
+            _annotation.LockedContents = true
+          }          
           return true;
           })  
       });

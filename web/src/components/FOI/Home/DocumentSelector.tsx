@@ -408,6 +408,7 @@ const DocumentSelector = ({
                                                     }}
                                                     title={<>
                                                         Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                                        {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
                                                     </>}
                                                     placement="bottom-end"
                                                     arrow
@@ -468,6 +469,7 @@ const DocumentSelector = ({
                                             }}
                                             title={<>
                                                 Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                                {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
                                             </>}
                                             placement="bottom-end"
                                             arrow

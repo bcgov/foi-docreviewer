@@ -2,14 +2,18 @@ from . import getdbconnection,gets3credentialsobject
 from . import foidedupehashcalulator
 from psycopg2 import sql
 from os import path
+from copy import deepcopy
 import json
 import psycopg2
 import requests
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
+from html import escape
 import hashlib
-from utils import gets3credentialsobject,getdedupeproducermessage, dedupe_s3_region,dedupe_s3_host,dedupe_s3_service,dedupe_s3_env
+import uuid
+from re import sub
+from utils import gets3credentialsobject,getdedupeproducermessage, dedupe_s3_region,dedupe_s3_host,dedupe_s3_service,dedupe_s3_env, request_management_api
 
 def __getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
@@ -47,7 +51,8 @@ def gets3documenthashcode(producermessage):
    
     _filename, extension = path.splitext(producermessage.filename)
     filepath = producermessage.s3filepath
-    if extension.lower() not in ['.pdf'] and not (json.loads(producermessage.attributes).get('isattachment', False) and producermessage.trigger == 'recordreplace'):
+    producermessage.attributes = json.loads(producermessage.attributes)
+    if extension.lower() not in ['.pdf'] and not (producermessage.attributes.get('isattachment', False) and producermessage.trigger == 'recordreplace'):
         filepath = path.splitext(filepath)[0] + extension
     response= requests.get('{0}'.format(filepath), auth=auth,stream=True)
     reader = None
@@ -55,6 +60,34 @@ def gets3documenthashcode(producermessage):
         reader = PdfReader(BytesIO(response.content))
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
+        attachments = []  
+        if reader.attachments:
+            if '/Collection' in reader.trailer['/Root']:
+                producermessage.attributes['isportfolio'] = True
+            else:
+                producermessage.attributes['hasattachment'] = True
+            for name in reader.attachments:
+                s3uripath = path.splitext(filepath)[0] + '/' + '{0}{1}'.format(uuid.uuid4(),path.splitext(name)[1])
+                data = b''.join(reader.attachments[name])
+                uploadresponse = requests.put(s3uripath, data=data, auth=auth)
+                uploadresponse.raise_for_status()
+                attachment = {
+                    'filename': escape(sub('<[0-9]+>', '', name, 1)),
+                    's3uripath': s3uripath,
+                    'attributes': deepcopy(producermessage.attributes)
+                }
+                attachment['attributes']['filesize'] = len(data)
+                attachment['attributes']['parentpdfmasterid'] = producermessage.documentmasterid
+                attachment['attributes'].pop('batch')
+                attachment['attributes'].pop('extension')
+                attachment['attributes'].pop('incompatible')
+                attachments.append(attachment)
+            saveresponse = requests.post(
+                request_management_api + '/api/foirecord/-1/ministryrequest/' + producermessage.ministryrequestid,
+                data=json.dumps({'records': attachments}),
+                headers={'Authorization': producermessage.usertoken, 'Content-Type': 'application/json'},
+            )
+            saveresponse.raise_for_status()
     elif extension.lower() in ['.doc','.docx','.xls','.xlsx','.msg']:
         #"Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get('{0}'.format(producermessage.s3filepath), auth=auth,stream=True)
