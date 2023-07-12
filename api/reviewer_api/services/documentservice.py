@@ -89,6 +89,7 @@ class documentservice:
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
+        documentid = None
         for property in properties:
             if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
                 pagecount = property["pagecount"]
@@ -293,7 +294,11 @@ class documentservice:
         attachments = []
 
         for documentid in documents:
-            attachments.extend(documents[documentid].pop('attachments', []))
+            _attachments = documents[documentid].pop('attachments', [])
+            for attachment in _attachments:
+                attachment['attributes']['attachmentlastmodified'] = attachment['attributes']['lastmodified']
+                attachment['attributes']['lastmodified'] = documents[documentid]['attributes']['lastmodified']
+                attachments.append(attachment)
 
         for attachment in attachments:
             documents[attachment['documentmasterid']] = attachment
