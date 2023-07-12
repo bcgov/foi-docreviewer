@@ -138,3 +138,47 @@ class FOIFlowS3PresignedRedline(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500 
 
 
+@cors_preflight('POST,OPTIONS')
+@API.route('/foiflow/oss/presigned/responsepackage/<int:ministryrequestid>')
+class FOIFlowS3PresignedResponsePackage(Resource):
+
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post(ministryrequestid):
+        try :
+            data = request.get_json()
+            documentmapper = redactionservice().getdocumentmapper(data["filepath"].split('/')[3])
+            attribute = json.loads(documentmapper["attributes"])
+
+            # current_app.logger.debug("Inside Presigned api!!")
+            formsbucket = documentmapper["bucket"]
+            accesskey = attribute["s3accesskey"]
+            secretkey = attribute["s3secretkey"]
+            s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
+                endpoint_url='https://{0}/'.format(s3host),
+                aws_access_key_id= accesskey,
+                aws_secret_access_key= secretkey,region_name= s3region
+                )
+
+            # generate save url for stitched file
+            filename = str(ministryrequestid)
+            filepathlist = data["filepath"].split('/')[4:]
+            filepath_put = '{0}/responsepackage/{1}.pdf'.format(filepathlist[0],filename)
+
+            # filename_put, file_extension_put = os.path.splitext(filepath_put)
+            # filepath_put = filename_put+'.pdf'
+            s3path_save = s3client.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
+                    ExpiresIn=3600,HttpMethod='PUT'
+                    )
+            
+            # for save/put - stitch by division
+            data["s3path_save"] = s3path_save
+
+            return json.dumps(data),200
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500 

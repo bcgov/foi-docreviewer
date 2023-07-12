@@ -18,7 +18,7 @@ import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
   deleteAnnotation, fetchSections, fetchPageFlag, fetchKeywordsMasterData } from '../../../apiManager/services/docReviewerService';
-import { getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3 } from '../../../apiManager/services/foiOSSService';
+import { getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3, getResponsePackagePreSignedUrl } from '../../../apiManager/services/foiOSSService';
 //import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
@@ -131,7 +131,7 @@ const Redlining = React.forwardRef(({
       },
       viewer.current,
     ).then((instance) => {
-      const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math, createDocument } = instance.Core;
+      const { documentViewer, annotationManager, Annotations, PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
 
       //customize header - insert a dropdown button
@@ -192,6 +192,7 @@ const Redlining = React.forwardRef(({
         responsePackageBtn.onclick = () => {
           // Download
           // console.log("Response Package for Application");
+          saveResponsePackage(documentViewer, annotationManager);
         };
   
         menu.appendChild(responsePackageBtn);
@@ -992,6 +993,48 @@ const Redlining = React.forwardRef(({
 
   const cancelSaveRedlineDoc = () => {
     setRedlineModalOpen(false);
+  }
+
+
+  const saveResponsePackage = (documentViewer, annotationManager) => {
+    const downloadType = 'pdf';
+    // console.log("divisions: ", divisions);
+
+    getResponsePackagePreSignedUrl(
+      requestid,
+      documentList[0],
+      async (res) => {
+        // console.log("getResponsePackagePreSignedUrl: ", res);
+        // res.s3path_save;
+
+        annotationManager.applyRedactions().then(async results => {
+          const doc = documentViewer.getDocument();
+
+          doc.getFileData({
+            // saves the document with annotations in it
+            "downloadType": downloadType
+          }).then(async _data => {
+            const _arr = new Uint8Array(_data);
+            const _blob = new Blob([_arr], { type: 'application/pdf' });
+  
+            await saveFilesinS3(
+              {filepath: res.s3path_save},
+              _blob,
+              (_res) => {
+                console.log(_res);
+              },
+              (_err) => {
+                console.log(_err);
+              }
+            );
+          });
+
+        });
+      },
+      (error) => {
+          console.log('Error fetching document:',error);
+      }
+    );
   }
 
 
