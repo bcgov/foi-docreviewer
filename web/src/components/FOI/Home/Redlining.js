@@ -394,7 +394,7 @@ const Redlining = React.forwardRef(({
           }
           setDeleteQueue(annotObjs);
         }
-        else if (action === 'add') {
+        else if (action === 'add' && annotations[0].Subject !== 'Note') {
           //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
           let displayedDoc;
           let individualPageNo;
@@ -575,7 +575,10 @@ const Redlining = React.forwardRef(({
         annotManager.setPermissionCheckCallback((author, _annotation) => { 
           if (_annotation.Subject !== 'Redact' && author !== username) {
            _annotation.NoResize = true;
-          }
+          } 
+          if (author !== username) {
+            _annotation.LockedContents = true
+          }          
           return true;
           })  
       });
