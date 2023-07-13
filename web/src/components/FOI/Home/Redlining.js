@@ -126,7 +126,6 @@ const Redlining = React.forwardRef(({
         fullAPI: true,
         enableRedaction: true,
         useDownloader: false,
-        disabledElements: ['modalRedactButton', 'annotationRedactButton', 'richTextFormats', 'colorPalette'],
         css: '/stylesheets/webviewer.css'
       },
       viewer.current,
