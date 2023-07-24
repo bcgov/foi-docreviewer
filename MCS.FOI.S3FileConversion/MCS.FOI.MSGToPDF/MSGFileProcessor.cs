@@ -85,6 +85,7 @@ namespace MCS.FOI.MSGToPDF
 
                                     }
 
+
                                     WordDocument doc = new WordDocument();
                                     IWSection section = doc.AddSection();
                                     IWParagraph paragraph = section.AddParagraph();
@@ -113,8 +114,8 @@ namespace MCS.FOI.MSGToPDF
                                     {
                                         recipientCCName += recipient;
                                     }
-                                    if (!string.IsNullOrEmpty(recipientCCName)) 
-                                    { 
+                                    if (!string.IsNullOrEmpty(recipientCCName))
+                                    {
                                         paragraph.AppendText("Cc: ").CharacterFormat.Bold = true;
                                         paragraph.AppendText(recipientCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
                                         paragraph.AppendBreak(BreakType.LineBreak);
