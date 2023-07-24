@@ -3,6 +3,7 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime as datetime2
+import logging
 
 class DocumentAttributes(db.Model):
     __tablename__ = 'DocumentAttributes' 
@@ -15,16 +16,26 @@ class DocumentAttributes(db.Model):
 
     @classmethod
     def getdocumentattributes(cls, documentid):
-        attributes_schema = DocumentAttributeSchema(many=True)
-        query = db.session.query(DocumentAttributes).filter_by(and_(documentid = documentid)).order_by(DocumentAttributes.documentversion.desc()).first()
-        return attributes_schema.dump(query)
-
+        try:
+            attributes_schema = DocumentAttributeSchema(many=True)
+            query = db.session.query(DocumentAttributes).filter_by(and_(documentid = documentid)).order_by(DocumentAttributes.documentversion.desc()).first()
+            return attributes_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        
     @classmethod
     def create(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Attributes added for document master id Added: {0}'.format(row.documentmasterid), row.attributeid)    
-
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Attributes added for document master id Added: {0}'.format(row.documentmasterid), row.attributeid)    
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        
 class DocumentAttributeSchema(ma.Schema):
     class Meta:
         fields = ('attributeid', 'documentmasterid', 'documentversion','attributes','createdby','created_at')
