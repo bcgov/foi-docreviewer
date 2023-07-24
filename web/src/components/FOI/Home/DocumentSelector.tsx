@@ -26,6 +26,7 @@ import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
 import {getPageNoOfStitchedDoc} from "./utils";
+import { pageFlagTypes } from '../../../constants/enum';
 
 const DocumentSelector = ({
     openFOIPPAModal,
@@ -254,15 +255,15 @@ const DocumentSelector = ({
         if (flagFilterCopy.includes(flagId)) {
             flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
             event.currentTarget.classList.remove('selected');
-            if (flagId === 8)
+            if (flagId === pageFlagTypes["Page Left Off"])
                 setFilterBookmark(false);
-            else if ((flagFilterCopy.length == 1 && flagFilterCopy.includes(8)))
+            else if ((flagFilterCopy.length == 1 && flagFilterCopy.includes(pageFlagTypes["Page Left Off"])))
                 setFilterBookmark(true);
         }
         else {
             flagFilterCopy.push(flagId);
             event.currentTarget.classList.add('selected');
-            if (flagId === 8 || (flagFilterCopy.length == 1 && flagFilterCopy.includes(8)))
+            if (flagId === pageFlagTypes["Page Left Off"] || (flagFilterCopy.length == 1 && flagFilterCopy.includes(pageFlagTypes["Page Left Off"])))
                 setFilterBookmark(true);
             else
                 setFilterBookmark(false);
