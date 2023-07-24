@@ -6,6 +6,8 @@ using Syncfusion.DocIO.DLS;
 using Syncfusion.DocIORenderer;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
+using Syncfusion.DocIO;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -47,11 +49,42 @@ namespace MCS.FOI.MSGToPDF
                         {
                             using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
 
-                            byte[] byteArray = Encoding.ASCII.GetBytes(msg.BodyRtf);
+                            byte[] byteArray = Encoding.ASCII.GetBytes(System.Net.WebUtility.HtmlDecode(msg.BodyRtf));
                             using (MemoryStream messageStream = new MemoryStream(byteArray))
                             {
                                 using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
                                 {
+                                    // Replace leading tabs, issue with syncfusion
+                                    rtfDoc.ReplaceFirst = true;
+                                    var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
+                                    var occurences = rtfDoc.Replace(regex, "\r\n");
+
+                                    //Gets all the hyperlink fields in the document
+
+                                    List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
+
+                                    for (int i = 0; i < fields.Count; i++)
+
+                                    {
+
+                                        //Creates hyperlink instance from field to manipulate the hyperlink.
+
+                                        Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
+
+                                        //Gets the text to display from hyperlink
+
+                                        string existingHyperlinkText = hyperlink.TextToDisplay;
+
+                                        //Removes the content between tags
+
+                                        string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
+
+                                        //Sets the modified text to display to hyperlink
+
+                                        hyperlink.TextToDisplay = modifiedTextToDisplay;
+
+                                    }
+
                                     WordDocument doc = new WordDocument();
                                     IWSection section = doc.AddSection();
                                     IWParagraph paragraph = section.AddParagraph();
@@ -103,7 +136,7 @@ namespace MCS.FOI.MSGToPDF
                                     paragraph.AppendBreak(BreakType.LineBreak);
 
                                     paragraph.AppendText("Sent: ").CharacterFormat.Bold = true;
-                                    paragraph.AppendText(""+msg.SentOn).CharacterFormat.Bold = false;
+                                    paragraph.AppendText("" + msg.SentOn).CharacterFormat.Bold = false;
                                     paragraph.AppendBreak(BreakType.LineBreak);
 
 
@@ -437,6 +470,64 @@ namespace MCS.FOI.MSGToPDF
                 if (attachmentsObj != null) attachmentsObj = null;
                 // free managed resources
             }
+
+        }
+
+        /// <summary>
+
+        /// Remove the content between tags
+
+        /// </summary>
+
+        /// <param name="inputString">Input string</param>
+
+        /// <returns>Remove the content between '<' and  '>' And returns the remaining string</returns>
+
+        static string RemoveContentBetweenTags(string inputString)
+
+        {
+
+            string result = "";
+
+            bool insideTag = false;
+
+            foreach (char c in inputString)
+
+            {
+
+                if (c == '<')
+
+                {
+
+                    insideTag = true;
+
+                    continue;
+
+                }
+
+                else if (c == '>')
+
+                {
+
+                    insideTag = false;
+
+                    continue;
+
+                }
+
+                if (!insideTag)
+
+                {
+
+                    result += c;
+
+                }
+
+            }
+
+
+
+            return result;
 
         }
 
