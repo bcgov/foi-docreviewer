@@ -3,6 +3,7 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_
 from datetime import datetime as datetime2
 from sqlalchemy import or_, and_
+import logging
 
 class Pageflag(db.Model):
     __tablename__ = 'Pageflags' 
@@ -19,10 +20,14 @@ class Pageflag(db.Model):
 
     @classmethod
     def getall(cls):
-        pageflag_schema = PageflagSchema(many=True)
-        query = db.session.query(Pageflag).filter_by(isactive=True).order_by(Pageflag.sortorder.asc()).all()
-        return pageflag_schema.dump(query)
-    
+        try:
+            pageflag_schema = PageflagSchema(many=True)
+            query = db.session.query(Pageflag).filter_by(isactive=True).order_by(Pageflag.sortorder.asc()).all()
+            return pageflag_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class PageflagSchema(ma.Schema):
     class Meta:
