@@ -3,6 +3,7 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy.orm import relationship,backref
 from datetime import datetime
 from sqlalchemy import text
+import logging
 
 class ProgramAreaDivision(db.Model):
     __tablename__ = 'ProgramAreaDivisions' 
@@ -16,15 +17,25 @@ class ProgramAreaDivision(db.Model):
     
     @classmethod
     def getallprogramareadivisons(cls):
-        division_schema = ProgramAreaDivisionSchema(many=True)
-        query = db.session.query(ProgramAreaDivision).filter_by(isactive=True).all()
-        return division_schema.dump(query)
+        try:
+            division_schema = ProgramAreaDivisionSchema(many=True)
+            query = db.session.query(ProgramAreaDivision).filter_by(isactive=True).all()
+            return division_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getprogramareadivisions(cls,programareaid):
-        division_schema = ProgramAreaDivisionSchema(many=True)
-        query = db.session.query(ProgramAreaDivision).filter_by(programareaid=programareaid, isactive=True).order_by(ProgramAreaDivision.name.asc())
-        return division_schema.dump(query)
+        try:
+            division_schema = ProgramAreaDivisionSchema(many=True)
+            query = db.session.query(ProgramAreaDivision).filter_by(programareaid=programareaid, isactive=True).order_by(ProgramAreaDivision.name.asc())
+            return division_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
     
              
 

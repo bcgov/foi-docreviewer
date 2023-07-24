@@ -26,33 +26,53 @@ class Annotation(db.Model):
 
     @classmethod
     def getannotations(cls, _documentid, _documentversion):
-        annotation_schema = AnnotationSchema(many=True)
-        query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
-        return annotation_schema.dump(query)
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = db.session.query(Annotation).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getredactionsbypage(cls, _documentid, _documentversion, _pagenum):
-        annotation_schema = AnnotationSchema(many=True)
-        query = db.session.query(Annotation).filter(
-            and_(
-                Annotation.documentid == _documentid,
-                Annotation.documentversion == _documentversion,
-                Annotation.isactive==True,
-                Annotation.pagenumber == _pagenum-1,
-                Annotation.annotation.ilike('%<redact %')
-            )).order_by(Annotation.annotationid.asc()).all()
-        return annotation_schema.dump(query)
-    
-    @classmethod
-    def getannotationinfo(cls, _documentid, _documentversion):
-        annotation_schema = AnnotationSchema(many=True)
-        query = db.session.query(Annotation.annotationname).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
-        return annotation_schema.dump(query)
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = db.session.query(Annotation).filter(
+                and_(
+                    Annotation.documentid == _documentid,
+                    Annotation.documentversion == _documentversion,
+                    Annotation.isactive==True,
+                    Annotation.pagenumber == _pagenum-1,
+                    Annotation.annotation.ilike('%<redact %')
+                )).order_by(Annotation.annotationid.asc()).all()
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
+    def getannotationinfo(cls, _documentid, _documentversion):
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = db.session.query(Annotation.annotationname).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        
+    @classmethod
     def getannotationid(cls, _annotationname):
-        return db.session.query(Annotation.annotationid).filter(and_(Annotation.annotationname == _annotationname, Annotation.isactive==True)).first()[0]
-       
+        try:
+            return db.session.query(Annotation.annotationid).filter(and_(Annotation.annotationname == _annotationname, Annotation.isactive==True)).first()[0]
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close() 
+          
     #upsert
     @classmethod
     def saveannotations(cls, annots, _documentid, _documentversion, userinfo)->DefaultMethodResult:
@@ -79,9 +99,14 @@ class Annotation(db.Model):
         
     @classmethod
     def deactivateannotation(cls, _annotationname, _documentid, _documentversion, userinfo)->DefaultMethodResult:
-        db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
-        db.session.commit()
-        return DefaultMethodResult(True,'Annotation deactivated',_annotationname)
+        try:
+            db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
+            db.session.commit()
+            return DefaultMethodResult(True,'Annotation deactivated',_annotationname)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class AnnotationSchema(ma.Schema):
     class Meta:
