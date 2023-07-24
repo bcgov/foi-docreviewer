@@ -24,6 +24,7 @@ import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
+import { pageFlagTypes } from '../../../constants/enum';
 
 const Redlining = React.forwardRef(({
   user,
@@ -409,13 +410,13 @@ const Redlining = React.forwardRef(({
                 pageSelectionList.push(
                   {
                   "page": Number(individualPageNo),
-                  "flagid":3
+                  "flagid":pageFlagTypes["Withheld in Full"]
                   });
               } else {
                 pageSelectionList.push(
                   {
                   "page": Number(individualPageNo),
-                  "flagid":1
+                  "flagid":pageFlagTypes["Partial Disclosure"]
                   });
               }
             })
@@ -657,6 +658,10 @@ const Redlining = React.forwardRef(({
       })
     }
     else {
+      var pageFlagSelections = pageSelections
+      if ((defaultSections.length > 0 && defaultSections[0] === 25) || selectedSections[0] === 25) {
+        pageFlagSelections[0].flagid = pageFlagTypes["In Progress"]
+      }
       saveAnnotation(
         requestid,
         displayedDoc.docId,
@@ -668,7 +673,7 @@ const Redlining = React.forwardRef(({
           (error) => console.log(error)
         )},
         (error)=>{console.log(error)},
-        pageSelections
+        pageFlagSelections
       );
     //}
       // add section annotation
@@ -1044,6 +1049,7 @@ const Redlining = React.forwardRef(({
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
+                        disabled={selectedSections.length > 0 && (section.id === 25 ? !selectedSections.includes(25) : selectedSections.includes(25))}
                         defaultChecked={selectedSections.includes(section.id)}
                     />
                     <label key={"list-label" + section.id} className="check-item">
