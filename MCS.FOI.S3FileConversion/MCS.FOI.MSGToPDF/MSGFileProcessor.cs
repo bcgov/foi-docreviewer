@@ -79,11 +79,14 @@ namespace MCS.FOI.MSGToPDF
 
                                             //Removes the content between tags
 
-                                            string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
+                                            if (!string.IsNullOrEmpty(existingHyperlinkText))
+                                            {
+                                                string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
 
-                                            //Sets the modified text to display to hyperlink
+                                                //Sets the modified text to display to hyperlink
 
-                                            hyperlink.TextToDisplay = modifiedTextToDisplay;
+                                                hyperlink.TextToDisplay = modifiedTextToDisplay;
+                                            }
 
                                         }
                                     }
