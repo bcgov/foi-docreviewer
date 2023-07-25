@@ -48,168 +48,113 @@ namespace MCS.FOI.MSGToPDF
                         try
                         {
                             using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
-
-                            byte[] byteArray = Encoding.ASCII.GetBytes(System.Net.WebUtility.HtmlDecode(msg.BodyRtf));
-                            using (MemoryStream messageStream = new MemoryStream(byteArray))
+                            if (msg.BodyRtf != null)
                             {
-                                using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
+                                byte[] byteArray = Encoding.ASCII.GetBytes(System.Net.WebUtility.HtmlDecode(msg.BodyRtf));
+                                using (MemoryStream messageStream = new MemoryStream(byteArray))
                                 {
-                                    // Replace leading tabs, issue with syncfusion
-                                    rtfDoc.ReplaceFirst = true;
-                                    var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
-                                    var occurences = rtfDoc.Replace(regex, "\r\n");
-
-                                    //Gets all the hyperlink fields in the document
-
-                                    List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
-
-                                    for (int i = 0; i < fields.Count; i++)
-
+                                    using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
                                     {
+                                        // Replace leading tabs, issue with syncfusion
+                                        rtfDoc.ReplaceFirst = true;
+                                        var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
+                                        var occurences = rtfDoc.Replace(regex, "\r\n");
 
-                                        //Creates hyperlink instance from field to manipulate the hyperlink.
+                                        //Gets all the hyperlink fields in the document
 
-                                        Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
+                                        List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
 
-                                        //Gets the text to display from hyperlink
-
-                                        string existingHyperlinkText = hyperlink.TextToDisplay;
-
-                                        //Removes the content between tags
-
-                                        string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
-
-                                        //Sets the modified text to display to hyperlink
-
-                                        hyperlink.TextToDisplay = modifiedTextToDisplay;
-
-                                    }
-
-
-                                    WordDocument doc = new WordDocument();
-                                    IWSection section = doc.AddSection();
-                                    IWParagraph paragraph = section.AddParagraph();
-                                    paragraph.AppendText("From: ").CharacterFormat.Bold = true;
-                                    var sender = "";
-                                    if (msg.Sender != null && msg.Sender.DisplayName != null)
-                                    {
-                                        sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + " (" + msg.Sender.Email + ")" : msg.Sender.DisplayName;
-                                    }
-                                    paragraph.AppendText(sender).CharacterFormat.Bold = false;
-                                    paragraph.AppendBreak(BreakType.LineBreak);
-                                    string recipientName = "";
-                                    foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
-                                    {
-                                        recipientName += recipient;
-                                    }
-
-                                    if (!string.IsNullOrEmpty(recipientName))
-                                    {
-                                        paragraph.AppendText("To: ").CharacterFormat.Bold = true;
-                                        paragraph.AppendText(recipientName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                                        paragraph.AppendBreak(BreakType.LineBreak);
-                                    }
-                                    string recipientCCName = "";
-                                    foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
-                                    {
-                                        recipientCCName += recipient;
-                                    }
-                                    if (!string.IsNullOrEmpty(recipientCCName))
-                                    {
-                                        paragraph.AppendText("Cc: ").CharacterFormat.Bold = true;
-                                        paragraph.AppendText(recipientCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                                        paragraph.AppendBreak(BreakType.LineBreak);
-                                    }
-                                    string recipientBCCName = "";
-                                    foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
-                                    {
-                                        recipientBCCName += recipient;
-                                    }
-                                    if (!string.IsNullOrEmpty(recipientBCCName))
-                                    {
-                                        paragraph.AppendText("Bcc: ").CharacterFormat.Bold = true;
-                                        paragraph.AppendText(recipientBCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                                        paragraph.AppendBreak(BreakType.LineBreak);
-                                    }
-
-                                    paragraph.AppendText("Subject: ").CharacterFormat.Bold = true;
-                                    paragraph.AppendText(msg.Subject).CharacterFormat.Bold = false;
-                                    paragraph.AppendBreak(BreakType.LineBreak);
-
-                                    paragraph.AppendText("Sent: ").CharacterFormat.Bold = true;
-                                    paragraph.AppendText("" + msg.SentOn).CharacterFormat.Bold = false;
-                                    paragraph.AppendBreak(BreakType.LineBreak);
-
-
-                                    string attachmentsList = "";
-                                    foreach (Object attachment in msg.Attachments)
-                                    {
-                                        if (attachment.GetType().FullName.ToLower().Contains("message"))
+                                        if (fields != null)
                                         {
-                                            var _attachment = (Storage.Message)attachment;
-                                            attachmentsList += (_attachment.FileName + ", ");
-                                        }
-                                        else
-                                        {
-                                            var _attachment = (Storage.Attachment)attachment;
-                                            attachmentsList += _attachment.FileName + ", ";
+                                            for (int i = 0; i < fields.Count; i++)
+
+                                            {
+
+                                                //Creates hyperlink instance from field to manipulate the hyperlink.
+
+                                                Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
+
+                                                //Gets the text to display from hyperlink
+
+                                                string existingHyperlinkText = hyperlink.TextToDisplay;
+
+                                                //Removes the content between tags
+
+                                                if (!string.IsNullOrEmpty(existingHyperlinkText))
+                                                {
+                                                    string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
+
+                                                    //Sets the modified text to display to hyperlink
+
+                                                    hyperlink.TextToDisplay = modifiedTextToDisplay;
+                                                }
+
+                                            }
                                         }
 
-                                    }
+
+                                        WordDocument doc = GetEmailMetatdata(msg);
 
 
-                                    if (!string.IsNullOrEmpty(attachmentsList))
-                                    {
-                                        paragraph.AppendText("Attachments: ").CharacterFormat.Bold = true;
-                                        paragraph.AppendText(attachmentsList.Remove(attachmentsList.Length - 2, 2)).CharacterFormat.Bold = false;
-                                        paragraph.AppendBreak(BreakType.LineBreak);
-                                    }
+                                        //Sets the break-code of First section of source document as NoBreak to avoid imported from a new page
 
+                                        rtfDoc.Sections[0].BreakCode = SectionBreakCode.NoBreak;
 
-                                    paragraph.AppendText("Message Body: ").CharacterFormat.Bold = true;
-                                    paragraph.AppendBreak(BreakType.LineBreak);
+                                        //Gets the destination document page properties.
 
-                                    //Sets the break-code of First section of source document as NoBreak to avoid imported from a new page
+                                        WPageSetup destSecPageSetup = doc.LastSection.PageSetup;
 
-                                    rtfDoc.Sections[0].BreakCode = SectionBreakCode.NoBreak;
+                                        //Processes each section in the source Word document.
 
-                                    //Gets the destination document page properties.
+                                        for (int i = 0; i < rtfDoc.Sections.Count; i++)
 
-                                    WPageSetup destSecPageSetup = doc.LastSection.PageSetup;
+                                        {
 
-                                    //Processes each section in the source Word document.
+                                            WSection sourceSection = rtfDoc.Sections[i];
 
-                                    for (int i = 0; i < rtfDoc.Sections.Count; i++)
+                                            //Sets the destination document page setup properties to the source document sections.
 
-                                    {
+                                            sourceSection.PageSetup.DifferentFirstPage = destSecPageSetup.DifferentFirstPage;
 
-                                        WSection sourceSection = rtfDoc.Sections[i];
+                                            sourceSection.PageSetup.Margins = destSecPageSetup.Margins;
 
-                                        //Sets the destination document page setup properties to the source document sections.
+                                            sourceSection.PageSetup.Orientation = destSecPageSetup.Orientation;
 
-                                        sourceSection.PageSetup.DifferentFirstPage = destSecPageSetup.DifferentFirstPage;
+                                            sourceSection.PageSetup.PageSize = destSecPageSetup.PageSize;
 
-                                        sourceSection.PageSetup.Margins = destSecPageSetup.Margins;
+                                        }
 
-                                        sourceSection.PageSetup.Orientation = destSecPageSetup.Orientation;
+                                        doc.ImportContent(rtfDoc, ImportOptions.UseDestinationStyles);
 
-                                        sourceSection.PageSetup.PageSize = destSecPageSetup.PageSize;
+                                        using (DocIORenderer renderer = new DocIORenderer())
+                                        {
+                                            using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
+                                            //Save the PDF file
+                                            //Close the instance of document objects
+                                            pdfDocument.Save(output);
+                                            pdfDocument.Close(true);
 
-                                    }
-
-                                    doc.ImportContent(rtfDoc, ImportOptions.UseDestinationStyles);
-
-                                    using (DocIORenderer renderer = new DocIORenderer())
-                                    {
-                                        using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
-                                        //Save the PDF file
-                                        //Close the instance of document objects
-                                        pdfDocument.Save(output);
-                                        pdfDocument.Close(true);
+                                        }
 
                                     }
                                 }
+                            } else
+                            {
+                                WordDocument doc = GetEmailMetatdata(msg);
+                                doc.LastParagraph.AppendText("This email does not have a message body.");
+
+                                using (DocIORenderer renderer = new DocIORenderer())
+                                {
+                                    using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
+                                    //Save the PDF file
+                                    //Close the instance of document objects
+                                    pdfDocument.Save(output);
+                                    pdfDocument.Close(true);
+
+                                }
                             }
+
+                            
 
                             //string htmlString = GenerateHtmlfromMsg(msg);
                             //bool isConverted;
@@ -454,6 +399,94 @@ namespace MCS.FOI.MSGToPDF
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        protected WordDocument GetEmailMetatdata(MsgReader.Outlook.Storage.Message msg)
+        {
+            WordDocument doc = new WordDocument();
+            IWSection section = doc.AddSection();
+            IWParagraph paragraph = section.AddParagraph();
+            paragraph.AppendText("From: ").CharacterFormat.Bold = true;
+            var sender = "";
+            if (msg.Sender != null && msg.Sender.DisplayName != null)
+            {
+                sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + " (" + msg.Sender.Email + ")" : msg.Sender.DisplayName;
+            }
+            paragraph.AppendText(sender).CharacterFormat.Bold = false;
+            paragraph.AppendBreak(BreakType.LineBreak);
+            string recipientName = "";
+            foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
+            {
+                recipientName += recipient;
+            }
+
+            if (!string.IsNullOrEmpty(recipientName))
+            {
+                paragraph.AppendText("To: ").CharacterFormat.Bold = true;
+                paragraph.AppendText(recipientName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
+                paragraph.AppendBreak(BreakType.LineBreak);
+            }
+            string recipientCCName = "";
+            foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
+            {
+                recipientCCName += recipient;
+            }
+            if (!string.IsNullOrEmpty(recipientCCName))
+            {
+                paragraph.AppendText("Cc: ").CharacterFormat.Bold = true;
+                paragraph.AppendText(recipientCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
+                paragraph.AppendBreak(BreakType.LineBreak);
+            }
+            string recipientBCCName = "";
+            foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
+            {
+                recipientBCCName += recipient;
+            }
+            if (!string.IsNullOrEmpty(recipientBCCName))
+            {
+                paragraph.AppendText("Bcc: ").CharacterFormat.Bold = true;
+                paragraph.AppendText(recipientBCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
+                paragraph.AppendBreak(BreakType.LineBreak);
+            }
+
+            paragraph.AppendText("Subject: ").CharacterFormat.Bold = true;
+            paragraph.AppendText(msg.Subject).CharacterFormat.Bold = false;
+            paragraph.AppendBreak(BreakType.LineBreak);
+
+            paragraph.AppendText("Sent: ").CharacterFormat.Bold = true;
+            paragraph.AppendText("" + msg.SentOn).CharacterFormat.Bold = false;
+            paragraph.AppendBreak(BreakType.LineBreak);
+
+
+            string attachmentsList = "";
+            foreach (Object attachment in msg.Attachments)
+            {
+                if (attachment.GetType().FullName.ToLower().Contains("message"))
+                {
+                    var _attachment = (Storage.Message)attachment;
+                    attachmentsList += (_attachment.FileName + ", ");
+                }
+                else
+                {
+                    var _attachment = (Storage.Attachment)attachment;
+                    attachmentsList += _attachment.FileName + ", ";
+                }
+
+            }
+
+
+            if (!string.IsNullOrEmpty(attachmentsList))
+            {
+                paragraph.AppendText("Attachments: ").CharacterFormat.Bold = true;
+                paragraph.AppendText(attachmentsList.Remove(attachmentsList.Length - 2, 2)).CharacterFormat.Bold = false;
+                paragraph.AppendBreak(BreakType.LineBreak);
+            }
+
+
+            paragraph.AppendText("Message Body: ").CharacterFormat.Bold = true;
+            paragraph.AppendBreak(BreakType.LineBreak);
+
+            return doc;
         }
 
         protected virtual void Dispose(bool disposing)
