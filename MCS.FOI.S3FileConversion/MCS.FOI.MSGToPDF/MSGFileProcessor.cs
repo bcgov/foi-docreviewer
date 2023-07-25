@@ -63,26 +63,32 @@ namespace MCS.FOI.MSGToPDF
 
                                     List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
 
-                                    for (int i = 0; i < fields.Count; i++)
-
+                                    if (fields != null)
                                     {
+                                        for (int i = 0; i < fields.Count; i++)
 
-                                        //Creates hyperlink instance from field to manipulate the hyperlink.
+                                        {
 
-                                        Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
+                                            //Creates hyperlink instance from field to manipulate the hyperlink.
 
-                                        //Gets the text to display from hyperlink
+                                            Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
 
-                                        string existingHyperlinkText = hyperlink.TextToDisplay;
+                                            //Gets the text to display from hyperlink
 
-                                        //Removes the content between tags
+                                            string existingHyperlinkText = hyperlink.TextToDisplay;
 
-                                        string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
+                                            //Removes the content between tags
 
-                                        //Sets the modified text to display to hyperlink
+                                            if (!string.IsNullOrEmpty(existingHyperlinkText))
+                                            {
+                                                string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
 
-                                        hyperlink.TextToDisplay = modifiedTextToDisplay;
+                                                //Sets the modified text to display to hyperlink
 
+                                                hyperlink.TextToDisplay = modifiedTextToDisplay;
+                                            }
+
+                                        }
                                     }
 
 
