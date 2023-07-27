@@ -68,6 +68,10 @@ const Redlining = React.forwardRef(({
   const [mapper, setMapper] = useState([]);
   const [searchKeywords, setSearchKeywords] = useState("");
   const [iframeDocument, setIframeDocument] = useState(null);
+  const [modalFor, setModalFor] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalButtonLabel, setModalButtonLabel] = useState("");
   //xml parser
   const parser = new XMLParser();
 
@@ -146,21 +150,23 @@ const Redlining = React.forwardRef(({
         menu.classList.add('FlyoutMenu');
         menu.id = 'saving_menu';
   
-        const createRecordsPackageBtn = document.createElement('button');
-        createRecordsPackageBtn.textContent = 'Create Records Package';
-        createRecordsPackageBtn.style.backgroundColor = 'transparent';
-        createRecordsPackageBtn.style.border = 'none';
-        createRecordsPackageBtn.style.padding = '8px 8px 8px 10px';
-        createRecordsPackageBtn.style.cursor= 'pointer';
-        createRecordsPackageBtn.style.alignItems= 'left';
-        // createRecordsPackageBtn.style.color = '#069';
+        const consultPublicBodyBtn = document.createElement('button');
+        consultPublicBodyBtn.textContent = 'Consult Public Body';
+        consultPublicBodyBtn.id = 'consult_public_body';
+        consultPublicBodyBtn.className = 'consult_public_body';
+        consultPublicBodyBtn.style.backgroundColor = 'transparent';
+        consultPublicBodyBtn.style.border = 'none';
+        consultPublicBodyBtn.style.padding = '8px 8px 8px 10px';
+        consultPublicBodyBtn.style.cursor= 'pointer';
+        consultPublicBodyBtn.style.alignItems= 'left';
+        // consultPublicBodyBtn.style.color = '#069';
 
-        createRecordsPackageBtn.onclick = () => {
+        consultPublicBodyBtn.onclick = () => {
           // Download
           // console.log("Create Records Package");
         };
   
-        menu.appendChild(createRecordsPackageBtn);
+        menu.appendChild(consultPublicBodyBtn);
   
         const redlineForSignOffBtn = document.createElement('button');
         redlineForSignOffBtn.textContent = 'Redline for Sign Off';
@@ -176,27 +182,39 @@ const Redlining = React.forwardRef(({
 
         redlineForSignOffBtn.onclick = () => {
           // Save to s3
+          setModalFor("redline");
+          setModalTitle("Redline for Sign Off");
+          setModalMessage("Are you sure want to create the redline PDF for ministry sign off?");
+          setModalButtonLabel("Create Redline PDF");
           setRedlineModalOpen(true);
         };
   
         menu.appendChild(redlineForSignOffBtn);
   
-        const responsePackageBtn = document.createElement('button');
-        responsePackageBtn.textContent = 'Response Package for Application';
-        responsePackageBtn.style.backgroundColor = 'transparent';
-        responsePackageBtn.style.border = 'none';
-        responsePackageBtn.style.padding = '8px 8px 8px 10px';
-        responsePackageBtn.style.cursor= 'pointer';
-        responsePackageBtn.style.alignItems= 'left';
-        // responsePackageBtn.style.color = '#069';
+        const finalPackageBtn = document.createElement('button');
+        finalPackageBtn.textContent = 'Final Package for Applicant';
+        finalPackageBtn.id = 'final_package';
+        finalPackageBtn.className = 'final_package';
+        finalPackageBtn.style.backgroundColor = 'transparent';
+        finalPackageBtn.style.border = 'none';
+        finalPackageBtn.style.padding = '8px 8px 8px 10px';
+        finalPackageBtn.style.cursor= 'pointer';
+        finalPackageBtn.style.alignItems= 'left';
+        // finalPackageBtn.style.color = '#069';
+        finalPackageBtn.disabled = !enableSavingRedline;
 
-        responsePackageBtn.onclick = () => {
+        finalPackageBtn.onclick = () => {
           // Download
           // console.log("Response Package for Application");
-          saveResponsePackage(documentViewer, annotationManager);
+          setModalFor("responsepackage");
+          setModalTitle("Create Package for Applicant");
+          setModalMessage("Are you sure want to create the records package for the applicant. This will apply all redactions. This should only be done when are redactions are finalized and are ready to send to the applicant. This will permanently apply the redactions and automatically create page stamps.");
+          setModalButtonLabel("Create Applicant Package");
+          setRedlineModalOpen(true);
+          // saveResponsePackage(documentViewer, annotationManager);
         };
   
-        menu.appendChild(responsePackageBtn);
+        menu.appendChild(finalPackageBtn);
   
         const renderCustomMenu = () => {
           const menuBtn = document.createElement('button');
@@ -343,6 +361,9 @@ const Redlining = React.forwardRef(({
       // If the event is triggered by importing then it can be ignored
       // This will happen when importing the initial annotations
       // from the server or individual changes from other users
+
+      console.log("changed annots: ", annotations);
+      console.log("action: ", action);
 
       if (info.imported) return;
       let localDocumentInfo = currentDocument;
@@ -505,6 +526,7 @@ const Redlining = React.forwardRef(({
     if(_instance) {
       const document = _instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline;
+      document.getElementById("final_package").disabled = !_enableSavingRedline;
     }
   };
 
@@ -990,9 +1012,18 @@ const Redlining = React.forwardRef(({
     );
   }
 
-  const saveRedlineDoc = () => {
+  const saveDoc = () => {
     setRedlineModalOpen(false);
-    saveRedlineDocument(docInstance);
+    switch(modalFor) {
+      case 'redline':
+        saveRedlineDocument(docInstance);
+        break;
+      case 'responsepackage':
+        saveResponsePackage(docViewer, annotManager);
+        break;
+      default:
+        // console.log("123");
+    }
   }
 
   const cancelSaveRedlineDoc = () => {
@@ -1011,6 +1042,38 @@ const Redlining = React.forwardRef(({
         // console.log("getResponsePackagePreSignedUrl: ", res);
         // res.s3path_save;
 
+        // go through annotations and get all section stamps
+        annotationManager.exportAnnotations().then(async xfdfString => {
+          //parse annotation xml
+          let jObj = parser.parseFromString(xfdfString);    // Assume xmlText contains the example XML
+          let annots = jObj.getElementsByTagName("annots");
+
+          let sectionStamps = {};
+          let stampJson = {};
+          for(const annot of annots[0].children) {
+            // get section stamps from xml
+            if(annot.name == 'freetext') {
+              let customData = annot.children.find( element => element.name == 'trn-custom-data' );
+              if(customData?.attributes?.bytes?.includes("parentRedaction")) {
+                //parse section info to json
+                stampJson = JSON.parse(customData.attributes.bytes.replace(/&quot;\[/g, '[').replace(/\]&quot;/g, ']').replace(/&quot;/g, '"').replace(/\\/g, ''));
+                sectionStamps[stampJson["parentRedaction"]] = stampJson["trn-wrapped-text-lines"][0];
+              }
+            }
+          }
+          // console.log("stamps: ", sectionStamps);
+
+          // add section stamps to redactions as overlay text
+          let annotList = annotationManager.getAnnotationsList();
+          // console.log("annot list: ", annotList);
+          for(const annot of annotList) {
+            if(sectionStamps[annot.Id]) {
+              annotationManager.setAnnotationStyles(annot, () => ({OverlayText: sectionStamps[annot.Id]}));
+            }
+          }
+        });
+
+        //apply redaction and save to s3
         annotationManager.applyRedactions().then(async results => {
           const doc = documentViewer.getDocument();
 
@@ -1134,7 +1197,7 @@ const Redlining = React.forwardRef(({
         onRequestClose={cancelRedaction}
         isOpen={redlineModalOpen}>
         <DialogTitle disableTypography id="state-change-dialog-title">
-          <h2 className="state-change-header">Redline for Sign Off</h2>
+          <h2 className="state-change-header">{modalTitle}</h2>
           <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
             <i className="dialog-close-button">Close</i>
             <CloseIcon />
@@ -1143,13 +1206,13 @@ const Redlining = React.forwardRef(({
         <DialogContent className={'dialog-content-nomargin'}>
           <DialogContentText id="state-change-dialog-description" component={'span'} >
             <span className="confirmation-message">
-              Are you sure want to create the redline PDF for ministry sign off? <br></br>
+              {modalMessage} <br></br>
             </span>
           </DialogContentText>
         </DialogContent>
         <DialogActions className="foippa-modal-actions">
-          <button className="btn-bottom btn-save btn" onClick={saveRedlineDoc} disabled={!enableSavingRedline}>
-            Create Redline PDF
+          <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={!enableSavingRedline}>
+            {modalButtonLabel}
           </button>
           <button className="btn-bottom btn-cancel" onClick={cancelSaveRedlineDoc}>
             Cancel
