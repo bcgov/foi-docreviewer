@@ -25,6 +25,7 @@ import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
 import { pageFlagTypes } from '../../../constants/enum';
+import _ from 'lodash';
 
 const Redlining = React.forwardRef(({
   user,
@@ -346,7 +347,7 @@ const Redlining = React.forwardRef(({
       if (info.imported) return;
       let localDocumentInfo = currentDocument;
       annotations.forEach((annot) => {
-        let displayedDoc= getDataFromMappedDoc(annot.getPageNumber());
+        let displayedDoc = getDataFromMappedDoc(annot.getPageNumber());
         let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (annot.getPageNumber()))?.pageNo;                
         annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
       });
@@ -359,7 +360,7 @@ const Redlining = React.forwardRef(({
         if(action === 'delete') {
           let annotObjs = []
           for (let annot of annots[0].children) {
-            let displayedDoc= getDataFromMappedDoc(Number(annot.attributes.page)+1);
+            let displayedDoc = getDataFromMappedDoc(Number(annot.attributes.page)+1);
             let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == Number(annot.attributes.page)+1)?.pageNo; 
             if (annot.name === 'redact') {
               annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
@@ -402,7 +403,7 @@ const Redlining = React.forwardRef(({
             let pageSelectionList= [...pageSelections];
             // setRedactionType(annotations[0]?.type);
             annots[0].children?.forEach((annotatn, i)=> {
-              displayedDoc= getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
+              displayedDoc = getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
               individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(annotatn.attributes.page)+1))?.pageNo;
               if(annotations[i]?.type === 'fullPage') {
                 //annotations[i].setCustomData("trn-redaction-type", "fullPage");
@@ -424,7 +425,7 @@ const Redlining = React.forwardRef(({
             let annot = annots[0].children[0];
             setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           } else {
-            displayedDoc= getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
+            displayedDoc = getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
             let sections = annotations[0].getCustomData("sections")
             let sectn;
             if (sections) {
@@ -450,7 +451,7 @@ const Redlining = React.forwardRef(({
           let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
           let username = docViewer?.getAnnotationManager()?.getCurrentUser();
           if (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)) {             
-            const displayedDoc= getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
+            const displayedDoc = getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
             saveAnnotation(
               requestid,
               displayedDoc.docId,
@@ -756,7 +757,8 @@ const Redlining = React.forwardRef(({
       if (annot && annot.name !== newRedaction?.name) {
         //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         //let localDocumentInfo = currentDocument;
-        let displayedDoc= getDataFromMappedDoc(Number(annot.page)+1);
+        let stitchedPageNo = Number(annot.page)+1
+        let displayedDoc= getDataFromMappedDoc(stitchedPageNo);
         deleteRedaction(
           requestid,
           displayedDoc.docId,
@@ -769,7 +771,7 @@ const Redlining = React.forwardRef(({
             )
           },
           (error)=>{console.log(error)},
-          (Number(annot.page))+1
+          displayedDoc.pageMappings.find(p => p.stitchedPageNo === stitchedPageNo)['pageNo']
         );
 
         if (annot.type === 'redact' && redactionInfo) {
@@ -828,12 +830,16 @@ const Redlining = React.forwardRef(({
 
   const handleSectionSelected = (e) => {
     let sectionID = e.target.getAttribute('data-sectionid');
+    var newSelectedSections
     if (e.target.checked) {
-      selectedSections.push(Number(sectionID));
+      newSelectedSections = [...selectedSections, Number(sectionID)];
     } else {
-      selectedSections.splice(selectedSections.indexOf(Number(sectionID)), 1);
+      newSelectedSections = selectedSections.filter(s => s !== Number(sectionID))
     }
-    setSaveDisabled(selectedSections.length === 0);
+    setSelectedSections(newSelectedSections);
+    setSaveDisabled(newSelectedSections.length === 0 ||
+       _.isEqual(redactionInfo.find(redaction => redaction.annotationname === editAnnot?.name)?.sections.ids, newSelectedSections)
+    );
   }
 
   const AntSwitch = styled(Switch)(({ theme }) => ({
