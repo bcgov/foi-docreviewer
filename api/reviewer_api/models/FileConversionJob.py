@@ -46,6 +46,7 @@ class FileConversionJob(db.Model):
         for row in rs:
             error.append(row["filepath"])
 
+        db.session.close()
         return completed, error
     
     @classmethod 
@@ -61,6 +62,7 @@ class FileConversionJob(db.Model):
                 executions.append({"fileconversionjobid": row["fileconversionjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["inputdocumentmasterid"],  "trigger": row["trigger"], "outputdocumentmasterid": row["outputdocumentmasterid"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

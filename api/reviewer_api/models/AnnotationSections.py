@@ -39,6 +39,7 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotation Sections are saved', [annot["name"] for annot in annots])
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -60,6 +61,7 @@ class AnnotationSection(db.Model):
                 mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -87,6 +89,7 @@ class AnnotationSection(db.Model):
                 mapping.append({"annotationname":row["redactannotation"], "sectionannotation":row["annotationname"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

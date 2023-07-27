@@ -50,6 +50,7 @@ class DocumentAttributes(db.Model):
                 })
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

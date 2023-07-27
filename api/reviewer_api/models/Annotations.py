@@ -43,6 +43,7 @@ class Annotation(db.Model):
                 and a.isactive = true
             '''
         rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+        db.session.close()
         return [{
             'annotationid': row['annotationid'],
             'annotationname': row['annotationname'],
@@ -76,6 +77,7 @@ class Annotation(db.Model):
 					and a.isactive = true
             '''
         rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid, 'divisionid': divisionid})
+        db.session.close()
         return [{
             'annotationid': row['annotationid'],
             'annotationname': row['annotationname'],
