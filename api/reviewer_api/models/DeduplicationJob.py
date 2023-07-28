@@ -21,32 +21,42 @@ class DeduplicationJob(db.Model):
 
     @classmethod
     def insert(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Deduplication Job recorded for documentmasterid: {0}'.format(row.documentmasterid), row.deduplicationjobid)
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Deduplication Job recorded for documentmasterid: {0}'.format(row.documentmasterid), row.deduplicationjobid)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getfilesdeduped(cls, requestid):
-        sql = """select  count(1)  as completed
-                        FROM "DeduplicationJob" dj
-                        left outer join "DocumentDeleted" dd on dj.filepath ilike dd.filepath || '%'
-                        where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
+        try:
+            sql = """select  count(1)  as completed
+                            FROM "DeduplicationJob" dj
+                            left outer join "DocumentDeleted" dd on dj.filepath ilike dd.filepath || '%'
+                            where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
 
-        rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
-        completed = rs.fetchone()["completed"]
+            rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
+            completed = rs.fetchone()["completed"]
 
-        sql = """select filepath, status from public."DeduplicationJob" dj
-                join (select max(deduplicationjobid) from public."DeduplicationJob" fcj
-                left outer join "DocumentDeleted" dd on fcj.filepath ilike dd.filepath || '%'
-                where (deleted is false or deleted is null)
-                group by fcj.filepath) sq on sq.max = dj.deduplicationjobid
-                where status = 'error' and ministryrequestid = :ministryrequestid"""
-        rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
-        error = []
-        for row in rs:
-            error.append(row["filepath"])
+            sql = """select filepath, status from public."DeduplicationJob" dj
+                    join (select max(deduplicationjobid) from public."DeduplicationJob" fcj
+                    left outer join "DocumentDeleted" dd on fcj.filepath ilike dd.filepath || '%'
+                    where (deleted is false or deleted is null)
+                    group by fcj.filepath) sq on sq.max = dj.deduplicationjobid
+                    where status = 'error' and ministryrequestid = :ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
+            error = []
+            for row in rs:
+                error.append(row["filepath"])
 
-        return completed, error
+            return completed, error
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
     
     @classmethod 
     def getdedupestatus(cls, ministryrequestid):

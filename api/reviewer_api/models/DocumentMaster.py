@@ -21,10 +21,14 @@ class DocumentMaster(db.Model):
 
     @classmethod
     def create(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Document(s) Added: {0}'.format(row.filepath), row.documentmasterid)
-
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Document(s) Added: {0}'.format(row.filepath), row.documentmasterid)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod 
     def getdocumentmaster(cls, ministryrequestid):

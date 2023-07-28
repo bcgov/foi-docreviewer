@@ -1,6 +1,7 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_
+import logging
 
 class ProgramArea(db.Model):
     __tablename__ = 'ProgramAreas' 
@@ -14,25 +15,40 @@ class ProgramArea(db.Model):
 
     @classmethod
     def getprogramareas(cls):
-        programarea_schema = ProgramAreaSchema(many=True)
-        query = db.session.query(ProgramArea).filter_by(isactive=True).order_by(ProgramArea.iaocode.asc()).all()
-        return programarea_schema.dump(query)
+        try:
+            programarea_schema = ProgramAreaSchema(many=True)
+            query = db.session.query(ProgramArea).filter_by(isactive=True).order_by(ProgramArea.iaocode.asc()).all()
+            return programarea_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getprogramareasforministryuser(cls, groups):
-        bcgovcodefilter = []
-        for group in groups:
-            bcgovcodefilter.append(ProgramArea.bcgovcode == group.replace(' Ministry Team', ''))
+        try:
+            bcgovcodefilter = []
+            for group in groups:
+                bcgovcodefilter.append(ProgramArea.bcgovcode == group.replace(' Ministry Team', ''))
 
-        programarea_schema = ProgramAreaSchema(many=True)
-        query = db.session.query(ProgramArea).filter_by(isactive=True).filter(or_(*bcgovcodefilter)).order_by(ProgramArea.bcgovcode.asc()).all()
-        return programarea_schema.dump(query)
+            programarea_schema = ProgramAreaSchema(many=True)
+            query = db.session.query(ProgramArea).filter_by(isactive=True).filter(or_(*bcgovcodefilter)).order_by(ProgramArea.bcgovcode.asc()).all()
+            return programarea_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getprogramarea(cls,pgbcgovcode):
-        programarea_schema = ProgramAreaSchema()
-        query = db.session.query(ProgramArea).filter_by(bcgovcode=pgbcgovcode.upper()).first()
-        return programarea_schema.dump(query)
+        try:
+            programarea_schema = ProgramAreaSchema()
+            query = db.session.query(ProgramArea).filter_by(bcgovcode=pgbcgovcode.upper()).first()
+            return programarea_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class ProgramAreaSchema(ma.Schema):
     class Meta:
