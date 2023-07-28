@@ -72,6 +72,7 @@ const Redlining = React.forwardRef(({
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [modalButtonLabel, setModalButtonLabel] = useState("");
+  const [isApplingRedaction, setIsApplingRedaction] = useState("false");
   //xml parser
   const parser = new XMLParser();
 
@@ -399,6 +400,7 @@ const Redlining = React.forwardRef(({
                     )
                   },
                   (error)=>{console.log(error)},
+                  isApplingRedaction,
                   individualPageNo
                 );
               }
@@ -409,7 +411,8 @@ const Redlining = React.forwardRef(({
                   displayedDoc.version,
                   annot.attributes.name,
                   (data)=>{},
-                  (error)=>{console.log(error)}
+                  (error)=>{console.log(error)},
+                  isApplingRedaction
                 );
               }
             }
@@ -788,6 +791,7 @@ const Redlining = React.forwardRef(({
             )
           },
           (error)=>{console.log(error)},
+          isApplingRedaction,
           (Number(annot.page))+1
         );
 
@@ -1074,7 +1078,9 @@ const Redlining = React.forwardRef(({
         });
 
         //apply redaction and save to s3
+        setIsApplingRedaction("true");
         annotationManager.applyRedactions().then(async results => {
+          setIsApplingRedaction("false");
           const doc = documentViewer.getDocument();
 
           doc.getFileData({
