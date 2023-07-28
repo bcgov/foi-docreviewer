@@ -151,24 +151,6 @@ const Redlining = React.forwardRef(({
         menu.classList.add('FlyoutMenu');
         menu.id = 'saving_menu';
   
-        const consultPublicBodyBtn = document.createElement('button');
-        consultPublicBodyBtn.textContent = 'Consult Public Body';
-        consultPublicBodyBtn.id = 'consult_public_body';
-        consultPublicBodyBtn.className = 'consult_public_body';
-        consultPublicBodyBtn.style.backgroundColor = 'transparent';
-        consultPublicBodyBtn.style.border = 'none';
-        consultPublicBodyBtn.style.padding = '8px 8px 8px 10px';
-        consultPublicBodyBtn.style.cursor= 'pointer';
-        consultPublicBodyBtn.style.alignItems= 'left';
-        // consultPublicBodyBtn.style.color = '#069';
-
-        consultPublicBodyBtn.onclick = () => {
-          // Download
-          // console.log("Create Records Package");
-        };
-  
-        menu.appendChild(consultPublicBodyBtn);
-  
         const redlineForSignOffBtn = document.createElement('button');
         redlineForSignOffBtn.textContent = 'Redline for Sign Off';
         redlineForSignOffBtn.id = 'redline_for_sign_off';
@@ -363,8 +345,7 @@ const Redlining = React.forwardRef(({
       // This will happen when importing the initial annotations
       // from the server or individual changes from other users
 
-      console.log("changed annots: ", annotations);
-      console.log("action: ", action);
+      const isApplingRedaction = (info.source == 'redactionApplied')?"true":"false";
 
       if (info.imported) return;
       let localDocumentInfo = currentDocument;
@@ -385,7 +366,9 @@ const Redlining = React.forwardRef(({
             let displayedDoc= getDataFromMappedDoc(Number(annot.attributes.page)+1);
             let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == Number(annot.attributes.page)+1)?.pageNo; 
             if (annot.name === 'redact') {
-              annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              if(isApplingRedaction === 'false') {
+                annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              }
             } else {
               if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
                 deleteAnnotation(
@@ -1023,6 +1006,7 @@ const Redlining = React.forwardRef(({
         saveRedlineDocument(docInstance);
         break;
       case 'responsepackage':
+        setIsApplingRedaction("true");
         saveResponsePackage(docViewer, annotManager);
         break;
       default:
@@ -1072,15 +1056,13 @@ const Redlining = React.forwardRef(({
           // console.log("annot list: ", annotList);
           for(const annot of annotList) {
             if(sectionStamps[annot.Id]) {
-              annotationManager.setAnnotationStyles(annot, () => ({OverlayText: sectionStamps[annot.Id]}));
+              annotationManager.setAnnotationStyles(annot, {OverlayText: sectionStamps[annot.Id]});
             }
           }
         });
 
         //apply redaction and save to s3
-        setIsApplingRedaction("true");
         annotationManager.applyRedactions().then(async results => {
-          setIsApplingRedaction("false");
           const doc = documentViewer.getDocument();
 
           doc.getFileData({
@@ -1101,7 +1083,6 @@ const Redlining = React.forwardRef(({
               }
             );
           });
-
         });
       },
       (error) => {

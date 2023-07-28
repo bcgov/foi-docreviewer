@@ -75,8 +75,8 @@ class Annotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:updatepageflags>', defaults={'page':None})
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:updatepageflags>/<int:page>')
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>', defaults={'page':None})
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>/<int:page>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -85,11 +85,10 @@ class DeactivateAnnotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, updatepageflags, page:None):
+    def delete(requestid, documentid, documentversion, annotationname, freezepageflags, page:None):
         
         try:
-            print("updatepageflags: ", updatepageflags)
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, updatepageflags)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, freezepageflags)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.message}, 400
@@ -98,7 +97,7 @@ class DeactivateAnnotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:updatepageflags>/<int:page>')
+@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>/<int:page>')
 class DeactivateRedactions(Resource):
     
     """save or update an annotation for a document
@@ -107,11 +106,10 @@ class DeactivateRedactions(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, updatepageflags, page):
+    def delete(requestid, documentid, documentversion, annotationname, freezepageflags, page):
         
         try:
-            print("updatepageflags: ", updatepageflags)
-            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, updatepageflags)
+            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, freezepageflags)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.message}, 400
