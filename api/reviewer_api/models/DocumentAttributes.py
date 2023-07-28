@@ -21,9 +21,14 @@ class DocumentAttributes(db.Model):
 
     @classmethod
     def getdocumentattributes(cls, documentmasterid):
-        attributes_schema = DocumentAttributeSchema(many=True)
-        query = db.session.query(DocumentAttributes).filter(DocumentAttributes.documentmasterid == documentmasterid).first()
-        return attributes_schema.dump(query)
+        try:
+            attributes_schema = DocumentAttributeSchema(many=True)
+            query = db.session.query(DocumentAttributes).filter(DocumentAttributes.documentmasterid == documentmasterid).first()
+            return attributes_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getdocumentattributesbyid(cls, documentmasterids):
@@ -57,19 +62,29 @@ class DocumentAttributes(db.Model):
 
     @classmethod
     def create(cls, row):
-        db.session.add(row)
-        db.session.commit()
-        return DefaultMethodResult(True,'Attributes added for document master id Added: {0}'.format(row.documentmasterid), row.attributeid)
+        try:
+            db.session.add(row)
+            db.session.commit()
+            return DefaultMethodResult(True,'Attributes added for document master id Added: {0}'.format(row.documentmasterid), row.attributeid)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
 
     @classmethod
     def update(cls, rows, oldrows):
-        # disable old rows
-        db.session.bulk_update_mappings(DocumentAttributes, oldrows)
+        try:
+            # disable old rows
+            db.session.bulk_update_mappings(DocumentAttributes, oldrows)
 
-        db.session.add_all(rows)
-        db.session.commit()
-        return DefaultMethodResult(True,'Attributes updated for document master ids', -1, [{"id": row.documentmasterid} for row in rows])
-
+            db.session.add_all(rows)
+            db.session.commit()
+            return DefaultMethodResult(True,'Attributes updated for document master ids', -1, [{"id": row.documentmasterid} for row in rows])
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class DocumentAttributeSchema(ma.Schema):
     class Meta:

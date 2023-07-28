@@ -1,6 +1,7 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import func, and_
+import logging
 
 class OperatingTeamS3ServiceAccount(db.Model):
     __tablename__ = 'OperatingTeamS3ServiceAccounts' 
@@ -14,9 +15,14 @@ class OperatingTeamS3ServiceAccount(db.Model):
 
     @classmethod
     def getserviceaccount(cls, usergroup):
-        s3account_schema = OperatingTeamS3ServiceAccountSchema(many=False)
-        query = db.session.query(OperatingTeamS3ServiceAccount).filter(func.lower(OperatingTeamS3ServiceAccount.usergroup)==func.lower(usergroup), OperatingTeamS3ServiceAccount.isactive == True).first()
-        return s3account_schema.dump(query)
+        try:
+            s3account_schema = OperatingTeamS3ServiceAccountSchema(many=False)
+            query = db.session.query(OperatingTeamS3ServiceAccount).filter(func.lower(OperatingTeamS3ServiceAccount.usergroup)==func.lower(usergroup), OperatingTeamS3ServiceAccount.isactive == True).first()
+            return s3account_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class OperatingTeamS3ServiceAccountSchema(ma.Schema):
     class Meta:

@@ -94,20 +94,30 @@ class AnnotationSection(db.Model):
 
     @classmethod
     def get_by_annotationame(cls, _annotationname):
-        annotation_section_schema = AnnotationSectionSchema(many=False)
-        query = db.session.query(AnnotationSection).filter(and_(AnnotationSection.annotationname == _annotationname)).first()
-        return annotation_section_schema.dump(query)
+        try:
+            annotation_section_schema = AnnotationSectionSchema(many=False)
+            query = db.session.query(AnnotationSection).filter(and_(AnnotationSection.annotationname == _annotationname)).first()
+            return annotation_section_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def get_by_ministryid(cls, ministryrequestid):
-        annotation_section_schema = AnnotationSectionSchema(many=True)
-        redaction = aliased(Annotation)
-        query = db.session.query(AnnotationSection).join(
-            Annotation, Annotation.annotationname == AnnotationSection.annotationname
-        ).join(
-            redaction, redaction.annotationname == cast(AnnotationSection.section, JSON)['redactannotation'].astext
-        ).filter(and_(AnnotationSection.foiministryrequestid == ministryrequestid, Annotation.isactive == True, redaction.isactive == True)).all()
-        return annotation_section_schema.dump(query)
+        try:
+            annotation_section_schema = AnnotationSectionSchema(many=True)
+            redaction = aliased(Annotation)
+            query = db.session.query(AnnotationSection).join(
+                Annotation, Annotation.annotationname == AnnotationSection.annotationname
+            ).join(
+                redaction, redaction.annotationname == cast(AnnotationSection.section, JSON)['redactannotation'].astext
+            ).filter(and_(AnnotationSection.foiministryrequestid == ministryrequestid, Annotation.isactive == True, redaction.isactive == True)).all()
+            return annotation_section_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 
 

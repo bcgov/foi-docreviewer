@@ -2,6 +2,7 @@ from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import and_
 from datetime import datetime as datetime2
+import logging
 
 class DocumentPathMapper(db.Model):
     __tablename__ = 'DocumentPathMapper' 
@@ -18,9 +19,14 @@ class DocumentPathMapper(db.Model):
 
     @classmethod
     def getmapper(cls, bucket):
-        documentpathmapperschema = DocumentPathMapperSchema(many=False)
-        query = db.session.query(DocumentPathMapper).filter(DocumentPathMapper.bucket == bucket).first()
-        return documentpathmapperschema.dump(query)
+        try:
+            documentpathmapperschema = DocumentPathMapperSchema(many=False)
+            query = db.session.query(DocumentPathMapper).filter(DocumentPathMapper.bucket == bucket).first()
+            return documentpathmapperschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class DocumentPathMapperSchema(ma.Schema):
     class Meta:
