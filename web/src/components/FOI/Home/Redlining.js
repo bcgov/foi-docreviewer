@@ -24,6 +24,7 @@ import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
+import { toast } from "react-toastify";
 
 const Redlining = React.forwardRef(({
   user,
@@ -37,6 +38,8 @@ const Redlining = React.forwardRef(({
   setPageMappedDocs
 }, ref) =>{
 
+  // to enable save final package button - request status needs to be 14 (Response)
+  const requestStatus = useAppSelector((state) => state.documents?.requeststatus);
   const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
@@ -112,6 +115,7 @@ const Redlining = React.forwardRef(({
     return !stopLoop;
   };
   const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
+  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == 14);
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -184,7 +188,7 @@ const Redlining = React.forwardRef(({
         finalPackageBtn.style.cursor= 'pointer';
         finalPackageBtn.style.alignItems= 'left';
         // finalPackageBtn.style.color = '#069';
-        finalPackageBtn.disabled = !enableSavingRedline;
+        finalPackageBtn.disabled = !enableSavingFinal;
 
         finalPackageBtn.onclick = () => {
           // Download
@@ -509,10 +513,11 @@ const Redlining = React.forwardRef(({
     let _enableSavingRedline = isReadyForSignOff();
 
     setEnableSavingRedline(_enableSavingRedline);
+    setEnableSavingFinal(_enableSavingRedline && requestStatus == 14);
     if(_instance) {
       const document = _instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline;
-      document.getElementById("final_package").disabled = !_enableSavingRedline;
+      document.getElementById("final_package").disabled = !_enableSavingRedline && requestStatus == 14;
     }
   };
 
@@ -1029,6 +1034,7 @@ const Redlining = React.forwardRef(({
       async (res) => {
         // console.log("getResponsePackagePreSignedUrl: ", res);
         // res.s3path_save;
+        const toastID = toast.loading("Start generating final package...")
 
         // go through annotations and get all section stamps
         annotationManager.exportAnnotations().then(async xfdfString => {
@@ -1054,6 +1060,10 @@ const Redlining = React.forwardRef(({
           // add section stamps to redactions as overlay text
           let annotList = annotationManager.getAnnotationsList();
           // console.log("annot list: ", annotList);
+          toast.update(toastID, {
+            render: "Saving section stamps...",
+            isLoading: true,
+          })
           for(const annot of annotList) {
             if(sectionStamps[annot.Id]) {
               annotationManager.setAnnotationStyles(annot, {OverlayText: sectionStamps[annot.Id]});
@@ -1072,14 +1082,42 @@ const Redlining = React.forwardRef(({
             const _arr = new Uint8Array(_data);
             const _blob = new Blob([_arr], { type: 'application/pdf' });
   
+            toast.update(toastID, {
+              render: "Saving final package to Object Storage...",
+              isLoading: true,
+            })
             await saveFilesinS3(
               {filepath: res.s3path_save},
               _blob,
               (_res) => {
                 console.log(_res);
+                toast.update(toastID, {
+                  render: "Final package is saved to Object Storage",
+                  type: "success",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true
+                });
               },
               (_err) => {
                 console.log(_err);
+                toast.update(toastID, {
+                  render: "Failed to save final package to Object Storage",
+                  type: "error",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true
+                });
               }
             );
           });

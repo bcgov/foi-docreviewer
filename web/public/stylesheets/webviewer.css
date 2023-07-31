@@ -13,3 +13,11 @@
     color: #999999 !important;
     cursor: not-allowed !important;
 }
+
+.file-upload-toast {
+    .Toastify__toast-body {
+        > div:last-child {
+            white-space: pre-line;
+        }
+    }
+}
