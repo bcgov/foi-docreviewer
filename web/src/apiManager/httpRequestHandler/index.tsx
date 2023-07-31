@@ -63,3 +63,6 @@ export const httpDELETERequest = ({url, token, isBearer = true}:params) => {
   });
 };
 
+export const httpOSSPUTRequest = (url: string, data: any, requestOptions: any) => {  
+  return axios.put(url, data, requestOptions);
+};

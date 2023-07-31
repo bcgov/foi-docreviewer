@@ -22,7 +22,7 @@ class AnnotationSection(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
 
     annotationname =db.Column(db.Integer, ForeignKey('Annotations.annotationname'))
-    
+
     @classmethod
     def savesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
         try:
@@ -66,6 +66,33 @@ class AnnotationSection(db.Model):
         return mapping
 
     @classmethod
+    def getsectionmappingbyrequestid(cls, ministryrequestid):
+        mapping = []
+        try:
+            sql = """select as2.annotationname  ,
+                        cast("section"  AS json) ->> 'redactannotation' as redactannotation,
+                        cast("section"  AS json) ->> 'ids' as ids
+                        from "AnnotationSections" as2, "Annotations" a
+                        join (select distinct on (d.documentid) d.*
+                            from  "Documents" d
+                            where d.foiministryrequestid = :ministryrequestid
+                            order by d.documentid, d.version desc) d
+                        on (d.documentid = a.documentid and d.version = a.documentversion)
+                        where  as2.annotationname  = a.annotationname
+                           and a.isactive = true and as2.foiministryrequestid = :ministryrequestid;
+                    """
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+
+            for row in rs:
+                mapping.append({"annotationname":row["redactannotation"], "sectionannotation":row["annotationname"], "ids": row["ids"]})
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+        return mapping
+
+    @classmethod
     def get_by_annotationame(cls, _annotationname):
         try:
             annotation_section_schema = AnnotationSectionSchema(many=False)
@@ -92,8 +119,8 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
-      
-   
+
+
 class AnnotationSectionSchema(ma.Schema):
     class Meta:
         fields = ('annotationname', 'foiministryrequestid', 'section', 'id', 'createdby', 'created_at', 'updatedby', 'updated_at')
