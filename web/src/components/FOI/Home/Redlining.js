@@ -83,34 +83,38 @@ const Redlining = React.forwardRef(({
     let pageFlagArray = [];
     let stopLoop = false;
 
-    documentList.every(docInfo => {
+    if(documentList.length === pageFlags?.length) {
+      documentList.every(docInfo => {
 
-      if(pageFlags?.length > 0) {
-        pageFlags.every(pageFlagInfo => {
-          if (docInfo.documentid == pageFlagInfo?.documentid) {
-            if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
-              stopLoop = true;
-              return false;
-            } else {
-              // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
-              pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
-              if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+        if(pageFlags?.length > 0) {
+          pageFlags.every(pageFlagInfo => {
+            if (docInfo.documentid == pageFlagInfo?.documentid) {
+              if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
                 stopLoop = true;
-                return false;
+                return false; //stop loop
+              } else {
+                // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
+                pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
+                if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+                  stopLoop = true;
+                  return false; //stop loop
+                }
               }
             }
-          }
-          return true;
-        });
-      } else {
-        stopLoop = true;
-      }
-
-      if(stopLoop)
-        return false;
-
-      return true;
-    });
+            return true; //continue loop
+          });
+        } else {
+          stopLoop = true;
+        }
+  
+        if(stopLoop)
+          return false; //stop loop
+  
+        return true; //continue loop
+      });
+    } else {
+      return false;
+    }
 
     return !stopLoop;
   };
@@ -1024,9 +1028,25 @@ const Redlining = React.forwardRef(({
   }
 
 
-  const saveResponsePackage = (documentViewer, annotationManager) => {
+  const saveResponsePackage = async (documentViewer, annotationManager) => {
     const downloadType = 'pdf';
     // console.log("divisions: ", divisions);
+
+    // remove duplicate and not responsive pages
+    let pagesToRemove = [];
+    for(const infoForEachDoc of pageFlags) {
+      let pageMappingDoc = pageMappedDocs.find(mappings => mappings.docId === infoForEachDoc.documentid);
+
+      for(const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+        // pageflag duplicate or not responsive
+        if(pageFlagsForEachDoc.flagid == 5 || pageFlagsForEachDoc.flagid == 6) {
+          let mappingInfo = pageMappingDoc.pageMappings.find(pMapping => pMapping.pageNo === pageFlagsForEachDoc.page);
+          pagesToRemove.push(mappingInfo.stitchedPageNo);
+        }
+      }
+    }
+    const doc = documentViewer.getDocument();
+    await doc.removePages(pagesToRemove);
 
     getResponsePackagePreSignedUrl(
       requestid,
