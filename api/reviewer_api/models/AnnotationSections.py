@@ -119,6 +119,27 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def getredactedsectionsbyrequest(cls, ministryrequestid):
+        try:
+            sql = '''select section from public."Sections" where sectionid in
+                        (select distinct (json_array_elements((as1.section::json->>'ids')::json)->>'id')::integer
+                        from public."AnnotationSections" as1
+                        join public."Annotations" a on a.annotationname = as1.annotationname
+                        where foiministryrequestid = :ministryrequestid
+                        and a.isactive = true)
+                     and sectionid != 25
+                     order by sortorder'''
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            sectionstring = ""
+            for row in rs:
+                sectionstring = sectionstring + row["section"] + ', '
+            sectionstring = sectionstring[:-2]
+            return sectionstring
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 
 class AnnotationSectionSchema(ma.Schema):
