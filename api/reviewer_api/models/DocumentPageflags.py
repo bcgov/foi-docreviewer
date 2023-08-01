@@ -39,12 +39,12 @@ class DocumentPageflag(db.Model):
             return DefaultMethodResult(True, 'Page Flag is saved', _documentid)  
         except Exception as ex:
             logging.error(ex)
-            raise ex
+            return DefaultMethodResult(True, 'Page Flag is not saved', _documentid) 
         finally:
             db.session.close()
 
     @classmethod
-    def updatepageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo)->DefaultMethodResult:
+    def savepageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo)->DefaultMethodResult:
         try:
             dbquery = db.session.query(DocumentPageflag)
             pageflag = dbquery.filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion))
@@ -53,10 +53,10 @@ class DocumentPageflag(db.Model):
                 db.session.commit()
                 return DefaultMethodResult(True,'Page Flag is saved', _documentid)
             else:
-                return DefaultMethodResult(False,'Page Flag does not exists',-1)   
+                return cls.createpageflag(_foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo) 
         except Exception as ex:
             logging.error(ex)
-            raise ex
+            return DefaultMethodResult(True, 'Page Flag is not saved', _documentid)
         finally:
             db.session.close()
 
