@@ -70,3 +70,24 @@ export const saveFilesinS3 = (
             errorCallback(error)
         });
 };
+
+export const getResponsePackagePreSignedUrl = (
+    ministryrequestID: any,
+    firstDocInfo: any,
+    callback: any,
+    errorCallback: any
+) => {	
+    const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_RESPONSE_PACKAGE + "/" + ministryrequestID;
+
+    httpPOSTRequest({url: apiurl, data: firstDocInfo, token: UserService.getToken() || ''})
+        .then((res:any) => {
+            if (res.data) {
+                callback(res.data);
+            } else {
+                throw new Error("fetch presigned s3 url with empty response");
+            }
+        })
+        .catch((error:any) => {
+            errorCallback(error);
+        });
+};
