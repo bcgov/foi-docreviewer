@@ -62,7 +62,6 @@ class SaveDocumentPageflag(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(requestid):
         try:
-            print(request.get_json())
             payload = BulkDocumentPageflagSchema().load(request.get_json())
             result = documentpageflagservice().bulksavepageflag(requestid, payload, AuthHelper.getuserinfo())
             return {'status': True, 'message':result, 'id': requestid} , 200
