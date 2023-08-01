@@ -25,6 +25,8 @@ import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
 import { toast } from "react-toastify";
+import { pageFlagTypes } from '../../../constants/enum';
+import _ from 'lodash';
 
 const Redlining = React.forwardRef(({
   user,
@@ -94,7 +96,7 @@ const Redlining = React.forwardRef(({
                 return false; //stop loop
               } else {
                 // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
-                pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
+                pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [pageFlagTypes["Partial Disclosure"],pageFlagTypes["Full Disclosure"],pageFlagTypes["Withheld in Full"],pageFlagTypes["Duplicate"],pageFlagTypes["Not Responsive"]].includes(flag.flagid));
                 if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
                   stopLoop = true;
                   return false; //stop loop
@@ -139,7 +141,6 @@ const Redlining = React.forwardRef(({
         fullAPI: true,
         enableRedaction: true,
         useDownloader: false,
-        disabledElements: ['modalRedactButton', 'annotationRedactButton', 'richTextFormats', 'colorPalette'],
         css: '/stylesheets/webviewer.css'
       },
       viewer.current,
@@ -358,7 +359,7 @@ const Redlining = React.forwardRef(({
       if (info.imported) return;
       let localDocumentInfo = currentDocument;
       annotations.forEach((annot) => {
-        let displayedDoc= getDataFromMappedDoc(annot.getPageNumber());
+        let displayedDoc = getDataFromMappedDoc(annot.getPageNumber());
         let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (annot.getPageNumber()))?.pageNo;                
         annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
       });
@@ -371,7 +372,7 @@ const Redlining = React.forwardRef(({
         if(action === 'delete') {
           let annotObjs = []
           for (let annot of annots[0].children) {
-            let displayedDoc= getDataFromMappedDoc(Number(annot.attributes.page)+1);
+            let displayedDoc = getDataFromMappedDoc(Number(annot.attributes.page)+1);
             let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == Number(annot.attributes.page)+1)?.pageNo; 
             if (annot.name === 'redact') {
               if(isApplingRedaction === 'false') {
@@ -418,7 +419,7 @@ const Redlining = React.forwardRef(({
             let pageSelectionList= [...pageSelections];
             // setRedactionType(annotations[0]?.type);
             annots[0].children?.forEach((annotatn, i)=> {
-              displayedDoc= getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
+              displayedDoc = getDataFromMappedDoc(Number(annotatn.attributes.page)+1);
               individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(annotatn.attributes.page)+1))?.pageNo;
               if(annotations[i]?.type === 'fullPage') {
                 //annotations[i].setCustomData("trn-redaction-type", "fullPage");
@@ -426,13 +427,13 @@ const Redlining = React.forwardRef(({
                 pageSelectionList.push(
                   {
                   "page": Number(individualPageNo),
-                  "flagid":3
+                  "flagid":pageFlagTypes["Withheld in Full"]
                   });
               } else {
                 pageSelectionList.push(
                   {
                   "page": Number(individualPageNo),
-                  "flagid":1
+                  "flagid":pageFlagTypes["Partial Disclosure"]
                   });
               }
             })
@@ -440,7 +441,7 @@ const Redlining = React.forwardRef(({
             let annot = annots[0].children[0];
             setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           } else {
-            displayedDoc= getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
+            displayedDoc = getDataFromMappedDoc(Number(annotations[0]?.PageNumber));
             let sections = annotations[0].getCustomData("sections")
             let sectn;
             if (sections) {
@@ -466,7 +467,7 @@ const Redlining = React.forwardRef(({
           let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
           let username = docViewer?.getAnnotationManager()?.getCurrentUser();
           if (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)) {             
-            const displayedDoc= getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
+            const displayedDoc = getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
             saveAnnotation(
               requestid,
               displayedDoc.docId,
@@ -676,6 +677,10 @@ const Redlining = React.forwardRef(({
       })
     }
     else {
+      var pageFlagSelections = pageSelections
+      if ((defaultSections.length > 0 && defaultSections[0] === 25) || selectedSections[0] === 25) {
+        pageFlagSelections[0].flagid = pageFlagTypes["In Progress"]
+      }
       saveAnnotation(
         requestid,
         displayedDoc.docId,
@@ -687,7 +692,7 @@ const Redlining = React.forwardRef(({
           (error) => console.log(error)
         )},
         (error)=>{console.log(error)},
-        pageSelections
+        pageFlagSelections
       );
     //}
       // add section annotation
@@ -770,7 +775,8 @@ const Redlining = React.forwardRef(({
       if (annot && annot.name !== newRedaction?.name) {
         //let localDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         //let localDocumentInfo = currentDocument;
-        let displayedDoc= getDataFromMappedDoc(Number(annot.page)+1);
+        let stitchedPageNo = Number(annot.page)+1
+        let displayedDoc= getDataFromMappedDoc(stitchedPageNo);
         deleteRedaction(
           requestid,
           displayedDoc.docId,
@@ -784,7 +790,8 @@ const Redlining = React.forwardRef(({
           },
           (error)=>{console.log(error)},
           isApplingRedaction,
-          (Number(annot.page))+1
+          (Number(annot.page))+1,
+          displayedDoc.pageMappings.find(p => p.stitchedPageNo === stitchedPageNo)['pageNo']
         );
 
         if (annot.type === 'redact' && redactionInfo) {
@@ -843,12 +850,16 @@ const Redlining = React.forwardRef(({
 
   const handleSectionSelected = (e) => {
     let sectionID = e.target.getAttribute('data-sectionid');
+    var newSelectedSections
     if (e.target.checked) {
-      selectedSections.push(Number(sectionID));
+      newSelectedSections = [...selectedSections, Number(sectionID)];
     } else {
-      selectedSections.splice(selectedSections.indexOf(Number(sectionID)), 1);
+      newSelectedSections = selectedSections.filter(s => s !== Number(sectionID))
     }
-    setSaveDisabled(selectedSections.length === 0);
+    setSelectedSections(newSelectedSections);
+    setSaveDisabled(newSelectedSections.length === 0 ||
+       _.isEqual(redactionInfo.find(redaction => redaction.annotationname === editAnnot?.name)?.sections.ids, newSelectedSections)
+    );
   }
 
   const AntSwitch = styled(Switch)(({ theme }) => ({
@@ -1032,22 +1043,6 @@ const Redlining = React.forwardRef(({
     const downloadType = 'pdf';
     // console.log("divisions: ", divisions);
 
-    // remove duplicate and not responsive pages
-    let pagesToRemove = [];
-    for(const infoForEachDoc of pageFlags) {
-      let pageMappingDoc = pageMappedDocs.find(mappings => mappings.docId === infoForEachDoc.documentid);
-
-      for(const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-        // pageflag duplicate or not responsive
-        if(pageFlagsForEachDoc.flagid == 5 || pageFlagsForEachDoc.flagid == 6) {
-          let mappingInfo = pageMappingDoc.pageMappings.find(pMapping => pMapping.pageNo === pageFlagsForEachDoc.page);
-          pagesToRemove.push(mappingInfo.stitchedPageNo);
-        }
-      }
-    }
-    const doc = documentViewer.getDocument();
-    await doc.removePages(pagesToRemove);
-
     getResponsePackagePreSignedUrl(
       requestid,
       documentList[0],
@@ -1090,6 +1085,24 @@ const Redlining = React.forwardRef(({
             }
           }
         });
+
+
+        // remove duplicate and not responsive pages
+        let pagesToRemove = [];
+        for(const infoForEachDoc of pageFlags) {
+          let pageMappingDoc = pageMappedDocs.find(mappings => mappings.docId === infoForEachDoc.documentid);
+
+          for(const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            // pageflag duplicate or not responsive
+            if(pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] || pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]) {
+              let mappingInfo = pageMappingDoc.pageMappings.find(pMapping => pMapping.pageNo === pageFlagsForEachDoc.page);
+              pagesToRemove.push(mappingInfo.stitchedPageNo);
+            }
+          }
+        }
+        const doc = documentViewer.getDocument();
+        await doc.removePages(pagesToRemove);
+
 
         //apply redaction and save to s3
         annotationManager.applyRedactions().then(async results => {
@@ -1196,6 +1209,7 @@ const Redlining = React.forwardRef(({
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
+                        disabled={selectedSections.length > 0 && (section.id === 25 ? !selectedSections.includes(25) : selectedSections.includes(25))}
                         defaultChecked={selectedSections.includes(section.id)}
                     />
                     <label key={"list-label" + section.id} className="check-item">

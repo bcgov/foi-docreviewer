@@ -11,6 +11,10 @@ type ministryType = {
   [key: string]: string
 }
 
+type pageFlagType = {
+  [key: string]: number
+}
+
 const MINISTRYGROUPS: ministryType = {
   AEST: "AEST Ministry Team",
   AGR: "AGR Ministry Team",
@@ -50,7 +54,19 @@ const MINISTRYGROUPS: ministryType = {
   TRAN: "TRAN Ministry Team"
 };
 
+const pageFlagTypes:pageFlagType = {
+  "Partial Disclosure": 1,
+  "Full Disclosure": 2,
+  "Withheld in Full": 3,
+  "Consult": 4,
+  "Duplicate": 5,
+  "Not Responsive": 6,
+  "In Progress": 7,
+  "Page Left Off": 8,
+}
+
 export {
   KCProcessingTeams,
-  MINISTRYGROUPS
+  MINISTRYGROUPS,
+  pageFlagTypes
 };

@@ -2,6 +2,7 @@ from .db import  db, ma
 from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_
 from datetime import datetime as datetime2
+import logging
 
 class Section(db.Model):
     __tablename__ = 'Sections' 
@@ -18,9 +19,14 @@ class Section(db.Model):
 
     @classmethod
     def getall(cls):
-        section_schema = SectionSchema(many=True)
-        query = db.session.query(Section).filter_by(isactive=True).order_by(Section.sortorder.asc()).all()
-        return section_schema.dump(query)
+        try:
+            section_schema = SectionSchema(many=True)
+            query = db.session.query(Section).filter_by(isactive=True).order_by(Section.sortorder.asc()).all()
+            return section_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class SectionSchema(ma.Schema):
     class Meta:

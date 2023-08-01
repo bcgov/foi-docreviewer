@@ -1,6 +1,7 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
+import logging
 
 class DocumentDeleted(db.Model):
     __tablename__ = 'DocumentDeleted'
@@ -16,10 +17,15 @@ class DocumentDeleted(db.Model):
 
     @classmethod
     def create(cls, rows):
-        db.session.add_all(rows)
-        db.session.commit()
-        return DefaultMethodResult(True,'Deleted Row(s) Added', -1, [{"id": row.documentdeletedid, "filepath": row.filepath} for row in rows]) 
-
+        try:
+            db.session.add_all(rows)
+            db.session.commit()
+            return DefaultMethodResult(True,'Deleted Row(s) Added', -1, [{"id": row.documentdeletedid, "filepath": row.filepath} for row in rows]) 
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        
 class DocumentDeletedSchema(ma.Schema):
     class Meta:
         fields = ('documentdeletedid', 'filepath', 'created_at')
