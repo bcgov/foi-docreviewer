@@ -71,6 +71,8 @@ const Redlining = React.forwardRef(({
   const [mapper, setMapper] = useState([]);
   const [searchKeywords, setSearchKeywords] = useState("");
   const [iframeDocument, setIframeDocument] = useState(null);
+  const [selectedAnnotations, setSelectedAnnotations] = useState([]);
+  const targetDivRef = useRef(null);
   //xml parser
   const parser = new XMLParser();
 
@@ -109,7 +111,7 @@ const Redlining = React.forwardRef(({
 
     return !stopLoop;
   };
-  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
+  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());  
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -233,29 +235,40 @@ const Redlining = React.forwardRef(({
         header.headers.default.splice((header.headers.default.length-3), 0, newCustomElement);
       });
 
-
       const Edit = () => {
-        let selectedAnnotations = annotationManager.getSelectedAnnotations();
-        return (
-          <button
-            type="button"
-            class="Button ActionButton"
-            style={selectedAnnotations[0].Subject !== 'Redact' ? {cursor: "default"} : {}}
-            onClick={() => {
-              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
-            }}
-            disabled={selectedAnnotations[0].Subject !== 'Redact'}
-          >
-            <div class="Icon" style={selectedAnnotations[0].Subject !== 'Redact' ? {color: "#868e9587"} : {}}>
-              <EditLogo/>
-            </div>
-          </button>
-        );
+        const annotList = annotationManager.getAnnotationsList();
+        annotList.forEach(annot => {
+          const group = annotationManager.getGroupAnnotations(annot);
+          console.log(group);
+        });
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
+        if (_selectedAnnotations.length <= 0) {
+          _selectedAnnotations = selectedAnnotations;
+          // _selectedAnnotations = selectedAnnotationsFromMultiSelect;
+        }
+        if (_selectedAnnotations) {
+          return (
+            <button
+              type="button"
+              className="Button ActionButton"
+              style={_selectedAnnotations[0].Subject !== 'Redact' ? {cursor: "default"} : {}}
+              onClick={() => {
+                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedAnnotations, useDisplayAuthor: true}))
+              }}
+              disabled={_selectedAnnotations[0].Subject !== 'Redact'}
+            >
+              <div className="Icon" style={_selectedAnnotations[0].Subject !== 'Redact' ? {color: "#868e9587"} : {}}>
+                <EditLogo/>
+              </div>
+            </button>
+          );
+        }
       }
+      
       instance.UI.annotationPopup.add({
         type: 'customElement',
         title: 'Edit',
-        render: () => <Edit/>
+        render: () => <Edit />
 
       });
       setDocInstance(instance);
@@ -323,8 +336,28 @@ const Redlining = React.forwardRef(({
       });
 
       // add event listener for hiding saving menu
-      document.body.addEventListener("click", () => {
+      document.body.addEventListener("click", (e) => {
         document.getElementById("saving_menu").style.display = 'none';
+        const targetDiv = document.querySelector('.multi-select-footer');
+        if(targetDiv) {
+          targetDivRef.current = targetDiv;
+          // ReactDOM.unmountComponentAtNode(targetDivRef.current);
+          const selectedIdString = e.target.id?.split("_");
+          if (selectedIdString.length > 0) {
+            let annotationName = selectedIdString[1];
+            let _selectedAnnotations = selectedAnnotations;
+            const _annot = annotationManager.getAnnotationById(annotationName);
+            if (e.target.checked) {
+              _selectedAnnotations.push(_annot)
+            }
+            else {
+              _selectedAnnotations = _selectedAnnotations.filter(_selectedAnnotation => { return _selectedAnnotation !== _annot});
+            }
+            // selectedAnnotationsFromMultiSelect.push(annotationManager.getAnnotationById(annotationName));
+            setSelectedAnnotations(_selectedAnnotations);
+          }
+          ReactDOM.render(<Edit />, targetDivRef.current);
+        }
       }, true);
     });
 
@@ -341,20 +374,37 @@ const Redlining = React.forwardRef(({
 
   useEffect(() => {
 
-    // docInstance?.Core?.annotationManager.addEventListener('annotationSelected', (annotations, action) => {
-    //   const annotSections = annotations[0].getCustomData("sections");
-    //   // if (annotSections) {
-    //   //   // // annotations[0].ReadOnly = true;
-    //   //   // action.preventDefault();
-    //   //   docInstance?.disableElements(["annotationDeleteButton"]);
-    //   // }
-    //   // else {
-    //   //   docInstance?.enableElements(["annotationDeleteButton"]);
-    //   // }
-    //   // if (annotations[0].Subject == 'redact') {
-    //     docInstance?.enableElements(["annotationCommentButton"]);
-    //   // }
-    // });
+    docInstance?.UI.addEventListener('selectedThumbnailChanged', e => {
+      let detail = e.detail;
+      docInstance.UI.openElements(['notesPanel']);
+    });
+
+    docInstance?.Core?.annotationManager.on('selectionChanged', (annotations) => {
+      // Add the newly selected annotations to the selectedAnnotationsRef
+      // selectedAnnotationsRef.current = selectedAnnotationsRef.current.concat(annotations);
+      console.log('Selected Annotations:', annotations);
+    });
+
+    docInstance?.Core?.annotationManager.on('annotationSelected', (annotations) => {
+      // Add the newly selected annotations to the selectedAnnotationsRef
+      // selectedAnnotationsRef.current = selectedAnnotationsRef.current.concat(annotations);
+      console.log('Selected Annotations:', annotations);
+    });
+
+    docInstance?.Core?.annotationManager.addEventListener('selectedAnnotationsChanged ', (annotations, action) => {
+      const annotSections = annotations[0].getCustomData("sections");
+      // // if (annotSections) {
+      // //   // // annotations[0].ReadOnly = true;
+      // //   // action.preventDefault();
+      // //   docInstance?.disableElements(["annotationDeleteButton"]);
+      // // }
+      // // else {
+      // //   docInstance?.enableElements(["annotationDeleteButton"]);
+      // // }
+      // // if (annotations[0].Subject == 'redact') {
+      //   docInstance?.enableElements(["annotationCommentButton"]);
+      // // }
+    });
 
     docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
       // If the event is triggered by importing then it can be ignored
@@ -475,10 +525,10 @@ const Redlining = React.forwardRef(({
           }
         }
         else if (action === 'modify') {
-          let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
+          let _selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
           let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-          if (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)) {             
-            const displayedDoc = getDataFromMappedDoc(Number(selectedAnnotations[0]?.PageNumber));
+          if (_selectedAnnotations[0].Subject === 'Redact' || (_selectedAnnotations[0].Subject !== 'Redact' && _selectedAnnotations[0].Author === username)) {             
+            const displayedDoc = getDataFromMappedDoc(Number(_selectedAnnotations[0]?.PageNumber));
             saveAnnotation(
               requestid,
               displayedDoc.docId,
