@@ -49,34 +49,22 @@ class documentpageflagservice:
         return result
     
 
-    def bulksavepageflags_X(self, requestid, documentid, version, pageflaglist, userinfo):
-        pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        existingdocument = True
-        if(pageflag is None):
-            existingdocument = False
-            pageflag = []
-        for data in pageflaglist:
-            # if self.__isbookmark(data) == True: 
-            #     self.removebookmark(requestid, userinfo)
-            self.__createnewpageflag(pageflag, data)
-            result = DocumentPageflag.savepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-            #self.handlepublicbody(requestid, documentid, version, data, userinfo)
-        return result
+    def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, userinfo):
+        docpageflags = self.getdocumentpageflags(requestid, documentid, version)
+        for pageflag in pageflags:
+            docpageflags = self.__createnewpageflag(docpageflags, pageflag)
+        return DocumentPageflag.savepageflag(requestid, documentid, version, json.dumps(docpageflags), json.dumps(userinfo))
+        
     
     def bulksavepageflag(self, requestid, data, userinfo):
         results = []
         for entry in data["documentpageflags"]:
-            documentid = entry["documentid"]
-            version = entry['version']
-            docpageflags = self.getdocumentpageflags(requestid, documentid, version)
-            for pageflag in entry['pageflags']:
-                docpageflags = self.__createnewpageflag(docpageflags, pageflag)
             try:
-                result = DocumentPageflag.savepageflag(requestid, documentid, version, json.dumps(docpageflags), json.dumps(userinfo))
-                results.append({"documentid": documentid, "version": version, "message": result.message})
+                result = self.bulksavedocumentpageflag(requestid, entry["documentid"], entry['version'], entry['pageflags'], userinfo)
+                results.append({"documentid": entry["documentid"], "version": entry['version'], "message": result.message})
             except Exception as ex:
                 logging.error(ex)
-                results.append({"documentid": documentid, "version": version, "message": "Page flag is not saved"})
+                results.append({"documentid": entry["documentid"], "version": entry['version'], "message": "Page flag is not saved"})
         return results  
         
     

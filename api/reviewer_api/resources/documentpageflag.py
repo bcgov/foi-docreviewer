@@ -21,7 +21,7 @@ from reviewer_api.auth import auth, AuthHelper
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
-from reviewer_api.schemas.documentpageflag import PageflagSchema, BulkDocumentPageflagSchema
+from reviewer_api.schemas.documentpageflag import BulkPageflagSchema, BulkDocumentPageflagSchema
 import json
 
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
@@ -41,8 +41,8 @@ class SaveDocumentPageflag(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(requestid, documentid, documentversion):
         try:
-            payload = PageflagSchema().load(request.get_json())
-            result = documentpageflagservice().savepageflag(requestid, documentid, documentversion, payload, AuthHelper.getuserinfo())
+            payload = BulkPageflagSchema().load(request.get_json())
+            result = documentpageflagservice().bulksavedocumentpageflag(requestid, documentid, documentversion, payload["pageflags"], AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
