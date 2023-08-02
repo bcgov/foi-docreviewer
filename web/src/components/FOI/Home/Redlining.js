@@ -544,24 +544,59 @@ const Redlining = React.forwardRef(({
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
     assignAnnotations(removedFirstElement.file.documentid, mappedDoc, domParser)
     for (let file of docCopy) {
-      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
-      await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
-      const pages = [];
-      mappedDoc = {"pageMappings":[ ] };
-      let stitchedPageNo= 0;
-      for (let i = 0; i < newDoc.getPageCount(); i++) {
-        pages.push(i + 1);
-        let pageNo = i+1;
-        stitchedPageNo= (doc.getPageCount() + (i+1));
-        let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
-        mappedDoc.pageMappings.push(pageMappings);
+      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
+      if (['.jpg', '.png'].includes(file.file.attributes.extension)) {
+        let pdfDoc = await doc.getPDFDoc();
+
+        // Create an Image that can be reused multiple times in the document or multiple on the same page.
+        const img = await docInstance.PDFNet.Image.createFromURL(pdfDoc, file.s3url);
+        let height = await img.getImageHeight();
+        let width = await img.getImageWidth();
+
+        // insert blank page
+        await doc.insertBlankPages([doc.getPageCount() + 1], 612, 792); // default PDFTron page size
+        let page = await pdfDoc.getPage(await pdfDoc.getPageCount());
+
+        // ElementBuilder is used to build new Element objects
+        const builder = await docInstance.PDFNet.ElementBuilder.create();
+
+        // ElementWriter is used to write Elements to the page
+        const writer = await docInstance.PDFNet.ElementWriter.create();
+
+        // begin writing to the page
+        await writer.beginOnPage(page);
+        var scaledWidth;
+        var scaledHeight;
+        if (width > height) {
+          scaledWidth = 612;
+          scaledHeight = (612/width) * height;
+        } else {
+          scaledWidth = (792/height) * width;
+          scaledHeight = 792;
+        }
+        writer.writePlacedElement(await builder.createImageScaled(img, 0, 792 - scaledHeight, scaledWidth, scaledHeight));
+
+        // save changes to the current page
+        await writer.end();
+        mappedDoc.pageMappings = [{"pageNo": 1, "stitchedPageNo" : doc.getPageCount()}];
+      } else {
+        let newDoc = await docInstance.Core.createDocument(file.s3url, {} /* , license key here */)
+        const pages = [];
+        mappedDoc = {"pageMappings":[ ] };
+        let stitchedPageNo= 0;
+        for (let i = 0; i < newDoc.getPageCount(); i++) {
+          pages.push(i + 1);
+          let pageNo = i+1;
+          stitchedPageNo= (doc.getPageCount() + (i+1));
+          let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
+          mappedDoc.pageMappings.push(pageMappings);
+        }
+        // Insert (merge) pages
+        await doc.insertPages(newDoc, pages);
       }
-      // Insert (merge) pages
-      await doc.insertPages(newDoc, pages);
       mappedDocArray.push({"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
       assignAnnotations(file.file.documentid, mappedDoc, domParser)
-      })
     }
     setPageMappedDocs(mappedDocArray);
     docInstance.UI.searchTextFull(searchKeywords, {
