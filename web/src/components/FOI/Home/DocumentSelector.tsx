@@ -164,10 +164,10 @@ const DocumentSelector = ({
                 return faCircleHalfStroke;
             case 2:
             case "Full Disclosure":
-                return faCircle;
+                return filledCircle;
             case 3:
             case "Withheld in Full":
-                return filledCircle;
+                return faCircle;
             case 4:
             case "Consult":
                 return faCircleQuestion;
