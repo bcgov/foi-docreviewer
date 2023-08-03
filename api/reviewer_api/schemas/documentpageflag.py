@@ -20,13 +20,6 @@ class PageflagSchema(Schema):
     other = fields.List(fields.Str(allow_none=True), data_key="other",allow_none=True)
     publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)
 
-class BulkPageflagSchema(Schema):
-    class Meta:  # pylint: disable=too-few-public-methods
-        """Exclude unknown fields in the deserialized output."""
-
-        unknown = EXCLUDE    
-    pageflags = fields.Nested(PageflagSchema, many=True, validate=validate.Length(min=1), required=True,allow_none=False)
-
 class DocumentPageflagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         """Exclude unknown fields in the deserialized output."""

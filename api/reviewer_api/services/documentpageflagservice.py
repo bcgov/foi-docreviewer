@@ -16,44 +16,26 @@ class documentpageflagservice:
     
     def getdocumentpageflags(self, requestid, documentid=None, version=None):
         pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version)
-        if pageflag not in (None, {}) and pageflag["pageflag"] is not None:
-            return pageflag["pageflag"]
-        return []
-
+        if pageflag not in (None, {}):
+            return pageflag["pageflag"], pageflag["attributes"]
+        return [], None
+    
     def removebookmark(self,requestid, userinfo):
         pageflags = self.getpageflags(requestid)
         for entry in pageflags:
             new_pageflag = list(filter(lambda x: x['flagid'] != 8 , entry['pageflag']))
             DocumentPageflag.savepageflag(requestid, entry['documentid'],  entry['documentversion'], json.dumps(new_pageflag), json.dumps(userinfo))
     
-    def savepageflag(self, requestid, documentid, version, data, userinfo):
-        if self.__isbookmark(data) == True: 
-            self.removebookmark(requestid, userinfo)
-        pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        formattted_data = self.__formatpageflag(data)
-        if pageflag is not None:
-            isnew = True
-            for entry in pageflag:
-                if entry["page"] == data["page"]:
-                    isnew = False
-                    pageflag.remove(entry)
-                    pageflag.append(formattted_data)
-            if isnew == True:
-                pageflag.append(formattted_data)
-            result = DocumentPageflag.savepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-        else:
-            pageflag = []
-            pageflag.append(formattted_data)
-            result = DocumentPageflag.createpageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-        self.handlepublicbody(requestid, documentid, version, data, userinfo)
-        return result
-    
-
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, userinfo):
-        docpageflags = self.getdocumentpageflags(requestid, documentid, version)
+        docpageflags, docpgattributes = self.getdocumentpageflags(requestid, documentid, version)
         for pageflag in pageflags:
+            if self.__isbookmark(pageflag) == True: 
+                self.removebookmark(requestid, userinfo)
+            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-        return DocumentPageflag.savepageflag(requestid, documentid, version, json.dumps(docpageflags), json.dumps(userinfo))
+        __docpgattributes = json.dumps({"publicbody": docpgattributes}) if docpgattributes not in (None, '') else None
+        __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, '') else None
+        return DocumentPageflag.savepageflag(requestid, documentid, version, __docpageflags, json.dumps(userinfo),__docpgattributes)
         
     
     def bulksavepageflag(self, requestid, data, userinfo):
@@ -68,8 +50,18 @@ class documentpageflagservice:
         return results  
         
     
+    def handlepublicbody(self, docpgattributes, data):
+        if "publicbodyaction" in data and data["publicbodyaction"] == "add":
+            attributes = docpgattributes if docpgattributes not in (None,{}) else None
+            publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
+            publicbody = set(map(lambda x : x['name'], publicbody))
+            publicbody.update(data["other"])
+            return list(map(lambda x : {"name": x}, publicbody))
+        else:
+            return docpgattributes
+
     def removepageflag(self,requestid, documentid, version, page, userinfo):
-        pageflags = self.getdocumentpageflags(requestid, documentid, version)
+        pageflags, _ = self.getdocumentpageflags(requestid, documentid, version)
         withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] in [1, 3, 7]) ),None)
         if withheldinfullobj is not None:
             pageflags.remove(withheldinfullobj)
@@ -102,17 +94,7 @@ class documentpageflagservice:
             return True
         return False    
 
-    def handlepublicbody(self, requestid, documentid, version, data, userinfo):
-        if "publicbodyaction" in data and data["publicbodyaction"] =="add":
-            pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
-            attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
-            publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody = set(map(lambda x : x['name'], publicbody))
-            publicbody.update(data["other"])
-            publicbody = list(map(lambda x : {"name": x}, publicbody))
-            DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
-        else:
-            return
+    
         
 
         
