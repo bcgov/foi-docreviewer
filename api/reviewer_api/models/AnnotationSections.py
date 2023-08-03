@@ -39,6 +39,7 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotation Sections are saved', [annot["name"] for annot in annots])
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -60,6 +61,7 @@ class AnnotationSection(db.Model):
                 mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -87,6 +89,7 @@ class AnnotationSection(db.Model):
                 mapping.append({"annotationname":row["redactannotation"], "sectionannotation":row["annotationname"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -119,6 +122,27 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def getredactedsectionsbyrequest(cls, ministryrequestid):
+        try:
+            sql = '''select section from public."Sections" where sectionid in
+                        (select distinct (json_array_elements((as1.section::json->>'ids')::json)->>'id')::integer
+                        from public."AnnotationSections" as1
+                        join public."Annotations" a on a.annotationname = as1.annotationname
+                        where foiministryrequestid = :ministryrequestid
+                        and a.isactive = true)
+                     and sectionid != 25
+                     order by sortorder'''
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            sectionstring = ""
+            for row in rs:
+                sectionstring = sectionstring + row["section"] + ', '
+            sectionstring = sectionstring[:-2]
+            return sectionstring
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 
 class AnnotationSectionSchema(ma.Schema):

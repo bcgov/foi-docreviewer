@@ -42,15 +42,15 @@ class redactionservice:
             documentpageflagservice().bulksavepageflags(annotationschema["foiministryrequestid"], documentid, documentversion, annotationschema["pageflags"], userinfo)
          return result
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page):
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page, freezepageflags):
         result =  annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
-        if result.success == True and page is not None:
+        if result.success == True and page is not None and freezepageflags == "false":
             documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
         return result
 
-    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page):
+    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page, freezepageflags):
         result = annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
-        if result.success == True:
+        if result.success == True and freezepageflags == "false":
             newresult = Annotation.getredactionsbypage(documentid, documentversion, page)
             if len(newresult) == 0:
                 documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
