@@ -72,6 +72,7 @@ const Redlining = React.forwardRef(({
   const [searchKeywords, setSearchKeywords] = useState("");
   const [iframeDocument, setIframeDocument] = useState(null);
   const [selectedAnnotations, setSelectedAnnotations] = useState([]);
+  const [isMultiSelectEdit, setMultiSelectEdit] = useState(false);
   const targetDivRef = useRef(null);
   //xml parser
   const parser = new XMLParser();
@@ -236,33 +237,35 @@ const Redlining = React.forwardRef(({
       });
 
       const Edit = () => {
-        const annotList = annotationManager.getAnnotationsList();
-        annotList.forEach(annot => {
-          const group = annotationManager.getGroupAnnotations(annot);
-          console.log(group);
-        });
+        // const annotList = annotationManager.getAnnotationsList();
+        // annotList.forEach(annot => {
+        //   const group = annotationManager.getGroupAnnotations(annot);
+        //   console.log(group);
+        // });
         let _selectedAnnotations = annotationManager.getSelectedAnnotations();
         if (_selectedAnnotations.length <= 0) {
           _selectedAnnotations = selectedAnnotations;
           // _selectedAnnotations = selectedAnnotationsFromMultiSelect;
         }
-        if (_selectedAnnotations) {
+        const hasValue = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
+        _selectedAnnotations = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
+        // if (_selectedAnnotations) {
           return (
             <button
               type="button"
               className="Button ActionButton"
-              style={_selectedAnnotations[0].Subject !== 'Redact' ? {cursor: "default"} : {}}
+              style={hasValue ? {cursor: "default"} : {}}
               onClick={() => {
                 editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedAnnotations, useDisplayAuthor: true}))
               }}
-              disabled={_selectedAnnotations[0].Subject !== 'Redact'}
+              disabled={hasValue}
             >
-              <div className="Icon" style={_selectedAnnotations[0].Subject !== 'Redact' ? {color: "#868e9587"} : {}}>
+              <div className="Icon" style={hasValue ? {color: "#868e9587"} : {}}>
                 <EditLogo/>
               </div>
             </button>
           );
-        }
+        // }
       }
       
       instance.UI.annotationPopup.add({
@@ -340,24 +343,50 @@ const Redlining = React.forwardRef(({
         document.getElementById("saving_menu").style.display = 'none';
         const targetDiv = document.querySelector('.multi-select-footer');
         if(targetDiv) {
-          targetDivRef.current = targetDiv;
-          // ReactDOM.unmountComponentAtNode(targetDivRef.current);
+          let editDiv = document.querySelector('.edit-button');
           const selectedIdString = e.target.id?.split("_");
+          let editButton = editDiv;
+          if (!editDiv) {
+              editButton = document.createElement('div');        
+              editButton.classList.add('edit-button');
+              targetDiv.insertBefore(editButton, targetDiv.firstChild);
+          }
+          editDiv = document.querySelector('.edit-button');
           if (selectedIdString.length > 0) {
             let annotationName = selectedIdString[1];
             let _selectedAnnotations = selectedAnnotations;
             const _annot = annotationManager.getAnnotationById(annotationName);
-            if (e.target.checked) {
-              _selectedAnnotations.push(_annot)
-            }
-            else {
-              _selectedAnnotations = _selectedAnnotations.filter(_selectedAnnotation => { return _selectedAnnotation !== _annot});
-            }
-            // selectedAnnotationsFromMultiSelect.push(annotationManager.getAnnotationById(annotationName));
-            setSelectedAnnotations(_selectedAnnotations);
+
+            setSelectedAnnotations(prevSelectedAnnotations => {              
+              const _selectedAnnotations = prevSelectedAnnotations; 
+              const isExists = _selectedAnnotations.find(_annotation => _annotation === _annot); 
+              if (isExists) {
+                return _selectedAnnotations.filter(_annotation => _annotation !== _annot);
+              } else {
+                _selectedAnnotations.push(_annot);
+                return _selectedAnnotations;
+              }
+            });
+            
+            // if (_selectedAnnotations.length > 0) {
+            //   const isExists = selectedAnnotations.find(_annotation => _annotation === _annot);
+            //   if (isExists) {
+            //     _selectedAnnotations = selectedAnnotations.filter(_annotation => { return _annotation !== _annot});
+            //   }
+            //   else {
+            //     _selectedAnnotations.push(_annot)
+            //   }
+            // }
+            // else {
+            //   _selectedAnnotations.push(_annot)
+            // }
+            // setSelectedAnnotations(_selectedAnnotations);
+
           }
-          ReactDOM.render(<Edit />, targetDivRef.current);
+          setMultiSelectEdit(true);
+          ReactDOM.render(<Edit />, editButton);
         }
+        setMultiSelectEdit(false);
       }, true);
     });
 
@@ -448,16 +477,7 @@ const Redlining = React.forwardRef(({
                   individualPageNo
                 );
               }
-              else{
-                const annotSections = annotations[0].getCustomData("sections");
-                if (annotSections) {
-                  // const sections = JSON.parse(annotSections);
-                  // const sectionNames = sections.map(item => item.section).join(', ');
-                  // annot.value = sections.map(item => item.section).join(', ');
-                  // docInstance?.Core?.annotationManager.redrawAnnotation(annot);
-                  // return;
-                }
-                else {           
+              else{                        
                 deleteAnnotation(
                   requestid,
                   displayedDoc.docId,
@@ -466,7 +486,7 @@ const Redlining = React.forwardRef(({
                   (data)=>{},
                   (error)=>{console.log(error)}
                 );
-                }
+              
               }
             }
           }
@@ -837,7 +857,8 @@ const Redlining = React.forwardRef(({
 
   useEffect(() => {
     if (editAnnot) {
-      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id))
+      if(!isMultiSelectEdit)
+        setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id))
       setModalOpen(true);
     }
   }, [editAnnot])
