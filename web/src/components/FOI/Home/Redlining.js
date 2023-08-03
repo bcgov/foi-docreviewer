@@ -922,6 +922,10 @@ const Redlining = React.forwardRef(({
     const downloadType = 'pdf';
     // console.log("divisions: ", divisions);
 
+    const divisionCountForToast = divisions.length;
+    let currentDivisionCount = 0;
+    const toastID = toast.loading("Start saving redline...")
+
     let newDocList = [];
     for(let div of divisions) {
       let divDocList = documentList.filter(doc => doc.divisions.map(d => d.divisionid).includes(div.divisionid));
@@ -938,6 +942,12 @@ const Redlining = React.forwardRef(({
 
         let domParser = new DOMParser()
         for(let divObj of res.divdocumentList) {
+          currentDivisionCount++;
+          toast.update(toastID, {
+            render: `Generating redline PDF for ${currentDivisionCount} of ${divisionCountForToast} divisions...`,
+            isLoading: true,
+          })
+
           let stitchedDocObj = null;
           let stitchedDocPath = divObj.s3path_save;
           let stitchedXMLArray = [];
@@ -1002,15 +1012,44 @@ const Redlining = React.forwardRef(({
                   // const url = URL.createObjectURL(blob);
                   // window.open(url);
       
+                  toast.update(toastID, {
+                    render: `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} divisions to Object Storage...`,
+                    isLoading: true,
+                  })
+
                   await saveFilesinS3(
                     {filepath: stitchedDocPath},
                     _blob,
                     (_res) => {
                       // ######### call another process for zipping and generate download here ##########
-                      // console.log(_res);
+                      console.log(_res);
+                      toast.update(toastID, {
+                        render: `${currentDivisionCount} of ${divisionCountForToast} divisions are saved to Object Storage`,
+                        type: "success",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true
+                      });
                     },
                     (_err) => {
                       console.log(_err);
+                      toast.update(toastID, {
+                        render: "Failed to save redline pdf to Object Storage",
+                        type: "error",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true
+                      });
                     }
                   );
                 });
