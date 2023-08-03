@@ -25,15 +25,17 @@ import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
-
+import {getPageNoOfStitchedDoc} from "./utils";
+import { pageFlagTypes } from '../../../constants/enum';
 
 const DocumentSelector = ({
     openFOIPPAModal,
     requestid,
     documents,
     totalPageCount,
-    currentPageInfo,
-    setCurrentPageInfo
+    setCurrentPageInfo,
+    setIndividualDoc,
+    pageMappedDocs
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -52,6 +54,7 @@ const DocumentSelector = ({
     const [filteredFiles, setFilteredFiles] = useState(files);
     const [filterBookmark, setFilterBookmark] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
+
 
     const StyledTreeItem = styled(TreeItem)(() => ({
     [`& .${treeItemClasses.label}`]: {
@@ -161,10 +164,10 @@ const DocumentSelector = ({
                 return faCircleHalfStroke;
             case 2:
             case "Full Disclosure":
-                return faCircle;
+                return filledCircle;
             case 3:
             case "Withheld in Full":
-                return filledCircle;
+                return faCircle;
             case 4:
             case "Consult":
                 return faCircleQuestion;
@@ -195,22 +198,13 @@ const DocumentSelector = ({
     let arr: any[] = [];
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
 
-
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
         setFilteredFiles(files.filter((file: any) => file.filename.includes(filterValue)))
 
     }
 
-    // const getDivisionFiles = (division) => {
-    //     let filteredFiles = filesForDisplay.filter(file => file.divisions.map(d => d.divisionid = division.divisionid).includes(division.divisionid))
-    //     console.log(division)
-    //     return filteredFiles.map((file, index) => {
-    //                 return <TreeItem nodeId={`${index}`} label={file.filename}/>
-    //             })
-    // }
-
-    const getFilePages = (pagecount: Number, index: Number) => {
+    const getFilePages = (pagecount: number, index: number) => {
         let pages = []
         for (var p = 1; p <= pagecount; p++) {
             pages.push(<TreeItem nodeId={`file${index}page${p}`} label={`Page ${p}`} />)
@@ -219,10 +213,14 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number, e?: any) => {
-        setCurrentPageInfo({ 'file': file, 'page': page });
-        localStorage.setItem("currentDocumentInfo", JSON.stringify({ 'file': file, 'page': page }));
-        if( page == 1)
-            setDisableHover(false);
+        if(pageMappedDocs.length > 0 ){
+            let pageNo: number = getPageNoOfStitchedDoc(file, page, pageMappedDocs);
+            setIndividualDoc({ 'file': file, 'page': pageNo})
+            setCurrentPageInfo({ 'file': file, 'page': page });
+            // setCurrentDocument({ 'file': file, 'page': page })
+            if( page == 1)
+                setDisableHover(false);
+        }
     };
 
     const openContextMenu = (file: any, page: number, e: any) => {
@@ -257,15 +255,15 @@ const DocumentSelector = ({
         if (flagFilterCopy.includes(flagId)) {
             flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
             event.currentTarget.classList.remove('selected');
-            if (flagId === 8)
+            if (flagId === pageFlagTypes["Page Left Off"])
                 setFilterBookmark(false);
-            else if ((flagFilterCopy.length == 1 && flagFilterCopy.includes(8)))
+            else if ((flagFilterCopy.length == 1 && flagFilterCopy.includes(pageFlagTypes["Page Left Off"])))
                 setFilterBookmark(true);
         }
         else {
             flagFilterCopy.push(flagId);
             event.currentTarget.classList.add('selected');
-            if (flagId === 8 || (flagFilterCopy.length == 1 && flagFilterCopy.includes(8)))
+            if (flagId === pageFlagTypes["Page Left Off"] || (flagFilterCopy.length == 1 && flagFilterCopy.includes(pageFlagTypes["Page Left Off"])))
                 setFilterBookmark(true);
             else
                 setFilterBookmark(false);
@@ -411,13 +409,15 @@ const DocumentSelector = ({
                                                     }}
                                                     title={<>
                                                         Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                                        {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
                                                     </>}
                                                     placement="bottom-end"
                                                     arrow
                                                     key={i}
                                                     disableHoverListener={disableHover}
                                                 >
-                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
+        
+                                                    <TreeItem nodeId={`division${index}file${i}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0} onClick={(e) => selectTreeItem(file, 1, e)}>
                                                         {[...Array(file.pagecount)].map((_x, p) =>
                                                         (filterFlags.length > 0 ?
                                                             ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
@@ -449,6 +449,7 @@ const DocumentSelector = ({
                                                                 openContextPopup={openContextPopup}
                                                                 setOpenContextPopup={setOpenContextPopup}
                                                                 selectedPage={selectedPage}
+                                                                stitchedPage={getPageNoOfStitchedDoc(file, selectedPage, pageMappedDocs)}
                                                                 selectedFile={selectedFile}
                                                                 setPageFlagChanged={setPageFlagChanged}
                                                             />
@@ -469,13 +470,14 @@ const DocumentSelector = ({
                                             }}
                                             title={<>
                                                 Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                                {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
                                             </>}
                                             placement="bottom-end"
                                             arrow
                                             key={file?.documentid}
                                             disableHoverListener={disableHover}
                                         >
-                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)} >
+                                            <TreeItem nodeId={`${index}`} label={file.filename} key={file?.documentid} onClick={(e) => selectTreeItem(file, 1, e)}>
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                 (filterFlags.length > 0 ?
                                                     ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
@@ -492,7 +494,7 @@ const DocumentSelector = ({
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         :
                                                         <StyledTreeItem nodeId={`file${index}page${p + 1}`} key={p + 1} label={`Page ${p + 1}`}
-                                                            onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            onClick={(e) => selectTreeItem(file, p + 1, e)} onContextMenu={(e) => openContextMenu(file, p + 1, e)}/>
                                                     )
                                                 )
                                                 )}
@@ -506,6 +508,7 @@ const DocumentSelector = ({
                                                         openContextPopup={openContextPopup}
                                                         setOpenContextPopup={setOpenContextPopup}
                                                         selectedPage={selectedPage}
+                                                        stitchedPage={getPageNoOfStitchedDoc(file, selectedPage, pageMappedDocs)}
                                                         selectedFile={selectedFile}
                                                         setPageFlagChanged={setPageFlagChanged}
                                                     />

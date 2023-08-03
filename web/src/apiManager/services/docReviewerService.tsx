@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList, setRequestStatus } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -16,7 +16,9 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        callback(res.data);
+        store.dispatch(setDocumentList(res.data.documents) as any);
+        store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
+        callback(res.data.documents);
       } else {
         throw new Error();
       }
@@ -28,12 +30,11 @@ export const fetchDocuments = (
 };
 
 export const fetchAnnotations = (
-  documentid: number,
-  documentversion: number,
+  ministryrequestid: number,
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -49,12 +50,11 @@ export const fetchAnnotations = (
 };
 
 export const fetchAnnotationsInfo = (
-  documentid: number,
-  documentversion: number = 1,
+  ministryrequestid: number,
   //callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}/info`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/info`
 
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -109,10 +109,12 @@ export const deleteAnnotation = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
+  freezepageflags: string = "false",
   page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}`;
+
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -133,9 +135,11 @@ export const deleteRedaction = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
+  freezepageflags: string = "false",
   page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`;
+
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -253,6 +257,25 @@ export const fetchPageFlag = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching pageflags for a document");
+    });
+};
+
+
+export const fetchKeywordsMasterData = (
+  callback: any,
+  errorCallback: any
+) => {
+  //let apiUrlGet: string = API.DOCREVIEWER_GET_ALL_PAGEFLAGS;
+  httpGETRequest(API.DOCREVIEWER_GET_ALL_KEYWORDS, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching keywords master data:",error);
     });
 };
 
