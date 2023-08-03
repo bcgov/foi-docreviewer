@@ -351,21 +351,6 @@ const Redlining = React.forwardRef(({
 
   useEffect(() => {
 
-    // docInstance?.Core?.annotationManager.addEventListener('annotationSelected', (annotations, action) => {
-    //   const annotSections = annotations[0].getCustomData("sections");
-    //   // if (annotSections) {
-    //   //   // // annotations[0].ReadOnly = true;
-    //   //   // action.preventDefault();
-    //   //   docInstance?.disableElements(["annotationDeleteButton"]);
-    //   // }
-    //   // else {
-    //   //   docInstance?.enableElements(["annotationDeleteButton"]);
-    //   // }
-    //   // if (annotations[0].Subject == 'redact') {
-    //     docInstance?.enableElements(["annotationCommentButton"]);
-    //   // }
-    // });
-
     docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
       // If the event is triggered by importing then it can be ignored
       // This will happen when importing the initial annotations
@@ -645,11 +630,6 @@ const Redlining = React.forwardRef(({
       _annotations.forEach(_annotation => {
         annotManager.redrawAnnotation(_annotation);
         annotManager.setPermissionCheckCallback((author, _annotation) => {
-          // const _sections = _annotation.getCustomData("sections");
-          // if (_sections) {
-          //   _annotation.Locked = true;
-          //   // _annotation.IsClickableOutsideRect = false;
-          // }
           if (_annotation.Subject !== 'Redact' && author !== username) {
            _annotation.NoResize = true;
           } 
