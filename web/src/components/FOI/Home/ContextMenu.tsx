@@ -17,6 +17,7 @@ const ContextMenu = ({
     setOpenContextPopup,
     anchorPosition,
     selectedPage,
+    stitchedPage,
     selectedFile,
     setPageFlagChanged
 }: any) => {
@@ -50,8 +51,7 @@ const ContextMenu = ({
 
     const savePageFlags = (flagId: number, pageNo: number, documentid: number, documentversion: number, data?: any) => {
         if(flagId === 3){
-            console.log("Withheld in Full Selection");
-            openFOIPPAModal(pageNo);
+            openFOIPPAModal(stitchedPage);
         } else {
             savePageFlag(
                 requestId,

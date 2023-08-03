@@ -79,9 +79,15 @@ class DocumentPageflag(db.Model):
     
     @classmethod
     def getpageflag(cls,  _foiministryrequestid, _documentid, _documentversion):
-        pageflag_schema = DocumentPageflagSchema(many=False)
-        query = db.session.query(DocumentPageflag).filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion)).order_by(DocumentPageflag.documentversion.desc()).first()
-        return pageflag_schema.dump(query)
+        try:
+            pageflag_schema = DocumentPageflagSchema(many=False)
+            query = db.session.query(DocumentPageflag).filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion)).order_by(DocumentPageflag.documentversion.desc()).first()
+            return pageflag_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
     
     @classmethod
     def getpageflag_by_request(cls,  _foiministryrequestid):
@@ -96,6 +102,7 @@ class DocumentPageflag(db.Model):
                 pageflags.append({"documentid":row["documentid"],"documentversion":row["documentversion"],"pageflag":row["pageflag"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -114,6 +121,7 @@ class DocumentPageflag(db.Model):
                 pageflags.append({"documentid":row["documentid"],"attributes":row["attributes"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

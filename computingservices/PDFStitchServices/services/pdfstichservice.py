@@ -74,7 +74,17 @@ class pdfstitchservice(basestitchservice):
                 if extension.lower() in ['.pdf','.png','.jpg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
-                        pdf_doc = fitz.open(stream=_bytes)                        
+                        pdf_doc_in = fitz.open(stream=_bytes) #input PDF
+                        pdf_doc = fitz.open()  # output PDF
+                        if pdf_doc_in.is_form_pdf is not False and pdf_doc_in.is_form_pdf > 0:  #check if form field exists, if so convert doc to series of page images & combine to 1 pdf
+                            for page in pdf_doc_in:
+                                w, h = page.rect.br  # page width / height taken from bottom right point coords
+                                outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
+                                pix = page.get_pixmap(dpi=150)  # set desired resolution
+                                outpage.insert_image(page.rect, pixmap=pix)
+                            #pdf_doc.save("Output.pdf", garbage=3, deflate=True)
+                        else:
+                            pdf_doc= pdf_doc_in
                         if pdf_doc.needs_pass:
                             raise ValueError("Password-protected PDF document")                            
                         else:

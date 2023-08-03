@@ -21,5 +21,7 @@ dedupe_s3_region = os.getenv('DEDUPE_S3_REGION')
 dedupe_s3_service = os.getenv('DEDUPE_S3_SERVICE')
 dedupe_s3_env = os.getenv('DEDUPE_S3_ENV')
 
+request_management_api = os.getenv('DEDUPE_REQUEST_MANAGEMENT_API')
+
 #Notification stream config
 notification_stream_key = os.getenv('NOTIFICATION_STREAM_KEY')

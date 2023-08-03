@@ -22,7 +22,7 @@ from os import getenv
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
-from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema
+from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema
 import json
 import requests
 import logging
@@ -36,7 +36,7 @@ requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 requestapitimeout = getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
 @cors_preflight('POST,OPTIONS')
 @API.route('/document/delete')
-class GetDedupeStatus(Resource):
+class DeleteDocuments(Resource):
     """Add document to deleted list.
     """
     @staticmethod
@@ -49,6 +49,27 @@ class GetDedupeStatus(Resource):
             payload = request.get_json()
             payload = FOIRequestDeleteRecordsSchema().load(payload)
             result = documentservice().deletedocument(payload, AuthHelper.getuserid())
+            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+        except KeyError as err:
+            return {'status': False, 'message':err.messages}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/document/update')
+class UpdateDocumentAttributes(Resource):
+    """Add document to deleted list.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post():
+        try:
+            payload = request.get_json()
+            payload = FOIRequestUpdateRecordsSchema().load(payload)
+            result = documentservice().updatedocumentattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -74,8 +95,11 @@ class GetDocuments(Resource):
                 timeout=float(requestapitimeout)
             )
             response.raise_for_status()
+            # get request status
+            jsonObj = response.json()
+
             result = documentservice().getdocuments(requestid)
-            return json.dumps(result), 200
+            return json.dumps({"requeststatusid": jsonObj["requeststatusid"], "documents": result}), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:

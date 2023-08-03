@@ -16,3 +16,19 @@ class FOIRequestDeleteRecordsSchema(Schema):
         unknown = EXCLUDE
     filepaths = fields.List(fields.String(validate=[validate.Length(max=1000, error=MAX_EXCEPTION_MESSAGE)]), data_key="filepaths",allow_none=False)
     ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
+
+class DivisionSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE 
+    divisionid = fields.Int(data_key="divisionid",allow_none=False)
+
+class FOIRequestUpdateRecordsSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE
+    documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
+    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
+    divisions = fields.Nested(DivisionSchema,many=True,validate=validate.Length(min=1),allow_none=False)

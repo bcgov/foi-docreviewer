@@ -51,7 +51,8 @@ class jobrecordservice:
                         DocumentAttributes(
                             documentmasterid=masterid,
                             attributes=record['attributes'],
-                            createdby=userid
+                            createdby=userid,
+                            version=1
                         )
                     )
                 else:
@@ -84,7 +85,8 @@ class jobrecordservice:
                         DocumentAttributes(
                             documentmasterid=masterid,
                             attributes=record['attributes'],
-                            createdby=userid
+                            createdby=userid,
+                            version=1
                         )
                     )
                 else:
