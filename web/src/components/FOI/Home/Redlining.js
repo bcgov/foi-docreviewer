@@ -1,7 +1,6 @@
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import React, { useRef, useEffect,useState,useImperativeHandle } from 'react';
-import ReactDOM from 'react-dom';
 import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
