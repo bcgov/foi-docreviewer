@@ -1,5 +1,23 @@
 
+.consult_public_body:disabled {
+    color: #999999 !important;
+    cursor: not-allowed !important;
+}
+
 .redline_for_sign_off:disabled {
     color: #999999 !important;
     cursor: not-allowed !important;
+}
+
+.final_package:disabled {
+    color: #999999 !important;
+    cursor: not-allowed !important;
+}
+
+.file-upload-toast {
+    .Toastify__toast-body {
+        > div:last-child {
+            white-space: pre-line;
+        }
+    }
 }
