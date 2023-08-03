@@ -25,7 +25,7 @@ import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
 import { toast } from "react-toastify";
-import { pageFlagTypes } from '../../../constants/enum';
+import { pageFlagTypes, RequestStates } from '../../../constants/enum';
 import _ from 'lodash';
 
 const Redlining = React.forwardRef(({
@@ -85,7 +85,7 @@ const Redlining = React.forwardRef(({
     let pageFlagArray = [];
     let stopLoop = false;
 
-    if(documentList.length === pageFlags?.length) {
+    if(documentList.length > 0 && documentList.length === pageFlags?.length) {
       documentList.every(docInfo => {
 
         if(pageFlags?.length > 0) {
@@ -120,8 +120,8 @@ const Redlining = React.forwardRef(({
 
     return !stopLoop;
   };
-  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
-  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == 14);
+  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff() && ([RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus)));
+  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == RequestStates["Response"]);
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -200,7 +200,7 @@ const Redlining = React.forwardRef(({
           // console.log("Response Package for Application");
           setModalFor("responsepackage");
           setModalTitle("Create Package for Applicant");
-          setModalMessage("Are you sure want to create the records package for the applicant. This will apply all redactions. This should only be done when are redactions are finalized and are ready to send to the applicant. This will permanently apply the redactions and automatically create page stamps.");
+          setModalMessage("This should only be done when all redactions are finalized and ready to <b><i>be</i></b> sent to the <b><i>Applicant</i></b>. This will <b><i>permanently</i></b> apply the redactions and automatically create page stamps.");
           setModalButtonLabel("Create Applicant Package");
           setRedlineModalOpen(true);
           // saveResponsePackage(documentViewer, annotationManager);
@@ -517,12 +517,12 @@ const Redlining = React.forwardRef(({
   const checkSavingRedlineButton = (_instance) => {
     let _enableSavingRedline = isReadyForSignOff();
 
-    setEnableSavingRedline(_enableSavingRedline);
-    setEnableSavingFinal(_enableSavingRedline && requestStatus == 14);
+    setEnableSavingRedline(_enableSavingRedline && ([RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus)));
+    setEnableSavingFinal(_enableSavingRedline && requestStatus == RequestStates["Response"]);
     if(_instance) {
       const document = _instance.UI.iframeWindow.document;
-      document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline;
-      document.getElementById("final_package").disabled = !_enableSavingRedline && requestStatus == 14;
+      document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline || (![RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus));
+      document.getElementById("final_package").disabled = !_enableSavingRedline || requestStatus !== RequestStates["Response"];
     }
   };
 
@@ -949,21 +949,28 @@ const Redlining = React.forwardRef(({
 
             // update annotation xml
             if(divObj.annotationXML[doc.documentid]) {
-              let updatedXML = divObj.annotationXML[doc.documentid].map(x => {
+              let updatedXML = [];
+              for(let annotxml of divObj.annotationXML[doc.documentid]) {
                 // get original/individual page num
-                let customfield = parser.parseFromString(x).children.find(xmlfield => xmlfield.name == 'trn-custom-data');
-                let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
-                let customData = JSON.parse(txt.documentElement.textContent);
-                let originalPageNo = parseInt(customData.originalPageNo);
+                let xmlObj = parser.parseFromString(annotxml);
+                if(xmlObj.name === "redact" || xmlObj.name === "freetext") {
+                  let customfield = xmlObj.children.find(xmlfield => xmlfield.name == 'trn-custom-data');
+                  let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
+                  let customData = JSON.parse(txt.documentElement.textContent);
+                  let originalPageNo = parseInt(customData.originalPageNo);
+  
+                  // page num from annot xml
+                  let y = annotxml.split('page="');
+                  let z = y[1].split('"');
+                  let oldPageNum = 'page="'+z[0]+'"';
+                  let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
+                  annotxml = annotxml.replace(oldPageNum, newPage);
 
-                // page num from annot xml
-                let y = x.split('page="');
-                let z = y[1].split('"');
-                let oldPageNum = 'page="'+z[0]+'"';
-                let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
-                x = x.replace(oldPageNum, newPage);
-                return x;
-              });
+                  if(xmlObj.name === "redact" || customData["parentRedaction"]) {
+                    updatedXML.push(annotxml);
+                  }
+                }
+              }
 
               stitchedXMLArray.push(updatedXML.join());
             }
