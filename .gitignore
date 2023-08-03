@@ -96,3 +96,4 @@ bld/
 .vs
 .suo
 MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion/QtBinariesWindows/
+computingservices/ZippingServices/env/*
