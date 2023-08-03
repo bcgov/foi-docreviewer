@@ -61,16 +61,16 @@ class documentservice:
                         _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                     else:
                         _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
-                elif len(record["attachments"]) > 1: 
+                elif len(record["attachments"]) > 0:
                     _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                 for attachment in record["attachments"]:
-                    if len(_att_in_properties) > 0:
+                    if len(_att_in_properties) > 1:
                         if attachment["filepath"].endswith(".msg"):
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(attachmentsrecords, _att_in_properties, attachment)
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
                     
-                        attachment["pagecount"], attachment["filename"], attachment["documentid"] = self.__getpagecountandfilename(attachment, _att_in_properties)
+                    attachment["pagecount"], attachment["filename"], attachment["documentid"] = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
     
     def __filterrecords(self, records):

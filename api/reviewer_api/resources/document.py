@@ -95,8 +95,11 @@ class GetDocuments(Resource):
                 timeout=float(requestapitimeout)
             )
             response.raise_for_status()
+            # get request status
+            jsonObj = response.json()
+
             result = documentservice().getdocuments(requestid)
-            return json.dumps(result), 200
+            return json.dumps({"requeststatusid": jsonObj["requeststatusid"], "documents": result}), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:

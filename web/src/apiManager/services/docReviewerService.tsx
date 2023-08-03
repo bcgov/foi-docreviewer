@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList, setRequestStatus } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -16,8 +16,9 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        store.dispatch(setDocumentList(res.data) as any);
-        callback(res.data);
+        store.dispatch(setDocumentList(res.data.documents) as any);
+        store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
+        callback(res.data.documents);
       } else {
         throw new Error();
       }
@@ -108,10 +109,12 @@ export const deleteAnnotation = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
+  freezepageflags: string = "false",
   page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}`;
+
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
@@ -132,9 +135,11 @@ export const deleteRedaction = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
+  freezepageflags: string = "false",
   page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`;
+
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {

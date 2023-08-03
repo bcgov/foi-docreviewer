@@ -19,12 +19,13 @@ import { styled } from '@mui/material/styles';
 import {ReactComponent as EditLogo} from "../../../assets/images/icon-pencil-line.svg";
 import { fetchAnnotations, fetchAnnotationsInfo, saveAnnotation, deleteRedaction,
   deleteAnnotation, fetchSections, fetchPageFlag, fetchKeywordsMasterData } from '../../../apiManager/services/docReviewerService';
-import { getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3 } from '../../../apiManager/services/foiOSSService';
+import { getFOIS3DocumentRedlinePreSignedUrl, saveFilesinS3, getResponsePackagePreSignedUrl } from '../../../apiManager/services/foiOSSService';
 //import { element } from 'prop-types';
 import {PDFVIEWER_DISABLED_FEATURES} from  '../../../constants/constants'
 import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
+import { toast } from "react-toastify";
 import { pageFlagTypes } from '../../../constants/enum';
 import _ from 'lodash';
 
@@ -40,6 +41,8 @@ const Redlining = React.forwardRef(({
   setPageMappedDocs
 }, ref) =>{
 
+  // to enable save final package button - request status needs to be 14 (Response)
+  const requestStatus = useAppSelector((state) => state.documents?.requeststatus);
   const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
@@ -71,6 +74,11 @@ const Redlining = React.forwardRef(({
   const [mapper, setMapper] = useState([]);
   const [searchKeywords, setSearchKeywords] = useState("");
   const [iframeDocument, setIframeDocument] = useState(null);
+  const [modalFor, setModalFor] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalButtonLabel, setModalButtonLabel] = useState("");
+  const [isApplingRedaction, setIsApplingRedaction] = useState("false");
   //xml parser
   const parser = new XMLParser();
 
@@ -78,38 +86,43 @@ const Redlining = React.forwardRef(({
     let pageFlagArray = [];
     let stopLoop = false;
 
-    documentList.every(docInfo => {
+    if(documentList.length === pageFlags?.length) {
+      documentList.every(docInfo => {
 
-      if(pageFlags?.length > 0) {
-        pageFlags.every(pageFlagInfo => {
-          if (docInfo.documentid == pageFlagInfo?.documentid) {
-            if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
-              stopLoop = true;
-              return false;
-            } else {
-              // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
-              pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [1,2,3,5,6].includes(flag.flagid));
-              if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+        if(pageFlags?.length > 0) {
+          pageFlags.every(pageFlagInfo => {
+            if (docInfo.documentid == pageFlagInfo?.documentid) {
+              if (docInfo.pagecount > pageFlagInfo.pageflag.length) { // not all page has flag set
                 stopLoop = true;
-                return false;
+                return false; //stop loop
+              } else {
+                // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
+                pageFlagArray = pageFlagInfo.pageflag?.filter((flag) => [pageFlagTypes["Partial Disclosure"],pageFlagTypes["Full Disclosure"],pageFlagTypes["Withheld in Full"],pageFlagTypes["Duplicate"],pageFlagTypes["Not Responsive"]].includes(flag.flagid));
+                if(pageFlagArray.length != pageFlagInfo.pageflag.length) {
+                  stopLoop = true;
+                  return false; //stop loop
+                }
               }
             }
-          }
-          return true;
-        });
-      } else {
-        stopLoop = true;
-      }
-
-      if(stopLoop)
-        return false;
-
-      return true;
-    });
+            return true; //continue loop
+          });
+        } else {
+          stopLoop = true;
+        }
+  
+        if(stopLoop)
+          return false; //stop loop
+  
+        return true; //continue loop
+      });
+    } else {
+      return false;
+    }
 
     return !stopLoop;
   };
   const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
+  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == 14);
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -133,7 +146,7 @@ const Redlining = React.forwardRef(({
       },
       viewer.current,
     ).then((instance) => {
-      const { documentViewer, annotationManager, Annotations,  PDFNet, Search, Math, createDocument } = instance.Core;
+      const { documentViewer, annotationManager, Annotations, PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
       instance.UI.enableElements(['attachmentPanelButton']);
 
@@ -147,22 +160,6 @@ const Redlining = React.forwardRef(({
         menu.classList.add('Overlay');
         menu.classList.add('FlyoutMenu');
         menu.id = 'saving_menu';
-  
-        const createRecordsPackageBtn = document.createElement('button');
-        createRecordsPackageBtn.textContent = 'Create Records Package';
-        createRecordsPackageBtn.style.backgroundColor = 'transparent';
-        createRecordsPackageBtn.style.border = 'none';
-        createRecordsPackageBtn.style.padding = '8px 8px 8px 10px';
-        createRecordsPackageBtn.style.cursor= 'pointer';
-        createRecordsPackageBtn.style.alignItems= 'left';
-        // createRecordsPackageBtn.style.color = '#069';
-
-        createRecordsPackageBtn.onclick = () => {
-          // Download
-          // console.log("Create Records Package");
-        };
-  
-        menu.appendChild(createRecordsPackageBtn);
   
         const redlineForSignOffBtn = document.createElement('button');
         redlineForSignOffBtn.textContent = 'Redline for Sign Off';
@@ -178,26 +175,39 @@ const Redlining = React.forwardRef(({
 
         redlineForSignOffBtn.onclick = () => {
           // Save to s3
+          setModalFor("redline");
+          setModalTitle("Redline for Sign Off");
+          setModalMessage("Are you sure want to create the redline PDF for ministry sign off?");
+          setModalButtonLabel("Create Redline PDF");
           setRedlineModalOpen(true);
         };
   
         menu.appendChild(redlineForSignOffBtn);
   
-        const responsePackageBtn = document.createElement('button');
-        responsePackageBtn.textContent = 'Response Package for Application';
-        responsePackageBtn.style.backgroundColor = 'transparent';
-        responsePackageBtn.style.border = 'none';
-        responsePackageBtn.style.padding = '8px 8px 8px 10px';
-        responsePackageBtn.style.cursor= 'pointer';
-        responsePackageBtn.style.alignItems= 'left';
-        // responsePackageBtn.style.color = '#069';
+        const finalPackageBtn = document.createElement('button');
+        finalPackageBtn.textContent = 'Final Package for Applicant';
+        finalPackageBtn.id = 'final_package';
+        finalPackageBtn.className = 'final_package';
+        finalPackageBtn.style.backgroundColor = 'transparent';
+        finalPackageBtn.style.border = 'none';
+        finalPackageBtn.style.padding = '8px 8px 8px 10px';
+        finalPackageBtn.style.cursor= 'pointer';
+        finalPackageBtn.style.alignItems= 'left';
+        // finalPackageBtn.style.color = '#069';
+        finalPackageBtn.disabled = !enableSavingFinal;
 
-        responsePackageBtn.onclick = () => {
+        finalPackageBtn.onclick = () => {
           // Download
           // console.log("Response Package for Application");
+          setModalFor("responsepackage");
+          setModalTitle("Create Package for Applicant");
+          setModalMessage("Are you sure want to create the records package for the applicant. This will apply all redactions. This should only be done when are redactions are finalized and are ready to send to the applicant. This will permanently apply the redactions and automatically create page stamps.");
+          setModalButtonLabel("Create Applicant Package");
+          setRedlineModalOpen(true);
+          // saveResponsePackage(documentViewer, annotationManager);
         };
   
-        menu.appendChild(responsePackageBtn);
+        menu.appendChild(finalPackageBtn);
   
         const renderCustomMenu = () => {
           const menuBtn = document.createElement('button');
@@ -361,6 +371,8 @@ const Redlining = React.forwardRef(({
       // This will happen when importing the initial annotations
       // from the server or individual changes from other users
 
+      const isApplingRedaction = (info.source == 'redactionApplied')?"true":"false";
+
       if (info.imported) return;
       let localDocumentInfo = currentDocument;
       annotations.forEach((annot) => {
@@ -380,7 +392,9 @@ const Redlining = React.forwardRef(({
             let displayedDoc = getDataFromMappedDoc(Number(annot.attributes.page)+1);
             let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == Number(annot.attributes.page)+1)?.pageNo; 
             if (annot.name === 'redact') {
-              annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              if(isApplingRedaction === 'false') {
+                annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              }
             } else {
               if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
                 deleteAnnotation(
@@ -395,6 +409,7 @@ const Redlining = React.forwardRef(({
                     )
                   },
                   (error)=>{console.log(error)},
+                  isApplingRedaction,
                   individualPageNo
                 );
               }
@@ -405,7 +420,8 @@ const Redlining = React.forwardRef(({
                   displayedDoc.version,
                   annot.attributes.name,
                   (data)=>{},
-                  (error)=>{console.log(error)}
+                  (error)=>{console.log(error)},
+                  isApplingRedaction
                 );
                
               }
@@ -520,9 +536,11 @@ const Redlining = React.forwardRef(({
     let _enableSavingRedline = isReadyForSignOff();
 
     setEnableSavingRedline(_enableSavingRedline);
+    setEnableSavingFinal(_enableSavingRedline && requestStatus == 14);
     if(_instance) {
       const document = _instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline;
+      document.getElementById("final_package").disabled = !_enableSavingRedline && requestStatus == 14;
     }
   };
 
@@ -544,24 +562,59 @@ const Redlining = React.forwardRef(({
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
     assignAnnotations(removedFirstElement.file.documentid, mappedDoc, domParser)
     for (let file of docCopy) {
-      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
-      await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
-      const pages = [];
-      mappedDoc = {"pageMappings":[ ] };
-      let stitchedPageNo= 0;
-      for (let i = 0; i < newDoc.getPageCount(); i++) {
-        pages.push(i + 1);
-        let pageNo = i+1;
-        stitchedPageNo= (doc.getPageCount() + (i+1));
-        let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
-        mappedDoc.pageMappings.push(pageMappings);
+      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
+      if (['.jpg', '.png'].includes(file.file.attributes.extension)) {
+        let pdfDoc = await doc.getPDFDoc();
+
+        // Create an Image that can be reused multiple times in the document or multiple on the same page.
+        const img = await docInstance.PDFNet.Image.createFromURL(pdfDoc, file.s3url);
+        let height = await img.getImageHeight();
+        let width = await img.getImageWidth();
+
+        // insert blank page
+        await doc.insertBlankPages([doc.getPageCount() + 1], 612, 792); // default PDFTron page size
+        let page = await pdfDoc.getPage(await pdfDoc.getPageCount());
+
+        // ElementBuilder is used to build new Element objects
+        const builder = await docInstance.PDFNet.ElementBuilder.create();
+
+        // ElementWriter is used to write Elements to the page
+        const writer = await docInstance.PDFNet.ElementWriter.create();
+
+        // begin writing to the page
+        await writer.beginOnPage(page);
+        var scaledWidth;
+        var scaledHeight;
+        if (width > height) {
+          scaledWidth = 612;
+          scaledHeight = (612/width) * height;
+        } else {
+          scaledWidth = (792/height) * width;
+          scaledHeight = 792;
+        }
+        writer.writePlacedElement(await builder.createImageScaled(img, 0, 792 - scaledHeight, scaledWidth, scaledHeight));
+
+        // save changes to the current page
+        await writer.end();
+        mappedDoc.pageMappings = [{"pageNo": 1, "stitchedPageNo" : doc.getPageCount()}];
+      } else {
+        let newDoc = await docInstance.Core.createDocument(file.s3url, {} /* , license key here */)
+        const pages = [];
+        mappedDoc = {"pageMappings":[ ] };
+        let stitchedPageNo= 0;
+        for (let i = 0; i < newDoc.getPageCount(); i++) {
+          pages.push(i + 1);
+          let pageNo = i+1;
+          stitchedPageNo= (doc.getPageCount() + (i+1));
+          let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
+          mappedDoc.pageMappings.push(pageMappings);
+        }
+        // Insert (merge) pages
+        await doc.insertPages(newDoc, pages);
       }
-      // Insert (merge) pages
-      await doc.insertPages(newDoc, pages);
       mappedDocArray.push({"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
       assignAnnotations(file.file.documentid, mappedDoc, domParser)
-      })
     }
     setPageMappedDocs(mappedDocArray);
     docInstance.UI.searchTextFull(searchKeywords, {
@@ -812,6 +865,8 @@ const Redlining = React.forwardRef(({
             )
           },
           (error)=>{console.log(error)},
+          isApplingRedaction,
+          (Number(annot.page))+1,
           displayedDoc.pageMappings.find(p => p.stitchedPageNo === stitchedPageNo)['pageNo']
         );
 
@@ -1040,13 +1095,147 @@ const Redlining = React.forwardRef(({
     );
   }
 
-  const saveRedlineDoc = () => {
+  const saveDoc = () => {
     setRedlineModalOpen(false);
-    saveRedlineDocument(docInstance);
+    switch(modalFor) {
+      case 'redline':
+        saveRedlineDocument(docInstance);
+        break;
+      case 'responsepackage':
+        setIsApplingRedaction("true");
+        saveResponsePackage(docViewer, annotManager);
+        break;
+      default:
+        // console.log("123");
+    }
   }
 
   const cancelSaveRedlineDoc = () => {
     setRedlineModalOpen(false);
+  }
+
+
+  const saveResponsePackage = async (documentViewer, annotationManager) => {
+    const downloadType = 'pdf';
+    // console.log("divisions: ", divisions);
+
+    getResponsePackagePreSignedUrl(
+      requestid,
+      documentList[0],
+      async (res) => {
+        // console.log("getResponsePackagePreSignedUrl: ", res);
+        // res.s3path_save;
+        const toastID = toast.loading("Start generating final package...")
+
+        // go through annotations and get all section stamps
+        annotationManager.exportAnnotations().then(async xfdfString => {
+          //parse annotation xml
+          let jObj = parser.parseFromString(xfdfString);    // Assume xmlText contains the example XML
+          let annots = jObj.getElementsByTagName("annots");
+
+          let sectionStamps = {};
+          let stampJson = {};
+          for(const annot of annots[0].children) {
+            // get section stamps from xml
+            if(annot.name == 'freetext') {
+              let customData = annot.children.find( element => element.name == 'trn-custom-data' );
+              if(customData?.attributes?.bytes?.includes("parentRedaction")) {
+                //parse section info to json
+                stampJson = JSON.parse(customData.attributes.bytes.replace(/&quot;\[/g, '[').replace(/\]&quot;/g, ']').replace(/&quot;/g, '"').replace(/\\/g, ''));
+                sectionStamps[stampJson["parentRedaction"]] = stampJson["trn-wrapped-text-lines"][0];
+              }
+            }
+          }
+          // console.log("stamps: ", sectionStamps);
+
+          // add section stamps to redactions as overlay text
+          let annotList = annotationManager.getAnnotationsList();
+          // console.log("annot list: ", annotList);
+          toast.update(toastID, {
+            render: "Saving section stamps...",
+            isLoading: true,
+          })
+          for(const annot of annotList) {
+            if(sectionStamps[annot.Id]) {
+              annotationManager.setAnnotationStyles(annot, {OverlayText: sectionStamps[annot.Id]});
+            }
+          }
+        });
+
+
+        // remove duplicate and not responsive pages
+        let pagesToRemove = [];
+        for(const infoForEachDoc of pageFlags) {
+          let pageMappingDoc = pageMappedDocs.find(mappings => mappings.docId === infoForEachDoc.documentid);
+
+          for(const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            // pageflag duplicate or not responsive
+            if(pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] || pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]) {
+              let mappingInfo = pageMappingDoc.pageMappings.find(pMapping => pMapping.pageNo === pageFlagsForEachDoc.page);
+              pagesToRemove.push(mappingInfo.stitchedPageNo);
+            }
+          }
+        }
+        const doc = documentViewer.getDocument();
+        await doc.removePages(pagesToRemove);
+
+
+        //apply redaction and save to s3
+        annotationManager.applyRedactions().then(async results => {
+          const doc = documentViewer.getDocument();
+
+          doc.getFileData({
+            // saves the document with annotations in it
+            "downloadType": downloadType
+          }).then(async _data => {
+            const _arr = new Uint8Array(_data);
+            const _blob = new Blob([_arr], { type: 'application/pdf' });
+  
+            toast.update(toastID, {
+              render: "Saving final package to Object Storage...",
+              isLoading: true,
+            })
+            await saveFilesinS3(
+              {filepath: res.s3path_save},
+              _blob,
+              (_res) => {
+                console.log(_res);
+                toast.update(toastID, {
+                  render: "Final package is saved to Object Storage",
+                  type: "success",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true
+                });
+              },
+              (_err) => {
+                console.log(_err);
+                toast.update(toastID, {
+                  render: "Failed to save final package to Object Storage",
+                  type: "error",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true
+                });
+              }
+            );
+          });
+        });
+      },
+      (error) => {
+          console.log('Error fetching document:',error);
+      }
+    );
   }
 
 
@@ -1143,7 +1332,7 @@ const Redlining = React.forwardRef(({
         onRequestClose={cancelRedaction}
         isOpen={redlineModalOpen}>
         <DialogTitle disableTypography id="state-change-dialog-title">
-          <h2 className="state-change-header">Redline for Sign Off</h2>
+          <h2 className="state-change-header">{modalTitle}</h2>
           <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
             <i className="dialog-close-button">Close</i>
             <CloseIcon />
@@ -1152,13 +1341,13 @@ const Redlining = React.forwardRef(({
         <DialogContent className={'dialog-content-nomargin'}>
           <DialogContentText id="state-change-dialog-description" component={'span'} >
             <span className="confirmation-message">
-              Are you sure want to create the redline PDF for ministry sign off? <br></br>
+              {modalMessage} <br></br>
             </span>
           </DialogContentText>
         </DialogContent>
         <DialogActions className="foippa-modal-actions">
-          <button className="btn-bottom btn-save btn" onClick={saveRedlineDoc} disabled={!enableSavingRedline}>
-            Create Redline PDF
+          <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={!enableSavingRedline}>
+            {modalButtonLabel}
           </button>
           <button className="btn-bottom btn-cancel" onClick={cancelSaveRedlineDoc}>
             Cancel
