@@ -398,16 +398,7 @@ const Redlining = React.forwardRef(({
                   individualPageNo
                 );
               }
-              else{
-                const annotSections = annotations[0].getCustomData("sections");
-                if (annotSections) {
-                  // const sections = JSON.parse(annotSections);
-                  // const sectionNames = sections.map(item => item.section).join(', ');
-                  // annot.value = sections.map(item => item.section).join(', ');
-                  // docInstance?.Core?.annotationManager.redrawAnnotation(annot);
-                  // return;
-                }
-                else {           
+              else{ 
                 deleteAnnotation(
                   requestid,
                   displayedDoc.docId,
@@ -416,7 +407,7 @@ const Redlining = React.forwardRef(({
                   (data)=>{},
                   (error)=>{console.log(error)}
                 );
-                }
+               
               }
             }
           }
