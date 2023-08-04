@@ -102,6 +102,7 @@ class DocumentPageflag(db.Model):
                 pageflags.append({"documentid":row["documentid"],"documentversion":row["documentversion"],"pageflag":row["pageflag"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -120,6 +121,7 @@ class DocumentPageflag(db.Model):
                 pageflags.append({"documentid":row["documentid"],"attributes":row["attributes"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

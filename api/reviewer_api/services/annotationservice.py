@@ -64,6 +64,9 @@ class annotationservice:
             entry['sections'] = {"annotationname": entry.pop("sectionannotation"), "ids": list(map(lambda id: id['id'], json.loads(entry.pop("ids"))))}            
         return annotationsections
 
+    def getredactedsectionsbyrequest(self, ministryrequestid):
+        return {'sections': AnnotationSection.getredactedsectionsbyrequest(ministryrequestid)}
+
     def __issection(self, annotationsections, annotationname):
         for entry in annotationsections:
             if entry["sectionannotationname"] == annotationname:

@@ -54,6 +54,7 @@ class DeduplicationJob(db.Model):
 
             return completed, error
         except Exception as ex:
+            db.session.close()
             logging.error(ex)
         finally:
             db.session.close()
@@ -71,6 +72,7 @@ class DeduplicationJob(db.Model):
                 executions.append({"deduplicationjobid": row["deduplicationjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["documentmasterid"], "trigger":row["trigger"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
