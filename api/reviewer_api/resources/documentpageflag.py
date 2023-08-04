@@ -25,7 +25,6 @@ from reviewer_api.schemas.documentpageflag import PageflagSchema, BulkDocumentPa
 import json
 
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
-from deprecated import deprecated
 
 
 API = Namespace('Document Pageflag Services', description='Endpoints for deleting and replacing documents')
