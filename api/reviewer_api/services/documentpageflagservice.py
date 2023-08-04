@@ -33,7 +33,7 @@ class documentpageflagservice:
                 self.removebookmark(requestid, userinfo)
             docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-        __docpgattributes = json.dumps({"publicbody": docpgattributes}) if docpgattributes not in (None, '') else None
+        __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, '') else None
         __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, '') else None
         return DocumentPageflag.savepageflag(requestid, documentid, version, __docpageflags, json.dumps(userinfo),__docpgattributes)
         
@@ -56,7 +56,7 @@ class documentpageflagservice:
             publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
             publicbody = set(map(lambda x : x['name'], publicbody))
             publicbody.update(data["other"])
-            return list(map(lambda x : {"name": x}, publicbody))
+            return {"publicbody": list(map(lambda x : {"name": x}, publicbody))}
         else:
             return docpgattributes
 

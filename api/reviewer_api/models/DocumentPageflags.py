@@ -77,8 +77,13 @@ class DocumentPageflag(db.Model):
     def getpageflag_by_request(cls,  _foiministryrequestid):
         pageflags = []
         try:              
-            sql = """select distinct on (documentid) documentid, documentversion, pageflag from "DocumentPageflags" dp  
-                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
+            sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
+                     from "DocumentPageflags" dp
+                     join "Documents" d on dp.documentid = d.documentid
+                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
+                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+                     where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
+                     order by dp.documentid, dp.documentversion desc;
                     """
             rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid})
         

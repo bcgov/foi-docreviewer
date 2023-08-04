@@ -23,6 +23,7 @@ from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequired
 from reviewer_api.exceptions import BusinessException
 from reviewer_api.schemas.documentpageflag import PageflagSchema, BulkDocumentPageflagSchema
 import json
+from deprecated import deprecated
 
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
 
