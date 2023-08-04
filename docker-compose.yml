@@ -143,6 +143,38 @@ services:
       - DEDUPE_REQUEST_MANAGEMENT_API=${DEDUPE_REQUEST_MANAGEMENT_API}
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
 
+  foi-docreviewer-zippingservice:
+    container_name: foi-docreviewer-zippingservice
+    depends_on:
+      - foi-docreviewer-db
+      - foi-docreviewer-redis
+    build:
+      context: ./computingservices/ZippingServices
+      dockerfile: Dockerfile.local
+    image: docreviewerzipperimage
+    stdin_open: true
+    tty: true
+    networks:
+      services-network:
+        aliases:
+          - docreviewerzipper 
+    environment:
+      - REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - REDIS_PORT=${DEDUPE_REDIS_PORT}
+      - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
+      - S3_ENV=${DEDUPE_S3_ENV}
+      - DB_HOST=${DEDUPE_DB_HOST}
+      - DB_NAME=${DEDUPE_DB_NAME}
+      - DB_PORT=${DEDUPE_DB_PORT}
+      - DB_USER=${DEDUPE_DB_USER}
+      - DB_PASSWORD=${DEDUPE_DB_PASSWORD}
+      - S3_HOST=${DEDUPE_S3_HOST}
+      - S3_REGION=${DEDUPE_S3_REGION}
+      - S3_SERVICE=${DEDUPE_S3_SERVICE}
+      - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+
+
   foi-docreviewer-pdfstitch:
       container_name: foi-docreviewer-pdfstitch
       depends_on:
@@ -183,6 +215,10 @@ services:
         - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
         - NUMBERING_ENABLED=${NUMBERING_ENABLED}
         - NOTIFICATION_ENABLED=${NOTIFICATION_ENABLED}
+        - ZIPPER_REDIS_HOST=${DEDUPE_REDIS_HOST}
+        - ZIPPER_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+        - ZIPPER_REDIS_PORT=${DEDUPE_REDIS_PORT}
+        - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
 
 volumes:
   dbdata:
