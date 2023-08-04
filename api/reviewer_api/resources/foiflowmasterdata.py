@@ -129,7 +129,7 @@ class FOIFlowS3PresignedRedline(Resource):
                     filename_get, file_extension_get = os.path.splitext(filepath_get)
                     doc["s3path_load"] = s3client.generate_presigned_url(
                         ClientMethod='get_object',
-                        Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_get),'ResponseContentType': '{0}/{1}'.format('image' if file_extension_get.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension_get.replace('.',''))},
+                        Params=   {'Bucket': formsbucket, 'Key': '{0}.{1}'.format(filename_get, 'pdf'),'ResponseContentType': '{0}/{1}'.format('image' if file_extension_get.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension_get.replace('.',''))},
                         ExpiresIn=3600,HttpMethod='GET'
                         )
 
