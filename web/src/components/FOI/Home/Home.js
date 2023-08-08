@@ -82,8 +82,8 @@ function Home() {
   }, [])
 
 
-  const openFOIPPAModal = (pageNo) => {
-    redliningRef?.current?.addFullPageRedaction(pageNo);
+  const openFOIPPAModal = (pageNos) => {
+    redliningRef?.current?.addFullPageRedaction(pageNos);
   }
 
   return (

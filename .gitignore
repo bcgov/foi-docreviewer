@@ -25,6 +25,7 @@ web/build
 computingservices/poc/env/*
 computingservices/DedupeServices/env/*
 computingservices/PDFStitchServices/env/*
+computingservices/ZippingServices/env/*
 
 
 ################################################################################
@@ -96,3 +97,5 @@ bld/
 .vs
 .suo
 MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion/QtBinariesWindows/
+computingservices/ZippingServices/env/*
+openshift/templates/zippingservice/zipper.env
