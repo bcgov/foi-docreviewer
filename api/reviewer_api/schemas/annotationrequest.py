@@ -1,4 +1,5 @@
 from marshmallow import EXCLUDE, Schema, fields, pre_load
+from reviewer_api.schemas.documentpageflag import BulkDocumentPageflagSchema
 import json
 
 class SectionSchema(Schema):
@@ -34,6 +35,6 @@ class BulkPageFlagSchema(Schema):
 class AnnotationRequest(Schema):
     xml = fields.Str(data_key="xml",allow_none=False)      
     sections = fields.Nested(SectionRequestSchema, allow_none=True)
-    pageflags = fields.List(fields.Nested(BulkPageFlagSchema, allow_none=False))
+    pageflags = fields.Nested(BulkDocumentPageflagSchema, allow_none=False)
     foiministryrequestid = fields.Int(data_key="foiministryrequestid",allow_none=True)
 
