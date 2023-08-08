@@ -36,4 +36,5 @@ class AnnotationRequest(Schema):
     sections = fields.Nested(SectionRequestSchema, allow_none=True)
     pageflags = fields.List(fields.Nested(BulkPageFlagSchema, allow_none=False))
     foiministryrequestid = fields.Int(data_key="foiministryrequestid",allow_none=True)
+    redactionlayerid = fields.Int(data_key="redactionlayerid",allow_none=True)
 

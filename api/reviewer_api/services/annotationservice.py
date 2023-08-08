@@ -7,6 +7,9 @@ from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
 from reviewer_api.models.default_method_result import DefaultMethodResult
 
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
+
+
 import os
 import maya
 import json
@@ -85,7 +88,8 @@ class annotationservice:
 
     def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
-        _annotresponse = Annotation.saveannotations(annots, documentid, documentversion, userinfo)
+        _redactionlayerid = self.__getredactionlayerid(annotationschema)
+        _annotresponse = Annotation.saveannotations(annots, documentid, documentversion, _redactionlayerid, userinfo)
         if _annotresponse.success == True:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
@@ -125,4 +129,8 @@ class annotationservice:
         xmltemplatestring = ''.join(xmltemplatelines)
         return xmltemplatestring.replace("{{annotations}}", annotationsstring)
     
-    
+    def __getredactionlayerid(self, annotationschema):
+        if 'redactionlayerid' in annotationschema and annotationschema['redactionlayerid'] not in (None,''):
+            return int(annotationschema['redactionlayerid'])
+        else:
+            return redactionlayerservice().getdefaultredactionlayerid()

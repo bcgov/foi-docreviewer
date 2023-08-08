@@ -8,4 +8,7 @@ class redactionlayerservice:
         return RedactionLayer.getall()
 
 
+    def getdefaultredactionlayerid(self):
+        _redactionlayer =  RedactionLayer.getredlineredactionlayer()    
+        return _redactionlayer["redactionlayerid"]
     

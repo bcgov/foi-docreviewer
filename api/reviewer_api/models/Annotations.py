@@ -20,9 +20,11 @@ class Annotation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
-    
+   
     sections = relationship('AnnotationSection', primaryjoin="and_(Annotation.annotationname==AnnotationSection.annotationname)") 
-    
+    redactionlayerid = db.Column(db.Integer, db.ForeignKey('RedactionLayers.redactionlayerid'))
+    redactionlayer = relationship("RedactionLayer", backref=backref("RedactionLayers"), uselist=False)
+
 
     @classmethod
     def getannotations(cls, _documentid, _documentversion):
@@ -148,7 +150,7 @@ class Annotation(db.Model):
 
     #upsert
     @classmethod
-    def saveannotations(cls, annots, _documentid, _documentversion, userinfo)->DefaultMethodResult:
+    def saveannotations(cls, annots, _documentid, _documentversion, redactionlayerid, userinfo)->DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
@@ -156,6 +158,7 @@ class Annotation(db.Model):
                 "documentversion": _documentversion,
                 "annotation": annot["xml"],
                 "pagenumber": annot["originalpageno"],
+                "redactionlayerid": redactionlayerid,
                 "createdby": userinfo,
                 "isactive": True
             } for annot in annots]
@@ -183,4 +186,4 @@ class Annotation(db.Model):
 
 class AnnotationSchema(ma.Schema):
     class Meta:
-        fields = ('annotationid', 'annotationname', 'documentid', 'documentversion', 'annotation', 'pagenumber', 'isactive', 'createdby', 'created_at', 'updatedby', 'updated_at')
+        fields = ('annotationid', 'annotationname', 'documentid', 'documentversion', 'annotation', 'pagenumber', 'redactionlayerid', 'redactionlayer.redactionlayerid', 'isactive', 'createdby', 'created_at', 'updatedby', 'updated_at')

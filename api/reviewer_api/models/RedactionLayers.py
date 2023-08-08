@@ -29,6 +29,18 @@ class RedactionLayer(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def getredlineredactionlayer(cls):
+        try:
+            pageflag_schema = RedactionLayerSchema(many=False)
+            query = db.session.query(RedactionLayer).filter_by(isactive=True, name ='Redline').order_by(RedactionLayer.sortorder.desc()).first()
+            return pageflag_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()    
+    
+
 class RedactionLayerSchema(ma.Schema):
     class Meta:
         fields = ('redactionlayerid', 'name', 'description','sortorder')

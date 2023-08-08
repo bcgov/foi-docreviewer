@@ -32,12 +32,8 @@ from marshmallow import ValidationError, EXCLUDE
 API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
 TRACER = Tracer.get_instance()
 
-@cors_preflight('GET,POST, OPTIONS')
+@cors_preflight('GET,OPTIONS')
 @API.route('/annotation/<int:ministryrequestid>')
-@API.route('/annotation/<int:documentid>/<int:documentversion>')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
 class Annotations(Resource):
     """Retrieves annotations for a document
     """
@@ -56,6 +52,9 @@ class Annotations(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
 
 
+@cors_preflight('POST, OPTIONS')
+@API.route('/annotation/<int:documentid>/<int:documentversion>')
+class SaveAnnotations(Resource):
     """save or update an annotation for a document
     """
     @staticmethod
@@ -117,57 +116,8 @@ class DeactivateRedactions(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
         
 
-@cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<string:annotationname>')
-class DeactivateAnnotations(Resource):
-    
-    """save or update an annotation for a document
-    """
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def delete(documentid, documentversion, annotationname):
-        
-        try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo())
-            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-@cors_preflight('POST,OPTIONS')
-@API.route('/annotation/section/<string:sectionannotationname>')
-class AnnotationSections(Resource):
-    
-    """save or update an annotation for a document
-    """
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def post(sectionannotationname):
-        try:
-            requestjson = request.get_json()
-            sectionschema = SectionRequestSchema().load(requestjson)
-            result = annotationservice().saveannotationsection(sectionannotationname, sectionschema, AuthHelper.getuserinfo())
-            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
-        except ValidationError as err:
-            return {"errors": err.messages}, 422
-        except ValueError as err:
-            return {'status': 500, 'message':err.messages}, 500
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-
-@cors_preflight('GET,POST,DELETE,OPTIONS')
+@cors_preflight('GET,OPTIONS')
 @API.route('/annotation/<int:ministryrequestid>/info')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/info')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/info')
-@API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>/<string:annotationname>/info')
 class AnnotationMetadata(Resource):
     """Retrieves annotations for a document
     """
