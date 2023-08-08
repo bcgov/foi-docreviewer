@@ -858,7 +858,6 @@ const Redlining = React.forwardRef(({
           },
           (error)=>{console.log(error)},
           isApplingRedaction,
-          (Number(annot.page))+1,
           displayedDoc.page
         );
 
