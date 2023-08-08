@@ -462,7 +462,7 @@ const Redlining = React.forwardRef(({
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
-              {},
+              null,
               sectn,
               //pageSelections
             );
@@ -480,7 +480,7 @@ const Redlining = React.forwardRef(({
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
-              {}
+              null
             );
           }
         }
@@ -723,7 +723,7 @@ const Redlining = React.forwardRef(({
             astr,
             (data)=>{},
             (error)=>{console.log(error)},
-            {},
+            null,
             sectn
           );
           setSelectedSections([]);
