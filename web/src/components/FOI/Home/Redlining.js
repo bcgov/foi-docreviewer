@@ -471,7 +471,7 @@ const Redlining = React.forwardRef(({
         else if (action === 'modify') {
           let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
           let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-          if (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)) {             
+          if (selectedAnnotations.length > 0 && (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username))) {             
             const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(selectedAnnotations[0]?.PageNumber)];
             saveAnnotation(
               requestid,
