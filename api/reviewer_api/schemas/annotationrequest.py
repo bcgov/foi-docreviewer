@@ -35,6 +35,6 @@ class BulkPageFlagSchema(Schema):
 class AnnotationRequest(Schema):
     xml = fields.Str(data_key="xml",allow_none=False)      
     sections = fields.Nested(SectionRequestSchema, allow_none=True)
-    pageflags = fields.Nested(BulkDocumentPageflagSchema, allow_none=False)
+    pageflags = fields.Nested(BulkDocumentPageflagSchema, allow_none=True)
     foiministryrequestid = fields.Int(data_key="foiministryrequestid",allow_none=True)
 

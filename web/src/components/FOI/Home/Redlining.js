@@ -634,7 +634,7 @@ const Redlining = React.forwardRef(({
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
-              {}
+              null
             );
           }
         }
@@ -877,7 +877,7 @@ const Redlining = React.forwardRef(({
             astr,
             (data)=>{},
             (error)=>{console.log(error)},
-            {},
+            null,
             sectn
           );
           setSelectedSections([]);
@@ -1013,7 +1013,6 @@ const Redlining = React.forwardRef(({
           },
           (error)=>{console.log(error)},
           isApplingRedaction,
-          (Number(annot.page))+1,
           displayedDoc.page
         );
 
