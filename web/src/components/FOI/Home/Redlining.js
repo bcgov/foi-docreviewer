@@ -349,6 +349,7 @@ const Redlining = React.forwardRef(({
   }, [iframeDocument]);
 
   useEffect(() => {
+
     docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
       // If the event is triggered by importing then it can be ignored
       // This will happen when importing the initial annotations
@@ -396,7 +397,7 @@ const Redlining = React.forwardRef(({
                   individualPageNo
                 );
               }
-              else{
+              else{ 
                 deleteAnnotation(
                   requestid,
                   displayedDoc.docId,
@@ -406,6 +407,7 @@ const Redlining = React.forwardRef(({
                   (error)=>{console.log(error)},
                   isApplingRedaction
                 );
+               
               }
             }
           }
@@ -544,24 +546,59 @@ const Redlining = React.forwardRef(({
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
     assignAnnotations(removedFirstElement.file.documentid, mappedDoc, domParser)
     for (let file of docCopy) {
-      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };      
-      await docInstance.Core.createDocument(file.s3url, {} /* , license key here */).then(async newDoc => {
-      const pages = [];
-      mappedDoc = {"pageMappings":[ ] };
-      let stitchedPageNo= 0;
-      for (let i = 0; i < newDoc.getPageCount(); i++) {
-        pages.push(i + 1);
-        let pageNo = i+1;
-        stitchedPageNo= (doc.getPageCount() + (i+1));
-        let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
-        mappedDoc.pageMappings.push(pageMappings);
+      mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
+      if (['.jpg', '.png'].includes(file.file.attributes.extension)) {
+        let pdfDoc = await doc.getPDFDoc();
+
+        // Create an Image that can be reused multiple times in the document or multiple on the same page.
+        const img = await docInstance.PDFNet.Image.createFromURL(pdfDoc, file.s3url);
+        let height = await img.getImageHeight();
+        let width = await img.getImageWidth();
+
+        // insert blank page
+        await doc.insertBlankPages([doc.getPageCount() + 1], 612, 792); // default PDFTron page size
+        let page = await pdfDoc.getPage(await pdfDoc.getPageCount());
+
+        // ElementBuilder is used to build new Element objects
+        const builder = await docInstance.PDFNet.ElementBuilder.create();
+
+        // ElementWriter is used to write Elements to the page
+        const writer = await docInstance.PDFNet.ElementWriter.create();
+
+        // begin writing to the page
+        await writer.beginOnPage(page);
+        var scaledWidth;
+        var scaledHeight;
+        if (width > height) {
+          scaledWidth = 612;
+          scaledHeight = (612/width) * height;
+        } else {
+          scaledWidth = (792/height) * width;
+          scaledHeight = 792;
+        }
+        writer.writePlacedElement(await builder.createImageScaled(img, 0, 792 - scaledHeight, scaledWidth, scaledHeight));
+
+        // save changes to the current page
+        await writer.end();
+        mappedDoc.pageMappings = [{"pageNo": 1, "stitchedPageNo" : doc.getPageCount()}];
+      } else {
+        let newDoc = await docInstance.Core.createDocument(file.s3url, {} /* , license key here */)
+        const pages = [];
+        mappedDoc = {"pageMappings":[ ] };
+        let stitchedPageNo= 0;
+        for (let i = 0; i < newDoc.getPageCount(); i++) {
+          pages.push(i + 1);
+          let pageNo = i+1;
+          stitchedPageNo= (doc.getPageCount() + (i+1));
+          let pageMappings= {"pageNo": pageNo, "stitchedPageNo" : stitchedPageNo};
+          mappedDoc.pageMappings.push(pageMappings);
+        }
+        // Insert (merge) pages
+        await doc.insertPages(newDoc, pages);
       }
-      // Insert (merge) pages
-      await doc.insertPages(newDoc, pages);
       mappedDocArray.push({"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings});
       assignAnnotations(file.file.documentid, mappedDoc, domParser)
-      })
     }
     setPageMappedDocs(mappedDocArray);
     docInstance.UI.searchTextFull(searchKeywords, {
@@ -591,7 +628,7 @@ const Redlining = React.forwardRef(({
       const _annotations = await annotManager.importAnnotations(xml)
       _annotations.forEach(_annotation => {
         annotManager.redrawAnnotation(_annotation);
-        annotManager.setPermissionCheckCallback((author, _annotation) => { 
+        annotManager.setPermissionCheckCallback((author, _annotation) => {
           if (_annotation.Subject !== 'Redact' && author !== username) {
            _annotation.NoResize = true;
           } 
@@ -630,6 +667,7 @@ const Redlining = React.forwardRef(({
     setModalOpen(false);
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
+    let astr = parser.parseFromString(redactionObj.astr);
     let displayedDoc= getDataFromMappedDoc(Number(redactionObj['pages'])+1);
     //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
@@ -641,40 +679,47 @@ const Redlining = React.forwardRef(({
 
     }
     if(editAnnot){
-      let redactionSectionsIds = selectedSections;
-      let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
-      childAnnotation.setContents(redactionSections);
-      const doc = docViewer.getDocument();
-      const pageNumber = parseInt(editAnnot.pages) + 1;
-      const pageInfo = doc.getPageInfo(pageNumber);
-      const pageMatrix = doc.getPageMatrix(pageNumber);
-      const pageRotation = doc.getPageRotation(pageNumber);
-      childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-      childAnnotation.setCustomData("sections", JSON.stringify(sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section}))))
-      annotManager.redrawAnnotation(childAnnotation);
-      let _annotationtring = annotManager.exportAnnotations({annotList: [childAnnotation], useDisplayAuthor: true})
-      let sectn = {
-        "foiministryrequestid": 1,
+      for (const node of astr.getElementsByTagName("annots")[0].children) {
+        let redaction = annotManager.getAnnotationById(node.attributes.name);
+        let coords = node.attributes.coords;
+        let X = coords?.substring(0, coords.indexOf(","));
+        childAnnotation = getCoordinates(childAnnotation, redaction, X);
+        let redactionSectionsIds = selectedSections;
+        let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
+        childAnnotation.setContents(redactionSections);
+        const doc = docViewer.getDocument();
+        const pageNumber = parseInt(editAnnot.pages) + 1;
+        const pageInfo = doc.getPageInfo(pageNumber);
+        const pageMatrix = doc.getPageMatrix(pageNumber);
+        const pageRotation = doc.getPageRotation(pageNumber);
+        childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+        childAnnotation.setCustomData("sections", JSON.stringify(sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section}))))
+        annotManager.redrawAnnotation(childAnnotation);
+        let _annotationtring = annotManager.exportAnnotations({annotList: [childAnnotation], useDisplayAuthor: true})
+        let sectn = {
+          "foiministryrequestid": 1,
+        }
+        _annotationtring.then(astr=>{
+          //parse annotation xml
+          let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+          let annots = jObj.getElementsByTagName("annots");
+          let annot = annots[0].children[0];
+          saveAnnotation(
+            requestid,
+            displayedDoc.docId,
+            displayedDoc.version,
+            astr,
+            (data)=>{},
+            (error)=>{console.log(error)},
+            [],
+            sectn
+          );
+          setSelectedSections([]);
+          redactionInfo.find(r => r.annotationname === redactionObj.name).sections.ids = redactionSectionsIds;
+          setEditAnnot(null);
+        })
       }
-      _annotationtring.then(astr=>{
-        //parse annotation xml
-        let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
-        let annots = jObj.getElementsByTagName("annots");
-        let annot = annots[0].children[0];
-        saveAnnotation(
-          requestid,
-          displayedDoc.docId,
-          displayedDoc.version,
-          astr,
-          (data)=>{},
-          (error)=>{console.log(error)},
-          [],
-          sectn
-        );
-        setSelectedSections([]);
-        redactionInfo.find(r => r.annotationname === redactionObj.name).sections.ids = redactionSectionsIds;
-        setEditAnnot(null);
-      })
+      
     }
     else {
       var pageFlagSelections = pageSelections
@@ -695,18 +740,18 @@ const Redlining = React.forwardRef(({
         pageFlagSelections
       );
     //}
-      // add section annotation
-      let astr = parser.parseFromString(redactionObj.astr);
+      // add section annotation      
       var sectionAnnotations = [];
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let redaction = annotManager.getAnnotationById(node.attributes.name);
         let coords = node.attributes.coords;
         let X = coords?.substring(0, coords.indexOf(","));
-        const annot = new annots.FreeTextAnnotation();
-        annot.PageNumber = redaction?.getPageNumber()
-        annot.X = X || redaction.X;
-        annot.Y = redaction.Y;
-        annot.FontSize = redaction.FontSize;
+        let annot = new annots.FreeTextAnnotation();
+        // annot.PageNumber = redaction?.getPageNumber()
+        // annot.X = X || redaction.X;
+        // annot.Y = redaction.Y;
+        // annot.FontSize = redaction.FontSize;
+        annot = getCoordinates(annot, redaction, X);
         annot.Color = 'red';
         annot.StrokeThickness = 0;
         annot.Author = user?.name || user?.preferred_username || "";
@@ -734,12 +779,22 @@ const Redlining = React.forwardRef(({
         for(let section of redactionSections) {
           section.count++;
         }
+        annotManager.groupAnnotations(redaction, sectionAnnotations)
       }
       annotManager.addAnnotations(sectionAnnotations);
       // Always redraw annotation
       sectionAnnotations.forEach(a => annotManager.redrawAnnotation(a));
     }
     setNewRedaction(null)
+  }
+
+  const getCoordinates = (_annot, _redaction, X) => {
+    _annot.PageNumber = _redaction?.getPageNumber()
+    _annot.X = X || _redaction.X;
+    _annot.Y = _redaction.Y;
+    _annot.FontSize = _redaction.FontSize;
+    return _annot;
+
   }
 
   const editAnnotation = (annotationManager, selectedAnnot) =>{
