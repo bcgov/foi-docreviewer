@@ -1,6 +1,7 @@
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import React, { useRef, useEffect,useState,useImperativeHandle } from 'react';
+import ReactDOM from 'react-dom';
 import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
@@ -245,6 +246,27 @@ const Redlining = React.forwardRef(({
         header.headers.default.splice((header.headers.default.length-3), 0, newCustomElement);
       });
 
+      const MultiSelectEdit = () => {
+        const hasValue = selectedAnnotations.length === 0 || selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
+        const _selectedAnnotations = selectedAnnotations.filter(obj => obj.Subject === 'Redact');
+          return (
+            <button
+              type="button"
+              className="Button ActionButton"
+              style={hasValue ? {cursor: "default"} : {}}
+              onClick={() => {
+                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedAnnotations, useDisplayAuthor: true}))
+              }}
+              disabled={hasValue}
+            >
+              <div className="Icon" style={hasValue ? {color: "#868e9587"} : {}}>
+                <EditLogo/>
+              </div>
+            </button>
+          );
+      }
+
+
       const Edit = () => {
         // const annotList = annotationManager.getAnnotationsList();
         // annotList.forEach(annot => {
@@ -350,52 +372,91 @@ const Redlining = React.forwardRef(({
       // add event listener for hiding saving menu
       document.body.addEventListener("click", (e) => {
         document.getElementById("saving_menu").style.display = 'none';
-        const targetDiv = document.querySelector('.multi-select-footer');
-        if(targetDiv) {
-          let editDiv = document.querySelector('.edit-button');
-          const selectedIdString = e.target.id?.split("_");
-          let editButton = editDiv;
-          if (!editDiv) {
-              editButton = document.createElement('div');        
-              editButton.classList.add('edit-button');
-              targetDiv.insertBefore(editButton, targetDiv.firstChild);
-          }
-          editDiv = document.querySelector('.edit-button');
-          if (selectedIdString.length > 0) {
-            let annotationName = selectedIdString[1];
-            let _selectedAnnotations = selectedAnnotations;
-            const _annot = annotationManager.getAnnotationById(annotationName);
+        
 
-            setSelectedAnnotations(prevSelectedAnnotations => {              
-              const _selectedAnnotations = prevSelectedAnnotations; 
-              const isExists = _selectedAnnotations.find(_annotation => _annotation === _annot); 
-              if (isExists) {
-                return _selectedAnnotations.filter(_annotation => _annotation !== _annot);
-              } else {
-                _selectedAnnotations.push(_annot);
-                return _selectedAnnotations;
+        const button = document.querySelector('[data-element="multiSelectModeButton"]');         
+          const isButtonActive = button?.classList.contains("active");
+          if (isButtonActive) {
+              console.log('Button clicked!');            
+              const listItems = document.querySelectorAll('[role="listitem"]');
+
+              listItems.forEach(listItem => {
+                let checkbox = listItem.querySelector('input[type="checkbox"]');
+                
+                if (checkbox) {                
+                    checkbox.addEventListener("click", function () {
+                      checkbox = listItem.querySelector('input[type="checkbox"]');
+                      const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
+                      // Check if the span element has the "ui__choice--checked" class
+                      const isChecked = spanWrapper.classList.contains("ui__choice--checked"); //actual scenario isChecked = true when you uncheck the checkbox
+                      const id =checkbox.id;
+                        if (!isChecked) {
+                            console.log("Checkbox is checked:", this.id);
+                            // Perform actions when checkbox is checked
+                        } else {
+                            console.log("Checkbox is unchecked:", this.id);
+                            // Perform actions when checkbox is unchecked
+                        }
+                    });
+                }
+              });
+                    
+          }
+          const multiSelectFooter = document.querySelector('.multi-select-footer');
+              let editButton = document.querySelector('.edit-button');
+              if (!editButton) {
+                editButton = document.createElement('div');        
+                editButton.classList.add('edit-button');
+                multiSelectFooter?.insertBefore(editButton, multiSelectFooter.firstChild);              
               }
-            });
-            
-            // if (_selectedAnnotations.length > 0) {
-            //   const isExists = selectedAnnotations.find(_annotation => _annotation === _annot);
-            //   if (isExists) {
-            //     _selectedAnnotations = selectedAnnotations.filter(_annotation => { return _annotation !== _annot});
-            //   }
-            //   else {
-            //     _selectedAnnotations.push(_annot)
-            //   }
-            // }
-            // else {
-            //   _selectedAnnotations.push(_annot)
-            // }
-            // setSelectedAnnotations(_selectedAnnotations);
+              ReactDOM.render(<MultiSelectEdit />, editButton);  
+        
+        // const targetDiv = document.querySelector('.multi-select-footer');
+        // if(targetDiv) {
+        //   let editDiv = document.querySelector('.edit-button');
+        //   const selectedIdString = e.target.id?.split("_");
+        //   let editButton = editDiv;
+        //   if (!editDiv) {
+        //       editButton = document.createElement('div');        
+        //       editButton.classList.add('edit-button');
+        //       targetDiv.insertBefore(editButton, targetDiv.firstChild);
+        //   }
+        //   editDiv = document.querySelector('.edit-button');
+        //   if (selectedIdString.length > 0) {
+        //     let annotationName = selectedIdString[1];
+        //     let _selectedAnnotations = selectedAnnotations;
+        //     const _annot = annotationManager.getAnnotationById(annotationName);
 
-          }
-          setMultiSelectEdit(true);
-          ReactDOM.render(<Edit />, editButton);
-        }
-        setMultiSelectEdit(false);
+        //     setSelectedAnnotations(prevSelectedAnnotations => {              
+        //       const _selectedAnnotations = prevSelectedAnnotations; 
+        //       const isExists = _selectedAnnotations.find(_annotation => _annotation === _annot); 
+        //       if (isExists) {
+        //         return _selectedAnnotations.filter(_annotation => _annotation !== _annot);
+        //       } else {
+        //         _selectedAnnotations.push(_annot);
+        //         return _selectedAnnotations;
+        //       }
+        //     });
+            
+        //     // if (_selectedAnnotations.length > 0) {
+        //     //   const isExists = selectedAnnotations.find(_annotation => _annotation === _annot);
+        //     //   if (isExists) {
+        //     //     _selectedAnnotations = selectedAnnotations.filter(_annotation => { return _annotation !== _annot});
+        //     //   }
+        //     //   else {
+        //     //     _selectedAnnotations.push(_annot)
+        //     //   }
+        //     // }
+        //     // else {
+        //     //   _selectedAnnotations.push(_annot)
+        //     // }
+        //     // setSelectedAnnotations(_selectedAnnotations);
+
+        //   }
+        //   setMultiSelectEdit(true);
+        //   ReactDOM.render(<Edit />, editButton);
+        // }
+        // setMultiSelectEdit(false);
       }, true);
     });
 
@@ -555,7 +616,7 @@ const Redlining = React.forwardRef(({
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
-              {},
+              null,
               sectn,
               //pageSelections
             );
