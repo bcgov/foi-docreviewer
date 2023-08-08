@@ -942,6 +942,8 @@ const Redlining = React.forwardRef(({
 
         let domParser = new DOMParser()
         for(let divObj of res.divdocumentList) {
+          let pageMappingsByDivisions = {};
+
           currentDivisionCount++;
           toast.update(toastID, {
             render: `Generating redline PDF for ${currentDivisionCount} of ${divisionCountForToast} divisions...`,
@@ -954,8 +956,22 @@ const Redlining = React.forwardRef(({
 
           let docCount = 0;
           let totalPageCount = 0;
+          let pagesToRemove = []; //for each stitched division pdf
           for(let doc of divObj.documentlist) {
             docCount++;
+            pageMappingsByDivisions[doc.documentid] = {};
+            let pagesToRemoveEachDoc = [];
+
+            //gather pages that need to be removed
+            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+            for(const flagInfo of doc.pageFlag) {
+              if(flagInfo.flagid == pageFlagTypes["Duplicate"] || flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+                pagesToRemove.push(flagInfo.page + totalPageCount);
+              } else {
+                pageMappingsByDivisions[doc.documentid][flagInfo.page] = flagInfo.page + totalPageCount - pagesToRemoveEachDoc.length
+              }
+            }
 
             // update annotation xml
             if(divObj.annotationXML[doc.documentid]) {
@@ -968,23 +984,25 @@ const Redlining = React.forwardRef(({
                   let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
                   let customData = JSON.parse(txt.documentElement.textContent);
                   let originalPageNo = parseInt(customData.originalPageNo);
-  
-                  // page num from annot xml
-                  let y = annotxml.split('page="');
-                  let z = y[1].split('"');
-                  let oldPageNum = 'page="'+z[0]+'"';
-                  let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
-                  annotxml = annotxml.replace(oldPageNum, newPage);
 
-                  if(xmlObj.name === "redact" || customData["parentRedaction"]) {
-                    updatedXML.push(annotxml);
+                  if(pageMappingsByDivisions[doc.documentid][originalPageNo+1]) { //skip pages that need to be removed
+                    // page num from annot xml
+                    let y = annotxml.split('page="');
+                    let z = y[1].split('"');
+                    let oldPageNum = 'page="'+z[0]+'"';
+                    let newPage = 'page="'+(pageMappingsByDivisions[doc.documentid][originalPageNo+1]-1)+'"';
+                    annotxml = annotxml.replace(oldPageNum, newPage);
+
+                    if(xmlObj.name === "redact" || customData["parentRedaction"]) {
+                      updatedXML.push(annotxml);
+                    }
                   }
                 }
               }
 
               stitchedXMLArray.push(updatedXML.join());
             }
-            totalPageCount += doc.pagecount;
+            totalPageCount += Object.keys(pageMappingsByDivisions[doc.documentid]).length;
 
             await _instance.Core.createDocument(doc.s3path_load, {loadAsPDF:true}).then(async docObj => {
 
@@ -997,9 +1015,16 @@ const Redlining = React.forwardRef(({
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
                 await stitchedDocObj.insertPages(docObj, pages, pageIndexToInsert);
               }
-  
+
+
               // save to s3 once all doc stitched
               if(docCount == divObj.documentlist.length) {
+                console.log("pagemapping: ", pageMappingsByDivisions);
+                console.log("pagesToRemove: ", pagesToRemove);
+
+                // remove duplicate and not responsive pages
+                await stitchedDocObj.removePages(pagesToRemove);
+
                 // console.log("s3path_save", stitchedDocPath);
                 let xfdfString = '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>'+stitchedXMLArray.join()+'</annots></xfdf>';
                 stitchedDocObj.getFileData({
@@ -1054,7 +1079,6 @@ const Redlining = React.forwardRef(({
                   );
                 });
               }
-
             });
           }
         }
