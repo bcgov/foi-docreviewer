@@ -24,7 +24,7 @@ services:
     image: redis:5.0.14
     container_name: aot_foi_docreviewer_redis
     ports:
-      - "16379:6379"
+      - "7379:6379"
 
   foi-docreviewer-api:
     container_name: foi_docreviewer_api
