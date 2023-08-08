@@ -75,7 +75,7 @@ const Redlining = React.forwardRef(({
   const [iframeDocument, setIframeDocument] = useState(null);
   const [modalFor, setModalFor] = useState("");
   const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
+  const [modalMessage, setModalMessage] = useState([""]);
   const [modalButtonLabel, setModalButtonLabel] = useState("");
   const [isApplingRedaction, setIsApplingRedaction] = useState("false");
   //xml parser
@@ -176,7 +176,7 @@ const Redlining = React.forwardRef(({
           // Save to s3
           setModalFor("redline");
           setModalTitle("Redline for Sign Off");
-          setModalMessage("Are you sure want to create the redline PDF for ministry sign off?");
+          setModalMessage(["Are you sure want to create the redline PDF for ministry sign off?"]);
           setModalButtonLabel("Create Redline PDF");
           setRedlineModalOpen(true);
         };
@@ -200,7 +200,7 @@ const Redlining = React.forwardRef(({
           // console.log("Response Package for Application");
           setModalFor("responsepackage");
           setModalTitle("Create Package for Applicant");
-          setModalMessage("This should only be done when all redactions are finalized and ready to <b><i>be</i></b> sent to the <b><i>Applicant</i></b>. This will <b><i>permanently</i></b> apply the redactions and automatically create page stamps.");
+          setModalMessage(["This should only be done when all redactions are finalized and ready to ", <b><i>be</i></b>, " sent to the ", <b><i>Applicant</i></b>, ". This will ", <b><i>permanently</i></b>, " apply the redactions and automatically create page stamps."]);
           setModalButtonLabel("Create Applicant Package");
           setRedlineModalOpen(true);
           // saveResponsePackage(documentViewer, annotationManager);
@@ -1395,7 +1395,7 @@ const Redlining = React.forwardRef(({
           </DialogContentText>
         </DialogContent>
         <DialogActions className="foippa-modal-actions">
-          <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={!enableSavingRedline}>
+          <button className="btn-bottom btn-save btn" onClick={saveDoc}>
             {modalButtonLabel}
           </button>
           <button className="btn-bottom btn-cancel" onClick={cancelSaveRedlineDoc}>
