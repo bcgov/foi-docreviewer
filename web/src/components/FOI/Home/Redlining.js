@@ -25,7 +25,7 @@ import {faArrowUp, faArrowDown} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAppSelector } from '../../../hooks/hook';
 import { toast } from "react-toastify";
-import { pageFlagTypes } from '../../../constants/enum';
+import { pageFlagTypes, RequestStates } from '../../../constants/enum';
 import _ from 'lodash';
 
 const Redlining = React.forwardRef(({
@@ -75,7 +75,7 @@ const Redlining = React.forwardRef(({
   const [iframeDocument, setIframeDocument] = useState(null);
   const [modalFor, setModalFor] = useState("");
   const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
+  const [modalMessage, setModalMessage] = useState([""]);
   const [modalButtonLabel, setModalButtonLabel] = useState("");
   const [isApplingRedaction, setIsApplingRedaction] = useState("false");
   //xml parser
@@ -85,7 +85,7 @@ const Redlining = React.forwardRef(({
     let pageFlagArray = [];
     let stopLoop = false;
 
-    if(documentList.length === pageFlags?.length) {
+    if(documentList.length > 0 && documentList.length === pageFlags?.length) {
       documentList.every(docInfo => {
 
         if(pageFlags?.length > 0) {
@@ -120,8 +120,8 @@ const Redlining = React.forwardRef(({
 
     return !stopLoop;
   };
-  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff());
-  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == 14);
+  const [enableSavingRedline, setEnableSavingRedline] = useState(isReadyForSignOff() && ([RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus)));
+  const [enableSavingFinal, setEnableSavingFinal] = useState(isReadyForSignOff() && requestStatus == RequestStates["Response"]);
 
   // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
   // if using a class, equivalent of componentDidMount
@@ -176,7 +176,7 @@ const Redlining = React.forwardRef(({
           // Save to s3
           setModalFor("redline");
           setModalTitle("Redline for Sign Off");
-          setModalMessage("Are you sure want to create the redline PDF for ministry sign off?");
+          setModalMessage(["Are you sure want to create the redline PDF for ministry sign off?"]);
           setModalButtonLabel("Create Redline PDF");
           setRedlineModalOpen(true);
         };
@@ -200,7 +200,7 @@ const Redlining = React.forwardRef(({
           // console.log("Response Package for Application");
           setModalFor("responsepackage");
           setModalTitle("Create Package for Applicant");
-          setModalMessage("Are you sure want to create the records package for the applicant. This will apply all redactions. This should only be done when are redactions are finalized and are ready to send to the applicant. This will permanently apply the redactions and automatically create page stamps.");
+          setModalMessage(["This should only be done when all redactions are finalized and ready to ", <b><i>be</i></b>, " sent to the ", <b><i>Applicant</i></b>, ". This will ", <b><i>permanently</i></b>, " apply the redactions and automatically create page stamps."]);
           setModalButtonLabel("Create Applicant Package");
           setRedlineModalOpen(true);
           // saveResponsePackage(documentViewer, annotationManager);
@@ -519,12 +519,12 @@ const Redlining = React.forwardRef(({
   const checkSavingRedlineButton = (_instance) => {
     let _enableSavingRedline = isReadyForSignOff();
 
-    setEnableSavingRedline(_enableSavingRedline);
-    setEnableSavingFinal(_enableSavingRedline && requestStatus == 14);
+    setEnableSavingRedline(_enableSavingRedline && ([RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus)));
+    setEnableSavingFinal(_enableSavingRedline && requestStatus == RequestStates["Response"]);
     if(_instance) {
       const document = _instance.UI.iframeWindow.document;
-      document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline;
-      document.getElementById("final_package").disabled = !_enableSavingRedline && requestStatus == 14;
+      document.getElementById("redline_for_sign_off").disabled = !_enableSavingRedline || (![RequestStates["Records Review"], RequestStates["Ministry Sign Off"], RequestStates["Peer Review"]].includes(requestStatus));
+      document.getElementById("final_package").disabled = !_enableSavingRedline || requestStatus !== RequestStates["Response"];
     }
   };
 
@@ -977,6 +977,10 @@ const Redlining = React.forwardRef(({
     const downloadType = 'pdf';
     // console.log("divisions: ", divisions);
 
+    const divisionCountForToast = divisions.length;
+    let currentDivisionCount = 0;
+    const toastID = toast.loading("Start saving redline...")
+
     let newDocList = [];
     for(let div of divisions) {
       let divDocList = documentList.filter(doc => doc.divisions.map(d => d.divisionid).includes(div.divisionid));
@@ -993,36 +997,67 @@ const Redlining = React.forwardRef(({
 
         let domParser = new DOMParser()
         for(let divObj of res.divdocumentList) {
+          let pageMappingsByDivisions = {};
+
+          currentDivisionCount++;
+          toast.update(toastID, {
+            render: `Generating redline PDF for ${currentDivisionCount} of ${divisionCountForToast} divisions...`,
+            isLoading: true,
+          })
+
           let stitchedDocObj = null;
           let stitchedDocPath = divObj.s3path_save;
           let stitchedXMLArray = [];
 
           let docCount = 0;
           let totalPageCount = 0;
+          let pagesToRemove = []; //for each stitched division pdf
           for(let doc of divObj.documentlist) {
             docCount++;
+            pageMappingsByDivisions[doc.documentid] = {};
+            let pagesToRemoveEachDoc = [];
+
+            //gather pages that need to be removed
+            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+            for(const flagInfo of doc.pageFlag) {
+              if(flagInfo.flagid == pageFlagTypes["Duplicate"] || flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+                pagesToRemove.push(flagInfo.page + totalPageCount);
+              } else {
+                pageMappingsByDivisions[doc.documentid][flagInfo.page] = flagInfo.page + totalPageCount - pagesToRemoveEachDoc.length
+              }
+            }
 
             // update annotation xml
             if(divObj.annotationXML[doc.documentid]) {
-              let updatedXML = divObj.annotationXML[doc.documentid].map(x => {
+              let updatedXML = [];
+              for(let annotxml of divObj.annotationXML[doc.documentid]) {
                 // get original/individual page num
-                let customfield = parser.parseFromString(x).children.find(xmlfield => xmlfield.name == 'trn-custom-data');
-                let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
-                let customData = JSON.parse(txt.documentElement.textContent);
-                let originalPageNo = parseInt(customData.originalPageNo);
+                let xmlObj = parser.parseFromString(annotxml);
+                if(xmlObj.name === "redact" || xmlObj.name === "freetext") {
+                  let customfield = xmlObj.children.find(xmlfield => xmlfield.name == 'trn-custom-data');
+                  let txt = domParser.parseFromString(customfield.attributes.bytes, 'text/html');
+                  let customData = JSON.parse(txt.documentElement.textContent);
+                  let originalPageNo = parseInt(customData.originalPageNo);
 
-                // page num from annot xml
-                let y = x.split('page="');
-                let z = y[1].split('"');
-                let oldPageNum = 'page="'+z[0]+'"';
-                let newPage = 'page="'+(originalPageNo+totalPageCount)+'"';
-                x = x.replace(oldPageNum, newPage);
-                return x;
-              });
+                  if(pageMappingsByDivisions[doc.documentid][originalPageNo+1]) { //skip pages that need to be removed
+                    // page num from annot xml
+                    let y = annotxml.split('page="');
+                    let z = y[1].split('"');
+                    let oldPageNum = 'page="'+z[0]+'"';
+                    let newPage = 'page="'+(pageMappingsByDivisions[doc.documentid][originalPageNo+1]-1)+'"';
+                    annotxml = annotxml.replace(oldPageNum, newPage);
+
+                    if(xmlObj.name === "redact" || customData["parentRedaction"]) {
+                      updatedXML.push(annotxml);
+                    }
+                  }
+                }
+              }
 
               stitchedXMLArray.push(updatedXML.join());
             }
-            totalPageCount += doc.pagecount;
+            totalPageCount += Object.keys(pageMappingsByDivisions[doc.documentid]).length;
 
             await _instance.Core.createDocument(doc.s3path_load, {loadAsPDF:true}).then(async docObj => {
 
@@ -1035,9 +1070,16 @@ const Redlining = React.forwardRef(({
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
                 await stitchedDocObj.insertPages(docObj, pages, pageIndexToInsert);
               }
-  
+
+
               // save to s3 once all doc stitched
               if(docCount == divObj.documentlist.length) {
+                console.log("pagemapping: ", pageMappingsByDivisions);
+                console.log("pagesToRemove: ", pagesToRemove);
+
+                // remove duplicate and not responsive pages
+                await stitchedDocObj.removePages(pagesToRemove);
+
                 // console.log("s3path_save", stitchedDocPath);
                 let xfdfString = '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>'+stitchedXMLArray.join()+'</annots></xfdf>';
                 stitchedDocObj.getFileData({
@@ -1050,20 +1092,48 @@ const Redlining = React.forwardRef(({
                   // const url = URL.createObjectURL(blob);
                   // window.open(url);
       
+                  toast.update(toastID, {
+                    render: `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} divisions to Object Storage...`,
+                    isLoading: true,
+                  })
+
                   await saveFilesinS3(
                     {filepath: stitchedDocPath},
                     _blob,
                     (_res) => {
                       // ######### call another process for zipping and generate download here ##########
-                      // console.log(_res);
+                      console.log(_res);
+                      toast.update(toastID, {
+                        render: `${currentDivisionCount} of ${divisionCountForToast} divisions are saved to Object Storage`,
+                        type: "success",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true
+                      });
                     },
                     (_err) => {
                       console.log(_err);
+                      toast.update(toastID, {
+                        render: "Failed to save redline pdf to Object Storage",
+                        type: "error",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true
+                      });
                     }
                   );
                 });
               }
-
             });
           }
         }
@@ -1325,7 +1395,7 @@ const Redlining = React.forwardRef(({
           </DialogContentText>
         </DialogContent>
         <DialogActions className="foippa-modal-actions">
-          <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={!enableSavingRedline}>
+          <button className="btn-bottom btn-save btn" onClick={saveDoc}>
             {modalButtonLabel}
           </button>
           <button className="btn-bottom btn-cancel" onClick={cancelSaveRedlineDoc}>
