@@ -1177,6 +1177,7 @@ const Redlining = React.forwardRef(({
 
           let docCount = 0;
           let totalPageCount = 0;
+          let totalPageCountIncludeRemoved = 0;
           let pagesToRemove = []; //for each stitched division pdf
           for(let doc of divObj.documentlist) {
             docCount++;
@@ -1188,7 +1189,7 @@ const Redlining = React.forwardRef(({
             for(const flagInfo of doc.pageFlag) {
               if(flagInfo.flagid == pageFlagTypes["Duplicate"] || flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
                 pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(flagInfo.page + totalPageCount);
+                pagesToRemove.push(flagInfo.page + totalPageCountIncludeRemoved);
               } else {
                 pageMappingsByDivisions[doc.documentid][flagInfo.page] = flagInfo.page + totalPageCount - pagesToRemoveEachDoc.length
               }
@@ -1224,6 +1225,7 @@ const Redlining = React.forwardRef(({
               stitchedXMLArray.push(updatedXML.join());
             }
             totalPageCount += Object.keys(pageMappingsByDivisions[doc.documentid]).length;
+            totalPageCountIncludeRemoved += doc.pagecount;
 
             await _instance.Core.createDocument(doc.s3path_load, {loadAsPDF:true}).then(async docObj => {
 
@@ -1240,8 +1242,8 @@ const Redlining = React.forwardRef(({
 
               // save to s3 once all doc stitched
               if(docCount == divObj.documentlist.length) {
-                console.log("pagemapping: ", pageMappingsByDivisions);
-                console.log("pagesToRemove: ", pagesToRemove);
+                // console.log("pagemapping: ", pageMappingsByDivisions);
+                // console.log("pagesToRemove: ", pagesToRemove);
 
                 // remove duplicate and not responsive pages
                 await stitchedDocObj.removePages(pagesToRemove);
