@@ -269,15 +269,17 @@ const Redlining = React.forwardRef(({
 
 
       const Edit = () => {        
-        let _selectedAnnotations = annotationManager.getSelectedAnnotations();       
-        const hasValue = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
+        // let sections = _selectedAnnotations[0].getCustomData("sections")      
+        const hasValue = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
+        const _selectedRedaction = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
           return (
             <button
               type="button"
               className="Button ActionButton"
               style={hasValue ? {cursor: "default"} : {}}
               onClick={() => {
-                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedAnnotations, useDisplayAuthor: true}))
+                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedRedaction, useDisplayAuthor: true}))
               }}
               disabled={hasValue}
             >
@@ -629,15 +631,21 @@ const Redlining = React.forwardRef(({
           else if (action === 'modify') {
             let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
             let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-            if (selectedAnnotations.length > 0 && (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username))) {             
-              const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(selectedAnnotations[0]?.PageNumber)];
-              saveAnnotation(
-                requestid,
-                astr,
-                (data)=>{},
-                (error)=>{console.log(error)},
-                null
-              );
+            let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+            let annots = jObj.getElementsByTagName("annots");
+            for (let annot of annots[0].children) {
+              if (annot.name === 'redact' || 
+                (selectedAnnotations.length > 0 
+                  && (selectedAnnotations[0].Subject === 'Redact' || 
+                    (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username)))) {
+                saveAnnotation(
+                  requestid,
+                  astr,
+                  (data)=>{},
+                  (error)=>{console.log(error)},
+                  null
+                );
+              }
             }
           }
         })
@@ -977,8 +985,7 @@ const Redlining = React.forwardRef(({
 
   useEffect(() => {
     if (editAnnot) {
-      if(!isMultiSelectEdit)
-        setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id))
+      setSelectedSections(redactionInfo.find(redaction => redaction.annotationname === editAnnot.name).sections?.ids?.map(id => id))
       setModalOpen(true);
     }
   }, [editAnnot])
