@@ -2,6 +2,7 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import React, { useRef, useEffect,useState,useImperativeHandle } from 'react';
 import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import {useDispatch, useSelector} from "react-redux";
 import WebViewer from '@pdftron/webviewer';
 import XMLParser from 'react-xml-parser';
@@ -382,26 +383,30 @@ const Redlining = React.forwardRef(({
                       if (selectedIdString.length > 0) {
                         const annotationName = selectedIdString[1];
                         const _annot = annotationManager.getAnnotationById(annotationName);
-                        if (!isChecked) {
+                        // if (!isChecked) {
                           setSelectedAnnotations(prevSelectedAnnotations => {              
-                            const _selectedAnnotations = prevSelectedAnnotations;
+                            let _selectedAnnotations = prevSelectedAnnotations;
                             const isExists = _selectedAnnotations.find(_annotation => _annotation.Id === annotationName);
-                            if (isExists === undefined) {
+                            if (isExists === undefined && !isChecked) {
                               _selectedAnnotations.push(_annot);
+                              // return _selectedAnnotations;
                             }
-                              return _selectedAnnotations;
-                          });
-                        }
-                        else { //check why selectedAnnotations are not getting updated when deselect the checkbox
-                          setSelectedAnnotations(prevSelectedAnnotations => {              
-                            const isExists = prevSelectedAnnotations.find(_annotation => _annotation.Id === annotationName);
-                            let _updatedAnnotations = prevSelectedAnnotations;
-                            if (isExists) {
-                              _updatedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);                            
+                            else if (isExists && isChecked) {
+                              _selectedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);                            
                             }
-                            return _updatedAnnotations;
+                            return _selectedAnnotations;
                           });
-                        }                     
+                        // }
+                      //   else { //check why selectedAnnotations are not getting updated when deselect the checkbox
+                      //     setSelectedAnnotations(prevSelectedAnnotations => {              
+                      //       const isExists = prevSelectedAnnotations.find(_annotation => _annotation.Id === annotationName);
+                      //       let _updatedAnnotations = prevSelectedAnnotations;
+                      //       if (isExists) {
+                      //         _updatedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);                            
+                      //       }
+                      //       return _updatedAnnotations;
+                      //     });
+                      //   }                     
                       }
                       const multiSelectFooter = document.querySelector('.multi-select-footer');
                       let editButton = document.querySelector('.edit-button');
@@ -410,7 +415,9 @@ const Redlining = React.forwardRef(({
                         editButton.classList.add('edit-button');
                         multiSelectFooter?.insertBefore(editButton, multiSelectFooter.firstChild);              
                       }
-                      ReactDOM.render(<MultiSelectEdit />, editButton); 
+                      const root = createRoot(editButton);
+                      root.render(<MultiSelectEdit />);
+                      // ReactDOM.render(<MultiSelectEdit />, editButton); 
                     });
                 }
               });
@@ -944,7 +951,8 @@ const Redlining = React.forwardRef(({
         for(let section of redactionSections) {
           section.count++;
         }
-        annotManager.groupAnnotations(redaction, sectionAnnotations)
+        annotManager.groupAnnotations(annot, [redaction]);
+        // annotManager.groupAnnotations(redaction, annot);
       }
       annotManager.addAnnotations(sectionAnnotations);
       // Always redraw annotation
