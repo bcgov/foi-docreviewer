@@ -245,9 +245,6 @@ const Redlining = React.forwardRef(({
         // insert dropdown button in front of search button
         header.headers.default.splice((header.headers.default.length-3), 0, newCustomElement);
       });
-
-      const MultiSelectEdit = () => {
-
       const Edit = () => {
         let _selectedAnnotations = annotationManager.getSelectedAnnotations();     
         const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
@@ -270,27 +267,6 @@ const Redlining = React.forwardRef(({
       }
 
 
-      const Edit = () => {        
-        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
-        // let sections = _selectedAnnotations[0].getCustomData("sections")      
-        const hasValue = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
-        const _selectedRedaction = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
-          return (
-            <button
-              type="button"
-              className="Button ActionButton"
-              style={hasValue ? {cursor: "default"} : {}}
-              onClick={() => {
-                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedRedaction, useDisplayAuthor: true}))
-              }}
-              disabled={hasValue}
-            >
-              <div className="Icon" style={hasValue ? {color: "#868e9587"} : {}}>
-                <EditLogo/>
-              </div>
-            </button>
-          );
-      }
       
       instance.UI.annotationPopup.add({
         type: 'customElement',
@@ -299,6 +275,27 @@ const Redlining = React.forwardRef(({
 
       });
       setDocInstance(instance);
+
+      const MultiSelectEdit = () => {
+        let _selectedAnnotations = selectedAnnotations;     
+        const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
+        const _selectedRedactions = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
+          return (
+            <button
+              type="button"
+              className="Button ActionButton"
+              style={disableEdit ? {cursor: "default"} : {}}
+              onClick={() => {
+                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedRedactions, useDisplayAuthor: true}))
+              }}
+              disabled={disableEdit}
+            >
+              <div className="Icon" style={disableEdit ? {color: "#868e9587"} : {}}>
+                <EditLogo/>
+              </div>
+            </button>
+          );
+      }
 
 
       PDFNet.initialize();
