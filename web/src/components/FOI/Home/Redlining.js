@@ -247,6 +247,7 @@ const Redlining = React.forwardRef(({
       });
 
       const MultiSelectEdit = () => {
+
         const hasValue = selectedAnnotations.length === 0 || selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
         const _selectedAnnotations = selectedAnnotations.filter(obj => obj.Subject === 'Redact');
           return (
@@ -267,20 +268,9 @@ const Redlining = React.forwardRef(({
       }
 
 
-      const Edit = () => {
-        // const annotList = annotationManager.getAnnotationsList();
-        // annotList.forEach(annot => {
-        //   const group = annotationManager.getGroupAnnotations(annot);
-        //   console.log(group);
-        // });
-        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
-        if (_selectedAnnotations.length <= 0) {
-          _selectedAnnotations = selectedAnnotations;
-          // _selectedAnnotations = selectedAnnotationsFromMultiSelect;
-        }
+      const Edit = () => {        
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();       
         const hasValue = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
-        _selectedAnnotations = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
-        // if (_selectedAnnotations) {
           return (
             <button
               type="button"
@@ -296,7 +286,6 @@ const Redlining = React.forwardRef(({
               </div>
             </button>
           );
-        // }
       }
       
       instance.UI.annotationPopup.add({
@@ -389,27 +378,52 @@ const Redlining = React.forwardRef(({
                       const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
                       // Check if the span element has the "ui__choice--checked" class
                       const isChecked = spanWrapper.classList.contains("ui__choice--checked"); //actual scenario isChecked = true when you uncheck the checkbox
-                      const id =checkbox.id;
+                      const selectedIdString = checkbox.id?.split("_");
+                      if (selectedIdString.length > 0) {
+                        const annotationName = selectedIdString[1];
+                        const _annot = annotationManager.getAnnotationById(annotationName);
                         if (!isChecked) {
-                            console.log("Checkbox is checked:", this.id);
-                            // Perform actions when checkbox is checked
-                        } else {
-                            console.log("Checkbox is unchecked:", this.id);
-                            // Perform actions when checkbox is unchecked
+                          setSelectedAnnotations(prevSelectedAnnotations => {              
+                            const _selectedAnnotations = prevSelectedAnnotations;
+                            const isExists = _selectedAnnotations.find(_annotation => _annotation.Id === annotationName);
+                            if (isExists === undefined) {
+                              _selectedAnnotations.push(_annot);
+                            }
+                              return _selectedAnnotations;
+                          });
                         }
+                        else { //check why selectedAnnotations are not getting updated when deselect the checkbox
+                          setSelectedAnnotations(prevSelectedAnnotations => {              
+                            const isExists = prevSelectedAnnotations.find(_annotation => _annotation.Id === annotationName);
+                            let _updatedAnnotations = prevSelectedAnnotations;
+                            if (isExists) {
+                              _updatedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);                            
+                            }
+                            return _updatedAnnotations;
+                          });
+                        }                     
+                      }
+                      const multiSelectFooter = document.querySelector('.multi-select-footer');
+                      let editButton = document.querySelector('.edit-button');
+                      if (!editButton) {
+                        editButton = document.createElement('div');        
+                        editButton.classList.add('edit-button');
+                        multiSelectFooter?.insertBefore(editButton, multiSelectFooter.firstChild);              
+                      }
+                      ReactDOM.render(<MultiSelectEdit />, editButton); 
                     });
                 }
               });
                     
           }
-          const multiSelectFooter = document.querySelector('.multi-select-footer');
-              let editButton = document.querySelector('.edit-button');
-              if (!editButton) {
-                editButton = document.createElement('div');        
-                editButton.classList.add('edit-button');
-                multiSelectFooter?.insertBefore(editButton, multiSelectFooter.firstChild);              
-              }
-              ReactDOM.render(<MultiSelectEdit />, editButton);  
+          // const multiSelectFooter = document.querySelector('.multi-select-footer');
+          //     let editButton = document.querySelector('.edit-button');
+          //     if (!editButton) {
+          //       editButton = document.createElement('div');        
+          //       editButton.classList.add('edit-button');
+          //       multiSelectFooter?.insertBefore(editButton, multiSelectFooter.firstChild);              
+          //     }
+          //     ReactDOM.render(<MultiSelectEdit />, editButton);  
         
         // const targetDiv = document.querySelector('.multi-select-footer');
         // if(targetDiv) {
@@ -488,21 +502,6 @@ const Redlining = React.forwardRef(({
       // Add the newly selected annotations to the selectedAnnotationsRef
       // selectedAnnotationsRef.current = selectedAnnotationsRef.current.concat(annotations);
       console.log('Selected Annotations:', annotations);
-    });
-
-    docInstance?.Core?.annotationManager.addEventListener('selectedAnnotationsChanged ', (annotations, action) => {
-      const annotSections = annotations[0].getCustomData("sections");
-      // // if (annotSections) {
-      // //   // // annotations[0].ReadOnly = true;
-      // //   // action.preventDefault();
-      // //   docInstance?.disableElements(["annotationDeleteButton"]);
-      // // }
-      // // else {
-      // //   docInstance?.enableElements(["annotationDeleteButton"]);
-      // // }
-      // // if (annotations[0].Subject == 'redact') {
-      //   docInstance?.enableElements(["annotationCommentButton"]);
-      // // }
     });
 
     docInstance?.Core?.annotationManager.addEventListener('annotationChanged', (annotations, action, info) => {
