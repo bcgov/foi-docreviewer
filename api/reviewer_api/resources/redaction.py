@@ -33,6 +33,7 @@ API = Namespace('Document and annotations', description='Endpoints for document 
 TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,POST, OPTIONS')
+@API.route('/annotation')
 @API.route('/annotation/<int:ministryrequestid>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
@@ -62,11 +63,11 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion):
+    def post():
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
+            result = redactionservice().saveannotation(annotationschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
