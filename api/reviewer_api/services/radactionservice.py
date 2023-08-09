@@ -36,8 +36,8 @@ class redactionservice:
         return annotationservice().getrequestannotationinfo(requestid)
 
 
-    def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
-         result= annotationservice().saveannotation(documentid, documentversion, annotationschema,userinfo)
+    def saveannotation(self, annotationschema, userinfo):
+         result= annotationservice().saveannotation(annotationschema,userinfo)
          if result.success == True and "foiministryrequestid" in annotationschema and "pageflags" in annotationschema and annotationschema["pageflags"] is not None:
             documentpageflagservice().bulksavepageflag(annotationschema["foiministryrequestid"], annotationschema["pageflags"], userinfo)
          return result

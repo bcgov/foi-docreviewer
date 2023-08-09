@@ -366,7 +366,7 @@ const Redlining = React.forwardRef(({
         annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
       });
       let _annotationtring = docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
-      _annotationtring.then(astr=>{
+      _annotationtring.then(async astr=>{
         //parse annotation xml
         let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
         let annots = jObj.getElementsByTagName("annots");
@@ -441,12 +441,18 @@ const Redlining = React.forwardRef(({
                   "docid": displayedDoc.docid
                   });
               }
+              annotations[i].setCustomData("docid", displayedDoc.docid)
             })
             setPageSelections(pageSelectionList);
             let annot = annots[0].children[0];
+            let astr = await docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
             setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
           } else {
-            displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotations[0]?.PageNumber)];
+            for (let annot of annotations) {
+              displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
+              annot.setCustomData("docid", displayedDoc.docid);
+            }
+            let astr = await docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
             let sections = annotations[0].getCustomData("sections")
             let sectn;
             if (sections) {
@@ -457,8 +463,6 @@ const Redlining = React.forwardRef(({
             setSelectedSections([]);
             saveAnnotation(
               requestid,
-              displayedDoc.docid,
-              displayedDoc.version,
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
@@ -475,8 +479,6 @@ const Redlining = React.forwardRef(({
             const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(selectedAnnotations[0]?.PageNumber)];
             saveAnnotation(
               requestid,
-              displayedDoc.docid,
-              displayedDoc.version,
               astr,
               (data)=>{},
               (error)=>{console.log(error)},
@@ -680,7 +682,6 @@ const Redlining = React.forwardRef(({
     setSaveDisabled(true);
     let redactionObj= editAnnot? editAnnot : newRedaction;
     let astr = parser.parseFromString(redactionObj.astr);
-    const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(redactionObj['pages'])+1]
     //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
     let childSection ="";
@@ -705,7 +706,9 @@ const Redlining = React.forwardRef(({
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+        const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(redactionObj['pages'])+1]
         childAnnotation.setCustomData("sections", JSON.stringify(sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section}))))
+        childAnnotation.setCustomData("docid", displayedDoc.docid);
         annotManager.redrawAnnotation(childAnnotation);
         let _annotationtring = annotManager.exportAnnotations({annotList: [childAnnotation], useDisplayAuthor: true})
         let sectn = {
@@ -718,8 +721,6 @@ const Redlining = React.forwardRef(({
           let annot = annots[0].children[0];
           saveAnnotation(
             requestid,
-            displayedDoc.docid,
-            displayedDoc.version,
             astr,
             (data)=>{},
             (error)=>{console.log(error)},
@@ -740,8 +741,6 @@ const Redlining = React.forwardRef(({
       }
       saveAnnotation(
         requestid,
-        displayedDoc.docid,
-        displayedDoc.version,
         newRedaction.astr,
         (data)=>{
           fetchPageFlag(
