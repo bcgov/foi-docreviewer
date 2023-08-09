@@ -42,4 +42,5 @@ export const docSorting = (a, b) => {
         if(a.filename > b.filename) { return 1; }
         return 0;
     }
+    return sort;
 }
