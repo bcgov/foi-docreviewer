@@ -248,23 +248,25 @@ const Redlining = React.forwardRef(({
 
       const MultiSelectEdit = () => {
 
-        const hasValue = selectedAnnotations.length === 0 || selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.InReplyTo === null);
-        const _selectedAnnotations = selectedAnnotations.filter(obj => obj.Subject === 'Redact');
-          return (
-            <button
-              type="button"
-              className="Button ActionButton"
-              style={hasValue ? {cursor: "default"} : {}}
-              onClick={() => {
-                editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedAnnotations, useDisplayAuthor: true}))
-              }}
-              disabled={hasValue}
-            >
-              <div className="Icon" style={hasValue ? {color: "#868e9587"} : {}}>
-                <EditLogo/>
-              </div>
-            </button>
-          );
+      const Edit = () => {
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();     
+        const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
+        const _selectedRedaction = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
+        return (
+          <button
+            type="button"
+            class="Button ActionButton"
+            style={disableEdit ? {cursor: "default"} : {}}
+            onClick={() => {
+              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedRedaction, useDisplayAuthor: true}))
+            }}
+            disabled={disableEdit}
+          >
+            <div class="Icon" style={disableEdit ? {color: "#868e9587"} : {}}>
+              <EditLogo/>
+            </div>
+          </button>
+        );
       }
 
 
@@ -953,8 +955,7 @@ const Redlining = React.forwardRef(({
         for(let section of redactionSections) {
           section.count++;
         }
-        annotManager.groupAnnotations(annot, [redaction]);
-        // annotManager.groupAnnotations(redaction, annot);
+        annotManager.groupAnnotations(annot, [redaction])
       }
       annotManager.addAnnotations(sectionAnnotations);
       // Always redraw annotation
