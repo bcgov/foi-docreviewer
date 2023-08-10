@@ -13,8 +13,6 @@ import _ from 'lodash';
 const ConsultModal = ({
     flagId,
     initialPageFlag,
-    documentId,
-    documentVersion,
     openModal,
     setOpenModal,
     savePageFlags,
@@ -35,9 +33,6 @@ const ConsultModal = ({
                 selectedPageFlag.publicbodyaction = 'add';
             }
                 savePageFlags(flagId,
-                    selectedPageFlag.page,
-                    documentId,
-                    documentVersion,
                     selectedPageFlag
                     );
         }

@@ -306,7 +306,7 @@ class documentservice:
         removeids = []
         for documentid in documents:
             document = documents[documentid]
-            if document['attributes'].get('isportfolio', False) or not document['isredactionready']:
+            if document['attributes'].get('isportfolio', False) or document['attributes'].get('incompatible', False) or not document['isredactionready']:
                 removeids.append(document['documentmasterid'])
             elif document.get('isduplicate', False):
                 documents[document['duplicatemasterid']]['attributes']['divisions'].extend(document['attributes']['divisions'])

@@ -21,16 +21,19 @@ from reviewer_api.auth import auth, AuthHelper
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
-from reviewer_api.schemas.documentpageflag import DocumentPageflagSchema
+from reviewer_api.schemas.documentpageflag import PageflagSchema, BulkDocumentPageflagSchema
 import json
 
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
 
-API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
+
+API = Namespace('Document Pageflag Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
 
+
+
 @cors_preflight('POST,OPTIONS')
-@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')
+@API.route('/ministryrequest/<requestid>/pageflags')
 class SaveDocumentPageflag(Resource):
     """Add document to deleted list.
     """
@@ -39,16 +42,16 @@ class SaveDocumentPageflag(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(requestid, documentid, documentversion):
+    def post(requestid):
         try:
-            payload = request.get_json()
-            payload = DocumentPageflagSchema().load(payload)
-            result = documentpageflagservice().savepageflag(requestid, documentid, documentversion, payload, AuthHelper.getuserinfo())
-            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+            payload = BulkDocumentPageflagSchema().load(request.get_json())
+            result = documentpageflagservice().bulksavepageflag(requestid, payload, AuthHelper.getuserinfo())
+            return {'status': True, 'message':result, 'id': requestid} , 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+        
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')
