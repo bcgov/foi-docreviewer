@@ -25,6 +25,7 @@ from reviewer_api.exceptions import BusinessException
 import json
 import os
 from reviewer_api.services.radactionservice import redactionservice
+
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.schemas.annotationrequest import AnnotationRequest, SectionRequestSchema, SectionSchema
 from marshmallow import ValidationError, EXCLUDE
@@ -34,6 +35,7 @@ TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/annotation/<int:ministryrequestid>')
+@API.route('/annotation/<int:ministryrequestid>/<string:redactionlayer>')
 class Annotations(Resource):
     """Retrieves annotations for a document
     """
@@ -42,12 +44,15 @@ class Annotations(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(ministryrequestid):
+    def get(ministryrequestid, redactionlayer='redline'):
         try:
-            result = redactionservice().getannotationsbyrequest(ministryrequestid)
-            return json.dumps(result), 200
+            isvalid, _redactionlayer = redactionservice().validateredactionlayer(redactionlayer) 
+            if isvalid == True:
+                #return {'status': False, 'message': 'Invalid redaction layer'}, 400
+                result = redactionservice().getannotationsbyrequest(ministryrequestid,_redactionlayer)
+                return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {'status': False, 'message': err.__str__()}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 

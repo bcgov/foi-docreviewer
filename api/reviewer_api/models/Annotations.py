@@ -38,7 +38,7 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def getrequestannotations(cls, ministryrequestid):
+    def getrequestannotations(cls, ministryrequestid, mappedlayerids):
         sql = '''select a.*
                 from "Annotations" a
                 join (select distinct on (d.documentid) d.*
@@ -47,9 +47,10 @@ class Annotation(db.Model):
 					  order by d.documentid, d.version desc) d
 				on (d.documentid = a.documentid and d.version = a.documentversion)
                 where d.foiministryrequestid = :ministryrequestid
+                and a.redactionlayerid in :_mappedlayerids
                 and a.isactive = true
             '''
-        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid, '_mappedlayerids':tuple(mappedlayerids)})
         db.session.close()
         return [{
             'annotationid': row['annotationid'],

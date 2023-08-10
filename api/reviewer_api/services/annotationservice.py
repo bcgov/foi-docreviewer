@@ -26,8 +26,8 @@ class annotationservice:
             annotationlist.append(entry["annotation"])
         return self.__generateannotationsxml(annotationlist)
     
-    def getrequestannotations(self, ministryrequestid):
-        annotations = Annotation.getrequestannotations(ministryrequestid)
+    def getrequestannotations(self, ministryrequestid, mappedlayerids):
+        annotations = Annotation.getrequestannotations(ministryrequestid, mappedlayerids)
         annotationobj = {}
         for annot in annotations:
             if annot['documentid'] not in annotationobj:
