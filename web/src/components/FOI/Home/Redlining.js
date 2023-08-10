@@ -244,8 +244,8 @@ const Redlining = React.forwardRef(({
 
 
       const Edit = () => {
-        let _selectedAnnotations = annotationManager.getSelectedAnnotations();     
-        const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === 0);
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
+        const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === "");
         const _selectedRedaction = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
         return (
           <button
@@ -476,7 +476,7 @@ const Redlining = React.forwardRef(({
             const isRedactFound = selectedAnnotations?.find(a => a.Subject === 'Redact');
             for (let annot of annots[0].children) {
               //Redaction resize handled here
-              if (selectedAnnotations.length > 0  && isRedactFound) {
+              if (selectedAnnotations.length > 0  && isRedactFound && annot.name === 'redact') {
                 // save redact astr
                 saveAnnotation(
                   requestid,
@@ -490,7 +490,7 @@ const Redlining = React.forwardRef(({
                 saveRedaction(_resizeAnnot);
               }
               //Other Annotations resize handled here
-              else if ((selectedAnnotations.length === 0 &&annot.name === 'redact') || 
+              else if ((selectedAnnotations.length === 0 && annot.name === 'redact') || 
                 (selectedAnnotations.length > 0 
                 && (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username))) {
                 saveAnnotation(
@@ -698,7 +698,7 @@ const Redlining = React.forwardRef(({
   const saveRedaction = (_resizeAnnot={}) => {
     setModalOpen(false);
     setSaveDisabled(true);
-    let redactionObj= newRedaction? newRedaction:  (_resizeAnnot? _resizeAnnot : editAnnot);
+    let redactionObj= newRedaction? newRedaction:  (editAnnot ? editAnnot :_resizeAnnot);
     let astr = parser.parseFromString(redactionObj.astr);
     //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
