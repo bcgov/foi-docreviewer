@@ -12,6 +12,7 @@ import logging
 from enum import Enum
 from utils import redisstreamdb,zipper_stream_key,jsonmessageparser
 from .zipperservice import processmessage
+from .notificationservice import notificationservice
 
 
 LAST_ID_KEY = "{consumer_id}:lastid"
@@ -47,13 +48,19 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
             for message_id, message in messages:
                 print(f"processing {message_id}::{message}")
                 if message is not None:
-                    
+                    readyfornotification = False
+                    producermessage = None
                     try:
                         _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})                        
                         producermessage = jsonmessageparser.getzipperproducermessage(_message)
                         processmessage(producermessage)
+                        readyfornotification = True
+                        print("Processing is completed for Job ID {0} for category {1}".format(producermessage.jobid,producermessage.category))
                     except(Exception) as error:
                         print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
+
+                    if(readyfornotification == True):
+                        notificationservice().sendharmsnotification(producermessage)
                                              
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)               

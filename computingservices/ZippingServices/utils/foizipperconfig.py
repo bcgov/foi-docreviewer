@@ -23,5 +23,8 @@ s3_env = os.getenv('S3_ENV')
 
 #Notification stream config
 notification_stream_key = os.getenv('NOTIFICATION_STREAM_KEY')
+notification_redis_host = os.getenv('NOTIFICATION_REDIS_HOST')
+notification_redis_password = os.getenv('NOTIFICATION_REDIS_PASSWORD')
+notification_redis_port = os.getenv('NOTIFICATION_REDIS_PORT')
 
 failureattempt = os.getenv('FAILUREATTEMPT', 3)

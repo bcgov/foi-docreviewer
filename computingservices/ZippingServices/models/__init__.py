@@ -1,2 +1,3 @@
 from .zipperproducermessage import zipperproducermessage
 from .s3credentials import s3credentials
+from .harrmsnotificationmessage import harmsnotificationmessage

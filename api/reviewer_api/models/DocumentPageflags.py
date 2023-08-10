@@ -26,12 +26,13 @@ class DocumentPageflag(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
 
     @classmethod
-    def createpageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo)->DefaultMethodResult:
+    def createpageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo, _pageattributes=None)->DefaultMethodResult:
         try:
             db.session.add(DocumentPageflag(foiministryrequestid=_foiministryrequestid,
                                             documentid = _documentid,
                                             documentversion = _documentversion,
                                             pageflag = _pageflag,
+                                            attributes = _pageattributes,
                                             createdby = userinfo,
                                             created_at = datetime.now()
                                             ))
@@ -39,44 +40,27 @@ class DocumentPageflag(db.Model):
             return DefaultMethodResult(True, 'Page Flag is saved', _documentid)  
         except Exception as ex:
             logging.error(ex)
-            raise ex
+            return DefaultMethodResult(True, 'Page Flag is not saved', _documentid) 
         finally:
             db.session.close()
 
     @classmethod
-    def updatepageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo)->DefaultMethodResult:
+    def savepageflag(cls, _foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo, _pageattributes=None)->DefaultMethodResult:
         try:
             dbquery = db.session.query(DocumentPageflag)
             pageflag = dbquery.filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion))
             if(pageflag.count() > 0) :
-                pageflag.update({DocumentPageflag.pageflag:_pageflag, DocumentPageflag.updated_at:datetime.now(), DocumentPageflag.updatedby:userinfo}, synchronize_session = False)
+                pageflag.update({DocumentPageflag.pageflag:_pageflag, DocumentPageflag.attributes:_pageattributes, DocumentPageflag.updated_at:datetime.now(), DocumentPageflag.updatedby:userinfo}, synchronize_session = False)
                 db.session.commit()
                 return DefaultMethodResult(True,'Page Flag is saved', _documentid)
             else:
-                return DefaultMethodResult(False,'Page Flag does not exists',-1)   
+                return cls.createpageflag(_foiministryrequestid, _documentid, _documentversion, _pageflag, userinfo, _pageattributes) 
         except Exception as ex:
             logging.error(ex)
-            raise ex
+            return DefaultMethodResult(True, 'Page Flag is not saved', _documentid)
         finally:
             db.session.close()
 
-    @classmethod
-    def savepublicbody(cls, _foiministryrequestid, _documentid, _documentversion, _attributes, userinfo)->DefaultMethodResult:
-        try:
-            dbquery = db.session.query(DocumentPageflag)
-            pageflag = dbquery.filter(and_(DocumentPageflag.foiministryrequestid == _foiministryrequestid,DocumentPageflag.documentid == _documentid, DocumentPageflag.documentversion == _documentversion))
-            if(pageflag.count() > 0) :
-                pageflag.update({DocumentPageflag.attributes:_attributes, DocumentPageflag.updated_at:datetime.now(), DocumentPageflag.updatedby:userinfo}, synchronize_session = False)
-                db.session.commit()
-                return DefaultMethodResult(True,'Public body is saved', _documentid)
-            else:
-                return DefaultMethodResult(False,'Public body does not exists',-1)   
-        except Exception as ex:
-            logging.error(ex)
-            raise ex
-        finally:
-            db.session.close()
-    
     @classmethod
     def getpageflag(cls,  _foiministryrequestid, _documentid, _documentversion):
         try:
@@ -93,8 +77,13 @@ class DocumentPageflag(db.Model):
     def getpageflag_by_request(cls,  _foiministryrequestid):
         pageflags = []
         try:              
-            sql = """select distinct on (documentid) documentid, documentversion, pageflag from "DocumentPageflags" dp  
-                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
+            sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
+                     from "DocumentPageflags" dp
+                     join "Documents" d on dp.documentid = d.documentid
+                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
+                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+                     where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
+                     order by dp.documentid, dp.documentversion desc;
                     """
             rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid})
         

@@ -63,10 +63,35 @@ const pageFlagTypes:pageFlagType = {
   "Not Responsive": 6,
   "In Progress": 7,
   "Page Left Off": 8,
+};
+
+type RequestStatesType = {
+  [key: string]: number
 }
+
+const RequestStates:RequestStatesType = {
+  "Open": 1,
+  "Call For Records": 2,
+  "Closed": 3,
+  "Redirect": 4,
+  "Unopened": 5,
+  "Intake in Progress": 6,
+  "Records Review": 7,
+  "Fee Estimate": 8,
+  "Consult": 9,
+  "Ministry Sign Off": 10,
+  "On Hold": 11,
+  "Deduplication": 12,
+  "Harms Assessment": 13,
+  "Response": 14,
+  "Archived": 15,
+  "Peer Review": 16,
+  "Call For Records Overdue": 17
+};
 
 export {
   KCProcessingTeams,
   MINISTRYGROUPS,
-  pageFlagTypes
+  pageFlagTypes,
+  RequestStates
 };

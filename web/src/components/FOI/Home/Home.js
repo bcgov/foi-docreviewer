@@ -8,6 +8,7 @@ import Grid from "@material-ui/core/Grid";
 import { fetchDocuments, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
+import { docSorting } from './utils';
 
 function Home() {
 
@@ -59,14 +60,12 @@ function Home() {
             ));
           });
           await Promise.all(urlPromises);
-          let doclist=documentObjs?.sort((a, b) => {
-            return Date.parse(a.file.attributes.lastmodified) - Date.parse(b.file.attributes.lastmodified);
-          });          
-          setCurrentDocument({'file': documentObjs[0].file || {}, 'page': 1,"currentDocumentS3Url": documentObjs[0].s3url});
+          let doclist=documentObjs?.sort(docSorting);
+          setCurrentDocument({'file': doclist[0].file || {}, 'page': 1,"currentDocumentS3Url": doclist[0].s3url});
           // localStorage.setItem("currentDocumentS3Url", s3data);
-          setS3Url(documentObjs[0].s3url);
+          setS3Url(doclist[0].s3url);
           setS3UrlReady(true);
-          setDocsForStitcing(documentObjs);
+          setDocsForStitcing(doclist);
           setTotalPageCount(totalPageCountVal);
         }
       },
@@ -82,8 +81,8 @@ function Home() {
   }, [])
 
 
-  const openFOIPPAModal = (pageNo) => {
-    redliningRef?.current?.addFullPageRedaction(pageNo);
+  const openFOIPPAModal = (pageNos) => {
+    redliningRef?.current?.addFullPageRedaction(pageNos);
   }
 
   return (

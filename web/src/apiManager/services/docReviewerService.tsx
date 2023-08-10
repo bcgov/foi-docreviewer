@@ -71,15 +71,13 @@ export const fetchAnnotationsInfo = (
 
 export const saveAnnotation = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
   annotation: string = "",
   callback: any,
   errorCallback: any,
-  pageFlags?: Array<any>,
+  pageFlags?: object,
   sections?: object,
 ) => {
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}`;
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}`;
   let requestJSON = sections ?{
     "xml": annotation,
     "sections": sections,
@@ -94,7 +92,7 @@ export const saveAnnotation = (
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while saving an annotation for (doc# ${documentid})`);
+        throw new Error(`Error while saving an annotation`);
       }
     })
     .catch((error:any) => {
@@ -109,11 +107,10 @@ export const deleteAnnotation = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
-  freezepageflags: string = "false",
   page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -135,10 +132,9 @@ export const deleteRedaction = (
   annotationname: string = "",
   callback: any,
   errorCallback: any,
-  freezepageflags: string = "false",
   page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${freezepageflags}/${page}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -200,29 +196,26 @@ export const fetchPageFlagsMasterData = (
 
 export const savePageFlag = (
   foiministryrquestid: string,
-  documentid: number,
-  documentversion: number = 1,
-  pagenumber: number,
   flagid: number,
   callback: any,
   errorCallback: any,
   data?: any
 ) => {
-  let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
+  let apiUrlPost: string = replaceUrl(
     API.DOCREVIEWER_POST_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ), "<documentid>", documentid), "<documentversion>",documentversion);
-  let requestJSON = data || {
-    "page": pagenumber,
-    "flagid": flagid,
-    }
-  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+  )
+  // let requestJSON = data || {
+  //   "page": pagenumber,
+  //   "flagid": flagid,
+  //   }
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while saving page flag for (doc# ${documentid}, requestid ${foiministryrquestid})`);            
+        throw new Error(`Error while saving page flag for requestid ${foiministryrquestid}`);
       }
     })
     .catch((error:any) => {

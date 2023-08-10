@@ -151,12 +151,12 @@ class Annotation(db.Model):
 
     #upsert
     @classmethod
-    def saveannotations(cls, annots, _documentid, _documentversion, redactionlayerid, userinfo)->DefaultMethodResult:
+    def saveannotations(cls, annots, redactionlayerid, userinfo)->DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
-                "documentid": _documentid,
-                "documentversion": _documentversion,
+                "documentid": annot["docid"],
+                "documentversion": 1,
                 "annotation": annot["xml"],
                 "pagenumber": annot["originalpageno"],
                 "redactionlayerid": redactionlayerid,
