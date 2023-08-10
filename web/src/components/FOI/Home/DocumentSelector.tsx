@@ -16,7 +16,7 @@ import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/ser
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass
+    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass, faAngleDown
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -25,9 +25,13 @@ import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
-import {getStitchedPageNoFromOriginal} from "./utils";
+import { getStitchedPageNoFromOriginal, getProgramAreas } from "./utils";
 import { pageFlagTypes } from '../../../constants/enum';
-import _ from "lodash";
+import _, { forEach } from "lodash";
+import Popover from "@material-ui/core/Popover";
+import MenuList from "@material-ui/core/MenuList";
+import MenuItem from "@material-ui/core/MenuItem";
+
 
 const DocumentSelector = ({
     openFOIPPAModal,
@@ -56,15 +60,18 @@ const DocumentSelector = ({
     const [filterBookmark, setFilterBookmark] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
     const [selected, setSelected] = useState<any>([]);
-
+    const [openconsulteeModal, setOpenConsulteeModal] = useState(false);
+    const [assignedConsulteeList, setAssignedConsulteeList] = useState<any>([]);
+    const [filterAnchorPosition, setFilterAnchorPosition] = useState<any>(undefined);
+    const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
-    [`& .${treeItemClasses.label}`]: {
-        fontSize:'14px'
-    },
-    [`& .${treeItemClasses.content}`]: {
-        padding: '0 16px'
-    }
+        [`& .${treeItemClasses.label}`]: {
+            fontSize: '14px'
+        },
+        [`& .${treeItemClasses.content}`]: {
+            padding: '0 16px'
+        }
     }));
 
     useEffect(() => {
@@ -114,7 +121,7 @@ const DocumentSelector = ({
             let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
-        return (totalPageCount > 0 && totalPagesWithFlags>=0) ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
     }
 
 
@@ -215,12 +222,12 @@ const DocumentSelector = ({
     }
 
     const selectTreeItem = (file: any, page: number) => {
-        if(pageMappedDocs?.docIdLookup && Object.keys(pageMappedDocs?.docIdLookup).length > 0 ){
+        if (pageMappedDocs?.docIdLookup && Object.keys(pageMappedDocs?.docIdLookup).length > 0) {
             let pageNo: number = getStitchedPageNoFromOriginal(file.documentid, page, pageMappedDocs);
-            setIndividualDoc({ 'file': file, 'page': pageNo})
+            setIndividualDoc({ 'file': file, 'page': pageNo })
             setCurrentPageInfo({ 'file': file, 'page': page });
             // setCurrentDocument({ 'file': file, 'page': page })
-            if( page == 1)
+            if (page == 1)
                 setDisableHover(false);
         }
     };
@@ -253,7 +260,7 @@ const DocumentSelector = ({
                 flagid: 4, other: [], programareaid: []
             })
         } else {
-            setConsultInfo({flagid: 4, other: [], programareaid: []});
+            setConsultInfo({ flagid: 4, other: [], programareaid: [] });
         }
         setOpenContextPopup(true);
         setAnchorPosition(
@@ -268,20 +275,43 @@ const DocumentSelector = ({
         return false;
     }
 
-    const filterFiles = (filters: Array<number>) => {
+    const filterFiles = (filters: Array<number>, consulteeFilters: Array<number>) => {
         if (filters?.length > 0) {
-            setFilesForDisplay(filteredFiles.filter((file: any) =>
-                file.pageFlag?.find((obj: any) => (filters.includes(obj.flagid)))));
+            if (consulteeFilters.length > 0)
+                setFilesForDisplay(filteredFiles.filter((file: any) =>
+                    file.pageFlag?.find((obj: any) => (filters.includes(obj.flagid) && obj.programareaid.some((val: any) => consulteeFilters.includes(val))))));
+
+            else
+                setFilesForDisplay(filteredFiles.filter((file: any) =>
+                    file.pageFlag?.find((obj: any) => (obj.flagid != 4 && filters.includes(obj.flagid)))));
         }
         else
             setFilesForDisplay(filteredFiles);
     }
 
-    const applyFilter = (flagId: number, event: any) => {
+    const applyFilter = (flagId: number, consultee: any, event: any, allSelectedconsulteeList: any[]) => {
 
         const flagFilterCopy = [...filterFlags];
+        let consulteeIds = [...consulteeFilter];
         if (flagFilterCopy.includes(flagId)) {
-            flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
+            if (flagId == 4) {
+                if (event.target.checked) {
+                    if (allSelectedconsulteeList.length > 0)
+                        consulteeIds = allSelectedconsulteeList
+                    else
+                        consulteeIds.push(consultee)
+                } else {
+                    if (allSelectedconsulteeList.length > 0)
+                        consulteeIds = []
+                    else
+                        consulteeIds?.splice(flagFilterCopy.indexOf(consultee), 1);
+                }
+                if (consulteeIds.length <= 0)
+                    flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
+            }
+            else {
+                flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
+            }
             event.currentTarget.classList.remove('selected');
             if (flagId === pageFlagTypes["Page Left Off"])
                 setFilterBookmark(false);
@@ -289,6 +319,20 @@ const DocumentSelector = ({
                 setFilterBookmark(true);
         }
         else {
+            if (flagId == 4) {
+                if (event.target.checked) {
+                    if (allSelectedconsulteeList.length > 0)
+                        consulteeIds = allSelectedconsulteeList
+                    else
+                        consulteeIds.push(consultee)
+                }
+                else {
+                    if (allSelectedconsulteeList.length > 0)
+                        consulteeIds = []
+                    else
+                        consulteeIds?.splice(flagFilterCopy.indexOf(consultee), 1);
+                }
+            }
             flagFilterCopy.push(flagId);
             event.currentTarget.classList.add('selected');
             if (flagId === pageFlagTypes["Page Left Off"] || (flagFilterCopy.length == 1 && flagFilterCopy.includes(pageFlagTypes["Page Left Off"])))
@@ -297,12 +341,12 @@ const DocumentSelector = ({
                 setFilterBookmark(false);
         }
         setFilterFlags(flagFilterCopy);
-        filterFiles(flagFilterCopy);
+        setConsulteeFilter(consulteeIds);
+        filterFiles(flagFilterCopy, consulteeIds);
     }
 
 
     const getFlagName = (file: any, pageNo: number) => {
-        let iaoCode = "";
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
         if (flag.flagid === 4 && file.consult?.length > 0) {
             let ministries = flag.programareaid.map((m: any) => (consultMinistries?.find((ministry: any) => ministry.programareaid === m) as any)?.iaocode);
@@ -311,6 +355,61 @@ const DocumentSelector = ({
         }
         return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
     }
+
+    const assignConsulteeCode = (flag: any) => {
+        let ministries = flag.programareaid.map((m: any) => (consultMinistries?.find((ministry: any) => ministry.programareaid === m) as any));
+        ministries.push(...flag.other);
+        return ministries;
+    }
+
+    const openConsulteeList = (e: any) => {
+        const consultFlagged = filteredFiles.filter((file: any) => file.pageFlag?.find((obj: any) => (obj.flagid == 4)));
+        if (consultFlagged?.length > 0) {
+            let assignedConsulteeList: any[] = [];
+            consultFlagged.forEach((consultee: any) => {
+                let individualConsultee = assignConsulteeCode(consultee?.consult[0])
+                individualConsultee.forEach((element: any) => {
+                    assignedConsulteeList.push({ 'id': element.programareaid, 'iaocode': element.iaocode, 'name': element.name });
+                });
+            });
+            setOpenConsulteeModal(true);
+            setAssignedConsulteeList(assignedConsulteeList);
+            setFilterAnchorPosition(
+                e.currentTarget.getBoundingClientRect()
+            );
+        }
+    }
+
+
+
+    const showConsultee = (assignedConsulteeList: any[]) => assignedConsulteeList?.map((consultee: any, index: number) => {
+        return (
+            <>
+                <div key={index} className="consulteeItem">
+                    <span style={{ marginRight: '10px' }}>
+                        <input
+                            type="checkbox"
+                            id={`checkbox-${index}`}
+                            checked={consulteeFilter.includes(consultee.id)}
+                            onChange={(e) => { applyFilter(4, consultee.id, e, []) }}
+                        />
+                    </span>
+                    <label htmlFor={`checkbox-${index}`}>
+                        {consultee.iaocode}
+                    </label>
+                </div>
+            </>
+        )
+    })
+
+    const selectAllConsultees = (assignedConsulteeList: any[], event: any) => {
+        let consulteeIds = assignedConsulteeList.map((obj: any) => obj.id);
+        applyFilter(4, null, event, consulteeIds)
+    }
+
+    const consultFilterStyle = {
+        color: consulteeFilter.length === 0 ? '#808080' : '#003366' // Change colors as needed
+    };
 
     return (
         <>
@@ -346,7 +445,7 @@ const DocumentSelector = ({
                                 placeholder="Filter Records ..."
                                 defaultValue={""}
                                 onChange={(e) => { onFilterChange(e.target.value.trim()) }}
-                                inputProps={{'aria-labelledby': 'document-filter'}}
+                                inputProps={{ 'aria-labelledby': 'document-filter' }}
                                 sx={{
                                     color: "#38598A",
                                 }}
@@ -368,25 +467,25 @@ const DocumentSelector = ({
                     <hr className='hrStyle' />
 
                     <div className='row'>
-                        <div className='col-lg-4' style={{paddingRight: '0px'}}>
+                        <div className='col-lg-4' style={{ paddingRight: '0px' }}>
                             Organize by:
                         </div>
-                        <div className='col-lg-8' style={{paddingLeft: '0px'}}>
-                            <Stack direction="row" sx={{paddingBottom: "5px" }} spacing={1}>
-                            <ClickableChip
-                                label="Division"
-                                color="primary"
-                                size="small"
-                                onClick={() => setOrganizeBy("division")}
-                                clicked={organizeBy === "division"}
-                            />
-                            <ClickableChip
-                                label="Modified Date"
-                                color="primary"
-                                size="small"
-                                onClick={() => setOrganizeBy("lastmodified")}
-                                clicked={organizeBy === "lastmodified"}
-                            />
+                        <div className='col-lg-8' style={{ paddingLeft: '0px' }}>
+                            <Stack direction="row" sx={{ paddingBottom: "5px" }} spacing={1}>
+                                <ClickableChip
+                                    label="Division"
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => setOrganizeBy("division")}
+                                    clicked={organizeBy === "division"}
+                                />
+                                <ClickableChip
+                                    label="Modified Date"
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => setOrganizeBy("lastmodified")}
+                                    clicked={organizeBy === "lastmodified"}
+                                />
                             </Stack>
                         </div>
                     </div>
@@ -397,13 +496,66 @@ const DocumentSelector = ({
                         </span>
                         <span>
                             {pageFlagList.map((item: any) =>
-                                <span >
-                                    <FontAwesomeIcon key={item.pageflagid} title={item.name} className={'filterIcons'}
-                                        onClick={(event) => applyFilter(item.pageflagid, event)} id={item.pageflagid}
-                                        icon={assignIcon(item.pageflagid) as IconProp} size='1x' />
-                                </span>
+                                < >
+
+                                    {(item.pageflagid == 'Consult' || item.pageflagid == 4) ?
+                                        <span style={consultFilterStyle} onClick={(event) => openConsulteeList(event)}>
+                                            <FontAwesomeIcon key={item.pageflagid} title={item.name} className={(item.pageflagid == 'Consult' || item.pageflagid == 4) ? 'filterConsultIcon' : 'filterIcons'}
+                                                id={item.pageflagid} style={{ color: 'inherit' }}
+                                                icon={assignIcon(item.pageflagid) as IconProp} size='1x' />
+                                            <FontAwesomeIcon className={'filterDropDownIcon'} icon={faAngleDown as IconProp}
+                                                style={{ color: 'inherit' }} />
+                                        </span> :
+                                        <FontAwesomeIcon key={item.pageflagid} title={item.name}
+                                            className={(item.pageflagid == 'Consult' || item.pageflagid == 4) ? 'filterConsultIcon' : 'filterIcons'}
+                                            onClick={(event) => applyFilter(item.pageflagid, null, event, [])} id={item.pageflagid}
+                                            icon={assignIcon(item.pageflagid) as IconProp} size='1x' />
+                                    }
+                                </>
                             )}
                         </span>
+
+                        <Popover
+                            anchorReference="anchorPosition"
+                            anchorPosition={
+                                filterAnchorPosition && {
+                                    top: (filterAnchorPosition?.bottom + 105),
+                                    left: filterAnchorPosition?.right,
+                                }
+                            }
+                            open={openconsulteeModal}
+                            anchorOrigin={{
+                                vertical: "center",
+                                horizontal: "center",
+                            }}
+                            transformOrigin={{
+                                vertical: "center",
+                                horizontal: "center",
+                            }}
+                            onClose={() => setOpenConsulteeModal(false)}>
+                            <div className='consultDropDown'>
+                                <div className='heading'>
+                                    {/* <div>
+                                    Select Consult
+                                </div> */}
+                                    <div className="consulteeItem">
+                                        <span style={{ marginRight: '10px' }}>
+                                            <input
+                                                type="checkbox"
+                                                id={`checkbox-all`}
+                                                //value={consultee.id}
+                                                onChange={(e) => { selectAllConsultees(assignedConsulteeList, e) }}
+                                            />
+                                        </span>
+                                        <label htmlFor={`checkbox-all`}>
+                                            Select Consult
+                                        </label>
+                                    </div>
+                                    <hr className='hrStyle' />
+                                </div>
+                                {showConsultee(assignedConsulteeList)}
+                            </div>
+                        </Popover>
                     </div>
                     <hr className='hrStyle' />
                     <div className='row counters'>
@@ -447,25 +599,25 @@ const DocumentSelector = ({
                                                     key={i}
                                                     disableHoverListener={disableHover}
                                                 >
-        
+
                                                     <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
                                                         {[...Array(file.pagecount)].map((_x, p) =>
                                                         (filterFlags.length > 0 ?
                                                             ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
                                                                 <>
                                                                     <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 </>
                                                             )
                                                             :
                                                             (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
                                                                 <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs)   ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                                 :
-                                                                <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                                <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                             )
                                                         )
                                                         )
@@ -510,21 +662,33 @@ const DocumentSelector = ({
                                             <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
                                                 {[...Array(file.pagecount)].map((_x, p) =>
                                                 (filterFlags.length > 0 ?
-                                                    ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && filterFlags?.includes(obj.flagid))) &&
-                                                        <>
-                                                            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                        </>
+                                                    (consulteeFilter.length > 0 ?
+                                                        ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+                                                            obj.programareaid.some((val: any) => consulteeFilter.includes(val))))
+                                                            &&
+                                                            <>
+                                                                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            </>
+                                                        ) :
+                                                        (
+                                                            (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) &&
+                                                            <>
+                                                                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            </>
+                                                        )
                                                     )
                                                     :
                                                     (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
                                                         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                            title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs)  ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                            title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                         :
                                                         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                            onContextMenu={(e) => openContextMenu(file, p + 1, e)}/>
+                                                            onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                     )
                                                 )
                                                 )}

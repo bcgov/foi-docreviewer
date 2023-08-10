@@ -25,3 +25,8 @@ export const createPageFlagPayload = (selectedPages, flagId = 0, data = {}) => {
     }
     return payload
 }
+
+export const getProgramAreas = (pageFlagList) => {
+    let consult = pageFlagList.find((pageFlag) => pageFlag.name === 'Consult')
+    return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
+}
