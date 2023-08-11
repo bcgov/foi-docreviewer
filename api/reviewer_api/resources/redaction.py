@@ -33,6 +33,7 @@ API = Namespace('Document and annotations', description='Endpoints for document 
 TRACER = Tracer.get_instance()
 
 @cors_preflight('GET,POST, OPTIONS')
+@API.route('/annotation')
 @API.route('/annotation/<int:ministryrequestid>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>')
 @API.route('/annotation/<int:documentid>/<int:documentversion>/<int:pagenumber>')
@@ -62,11 +63,11 @@ class Annotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(documentid, documentversion):
+    def post():
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(documentid, documentversion, annotationschema, AuthHelper.getuserinfo())
+            result = redactionservice().saveannotation(annotationschema, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -75,8 +76,8 @@ class Annotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>', defaults={'page':None})
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>/<int:page>')
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>', defaults={'page':None})
+@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
 class DeactivateAnnotations(Resource):
     
     """save or update an annotation for a document
@@ -85,10 +86,10 @@ class DeactivateAnnotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, freezepageflags, page:None):
+    def delete(requestid, documentid, documentversion, annotationname, page:None):
         
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, freezepageflags)
+            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.message}, 400
@@ -97,7 +98,7 @@ class DeactivateAnnotations(Resource):
 
 
 @cors_preflight('DELETE,OPTIONS')
-@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<string:freezepageflags>/<int:page>')
+@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:page>')
 class DeactivateRedactions(Resource):
     
     """save or update an annotation for a document
@@ -106,10 +107,10 @@ class DeactivateRedactions(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, freezepageflags, page):
+    def delete(requestid, documentid, documentversion, annotationname, page):
         
         try:
-            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, freezepageflags)
+            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page)
             return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
         except KeyError as err:
             return {'status': False, 'message':err.message}, 400

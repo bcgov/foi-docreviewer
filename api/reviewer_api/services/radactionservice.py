@@ -36,21 +36,21 @@ class redactionservice:
         return annotationservice().getrequestannotationinfo(requestid)
 
 
-    def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
-         result= annotationservice().saveannotation(documentid, documentversion, annotationschema,userinfo)
+    def saveannotation(self, annotationschema, userinfo):
+         result= annotationservice().saveannotation(annotationschema,userinfo)
          if result.success == True and "foiministryrequestid" in annotationschema and "pageflags" in annotationschema and annotationschema["pageflags"] is not None:
             documentpageflagservice().bulksavepageflag(annotationschema["foiministryrequestid"], annotationschema["pageflags"], userinfo)
          return result
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page, freezepageflags):
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page):
         result =  annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
-        if result.success == True and page is not None and freezepageflags == "false":
+        if result.success == True and page is not None:
             documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
         return result
 
-    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page, freezepageflags):
+    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page):
         result = annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
-        if result.success == True and freezepageflags == "false":
+        if result.success == True:
             newresult = Annotation.getredactionsbypage(documentid, documentversion, page)
             if len(newresult) == 0:
                 documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)

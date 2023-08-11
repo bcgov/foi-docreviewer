@@ -25,7 +25,7 @@ import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
-import { getStitchedPageNoFromOriginal, getProgramAreas } from "./utils";
+import {  getStitchedPageNoFromOriginal, docSorting , getProgramAreas } from "./utils";
 import { pageFlagTypes } from '../../../constants/enum';
 import _, { forEach } from "lodash";
 import Popover from "@material-ui/core/Popover";
@@ -642,7 +642,7 @@ const DocumentSelector = ({
                                         </TreeItem>
                                     )
                                     :
-                                    filesForDisplay.sort((a: any, b: any) => Date.parse(a.attributes.lastmodified) - Date.parse(b.attributes.lastmodified)).map((file: any, index: number) =>
+                                    filesForDisplay.sort(docSorting).map((file: any, index: number) =>
                                         <Tooltip
                                             sx={{
                                                 backgroundColor: 'white',

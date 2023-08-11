@@ -26,7 +26,27 @@ export const createPageFlagPayload = (selectedPages, flagId = 0, data = {}) => {
     return payload
 }
 
+export const docSorting = (a, b) => {
+    if (a.file) {
+        a = a.file
+    }
+    if (b.file) {
+        b = b.file
+    }
+    var sort = Date.parse(a.attributes.lastmodified) - Date.parse(b.attributes.lastmodified);
+    if (sort === 0) {
+        sort = Date.parse(a.attributes.attachmentlastmodified || "0") - Date.parse(b.attributes.attachmentlastmodified || "0");
+    }
+    if (sort === 0) {
+        if(a.filename < b.filename) { return -1; }
+        if(a.filename > b.filename) { return 1; }
+        return 0;
+    }
+    return sort;
+}
+
 export const getProgramAreas = (pageFlagList) => {
     let consult = pageFlagList.find((pageFlag) => pageFlag.name === 'Consult')
     return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
 }
+

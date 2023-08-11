@@ -78,7 +78,6 @@ const Redlining = React.forwardRef(({
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState([""]);
   const [modalButtonLabel, setModalButtonLabel] = useState("");
-  const [isApplingRedaction, setIsApplingRedaction] = useState("false");
   //xml parser
   const parser = new XMLParser();
 
@@ -245,18 +244,20 @@ const Redlining = React.forwardRef(({
 
 
       const Edit = () => {
-        let selectedAnnotations = annotationManager.getSelectedAnnotations();
+        let _selectedAnnotations = annotationManager.getSelectedAnnotations();
+        const disableEdit = _selectedAnnotations.some(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") === "");
+        const _selectedRedaction = _selectedAnnotations.filter(obj => obj.Subject === 'Redact');
         return (
           <button
             type="button"
             class="Button ActionButton"
-            style={selectedAnnotations[0].Subject !== 'Redact' ? {cursor: "default"} : {}}
+            style={disableEdit ? {cursor: "default"} : {}}
             onClick={() => {
-              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: selectedAnnotations, useDisplayAuthor: true}))
+              editAnnotation(annotationManager, annotationManager.exportAnnotations({annotList: _selectedRedaction, useDisplayAuthor: true}))
             }}
-            disabled={selectedAnnotations[0].Subject !== 'Redact'}
+            disabled={disableEdit}
           >
-            <div class="Icon" style={selectedAnnotations[0].Subject !== 'Redact' ? {color: "#868e9587"} : {}}>
+            <div class="Icon" style={disableEdit ? {color: "#868e9587"} : {}}>
               <EditLogo/>
             </div>
           </button>
@@ -356,141 +357,160 @@ const Redlining = React.forwardRef(({
       // This will happen when importing the initial annotations
       // from the server or individual changes from other users
 
-      const isApplingRedaction = (info.source == 'redactionApplied')?"true":"false";
-
-      if (info.imported) return;
-      let localDocumentInfo = currentDocument;
-      annotations.forEach((annot) => {
-        let displayedDoc = pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
-        let individualPageNo = displayedDoc.page;
-        annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
-      });
-      let _annotationtring = docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
-      _annotationtring.then(astr=>{
-        //parse annotation xml
-        let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
-        let annots = jObj.getElementsByTagName("annots");
-        setRedactionType(annotations[0]?.type);
-        if(action === 'delete') {
-          let annotObjs = []
-          for (let annot of annots[0].children) {
-            let displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annot.attributes.page)+1];
-            let individualPageNo = displayedDoc.page;
-            if (annot.name === 'redact') {
-              if(isApplingRedaction === 'false') {
+      if(info.source !== 'redactionApplied') { //ignore annots/redact changes made by applyRedaction
+        if (info.imported) return;
+        let localDocumentInfo = currentDocument;
+        annotations.forEach((annot) => {
+          let displayedDoc = pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
+          let individualPageNo = displayedDoc.page;
+          annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1))
+        });
+        let _annotationtring = docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
+        _annotationtring.then(async astr=>{
+          //parse annotation xml
+          let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+          let annots = jObj.getElementsByTagName("annots");
+          setRedactionType(annotations[0]?.type);
+          if(action === 'delete') {
+            let annotObjs = []
+            for (let annot of annots[0].children) {
+              let displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annot.attributes.page)+1];
+              let individualPageNo = displayedDoc.page;
+              if (annot.name === 'redact') {
                 annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
+              } else {
+                if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
+                  deleteAnnotation(
+                    requestid,
+                    displayedDoc.docid,
+                    displayedDoc.version,
+                    annot.attributes.name,
+                    (data)=>{
+                      fetchPageFlag(
+                        requestid,
+                        (error) => console.log(error)
+                      )
+                    },
+                    (error)=>{console.log(error)},
+                    individualPageNo
+                  );
+                }
+                else{ 
+                  deleteAnnotation(
+                    requestid,
+                    displayedDoc.docid,
+                    displayedDoc.version,
+                    annot.attributes.name,
+                    (data)=>{},
+                    (error)=>{console.log(error)}
+                  );
+                 
+                }
               }
+            }
+            setDeleteQueue(annotObjs);
+          }
+          else if (action === 'add' && annotations[0].Subject !== 'Note') {
+            //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+            let displayedDoc;
+            let individualPageNo;
+            if (annotations[0].Subject === 'Redact') {
+              let pageSelectionList= [...pageSelections];
+              // setRedactionType(annotations[0]?.type);
+              annots[0].children?.forEach((annotatn, i)=> {
+                displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotatn.attributes.page)+1];
+                individualPageNo = displayedDoc.page
+                if(annotations[i]?.type === 'fullPage') {
+                  //annotations[i].setCustomData("trn-redaction-type", "fullPage");
+
+                  pageSelectionList.push(
+                    {
+                    "page": Number(individualPageNo),
+                    "flagid":pageFlagTypes["Withheld in Full"],
+                    "docid": displayedDoc.docid
+                    });
+                } else {
+                  pageSelectionList.push(
+                    {
+                    "page": Number(individualPageNo),
+                    "flagid":pageFlagTypes["Partial Disclosure"],
+                    "docid": displayedDoc.docid
+                    });
+                }
+                annotations[i].setCustomData("docid", displayedDoc.docid)
+              })
+              setPageSelections(pageSelectionList);
+              let annot = annots[0].children[0];
+              let astr = await docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
+              setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
             } else {
-              if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
-                deleteAnnotation(
-                  requestid,
-                  displayedDoc.docid,
-                  displayedDoc.version,
-                  annot.attributes.name,
-                  (data)=>{
-                    fetchPageFlag(
-                      requestid,
-                      (error) => console.log(error)
-                    )
-                  },
-                  (error)=>{console.log(error)},
-                  isApplingRedaction,
-                  individualPageNo
-                );
+              for (let annot of annotations) {
+                displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
+                annot.setCustomData("docid", displayedDoc.docid);
               }
-              else{ 
-                deleteAnnotation(
+              let astr = await docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
+              let sections = annotations[0].getCustomData("sections")
+              let sectn;
+              if (sections) {
+                sectn = {
+                  "foiministryrequestid": requestid
+                }
+              }
+              setSelectedSections([]);
+              saveAnnotation(
+                requestid,
+                astr,
+                (data)=>{},
+                (error)=>{console.log(error)},
+                null,
+                sectn,
+                //pageSelections
+              );
+            }
+          }
+          else if (action === 'modify') {
+            let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
+            let username = docViewer?.getAnnotationManager()?.getCurrentUser();
+            let jObj = parser.parseFromString(astr);    // Assume xmlText contains the example XML
+            let annots = jObj.getElementsByTagName("annots");
+            const isRedactFound = selectedAnnotations?.find(a => a.Subject === 'Redact');
+            for (let annot of annots[0].children) {
+              //Redaction resize handled here
+              if (selectedAnnotations.length > 0  && isRedactFound && annot.name === 'redact') {
+                // save redact astr
+                saveAnnotation(
                   requestid,
-                  displayedDoc.docid,
-                  displayedDoc.version,
-                  annot.attributes.name,
+                  astr,
                   (data)=>{},
                   (error)=>{console.log(error)},
-                  isApplingRedaction
+                  null
                 );
-               
+                const _resizeAnnot = {pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name};
+                // save resized section here
+                saveRedaction(_resizeAnnot);
+              }
+              //Other Annotations resize handled here
+              else if ((selectedAnnotations.length === 0 && annot.name === 'redact') || 
+                (selectedAnnotations.length > 0 
+                && (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username))) {
+                saveAnnotation(
+                  requestid,
+                  astr,
+                  (data)=>{},
+                  (error)=>{console.log(error)},
+                  null
+                );
               }
             }
           }
-          setDeleteQueue(annotObjs);
-        }
-        else if (action === 'add' && annotations[0].Subject !== 'Note') {
-          //let localInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-          let displayedDoc;
-          let individualPageNo;
-          if (annotations[0].Subject === 'Redact') {
-            let pageSelectionList= [...pageSelections];
-            // setRedactionType(annotations[0]?.type);
-            annots[0].children?.forEach((annotatn, i)=> {
-              displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotatn.attributes.page)+1];
-              individualPageNo = displayedDoc.page
-              if(annotations[i]?.type === 'fullPage') {
-                //annotations[i].setCustomData("trn-redaction-type", "fullPage");
-
-                pageSelectionList.push(
-                  {
-                  "page": Number(individualPageNo),
-                  "flagid":pageFlagTypes["Withheld in Full"],
-                  "docid": displayedDoc.docid
-                  });
-              } else {
-                pageSelectionList.push(
-                  {
-                  "page": Number(individualPageNo),
-                  "flagid":pageFlagTypes["Partial Disclosure"],
-                  "docid": displayedDoc.docid
-                  });
-              }
-            })
-            setPageSelections(pageSelectionList);
-            let annot = annots[0].children[0];
-            setNewRedaction({pages: annot.attributes.page, name: annot.attributes.name, astr: astr, type: annot.name});
-          } else {
-            displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotations[0]?.PageNumber)];
-            let sections = annotations[0].getCustomData("sections")
-            let sectn;
-            if (sections) {
-              sectn = {
-                "foiministryrequestid": requestid
-              }
-            }
-            setSelectedSections([]);
-            saveAnnotation(
-              requestid,
-              displayedDoc.docid,
-              displayedDoc.version,
-              astr,
-              (data)=>{},
-              (error)=>{console.log(error)},
-              null,
-              sectn,
-              //pageSelections
-            );
-          }
-        }
-        else if (action === 'modify') {
-          let selectedAnnotations = docInstance.Core.annotationManager.getSelectedAnnotations();
-          let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-          if (selectedAnnotations.length > 0 && (selectedAnnotations[0].Subject === 'Redact' || (selectedAnnotations[0].Subject !== 'Redact' && selectedAnnotations[0].Author === username))) {             
-            const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(selectedAnnotations[0]?.PageNumber)];
-            saveAnnotation(
-              requestid,
-              displayedDoc.docid,
-              displayedDoc.version,
-              astr,
-              (data)=>{},
-              (error)=>{console.log(error)},
-              null
-            );
-          }
-        }
-      })
-      setAnnots(docInstance.Core.Annotations);
+        })
+        setAnnots(docInstance.Core.Annotations);
+      }
     });
 
-    docInstance?.Core?.annotationManager.addEventListener('annotationSelected', (annotations, action, info) => {
-      console.log('here');
-    });
+    // docInstance?.Core?.annotationManager.addEventListener('annotationSelected', (annotations, action, info) => {
+    //   console.log('here');
+    // });
   }, [pageMappedDocs]);
 
   useImperativeHandle(ref, () => ({
@@ -675,12 +695,11 @@ const Redlining = React.forwardRef(({
 
 
 
-  const saveRedaction = () => {
+  const saveRedaction = (_resizeAnnot={}) => {
     setModalOpen(false);
     setSaveDisabled(true);
-    let redactionObj= editAnnot? editAnnot : newRedaction;
+    let redactionObj= newRedaction? newRedaction:  (editAnnot ? editAnnot :_resizeAnnot);
     let astr = parser.parseFromString(redactionObj.astr);
-    const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(redactionObj['pages'])+1]
     //let individualPageNo = displayedDoc?.pageMappings?.find((elmt)=>elmt.stitchedPageNo == (Number(redactionObj['pages'])+1))?.pageNo;
     let childAnnotation;
     let childSection ="";
@@ -688,24 +707,34 @@ const Redlining = React.forwardRef(({
     if(i >= 0){
       childSection = redactionInfo[i]?.sections.annotationname;
       childAnnotation = annotManager.getAnnotationById(childSection);
-
     }
-    if(editAnnot){
+    if(editAnnot || _resizeAnnot?.type === 'redact'){
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let redaction = annotManager.getAnnotationById(node.attributes.name);
         let coords = node.attributes.coords;
         let X = coords?.substring(0, coords.indexOf(","));
         childAnnotation = getCoordinates(childAnnotation, redaction, X);
         let redactionSectionsIds = selectedSections;
-        let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
-        childAnnotation.setContents(redactionSections);
+        if (redactionSectionsIds.length > 0) {          
+          let redactionSections = sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map(s => s.section).join(", ");
+          childAnnotation.setContents(redactionSections);
+          const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(redactionObj['pages'])+1]
+          childAnnotation.setCustomData("sections", JSON.stringify(sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section}))))
+          childAnnotation.setCustomData("docid", displayedDoc.docid);
+        }
         const doc = docViewer.getDocument();
-        const pageNumber = parseInt(editAnnot.pages) + 1;
+        let pageNumber = 0;
+        if (editAnnot) {
+          pageNumber = parseInt(editAnnot.pages) + 1;
+        }
+        else if (_resizeAnnot?.type === 'redact') {
+          pageNumber = parseInt(_resizeAnnot.pages) + 1;
+        }
         const pageInfo = doc.getPageInfo(pageNumber);
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-        childAnnotation.setCustomData("sections", JSON.stringify(sections.filter(s => redactionSectionsIds.indexOf(s.id) > -1).map((s) => ({"id":s.id, "section":s.section}))))
+        
         annotManager.redrawAnnotation(childAnnotation);
         let _annotationtring = annotManager.exportAnnotations({annotList: [childAnnotation], useDisplayAuthor: true})
         let sectn = {
@@ -718,8 +747,6 @@ const Redlining = React.forwardRef(({
           let annot = annots[0].children[0];
           saveAnnotation(
             requestid,
-            displayedDoc.docid,
-            displayedDoc.version,
             astr,
             (data)=>{},
             (error)=>{console.log(error)},
@@ -727,7 +754,8 @@ const Redlining = React.forwardRef(({
             sectn
           );
           setSelectedSections([]);
-          redactionInfo.find(r => r.annotationname === redactionObj.name).sections.ids = redactionSectionsIds;
+          if (redactionSectionsIds.length > 0)
+            redactionInfo.find(r => r.annotationname === redactionObj.name).sections.ids = redactionSectionsIds;
           setEditAnnot(null);
         })
       }
@@ -740,8 +768,6 @@ const Redlining = React.forwardRef(({
       }
       saveAnnotation(
         requestid,
-        displayedDoc.docid,
-        displayedDoc.version,
         newRedaction.astr,
         (data)=>{
           fetchPageFlag(
@@ -791,7 +817,7 @@ const Redlining = React.forwardRef(({
         for(let section of redactionSections) {
           section.count++;
         }
-        annotManager.groupAnnotations(redaction, sectionAnnotations)
+        annotManager.groupAnnotations(annot, [redaction])
       }
       annotManager.addAnnotations(sectionAnnotations);
       // Always redraw annotation
@@ -857,7 +883,6 @@ const Redlining = React.forwardRef(({
             )
           },
           (error)=>{console.log(error)},
-          isApplingRedaction,
           displayedDoc.page
         );
 
@@ -1165,7 +1190,6 @@ const Redlining = React.forwardRef(({
         saveRedlineDocument(docInstance);
         break;
       case 'responsepackage':
-        setIsApplingRedaction("true");
         saveResponsePackage(docViewer, annotManager);
         break;
       default:

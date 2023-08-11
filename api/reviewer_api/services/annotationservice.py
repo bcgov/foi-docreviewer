@@ -83,9 +83,9 @@ class annotationservice:
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
         return annotationsections
 
-    def saveannotation(self, documentid, documentversion, annotationschema, userinfo):
+    def saveannotation(self,annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
-        _annotresponse = Annotation.saveannotations(annots, documentid, documentversion, userinfo)
+        _annotresponse = Annotation.saveannotations(annots, userinfo)
         if _annotresponse.success == True:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
@@ -111,7 +111,8 @@ class annotationservice:
                 "page": annot.getAttribute("page"),
                 "xml": annot.toxml(),
                 "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
-                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo']
+                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo'],
+                "docid": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['docid']
             })
         return annots
     
