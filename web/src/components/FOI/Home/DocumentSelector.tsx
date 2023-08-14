@@ -62,9 +62,9 @@ const DocumentSelector = ({
     const [selected, setSelected] = useState<any>([]);
     const [openconsulteeModal, setOpenConsulteeModal] = useState(false);
     const [assignedConsulteeList, setAssignedConsulteeList] = useState<any>([]);
-    const [filterAnchorPosition, setFilterAnchorPosition] = useState<any>(undefined);
     const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
     const [selectAllConsultee, setSelectAllConsultee] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
@@ -389,9 +389,7 @@ const DocumentSelector = ({
             ));
             setOpenConsulteeModal(true);
             setAssignedConsulteeList(namedConsultValues);
-            setFilterAnchorPosition(
-                e.currentTarget.getBoundingClientRect()
-            );
+            setAnchorEl(e.currentTarget);
         }
     }
 
@@ -428,6 +426,11 @@ const DocumentSelector = ({
 
     const consultFilterStyle = {
         color: consulteeFilter.length === 0 ? '#808080' : '#003366' // Change colors as needed
+    };
+
+    const handleClose = () => {
+        setAnchorEl(null);
+        setOpenConsulteeModal(false)
     };
 
     return (
@@ -535,23 +538,20 @@ const DocumentSelector = ({
                         </span>
 
                         <Popover
-                            anchorReference="anchorPosition"
-                            anchorPosition={
-                                filterAnchorPosition && {
-                                    top: (filterAnchorPosition?.bottom + 105),
-                                    left: filterAnchorPosition?.right,
-                                }
-                            }
+                            anchorEl={anchorEl}
                             open={openconsulteeModal}
                             anchorOrigin={{
-                                vertical: "center",
+                                vertical: "bottom",
                                 horizontal: "center",
                             }}
                             transformOrigin={{
-                                vertical: "center",
+                                vertical: "top",
                                 horizontal: "center",
                             }}
-                            onClose={() => setOpenConsulteeModal(false)}>
+                            PaperProps={{
+                                style: { marginTop: '10px', padding: '10px' }
+                            }}
+                            onClose={() => handleClose()}>
                             <div className='consultDropDown'>
                                 <div className='heading'>
                                     <div className="consulteeItem">
