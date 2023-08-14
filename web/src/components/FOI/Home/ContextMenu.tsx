@@ -7,7 +7,7 @@ import { faCirclePlus, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { savePageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
-import {getStitchedPageNoFromOriginal, createPageFlagPayload} from "./utils";
+import {getStitchedPageNoFromOriginal, createPageFlagPayload, getProgramAreas} from "./utils";
 
 const ContextMenu = ({
     openFOIPPAModal,
@@ -86,10 +86,10 @@ const ContextMenu = ({
     //     )
     // })
 
-    const getProgramAreas = () => {
-        let consult = pageFlagList.find((pageFlag: any) => pageFlag.name === 'Consult')
-        return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
-    }
+    // const getProgramAreas = () => {
+    //     let consult = pageFlagList.find((pageFlag: any) => pageFlag.name === 'Consult')
+    //     return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
+    // }
 
     const showPageFlagList = () => pageFlagList?.map((pageFlag: any, index: number) => {
         return (pageFlag?.name === 'Page Left Off' ?
@@ -206,7 +206,7 @@ const ContextMenu = ({
                     openModal={openModal}
                     setOpenModal={setOpenModal}
                     savePageFlags={savePageFlags} 
-                    programAreaList={getProgramAreas()}
+                    programAreaList={getProgramAreas(pageFlagList)}
                 />
             }
         </>

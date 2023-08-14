@@ -44,3 +44,9 @@ export const docSorting = (a, b) => {
     }
     return sort;
 }
+
+export const getProgramAreas = (pageFlagList) => {
+    let consult = pageFlagList.find((pageFlag) => pageFlag.name === 'Consult')
+    return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
+}
+
