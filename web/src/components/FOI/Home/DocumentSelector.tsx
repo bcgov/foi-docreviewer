@@ -23,6 +23,7 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
 import PAGE_FLAGS from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
+import LayerDropdown from "./LayerDropdown"
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
 import { getStitchedPageNoFromOriginal, docSorting } from "./utils";
@@ -366,7 +367,15 @@ const DocumentSelector = ({
                         </Grid>
                     </Paper>
                     <hr className='hrStyle' />
-
+                    <div className='row'>
+                        <div className='col-lg-5' style={{paddingRight: '0px', display: "flex", alignItems: "center"}}>
+                            Redaction Layer:
+                        </div>
+                        <div className='col-lg-7' style={{paddingLeft: '0px', display: "flex", justifyContent: "flex-end"}}>
+                            <LayerDropdown/>
+                        </div>
+                    </div>
+                    <hr className='hrStyle' />
                     <div className='row'>
                         <div className='col-lg-4' style={{paddingRight: '0px'}}>
                             Organize by:

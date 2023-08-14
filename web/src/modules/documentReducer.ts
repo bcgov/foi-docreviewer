@@ -1,6 +1,7 @@
 import ACTION_CONSTANTS from "../actions/actionConstants";
 const initialState = {
-  redactionInfo: []
+  redactionInfo: [],
+  redactionLayers: []
 }
 
 const documents = (state = initialState, action:any)=> {
@@ -19,6 +20,10 @@ const documents = (state = initialState, action:any)=> {
         return {...state, keywords: action.payload};
     case ACTION_CONSTANTS.SET_REQUEST_STATUS:
         return {...state, requeststatus: action.payload};
+    case ACTION_CONSTANTS.SET_REDACTION_LAYERS:
+        return {...state, redactionLayers: action.payload};
+    case ACTION_CONSTANTS.SET_CURRENT_LAYER:
+        return {...state, currentLayer: action.payload};
     default:
       return state;
   }

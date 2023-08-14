@@ -46,6 +46,7 @@ const Redlining = React.forwardRef(({
   const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
+  const currentLayer = useSelector(state=> state.documents?.currentLayer);
 
   const viewer = useRef(null);
   const saveButton = useRef(null);
@@ -78,6 +79,7 @@ const Redlining = React.forwardRef(({
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState([""]);
   const [modalButtonLabel, setModalButtonLabel] = useState("");
+  const [isLayerSet, setIsLayerSet] = useState(false);
   //xml parser
   const parser = new XMLParser();
 
@@ -305,10 +307,11 @@ const Redlining = React.forwardRef(({
 
         //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
         let localDocumentInfo = currentDocument;
-        if(Object.entries(individualDoc['file'])?.length <= 0 )
+        if(Object.entries(individualDoc['file'])?.length <= 0)
           individualDoc= localDocumentInfo;
         fetchAnnotations(
           requestid,
+          "redline",
           (data) => {
             if(data)
               setMerge(true);
@@ -340,6 +343,27 @@ const Redlining = React.forwardRef(({
     });
 
   }, []);
+
+  useEffect(() => {
+    if (currentLayer && isLayerSet) {
+      fetchAnnotations(
+        requestid,
+        currentLayer.name,
+        async (data) => {
+          const existingAnnotations = annotManager.getAnnotationsList();
+          await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
+          for (const docid in data) {
+            assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
+          }
+        },
+        (error) => {
+          console.log('Error:',error);
+        }
+      );
+    } else {
+      setIsLayerSet(true);
+    }
+  }, [currentLayer]);
 
   useEffect(() => {
     // add event listener for hiding saving menu
@@ -450,6 +474,7 @@ const Redlining = React.forwardRef(({
               }
               let astr = await docInstance.Core.annotationManager.exportAnnotations({annotList: annotations, useDisplayAuthor: true})
               let sections = annotations[0].getCustomData("sections")
+              let redactionlayer = annotations[0].getCustomData("redactionlayer");
               let sectn;
               if (sections) {
                 sectn = {
@@ -462,6 +487,7 @@ const Redlining = React.forwardRef(({
                 astr,
                 (data)=>{},
                 (error)=>{console.log(error)},
+                Number(redactionlayer),
                 null,
                 sectn,
                 //pageSelections
@@ -482,8 +508,7 @@ const Redlining = React.forwardRef(({
                   requestid,
                   astr,
                   (data)=>{},
-                  (error)=>{console.log(error)},
-                  null
+                  (error)=>{console.log(error)}
                 );
               }
             }
@@ -560,7 +585,7 @@ const Redlining = React.forwardRef(({
     }
     mappedDocs['docIdLookup'][removedFirstElement.file.documentid] = {"docId": removedFirstElement.file.documentid, "version":removedFirstElement.file.version,
       "division": removedFirstElement.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings};
-    assignAnnotations(removedFirstElement.file.documentid, mappedDoc, domParser)
+    assignAnnotations(removedFirstElement.file.documentid, mappedDoc,fetchAnnotResponse, domParser)
     for (let file of docCopy) {
       mappedDoc = {"docId": 0, "version":0, "division": "", "pageMappings":[ {"pageNo": 0, "stitchedPageNo" : 0} ] };
       if (['.jpg', '.png'].includes(file.file.attributes.extension)) {
@@ -615,7 +640,7 @@ const Redlining = React.forwardRef(({
       }
       mappedDocs['docIdLookup'][file.file.documentid] = {"docId": file.file.documentid, "version":file.file.version,
       "division": file.file.divisions[0].divisionid, "pageMappings":mappedDoc.pageMappings};
-      assignAnnotations(file.file.documentid, mappedDoc, domParser)
+      assignAnnotations(file.file.documentid, mappedDoc, fetchAnnotResponse, domParser)
     }
     setPageMappedDocs(mappedDocs);
     docInstance.UI.searchTextFull(searchKeywords, {
@@ -631,10 +656,10 @@ const Redlining = React.forwardRef(({
     
   }
 
-  const assignAnnotations= async(documentid, mappedDoc, domParser) => {
+  const assignAnnotations= async(documentid, mappedDoc, annotData, domParser) => {
     let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-    if (fetchAnnotResponse[documentid]) {
-      let xml = parser.parseFromString(fetchAnnotResponse[documentid]);
+    if (annotData[documentid]) {
+      let xml = parser.parseFromString(annotData[documentid]);
       for (let annot of xml.getElementsByTagName("annots")[0].children) {
         let txt = domParser.parseFromString(annot.getElementsByTagName('trn-custom-data')[0].attributes.bytes, 'text/html')
         let customData = JSON.parse(txt.documentElement.textContent);
@@ -642,7 +667,7 @@ const Redlining = React.forwardRef(({
         annot.attributes.page = (mappedDoc.pageMappings.find(p => p.pageNo - 1 === Number(originalPageNo))?.stitchedPageNo - 1)?.toString()
       }
       xml = parser.toString(xml)
-      const _annotations = await annotManager.importAnnotations(xml)
+      const _annotations = await annotManager.importAnnotations(xml);
       _annotations.forEach(_annotation => {
         annotManager.redrawAnnotation(_annotation);
         annotManager.setPermissionCheckCallback((author, _annotation) => {
@@ -727,6 +752,7 @@ const Redlining = React.forwardRef(({
             astr,
             (data)=>{},
             (error)=>{console.log(error)},
+            currentLayer.redactionlayerid,
             null,
             sectn
           );
@@ -751,6 +777,7 @@ const Redlining = React.forwardRef(({
           (error) => console.log(error)
         )},
         (error)=>{console.log(error)},
+        currentLayer.redactionlayerid,
         createPageFlagPayload(pageFlagSelections)
       );
     //}
@@ -776,6 +803,7 @@ const Redlining = React.forwardRef(({
         annot.setContents(redactionSectionsString);
         annot.setCustomData("parentRedaction", redaction.Id)
         annot.setCustomData("sections", JSON.stringify(redactionSections.map((s) => ({"id":s.id, "section":s.section}))))
+        annot.setCustomData("redactionlayer", currentLayer.redactionlayerid);
         const doc = docViewer.getDocument();
         const pageInfo = doc.getPageInfo(annot.PageNumber);
         const pageMatrix = doc.getPageMatrix(annot.PageNumber);
