@@ -283,6 +283,7 @@ const DocumentSelector = ({
                     file.pageFlag?.find((obj: any) => (
                         filters.includes(obj.flagid) &&
                         (
+                            (obj.flagid != 4 && filters.includes(obj.flagid)) ||
                             (obj.programareaid && obj.programareaid.some((val: any) => consulteeFilters.includes(val))) ||
                             (obj.other && obj.other.some((val: any) => consulteeFilters.includes(val)))
                         )
@@ -621,7 +622,8 @@ const DocumentSelector = ({
                                                         (filterFlags.length > 0 ?
                                                             (consulteeFilter.length > 0 ?
                                                                 ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                                                                    ((obj.programareaid && obj.programareaid.some((val: any) => consulteeFilter.includes(val))) ||
+                                                                    (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+                                                                        (obj.programareaid && obj.programareaid.some((val: any) => consulteeFilter.includes(val))) ||
                                                                         (obj.other && obj.other.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                                                                     &&
                                                                     <>
@@ -693,8 +695,9 @@ const DocumentSelector = ({
                                                 (filterFlags.length > 0 ?
                                                     (consulteeFilter.length > 0 ?
                                                         ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                                                            ((obj.programareaid && obj.programareaid.some((val: any) => consulteeFilter.includes(val))) ||
-                                                                (obj.other && obj.other.some((val: any) => consulteeFilter.includes(val))) )))
+                                                            ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+                                                                (obj.programareaid && obj.programareaid.some((val: any) => consulteeFilter.includes(val))) ||
+                                                                    (obj.other && obj.other.some((val: any) => consulteeFilter.includes(val))) )))
                                                             &&
                                                             <>
                                                                 <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
