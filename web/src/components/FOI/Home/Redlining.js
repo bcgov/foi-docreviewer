@@ -353,15 +353,22 @@ const Redlining = React.forwardRef(({
         const redactions = existingAnnotations.filter(a => a.Subject === 'Redact');
         var rects = []
         for (const redaction of redactions) {
-          rects = rects.concat(redaction.getQuads().map(q => q.toRect()));
+          rects = rects.concat(redaction.getQuads().map(q => {
+            return {
+              page: redaction.getPageNumber(),
+              rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1)
+            }
+          }
+          ));
         }
         annotManager.deleteAnnotations(redactions, {imported: true, force: true, source: "layerchange"});
         var newAnnots = []
         for (const rect of rects) {
           const annot = new annots.RectangleAnnotation();
-          annot.setRect(rect);
+          annot.setRect(rect.rect);
           annot.FillColor = new annots.Color(255,255,255,1);
           annot.Color = new annots.Color(255,255,255,1);
+          annot.setPageNumber(rect.page);
           newAnnots.push(annot)
         }
         annotManager.addAnnotations(newAnnots, {imported: true, source: "layerchange"});
