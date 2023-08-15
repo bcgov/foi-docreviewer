@@ -46,7 +46,7 @@ class Annotations(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(ministryrequestid, redactionlayer='redline'):
         try:
-            isvalid, _redactionlayer = redactionservice().validateredactionlayer(redactionlayer) 
+            isvalid, _redactionlayer = redactionservice().validateredactionlayer(redactionlayer, ministryrequestid)
             if isvalid == True:
                 result = redactionservice().getannotationsbyrequest(ministryrequestid,_redactionlayer)
                 return json.dumps(result), 200

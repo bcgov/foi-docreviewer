@@ -2,8 +2,11 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList, setRequestStatus, setRedactionLayers } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount
+} from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
+import { useSelector } from "react-redux";
 
 
 export const fetchDocuments = (
@@ -91,9 +94,13 @@ export const saveAnnotation = (
       "foiministryrequestid":requestid,
       "redactionlayerid": redactionLayer
     }
+  let useAppSelector = useSelector;
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
+        if (redactionLayer) {
+          store.dispatch(incrementLayerCount(redactionLayer) as any);
+        }
         callback(res.data);
       } else {
         throw new Error(`Error while saving an annotation`);
@@ -277,10 +284,11 @@ export const fetchKeywordsMasterData = (
 };
 
 export const fetchRedactionLayerMasterData = (
+  mininstryrequestid: Number,
   callback: any,
   errorCallback: any
 ) => {
-  httpGETRequest(API.DOCREVIEWER_GET_REDACTION_LAYERS, {}, UserService.getToken())
+  httpGETRequest(API.DOCREVIEWER_GET_REDACTION_LAYERS + "/" + mininstryrequestid, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setRedactionLayers(res.data));

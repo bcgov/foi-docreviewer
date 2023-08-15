@@ -66,8 +66,8 @@ class redactionservice:
         attribute = mapper["attributes"]
         return attribute
 
-    def validateredactionlayer(self, redactionlayer):
-        isvalid, _redactionlayer = redactionlayerservice().validateredactionlayer(redactionlayer)
+    def validateredactionlayer(self, redactionlayer, ministryrequestid):
+        isvalid, _redactionlayer = redactionlayerservice().validateredactionlayer(redactionlayer, ministryrequestid)
         if isvalid == False:
             raise KeyError("Invalid redaction layer")
         return isvalid, _redactionlayer

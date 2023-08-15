@@ -64,3 +64,10 @@ export const setCurrentLayer = (data: any) => (dispatch:any) =>{
         payload:data
     })
 }
+
+export const incrementLayerCount = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.INC_REDACTION_LAYER,
+        payload:data
+    })
+}

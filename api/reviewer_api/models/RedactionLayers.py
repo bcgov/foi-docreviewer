@@ -1,8 +1,7 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import or_
 from datetime import datetime as datetime2
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, text
 import logging
 
 class RedactionLayer(db.Model):
@@ -19,11 +18,25 @@ class RedactionLayer(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
 
     @classmethod
-    def getall(cls):
+    def getall(cls, ministryrequestid):
         try:
-            pageflag_schema = RedactionLayerSchema(many=True)
-            query = db.session.query(RedactionLayer).filter_by(isactive=True).order_by(RedactionLayer.sortorder.asc()).all()
-            return pageflag_schema.dump(query)
+            sql = '''select rl.*, case when sq.count is null then 0 else sq.count end as count 
+                        from public."RedactionLayers" rl left join (
+                            select redactionlayerid as rlid, count(redactionlayerid) 
+                            from public."Annotations" a
+                            join public."Documents" d on d.documentid = a.documentid
+                            where foiministryrequestid = :ministryrequestid and a.isactive = true
+                            group by redactionlayerid
+                        ) sq on sq.rlid = rl.redactionlayerid
+                    '''
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            return [{
+                'redactionlayerid': row['redactionlayerid'],
+                'name': row['name'],
+                'description': row['description'],
+                'sortorder': row['sortorder'],
+                'count': row['count'],
+            } for row in rs]
         except Exception as ex:
             logging.error(ex)
         finally:

@@ -4,8 +4,8 @@ import json
 
 class redactionlayerservice:
 
-    def getredactionlayers(self):
-        return RedactionLayer.getall()
+    def getredactionlayers(self, ministryrequestid):
+        return RedactionLayer.getall(ministryrequestid)
 
 
     def getdefaultredactionlayerid(self):
@@ -20,9 +20,9 @@ class redactionlayerservice:
         mpxlayers.append(redactionlayer["redactionlayerid"])
         return mpxlayers
 
-    def validateredactionlayer(self, name):
+    def validateredactionlayer(self, name, ministryrequestid):
         _name = self.__normalise(name)
-        layers = self.getredactionlayers()
+        layers = self.getredactionlayers(ministryrequestid)
         for layer in layers:
             if (self.__normalise(layer['name']) == _name):
                 return True, layer

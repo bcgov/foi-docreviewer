@@ -47,6 +47,7 @@ const Redlining = React.forwardRef(({
   const redactionInfo = useSelector(state=> state.documents?.redactionInfo);
   const sections = useSelector(state => state.documents?.sections);
   const currentLayer = useSelector(state=> state.documents?.currentLayer);
+  const redactionLayers = useSelector(state=> state.documents?.redactionLayers);
 
   const viewer = useRef(null);
   const saveButton = useRef(null);
@@ -70,7 +71,7 @@ const Redlining = React.forwardRef(({
   const [pageSelections, setPageSelections] = useState([]);
   const [modalSortNumbered, setModalSortNumbered]= useState(false);
   const [modalSortAsc, setModalSortAsc]= useState(true);
-  const [fetchAnnotResponse, setFetchAnnotResponse] = useState({})
+  const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
   const [merge, setMerge] = useState(false);
   const [mapper, setMapper] = useState([]);
   const [searchKeywords, setSearchKeywords] = useState("");
@@ -79,7 +80,6 @@ const Redlining = React.forwardRef(({
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState([""]);
   const [modalButtonLabel, setModalButtonLabel] = useState("");
-  const [isLayerSet, setIsLayerSet] = useState(false);
   //xml parser
   const parser = new XMLParser();
 
@@ -309,18 +309,18 @@ const Redlining = React.forwardRef(({
         let localDocumentInfo = currentDocument;
         if(Object.entries(individualDoc['file'])?.length <= 0)
           individualDoc= localDocumentInfo;
-        fetchAnnotations(
-          requestid,
-          "redline",
-          (data) => {
-            if(data)
-              setMerge(true);
-            setFetchAnnotResponse(data);
-          },
-          (error) => {
-            console.log('Error:',error);
-          }
-        );
+        // fetchAnnotations(
+        //   requestid,
+        //   "redline",
+        //   (data) => {
+        //     if(data)
+        //       setMerge(true);
+        //     setFetchAnnotResponse(data);
+        //   },
+        //   (error) => {
+        //     console.log('Error:',error);
+        //   }
+        // );
 
         fetchAnnotationsInfo(
           requestid,
@@ -345,23 +345,53 @@ const Redlining = React.forwardRef(({
   }, []);
 
   useEffect(() => {
-    if (currentLayer && isLayerSet) {
-      fetchAnnotations(
-        requestid,
-        currentLayer.name,
-        async (data) => {
-          const existingAnnotations = annotManager.getAnnotationsList();
-          await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
-          for (const docid in data) {
-            assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
-          }
-        },
-        (error) => {
-          console.log('Error:',error);
+    if (currentLayer) {
+      if (currentLayer.name.toLowerCase() === 'response package') {
+        // Manually create white boxes to simulate redaction because apply redaction is permanent
+        
+        const existingAnnotations = annotManager.getAnnotationsList();
+        const redactions = existingAnnotations.filter(a => a.Subject === 'Redact');
+        var rects = []
+        for (const redaction of redactions) {
+          rects = rects.concat(redaction.getQuads().map(q => q.toRect()));
         }
-      );
-    } else {
-      setIsLayerSet(true);
+        annotManager.deleteAnnotations(redactions, {imported: true, force: true, source: "layerchange"});
+        var newAnnots = []
+        for (const rect of rects) {
+          const annot = new annots.RectangleAnnotation();
+          annot.setRect(rect);
+          annot.FillColor = new annots.Color(255,255,255,1);
+          annot.Color = new annots.Color(255,255,255,1);
+          newAnnots.push(annot)
+        }
+        annotManager.addAnnotations(newAnnots, {imported: true, source: "layerchange"});
+        for (const annot of newAnnots) {
+          annotManager.bringToBack(annot);
+        }
+        annotManager.drawAnnotationsFromList(newAnnots);
+        annotManager.setReadOnly(true);
+      } else {
+        fetchAnnotations(
+          requestid,
+          currentLayer.name,
+          async (data) => {
+            setMerge(true);
+            if (!fetchAnnotResponse) {
+              setFetchAnnotResponse(data)
+            } else {
+              annotManager.setReadOnly(false);
+              const existingAnnotations = annotManager.getAnnotationsList();
+              await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
+              for (const docid in data) {
+                assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
+              }
+            }
+          },
+          (error) => {
+            console.log('Error:',error);
+          }
+        );
+      }
     }
   }, [currentLayer]);
 
@@ -550,7 +580,7 @@ const Redlining = React.forwardRef(({
         annot.setCustomData("trn-redaction-type", "fullPage");
         newAnnots.push(annot)
       }
-      annotManager.addAnnotation(newAnnots);
+      annotManager.addAnnotations(newAnnots);
       annotManager.drawAnnotationsFromList(newAnnots);
     }
   }));
