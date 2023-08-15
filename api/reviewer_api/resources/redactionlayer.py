@@ -27,7 +27,7 @@ import json
 API = Namespace('RedactionLayer Services', description='Endpoints for RedactionLayer management')
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/redactionlayers')
+@API.route('/redactionlayers/<int:ministryrequestid>')
 class GetSections(Resource):
     """Get RedactionLayer list.
     """
@@ -35,9 +35,9 @@ class GetSections(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get():
+    def get(ministryrequestid):
         try:
-            data = redactionlayerservice().getredactionlayers()
+            data = redactionlayerservice().getredactionlayers(ministryrequestid)
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
