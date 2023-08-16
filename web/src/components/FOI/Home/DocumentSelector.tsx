@@ -387,8 +387,10 @@ const DocumentSelector = ({
             const namedConsultValues: any[] = Array.from(new Set(
                 consultFlagged.flatMap((item: any) => item.consult)
                     .flatMap((consultItem: any) => [...consultItem.programareaid, ...consultItem.other])
-                    .map((value: any) => ({ id: value, code: codeById[value] || value }))
-            ));
+                    .map((value: any) => JSON.stringify({ id: value, code: codeById[value] || value }))
+            )).map((strObject: any) => JSON.parse(strObject));
+            
+            console.log(namedConsultValues);
             setOpenConsulteeModal(true);
             setAssignedConsulteeList(namedConsultValues);
             setAnchorEl(e.currentTarget);
