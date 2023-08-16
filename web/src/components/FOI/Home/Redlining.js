@@ -452,24 +452,133 @@ const Redlining = React.forwardRef(
           setDocViewerMath(Math);
         });
 
+        let root = null;
+
         // add event listener for hiding saving menu
         document.body.addEventListener(
           "click",
           (e) => {
             document.getElementById("saving_menu").style.display = "none";
 
+            //remove MultiSelectedAnnotations on click of multiDeleteButton
+            const multiDeleteButton = document.querySelector(
+              '[data-element="multiDeleteButton"]'
+            );
+            if (multiDeleteButton) {
+              multiDeleteButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              });
+            }
+
+            //remove MultiSelectedAnnotations on click of multiReplyButton
+            const multiReplyButton = document.querySelector(
+              '[data-element="multiReplyButton"]'
+            );
+            if (multiReplyButton) {
+              multiReplyButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              });
+            }
+
+            //remove MultiSelectedAnnotations on click of multiStateButton
+            const multiStateButton = document.querySelector(
+              '[data-element="multiStateButton"]'
+            );
+            if (multiStateButton) {
+              multiStateButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              });
+            }
+
+            //remove MultiSelectedAnnotations on click of multiStyleButton
+            const multiStyleButton = document.querySelector(
+              '[data-element="multiStyleButton"]'
+            );
+            if (multiStyleButton) {
+              multiStyleButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              });
+            }
+
+            //remove MultiSelectedAnnotations on click of multi-select-footer close button
+            const closeButton = document.querySelector(".close-container");
+            if (closeButton) {
+              closeButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              });
+            }
+
+            //remove MultiSelectedAnnotations on click of multi-select-button
             const button = document.querySelector(
               '[data-element="multiSelectModeButton"]'
             );
+
+            button?.addEventListener("click", function () {
+              const isActive = button?.classList.contains("active");
+              if (isActive) {
+                root = null;
+                setMultiSelectFooter(root);
+                setMultiSelectedAnnotations([]);
+              }
+            });
+
             const isButtonActive = button?.classList.contains("active");
             if (isButtonActive) {
-              console.log("Button clicked!");
+              const _multiSelectFooter = document.querySelector(
+                ".multi-select-footer"
+              );
+              let editButton = document.querySelector(".edit-button");
+              if (!editButton) {
+                editButton = document.createElement("div");
+                editButton.classList.add("edit-button");
+                _multiSelectFooter?.insertBefore(
+                  editButton,
+                  _multiSelectFooter.firstChild
+                );
+              }
               const listItems = document.querySelectorAll('[role="listitem"]');
-
               listItems.forEach((listItem) => {
                 let checkbox = listItem.querySelector('input[type="checkbox"]');
-
+                // //start -- save selected redactions (by using redaction click) to state variable. check if selected event is working or not
+                // const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
+                // // Check if the span element has the "ui__choice--checked" class
+                // const isChecked = spanWrapper.classList.contains(
+                //   "ui__choice--checked"
+                // );
+                // if (isChecked) {
+                //   const selectedIdString = checkbox.id?.split("_");
+                //   if (selectedIdString.length > 0) {
+                //     const annotationName = selectedIdString[1];
+                //     const _annot =
+                //       annotationManager.getAnnotationById(annotationName);
+                //     _annots.push(_annot);
+                //   }
+                // }
+                // //end 1.0 -- save selected redactions (by using redaction click) to state variable
+                // // ----- instead handle selected event
+                // const note = document.querySelector(".Note");
+                // note?.addEventListener("click", function () {
+                //   if (root === null) {
+                //     root = createRoot(editButton);
+                //     setMultiSelectFooter(root);
+                //   }
+                // });
+                // // ----- instead handle selected event
                 if (checkbox) {
+                  if (root === null) {
+                    root = createRoot(editButton);
+                    setMultiSelectFooter(root);
+                  }
                   checkbox.addEventListener("click", function () {
                     checkbox = listItem.querySelector('input[type="checkbox"]');
                     const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
@@ -496,23 +605,26 @@ const Redlining = React.forwardRef(
                         return prevSelectedAnnotations;
                       });
                     }
-                    const _multiSelectFooter = document.querySelector(
-                      ".multi-select-footer"
-                    );
-                    let editButton = document.querySelector(".edit-button");
-                    if (!editButton) {
-                      editButton = document.createElement("div");
-                      editButton.classList.add("edit-button");
-                      _multiSelectFooter?.insertBefore(
-                        editButton,
-                        _multiSelectFooter.firstChild
-                      );
-                    }
-                    const root = createRoot(editButton);
-                    setMultiSelectFooter(root);
+                    // const _multiSelectFooter = document.querySelector(
+                    //   ".multi-select-footer"
+                    // );
+                    // let editButton = document.querySelector(".edit-button");
+                    // if (!editButton) {
+                    //   editButton = document.createElement("div");
+                    //   editButton.classList.add("edit-button");
+                    //   _multiSelectFooter?.insertBefore(
+                    //     editButton,
+                    //     _multiSelectFooter.firstChild
+                    //   );
+                    // }
+                    // const root = createRoot(editButton);
+                    // console.log("mon");
+                    // setMultiSelectFooter(root);
                   });
                 }
               });
+              // //end 1.1 - save selected redactions (by using redaction click) to state variable
+              // setMultiSelectedAnnotations(_annots);
             }
           },
           true
@@ -543,44 +655,25 @@ const Redlining = React.forwardRef(
       docInstance?.Core?.annotationManager.addEventListener(
         "annotationSelected",
         (annotations) => {
-          // const _selectedRedactions = annotations.filter(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") !== "");
-          // let annotationName = _selectedRedactions[0]?.Id;
-          // if (annotationName) {
-          //   setMultiSelectedAnnotations(prevSelectedAnnotations => {
-          //     let _selectedAnnotations = prevSelectedAnnotations;
-          //     const isExists = _selectedAnnotations.find(_annotation => _annotation.Id === annotationName);
-          //     if (isExists === undefined) {
-          //       _selectedAnnotations.push(_selectedRedactions[0]);
-          //     }
-          //     else if (isExists) {
-          //       _selectedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);
-          //     }
-          //     return _selectedAnnotations;
-          //   });
-          // }
-          console.log("annotationDeselected Annotations:", annotations);
-        }
-      );
-
-      docInstance?.Core?.annotationManager.addEventListener(
-        "annotationDeselected",
-        (annotations) => {
-          // const _selectedRedactions = annotations.filter(obj => obj.Subject !== 'Redact' && obj.getCustomData("sections") !== "");
-          // let annotationName = _selectedRedactions[0]?.Id;
-          // if (annotationName) {
-          //   setMultiSelectedAnnotations(prevSelectedAnnotations => {
-          //     let _selectedAnnotations = prevSelectedAnnotations;
-          //     const isExists = _selectedAnnotations.find(_annotation => _annotation.Id === annotationName);
-          //     if (isExists === undefined) {
-          //       _selectedAnnotations.push(_selectedRedactions[0]);
-          //     }
-          //     else if (isExists) {
-          //       _selectedAnnotations = prevSelectedAnnotations.filter(_annotation => _annotation.Id !== annotationName);
-          //     }
-          //     return _selectedAnnotations;
-          //   });
-          // }
-          console.log("annotationDeselected Annotations:", annotations);
+          //start - handled grouped annotation selection due to auto multi select issue.
+          // get freetext annotations with redaction sections alone
+          const _selectedRedactions = annotations.filter(
+            (obj) =>
+              obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
+          );
+          let annotationName = _selectedRedactions[0]?.Id;
+          if (annotationName) {
+            setMultiSelectedAnnotations((prevSelectedAnnotations) => {
+              const isExists = prevSelectedAnnotations.find(
+                (_annotation) => _annotation.Id === annotationName
+              );
+              if (isExists === undefined) {
+                return [...prevSelectedAnnotations, _selectedRedactions[0]];
+              }
+              return prevSelectedAnnotations;
+            });
+          }
+          //end - handled grouped annotation selection due to auto multi select issue.
         }
       );
 
