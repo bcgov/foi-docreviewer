@@ -1327,6 +1327,7 @@ const Redlining = React.forwardRef(
       setAnnotManager(annotationManager);
     };
 
+    //START: Bulk Edit using Multi Select Option
     const editRedactions = (annotationManager, selectedAnnot) => {
       selectedAnnot.then((astr) => {
         //parse annotation xml
@@ -1339,6 +1340,13 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
+      if (editRedacts) {
+        setModalOpen(true);
+      }
+    }, [editRedacts]);
+
+    //END: Bulk Edit using Multi Select Option
+    useEffect(() => {
       if (editAnnot) {
         setSelectedSections(
           redactionInfo
@@ -1348,12 +1356,6 @@ const Redlining = React.forwardRef(
         setModalOpen(true);
       }
     }, [editAnnot]);
-
-    useEffect(() => {
-      if (editRedacts) {
-        setModalOpen(true);
-      }
-    }, [editRedacts]);
 
     useEffect(() => {
       while (deleteQueue?.length > 0) {
