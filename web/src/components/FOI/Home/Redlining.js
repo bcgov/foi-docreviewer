@@ -87,7 +87,6 @@ const Redlining = React.forwardRef(
     const [selectedSections, setSelectedSections] = useState([]);
     const [defaultSections, setDefaultSections] = useState([]);
     const [editAnnot, setEditAnnot] = useState(null);
-    const [editRedacts, setEditRedacts] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [redactionType, setRedactionType] = useState(null);
     const [pageSelections, setPageSelections] = useState([]);
@@ -98,14 +97,18 @@ const Redlining = React.forwardRef(
     const [mapper, setMapper] = useState([]);
     const [searchKeywords, setSearchKeywords] = useState("");
     const [iframeDocument, setIframeDocument] = useState(null);
-    const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
-      []
-    );
-    const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [modalFor, setModalFor] = useState("");
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
+
+    // State variables for Bulk Edit using Multi Selection option
+    const [editRedacts, setEditRedacts] = useState(null);
+    const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
+      []
+    );
+    const [multiSelectFooter, setMultiSelectFooter] = useState(null);
+
     //xml parser
     const parser = new XMLParser();
 
@@ -170,6 +173,7 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
+    //START: Bulk Edit using Multi Select Option
     const MultiSelectEdit = () => {
       let _selectedAnnotations = multiSelectedAnnotations;
       const disableEdit =
@@ -207,6 +211,7 @@ const Redlining = React.forwardRef(
         </button>
       );
     };
+    //END: Bulk Edit using Multi Select Option
 
     // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
@@ -460,48 +465,13 @@ const Redlining = React.forwardRef(
           (e) => {
             document.getElementById("saving_menu").style.display = "none";
 
-            //remove MultiSelectedAnnotations on click of multiDeleteButton
+            //START: Bulk Edit using Multi Select Option
+            //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
             const multiDeleteButton = document.querySelector(
               '[data-element="multiDeleteButton"]'
             );
             if (multiDeleteButton) {
               multiDeleteButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              });
-            }
-
-            //remove MultiSelectedAnnotations on click of multiReplyButton
-            const multiReplyButton = document.querySelector(
-              '[data-element="multiReplyButton"]'
-            );
-            if (multiReplyButton) {
-              multiReplyButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              });
-            }
-
-            //remove MultiSelectedAnnotations on click of multiStateButton
-            const multiStateButton = document.querySelector(
-              '[data-element="multiStateButton"]'
-            );
-            if (multiStateButton) {
-              multiStateButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              });
-            }
-
-            //remove MultiSelectedAnnotations on click of multiStyleButton
-            const multiStyleButton = document.querySelector(
-              '[data-element="multiStyleButton"]'
-            );
-            if (multiStyleButton) {
-              multiStyleButton?.addEventListener("click", function () {
                 root = null;
                 setMultiSelectFooter(root);
                 setMultiSelectedAnnotations([]);
@@ -549,31 +519,6 @@ const Redlining = React.forwardRef(
               const listItems = document.querySelectorAll('[role="listitem"]');
               listItems.forEach((listItem) => {
                 let checkbox = listItem.querySelector('input[type="checkbox"]');
-                // //start -- save selected redactions (by using redaction click) to state variable. check if selected event is working or not
-                // const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
-                // // Check if the span element has the "ui__choice--checked" class
-                // const isChecked = spanWrapper.classList.contains(
-                //   "ui__choice--checked"
-                // );
-                // if (isChecked) {
-                //   const selectedIdString = checkbox.id?.split("_");
-                //   if (selectedIdString.length > 0) {
-                //     const annotationName = selectedIdString[1];
-                //     const _annot =
-                //       annotationManager.getAnnotationById(annotationName);
-                //     _annots.push(_annot);
-                //   }
-                // }
-                // //end 1.0 -- save selected redactions (by using redaction click) to state variable
-                // // ----- instead handle selected event
-                // const note = document.querySelector(".Note");
-                // note?.addEventListener("click", function () {
-                //   if (root === null) {
-                //     root = createRoot(editButton);
-                //     setMultiSelectFooter(root);
-                //   }
-                // });
-                // // ----- instead handle selected event
                 if (checkbox) {
                   if (root === null) {
                     root = createRoot(editButton);
@@ -605,26 +550,10 @@ const Redlining = React.forwardRef(
                         return prevSelectedAnnotations;
                       });
                     }
-                    // const _multiSelectFooter = document.querySelector(
-                    //   ".multi-select-footer"
-                    // );
-                    // let editButton = document.querySelector(".edit-button");
-                    // if (!editButton) {
-                    //   editButton = document.createElement("div");
-                    //   editButton.classList.add("edit-button");
-                    //   _multiSelectFooter?.insertBefore(
-                    //     editButton,
-                    //     _multiSelectFooter.firstChild
-                    //   );
-                    // }
-                    // const root = createRoot(editButton);
-                    // console.log("mon");
-                    // setMultiSelectFooter(root);
                   });
                 }
               });
-              // //end 1.1 - save selected redactions (by using redaction click) to state variable
-              // setMultiSelectedAnnotations(_annots);
+              //END: Bulk Edit using Multi Select Option
             }
           },
           true
@@ -632,11 +561,14 @@ const Redlining = React.forwardRef(
       });
     }, []);
 
+    //START: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
     useEffect(() => {
       if (multiSelectFooter) {
         multiSelectFooter.render(<MultiSelectEdit />);
       }
     }, [multiSelectedAnnotations]);
+
+    //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
     useEffect(() => {
       // add event listener for hiding saving menu
@@ -655,7 +587,7 @@ const Redlining = React.forwardRef(
       docInstance?.Core?.annotationManager.addEventListener(
         "annotationSelected",
         (annotations) => {
-          //start - handled grouped annotation selection due to auto multi select issue.
+          //START - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
           // get freetext annotations with redaction sections alone
           const _selectedRedactions = annotations.filter(
             (obj) =>
@@ -673,7 +605,7 @@ const Redlining = React.forwardRef(
               return prevSelectedAnnotations;
             });
           }
-          //end - handled grouped annotation selection due to auto multi select issue.
+          //END - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
         }
       );
 
@@ -756,10 +688,7 @@ const Redlining = React.forwardRef(
                   }
                 }
                 setDeleteQueue(annotObjs);
-              } else if (
-                action === "add" &&
-                annotations[0].Subject !== "Note"
-              ) {
+              } else if (action === "add") {
                 let displayedDoc;
                 let individualPageNo;
                 if (annotations[0].Subject === "Redact") {
@@ -806,11 +735,13 @@ const Redlining = React.forwardRef(
                       ];
                     annot.setCustomData("docid", displayedDoc.docid);
                   }
+
                   let astr =
                     await docInstance.Core.annotationManager.exportAnnotations({
                       annotList: annotations,
                       useDisplayAuthor: true,
                     });
+
                   let sections = annotations[0].getCustomData("sections");
                   let sectn;
                   if (sections) {
@@ -1123,6 +1054,7 @@ const Redlining = React.forwardRef(
       docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
     }, [individualDoc]);
 
+    //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
       setSaveDisabled(true);
@@ -1163,6 +1095,7 @@ const Redlining = React.forwardRef(
         }
         const doc = docViewer.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
+
         const pageInfo = doc.getPageInfo(pageNumber);
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
@@ -1202,6 +1135,7 @@ const Redlining = React.forwardRef(
 
       setNewRedaction(null);
     };
+    //END: Save updated redactions to BE part of Bulk Edit using Multi Select Option
 
     const getRedactionObj = (newRedaction, editAnnot, _resizeAnnot) => {
       if (newRedaction) return newRedaction;
