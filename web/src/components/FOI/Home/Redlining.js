@@ -1066,7 +1066,10 @@ const Redlining = React.forwardRef(
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let _redact = annotManager
           .getAnnotationsList()
-          .find((r) => r.InReplyTo === node.attributes.name);
+          .find(
+            (r) =>
+              r.Subject === "Redact" && r.InReplyTo === node.attributes.name
+          );
         redactionIds.push(_redact.Id);
         let childAnnotation = annotManager.getAnnotationById(
           node.attributes.name
@@ -1100,8 +1103,8 @@ const Redlining = React.forwardRef(
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-        childAnnotations.push(childAnnotation);
         annotManager.redrawAnnotation(childAnnotation);
+        childAnnotations.push(childAnnotation);
       }
       let _annotationtring = annotManager.exportAnnotations({
         annotList: childAnnotations,
