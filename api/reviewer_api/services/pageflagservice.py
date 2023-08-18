@@ -1,8 +1,11 @@
 from reviewer_api.models.Pageflags import Pageflag
 from reviewer_api.models.ProgramAreas import ProgramArea
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
+import requests
+from os import getenv
+from reviewer_api.auth import auth, AuthHelper
 
-import json
+requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 
 class pageflagservice:
 
@@ -18,7 +21,11 @@ class pageflagservice:
 
     def getpageflag_by_request(self, requestid):
         pageflags = Pageflag.getall()
-        programareas = ProgramArea.getprogramareas()  
+        programareas = requests.request(
+                method='GET',
+                url=requestapiurl + "/api/foiflow/programareas",
+                headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
+            ).json()
         data = documentpageflagservice().getpublicbody(requestid)      
         for entry in pageflags:
             if entry["name"] == "Consult":
