@@ -7,6 +7,9 @@ from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
 from reviewer_api.models.default_method_result import DefaultMethodResult
 
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
+
+
 import os
 import maya
 import json
@@ -23,8 +26,8 @@ class annotationservice:
             annotationlist.append(entry["annotation"])
         return self.__generateannotationsxml(annotationlist)
     
-    def getrequestannotations(self, ministryrequestid):
-        annotations = Annotation.getrequestannotations(ministryrequestid)
+    def getrequestannotations(self, ministryrequestid, mappedlayerids):
+        annotations = Annotation.getrequestannotations(ministryrequestid, mappedlayerids)
         annotationobj = {}
         for annot in annotations:
             if annot['documentid'] not in annotationobj:
@@ -83,9 +86,10 @@ class annotationservice:
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
         return annotationsections
 
-    def saveannotation(self,annotationschema, userinfo):
+    def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
-        _annotresponse = Annotation.saveannotations(annots, userinfo)
+        _redactionlayerid = self.__getredactionlayerid(annotationschema)
+        _annotresponse = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
         if _annotresponse.success == True:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
@@ -126,4 +130,8 @@ class annotationservice:
         xmltemplatestring = ''.join(xmltemplatelines)
         return xmltemplatestring.replace("{{annotations}}", annotationsstring)
     
-    
+    def __getredactionlayerid(self, annotationschema):
+        if 'redactionlayerid' in annotationschema and annotationschema['redactionlayerid'] not in (None,''):
+            return int(annotationschema['redactionlayerid'])
+        else:
+            return redactionlayerservice().getdefaultredactionlayerid()
