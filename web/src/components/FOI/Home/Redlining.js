@@ -150,6 +150,7 @@ const Redlining = React.forwardRef(({
       const { documentViewer, annotationManager, Annotations, PDFNet, Search, Math, createDocument } = instance.Core;
       instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(','))
       instance.UI.enableElements(['attachmentPanelButton']);
+      documentViewer.setToolMode(documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION));
 
       //customize header - insert a dropdown button
       const document = instance.UI.iframeWindow.document;
@@ -387,6 +388,7 @@ const Redlining = React.forwardRef(({
               setFetchAnnotResponse(data)
             } else {
               annotManager.setReadOnly(false);
+              docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
               const existingAnnotations = annotManager.getAnnotationsList();
               await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
               for (const docid in data) {
@@ -398,6 +400,11 @@ const Redlining = React.forwardRef(({
             console.log('Error:',error);
           }
         );
+        fetchPageFlag(
+          requestid,
+          currentLayer.redactionlayerid,
+          (error) => console.log(error)
+        )
       }
     }
   }, [currentLayer]);
@@ -440,33 +447,35 @@ const Redlining = React.forwardRef(({
               if (annot.name === 'redact') {
                 annotObjs.push({page: annot.attributes.page, name: annot.attributes.name, type: annot.name});
               } else {
-                if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
+                // if(annotations[0].getCustomData("trn-redaction-type") === 'fullPage'){
+                //   deleteAnnotation(
+                //     requestid,
+                //     displayedDoc.docid,
+                //     displayedDoc.version,
+                //     // 1,
+                //     annot.attributes.name,
+                //     (data)=>{
+                //       fetchPageFlag(
+                //         requestid,
+                //         (error) => console.log(error)
+                //       )
+                //     },
+                //     (error)=>{console.log(error)},
+                //     individualPageNo
+                //   );
+                // }
+                // else{
                   deleteAnnotation(
                     requestid,
                     displayedDoc.docid,
                     displayedDoc.version,
-                    annot.attributes.name,
-                    (data)=>{
-                      fetchPageFlag(
-                        requestid,
-                        (error) => console.log(error)
-                      )
-                    },
-                    (error)=>{console.log(error)},
-                    individualPageNo
-                  );
-                }
-                else{ 
-                  deleteAnnotation(
-                    requestid,
-                    displayedDoc.docid,
-                    displayedDoc.version,
+                    1,
                     annot.attributes.name,
                     (data)=>{},
                     (error)=>{console.log(error)}
                   );
                  
-                }
+                // }
               }
             }
             setDeleteQueue(annotObjs);
@@ -811,11 +820,12 @@ const Redlining = React.forwardRef(({
         (data)=>{
           fetchPageFlag(
           requestid,
+          currentLayer.redactionlayerid,
           (error) => console.log(error)
         )},
         (error)=>{console.log(error)},
         currentLayer.redactionlayerid,
-        createPageFlagPayload(pageFlagSelections)
+        createPageFlagPayload(pageFlagSelections, currentLayer.redactionlayerid)
       );
     //}
       // add section annotation      
@@ -916,10 +926,12 @@ const Redlining = React.forwardRef(({
           requestid,
           displayedDoc.docid,
           displayedDoc.version,
+          1,
           annot.name,
           (data)=>{
             fetchPageFlag(
               requestid,
+              currentLayer.redactionlayerid,
               (error) => console.log(error)
             )
           },

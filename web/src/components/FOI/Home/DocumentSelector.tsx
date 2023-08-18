@@ -41,6 +41,7 @@ const DocumentSelector = ({
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
+    const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
@@ -85,6 +86,7 @@ const DocumentSelector = ({
         );
         fetchPageFlag(
             requestid,
+            currentLayer.redactionlayerid,
             (error: any) => console.log(error)
         )
     }, [pageFlagChanged]);
