@@ -2,8 +2,11 @@
 import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList, setRequestStatus } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount
+} from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
+import { useSelector } from "react-redux";
 
 
 export const fetchDocuments = (
@@ -31,10 +34,11 @@ export const fetchDocuments = (
 
 export const fetchAnnotations = (
   ministryrequestid: number,
+  redactionlayer: string = "redline",
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -74,6 +78,7 @@ export const saveAnnotation = (
   annotation: string = "",
   callback: any,
   errorCallback: any,
+  redactionLayer?: number,
   pageFlags?: object,
   sections?: object,
 ) => {
@@ -81,15 +86,21 @@ export const saveAnnotation = (
   let requestJSON = sections ?{
     "xml": annotation,
     "sections": sections,
+    "redactionlayerid": redactionLayer
     } : 
     {
       "xml": annotation,
       "pageflags":pageFlags,
-      "foiministryrequestid":requestid
+      "foiministryrequestid":requestid,
+      "redactionlayerid": redactionLayer
     }
+  let useAppSelector = useSelector;
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
+        if (redactionLayer) {
+          store.dispatch(incrementLayerCount(redactionLayer) as any);
+        }
         callback(res.data);
       } else {
         throw new Error(`Error while saving an annotation`);
@@ -269,6 +280,25 @@ export const fetchKeywordsMasterData = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching keywords master data:",error);
+    });
+};
+
+export const fetchRedactionLayerMasterData = (
+  mininstryrequestid: Number,
+  callback: any,
+  errorCallback: any
+) => {
+  httpGETRequest(API.DOCREVIEWER_GET_REDACTION_LAYERS + "/" + mininstryrequestid, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        store.dispatch(setRedactionLayers(res.data));
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching layers master data:",error);
     });
 };
 
