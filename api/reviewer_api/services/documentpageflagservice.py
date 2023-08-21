@@ -10,14 +10,14 @@ class documentpageflagservice:
 
     
     def getpageflags(self, requestid, redactionlayerid):
-        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
         return DocumentPageflag.getpageflag_by_request(requestid, layerids)
     
     def getpublicbody(self, requestid):
         return DocumentPageflag.getpublicbody_by_request(requestid)
     
     def getdocumentpageflags(self, requestid, redactionlayerid, documentid=None, version=None):
-        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
         pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version, layerids)
         if pageflag not in (None, {}):
             return pageflag["pageflag"], pageflag["attributes"]
