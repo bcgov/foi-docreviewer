@@ -54,7 +54,7 @@ class SaveDocumentPageflag(Resource):
         
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag')
+@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag/<redactionlayerid>')
 class GetDocumentPageflag(Resource):
     """Get document page flag list.
     """
@@ -63,9 +63,9 @@ class GetDocumentPageflag(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid, documentid, documentversion):
+    def get(requestid, documentid, documentversion, redactionlayerid):
         try:
-            result = documentpageflagservice().getdocumentpageflags(requestid, documentid, documentversion)
+            result = documentpageflagservice().getdocumentpageflags(requestid,redactionlayerid, documentid, documentversion)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
@@ -74,7 +74,7 @@ class GetDocumentPageflag(Resource):
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/ministryrequest/<requestid>/pageflag')
+@API.route('/ministryrequest/<requestid>/pageflag/<redactionlayerid>')
 class GetDocumentPageflag(Resource):
     """Get document page flag list.
     """
@@ -83,9 +83,9 @@ class GetDocumentPageflag(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid):
+    def get(requestid, redactionlayerid):
         try:
-            result = documentpageflagservice().getpageflags(requestid)
+            result = documentpageflagservice().getpageflags(requestid, redactionlayerid)
             return json.dumps(result), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400

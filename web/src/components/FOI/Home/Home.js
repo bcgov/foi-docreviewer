@@ -5,10 +5,12 @@ import "../App.scss"
 import DocumentSelector from './DocumentSelector';
 import Redlining from './Redlining';
 import Grid from "@material-ui/core/Grid";
-import { fetchDocuments, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
+import { fetchDocuments, fetchPageFlag, fetchRedactionLayerMasterData} from '../../../apiManager/services/docReviewerService';
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
 import { docSorting } from './utils';
+import { store } from "../../../services/StoreService";
+import { setCurrentLayer } from "../../../actions/documentActions";
 
 function Home() {
 
@@ -74,10 +76,21 @@ function Home() {
       }
       
     );
-    fetchPageFlag(
-      parseInt(foiministryrequestid),
+    fetchRedactionLayerMasterData(
+      foiministryrequestid,
+      (data) => {
+        let redline = data.find(l => l.name === "Redline")
+        let oipc = data.find(l => l.name === "OIPC")
+        let currentLayer =  oipc.count > 0 ? oipc : redline
+        store.dispatch(setCurrentLayer(currentLayer))
+        fetchPageFlag(
+          parseInt(foiministryrequestid),
+          currentLayer.redactionlayerid,
+          (error) => console.log(error)
+        )
+      },
       (error) => console.log(error)
-    )
+    );
   }, [])
 
 

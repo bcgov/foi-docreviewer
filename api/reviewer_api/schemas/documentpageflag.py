@@ -28,6 +28,7 @@ class DocumentPageflagSchema(Schema):
     documentid = fields.Int(data_key="documentid",allow_none=False) 
     version = fields.Int(data_key="version",allow_none=False) 
     pageflags = fields.Nested(PageflagSchema, many=True, validate=validate.Length(min=1), required=True,allow_none=False)
+    redactionlayerid = fields.Int(data_key="redactionlayerid",allow_none=True)
 
 class BulkDocumentPageflagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods

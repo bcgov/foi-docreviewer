@@ -44,18 +44,18 @@ class redactionservice:
             documentpageflagservice().bulksavepageflag(annotationschema["foiministryrequestid"], annotationschema["pageflags"], userinfo)
          return result
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page):
+    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo,requestid, page, redactionlayerid):
         result =  annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
         if result.success == True and page is not None:
-            documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
+            documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, redactionlayerid, userinfo)
         return result
 
-    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page):
+    def deactivateredaction(self, annotationname, documentid, documentversion, userinfo,requestid, page, redactionlayerid):
         result = annotationservice().deactivateannotation(annotationname, documentid, documentversion, userinfo)
         if result.success == True:
-            newresult = Annotation.getredactionsbypage(documentid, documentversion, page)
+            newresult = Annotation.getredactionsbypage(documentid, documentversion, page, redactionlayerid)
             if len(newresult) == 0:
-                documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, userinfo)
+                documentpageflagservice().removepageflag(requestid, documentid, documentversion, page, redactionlayerid, userinfo)
         return result
 
     def getdocumentmapper(self, bucket):
