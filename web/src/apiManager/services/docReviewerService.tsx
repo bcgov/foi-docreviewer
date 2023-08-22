@@ -115,13 +115,14 @@ export const deleteAnnotation = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
+  redactionlayerid: number,
   annotationname: string = "",
   callback: any,
   errorCallback: any,
   page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -140,12 +141,13 @@ export const deleteRedaction = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
+  redactionlayerid: number,
   annotationname: string = "",
   callback: any,
   errorCallback: any,
   page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -236,6 +238,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
+  redactionlayerid: number,
   //callback: any,
   errorCallback: any
 ) => {
@@ -243,7 +246,7 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  );
+  ) + "/" +  redactionlayerid;
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {

@@ -8,6 +8,7 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { savePageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
 import {getStitchedPageNoFromOriginal, createPageFlagPayload, getProgramAreas} from "./utils";
+import { useAppSelector } from '../../../hooks/hook';
 
 const ContextMenu = ({
     openFOIPPAModal,
@@ -27,6 +28,7 @@ const ContextMenu = ({
     const [orgListAnchorPosition, setOrgListAnchorPosition] = useState<any>(undefined);
     const [openConsultPopup, setOpenConsultPopup] = useState(false)
     const [flagId, setFlagId] = React.useState(0);
+    const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
 
 
     const popoverEnter = (e: any) => {
@@ -55,7 +57,7 @@ const ContextMenu = ({
                 flagId,
                 (data: any) => setPageFlagChanged(true),
                 (error: any) => console.log(error),
-                createPageFlagPayload(selectedPages, flagId, data)
+                createPageFlagPayload(selectedPages, currentLayer.redactionlayerid, flagId, data)
             );
         }
         setOpenConsultPopup(false);

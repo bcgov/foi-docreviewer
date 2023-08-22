@@ -101,7 +101,7 @@ class Annotation(db.Model):
         } for row in rs]
 
     @classmethod
-    def getredactionsbypage(cls, _documentid, _documentversion, _pagenum):
+    def getredactionsbypage(cls, _documentid, _documentversion, _pagenum, redactionlayerid):
         try:
             annotation_schema = AnnotationSchema(many=True)
             query = db.session.query(Annotation).filter(
@@ -110,6 +110,7 @@ class Annotation(db.Model):
                     Annotation.documentversion == _documentversion,
                     Annotation.isactive==True,
                     Annotation.pagenumber == _pagenum-1,
+                    Annotation.redactionlayerid == redactionlayerid,
                     Annotation.annotation.ilike('%<redact %')
                 )).order_by(Annotation.annotationid.asc()).all()
             return annotation_schema.dump(query)
