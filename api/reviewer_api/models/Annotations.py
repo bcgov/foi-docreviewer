@@ -20,9 +20,11 @@ class Annotation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
-    
+   
     sections = relationship('AnnotationSection', primaryjoin="and_(Annotation.annotationname==AnnotationSection.annotationname)") 
-    
+    redactionlayerid = db.Column(db.Integer, db.ForeignKey('RedactionLayers.redactionlayerid'))
+    redactionlayer = relationship("RedactionLayer", backref=backref("RedactionLayers"), uselist=False)
+
 
     @classmethod
     def getannotations(cls, _documentid, _documentversion):
@@ -36,7 +38,7 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def getrequestannotations(cls, ministryrequestid):
+    def getrequestannotations(cls, ministryrequestid, mappedlayerids):
         sql = '''select a.*
                 from "Annotations" a
                 join (select distinct on (d.documentid) d.*
@@ -45,9 +47,10 @@ class Annotation(db.Model):
 					  order by d.documentid, d.version desc) d
 				on (d.documentid = a.documentid and d.version = a.documentversion)
                 where d.foiministryrequestid = :ministryrequestid
+                and a.redactionlayerid in :_mappedlayerids
                 and a.isactive = true
             '''
-        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+        rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid, '_mappedlayerids':tuple(mappedlayerids)})
         db.session.close()
         return [{
             'annotationid': row['annotationid'],
@@ -148,7 +151,7 @@ class Annotation(db.Model):
 
     #upsert
     @classmethod
-    def saveannotations(cls, annots, userinfo)->DefaultMethodResult:
+    def saveannotations(cls, annots, redactionlayerid, userinfo)->DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
@@ -156,6 +159,7 @@ class Annotation(db.Model):
                 "documentversion": 1,
                 "annotation": annot["xml"],
                 "pagenumber": annot["originalpageno"],
+                "redactionlayerid": redactionlayerid,
                 "createdby": userinfo,
                 "isactive": True
             } for annot in annots]
@@ -183,4 +187,4 @@ class Annotation(db.Model):
 
 class AnnotationSchema(ma.Schema):
     class Meta:
-        fields = ('annotationid', 'annotationname', 'documentid', 'documentversion', 'annotation', 'pagenumber', 'isactive', 'createdby', 'created_at', 'updatedby', 'updated_at')
+        fields = ('annotationid', 'annotationname', 'documentid', 'documentversion', 'annotation', 'pagenumber', 'redactionlayerid', 'redactionlayer.redactionlayerid', 'isactive', 'createdby', 'created_at', 'updatedby', 'updated_at')
