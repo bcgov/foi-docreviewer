@@ -752,6 +752,7 @@ const Redlining = React.forwardRef(
                   });
                 }
                 annotations[i].setCustomData("docid", displayedDoc.docid);
+                annotations[i].setCustomData("redactionlayerid", currentLayer.redactionlayerid);
               });
               setPageSelections(pageSelectionList);
               let annot = annots[0].children[0];
@@ -773,6 +774,7 @@ const Redlining = React.forwardRef(
                     Number(annot.PageNumber)
                   ];
                 annot.setCustomData("docid", displayedDoc.docid);
+                annot.setCustomData("redactionlayerid", currentLayer.redactionlayerid);
               }
 
               let astr =
