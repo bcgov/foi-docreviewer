@@ -101,11 +101,11 @@ class FOIFlowS3PresignedRedline(Resource):
                 )
 
             for div in data["divdocumentList"]:
-                filename = div["divisionid"]
+                division_name = div["documentlist"][0]['divisions'][0]['name']
 
                 # generate save url for stitched file
                 filepathlist = div["documentlist"][0]["filepath"].split('/')[4:]
-                filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
+                filepath_put = '{0}/redline/{1}/{0} - Redline - {1}.pdf'.format(filepathlist[0],division_name)
 
                 # filename_put, file_extension_put = os.path.splitext(filepath_put)
                 # filepath_put = filename_put+'.pdf'
