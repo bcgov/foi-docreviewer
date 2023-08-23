@@ -9,6 +9,8 @@ import { fetchDocuments, fetchPageFlag } from '../../../apiManager/services/docR
 import { getFOIS3DocumentPreSignedUrl } from '../../../apiManager/services/foiOSSService';
 import { useParams } from 'react-router-dom';
 import { docSorting } from './utils';
+import DocumentLoader from "../../../containers/DocumentLoader";
+
 
 function Home() {
 
@@ -24,7 +26,7 @@ function Home() {
   const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({'file': {}, 'page': 0});
   const [pageMappedDocs, setPageMappedDocs] = useState([]);
-
+  const [isStitchingLoaded, setIsStitchingLoaded]= useState(false);
 
   const redliningRef = useRef();
 
@@ -89,17 +91,24 @@ function Home() {
     <div className="App">
       <Grid container>
         <Grid item xs={3} style={{maxWidth: "350px"}}>
-        {/* <button className="btn-bottom btn-cancel" onClick={openFOIPPAModal}>open modal</button> */}
-          { (files.length > 0) ? 
+          { (files.length > 0) && 
           <DocumentSelector openFOIPPAModal={openFOIPPAModal} requestid={foiministryrequestid} documents={files} totalPageCount={totalPageCount} 
           setCurrentPageInfo={setCurrentPageInfo} setIndividualDoc={setIndividualDoc} pageMappedDocs={pageMappedDocs} /> 
-          : <div>Loading</div> }
+          // : <div>Loading</div> 
+          }
         </Grid>
         <Grid item xs={true}>
-          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) ? 
+          { ( (user?.name || user?.preferred_username) && (currentPageInfo?.page > 0) && s3UrlReady && s3Url ) && 
           <Redlining ref={redliningRef} user={user} requestid={foiministryrequestid} docsForStitcing={docsForStitcing} 
           currentDocument={currentDocument} stitchedDoc={stitchedDoc} setStitchedDoc={setStitchedDoc} individualDoc={individualDoc} 
-          pageMappedDocs={pageMappedDocs} setPageMappedDocs={setPageMappedDocs} /> : <div>Loading</div> }
+          pageMappedDocs={pageMappedDocs} setPageMappedDocs={setPageMappedDocs} setIsStitchingLoaded={setIsStitchingLoaded} isStitchingLoaded={isStitchingLoaded}/> 
+          // : <div>Loading</div> 
+          }
+          {!isStitchingLoaded && (
+          <div className="merging-overlay">
+            <div><DocumentLoader /></div>
+          </div>
+          )}
         </Grid>
       </Grid>
     </div>
