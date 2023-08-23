@@ -4,7 +4,6 @@ import MenuItem from '@mui/material/MenuItem';
 import { useAppSelector } from '../../../hooks/hook';
 import { setCurrentLayer } from "../../../actions/documentActions";
 import { store } from "../../../services/StoreService";
-import { fetchRedactionLayerMasterData } from '../../../apiManager/services/docReviewerService';
 import { faCirclePlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Dialog from '@material-ui/core/Dialog';
@@ -24,16 +23,6 @@ const LayerDropdown = ({
     const [layer, setLayer] = useState(1);
     const [openModal, setOpenModal] = useState(false);
 
-    useEffect(() => {
-        fetchRedactionLayerMasterData(
-            ministryrequestid,
-            (data: any) => {
-                store.dispatch(setCurrentLayer(data.find((l: any) => l.name === "Redline")))
-            },
-            (error: any) => console.log(error)
-        );
-    }, []);
-
     const handleSelect = (e: any) => {
         let selectedlayerid = e.target.value;
         setLayer(selectedlayerid);
@@ -44,6 +33,10 @@ const LayerDropdown = ({
             store.dispatch(setCurrentLayer(layer));
         }
     }
+
+    useEffect(() => {
+        setLayer(currentLayer.redactionlayerid)
+    }, [currentLayer])
 
     const handleModalContinue = (e: any) => {
         setOpenModal(false);

@@ -7,7 +7,7 @@ export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
     return stitchedPageNo;
 }
 
-export const createPageFlagPayload = (selectedPages, flagId = 0, data = {}) => {
+export const createPageFlagPayload = (selectedPages, currentLayerId, flagId = 0, data = {}) => {
     var documentpageflags = {};
     for (let page of selectedPages) {
         if (!(page.docid in documentpageflags)) {
@@ -20,7 +20,8 @@ export const createPageFlagPayload = (selectedPages, flagId = 0, data = {}) => {
         payload.documentpageflags.push({
             "documentid": docid,
             "version": 1,
-            "pageflags": documentpageflags[docid]
+            "pageflags": documentpageflags[docid],
+            "redactionlayerid": currentLayerId
         })
     }
     return payload
