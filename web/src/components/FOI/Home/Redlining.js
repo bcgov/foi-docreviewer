@@ -417,13 +417,11 @@ const Redlining = React.forwardRef(
                 let keywordArray = data.map((elmnt) => elmnt.keyword);
                 var regexFromMyArray = new String(keywordArray.join("|"));
                 setSearchKeywords(regexFromMyArray);
-                if(isStitchingLoaded){
                   instance.UI.searchTextFull(regexFromMyArray, {
                     wholeWord: true,
                     regex: true,
                   });
                 }
-              }
             },
             (error) => console.log(error)
           );
@@ -1040,6 +1038,10 @@ const Redlining = React.forwardRef(
           mappedDoc.pageMappings = [
             { pageNo: 1, stitchedPageNo: doc.getPageCount() },
           ];
+          mappedDocs["stitchedPageLookup"][doc.getPageCount()] = {
+            docid: file.file.documentid,
+            page: 1,
+          };
         } else {
           let newDoc = await docInstance.Core.createDocument(
             file.s3url,
