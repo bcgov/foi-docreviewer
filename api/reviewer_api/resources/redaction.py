@@ -20,47 +20,63 @@ from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
 from reviewer_api.tracer import Tracer
-from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
+from reviewer_api.utils.util import (
+    cors_preflight,
+    allowedorigins,
+    getrequiredmemberships,
+)
 from reviewer_api.exceptions import BusinessException
 import json
 import os
 from reviewer_api.services.radactionservice import redactionservice
 
 from reviewer_api.services.annotationservice import annotationservice
-from reviewer_api.schemas.annotationrequest import AnnotationRequest, SectionRequestSchema, SectionSchema
-from marshmallow import ValidationError, EXCLUDE
+from reviewer_api.schemas.annotationrequest import (
+    AnnotationRequest,
+    SectionRequestSchema,
+    SectionSchema,
+)
+from reviewer_api.schemas.redline import RedlineSchema
 
-API = Namespace('Document and annotations', description='Endpoints for document and annotation operations')
+API = Namespace(
+    "Document and annotations",
+    description="Endpoints for document and annotation operations",
+)
 TRACER = Tracer.get_instance()
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/annotation/<int:ministryrequestid>')
-@API.route('/annotation/<int:ministryrequestid>/<string:redactionlayer>')
+
+@cors_preflight("GET,OPTIONS")
+@API.route("/annotation/<int:ministryrequestid>")
+@API.route("/annotation/<int:ministryrequestid>/<string:redactionlayer>")
 class Annotations(Resource):
-    """Retrieves annotations for a document
-    """
+    """Retrieves annotations for a document"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(ministryrequestid, redactionlayer='redline'):
+    def get(ministryrequestid, redactionlayer="redline"):
         try:
-            isvalid, _redactionlayer = redactionservice().validateredactionlayer(redactionlayer, ministryrequestid)
+            isvalid, _redactionlayer = redactionservice().validateredactionlayer(
+                redactionlayer, ministryrequestid
+            )
             if isvalid == True:
-                result = redactionservice().getannotationsbyrequest(ministryrequestid,_redactionlayer)
+                result = redactionservice().getannotationsbyrequest(
+                    ministryrequestid, _redactionlayer
+                )
                 return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message': err.__str__()}, 400
+            return {"status": False, "message": err.__str__()}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('POST, OPTIONS')
-@API.route('/annotation')
+@cors_preflight("POST, OPTIONS")
+@API.route("/annotation")
 class SaveAnnotations(Resource):
-    """save or update an annotation for a document
-    """
+    """save or update an annotation for a document"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -69,62 +85,106 @@ class SaveAnnotations(Resource):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(annotationschema, AuthHelper.getuserinfo())
-            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 201
+            result = redactionservice().saveannotation(
+                annotationschema, AuthHelper.getuserinfo()
+            )
+            return {
+                "status": result.success,
+                "message": result.message,
+                "annotationid": result.identifier,
+            }, 201
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {"status": False, "message": err.messages}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('DELETE,OPTIONS')
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>', defaults={'page':None})
-@API.route('/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>')
+@cors_preflight("DELETE,OPTIONS")
+@API.route(
+    "/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>",
+    defaults={"page": None},
+)
+@API.route(
+    "/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>"
+)
 class DeactivateAnnotations(Resource):
-    
-    """save or update an annotation for a document
-    """
+
+    """save or update an annotation for a document"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, redactionlayerid, page:None):
-        
+    def delete(
+        requestid,
+        documentid,
+        documentversion,
+        annotationname,
+        redactionlayerid,
+        page: None,
+    ):
         try:
-            result = redactionservice().deactivateannotation(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, redactionlayerid)
-            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
+            result = redactionservice().deactivateannotation(
+                annotationname,
+                documentid,
+                documentversion,
+                AuthHelper.getuserinfo(),
+                requestid,
+                page,
+                redactionlayerid,
+            )
+            return {
+                "status": result.success,
+                "message": result.message,
+                "annotationid": result.identifier,
+            }, 200
         except KeyError as err:
-            return {'status': False, 'message':err.message}, 400
+            return {"status": False, "message": err.message}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('DELETE,OPTIONS')
-@API.route('/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>')
+@cors_preflight("DELETE,OPTIONS")
+@API.route(
+    "/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>"
+)
 class DeactivateRedactions(Resource):
-    
-    """save or update an annotation for a document
-    """
+
+    """save or update an annotation for a document"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(requestid, documentid, documentversion, annotationname, redactionlayerid, page):
-        
+    def delete(
+        requestid, documentid, documentversion, annotationname, redactionlayerid, page
+    ):
         try:
-            result = redactionservice().deactivateredaction(annotationname, documentid, documentversion, AuthHelper.getuserinfo(), requestid, page, redactionlayerid)
-            return {'status': result.success, 'message':result.message, 'annotationid':result.identifier}, 200
+            result = redactionservice().deactivateredaction(
+                annotationname,
+                documentid,
+                documentversion,
+                AuthHelper.getuserinfo(),
+                requestid,
+                page,
+                redactionlayerid,
+            )
+            return {
+                "status": result.success,
+                "message": result.message,
+                "annotationid": result.identifier,
+            }, 200
         except KeyError as err:
-            return {'status': False, 'message':err.message}, 400
+            return {"status": False, "message": err.message}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-        
+            return {"status": exception.status_code, "message": exception.message}, 500
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/annotation/<int:ministryrequestid>/info')
+
+@cors_preflight("GET,OPTIONS")
+@API.route("/annotation/<int:ministryrequestid>/info")
 class AnnotationMetadata(Resource):
-    """Retrieves annotations for a document
-    """
+    """Retrieves annotations for a document"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -134,16 +194,16 @@ class AnnotationMetadata(Resource):
             result = redactionservice().getannotationinfobyrequest(ministryrequestid)
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {"status": False, "message": err.messages}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/redactedsections/ministryrequest/<int:ministryrequestid>')
+@cors_preflight("GET,OPTIONS")
+@API.route("/redactedsections/ministryrequest/<int:ministryrequestid>")
 class GetSections(Resource):
-    """Add document to deleted list.
-    """
+    """Add document to deleted list."""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -151,16 +211,16 @@ class GetSections(Resource):
     def get(ministryrequestid):
         try:
             data = annotationservice().getredactedsectionsbyrequest(ministryrequestid)
-            return json.dumps(data) , 200
+            return json.dumps(data), 200
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/account')
+@cors_preflight("GET,OPTIONS")
+@API.route("/account")
 class GetAccount(Resource):
-    """Retrieves s3 accounts for user
-    """
+    """Retrieves s3 accounts for user"""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -175,8 +235,33 @@ class GetAccount(Resource):
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {"status": False, "message": err.messages}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
+# added api to trigger the zipping of files for redline
+@cors_preflight("POST, OPTIONS")
+@API.route("/triggerdownloadredline")
+class SaveRedlines(Resource):
+    """save redlines for zipping"""
+
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            redlineschema = RedlineSchema().load(requestjson)
+            result = redactionservice().triggerdownloadredline(
+                redlineschema, AuthHelper.getuserinfo()
+            )
+            return {
+                "status": result.success,
+                "message": result.message,
+            }, 200
+        except KeyError as err:
+            return {"status": False, "message": err.messages}, 400
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500

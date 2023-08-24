@@ -10,69 +10,116 @@ from reviewer_api.utils.util import pstformat
 from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 
-class documentservice:
 
-    
-    def getdedupestatus(self,requestid):
-        
+class documentservice:
+    def getdedupestatus(self, requestid):
         deleted = DocumentMaster.getdeleted(requestid)
         records = DocumentMaster.getdocumentmaster(requestid)
-        conversions = FileConversionJob.getconversionstatus(requestid)       
-        dedupes = DeduplicationJob.getdedupestatus(requestid)      
-        properties = DocumentMaster.getdocumentproperty(requestid, deleted)       
-        redactions = DocumentMaster.getredactionready(requestid)                
+        conversions = FileConversionJob.getconversionstatus(requestid)
+        dedupes = DeduplicationJob.getdedupestatus(requestid)
+        properties = DocumentMaster.getdocumentproperty(requestid, deleted)
+        redactions = DocumentMaster.getredactionready(requestid)
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
-            record["ministryrequestid"] =  requestid
+            record["ministryrequestid"] = requestid
             record["isattachment"] = True if record["parentid"] is not None else False
-            record['created_at'] = pstformat(record['created_at'])
+            record["created_at"] = pstformat(record["created_at"])
             record["conversionstatus"] = record["deduplicationstatus"] = None
             record["isredactionready"] = False
             record = self.__updatecoversionstatus(conversions, record)
             record = self.__updatededupestatus(dedupes, record)
             record = self.__updateredactionstatus(redactions, record)
             if record["recordid"] is not None:
-                record['attachments'] = self.__getattachments(records, record["documentmasterid"], [])
-        
+                record["attachments"] = self.__getattachments(
+                    records, record["documentmasterid"], []
+                )
 
-        #Duplicate check        
+        # Duplicate check
         finalresults = []
-        parentrecords, parentswithattachmentsrecords, attachmentsrecords = self.__filterrecords(records)
+        (
+            parentrecords,
+            parentswithattachmentsrecords,
+            attachmentsrecords,
+        ) = self.__filterrecords(records)
         parentproperties = self.__getrecordsproperties(parentrecords, properties)
-        
-        for record in records:            
+
+        for record in records:
             if record["recordid"] is not None:
-                finalresult = self.__updateproperties(records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords)
+                finalresult = self.__updateproperties(
+                    records,
+                    properties,
+                    record,
+                    parentproperties,
+                    parentswithattachmentsrecords,
+                    attachmentsrecords,
+                )
                 finalresults.append(finalresult)
-    
+
         return finalresults
-    
-    def __updateproperties(self, records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords):
+
+    def __updateproperties(
+        self,
+        records,
+        properties,
+        record,
+        parentproperties,
+        parentswithattachmentsrecords,
+        attachmentsrecords,
+    ):
         if record["recordid"] is not None:
             _att_in_properties = []
-            record["pagecount"], record["filename"], record["documentid"] = self.__getpagecountandfilename(record, parentproperties)
-            record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(parentproperties, record)
+            (
+                record["pagecount"],
+                record["filename"],
+                record["documentid"],
+            ) = self.__getpagecountandfilename(record, parentproperties)
+            (
+                record["isduplicate"],
+                record["duplicatemasterid"],
+                record["duplicateof"],
+            ) = self.__isduplicate(parentproperties, record)
             if len(record["attachments"]) > 0:
-
                 if record["isduplicate"] == True:
-
-                    duplicatemaster_attachments = self.__getduplicatemasterattachments(parentswithattachmentsrecords, record["duplicatemasterid"])
-                    if(duplicatemaster_attachments is None):
-                        _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
+                    duplicatemaster_attachments = self.__getduplicatemasterattachments(
+                        parentswithattachmentsrecords, record["duplicatemasterid"]
+                    )
+                    if duplicatemaster_attachments is None:
+                        _att_in_properties = self.__getattachmentproperties(
+                            record["attachments"], properties
+                        )
                     else:
-                        _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"], properties)
+                        _att_in_properties = self.__getattachmentproperties(
+                            duplicatemaster_attachments + record["attachments"],
+                            properties,
+                        )
                 elif len(record["attachments"]) > 0:
-                    _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
+                    _att_in_properties = self.__getattachmentproperties(
+                        record["attachments"], properties
+                    )
                 for attachment in record["attachments"]:
                     if len(_att_in_properties) > 1:
                         if attachment["filepath"].endswith(".msg"):
-                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__getduplicatemsgattachment(attachmentsrecords, _att_in_properties, attachment)
+                            (
+                                attachment["isduplicate"],
+                                attachment["duplicatemasterid"],
+                                attachment["duplicateof"],
+                            ) = self.__getduplicatemsgattachment(
+                                attachmentsrecords, _att_in_properties, attachment
+                            )
                         else:
-                            attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
-                    
-                    attachment["pagecount"], attachment["filename"], attachment["documentid"] = self.__getpagecountandfilename(attachment, _att_in_properties)
+                            (
+                                attachment["isduplicate"],
+                                attachment["duplicatemasterid"],
+                                attachment["duplicateof"],
+                            ) = self.__isduplicate(_att_in_properties, attachment)
+
+                    (
+                        attachment["pagecount"],
+                        attachment["filename"],
+                        attachment["documentid"],
+                    ) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
-    
+
     def __filterrecords(self, records):
         parentrecords = []
         parentswithattachments = []
@@ -85,13 +132,16 @@ class documentservice:
             if record["recordid"] is None:
                 attchments.append(record)
         return parentrecords, parentswithattachments, attchments
-       
+
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
         documentid = None
         for property in properties:
-            if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
+            if record["documentmasterid"] == property["processingparentid"] or (
+                property["processingparentid"] is None
+                and record["documentmasterid"] == property["documentmasterid"]
+            ):
                 pagecount = property["pagecount"]
                 filename = property["filename"]
                 documentid = property["documentid"]
@@ -100,54 +150,78 @@ class documentservice:
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
         for entry in attachmentproperties:
-            if entry["filename"] == attachment['filename']:
-                _lhsattribute = self.__getrecordproperty(records, entry["processingparentid"], "attributes")
-                _rhsattribute = self.__getrecordproperty(records, attachment["documentmasterid"], "attributes")
-                if _lhsattribute["filesize"] ==  _rhsattribute["filesize"] and _lhsattribute["lastmodified"] ==  _rhsattribute["lastmodified"]:
-                    _occurances.append(entry)  
+            if entry["filename"] == attachment["filename"]:
+                _lhsattribute = self.__getrecordproperty(
+                    records, entry["processingparentid"], "attributes"
+                )
+                _rhsattribute = self.__getrecordproperty(
+                    records, attachment["documentmasterid"], "attributes"
+                )
+                if (
+                    _lhsattribute["filesize"] == _rhsattribute["filesize"]
+                    and _lhsattribute["lastmodified"] == _rhsattribute["lastmodified"]
+                ):
+                    _occurances.append(entry)
         if len(_occurances) > 1:
-            filtered = [x["processingparentid"] for x in _occurances] 
+            filtered = [x["processingparentid"] for x in _occurances]
             _firstupload = min(filtered)
             if _firstupload != attachment["documentmasterid"]:
-                attachment["isduplicate"] = True            
+                attachment["isduplicate"] = True
                 attachment["duplicatemasterid"] = _firstupload
-                attachment["duplicateof"] = self.__getduplicateof(attachmentproperties, attachment, attachment["duplicatemasterid"] )
-                return attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"]
+                attachment["duplicateof"] = self.__getduplicateof(
+                    attachmentproperties, attachment, attachment["duplicatemasterid"]
+                )
+                return (
+                    attachment["isduplicate"],
+                    attachment["duplicatemasterid"],
+                    attachment["duplicateof"],
+                )
         return False, attachment["documentmasterid"], attachment["filename"]
-    
+
     def __getduplicatemasterattachments(self, records, duplicatemasterid):
-            return self.__getrecordproperty(records, duplicatemasterid, "attachments")
+        return self.__getrecordproperty(records, duplicatemasterid, "attachments")
 
     def __getrecordproperty(self, records, documentmasterid, property):
         for x in records:
             if x["documentmasterid"] == documentmasterid:
-                return x[property] 
-        return None  
+                return x[property]
+        return None
 
     def __getrecordsproperties(self, records, properties):
-        filtered = [] 
+        filtered = []
         for record in records:
             for property in properties:
-                if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
+                if property["processingparentid"] == record["documentmasterid"] or (
+                    property["processingparentid"] is None
+                    and record["documentmasterid"] == property["documentmasterid"]
+                ):
                     filtered.append(property)
         return filtered
+
     def __getattachmentproperties(self, attachments, properties):
-        filtered = [] 
+        filtered = []
         for attachment in attachments:
             for property in properties:
-                if property["processingparentid"] == attachment["documentmasterid"] or (property["processingparentid"] is None and attachment["documentmasterid"] == property["documentmasterid"]):
+                if property["processingparentid"] == attachment["documentmasterid"] or (
+                    property["processingparentid"] is None
+                    and attachment["documentmasterid"] == property["documentmasterid"]
+                ):
                     filtered.append(property)
         return filtered
-    
+
     def __getattachments(self, records, documentmasterid, result=[]):
         # print("documentmasterid === ", documentmasterid)
-        for entry in records:            
+        for entry in records:
             if entry["recordid"] is None:
                 # print("entry === ", entry)
-                if entry["parentid"] not in [None, ""] and int(entry["parentid"]) == int(documentmasterid):
+                if entry["parentid"] not in [None, ""] and int(
+                    entry["parentid"]
+                ) == int(documentmasterid):
                     # print("<<<< inside if >>>>")
                     result.append(entry)
-                    result = self.__getattachments(records, entry['documentmasterid'], result)
+                    result = self.__getattachments(
+                        records, entry["documentmasterid"], result
+                    )
         return result
 
     def __updatecoversionstatus(self, conversions, record):
@@ -157,63 +231,94 @@ class documentservice:
                 record["outputdocumentmasterid"] = conversion["outputdocumentmasterid"]
                 record["filename"] = conversion["filename"]
                 record["trigger"] = conversion["trigger"]
-        return record    
-    
+        return record
+
     def __updatededupestatus(self, dedupes, record):
         for dedupe in dedupes:
             if record["documentmasterid"] == dedupe["documentmasterid"]:
-                record["deduplicationstatus"] = dedupe["status"] 
+                record["deduplicationstatus"] = dedupe["status"]
                 record["filename"] = dedupe["filename"]
                 record["trigger"] = dedupe["trigger"]
-        return record 
-    
+        return record
+
     def __updateproperties_old(self, properties, records, record):
         for property in properties:
-            if record["documentmasterid"] == property["processingparentid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
+            if record["documentmasterid"] == property["processingparentid"] or (
+                property["processingparentid"] is None
+                and record["documentmasterid"] == property["documentmasterid"]
+            ):
                 record["pagecount"] = property["pagecount"]
-                record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] =  self.__isduplicate(properties, record)
+                (
+                    record["isduplicate"],
+                    record["duplicatemasterid"],
+                    record["duplicateof"],
+                ) = self.__isduplicate(properties, record)
                 record["filename"] = property["filename"]
         """Begin        
         Below block is a temporary workaround to verify duplicate in msg.
         This verifies the duplicate with the parent hashcode and filename
         """
-        if record["isduplicate"] == False and record["parentid"] is not None and record["filepath"].endswith(".msg"):
-            _uploaded = self.__getuploadedrecord(records, record["parentid"]) 
-            _occurances = [d for d in properties if d['filename']==record['filename']]
+        if (
+            record["isduplicate"] == False
+            and record["parentid"] is not None
+            and record["filepath"].endswith(".msg")
+        ):
+            _uploaded = self.__getuploadedrecord(records, record["parentid"])
+            _occurances = [d for d in properties if d["filename"] == record["filename"]]
             if len(_occurances) > 1:
-                record["isduplicate"], record["duplicatemasterid"],record["duplicateof"]  =  self.__isduplicate(properties, _uploaded)
+                (
+                    record["isduplicate"],
+                    record["duplicatemasterid"],
+                    record["duplicateof"],
+                ) = self.__isduplicate(properties, _uploaded)
                 if record["isduplicate"] == True:
-                    filtered = [x["processingparentid"] for x in properties if x["filename"] == record["filename"]]
+                    filtered = [
+                        x["processingparentid"]
+                        for x in properties
+                        if x["filename"] == record["filename"]
+                    ]
                     record["duplicatemasterid"] = min(filtered)
-                    record["duplicateof"] = self.__getduplicateof(properties, record, record["duplicatemasterid"] )
+                    record["duplicateof"] = self.__getduplicateof(
+                        properties, record, record["duplicatemasterid"]
+                    )
         """End
 
         Duplicate block check end
         """
-        return record   
-    
-    def __updateredactionstatus(self,redactions, record):
+        return record
+
+    def __updateredactionstatus(self, redactions, record):
         for entry in redactions:
-            if record["documentmasterid"] == entry["processingparentid"] or (entry["processingparentid"] is None and record["documentmasterid"]  == entry["documentmasterid"]):
+            if record["documentmasterid"] == entry["processingparentid"] or (
+                entry["processingparentid"] is None
+                and record["documentmasterid"] == entry["documentmasterid"]
+            ):
                 record["isredactionready"] = entry["isredactionready"]
         return record
-        
-    def __isduplicate(self, properties, record):        
+
+    def __isduplicate(self, properties, record):
         matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
         duplicateof = record["filename"] if "filename" in record else None
         for property in properties:
-            if property["processingparentid"] == record["documentmasterid"] or (property["processingparentid"] is None and record["documentmasterid"] == property["documentmasterid"]):
-                matchedhash = property["rank1hash"] 
+            if property["processingparentid"] == record["documentmasterid"] or (
+                property["processingparentid"] is None
+                and record["documentmasterid"] == property["documentmasterid"]
+            ):
+                matchedhash = property["rank1hash"]
         filtered = []
         for x in properties:
             if x["rank1hash"] == matchedhash:
-                value = x["processingparentid"] if x["processingparentid"] is not None else x["documentmasterid"]
+                value = (
+                    x["processingparentid"]
+                    if x["processingparentid"] is not None
+                    else x["documentmasterid"]
+                )
                 filtered.append(value)
-        if len(filtered) > 1 and filtered not in (None, []):            
+        if len(filtered) > 1 and filtered not in (None, []):
             originalid = min(filtered)
-            if  originalid != record["documentmasterid"]:
+            if originalid != record["documentmasterid"]:
                 isduplicate = True
                 duplicatemasterid = originalid
                 duplicateof = self.__getduplicateof(properties, record, originalid)
@@ -224,10 +329,13 @@ class documentservice:
         if duplicateof is None:
             return None
         for z in properties:
-            if (duplicatemasterid == z["processingparentid"]) or (z["processingparentid"] is None and duplicatemasterid == z["documentmasterid"]):
-                duplicateof = z["filename"] 
+            if (duplicatemasterid == z["processingparentid"]) or (
+                z["processingparentid"] is None
+                and duplicatemasterid == z["documentmasterid"]
+            ):
+                duplicateof = z["filename"]
         return duplicateof
-        
+
     def __getuploadedrecord(self, records, masterid):
         for record in records:
             if record["documentmasterid"] == masterid:
@@ -238,95 +346,119 @@ class documentservice:
         return None
 
     def deletedocument(self, payload, userid):
-        """ Inserts document into list of deleted documents
-        """
-        return DocumentDeleted.create([
-            DocumentDeleted(
-                filepath=path.splitext(filepath)[0],
-                ministryrequestid = payload["ministryrequestid"],
-                deleted=True,
-                createdby=userid,
-                created_at=datetime2.now()
-
-            ) for filepath in payload['filepaths']
-        ])
+        """Inserts document into list of deleted documents"""
+        return DocumentDeleted.create(
+            [
+                DocumentDeleted(
+                    filepath=path.splitext(filepath)[0],
+                    ministryrequestid=payload["ministryrequestid"],
+                    deleted=True,
+                    createdby=userid,
+                    created_at=datetime2.now(),
+                )
+                for filepath in payload["filepaths"]
+            ]
+        )
 
     def updatedocumentattributes(self, payload, userid):
-        """ update document attributes
-        """
+        """update document attributes"""
 
-        docattributeslist = DocumentAttributes.getdocumentattributesbyid(payload['documentmasterids'])
+        docattributeslist = DocumentAttributes.getdocumentattributesbyid(
+            payload["documentmasterids"]
+        )
         oldRows = []
         newRows = []
         for docattributes in docattributeslist:
             oldRows.append(
                 {
-                    'attributeid': docattributes['attributeid'],
-                    'version': docattributes['version'],
-                    'documentmasterid': docattributes['documentmasterid'],
-                    'attributes': docattributes['attributes'],
-                    'createdby': docattributes['createdby'],
-                    'created_at': docattributes['created_at'],
-                    'updatedby': userid,
-                    'updated_at': datetime2.now(),
-                    'isactive': False
+                    "attributeid": docattributes["attributeid"],
+                    "version": docattributes["version"],
+                    "documentmasterid": docattributes["documentmasterid"],
+                    "attributes": docattributes["attributes"],
+                    "createdby": docattributes["createdby"],
+                    "created_at": docattributes["created_at"],
+                    "updatedby": userid,
+                    "updated_at": datetime2.now(),
+                    "isactive": False,
                 }
             )
-            newdocattributes = json.loads(json.dumps(docattributes['attributes']))
-            newdocattributes['divisions'] = payload['divisions']
+            newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
+            newdocattributes["divisions"] = payload["divisions"]
             newRows.append(
                 DocumentAttributes(
-                    version = docattributes['version']+1,
-                    documentmasterid = docattributes['documentmasterid'],
-                    attributes = newdocattributes,
-                    createdby = docattributes['createdby'],
-                    created_at = docattributes['created_at'],
-                    isactive = True
+                    version=docattributes["version"] + 1,
+                    documentmasterid=docattributes["documentmasterid"],
+                    attributes=newdocattributes,
+                    createdby=docattributes["createdby"],
+                    created_at=docattributes["created_at"],
+                    isactive=True,
                 )
             )
 
         return DocumentAttributes.update(newRows, oldRows)
 
     def getdocuments(self, requestid):
-        divisions = {div['divisionid']: div for div in ProgramAreaDivision.getallprogramareadivisons()}
+        divisions = {
+            div["divisionid"]: div
+            for div in ProgramAreaDivision.getallprogramareadivisons()
+        }
 
-        documents = {document['documentmasterid']: document for document in self.getdedupestatus(requestid)}
+        documents = {
+            document["documentmasterid"]: document
+            for document in self.getdedupestatus(requestid)
+        }
         attachments = []
 
         for documentid in documents:
-            _attachments = documents[documentid].pop('attachments', [])
+            _attachments = documents[documentid].pop("attachments", [])
             for attachment in _attachments:
-                attachment['attributes']['attachmentlastmodified'] = attachment['attributes']['lastmodified']
-                attachment['attributes']['lastmodified'] = documents[documentid]['attributes']['lastmodified']
+                attachment["attributes"]["attachmentlastmodified"] = attachment[
+                    "attributes"
+                ]["lastmodified"]
+                attachment["attributes"]["lastmodified"] = documents[documentid][
+                    "attributes"
+                ]["lastmodified"]
                 attachments.append(attachment)
 
         for attachment in attachments:
-            documents[attachment['documentmasterid']] = attachment
+            documents[attachment["documentmasterid"]] = attachment
 
         removeids = []
         for documentid in documents:
             document = documents[documentid]
-            if document['attributes'].get('isportfolio', False) or document['attributes'].get('incompatible', False) or not document['isredactionready']:
-                removeids.append(document['documentmasterid'])
-            elif document.get('isduplicate', False):
-                documents[document['duplicatemasterid']]['attributes']['divisions'].extend(document['attributes']['divisions'])
-                removeids.append(document['documentmasterid'])
+            # removed "or document['attributes'].get('incompatible', False)" from below if condition
+            # to include incompatible files as part of documents.
+            # Related to redline download changes.
+            # if document['attributes'].get('isportfolio', False) or document['attributes'].get('incompatible', False) or not document['isredactionready']:
+            if (
+                document["attributes"].get("isportfolio", False)
+                or not document["isredactionready"]
+            ):
+                removeids.append(document["documentmasterid"])
+            elif document.get("isduplicate", False):
+                documents[document["duplicatemasterid"]]["attributes"][
+                    "divisions"
+                ].extend(document["attributes"]["divisions"])
+                removeids.append(document["documentmasterid"])
 
         for id in removeids:
             documents.pop(id)
 
         for documentid in documents:
             document = documents[documentid]
-            documentdivisions = set(map(lambda d: d['divisionid'], document['attributes']['divisions']))
-            document['attributes']['divisions'] = list(map(lambda d: {"divisionid": d}, documentdivisions))
-            document['divisions'] = list(map(lambda d: divisions[d], documentdivisions))
+            documentdivisions = set(
+                map(lambda d: d["divisionid"], document["attributes"]["divisions"])
+            )
+            document["attributes"]["divisions"] = list(
+                map(lambda d: {"divisionid": d}, documentdivisions)
+            )
+            document["divisions"] = list(map(lambda d: divisions[d], documentdivisions))
 
         return [documents[documentid] for documentid in documents]
-    
+
     def getdocument(self, documentid):
-        return Document.getdocument(documentid)    
-    
-    
+        return Document.getdocument(documentid)
+
     def savedocument(self, documentid, documentversion, newfilepath, userid):
         return
 
