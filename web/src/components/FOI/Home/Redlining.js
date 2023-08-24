@@ -33,6 +33,7 @@ import {
   fetchSections,
   fetchPageFlag,
   fetchKeywordsMasterData,
+  triggerDownloadRedlines,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -61,6 +62,7 @@ const Redlining = React.forwardRef(
       individualDoc,
       pageMappedDocs,
       setPageMappedDocs,
+      incompatibleFiles,
     },
     ref
   ) => {
@@ -1679,10 +1681,9 @@ const Redlining = React.forwardRef(
         };
         newDocList.push(newDivObj);
       }
-      let zipDocList = [];
       let zipServiceMessage = {
         ministryrequestid: requestid,
-        category: "Redline",
+        category: "redline",
         attributes: [],
       };
 
@@ -1691,7 +1692,6 @@ const Redlining = React.forwardRef(
         newDocList,
         async (res) => {
           let domParser = new DOMParser();
-          const totalDivisions = res.divdocumentList.length;
           for (let divObj of res.divdocumentList) {
             let pageMappingsByDivisions = {};
 
@@ -1859,14 +1859,61 @@ const Redlining = React.forwardRef(
                           const zipDocObj = {
                             divisionid: divObj.divisionid,
                             divisionname: divObj.divisionname,
-                            s3filepath: stitchedDocPath.split("?")[0],
+                            files: [],
                           };
+                          const stitchedDocPathArray =
+                            stitchedDocPath.split("/");
+                          let fileName =
+                            stitchedDocPathArray[
+                              stitchedDocPathArray.length - 1
+                            ].split("?")[0];
+                          fileName =
+                            divObj.divisionname +
+                            "/" +
+                            decodeURIComponent(fileName);
+                          const file = {
+                            filename: fileName,
+                            s3uripath: stitchedDocPath.split("?")[0],
+                          };
+                          zipDocObj.files.push(file);
+                          if (incompatibleFiles.length > 0) {
+                            console.log(
+                              `incompatibleFiles = ${JSON.stringify(
+                                incompatibleFiles
+                              )}`
+                            );
+
+                            // Filter records where divisionid is 6
+                            const divIncompatableFiles = incompatibleFiles
+                              .filter((record) =>
+                                record.divisions.some(
+                                  (division) =>
+                                    division.divisionid === divObj.divisionid
+                                )
+                              )
+                              .map((record) => {
+                                return {
+                                  filename:
+                                    divObj.divisionname + "/" + record.filename,
+                                  s3uripath: record.filepath,
+                                };
+                              });
+                            zipDocObj.files = [
+                              ...zipDocObj.files,
+                              ...divIncompatableFiles,
+                            ];
+                          }
                           zipServiceMessage.attributes.push(zipDocObj);
                           if (
-                            totalDivisions ===
+                            divisionCountForToast ===
                             zipServiceMessage.attributes.length
                           ) {
-                            //call the api here
+                            triggerDownloadRedlines(
+                              zipServiceMessage,
+                              (error) => {
+                                console.log(error);
+                              }
+                            );
                           }
                         },
                         (_err) => {
