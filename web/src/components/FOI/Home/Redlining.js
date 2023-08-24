@@ -1685,6 +1685,7 @@ const Redlining = React.forwardRef(
         ministryrequestid: requestid,
         category: "redline",
         attributes: [],
+        requestnumber: "",
       };
 
       getFOIS3DocumentRedlinePreSignedUrl(
@@ -1867,13 +1868,17 @@ const Redlining = React.forwardRef(
                             stitchedDocPathArray[
                               stitchedDocPathArray.length - 1
                             ].split("?")[0];
+                          const requestNumber =
+                            decodeURIComponent(fileName).split(" - ")[0];
                           fileName =
                             divObj.divisionname +
                             "/" +
                             decodeURIComponent(fileName);
                           const file = {
                             filename: fileName,
-                            s3uripath: stitchedDocPath.split("?")[0],
+                            s3uripath: decodeURIComponent(
+                              stitchedDocPath.split("?")[0]
+                            ),
                           };
                           zipDocObj.files.push(file);
                           if (incompatibleFiles.length > 0) {
@@ -1908,6 +1913,7 @@ const Redlining = React.forwardRef(
                             divisionCountForToast ===
                             zipServiceMessage.attributes.length
                           ) {
+                            zipServiceMessage.requestnumber = requestNumber;
                             triggerDownloadRedlines(
                               zipServiceMessage,
                               (error) => {
