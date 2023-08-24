@@ -33,7 +33,6 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-//import { element } from 'prop-types';
 import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -55,6 +54,8 @@ const Redlining = React.forwardRef(
       individualDoc,
       pageMappedDocs,
       setPageMappedDocs,
+      setIsStitchingLoaded,
+      isStitchingLoaded
     },
     ref
   ) => {
@@ -95,13 +96,13 @@ const Redlining = React.forwardRef(
     const [modalSortAsc, setModalSortAsc] = useState(true);
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);;
     const [merge, setMerge] = useState(false);
-    const [mapper, setMapper] = useState([]);
     const [searchKeywords, setSearchKeywords] = useState("");
     const [iframeDocument, setIframeDocument] = useState(null);
     const [modalFor, setModalFor] = useState("");
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
+
 
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
@@ -218,8 +219,7 @@ const Redlining = React.forwardRef(
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-      fetchSections(requestid, (error) => console.log(error));
-
+      fetchSections(requestid, (error) => console.log(error));     
       WebViewer(
         {
           path: "/webviewer",
@@ -408,20 +408,20 @@ const Redlining = React.forwardRef(
           .setStyles(() => ({
             FillColor: new Annotations.Color(255, 255, 255),
           }));
-
         documentViewer.addEventListener("documentLoaded", () => {
           PDFNet.initialize(); // Only needs to be initialized once
+
           fetchKeywordsMasterData(
             (data) => {
               if (data) {
                 let keywordArray = data.map((elmnt) => elmnt.keyword);
                 var regexFromMyArray = new String(keywordArray.join("|"));
                 setSearchKeywords(regexFromMyArray);
-                instance.UI.searchTextFull(regexFromMyArray, {
-                  //wholeWord: true,
-                  regex: true,
-                });
-              }
+                  instance.UI.searchTextFull(regexFromMyArray, {
+                    wholeWord: true,
+                    regex: true,
+                  });
+                }
             },
             (error) => console.log(error)
           );
@@ -1038,6 +1038,10 @@ const Redlining = React.forwardRef(
           mappedDoc.pageMappings = [
             { pageNo: 1, stitchedPageNo: doc.getPageCount() },
           ];
+          mappedDocs["stitchedPageLookup"][doc.getPageCount()] = {
+            docid: file.file.documentid,
+            page: 1,
+          };
         } else {
           let newDoc = await docInstance.Core.createDocument(
             file.s3url,
@@ -1072,7 +1076,9 @@ const Redlining = React.forwardRef(
         assignAnnotations(file.file.documentid, mappedDoc, fetchAnnotResponse, domParser);
       }
       setPageMappedDocs(mappedDocs);
+      setIsStitchingLoaded(true)
       docInstance.UI.searchTextFull(searchKeywords, {
+        wholeWord: true,
         regex: true,
       });
     };
@@ -1985,7 +1991,6 @@ const Redlining = React.forwardRef(
 
     return (
       <div>
-        {/* <button onClick={gotopage}>Click here</button> */}
         <div className="webviewer" ref={viewer}></div>
         <ReactModal
           initWidth={650}
