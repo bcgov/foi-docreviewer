@@ -55,6 +55,8 @@ const Redlining = React.forwardRef(
       individualDoc,
       pageMappedDocs,
       setPageMappedDocs,
+      setIsStitchingLoaded,
+      isStitchingLoaded
     },
     ref
   ) => {
@@ -418,7 +420,7 @@ const Redlining = React.forwardRef(
                 var regexFromMyArray = new String(keywordArray.join("|"));
                 setSearchKeywords(regexFromMyArray);
                 instance.UI.searchTextFull(regexFromMyArray, {
-                  //wholeWord: true,
+                  wholeWord: true,
                   regex: true,
                 });
               }
@@ -1025,6 +1027,10 @@ const Redlining = React.forwardRef(
           mappedDoc.pageMappings = [
             { pageNo: 1, stitchedPageNo: doc.getPageCount() },
           ];
+          mappedDocs["stitchedPageLookup"][doc.getPageCount()] = {
+            docid: file.file.documentid,
+            page: 1,
+          };
         } else {
           let newDoc = await docInstance.Core.createDocument(
             file.s3url,
@@ -1059,10 +1065,22 @@ const Redlining = React.forwardRef(
         assignAnnotations(file.file.documentid, mappedDoc, fetchAnnotResponse, domParser);
       }
       setPageMappedDocs(mappedDocs);
+      setIsStitchingLoaded(true)
       docInstance.UI.searchTextFull(searchKeywords, {
+        wholeWord: true,
         regex: true,
       });
     };
+
+
+    useEffect(() => {
+      if(isStitchingLoaded){
+        docInstance.UI.searchTextFull(searchKeywords, {
+          wholeWord: true,
+          regex: true,
+        });
+      }
+    }, [isStitchingLoaded]);
 
     const assignAnnotations = async (documentid, mappedDoc, annotData, domParser) => {
       let username = docViewer?.getAnnotationManager()?.getCurrentUser();
@@ -1102,6 +1120,7 @@ const Redlining = React.forwardRef(
       if (docsForStitcing.length > 0 && merge && docViewer) {
         const doc = docViewer.getDocument();
         stitchDocumentsFunc(doc);
+        
       }
     }, [docsForStitcing, fetchAnnotResponse, docViewer]);
 
