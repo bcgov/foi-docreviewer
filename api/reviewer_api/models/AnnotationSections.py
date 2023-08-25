@@ -26,6 +26,15 @@ class AnnotationSection(db.Model):
 
     
     @classmethod
+    def getsectionkey(cls, _annotationname):
+        try:
+            return db.session.query(AnnotationSection.id, AnnotationSection.version).filter(and_(AnnotationSection.annotationname == _annotationname)).order_by(AnnotationSection.version.desc()).first()
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
     def savesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
         successections = []
         failedsections = []
@@ -47,9 +56,16 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
-
     @classmethod
     def savesection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
+        sectkey = cls.getsectionkey(annot["name"])
+        if sectkey is None:
+            return cls.newsection(annot, _foiministryrequestid, userinfo)
+        else:
+            return cls.updatesection(annot, _foiministryrequestid, userinfo, sectkey[0], sectkey[1])
+
+    @classmethod
+    def newsection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
@@ -67,7 +83,7 @@ class AnnotationSection(db.Model):
             if len(result) > 0:
                 idxsect =  result[0]
                 if idxsect['isactive'] == False:
-                    return cls.__updatesection(annot, _foiministryrequestid, userinfo, idxsect['id'], idxsect['version'])
+                    return cls.updatesection(annot, _foiministryrequestid, userinfo, idxsect['id'], idxsect['version'])
             return DefaultMethodResult(True, 'Annotation Sections are added', annot["name"])
         except Exception as ex:
             logging.error(ex)
@@ -76,11 +92,11 @@ class AnnotationSection(db.Model):
             db.session.close() 
 
     @classmethod
-    def __updatesection(cls, annot, _foiministryrequestid, userinfo, id= None, version=None) -> DefaultMethodResult:
+    def updatesection(cls, annot, _foiministryrequestid, userinfo, id= None, version=None) -> DefaultMethodResult:
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation Section', annot["name"])
-            #cls.deactivatesection(annot["name"], userinfo)
+            cls.deactivatesection(annot["name"], userinfo)
             values = [{
                 "id" : id,
                 "annotationname": annot["name"],

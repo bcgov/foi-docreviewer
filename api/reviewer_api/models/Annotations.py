@@ -143,6 +143,15 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
+    def getannotationkey(cls, _annotationname):
+        try:
+            return db.session.query(Annotation.annotationid, Annotation.version).filter(and_(Annotation.annotationname == _annotationname)).order_by(Annotation.version.desc()).first()
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
     def saveannotations(cls, annots, redactionlayerid, userinfo)->DefaultMethodResult:
         successannots = []
         failedannots = []
@@ -160,10 +169,18 @@ class Annotation(db.Model):
         except Exception as ex:
             logging.error(ex)
             raise ex
+        
+    @classmethod
+    def saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
+        annotkey = cls.getannotationkey(annot["name"])
+        if annotkey is None:
+            return cls.newannotation(annot, redactionlayerid, userinfo)
+        else:
+            return cls.updateannoation(annot, redactionlayerid, userinfo, annotkey[0], annotkey[1])
              
 
     @classmethod
-    def saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
+    def newannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
@@ -184,7 +201,7 @@ class Annotation(db.Model):
             if len(result) > 0:
                 idxannot =  result[0]
                 if idxannot['isactive'] == False:
-                    return cls.__updateannotation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
+                    return cls.updateannoation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
             return DefaultMethodResult(True, 'Annotation added', annot["name"])
         except Exception as ex:
             logging.error(ex)
@@ -193,11 +210,11 @@ class Annotation(db.Model):
             db.session.close()   
 
     @classmethod
-    def __updateannotation(cls, annot, redactionlayerid, userinfo, id=None, version=None) -> DefaultMethodResult:
+    def updateannoation(cls, annot, redactionlayerid, userinfo, id=None, version=None) -> DefaultMethodResult:
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation', annot["name"])
-            #cls.deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
+            cls.deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
             values = [{
                 "annotationid" : id,
                 "annotationname": annot["name"],
