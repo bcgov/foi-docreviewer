@@ -131,16 +131,7 @@ class Annotation(db.Model):
         finally:
             db.session.close()
 
-    @classmethod
-    def getannotationinfo(cls, _documentid, _documentversion):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = db.session.query(Annotation.annotationname).filter(and_(Annotation.documentid == _documentid, Annotation.documentversion == _documentversion, Annotation.isactive==True)).order_by(Annotation.annotationid.asc()).all()
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
+    
         
     @classmethod
     def getannotationid(cls, _annotationname):
@@ -150,16 +141,6 @@ class Annotation(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
-
-    @classmethod
-    def getannotationkey(cls, annot):
-        try:
-            return db.session.query(Annotation.annotationid, Annotation.version).filter(and_(Annotation.annotationname == annot["name"])).order_by(Annotation.version.desc()).first()
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
 
     @classmethod
     def saveannotations(cls, annots, redactionlayerid, userinfo)->DefaultMethodResult:

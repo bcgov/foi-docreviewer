@@ -24,15 +24,7 @@ class AnnotationSection(db.Model):
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     annotationname =db.Column(db.Integer, ForeignKey('Annotations.annotationname'))
 
-    @classmethod
-    def getsectionkey(cls, _annotationname):
-        try:
-            return db.session.query(AnnotationSection.id, AnnotationSection.version).filter(and_(AnnotationSection.annotationname == _annotationname)).order_by(AnnotationSection.version.desc()).first()
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
+    
     @classmethod
     def savesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
         successections = []
