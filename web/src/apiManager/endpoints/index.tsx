@@ -13,6 +13,6 @@ const API = {
     DOCREVIEWER_GET_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/ministryrequest/<requestid>/pageflag`,
     DOCREVIEWER_GET_ALL_KEYWORDS:`${DOCREVIEWER_BASE_API_URL}/api/keywords`,
     DOCREVIEWER_GET_REDACTION_LAYERS:`${DOCREVIEWER_BASE_API_URL}/api/redactionlayers`,
-    DOCREVIEWER_REDLINE:`${DOCREVIEWER_BASE_API_URL}/api/redline`,
+    DOCREVIEWER_REDLINE:`${DOCREVIEWER_BASE_API_URL}/api/triggerdownloadredline`,
 };
 export default API;
