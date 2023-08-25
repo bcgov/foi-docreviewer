@@ -152,15 +152,15 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def getannotationkey(cls, _annotationname):
+    def getannotationkey(cls, annot):
         try:
-            return db.session.query(Annotation.annotationid, Annotation.version).filter(and_(Annotation.annotationname == _annotationname)).order_by(Annotation.version.desc()).first()
+            return db.session.query(Annotation.annotationid, Annotation.version).filter(and_(Annotation.annotationname == annot["name"])).order_by(Annotation.version.desc()).first()
         except Exception as ex:
             logging.error(ex)
         finally:
             db.session.close()
 
-    #upsert
+
     @classmethod
     def saveannotations(cls, annots, redactionlayerid, userinfo)->DefaultMethodResult:
         successannots = []
@@ -168,10 +168,10 @@ class Annotation(db.Model):
         try:
             for annot in annots:
                 resp = cls.saveannotation(annot, redactionlayerid, userinfo)
-                if resp.success == True:
+                if resp is not None and resp.success == True:
                     successannots.append(annot["name"])    
                 else:
-                    failedannots.append(annot["name"])
+                    failedannots.append(annot["name"])    
             if len(failedannots) < 1:
                 return DefaultMethodResult(True, 'Annotations added',  ','.join(successannots))
             else:
@@ -179,56 +179,62 @@ class Annotation(db.Model):
         except Exception as ex:
             logging.error(ex)
             raise ex
-        finally:
-            db.session.close()  
+             
 
     @classmethod
     def saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
-        annotkey = cls.getannotationkey(annot["name"])
-        if annotkey is None:
-            return cls.newannoation(annot, redactionlayerid, userinfo)
-        else:
-            return cls.updateannoation(annot, redactionlayerid, userinfo, annotkey[0], annotkey[1])
-
-    @classmethod
-    def newannoation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
-            db.session.add(Annotation(annotationname=annot["name"],
-                                            documentid = annot["docid"],
-                                            documentversion = 1,
-                                            version = 1,
-                                            redactionlayerid = redactionlayerid,
-                                            annotation = annot["xml"],
-                                            pagenumber = annot["originalpageno"],
-                                            createdby = userinfo,
-                                            isactive =  True,
-                                            created_at = datetime.now()
-                                            ))
+            values = [{
+                "annotationname": annot["name"],
+                "documentid": annot["docid"],
+                "documentversion": 1,
+                "annotation": annot["xml"],
+                "pagenumber": annot["page"],
+                "createdby": userinfo,
+                "isactive": True,
+                "version": 1,
+                "redactionlayerid" : redactionlayerid
+            }]
+            insertstmt = insert(Annotation).values(values)
+            upsertstmt = insertstmt.on_conflict_do_update(index_elements=[Annotation.annotationname, Annotation.version], set_={"isactive": False,"updatedby":userinfo,"updated_at":datetime.now()}).returning(Annotation.isactive, Annotation.annotationid, Annotation.version)
+            annotproxy = db.session.execute(upsertstmt)
+            result = [dict(row) for row in annotproxy] 
             db.session.commit() 
+            if len(result) > 0:
+                idxannot =  result[0]
+                print(idxannot)
+                if idxannot['isactive'] == False:
+                    print(idxannot['annotationid'])
+                    print(idxannot['version'])
+                    return cls.__updateannotation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
             return DefaultMethodResult(True, 'Annotation added', annot["name"])
         except Exception as ex:
             logging.error(ex)
             raise ex
         finally:
-            db.session.close()     
+            db.session.close()   
 
     @classmethod
-    def updateannoation(cls, annot, redactionlayerid, userinfo, id= None, version=None) -> DefaultMethodResult:
+    def __updateannotation(cls, annot, redactionlayerid, userinfo, id=None, version=None) -> DefaultMethodResult:
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation', annot["name"])
-            cls.deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
-            db.session.add(Annotation(annotationid = id, version = version + 1,
-                                            annotationname=annot["name"],
-                                            documentid = annot["docid"],
-                                            documentversion = 1,
-                                            redactionlayerid = redactionlayerid,
-                                            annotation = annot["xml"],
-                                            pagenumber = annot["originalpageno"],
-                                            createdby = userinfo,
-                                            isactive =  True,
-                                            created_at = datetime.now()
-                                            ))
+            #cls.deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
+            values = [{
+                "annotationid" : id,
+                "annotationname": annot["name"],
+                "documentid": annot["docid"],
+                "documentversion": 1,
+                "annotation": annot["xml"],
+                "pagenumber": annot["page"],
+                "createdby": userinfo,
+                "isactive": True,
+                "version": version + 1,
+                "redactionlayerid" : redactionlayerid
+            }]
+            insertstmt = insert(Annotation).values(values)
+            annotstmt = insertstmt.on_conflict_do_nothing()
+            db.session.execute(annotstmt)    
             db.session.commit() 
             return DefaultMethodResult(True, 'Annotation updated', annot["name"])
         except Exception as ex:
