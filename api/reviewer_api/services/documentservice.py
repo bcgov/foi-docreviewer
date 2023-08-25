@@ -7,7 +7,6 @@ from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
-from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 import requests
 from reviewer_api.auth import auth, AuthHelper
