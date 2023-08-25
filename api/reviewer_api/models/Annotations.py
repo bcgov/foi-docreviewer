@@ -183,10 +183,7 @@ class Annotation(db.Model):
             db.session.commit() 
             if len(result) > 0:
                 idxannot =  result[0]
-                print(idxannot)
                 if idxannot['isactive'] == False:
-                    print(idxannot['annotationid'])
-                    print(idxannot['version'])
                     return cls.__updateannotation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
             return DefaultMethodResult(True, 'Annotation added', annot["name"])
         except Exception as ex:
