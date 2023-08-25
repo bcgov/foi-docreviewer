@@ -89,6 +89,8 @@ class annotationservice:
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
+        if len(annots) < 1:
+            return DefaultMethodResult(True,'No valid Annotations found', -1) 
         resp = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
         if resp.success == True:
             if "sections" in annotationschema:
@@ -110,14 +112,15 @@ class annotationservice:
         annotations = xml.getElementsByTagName("annots")[0].childNodes
         annots = []
         for annot in annotations:
-            annots.append({
-                "name": annot.getAttribute("name"),
-                "page": annot.getAttribute("page"),
-                "xml": annot.toxml(),
-                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
-                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo'],
-                "docid": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['docid']
-            })
+            if self.__isvalid(annot) == True:
+                annots.append({
+                    "name": annot.getAttribute("name"),
+                    "page": annot.getAttribute("page"),
+                    "xml": annot.toxml(),
+                    "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
+                    "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo'],
+                    "docid": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['docid']
+                })
         return annots
     
     def __generateannotationsxml(self, annotations):
@@ -135,3 +138,12 @@ class annotationservice:
             return int(annotationschema['redactionlayerid'])
         else:
             return redactionlayerservice().getdefaultredactionlayerid()
+        
+
+    def __isvalid(self, annot):
+        if annot is not None and annot.tagName == "redact":
+            if annot.getAttribute('inreplyto') not in (None,''):
+                return True
+            return False
+        return True
+
