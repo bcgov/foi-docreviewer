@@ -89,15 +89,15 @@ class annotationservice:
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
-        _annotresponse = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
-        if _annotresponse.success == True:
+        resp = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
+        if resp.success == True:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
                 if not sectionresponse:
-                    return DefaultMethodResult(False,'Failed to save Annotation Section',_annotresponse)
+                    return DefaultMethodResult(False,'Failed to save Annotation Section', resp.identifier)
         else:
-            return DefaultMethodResult(False,'Failed to save Annotation', _annotresponse.identifier)
-        return DefaultMethodResult(True,'Annotation successfully saved',_annotresponse.identifier)
+            return DefaultMethodResult(False,'Failed to save Annotation', resp.identifier)
+        return DefaultMethodResult(True,'Annotation successfully saved', resp.identifier)
 
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
