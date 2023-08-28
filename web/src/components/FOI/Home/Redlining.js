@@ -1845,7 +1845,6 @@ const Redlining = React.forwardRef(
                         _blob,
                         (_res) => {
                           // ######### call another process for zipping and generate download here ##########
-                          console.log(_res);
                           toast.update(toastID, {
                             render: `${currentDivisionCount} of ${divisionCountForToast} divisions are saved to Object Storage`,
                             type: "success",
@@ -1885,12 +1884,6 @@ const Redlining = React.forwardRef(
                           };
                           zipDocObj.files.push(file);
                           if (incompatibleFiles.length > 0) {
-                            console.log(
-                              `incompatibleFiles = ${JSON.stringify(
-                                incompatibleFiles
-                              )}`
-                            );
-
                             // Filter records where divisionid is 6
                             const divIncompatableFiles = incompatibleFiles
                               .filter((record) =>
