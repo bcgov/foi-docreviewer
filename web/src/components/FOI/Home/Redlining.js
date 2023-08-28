@@ -1686,6 +1686,7 @@ const Redlining = React.forwardRef(
         category: "redline",
         attributes: [],
         requestnumber: "",
+        bcgovcode: "",
       };
 
       getFOIS3DocumentRedlinePreSignedUrl(
@@ -1868,6 +1869,8 @@ const Redlining = React.forwardRef(
                             stitchedDocPathArray[
                               stitchedDocPathArray.length - 1
                             ].split("?")[0];
+                          const bcgovcode =
+                            stitchedDocPathArray[3].split("-")[0];
                           const requestNumber =
                             decodeURIComponent(fileName).split(" - ")[0];
                           fileName =
@@ -1914,6 +1917,7 @@ const Redlining = React.forwardRef(
                             zipServiceMessage.attributes.length
                           ) {
                             zipServiceMessage.requestnumber = requestNumber;
+                            zipServiceMessage.bcgovcode = bcgovcode;
                             triggerDownloadRedlines(
                               zipServiceMessage,
                               (error) => {

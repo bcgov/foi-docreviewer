@@ -16,6 +16,7 @@ class RedlineSchema(Schema):
     ministryrequestid = fields.Str(data_key="ministryrequestid", allow_none=False)
     category = fields.Str(data_key="category", allow_none=False)
     requestnumber = fields.Str(data_key="requestnumber", allow_none=False)
+    bcgovcode = fields.Str(data_key="bcgovcode", allow_none=False)
     attributes = fields.Nested(
         AttributeSchema, many=True, required=True, allow_none=False
     )

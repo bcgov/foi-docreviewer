@@ -141,9 +141,7 @@ class redactionservice:
             "requestid": -1,
             "category": redlineschema["category"],
             "requestnumber": redlineschema["requestnumber"],
-            "bcgovcode": redlineschema["requestnumber"].split("-")[0]
-            if redlineschema["requestnumber"]
-            else "",
+            "bcgovcode": redlineschema["bcgovcode"],
             "createdby": userinfo["userid"],
             "ministryrequestid": redlineschema["ministryrequestid"],
             "filestozip": to_json(
