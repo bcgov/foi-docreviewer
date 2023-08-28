@@ -24,6 +24,7 @@ class AnnotationSection(db.Model):
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     annotationname =db.Column(db.Integer, ForeignKey('Annotations.annotationname'))
 
+    
     @classmethod
     def getsectionkey(cls, _annotationname):
         try:
@@ -55,7 +56,6 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
-
     @classmethod
     def savesection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
         sectkey = cls.getsectionkey(annot["name"])
@@ -67,43 +67,55 @@ class AnnotationSection(db.Model):
     @classmethod
     def newsection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
         try:
-            db.session.add(AnnotationSection(annotationname=annot["name"],
-                                            foiministryrequestid = _foiministryrequestid,
-                                            section =  annot["sectionsschema"],
-                                            version = 1,
-                                            createdby = userinfo,
-                                            isactive =  True,
-                                            created_at = datetime.now()
-                                            ))
+            values = [{
+                "annotationname": annot["name"],
+                "foiministryrequestid": _foiministryrequestid,
+                "section": annot["sectionsschema"],
+                "version": 1,
+                "createdby": userinfo,
+                "isactive": True
+            }]
+            insertstmt = insert(AnnotationSection).values(values)
+            upsertstmt = insertstmt.on_conflict_do_update(index_elements=[AnnotationSection.annotationname, AnnotationSection.version], set_={"isactive": False,"updatedby":userinfo,"updated_at":datetime.now()}).returning(AnnotationSection.isactive, AnnotationSection.id, AnnotationSection.version)
+            sectproxy = db.session.execute(upsertstmt)
+            result = [dict(row) for row in sectproxy] 
             db.session.commit() 
+            if len(result) > 0:
+                idxsect =  result[0]
+                if idxsect['isactive'] == False:
+                    return cls.updatesection(annot, _foiministryrequestid, userinfo, idxsect['id'], idxsect['version'])
             return DefaultMethodResult(True, 'Annotation Sections are added', annot["name"])
         except Exception as ex:
             logging.error(ex)
             raise ex
         finally:
-            db.session.close()     
+            db.session.close() 
 
     @classmethod
     def updatesection(cls, annot, _foiministryrequestid, userinfo, id= None, version=None) -> DefaultMethodResult:
         try:
             if id is None or version is None:
-                return DefaultMethodResult(True, 'Unable to Save Annotation', annot["name"])
+                return DefaultMethodResult(True, 'Unable to Save Annotation Section', annot["name"])
             cls.deactivatesection(annot["name"], userinfo)
-            db.session.add(AnnotationSection(id = id, version = version + 1,
-                                            annotationname=annot["name"],
-                                            foiministryrequestid = _foiministryrequestid,
-                                            section =  annot["sectionsschema"],                                            
-                                            createdby = userinfo,
-                                            isactive =  True,
-                                            created_at = datetime.now()
-                                            ))
+            values = [{
+                "id" : id,
+                "annotationname": annot["name"],
+                "foiministryrequestid": _foiministryrequestid,
+                "section": annot["sectionsschema"],   
+                "createdby": userinfo,
+                "isactive": True,
+                "version": version + 1
+            }]
+            insertstmt = insert(AnnotationSection).values(values)
+            secttmt = insertstmt.on_conflict_do_nothing()
+            db.session.execute(secttmt)    
             db.session.commit() 
-            return DefaultMethodResult(True, 'Annotation Sections are updated', annot["name"])
+            return DefaultMethodResult(True, 'Annotation sections are updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
             raise ex
         finally:
-            db.session.close() 
+            db.session.close()  
 
     @classmethod
     def deactivatesection(cls, _annotationname, userinfo)->DefaultMethodResult:
