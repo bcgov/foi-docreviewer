@@ -47,7 +47,10 @@ class Annotation(db.Model):
                       where d.foiministryrequestid = :ministryrequestid
 					  order by d.documentid, d.version desc) d
 				on (d.documentid = a.documentid and d.version = a.documentversion)
+                join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
+                left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
                 where d.foiministryrequestid = :ministryrequestid
+                and (dd.deleted is false or dd.deleted is null)
                 and a.redactionlayerid in :_mappedlayerids
                 and a.isactive = true
             '''
@@ -219,7 +222,7 @@ class Annotation(db.Model):
                 "annotationid" : id,
                 "annotationname": annot["name"],
                 "documentid": annot["docid"],
-                "documentversion": 1,
+                "documentversion": annot["docversion"],
                 "annotation": annot["xml"],
                 "pagenumber": annot["page"],
                 "createdby": userinfo,

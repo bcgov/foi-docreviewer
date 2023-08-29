@@ -692,38 +692,17 @@ const Redlining = React.forwardRef(
                   type: annot.name,
                 });
               } else {
-                // if (
-                //   annotations[0].getCustomData("trn-redaction-type") ===
-                //   "fullPage"
-                // ) {
-                //   deleteAnnotation(
-                //     requestid,
-                //     displayedDoc.docid,
-                //     displayedDoc.version,
-                //     annot.attributes.name,
-                //     (data) => {
-                //       fetchPageFlag(requestid, (error) =>
-                //         console.log(error)
-                //       );
-                //     },
-                //     (error) => {
-                //       console.log(error);
-                //     },
-                //     individualPageNo
-                //   );
-                // } else {
-                  deleteAnnotation(
-                    requestid,
-                    displayedDoc.docid,
-                    displayedDoc.version,
-                    currentLayer.redactionlayerid,
-                    annot.attributes.name,
-                    (data) => {},
-                    (error) => {
-                      console.log(error);
-                    }
-                  );
-                // }
+                deleteAnnotation(
+                  requestid,
+                  displayedDoc.docid,
+                  displayedDoc.docversion,
+                  currentLayer.redactionlayerid,
+                  annot.attributes.name,
+                  (data) => {},
+                  (error) => {
+                    console.log(error);
+                  }
+                );
               }
             }
             setDeleteQueue(annotObjs);
@@ -752,6 +731,7 @@ const Redlining = React.forwardRef(
                   });
                 }
                 annotations[i].setCustomData("docid", displayedDoc.docid);
+                annotations[i].setCustomData("docversion", displayedDoc.docversion);
                 annotations[i].setCustomData("redactionlayerid", currentLayer.redactionlayerid);
               });
               setPageSelections(pageSelectionList);
@@ -774,6 +754,7 @@ const Redlining = React.forwardRef(
                     Number(annot.PageNumber)
                   ];
                 annot.setCustomData("docid", displayedDoc.docid);
+                annot.setCustomData("docversion", displayedDoc.docversion);
                 annot.setCustomData("redactionlayerid", currentLayer.redactionlayerid);
               }
 
@@ -826,7 +807,7 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) => console.log(error))},
                   (error) => {
                     console.log(error);
                   },
@@ -968,6 +949,7 @@ const Redlining = React.forwardRef(
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
           docid: removedFirstElement.file.documentid,
+          docversion: removedFirstElement.file.version,
           page: i + 1,
         };
         mappedDoc.pageMappings.push(firstDocMappings);
@@ -1054,6 +1036,9 @@ const Redlining = React.forwardRef(
             pages.push(i + 1);
             let pageNo = i + 1;
             stitchedPageNo = doc.getPageCount() + (i + 1);
+            if (stitchedPageNo > 61) {
+              console.log("here")
+            }
             let pageMappings = {
               pageNo: pageNo,
               stitchedPageNo: stitchedPageNo,
@@ -1061,6 +1046,7 @@ const Redlining = React.forwardRef(
             mappedDoc.pageMappings.push(pageMappings);
             mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
               docid: file.file.documentid,
+              docversion: file.file.version,
               page: pageNo,
             };
           }
@@ -1177,6 +1163,7 @@ const Redlining = React.forwardRef(
             )
           );
           childAnnotation.setCustomData("docid", displayedDoc.docid);
+          childAnnotation.setCustomData("docversion", displayedDoc.docversion);
         }
         const doc = docViewer.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1193,7 +1180,7 @@ const Redlining = React.forwardRef(
         useDisplayAuthor: true,
       });
       let sectn = {
-        foiministryrequestid: 1,
+        foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
         saveAnnotation(
@@ -1269,6 +1256,7 @@ const Redlining = React.forwardRef(
               )
             );
             childAnnotation.setCustomData("docid", displayedDoc.docid);
+            childAnnotation.setCustomData("docversion", displayedDoc.docversion);
           }
           const doc = docViewer.getDocument();
           let pageNumber = 0;
@@ -1288,7 +1276,7 @@ const Redlining = React.forwardRef(
             useDisplayAuthor: true,
           });
           let sectn = {
-            foiministryrequestid: 1,
+            foiministryrequestid: requestid,
           };
           _annotationtring.then((astr) => {
             //parse annotation xml
@@ -1323,18 +1311,6 @@ const Redlining = React.forwardRef(
         ) {
           pageFlagSelections[0].flagid = pageFlagTypes["In Progress"];
         }
-        saveAnnotation(
-          requestid,
-          newRedaction.astr,
-          (data) => {
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) => console.log(error));
-          },
-          (error) => {
-            console.log(error);
-          },
-          currentLayer.redactionlayerid,
-          createPageFlagPayload(pageFlagSelections, currentLayer.redactionlayerid)
-        );
         // add section annotation
         var sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1379,6 +1355,7 @@ const Redlining = React.forwardRef(
           for (let section of redactionSections) {
             section.count++;
           }
+          // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           annotManager.groupAnnotations(annot, [redaction]);
         }
         annotManager.addAnnotations(sectionAnnotations);
