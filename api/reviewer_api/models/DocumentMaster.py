@@ -113,7 +113,7 @@ class DocumentMaster(db.Model):
     def getdocumentproperty(cls, ministryrequestid, deleted):
         documentmasters = []
         try:
-            sql = """select dm.documentmasterid,  dm.processingparentid, d.documentid, 
+            sql = """select dm.documentmasterid,  dm.processingparentid, d.documentid, d.version,
                         dhc.rank1hash, d.filename, d.pagecount, dm.parentid from "DocumentMaster" dm, 
                         "Documents" d, "DocumentHashCodes" dhc  
                         where dm.ministryrequestid = :ministryrequestid and dm.ministryrequestid  = d.foiministryrequestid   
@@ -122,7 +122,7 @@ class DocumentMaster(db.Model):
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
-                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "pagecount": row["pagecount"], "parentid": row["parentid"]})
+                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

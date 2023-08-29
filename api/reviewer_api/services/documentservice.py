@@ -50,7 +50,7 @@ class documentservice:
     def __updateproperties(self, records, properties, record, parentproperties, parentswithattachmentsrecords, attachmentsrecords):
         if record["recordid"] is not None:
             _att_in_properties = []
-            record["pagecount"], record["filename"], record["documentid"] = self.__getpagecountandfilename(record, parentproperties)
+            record["pagecount"], record["filename"], record["documentid"], record["version"] = self.__getpagecountandfilename(record, parentproperties)
             record["isduplicate"], record["duplicatemasterid"], record["duplicateof"] = self.__isduplicate(parentproperties, record)
             if len(record["attachments"]) > 0:
 
@@ -70,7 +70,7 @@ class documentservice:
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"], attachment["duplicateof"] = self.__isduplicate(_att_in_properties, attachment)
                     
-                    attachment["pagecount"], attachment["filename"], attachment["documentid"] = self.__getpagecountandfilename(attachment, _att_in_properties)
+                    attachment["pagecount"], attachment["filename"], attachment["documentid"], attachment["version"] = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
     
     def __filterrecords(self, records):
@@ -95,7 +95,8 @@ class documentservice:
                 pagecount = property["pagecount"]
                 filename = property["filename"]
                 documentid = property["documentid"]
-        return pagecount, filename, documentid
+                version = property["version"]
+        return pagecount, filename, documentid, version
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
