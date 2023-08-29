@@ -115,7 +115,7 @@ class DocumentPageflag(db.Model):
                      left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
                      where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
                      and redactionlayerid in :redactionlayerid
-                     order by dp.documentid, dp.documentversion desc;
+                     order by dp.documentid, dp.documentversion desc, dp.id desc;
                     """
             rs = db.session.execute(text(sql), {'foiministryrequestid': _foiministryrequestid, 'redactionlayerid': tuple(redactionlayerid)})
         
