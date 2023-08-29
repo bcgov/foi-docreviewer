@@ -230,6 +230,7 @@ const Redlining = React.forwardRef(
           enableRedaction: true,
           useDownloader: false,
           css: "/stylesheets/webviewer.css",
+          loadAsPDF: true,
         },
         viewer.current
       ).then((instance) => {
