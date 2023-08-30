@@ -34,6 +34,7 @@ import {
   fetchPageFlag,
   fetchKeywordsMasterData,
   triggerDownloadRedlines,
+  triggerDownloadFinalPackage,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -1845,7 +1846,7 @@ const Redlining = React.forwardRef(
                         isLoading: true,
                       });
 
-                      await saveFilesinS3(
+                      saveFilesinS3(
                         { filepath: stitchedDocPath },
                         _blob,
                         (_res) => {
@@ -1889,7 +1890,6 @@ const Redlining = React.forwardRef(
                           };
                           zipDocObj.files.push(file);
                           if (incompatibleFiles.length > 0) {
-                            // Filter records where divisionid is 6
                             const divIncompatableFiles = incompatibleFiles
                               .filter((record) =>
                                 record.divisions.some(
@@ -1974,6 +1974,14 @@ const Redlining = React.forwardRef(
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
       // console.log("divisions: ", divisions);
+
+      let zipServiceMessage = {
+        ministryrequestid: requestid,
+        category: "responsepackage",
+        attributes: [],
+        requestnumber: "",
+        bcgovcode: "",
+      };
 
       getResponsePackagePreSignedUrl(
         requestid,
@@ -2070,7 +2078,7 @@ const Redlining = React.forwardRef(
                   render: "Saving final package to Object Storage...",
                   isLoading: true,
                 });
-                await saveFilesinS3(
+                saveFilesinS3(
                   { filepath: res.s3path_save },
                   _blob,
                   (_res) => {
@@ -2086,6 +2094,44 @@ const Redlining = React.forwardRef(
                       pauseOnHover: true,
                       draggable: true,
                       closeButton: true,
+                    });
+                    const stitchedDocPathArray = res.s3path_save.split("/");
+                    let fileName =
+                      stitchedDocPathArray[
+                        stitchedDocPathArray.length - 1
+                      ].split("?")[0];
+                    const bcgovcode = stitchedDocPathArray[3].split("-")[0];
+                    const requestNumber = stitchedDocPathArray[4];
+                    fileName = decodeURIComponent(fileName);
+                    const file = {
+                      filename: fileName,
+                      s3uripath: decodeURIComponent(
+                        res.s3path_save.split("?")[0]
+                      ),
+                    };
+                    const zipDocObj = {
+                      files: [],
+                    };
+                    zipDocObj.files.push(file);
+                    if (incompatibleFiles.length > 0) {
+                      const _incompatableFiles = incompatibleFiles.map(
+                        (record) => {
+                          return {
+                            filename: record.filename,
+                            s3uripath: record.filepath,
+                          };
+                        }
+                      );
+                      zipDocObj.files = [
+                        ...zipDocObj.files,
+                        ..._incompatableFiles,
+                      ];
+                    }
+                    zipServiceMessage.attributes.push(zipDocObj);
+                    zipServiceMessage.bcgovcode = bcgovcode;
+                    zipServiceMessage.requestnumber = requestNumber;
+                    triggerDownloadFinalPackage(zipServiceMessage, (error) => {
+                      console.log(error);
                     });
                   },
                   (_err) => {
