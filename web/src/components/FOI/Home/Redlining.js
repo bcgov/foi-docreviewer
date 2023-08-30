@@ -104,6 +104,9 @@ const Redlining = React.forwardRef(
     const [modalButtonLabel, setModalButtonLabel] = useState("");
     const [fullPageRedactions, setFullPageRedactions]=useState([]);
     const [editSelectedRedactions,setEditSelectedRedactions]=useState([]);
+    const [redlineSaving, setRedlineSaving] = useState(false);
+
+
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
@@ -231,6 +234,7 @@ const Redlining = React.forwardRef(
           enableRedaction: true,
           useDownloader: false,
           css: "/stylesheets/webviewer.css",
+          loadAsPDF: true,
         },
         viewer.current
       ).then((instance) => {
@@ -680,6 +684,8 @@ const Redlining = React.forwardRef(
       if (info.source !== "redactionApplied") {
         //ignore annots/redact changes made by applyRedaction
         if (info.imported) return;
+        //do not run if redline is saving
+        if (redlineSaving) return;
         let localDocumentInfo = currentDocument;
         annotations.forEach((annot) => {
           let displayedDoc =
@@ -827,7 +833,7 @@ const Redlining = React.forwardRef(
                 //pageSelections
               );
             }
-          } else if (action === "modify") {
+          } else if (action === "modify") { // handles saving modify actions and initial save of redaction due to grouping
             let selectedAnnotations =
               docInstance.Core.annotationManager.getSelectedAnnotations();
             let username = docViewer
@@ -849,12 +855,15 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) => console.log(error))},
+                  (data) => {
+                    setNewRedaction(null)
+                    fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) => console.log(error))
+                  },
                   (error) => {
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  null
+                  newRedaction ? createPageFlagPayload(pageSelections, currentLayer.redactionlayerid) : null
                 );
                 const _resizeAnnot = {
                   pages: annot.attributes.page,
@@ -876,12 +885,15 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {
+                    setNewRedaction(null)
+                    fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) => console.log(error))
+                  },
                   (error) => {
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  null
+                  newRedaction ? createPageFlagPayload(pageSelections, currentLayer.redactionlayerid) : null
                 );
               }
             }
@@ -889,7 +901,7 @@ const Redlining = React.forwardRef(
         });
         setAnnots(docInstance.Core.Annotations);
       }
-    }, [pageMappedDocs, currentLayer])
+    }, [pageMappedDocs, currentLayer, newRedaction, pageSelections, redlineSaving])
 
     useEffect(() => {
       annotManager?.addEventListener(
@@ -922,7 +934,7 @@ const Redlining = React.forwardRef(
       return () => {
         annotManager?.removeEventListener("annotationChanged", annotationChangedHandler);
       }
-    }, [pageMappedDocs, currentLayer]);
+    }, [pageMappedDocs, currentLayer, newRedaction, pageSelections, redlineSaving]);
 
     useImperativeHandle(ref, () => ({
       addFullPageRedaction(pageNumbers) {
@@ -1497,7 +1509,6 @@ const Redlining = React.forwardRef(
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
       }
-      setNewRedaction(null);
     };
 
     const getCoordinates = (_annot, _redaction, X) => {
@@ -1943,6 +1954,7 @@ const Redlining = React.forwardRef(
 
     const saveDoc = () => {
       setRedlineModalOpen(false);
+      setRedlineSaving(true);
       switch (modalFor) {
         case "redline":
           saveRedlineDocument(docInstance);
