@@ -198,7 +198,7 @@ const Redlining = React.forwardRef(
             editRedactions(
               docInstance?.Core?.annotationManager,
               docInstance?.Core?.annotationManager.exportAnnotations({
-                annotList: _selectedRedactions,
+                annotationList: _selectedRedactions,
                 useDisplayAuthor: true,
               })
             );
@@ -379,7 +379,7 @@ const Redlining = React.forwardRef(
                 editAnnotation(
                   annotationManager,
                   annotationManager.exportAnnotations({
-                    annotList: _selectedRedaction,
+                    annotationList: _selectedRedaction,
                     useDisplayAuthor: true,
                   })
                 );
@@ -409,7 +409,7 @@ const Redlining = React.forwardRef(
           .setStyles(() => ({
             FillColor: new Annotations.Color(255, 255, 255),
           }));
-        documentViewer.addEventListener("documentLoaded", () => {
+        documentViewer.addEventListener("documentLoaded", async () => {
           PDFNet.initialize(); // Only needs to be initialized once
 
           fetchKeywordsMasterData(
@@ -605,7 +605,7 @@ const Redlining = React.forwardRef(
           annotManager.bringToBack(annot);
         }
         annotManager.drawAnnotationsFromList(newAnnots);
-        annotManager.setReadOnly(true);
+        annotManager.enableReadOnlyMode();
       } else {
         fetchAnnotations(
           requestid,
@@ -615,7 +615,7 @@ const Redlining = React.forwardRef(
             if (!fetchAnnotResponse) {
               setFetchAnnotResponse(data)
             } else {
-              annotManager.setReadOnly(false);
+              annotManager.disableReadOnlyMode();
               docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
               const existingAnnotations = annotManager.getAnnotationsList();
               await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
@@ -672,7 +672,7 @@ const Redlining = React.forwardRef(
         });
         let _annotationtring =
           docInstance.Core.annotationManager.exportAnnotations({
-            annotList: annotations,
+            annotationList: annotations,
             useDisplayAuthor: true,
           });
         _annotationtring.then(async (astr) => {
@@ -741,7 +741,7 @@ const Redlining = React.forwardRef(
               let annot = annots[0].children[0];
               let astr =
                 await docInstance.Core.annotationManager.exportAnnotations({
-                  annotList: annotations,
+                  annotationList: annotations,
                   useDisplayAuthor: true,
                 });
               setNewRedaction({
@@ -763,7 +763,7 @@ const Redlining = React.forwardRef(
 
               let astr =
                 await docInstance.Core.annotationManager.exportAnnotations({
-                  annotList: annotations,
+                  annotationList: annotations,
                   useDisplayAuthor: true,
                 });
 
@@ -1185,7 +1185,7 @@ const Redlining = React.forwardRef(
         childAnnotations.push(childAnnotation);
       }
       let _annotationtring = annotManager.exportAnnotations({
-        annotList: childAnnotations,
+        annotationList: childAnnotations,
         useDisplayAuthor: true,
       });
       let sectn = {
@@ -1281,7 +1281,7 @@ const Redlining = React.forwardRef(
 
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
-            annotList: [childAnnotation],
+            annotationList: [childAnnotation],
             useDisplayAuthor: true,
           });
           let sectn = {
