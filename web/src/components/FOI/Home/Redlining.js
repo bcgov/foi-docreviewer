@@ -111,6 +111,7 @@ const Redlining = React.forwardRef(
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
+    const [redlineSaving, setRedlineSaving] = useState(false);
 
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
@@ -238,6 +239,7 @@ const Redlining = React.forwardRef(
           enableRedaction: true,
           useDownloader: false,
           css: "/stylesheets/webviewer.css",
+          loadAsPDF: true,
         },
         viewer.current
       ).then((instance) => {
@@ -685,6 +687,8 @@ const Redlining = React.forwardRef(
         if (info.source !== "redactionApplied") {
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
+          //do not run if redline is saving
+          if (redlineSaving) return;
           let localDocumentInfo = currentDocument;
           annotations.forEach((annot) => {
             let displayedDoc =
@@ -720,30 +724,10 @@ const Redlining = React.forwardRef(
                     type: annot.name,
                   });
                 } else {
-                  // if (
-                  //   annotations[0].getCustomData("trn-redaction-type") ===
-                  //   "fullPage"
-                  // ) {
-                  //   deleteAnnotation(
-                  //     requestid,
-                  //     displayedDoc.docid,
-                  //     displayedDoc.version,
-                  //     annot.attributes.name,
-                  //     (data) => {
-                  //       fetchPageFlag(requestid, (error) =>
-                  //         console.log(error)
-                  //       );
-                  //     },
-                  //     (error) => {
-                  //       console.log(error);
-                  //     },
-                  //     individualPageNo
-                  //   );
-                  // } else {
                   deleteAnnotation(
                     requestid,
                     displayedDoc.docid,
-                    displayedDoc.version,
+                    displayedDoc.docversion,
                     currentLayer.redactionlayerid,
                     annot.attributes.name,
                     (data) => {},
@@ -751,7 +735,6 @@ const Redlining = React.forwardRef(
                       console.log(error);
                     }
                   );
-                  // }
                 }
               }
               setDeleteQueue(annotObjs);
@@ -781,6 +764,10 @@ const Redlining = React.forwardRef(
                   }
                   annotations[i].setCustomData("docid", displayedDoc.docid);
                   annotations[i].setCustomData(
+                    "docversion",
+                    displayedDoc.docversion
+                  );
+                  annotations[i].setCustomData(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
                   );
@@ -803,6 +790,7 @@ const Redlining = React.forwardRef(
                   displayedDoc =
                     pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
                   annot.setCustomData("docid", displayedDoc.docid);
+                  annot.setCustomData("docversion", displayedDoc.docversion);
                   annot.setCustomData(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
@@ -837,6 +825,7 @@ const Redlining = React.forwardRef(
                 );
               }
             } else if (action === "modify") {
+              // handles saving modify actions and initial save of redaction due to grouping
               let selectedAnnotations =
                 docInstance.Core.annotationManager.getSelectedAnnotations();
               let username = docViewer
@@ -858,12 +847,24 @@ const Redlining = React.forwardRef(
                   saveAnnotation(
                     requestid,
                     astr,
-                    (data) => {},
+                    (data) => {
+                      setNewRedaction(null);
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
                     (error) => {
                       console.log(error);
                     },
                     currentLayer.redactionlayerid,
-                    null
+                    newRedaction
+                      ? createPageFlagPayload(
+                          pageSelections,
+                          currentLayer.redactionlayerid
+                        )
+                      : null
                   );
                   const _resizeAnnot = {
                     pages: annot.attributes.page,
@@ -885,12 +886,24 @@ const Redlining = React.forwardRef(
                   saveAnnotation(
                     requestid,
                     astr,
-                    (data) => {},
+                    (data) => {
+                      setNewRedaction(null);
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
                     (error) => {
                       console.log(error);
                     },
                     currentLayer.redactionlayerid,
-                    null
+                    newRedaction
+                      ? createPageFlagPayload(
+                          pageSelections,
+                          currentLayer.redactionlayerid
+                        )
+                      : null
                   );
                 }
               }
@@ -899,7 +912,13 @@ const Redlining = React.forwardRef(
           setAnnots(docInstance.Core.Annotations);
         }
       },
-      [pageMappedDocs, currentLayer]
+      [
+        pageMappedDocs,
+        currentLayer,
+        newRedaction,
+        pageSelections,
+        redlineSaving,
+      ]
     );
 
     useEffect(() => {
@@ -939,7 +958,13 @@ const Redlining = React.forwardRef(
           annotationChangedHandler
         );
       };
-    }, [pageMappedDocs, currentLayer]);
+    }, [
+      pageMappedDocs,
+      currentLayer,
+      newRedaction,
+      pageSelections,
+      redlineSaving,
+    ]);
 
     useImperativeHandle(ref, () => ({
       addFullPageRedaction(pageNumbers) {
@@ -1008,6 +1033,7 @@ const Redlining = React.forwardRef(
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
           docid: removedFirstElement.file.documentid,
+          docversion: removedFirstElement.file.version,
           page: i + 1,
         };
         mappedDoc.pageMappings.push(firstDocMappings);
@@ -1094,6 +1120,9 @@ const Redlining = React.forwardRef(
             pages.push(i + 1);
             let pageNo = i + 1;
             stitchedPageNo = doc.getPageCount() + (i + 1);
+            if (stitchedPageNo > 61) {
+              console.log("here");
+            }
             let pageMappings = {
               pageNo: pageNo,
               stitchedPageNo: stitchedPageNo,
@@ -1101,6 +1130,7 @@ const Redlining = React.forwardRef(
             mappedDoc.pageMappings.push(pageMappings);
             mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
               docid: file.file.documentid,
+              docversion: file.file.version,
               page: pageNo,
             };
           }
@@ -1227,6 +1257,7 @@ const Redlining = React.forwardRef(
             )
           );
           childAnnotation.setCustomData("docid", displayedDoc.docid);
+          childAnnotation.setCustomData("docversion", displayedDoc.docversion);
         }
         const doc = docViewer.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1243,7 +1274,7 @@ const Redlining = React.forwardRef(
         useDisplayAuthor: true,
       });
       let sectn = {
-        foiministryrequestid: 1,
+        foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
         saveAnnotation(
@@ -1319,6 +1350,10 @@ const Redlining = React.forwardRef(
               )
             );
             childAnnotation.setCustomData("docid", displayedDoc.docid);
+            childAnnotation.setCustomData(
+              "docversion",
+              displayedDoc.docversion
+            );
           }
           const doc = docViewer.getDocument();
           let pageNumber = 0;
@@ -1338,7 +1373,7 @@ const Redlining = React.forwardRef(
             useDisplayAuthor: true,
           });
           let sectn = {
-            foiministryrequestid: 1,
+            foiministryrequestid: requestid,
           };
           _annotationtring.then((astr) => {
             //parse annotation xml
@@ -1373,23 +1408,6 @@ const Redlining = React.forwardRef(
         ) {
           pageFlagSelections[0].flagid = pageFlagTypes["In Progress"];
         }
-        saveAnnotation(
-          requestid,
-          newRedaction.astr,
-          (data) => {
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
-            );
-          },
-          (error) => {
-            console.log(error);
-          },
-          currentLayer.redactionlayerid,
-          createPageFlagPayload(
-            pageFlagSelections,
-            currentLayer.redactionlayerid
-          )
-        );
         // add section annotation
         var sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1434,13 +1452,13 @@ const Redlining = React.forwardRef(
           for (let section of redactionSections) {
             section.count++;
           }
+          // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           annotManager.groupAnnotations(annot, [redaction]);
         }
         annotManager.addAnnotations(sectionAnnotations);
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
       }
-      setNewRedaction(null);
     };
 
     const getCoordinates = (_annot, _redaction, X) => {
@@ -1955,6 +1973,7 @@ const Redlining = React.forwardRef(
 
     const saveDoc = () => {
       setRedlineModalOpen(false);
+      setRedlineSaving(true);
       switch (modalFor) {
         case "redline":
           saveRedlineDocument(docInstance);

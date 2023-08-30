@@ -113,13 +113,16 @@ class annotationservice:
         annots = []
         for annot in annotations:
             if self.__isvalid(annot) == True:
+                customdata = annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")
+                customdatadict = json.loads(customdata)
                 annots.append({
                     "name": annot.getAttribute("name"),
                     "page": annot.getAttribute("page"),
                     "xml": annot.toxml(),
-                    "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
-                    "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo'],
-                    "docid": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['docid']
+                    "sectionsschema": SectionAnnotationSchema().loads(customdata),
+                    "originalpageno": customdatadict['originalPageNo'],
+                    "docid": customdatadict['docid'],
+                    "docversion": customdatadict['docversion']
                 })
         return annots
     
