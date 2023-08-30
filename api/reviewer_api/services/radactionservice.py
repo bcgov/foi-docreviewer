@@ -122,8 +122,8 @@ class redactionservice:
             raise KeyError("Invalid redaction layer")
         return isvalid, _redactionlayer
 
-    # finalpackage download: add message to zipping service
-    def triggerdownloadfinalpackage(self, finalpackageschema, userinfo):
+    # redline/finalpackage download: add message to zipping service
+    def triggerdownloadredlinefinalpackage(self, finalpackageschema, userinfo):
         _jobmessage = self.__preparemessageforjobstatus(finalpackageschema)
         job = jobrecordservice().insertpdfstitchjobstatus(
             _jobmessage, userinfo["userid"]
@@ -133,18 +133,6 @@ class redactionservice:
             _message = self.__preparemessageforzipservice(
                 finalpackageschema, userinfo, job
             )
-            print(_message)
-            return zipperproducerservice().add(self.zipperstreamkey, _message)
-
-    # redline download: add message to zipping service
-    def triggerdownloadredline(self, redlineschema, userinfo):
-        _jobmessage = self.__preparemessageforredlinejobstatus(redlineschema)
-        job = jobrecordservice().insertpdfstitchjobstatus(
-            _jobmessage, userinfo["userid"]
-        )
-        print(job)
-        if job.success:
-            _message = self.__preparemessageforzipservice(redlineschema, userinfo, job)
             print(_message)
             return zipperproducerservice().add(self.zipperstreamkey, _message)
 
@@ -179,10 +167,10 @@ class redactionservice:
         return filestozip
 
     # redline/final package download: prepare message for redline/final package job status
-    def __preparemessageforjobstatus(self, redlineschema):
+    def __preparemessageforjobstatus(self, messageschema):
         __message = {
-            "category": redlineschema["category"],
-            "ministryrequestid": int(redlineschema["ministryrequestid"]),
-            "inputfiles": redlineschema["attributes"],
+            "category": messageschema["category"],
+            "ministryrequestid": int(messageschema["ministryrequestid"]),
+            "inputfiles": messageschema["attributes"],
         }
         return __message

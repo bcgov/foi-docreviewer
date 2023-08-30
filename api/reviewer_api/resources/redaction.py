@@ -255,7 +255,7 @@ class SaveRedlines(Resource):
         try:
             requestjson = request.get_json()
             redlineschema = RedlineSchema().load(requestjson)
-            result = redactionservice().triggerdownloadredline(
+            result = redactionservice().triggerdownloadredlinefinalpackage(
                 redlineschema, AuthHelper.getuserinfo()
             )
             return {
@@ -283,7 +283,7 @@ class SaveFinalPackage(Resource):
             requestjson = request.get_json()
             print(requestjson)
             finalpackageschema = FinalPackageSchema().load(requestjson)
-            result = redactionservice().triggerdownloadfinalpackage(
+            result = redactionservice().triggerdownloadredlinefinalpackage(
                 finalpackageschema, AuthHelper.getuserinfo()
             )
             return {
