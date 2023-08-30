@@ -37,6 +37,7 @@ from reviewer_api.schemas.annotationrequest import (
     SectionSchema,
 )
 from reviewer_api.schemas.redline import RedlineSchema
+from reviewer_api.schemas.finalpackage import FinalPackageSchema
 
 API = Namespace(
     "Document and annotations",
@@ -256,6 +257,34 @@ class SaveRedlines(Resource):
             redlineschema = RedlineSchema().load(requestjson)
             result = redactionservice().triggerdownloadredline(
                 redlineschema, AuthHelper.getuserinfo()
+            )
+            return {
+                "status": result.success,
+                "message": result.message,
+            }, 200
+        except KeyError as err:
+            return {"status": False, "message": err.messages}, 400
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500
+
+
+# added api to trigger the zipping of files for final package
+@cors_preflight("POST, OPTIONS")
+@API.route("/triggerdownloadfinalpackage")
+class SaveFinalPackage(Resource):
+    """save finalpackage for zipping"""
+
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            print(requestjson)
+            finalpackageschema = FinalPackageSchema().load(requestjson)
+            result = redactionservice().triggerdownloadfinalpackage(
+                finalpackageschema, AuthHelper.getuserinfo()
             )
             return {
                 "status": result.success,

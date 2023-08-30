@@ -80,9 +80,12 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                         notificationservice().sendharmsnotification(producermessage)
                     elif (
                         readyfornotification == True
-                        and producermessage.category.lower() == "redline"
+                        and producermessage.category.lower()
+                        in ("redline", "responsepackage")
                     ):
-                        notificationservice().sendredlinenotification(producermessage)
+                        notificationservice().sendredlineresponsenotification(
+                            producermessage
+                        )
 
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)

@@ -122,6 +122,20 @@ class redactionservice:
             raise KeyError("Invalid redaction layer")
         return isvalid, _redactionlayer
 
+    # finalpackage download: add message to zipping service
+    def triggerdownloadfinalpackage(self, finalpackageschema, userinfo):
+        _jobmessage = self.__preparemessageforjobstatus(finalpackageschema)
+        job = jobrecordservice().insertpdfstitchjobstatus(
+            _jobmessage, userinfo["userid"]
+        )
+        print(job)
+        if job.success:
+            _message = self.__preparemessageforzipservice(
+                finalpackageschema, userinfo, job
+            )
+            print(_message)
+            return zipperproducerservice().add(self.zipperstreamkey, _message)
+
     # redline download: add message to zipping service
     def triggerdownloadredline(self, redlineschema, userinfo):
         _jobmessage = self.__preparemessageforredlinejobstatus(redlineschema)
@@ -134,25 +148,25 @@ class redactionservice:
             print(_message)
             return zipperproducerservice().add(self.zipperstreamkey, _message)
 
-    # redline download: prepare message for zipping service
-    def __preparemessageforzipservice(self, redlineschema, userinfo, job):
+    # redline/final package download: prepare message for zipping service
+    def __preparemessageforzipservice(self, messageschema, userinfo, job):
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
-            "category": redlineschema["category"],
-            "requestnumber": redlineschema["requestnumber"],
-            "bcgovcode": redlineschema["bcgovcode"],
+            "category": messageschema["category"],
+            "requestnumber": messageschema["requestnumber"],
+            "bcgovcode": messageschema["bcgovcode"],
             "createdby": userinfo["userid"],
-            "ministryrequestid": redlineschema["ministryrequestid"],
+            "ministryrequestid": messageschema["ministryrequestid"],
             "filestozip": to_json(
-                self.__preparefilestozip(redlineschema["attributes"])
+                self.__preparefilestozip(messageschema["attributes"])
             ),
             "finaloutput": to_json({}),
-            "attributes": to_json(redlineschema["attributes"]),
+            "attributes": to_json(messageschema["attributes"]),
         }
         return _message
 
-    # redline download: prepare message for zipping service
+    # redline/final package download: prepare message for zipping service
     def __preparefilestozip(self, attributes):
         filestozip = []
         for attribute in attributes:
@@ -164,8 +178,8 @@ class redactionservice:
                 filestozip.append(_file)
         return filestozip
 
-    # redline download: prepare message for redline job status
-    def __preparemessageforredlinejobstatus(self, redlineschema):
+    # redline/final package download: prepare message for redline/final package job status
+    def __preparemessageforjobstatus(self, redlineschema):
         __message = {
             "category": redlineschema["category"],
             "ministryrequestid": int(redlineschema["ministryrequestid"]),
