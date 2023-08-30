@@ -102,14 +102,15 @@ const Redlining = React.forwardRef(
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
-
-
+    const [fullPageRedactions, setFullPageRedactions]=useState([]);
+    const [editSelectedRedactions,setEditSelectedRedactions]=useState([]);
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
       []
     );
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
+    const[isFullPageRedaction,setIsFullPageRedaction]= useState(false);
 
     //xml parser
     const parser = new XMLParser();
@@ -649,6 +650,28 @@ const Redlining = React.forwardRef(
       }
     }, [iframeDocument]);
 
+    const addOrEditFullPageRedactions = (editSelectedRedactions, addSelectedRedactions, astr) => {
+
+      // if(addSelectedRedactions){
+      //   setNewRedaction({
+      //     pages: addSelectedRedactions.attributes.page,
+      //     name: addSelectedRedactions.attributes.name,
+      //     astr: astr,
+      //     type: addSelectedRedactions.name,
+      //   });
+      // }
+      if(editSelectedRedactions.length > 0){
+        editRedactions(
+          docInstance?.Core?.annotationManager,
+          docInstance?.Core?.annotationManager.exportAnnotations({
+            annotList: editSelectedRedactions,
+            useDisplayAuthor: true,
+          })
+        );
+      }
+
+    }
+
     const annotationChangedHandler = useCallback((annotations, action, info) => {
       // If the event is triggered by importing then it can be ignored
       // This will happen when importing the initial annotations
@@ -711,6 +734,8 @@ const Redlining = React.forwardRef(
             let individualPageNo;
             if (annotations[0].Subject === "Redact") {
               let pageSelectionList = [...pageSelections];
+              let editedSelectedRedactions = [];
+              let addSelectedRedactions =[];
               annots[0].children?.forEach((annotatn, i) => {
                 displayedDoc =
                   pageMappedDocs.stitchedPageLookup[
@@ -723,6 +748,18 @@ const Redlining = React.forwardRef(
                     flagid: pageFlagTypes["Withheld in Full"],
                     docid: displayedDoc.docid,
                   });
+                  setIsFullPageRedaction(true);
+                  //let fullPageRedactionList = fullPageRedactions.filter(element=> element?.originalPageNo == (Number(individualPageNo)-1));
+                  //if(fullPageRedactionList?.length > 0){
+                    let allAnnotations = docInstance.Core.annotationManager.getAnnotationsList();
+                    let _selectedAnnotations= allAnnotations.filter(annot => annot.PageNumber == Number(annotatn.attributes.page)+1);
+                    let filteredEditRedactions= _selectedAnnotations?.filter(
+                      (obj) =>
+                        obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
+                    );
+                    editedSelectedRedactions= [...editedSelectedRedactions, ...filteredEditRedactions]
+                    setEditSelectedRedactions(editedSelectedRedactions);
+                  // }
                 } else {
                   pageSelectionList.push({
                     page: Number(individualPageNo),
@@ -741,12 +778,17 @@ const Redlining = React.forwardRef(
                   annotList: annotations,
                   useDisplayAuthor: true,
                 });
-              setNewRedaction({
-                pages: annot.attributes.page,
-                name: annot.attributes.name,
-                astr: astr,
-                type: annot.name,
-              });
+              console.log("EditSelectedRedactions::",editSelectedRedactions)          
+              //if(isFullPageRedaction)
+                addOrEditFullPageRedactions(annotations, annot, astr);
+              // else{
+              //   setNewRedaction({
+              //   pages: annot.attributes.page,
+              //   name: annot.attributes.name,
+              //   astr: astr,
+              //   type: annot.name,
+              //   });
+              // }
             } else {
               for (let annot of annotations) {
                 displayedDoc =
@@ -945,6 +987,7 @@ const Redlining = React.forwardRef(
       let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
       let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
+      let fullPageRedactionList = [];
       for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
@@ -960,11 +1003,13 @@ const Redlining = React.forwardRef(
         division: removedFirstElement.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
       };
+      
       assignAnnotations(
         removedFirstElement.file.documentid,
         mappedDoc,
         fetchAnnotResponse,
-        domParser
+        domParser,
+        fullPageRedactionList
       );
       for (let file of docCopy) {
         mappedDoc = {
@@ -1069,7 +1114,7 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const assignAnnotations = async (documentid, mappedDoc, annotData, domParser) => {
+    const assignAnnotations = async (documentid, mappedDoc, annotData, domParser,fullPageRedactionList=[]) => {
       let username = docViewer?.getAnnotationManager()?.getCurrentUser();
       if (annotData[documentid]) {
         let xml = parser.parseFromString(annotData[documentid]);
@@ -1079,6 +1124,11 @@ const Redlining = React.forwardRef(
             "text/html"
           );
           let customData = JSON.parse(txt.documentElement.textContent);
+          // if(customData["trn-redaction-type"] == 'fullPage'){
+          //   fullPageRedactionList.push({"docid": customData.docid,"originalPageNo":customData.originalPageNo,
+          //   "redactionType":customData["trn-redaction-type"],'annotationId': annot.name});
+          //   setFullPageRedactions(fullPageRedactionList);
+          // }
           let originalPageNo = customData.originalPageNo;
           annot.attributes.page = (
             mappedDoc.pageMappings.find(
@@ -1131,17 +1181,38 @@ const Redlining = React.forwardRef(
       let childAnnotations = [];
       let redactionSectionsIds = selectedSections;
       let redactionIds = [];
+      let checklist=[]
+      let childAnnotation;
+      let childSection = "";
+      var sectionAnnotations = [];
+      var pageFlagSelections = pageSelections;
+      if (
+        (defaultSections.length > 0 && defaultSections[0] === 25) ||
+        selectedSections[0] === 25
+      ) {
+        pageFlagSelections[0].flagid = pageFlagTypes["In Progress"];
+      }
       for (const node of astr.getElementsByTagName("annots")[0].children) {
-        let _redact = annotManager
+        let allAnnotations = docInstance.Core.annotationManager.getAnnotationsList();
+        let _selectedAnnotations= allAnnotations.find(annot => (annot.Subject == "Free Text" && annot.getCustomData("trn-redaction-type")== 'fullPage' &&
+         annot.PageNumber == Number(node.attributes.page)+1));
+        // let filteredEditRedactions= _selectedAnnotations?.filter(
+        //   (obj) =>
+        //     obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
+        // );
+        if(!!_selectedAnnotations){
+          let redact1 = annotManager
           .getAnnotationsList()
           .find(
             (r) =>
               r.Subject === "Redact" && r.InReplyTo === node.attributes.name
           );
+          let _redact = _selectedAnnotations;
+          // let childAnnotation = annotManager.getAnnotationById(
+          //   node.attributes.name
+          // );
+        let childAnnotation = _selectedAnnotations;
         redactionIds.push(_redact.Id);
-        let childAnnotation = annotManager.getAnnotationById(
-          node.attributes.name
-        );
         childAnnotation.PageNumber = _redact?.getPageNumber();
         childAnnotation.X = _redact.X;
         childAnnotation.Y = _redact.Y;
@@ -1174,41 +1245,105 @@ const Redlining = React.forwardRef(
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
-      }
-      let _annotationtring = annotManager.exportAnnotations({
-        annotList: childAnnotations,
-        useDisplayAuthor: true,
-      });
-      let sectn = {
-        foiministryrequestid: requestid,
-      };
-      _annotationtring.then((astr) => {
-        saveAnnotation(
-          requestid,
-          astr,
-          (data) => {},
-          (error) => {
-            console.log(error);
-          },
-          currentLayer.redactionlayerid,
-          null,
-          sectn
-        );
-
-        if (redactionSectionsIds.length > 0) {
-          redactionIds.forEach((_id) => {
-            redactionInfo.find((r) => r.annotationname === _id).sections.ids =
-              redactionSectionsIds;
-          });
         }
-        setSelectedSections([]);
-        setMultiSelectedAnnotations([]);
-        setEditRedacts(null);
-      });
+        else{
+          let redaction = annotManager.getAnnotationById(node.attributes.name);
+          let coords = node.attributes.coords;
+          let X = coords?.substring(0, coords.indexOf(","));
+          let annot = new annots.FreeTextAnnotation();
+          annot = getCoordinates(annot, redaction, X);
+          annot.Color = "red";
+          annot.StrokeThickness = 0;
+          annot.Author = user?.name || user?.preferred_username || "";
+          let redactionSectionsIds =
+            defaultSections.length > 0 ? defaultSections : selectedSections;
+          let redactionSections = sections.filter(
+            (s) => redactionSectionsIds.indexOf(s.id) > -1
+          );
+          let redactionSectionsString = redactionSections
+            .map((s) => s.section)
+            .join(", ");
+          annot.setAutoSizeType("auto");
+          annot.setContents(redactionSectionsString);
+          annot.setCustomData("parentRedaction", redaction.Id);
+          annot.setCustomData(
+            "sections",
+            JSON.stringify(
+              redactionSections.map((s) => ({ id: s.id, section: s.section }))
+            )
+          );
+          const doc = docViewer.getDocument();
+          const pageInfo = doc.getPageInfo(annot.PageNumber);
+          const pageMatrix = doc.getPageMatrix(annot.PageNumber);
+          const pageRotation = doc.getPageRotation(annot.PageNumber);
+          annot.fitText(pageInfo, pageMatrix, pageRotation);
+          if (redaction.type == "fullPage")
+            annot.setCustomData("trn-redaction-type", "fullPage");
 
+          sectionAnnotations.push(annot);
+          redactionInfo.push({
+            annotationname: redaction.Id,
+            sections: { annotationname: annot.Id, ids: redactionSectionsIds },
+          });
+          for (let section of redactionSections) {
+            section.count++;
+          }
+          // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
+          annotManager.groupAnnotations(annot, [redaction]);
+
+        }
+      }
+      
+      if(childAnnotations.length > 0){
+        let _annotationtring = annotManager.exportAnnotations({
+          annotList: childAnnotations,
+          useDisplayAuthor: true,
+        });
+        let sectn = {
+          foiministryrequestid: requestid,
+        };
+        _annotationtring.then((astr) => {
+          saveAnnotation(
+            requestid,
+            astr,
+            (data) => {},
+            (error) => {
+              console.log(error);
+            },
+            currentLayer.redactionlayerid,
+            null,
+            sectn
+          );
+
+          // if (redactionSectionsIds.length > 0) {
+          //   redactionIds.forEach((_id) => {
+          //     redactionInfo.find((r) => r.annotationname === _id)?.sections.ids =
+          //       redactionSectionsIds;
+          //   });
+          // }
+          if (redactionSectionsIds.length > 0) {
+            redactionIds.forEach((_id) => {
+              const redactionToUpdate = redactionInfo.find((r) => r.annotationname === _id);
+              if (redactionToUpdate) {
+                redactionToUpdate.sections.ids = redactionSectionsIds;
+              }
+            });
+          }
+          
+          setSelectedSections([]);
+          setMultiSelectedAnnotations([]);
+          setEditRedacts(null);
+        });
+      }
+      if(sectionAnnotations.length > 0){
+        annotManager.addAnnotations(sectionAnnotations);
+        // Always redraw annotation
+        sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
+      }
       setNewRedaction(null);
     };
     //END: Save updated redactions to BE part of Bulk Edit using Multi Select Option
+
 
     const getRedactionObj = (newRedaction, editAnnot, _resizeAnnot) => {
       if (newRedaction) return newRedaction;
