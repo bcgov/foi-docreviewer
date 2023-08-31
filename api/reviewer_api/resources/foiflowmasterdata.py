@@ -20,7 +20,11 @@ from flask_cors import cross_origin
 from reviewer_api.auth import auth, AuthHelper
 
 from reviewer_api.tracer import Tracer
-from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
+from reviewer_api.utils.util import (
+    cors_preflight,
+    allowedorigins,
+    getrequiredmemberships,
+)
 from reviewer_api.exceptions import BusinessException
 import json
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -32,153 +36,215 @@ from botocore.config import Config
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
 
-API = Namespace('FOI Flow Master Data', description='Endpoints for FOI Flow master data')
+API = Namespace(
+    "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
+)
 TRACER = Tracer.get_instance()
 
-s3host = os.getenv('OSS_S3_HOST')
-s3region = os.getenv('OSS_S3_REGION')
-@cors_preflight('GET,OPTIONS')
-@API.route('/foiflow/oss/presigned/<documentid>')
-class FOIFlowS3Presigned(Resource):
+s3host = os.getenv("OSS_S3_HOST")
+s3region = os.getenv("OSS_S3_REGION")
 
+imageextensions = [".png", ".jpg", ".jpeg", ".gif"]
+
+
+@cors_preflight("GET,OPTIONS")
+@API.route("/foiflow/oss/presigned/<documentid>")
+class FOIFlowS3Presigned(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid):
-        try :
+        try:
             document = documentservice().getdocument(documentid)
-            documentmapper = redactionservice().getdocumentmapper(document["filepath"].split('/')[3])
+            documentmapper = redactionservice().getdocumentmapper(
+                document["filepath"].split("/")[3]
+            )
             attribute = json.loads(documentmapper["attributes"])
 
             current_app.logger.debug("Inside Presigned api!!")
             formsbucket = documentmapper["bucket"]
             accesskey = attribute["s3accesskey"]
             secretkey = attribute["s3secretkey"]
-            filepath = '/'.join(document["filepath"].split('/')[4:])
-            s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
-                endpoint_url='https://{0}/'.format(s3host),
-                aws_access_key_id= accesskey,
-                aws_secret_access_key= secretkey,region_name= s3region
-                )
+            filepath = "/".join(document["filepath"].split("/")[4:])
+            s3client = boto3.client(
+                "s3",
+                config=Config(signature_version="s3v4"),
+                endpoint_url="https://{0}/".format(s3host),
+                aws_access_key_id=accesskey,
+                aws_secret_access_key=secretkey,
+                region_name=s3region,
+            )
 
             filename, file_extension = os.path.splitext(filepath)
             response = s3client.generate_presigned_url(
-                ClientMethod='get_object',
-                Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath),'ResponseContentType': '{0}/{1}'.format('image' if file_extension.lower() in ['.png','.jpg','.jpeg','.gif'] else 'application',file_extension.replace('.',''))},
-                ExpiresIn=3600,HttpMethod='GET'
-                )
+                ClientMethod="get_object",
+                Params={
+                    "Bucket": formsbucket,
+                    "Key": "{0}".format(filepath),
+                    "ResponseContentType": "{0}/{1}".format(
+                        "image"
+                        if file_extension.lower() in imageextensions
+                        else "application",
+                        file_extension.replace(".", ""),
+                    ),
+                },
+                ExpiresIn=3600,
+                HttpMethod="GET",
+            )
 
-            return json.dumps(response),200
+            return json.dumps(response), 200
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500 
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('POST,OPTIONS')
-@API.route('/foiflow/oss/presigned/redline/<int:ministryrequestid>')
+@cors_preflight("POST,OPTIONS")
+@API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
 class FOIFlowS3PresignedRedline(Resource):
-
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(ministryrequestid):
-        try :
+        try:
             data = request.get_json()
-            documentmapper = redactionservice().getdocumentmapper(data["divdocumentList"][0]["documentlist"][0]["filepath"].split('/')[3])
+            documentmapper = redactionservice().getdocumentmapper(
+                data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
+            )
             attribute = json.loads(documentmapper["attributes"])
 
             # current_app.logger.debug("Inside Presigned api!!")
             formsbucket = documentmapper["bucket"]
             accesskey = attribute["s3accesskey"]
             secretkey = attribute["s3secretkey"]
-            s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
-                endpoint_url='https://{0}/'.format(s3host),
-                aws_access_key_id= accesskey,
-                aws_secret_access_key= secretkey,region_name= s3region
-                )
+            s3client = boto3.client(
+                "s3",
+                config=Config(signature_version="s3v4"),
+                endpoint_url="https://{0}/".format(s3host),
+                aws_access_key_id=accesskey,
+                aws_secret_access_key=secretkey,
+                region_name=s3region,
+            )
 
             for div in data["divdocumentList"]:
-                filename = div["divisionid"]
+                division_name = div["documentlist"][0]["divisions"][0]["name"]
 
                 # generate save url for stitched file
-                filepathlist = div["documentlist"][0]["filepath"].split('/')[4:]
-                filepath_put = '{0}/redline/{1}.pdf'.format(filepathlist[0],filename)
+                filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
+                    filepathlist[0], division_name
+                )
 
                 # filename_put, file_extension_put = os.path.splitext(filepath_put)
                 # filepath_put = filename_put+'.pdf'
                 s3path_save = s3client.generate_presigned_url(
-                        ClientMethod='get_object',
-                        Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
-                        ExpiresIn=3600,HttpMethod='PUT'
-                        )
-                
+                    ClientMethod="get_object",
+                    Params={
+                        "Bucket": formsbucket,
+                        "Key": "{0}".format(filepath_put),
+                        "ResponseContentType": "application/pdf",
+                    },
+                    ExpiresIn=3600,
+                    HttpMethod="PUT",
+                )
+
                 # for save/put - stitch by division
                 div["s3path_save"] = s3path_save
 
                 # retrieve annotations for stitch by division
-                div["annotationXML"] = redactionservice().getannotationsbyrequestdivision(ministryrequestid, div["divisionid"])
+                div[
+                    "annotationXML"
+                ] = redactionservice().getannotationsbyrequestdivision(
+                    ministryrequestid, div["divisionid"]
+                )
 
-                for doc in div["documentlist"]: 
-                    filepathlist = doc["filepath"].split('/')[4:]
+                for doc in div["documentlist"]:
+                    filepathlist = doc["filepath"].split("/")[4:]
 
                     # for load/get
-                    filepath_get = '/'.join(filepathlist)
+                    filepath_get = "/".join(filepathlist)
                     filename_get, file_extension_get = os.path.splitext(filepath_get)
+                    file_extension_get = (
+                        file_extension_get.replace(".", "")
+                        if file_extension_get.lower() in imageextensions
+                        else "pdf"
+                    )
+
                     doc["s3path_load"] = s3client.generate_presigned_url(
-                        ClientMethod='get_object',
-                        Params=   {'Bucket': formsbucket, 'Key': '{0}.{1}'.format(filename_get, 'pdf'),'ResponseContentType': 'application/pdf'},
-                        ExpiresIn=3600,HttpMethod='GET'
-                        )
+                        ClientMethod="get_object",
+                        Params={
+                            "Bucket": formsbucket,
+                            "Key": "{0}.{1}".format(filename_get, file_extension_get),
+                            "ResponseContentType": "{0}/{1}".format(
+                                "image"
+                                if file_extension_get.lower() in imageextensions
+                                else "application",
+                                file_extension_get,
+                            ),
+                        },
+                        ExpiresIn=3600,
+                        HttpMethod="GET",
+                    )
 
-            return json.dumps(data),200
+            return json.dumps(data), 200
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500 
+            return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight('POST,OPTIONS')
-@API.route('/foiflow/oss/presigned/responsepackage/<int:ministryrequestid>')
+@cors_preflight("POST,OPTIONS")
+@API.route("/foiflow/oss/presigned/responsepackage/<int:ministryrequestid>")
 class FOIFlowS3PresignedResponsePackage(Resource):
-
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(ministryrequestid):
-        try :
+        try:
             data = request.get_json()
-            documentmapper = redactionservice().getdocumentmapper(data["filepath"].split('/')[3])
+            documentmapper = redactionservice().getdocumentmapper(
+                data["filepath"].split("/")[3]
+            )
             attribute = json.loads(documentmapper["attributes"])
 
             # current_app.logger.debug("Inside Presigned api!!")
             formsbucket = documentmapper["bucket"]
             accesskey = attribute["s3accesskey"]
             secretkey = attribute["s3secretkey"]
-            s3client = boto3.client('s3',config=Config(signature_version='s3v4'),
-                endpoint_url='https://{0}/'.format(s3host),
-                aws_access_key_id= accesskey,
-                aws_secret_access_key= secretkey,region_name= s3region
-                )
+            s3client = boto3.client(
+                "s3",
+                config=Config(signature_version="s3v4"),
+                endpoint_url="https://{0}/".format(s3host),
+                aws_access_key_id=accesskey,
+                aws_secret_access_key=secretkey,
+                region_name=s3region,
+            )
 
             # generate save url for stitched file
             filename = str(ministryrequestid)
-            filepathlist = data["filepath"].split('/')[4:]
-            filepath_put = '{0}/responsepackage/{1}.pdf'.format(filepathlist[0],filename)
+            filepathlist = data["filepath"].split("/")[4:]
+            filepath_put = "{0}/responsepackage/{1}.pdf".format(
+                filepathlist[0], filename
+            )
 
             # filename_put, file_extension_put = os.path.splitext(filepath_put)
             # filepath_put = filename_put+'.pdf'
             s3path_save = s3client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params=   {'Bucket': formsbucket, 'Key': '{0}'.format(filepath_put),'ResponseContentType': 'application/pdf'},
-                    ExpiresIn=3600,HttpMethod='PUT'
-                    )
-            
+                ClientMethod="get_object",
+                Params={
+                    "Bucket": formsbucket,
+                    "Key": "{0}".format(filepath_put),
+                    "ResponseContentType": "application/pdf",
+                },
+                ExpiresIn=3600,
+                HttpMethod="PUT",
+            )
+
             # for save/put - stitch by division
             data["s3path_save"] = s3path_save
 
-            return json.dumps(data),200
+            return json.dumps(data), 200
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500 
+            return {"status": exception.status_code, "message": exception.message}, 500

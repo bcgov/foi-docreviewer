@@ -19,7 +19,10 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        store.dispatch(setDocumentList(res.data.documents) as any);
+        // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
+        const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
+        store.dispatch(setDocumentList(__files) as any);
+        
         store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
         callback(res.data.documents);
       } else {
@@ -115,13 +118,14 @@ export const deleteAnnotation = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
+  redactionlayerid: number,
   annotationname: string = "",
   callback: any,
   errorCallback: any,
   page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
+  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`:
+  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -140,12 +144,13 @@ export const deleteRedaction = (
   requestid: string,
   documentid: number,
   documentversion: number = 1,
+  redactionlayerid: number,
   annotationname: string = "",
   callback: any,
   errorCallback: any,
   page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
+  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`;
 
   httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {
@@ -236,6 +241,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
+  redactionlayerid: number,
   //callback: any,
   errorCallback: any
 ) => {
@@ -243,7 +249,7 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  );
+  ) + "/" +  redactionlayerid;
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -304,4 +310,24 @@ export const fetchRedactionLayerMasterData = (
 
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
+};
+
+
+export const triggerDownloadRedlines = (
+  requestJSON: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_REDLINE}`;
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download redline");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download redline:",error);
+  });
 };

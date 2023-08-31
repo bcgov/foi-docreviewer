@@ -45,6 +45,7 @@ const DocumentSelector = ({
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
+    const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
@@ -84,8 +85,7 @@ const DocumentSelector = ({
         );
     }, []);
 
-    useEffect(() => {
-        setPageFlagChanged(false);
+    const updatePageFlags = () => {
         fetchPageFlagsMasterData(
             requestid,
             (data: any) => setPageData(data),
@@ -93,9 +93,10 @@ const DocumentSelector = ({
         );
         fetchPageFlag(
             requestid,
+            currentLayer.redactionlayerid,
             (error: any) => console.log(error)
         )
-    }, [pageFlagChanged]);
+    }
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
@@ -675,7 +676,7 @@ const DocumentSelector = ({
                                                                 setOpenContextPopup={setOpenContextPopup}
                                                                 selectedPages={selectedPages}
                                                                 consultInfo={consultInfo}
-                                                                setPageFlagChanged={setPageFlagChanged}
+                                                                updatePageFlags={updatePageFlags}
                                                             />
                                                         }
                                                     </TreeItem>
@@ -747,7 +748,7 @@ const DocumentSelector = ({
                                                         setOpenContextPopup={setOpenContextPopup}
                                                         selectedPages={selectedPages}
                                                         consultInfo={consultInfo}
-                                                        setPageFlagChanged={setPageFlagChanged}
+                                                        updatePageFlags={updatePageFlags}
                                                         pageMappedDocs={pageMappedDocs}
                                                     />
                                                 }
