@@ -128,7 +128,6 @@ class redactionservice:
         job = jobrecordservice().insertpdfstitchjobstatus(
             _jobmessage, userinfo["userid"]
         )
-        print(job)
         if job.success:
             _message = self.__preparemessageforzipservice(
                 finalpackageschema, userinfo, job

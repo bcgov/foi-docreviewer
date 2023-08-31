@@ -44,6 +44,8 @@ TRACER = Tracer.get_instance()
 s3host = os.getenv("OSS_S3_HOST")
 s3region = os.getenv("OSS_S3_REGION")
 
+imageextensions = [".png", ".jpg", ".jpeg", ".gif"]
+
 
 @cors_preflight("GET,OPTIONS")
 @API.route("/foiflow/oss/presigned/<documentid>")
@@ -83,7 +85,7 @@ class FOIFlowS3Presigned(Resource):
                     "Key": "{0}".format(filepath),
                     "ResponseContentType": "{0}/{1}".format(
                         "image"
-                        if file_extension.lower() in [".png", ".jpg", ".jpeg", ".gif"]
+                        if file_extension.lower() in imageextensions
                         else "application",
                         file_extension.replace(".", ""),
                     ),
@@ -166,16 +168,10 @@ class FOIFlowS3PresignedRedline(Resource):
                     filename_get, file_extension_get = os.path.splitext(filepath_get)
                     file_extension_get = (
                         file_extension_get.replace(".", "")
-                        if file_extension_get.lower()
-                        in [".png", ".jpg", ".jpeg", ".gif"]
+                        if file_extension_get.lower() in imageextensions
                         else "pdf"
                     )
 
-                    # doc["s3path_load"] = s3client.generate_presigned_url(
-                    #     ClientMethod='get_object',
-                    #     Params=   {'Bucket': formsbucket, 'Key': '{0}.{1}'.format(filename_get, 'pdf'),'ResponseContentType': 'application/pdf'},
-                    #     ExpiresIn=3600,HttpMethod='GET'
-                    #     )
                     doc["s3path_load"] = s3client.generate_presigned_url(
                         ClientMethod="get_object",
                         Params={
@@ -183,8 +179,7 @@ class FOIFlowS3PresignedRedline(Resource):
                             "Key": "{0}.{1}".format(filename_get, file_extension_get),
                             "ResponseContentType": "{0}/{1}".format(
                                 "image"
-                                if file_extension_get.lower()
-                                in [".png", ".jpg", ".jpeg", ".gif"]
+                                if file_extension_get.lower() in imageextensions
                                 else "application",
                                 file_extension_get,
                             ),

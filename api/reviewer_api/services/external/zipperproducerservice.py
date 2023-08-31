@@ -11,8 +11,7 @@ class zipperproducerservice:
     port = os.getenv("ZIPPER_REDIS_PORT")
     password = os.getenv("ZIPPER_REDIS_PASSWORD")
 
-    # db = Database(host=host, port=port, db=0,password=password)
-    db = Database(host=host, port=port)
+    db = Database(host=host, port=port, db=0, password=password)
 
     def add(self, streamkey, payload):
         try:

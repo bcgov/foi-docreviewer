@@ -139,6 +139,7 @@ class documentservice:
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
         documentid = None
+        version = 0
         for property in properties:
             if record["documentmasterid"] == property["processingparentid"] or (
                 property["processingparentid"] is None
@@ -443,7 +444,7 @@ class documentservice:
                     "divisions"
                 ].extend(document["attributes"]["divisions"])
                 removeids.append(document["documentmasterid"])
-
+        print(documents)
         for id in removeids:
             documents.pop(id)
 
