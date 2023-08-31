@@ -17,8 +17,13 @@ from http import HTTPStatus
 
 from flask import g, request
 from flask_jwt_oidc import JwtManager
-from jose import jwt as josejwt
-from reviewer_api.utils.enums import MinistryTeamWithKeycloackGroup, ProcessingTeamWithKeycloackGroup, IAOTeamWithKeycloackGroup
+from jose import JWTError, jwt as josejwt
+from reviewer_api.utils.enums import (
+    MinistryTeamWithKeycloackGroup,
+    ProcessingTeamWithKeycloackGroup,
+    IAOTeamWithKeycloackGroup,
+)
+
 jwt = (
     JwtManager()
 )  # pylint: disable=invalid-name; lower case name as used by convention in most Flask apps
@@ -41,14 +46,16 @@ class Auth:
         return decorated
 
     @classmethod
-    def hasusertype(cls,usertype):
+    def hasusertype(cls, usertype):
         def decorated(f):
             @wraps(f)
             def wrapper(*args, **kwargs):
-                if(usertype == AuthHelper.getusertype()):
+                if usertype == AuthHelper.getusertype():
                     return f(*args, **kwargs)
-                return "Unauthorized" , 401
+                return "Unauthorized", 401
+
             return wrapper
+
         return decorated
 
     @classmethod
@@ -61,64 +68,94 @@ class Auth:
         def decorated(f):
             @wraps(f)
             def wrapper(*args, **kwargs):
-                _groups = groups.split(',')
+                _groups = groups.split(",")
                 token = jwt.get_token_auth_header()
                 unverified_claims = josejwt.get_unverified_claims(token)
-                usergroups = unverified_claims['groups']
-                usergroups = [usergroup.replace('/','',1) if usergroup.startswith('/') else usergroup for usergroup in usergroups]
+                usergroups = unverified_claims["groups"]
+                usergroups = [
+                    usergroup.replace("/", "", 1)
+                    if usergroup.startswith("/")
+                    else usergroup
+                    for usergroup in usergroups
+                ]
                 exists = False
                 for group in _groups:
-                    if group in usergroups: 
-                       exists = True
-                retval = "Unauthorized" , 401
-                if exists == True:            
+                    if group in usergroups:
+                        exists = True
+                retval = "Unauthorized", 401
+                if exists == True:
                     return f(*args, **kwargs)
                 return retval
 
             return wrapper
 
         return decorated
-    
-auth = (
-    Auth()
-)
+
+
+auth = Auth()
 
 
 class AuthHelper:
-    
     @classmethod
-    def getuserid(cls):
-        token = request.headers.get("Authorization", None)
-        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        return unverified_claims['preferred_username']
-    
+    def getuserid(cls, token=None):
+        try:
+            if token is None:
+                token = request.headers.get("Authorization", None)
+            unverified_claims = josejwt.get_unverified_claims(
+                token.partition("Bearer")[2].strip()
+            )
+            claim_name = (
+                "foi_preferred_username"
+                if "foi_preferred_username" in unverified_claims
+                else "preferred_username"
+            )
+            claim_value = unverified_claims[claim_name].lower()
+            return (
+                claim_value + "@idir"
+                if claim_value.endswith("@idir") == False
+                else claim_value
+            )
+
+        except JWTError as exception:
+            print("JWTError >>> ", str(exception))
+        except Exception as ex:
+            print("Exception >>> ", str(ex))
+
     @classmethod
     def getwsuserid(cls, token):
         unverified_claims = josejwt.get_unverified_claims(token.strip())
-        return unverified_claims['preferred_username']
+        return unverified_claims["preferred_username"]
 
     @classmethod
     def getusername(cls):
         token = request.headers.get("Authorization", None)
-        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        return unverified_claims['name']
-    
+        unverified_claims = josejwt.get_unverified_claims(
+            token.partition("Bearer")[2].strip()
+        )
+        return unverified_claims["name"]
+
     @classmethod
     def isministrymember(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
+        ministrygroups = list(
+            set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())
+        )
         if len(ministrygroups) > 0:
             return True
         return False
-    
+
     @classmethod
     def isprocesingteammember(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
+        ministrygroups = list(
+            set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())
+        )
         if len(ministrygroups) > 0:
             return False
         else:
-            processinggroups = list(set(usergroups).intersection(ProcessingTeamWithKeycloackGroup.list()))
+            processinggroups = list(
+                set(usergroups).intersection(ProcessingTeamWithKeycloackGroup.list())
+            )
             if len(processinggroups) > 0:
                 return True
         return False
@@ -126,19 +163,28 @@ class AuthHelper:
     @classmethod
     def getusergroups(cls):
         token = request.headers.get("Authorization", None)
-        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        usergroups = unverified_claims['groups']
-        usergroups = [usergroup.replace('/','',1) if usergroup.startswith('/') else usergroup for usergroup in usergroups]
+        unverified_claims = josejwt.get_unverified_claims(
+            token.partition("Bearer")[2].strip()
+        )
+        usergroups = unverified_claims["groups"]
+        usergroups = [
+            usergroup.replace("/", "", 1) if usergroup.startswith("/") else usergroup
+            for usergroup in usergroups
+        ]
         return usergroups
-    
+
     @classmethod
     def getusertype(cls):
         usergroups = cls.getusergroups()
-        ministrygroups = list(set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list()))
+        ministrygroups = list(
+            set(usergroups).intersection(MinistryTeamWithKeycloackGroup.list())
+        )
         if len(ministrygroups) > 0:
             return "ministry"
         else:
-            iaogroups = list(set(usergroups).intersection(IAOTeamWithKeycloackGroup.list()))
+            iaogroups = list(
+                set(usergroups).intersection(IAOTeamWithKeycloackGroup.list())
+            )
             if len(iaogroups) > 0:
                 return "iao"
         return None
@@ -148,13 +194,15 @@ class AuthHelper:
         usergroups = cls.getusergroups()
         _groups = set(usergroups)
         if cls.isministrymember() == False:
-            processinggroups = list(_groups.intersection(ProcessingTeamWithKeycloackGroup.list()))
+            processinggroups = list(
+                _groups.intersection(ProcessingTeamWithKeycloackGroup.list())
+            )
             if len(processinggroups) > 0:
                 return "processing"
             else:
-                if 'Flex Team' in _groups:
+                if "Flex Team" in _groups:
                     return "flex"
-                elif 'Intake Team' in _groups:
+                elif "Intake Team" in _groups:
                     return "intake"
                 else:
                     return None
@@ -169,18 +217,22 @@ class AuthHelper:
     @classmethod
     def getfirstname(cls):
         token = request.headers.get("Authorization", None)
-        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        return unverified_claims['given_name']
+        unverified_claims = josejwt.get_unverified_claims(
+            token.partition("Bearer")[2].strip()
+        )
+        return unverified_claims["given_name"]
 
     @classmethod
     def getlastname(cls):
         token = request.headers.get("Authorization", None)
-        unverified_claims = josejwt.get_unverified_claims(token.partition("Bearer")[2].strip())
-        return unverified_claims['family_name']
-        
-    @classmethod    
+        unverified_claims = josejwt.get_unverified_claims(
+            token.partition("Bearer")[2].strip()
+        )
+        return unverified_claims["family_name"]
+
+    @classmethod
     def getuserinfo(cls):
-        #get user info
+        # get user info
         if cls.getusertype() == "ministry":
             usergroups = cls.getministrygroups()
             usergroup = usergroups[0]
@@ -188,10 +240,10 @@ class AuthHelper:
             usergroup = cls.getiaotype()
 
         return {
-            'userid': cls.getuserid(),
-            'firstname': cls.getfirstname(),
-            'lastname': cls.getlastname(),
-            'operatingteam': usergroup
+            "userid": cls.getuserid(),
+            "firstname": cls.getfirstname(),
+            "lastname": cls.getlastname(),
+            "operatingteam": usergroup,
         }
 
     @classmethod

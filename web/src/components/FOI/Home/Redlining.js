@@ -1,6 +1,12 @@
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import React, { useRef, useEffect, useState, useImperativeHandle } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useImperativeHandle,
+  useCallback,
+} from "react";
 import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,13 +33,13 @@ import {
   fetchSections,
   fetchPageFlag,
   fetchKeywordsMasterData,
+  triggerDownloadRedlines,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-//import { element } from 'prop-types';
 import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -55,8 +61,9 @@ const Redlining = React.forwardRef(
       individualDoc,
       pageMappedDocs,
       setPageMappedDocs,
+      incompatibleFiles,
       setIsStitchingLoaded,
-      isStitchingLoaded
+      isStitchingLoaded,
     },
     ref
   ) => {
@@ -69,8 +76,7 @@ const Redlining = React.forwardRef(
       (state) => state.documents?.redactionInfo
     );
     const sections = useSelector((state) => state.documents?.sections);
-  const currentLayer = useSelector(state=> state.documents?.currentLayer);
-  const redactionLayers = useSelector(state=> state.documents?.redactionLayers);
+    const currentLayer = useSelector((state) => state.documents?.currentLayer);
 
     const viewer = useRef(null);
     const saveButton = useRef(null);
@@ -96,15 +102,15 @@ const Redlining = React.forwardRef(
     const [pageSelections, setPageSelections] = useState([]);
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
     const [modalSortAsc, setModalSortAsc] = useState(true);
-    const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);;
+    const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
-    const [mapper, setMapper] = useState([]);
     const [searchKeywords, setSearchKeywords] = useState("");
     const [iframeDocument, setIframeDocument] = useState(null);
     const [modalFor, setModalFor] = useState("");
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
+    const [redlineSaving, setRedlineSaving] = useState(false);
 
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
@@ -222,7 +228,6 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
       fetchSections(requestid, (error) => console.log(error));
-
       WebViewer(
         {
           path: "/webviewer",
@@ -233,6 +238,7 @@ const Redlining = React.forwardRef(
           enableRedaction: true,
           useDownloader: false,
           css: "/stylesheets/webviewer.css",
+          loadAsPDF: true,
         },
         viewer.current
       ).then((instance) => {
@@ -247,6 +253,9 @@ const Redlining = React.forwardRef(
         } = instance.Core;
         instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
         instance.UI.enableElements(["attachmentPanelButton"]);
+        documentViewer.setToolMode(
+          documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
+        );
 
         //customize header - insert a dropdown button
         const document = instance.UI.iframeWindow.document;
@@ -410,9 +419,9 @@ const Redlining = React.forwardRef(
           .setStyles(() => ({
             FillColor: new Annotations.Color(255, 255, 255),
           }));
-
         documentViewer.addEventListener("documentLoaded", () => {
           PDFNet.initialize(); // Only needs to be initialized once
+
           fetchKeywordsMasterData(
             (data) => {
               if (data) {
@@ -574,63 +583,86 @@ const Redlining = React.forwardRef(
 
     //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
-  useEffect(() => {
-    if (currentLayer) {
-      if (currentLayer.name.toLowerCase() === 'response package') {
-        // Manually create white boxes to simulate redaction because apply redaction is permanent
-        
-        const existingAnnotations = annotManager.getAnnotationsList();
-        const redactions = existingAnnotations.filter(a => a.Subject === 'Redact');
-        var rects = []
-        for (const redaction of redactions) {
-          rects = rects.concat(redaction.getQuads().map(q => {
-            return {
-              page: redaction.getPageNumber(),
-              rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1)
-            }
+    useEffect(() => {
+      if (currentLayer) {
+        if (currentLayer.name.toLowerCase() === "response package") {
+          // Manually create white boxes to simulate redaction because apply redaction is permanent
+
+          const existingAnnotations = annotManager.getAnnotationsList();
+          const redactions = existingAnnotations.filter(
+            (a) => a.Subject === "Redact"
+          );
+          var rects = [];
+          for (const redaction of redactions) {
+            rects = rects.concat(
+              redaction.getQuads().map((q) => {
+                return {
+                  page: redaction.getPageNumber(),
+                  rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1),
+                };
+              })
+            );
           }
-          ));
-        }
-        annotManager.deleteAnnotations(redactions, {imported: true, force: true, source: "layerchange"});
-        var newAnnots = []
-        for (const rect of rects) {
-          const annot = new annots.RectangleAnnotation();
-          annot.setRect(rect.rect);
-          annot.FillColor = new annots.Color(255,255,255,1);
-          annot.Color = new annots.Color(255,255,255,1);
-          annot.setPageNumber(rect.page);
-          newAnnots.push(annot)
-        }
-        annotManager.addAnnotations(newAnnots, {imported: true, source: "layerchange"});
-        for (const annot of newAnnots) {
-          annotManager.bringToBack(annot);
-        }
-        annotManager.drawAnnotationsFromList(newAnnots);
-        annotManager.setReadOnly(true);
-      } else {
-        fetchAnnotations(
-          requestid,
-          currentLayer.name,
-          async (data) => {
-            setMerge(true);
-            if (!fetchAnnotResponse) {
-              setFetchAnnotResponse(data)
-            } else {
-              annotManager.setReadOnly(false);
-              const existingAnnotations = annotManager.getAnnotationsList();
-              await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
-              for (const docid in data) {
-                assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
+          annotManager.deleteAnnotations(redactions, {
+            imported: true,
+            force: true,
+            source: "layerchange",
+          });
+          var newAnnots = [];
+          for (const rect of rects) {
+            const annot = new annots.RectangleAnnotation();
+            annot.setRect(rect.rect);
+            annot.FillColor = new annots.Color(255, 255, 255, 1);
+            annot.Color = new annots.Color(255, 255, 255, 1);
+            annot.setPageNumber(rect.page);
+            newAnnots.push(annot);
+          }
+          annotManager.addAnnotations(newAnnots, {
+            imported: true,
+            source: "layerchange",
+          });
+          for (const annot of newAnnots) {
+            annotManager.bringToBack(annot);
+          }
+          annotManager.drawAnnotationsFromList(newAnnots);
+          annotManager.setReadOnly(true);
+        } else {
+          fetchAnnotations(
+            requestid,
+            currentLayer.name,
+            async (data) => {
+              setMerge(true);
+              if (!fetchAnnotResponse) {
+                setFetchAnnotResponse(data);
+              } else {
+                annotManager.setReadOnly(false);
+                docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
+                const existingAnnotations = annotManager.getAnnotationsList();
+                await annotManager.deleteAnnotations(existingAnnotations, {
+                  imported: true,
+                  force: true,
+                  source: "layerchange",
+                });
+                for (const docid in data) {
+                  assignAnnotations(
+                    docid,
+                    pageMappedDocs.docIdLookup[docid],
+                    data,
+                    new DOMParser()
+                  );
+                }
               }
+            },
+            (error) => {
+              console.log("Error:", error);
             }
-          },
-          (error) => {
-            console.log('Error:',error);
-          }
-        );
+          );
+          fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            console.log(error)
+          );
+        }
       }
-    }
-  }, [currentLayer]);
+    }, [currentLayer]);
 
     useEffect(() => {
       // add event listener for hiding saving menu
@@ -645,250 +677,293 @@ const Redlining = React.forwardRef(
       }
     }, [iframeDocument]);
 
-    useEffect(() => {
-      docInstance?.Core?.annotationManager.addEventListener(
-        "annotationSelected",
-        (annotations) => {
-          //START - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
-          // get freetext annotations with redaction sections alone
-          const _selectedRedactions = annotations.filter(
-            (obj) =>
-              obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
-          );
-          let annotationName = _selectedRedactions[0]?.Id;
-          if (annotationName) {
-            setMultiSelectedAnnotations((prevSelectedAnnotations) => {
-              const isExists = prevSelectedAnnotations.find(
-                (_annotation) => _annotation.Id === annotationName
-              );
-              if (isExists === undefined) {
-                return [...prevSelectedAnnotations, _selectedRedactions[0]];
+    const annotationChangedHandler = useCallback(
+      (annotations, action, info) => {
+        // If the event is triggered by importing then it can be ignored
+        // This will happen when importing the initial annotations
+        // from the server or individual changes from other users
+
+        if (info.source !== "redactionApplied") {
+          //ignore annots/redact changes made by applyRedaction
+          if (info.imported) return;
+          //do not run if redline is saving
+          if (redlineSaving) return;
+          let localDocumentInfo = currentDocument;
+          annotations.forEach((annot) => {
+            let displayedDoc =
+              pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
+            let individualPageNo = displayedDoc.page;
+            annot.setCustomData(
+              "originalPageNo",
+              JSON.stringify(individualPageNo - 1)
+            );
+          });
+          let _annotationtring =
+            docInstance.Core.annotationManager.exportAnnotations({
+              annotList: annotations,
+              useDisplayAuthor: true,
+            });
+          _annotationtring.then(async (astr) => {
+            //parse annotation xml
+            let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
+            let annots = jObj.getElementsByTagName("annots");
+            setRedactionType(annotations[0]?.type);
+            if (action === "delete") {
+              let annotObjs = [];
+              for (let annot of annots[0].children) {
+                let displayedDoc =
+                  pageMappedDocs.stitchedPageLookup[
+                    Number(annot.attributes.page) + 1
+                  ];
+                let individualPageNo = displayedDoc.page;
+                if (annot.name === "redact") {
+                  annotObjs.push({
+                    page: annot.attributes.page,
+                    name: annot.attributes.name,
+                    type: annot.name,
+                  });
+                } else {
+                  deleteAnnotation(
+                    requestid,
+                    displayedDoc.docid,
+                    displayedDoc.docversion,
+                    currentLayer.redactionlayerid,
+                    annot.attributes.name,
+                    (data) => {},
+                    (error) => {
+                      console.log(error);
+                    }
+                  );
+                }
               }
-              return prevSelectedAnnotations;
-            });
-          }
-          //END - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
-        }
-      );
-
-      docInstance?.Core?.annotationManager.addEventListener(
-        "annotationChanged",
-        (annotations, action, info) => {
-          // If the event is triggered by importing then it can be ignored
-          // This will happen when importing the initial annotations
-          // from the server or individual changes from other users
-
-          if (info.source !== "redactionApplied") {
-            //ignore annots/redact changes made by applyRedaction
-            if (info.imported) return;
-            let localDocumentInfo = currentDocument;
-            annotations.forEach((annot) => {
-              let displayedDoc =
-                pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
-              let individualPageNo = displayedDoc.page;
-              annot.setCustomData(
-                "originalPageNo",
-                JSON.stringify(individualPageNo - 1)
-              );
-            });
-            let _annotationtring =
-              docInstance.Core.annotationManager.exportAnnotations({
-                annotList: annotations,
-                useDisplayAuthor: true,
-              });
-            _annotationtring.then(async (astr) => {
-              //parse annotation xml
-              let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
-              let annots = jObj.getElementsByTagName("annots");
-              setRedactionType(annotations[0]?.type);
-              if (action === "delete") {
-                let annotObjs = [];
-                for (let annot of annots[0].children) {
-                  let displayedDoc =
+              setDeleteQueue(annotObjs);
+            } else if (action === "add") {
+              let displayedDoc;
+              let individualPageNo;
+              if (annotations[0].Subject === "Redact") {
+                let pageSelectionList = [...pageSelections];
+                annots[0].children?.forEach((annotatn, i) => {
+                  displayedDoc =
                     pageMappedDocs.stitchedPageLookup[
-                      Number(annot.attributes.page) + 1
+                      Number(annotatn.attributes.page) + 1
                     ];
-                  let individualPageNo = displayedDoc.page;
-                  if (annot.name === "redact") {
-                    annotObjs.push({
-                      page: annot.attributes.page,
-                      name: annot.attributes.name,
-                      type: annot.name,
+                  individualPageNo = displayedDoc.page;
+                  if (annotations[i]?.type === "fullPage") {
+                    pageSelectionList.push({
+                      page: Number(individualPageNo),
+                      flagid: pageFlagTypes["Withheld in Full"],
+                      docid: displayedDoc.docid,
                     });
                   } else {
-                    if (
-                      annotations[0].getCustomData("trn-redaction-type") ===
-                      "fullPage"
-                    ) {
-                      deleteAnnotation(
-                        requestid,
-                        displayedDoc.docid,
-                        displayedDoc.version,
-                        annot.attributes.name,
-                        (data) => {
-                          fetchPageFlag(requestid, (error) =>
-                            console.log(error)
-                          );
-                        },
-                        (error) => {
-                          console.log(error);
-                        },
-                        individualPageNo
-                      );
-                    } else {
-                      deleteAnnotation(
-                        requestid,
-                        displayedDoc.docid,
-                        displayedDoc.version,
-                        annot.attributes.name,
-                        (data) => {},
-                        (error) => {
-                          console.log(error);
-                        }
-                      );
-                    }
-                  }
-                }
-                setDeleteQueue(annotObjs);
-              } else if (action === "add") {
-                let displayedDoc;
-                let individualPageNo;
-                if (annotations[0].Subject === "Redact") {
-                  let pageSelectionList = [...pageSelections];
-                  annots[0].children?.forEach((annotatn, i) => {
-                    displayedDoc =
-                      pageMappedDocs.stitchedPageLookup[
-                        Number(annotatn.attributes.page) + 1
-                      ];
-                    individualPageNo = displayedDoc.page;
-                    if (annotations[i]?.type === "fullPage") {
-                      pageSelectionList.push({
-                        page: Number(individualPageNo),
-                        flagid: pageFlagTypes["Withheld in Full"],
-                        docid: displayedDoc.docid,
-                      });
-                    } else {
-                      pageSelectionList.push({
-                        page: Number(individualPageNo),
-                        flagid: pageFlagTypes["Partial Disclosure"],
-                        docid: displayedDoc.docid,
-                      });
-                    }
-                    annotations[i].setCustomData("docid", displayedDoc.docid);
-                  });
-                  setPageSelections(pageSelectionList);
-                  let annot = annots[0].children[0];
-                  let astr =
-                    await docInstance.Core.annotationManager.exportAnnotations({
-                      annotList: annotations,
-                      useDisplayAuthor: true,
+                    pageSelectionList.push({
+                      page: Number(individualPageNo),
+                      flagid: pageFlagTypes["Partial Disclosure"],
+                      docid: displayedDoc.docid,
                     });
-                  setNewRedaction({
+                  }
+                  annotations[i].setCustomData("docid", displayedDoc.docid);
+                  annotations[i].setCustomData(
+                    "docversion",
+                    displayedDoc.docversion
+                  );
+                  annotations[i].setCustomData(
+                    "redactionlayerid",
+                    currentLayer.redactionlayerid
+                  );
+                });
+                setPageSelections(pageSelectionList);
+                let annot = annots[0].children[0];
+                let astr =
+                  await docInstance.Core.annotationManager.exportAnnotations({
+                    annotList: annotations,
+                    useDisplayAuthor: true,
+                  });
+                setNewRedaction({
+                  pages: annot.attributes.page,
+                  name: annot.attributes.name,
+                  astr: astr,
+                  type: annot.name,
+                });
+              } else {
+                for (let annot of annotations) {
+                  displayedDoc =
+                    pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
+                  annot.setCustomData("docid", displayedDoc.docid);
+                  annot.setCustomData("docversion", displayedDoc.docversion);
+                  annot.setCustomData(
+                    "redactionlayerid",
+                    currentLayer.redactionlayerid
+                  );
+                }
+
+                let astr =
+                  await docInstance.Core.annotationManager.exportAnnotations({
+                    annotList: annotations,
+                    useDisplayAuthor: true,
+                  });
+
+                let sections = annotations[0].getCustomData("sections");
+                let sectn;
+                if (sections) {
+                  sectn = {
+                    foiministryrequestid: requestid,
+                  };
+                }
+                setSelectedSections([]);
+                saveAnnotation(
+                  requestid,
+                  astr,
+                  (data) => {},
+                  (error) => {
+                    console.log(error);
+                  },
+                  currentLayer.redactionlayerid,
+                  null,
+                  sectn
+                  //pageSelections
+                );
+              }
+            } else if (action === "modify") {
+              // handles saving modify actions and initial save of redaction due to grouping
+              let selectedAnnotations =
+                docInstance.Core.annotationManager.getSelectedAnnotations();
+              let username = docViewer
+                ?.getAnnotationManager()
+                ?.getCurrentUser();
+              let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
+              let annots = jObj.getElementsByTagName("annots");
+              const isRedactFound = selectedAnnotations?.find(
+                (a) => a.Subject === "Redact"
+              );
+              for (let annot of annots[0].children) {
+                //Redaction resize handled here
+                if (
+                  selectedAnnotations.length > 0 &&
+                  isRedactFound &&
+                  annot.name === "redact"
+                ) {
+                  // save redact astr
+                  saveAnnotation(
+                    requestid,
+                    astr,
+                    (data) => {
+                      setNewRedaction(null);
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
+                    (error) => {
+                      console.log(error);
+                    },
+                    currentLayer.redactionlayerid,
+                    newRedaction
+                      ? createPageFlagPayload(
+                          pageSelections,
+                          currentLayer.redactionlayerid
+                        )
+                      : null
+                  );
+                  const _resizeAnnot = {
                     pages: annot.attributes.page,
                     name: annot.attributes.name,
                     astr: astr,
                     type: annot.name,
-                  });
-                } else {
-                  for (let annot of annotations) {
-                    displayedDoc =
-                      pageMappedDocs.stitchedPageLookup[
-                        Number(annot.PageNumber)
-                      ];
-                    annot.setCustomData("docid", displayedDoc.docid);
-                  }
-
-                  let astr =
-                    await docInstance.Core.annotationManager.exportAnnotations({
-                      annotList: annotations,
-                      useDisplayAuthor: true,
-                    });
-
-                  let sections = annotations[0].getCustomData("sections");
-                  let redactionlayer = annotations[0].getCustomData("redactionlayer");
-                  let sectn;
-                  if (sections) {
-                    sectn = {
-                      foiministryrequestid: requestid,
-                    };
-                  }
-                  setSelectedSections([]);
+                  };
+                  // save resized section here
+                  saveRedaction(_resizeAnnot);
+                }
+                //Other Annotations resize handled here
+                else if (
+                  (selectedAnnotations.length === 0 &&
+                    annot.name === "redact") ||
+                  (selectedAnnotations.length > 0 &&
+                    selectedAnnotations[0].Subject !== "Redact" &&
+                    selectedAnnotations[0].Author === username)
+                ) {
                   saveAnnotation(
                     requestid,
                     astr,
-                    (data) => {},
+                    (data) => {
+                      setNewRedaction(null);
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
                     (error) => {
                       console.log(error);
                     },
-                    Number(redactionlayer),
-                    null,
-                    sectn
-                    //pageSelections
+                    currentLayer.redactionlayerid,
+                    newRedaction
+                      ? createPageFlagPayload(
+                          pageSelections,
+                          currentLayer.redactionlayerid
+                        )
+                      : null
                   );
                 }
-              } else if (action === "modify") {
-                let selectedAnnotations =
-                  docInstance.Core.annotationManager.getSelectedAnnotations();
-                let username = docViewer
-                  ?.getAnnotationManager()
-                  ?.getCurrentUser();
-                let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
-                let annots = jObj.getElementsByTagName("annots");
-                const isRedactFound = selectedAnnotations?.find(
-                  (a) => a.Subject === "Redact"
-                );
-                for (let annot of annots[0].children) {
-                  //Redaction resize handled here
-                  if (
-                    selectedAnnotations.length > 0 &&
-                    isRedactFound &&
-                    annot.name === "redact"
-                  ) {
-                    // save redact astr
-                    saveAnnotation(
-                      requestid,
-                      astr,
-                      (data) => {},
-                      (error) => {
-                        console.log(error);
-                      },
-                      null
-                    );
-                    const _resizeAnnot = {
-                      pages: annot.attributes.page,
-                      name: annot.attributes.name,
-                      astr: astr,
-                      type: annot.name,
-                    };
-                    // save resized section here
-                    saveRedaction(_resizeAnnot);
-                  }
-                  //Other Annotations resize handled here
-                  else if (
-                    (selectedAnnotations.length === 0 &&
-                      annot.name === "redact") ||
-                    (selectedAnnotations.length > 0 &&
-                      selectedAnnotations[0].Subject !== "Redact" &&
-                      selectedAnnotations[0].Author === username)
-                  ) {
-                    saveAnnotation(
-                      requestid,
-                      astr,
-                      (data) => {},
-                      (error) => {
-                        console.log(error);
-                      },
-                      null
-                    );
-                  }
-                }
               }
-            });
-            setAnnots(docInstance.Core.Annotations);
-          }
+            }
+          });
+          setAnnots(docInstance.Core.Annotations);
         }
+      },
+      [
+        pageMappedDocs,
+        currentLayer,
+        newRedaction,
+        pageSelections,
+        redlineSaving,
+      ]
+    );
+
+    useEffect(() => {
+      annotManager?.addEventListener("annotationSelected", (annotations) => {
+        //START - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
+        // get freetext annotations with redaction sections alone
+        const _selectedRedactions = annotations.filter(
+          (obj) =>
+            obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
+        );
+        let annotationName = _selectedRedactions[0]?.Id;
+        if (annotationName) {
+          setMultiSelectedAnnotations((prevSelectedAnnotations) => {
+            const isExists = prevSelectedAnnotations.find(
+              (_annotation) => _annotation.Id === annotationName
+            );
+            if (isExists === undefined) {
+              return [...prevSelectedAnnotations, _selectedRedactions[0]];
+            }
+            return prevSelectedAnnotations;
+          });
+        }
+        //END - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
+      });
+
+      annotManager?.removeEventListener(
+        "annotationChanged",
+        annotationChangedHandler
       );
-    }, [pageMappedDocs]);
+      annotManager?.addEventListener(
+        "annotationChanged",
+        annotationChangedHandler
+      );
+      return () => {
+        annotManager?.removeEventListener(
+          "annotationChanged",
+          annotationChangedHandler
+        );
+      };
+    }, [
+      pageMappedDocs,
+      currentLayer,
+      newRedaction,
+      pageSelections,
+      redlineSaving,
+    ]);
 
     useImperativeHandle(ref, () => ({
       addFullPageRedaction(pageNumbers) {
@@ -957,6 +1032,7 @@ const Redlining = React.forwardRef(
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
           docid: removedFirstElement.file.documentid,
+          docversion: removedFirstElement.file.version,
           page: i + 1,
         };
         mappedDoc.pageMappings.push(firstDocMappings);
@@ -1043,6 +1119,9 @@ const Redlining = React.forwardRef(
             pages.push(i + 1);
             let pageNo = i + 1;
             stitchedPageNo = doc.getPageCount() + (i + 1);
+            if (stitchedPageNo > 61) {
+              console.log("here");
+            }
             let pageMappings = {
               pageNo: pageNo,
               stitchedPageNo: stitchedPageNo,
@@ -1050,6 +1129,7 @@ const Redlining = React.forwardRef(
             mappedDoc.pageMappings.push(pageMappings);
             mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
               docid: file.file.documentid,
+              docversion: file.file.version,
               page: pageNo,
             };
           }
@@ -1062,27 +1142,27 @@ const Redlining = React.forwardRef(
           division: file.file.divisions[0].divisionid,
           pageMappings: mappedDoc.pageMappings,
         };
-        assignAnnotations(file.file.documentid, mappedDoc, fetchAnnotResponse, domParser);
+        assignAnnotations(
+          file.file.documentid,
+          mappedDoc,
+          fetchAnnotResponse,
+          domParser
+        );
       }
       setPageMappedDocs(mappedDocs);
-      setIsStitchingLoaded(true)
+      setIsStitchingLoaded(true);
       docInstance.UI.searchTextFull(searchKeywords, {
         wholeWord: true,
         regex: true,
       });
     };
 
-
-    useEffect(() => {
-      if(isStitchingLoaded){
-        docInstance.UI.searchTextFull(searchKeywords, {
-          wholeWord: true,
-          regex: true,
-        });
-      }
-    }, [isStitchingLoaded]);
-
-    const assignAnnotations = async (documentid, mappedDoc, annotData, domParser) => {
+    const assignAnnotations = async (
+      documentid,
+      mappedDoc,
+      annotData,
+      domParser
+    ) => {
       let username = docViewer?.getAnnotationManager()?.getCurrentUser();
       if (annotData[documentid]) {
         let xml = parser.parseFromString(annotData[documentid]);
@@ -1100,7 +1180,7 @@ const Redlining = React.forwardRef(
           )?.toString();
         }
         xml = parser.toString(xml);
-        const _annotations = await annotManager.importAnnotations(xml);;
+        const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
           annotManager.redrawAnnotation(_annotation);
           annotManager.setPermissionCheckCallback((author, _annotation) => {
@@ -1120,7 +1200,6 @@ const Redlining = React.forwardRef(
       if (docsForStitcing.length > 0 && merge && docViewer) {
         const doc = docViewer.getDocument();
         stitchDocumentsFunc(doc);
-        
       }
     }, [docsForStitcing, fetchAnnotResponse, docViewer]);
 
@@ -1177,6 +1256,7 @@ const Redlining = React.forwardRef(
             )
           );
           childAnnotation.setCustomData("docid", displayedDoc.docid);
+          childAnnotation.setCustomData("docversion", displayedDoc.docversion);
         }
         const doc = docViewer.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1193,7 +1273,7 @@ const Redlining = React.forwardRef(
         useDisplayAuthor: true,
       });
       let sectn = {
-        foiministryrequestid: 1,
+        foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
         saveAnnotation(
@@ -1269,6 +1349,10 @@ const Redlining = React.forwardRef(
               )
             );
             childAnnotation.setCustomData("docid", displayedDoc.docid);
+            childAnnotation.setCustomData(
+              "docversion",
+              displayedDoc.docversion
+            );
           }
           const doc = docViewer.getDocument();
           let pageNumber = 0;
@@ -1288,7 +1372,7 @@ const Redlining = React.forwardRef(
             useDisplayAuthor: true,
           });
           let sectn = {
-            foiministryrequestid: 1,
+            foiministryrequestid: requestid,
           };
           _annotationtring.then((astr) => {
             //parse annotation xml
@@ -1323,18 +1407,6 @@ const Redlining = React.forwardRef(
         ) {
           pageFlagSelections[0].flagid = pageFlagTypes["In Progress"];
         }
-        saveAnnotation(
-          requestid,
-          newRedaction.astr,
-          (data) => {
-            fetchPageFlag(requestid, (error) => console.log(error));
-          },
-          (error) => {
-            console.log(error);
-          },
-          currentLayer.redactionlayerid,
-          createPageFlagPayload(pageFlagSelections)
-        );
         // add section annotation
         var sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1363,7 +1435,6 @@ const Redlining = React.forwardRef(
               redactionSections.map((s) => ({ id: s.id, section: s.section }))
             )
           );
-          annot.setCustomData("redactionlayer", currentLayer.redactionlayerid);
           const doc = docViewer.getDocument();
           const pageInfo = doc.getPageInfo(annot.PageNumber);
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
@@ -1380,13 +1451,13 @@ const Redlining = React.forwardRef(
           for (let section of redactionSections) {
             section.count++;
           }
+          // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           annotManager.groupAnnotations(annot, [redaction]);
         }
         annotManager.addAnnotations(sectionAnnotations);
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
       }
-      setNewRedaction(null);
     };
 
     const getCoordinates = (_annot, _redaction, X) => {
@@ -1453,9 +1524,12 @@ const Redlining = React.forwardRef(
             requestid,
             displayedDoc.docid,
             displayedDoc.version,
+            currentLayer.redactionlayerid,
             annot.name,
             (data) => {
-              fetchPageFlag(requestid, (error) => console.log(error));
+              fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+                console.log(error)
+              );
             },
             (error) => {
               console.log(error);
@@ -1625,10 +1699,18 @@ const Redlining = React.forwardRef(
         );
         let newDivObj = {
           divisionid: div.divisionid,
+          divisionname: div.name,
           documentlist: divDocList,
         };
         newDocList.push(newDivObj);
       }
+      let zipServiceMessage = {
+        ministryrequestid: requestid,
+        category: "redline",
+        attributes: [],
+        requestnumber: "",
+        bcgovcode: "",
+      };
 
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
@@ -1786,7 +1868,6 @@ const Redlining = React.forwardRef(
                         _blob,
                         (_res) => {
                           // ######### call another process for zipping and generate download here ##########
-                          console.log(_res);
                           toast.update(toastID, {
                             render: `${currentDivisionCount} of ${divisionCountForToast} divisions are saved to Object Storage`,
                             type: "success",
@@ -1799,6 +1880,67 @@ const Redlining = React.forwardRef(
                             draggable: true,
                             closeButton: true,
                           });
+                          const zipDocObj = {
+                            divisionid: divObj.divisionid,
+                            divisionname: divObj.divisionname,
+                            files: [],
+                          };
+                          const stitchedDocPathArray =
+                            stitchedDocPath.split("/");
+                          let fileName =
+                            stitchedDocPathArray[
+                              stitchedDocPathArray.length - 1
+                            ].split("?")[0];
+                          const bcgovcode =
+                            stitchedDocPathArray[3].split("-")[0];
+                          const requestNumber =
+                            decodeURIComponent(fileName).split(" - ")[0];
+                          fileName =
+                            divObj.divisionname +
+                            "/" +
+                            decodeURIComponent(fileName);
+                          const file = {
+                            filename: fileName,
+                            s3uripath: decodeURIComponent(
+                              stitchedDocPath.split("?")[0]
+                            ),
+                          };
+                          zipDocObj.files.push(file);
+                          if (incompatibleFiles.length > 0) {
+                            // Filter records where divisionid is 6
+                            const divIncompatableFiles = incompatibleFiles
+                              .filter((record) =>
+                                record.divisions.some(
+                                  (division) =>
+                                    division.divisionid === divObj.divisionid
+                                )
+                              )
+                              .map((record) => {
+                                return {
+                                  filename:
+                                    divObj.divisionname + "/" + record.filename,
+                                  s3uripath: record.filepath,
+                                };
+                              });
+                            zipDocObj.files = [
+                              ...zipDocObj.files,
+                              ...divIncompatableFiles,
+                            ];
+                          }
+                          zipServiceMessage.attributes.push(zipDocObj);
+                          if (
+                            divisionCountForToast ===
+                            zipServiceMessage.attributes.length
+                          ) {
+                            zipServiceMessage.requestnumber = requestNumber;
+                            zipServiceMessage.bcgovcode = bcgovcode;
+                            triggerDownloadRedlines(
+                              zipServiceMessage,
+                              (error) => {
+                                console.log(error);
+                              }
+                            );
+                          }
                         },
                         (_err) => {
                           console.log(_err);
@@ -1831,6 +1973,7 @@ const Redlining = React.forwardRef(
 
     const saveDoc = () => {
       setRedlineModalOpen(false);
+      setRedlineSaving(true);
       switch (modalFor) {
         case "redline":
           saveRedlineDocument(docInstance);
@@ -1991,7 +2134,6 @@ const Redlining = React.forwardRef(
 
     return (
       <div>
-        {/* <button onClick={gotopage}>Click here</button> */}
         <div className="webviewer" ref={viewer}></div>
         <ReactModal
           initWidth={650}

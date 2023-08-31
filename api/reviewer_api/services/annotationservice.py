@@ -89,15 +89,17 @@ class annotationservice:
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
-        _annotresponse = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
-        if _annotresponse.success == True:
+        if len(annots) < 1:
+            return DefaultMethodResult(True,'No valid Annotations found', -1) 
+        resp = Annotation.saveannotations(annots, _redactionlayerid, userinfo)
+        if resp.success == True:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(annots, annotationschema['sections']['foiministryrequestid'], userinfo)
                 if not sectionresponse:
-                    return DefaultMethodResult(False,'Failed to save Annotation Section',_annotresponse)
+                    return DefaultMethodResult(False,'Failed to save Annotation Section', resp.identifier)
         else:
-            return DefaultMethodResult(False,'Failed to save Annotation', _annotresponse.identifier)
-        return DefaultMethodResult(True,'Annotation successfully saved',_annotresponse.identifier)
+            return DefaultMethodResult(False,'Failed to save Annotation', resp.identifier)
+        return DefaultMethodResult(True,'Annotation successfully saved', resp.identifier)
 
     def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
         return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
@@ -110,14 +112,18 @@ class annotationservice:
         annotations = xml.getElementsByTagName("annots")[0].childNodes
         annots = []
         for annot in annotations:
-            annots.append({
-                "name": annot.getAttribute("name"),
-                "page": annot.getAttribute("page"),
-                "xml": annot.toxml(),
-                "sectionsschema": SectionAnnotationSchema().loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")),
-                "originalpageno": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['originalPageNo'],
-                "docid": json.loads(annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['docid']
-            })
+            if self.__isvalid(annot) == True:
+                customdata = annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")
+                customdatadict = json.loads(customdata)
+                annots.append({
+                    "name": annot.getAttribute("name"),
+                    "page": annot.getAttribute("page"),
+                    "xml": annot.toxml(),
+                    "sectionsschema": SectionAnnotationSchema().loads(customdata),
+                    "originalpageno": customdatadict['originalPageNo'],
+                    "docid": customdatadict['docid'],
+                    "docversion": customdatadict['docversion']
+                })
         return annots
     
     def __generateannotationsxml(self, annotations):
@@ -135,3 +141,12 @@ class annotationservice:
             return int(annotationschema['redactionlayerid'])
         else:
             return redactionlayerservice().getdefaultredactionlayerid()
+        
+
+    def __isvalid(self, annot):
+        if annot is not None and annot.tagName == "redact":
+            if annot.getAttribute('inreplyto') not in (None,''):
+                return True
+            return False
+        return True
+
