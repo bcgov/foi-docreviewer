@@ -72,6 +72,7 @@ class documentservice:
                 record["pagecount"],
                 record["filename"],
                 record["documentid"],
+                record["version"],
             ) = self.__getpagecountandfilename(record, parentproperties)
             (
                 record["isduplicate"],
@@ -117,6 +118,7 @@ class documentservice:
                         attachment["pagecount"],
                         attachment["filename"],
                         attachment["documentid"],
+                        attachment["version"],
                     ) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
 
@@ -145,7 +147,8 @@ class documentservice:
                 pagecount = property["pagecount"]
                 filename = property["filename"]
                 documentid = property["documentid"]
-        return pagecount, filename, documentid
+                version = property["version"]
+        return pagecount, filename, documentid, version
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []

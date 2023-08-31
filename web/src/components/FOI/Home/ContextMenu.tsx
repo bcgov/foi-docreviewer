@@ -20,7 +20,7 @@ const ContextMenu = ({
     anchorPosition,
     selectedPages,
     consultInfo,
-    setPageFlagChanged,
+    updatePageFlags,
     pageMappedDocs
 }: any) => {
 
@@ -55,7 +55,9 @@ const ContextMenu = ({
             savePageFlag(
                 requestId,
                 flagId,
-                (data: any) => setPageFlagChanged(true),
+                (data: any) => {
+                    updatePageFlags()
+                },
                 (error: any) => console.log(error),
                 createPageFlagPayload(selectedPages, currentLayer.redactionlayerid, flagId, data)
             );

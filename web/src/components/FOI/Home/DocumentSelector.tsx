@@ -85,8 +85,7 @@ const DocumentSelector = ({
         );
     }, []);
 
-    useEffect(() => {
-        setPageFlagChanged(false);
+    const updatePageFlags = () => {
         fetchPageFlagsMasterData(
             requestid,
             (data: any) => setPageData(data),
@@ -97,7 +96,7 @@ const DocumentSelector = ({
             currentLayer.redactionlayerid,
             (error: any) => console.log(error)
         )
-    }, [pageFlagChanged]);
+    }
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
@@ -677,7 +676,7 @@ const DocumentSelector = ({
                                                                 setOpenContextPopup={setOpenContextPopup}
                                                                 selectedPages={selectedPages}
                                                                 consultInfo={consultInfo}
-                                                                setPageFlagChanged={setPageFlagChanged}
+                                                                updatePageFlags={updatePageFlags}
                                                             />
                                                         }
                                                     </TreeItem>
@@ -749,7 +748,7 @@ const DocumentSelector = ({
                                                         setOpenContextPopup={setOpenContextPopup}
                                                         selectedPages={selectedPages}
                                                         consultInfo={consultInfo}
-                                                        setPageFlagChanged={setPageFlagChanged}
+                                                        updatePageFlags={updatePageFlags}
                                                         pageMappedDocs={pageMappedDocs}
                                                     />
                                                 }
