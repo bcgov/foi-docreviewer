@@ -19,7 +19,10 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        store.dispatch(setDocumentList(res.data.documents) as any);
+        // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
+        const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
+        store.dispatch(setDocumentList(__files) as any);
+        
         store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
         callback(res.data.documents);
       } else {
@@ -307,4 +310,24 @@ export const fetchRedactionLayerMasterData = (
 
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
+};
+
+
+export const triggerDownloadRedlines = (
+  requestJSON: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_REDLINE}`;
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download redline");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download redline:",error);
+  });
 };

@@ -28,22 +28,30 @@ from sqlalchemy.sql.expression import false
 from reviewer_api.auth import jwt as _authjwt
 import jwt
 import os
-from reviewer_api.utils.enums import MinistryTeamWithKeycloackGroup, ProcessingTeamWithKeycloackGroup
+import json
+from reviewer_api.utils.enums import (
+    MinistryTeamWithKeycloackGroup,
+    ProcessingTeamWithKeycloackGroup,
+)
 import maya
 
 
 def cors_preflight(methods):
-   #Render an option method on the class.
+    # Render an option method on the class.
 
     def wrapper(f):
         def options(self, *args, **kwargs):  # pylint: disable=unused-argument
-            return {'Allow': 'GET, DELETE, PUT, POST'}, 200, \
-                   {
-                    'Access-Control-Allow-Methods': methods,
-                    'Access-Control-Allow-Headers': 'Authorization, Content-Type, registries-trace-id, '
-                                                    'invitation_token'}
+            return (
+                {"Allow": "GET, DELETE, PUT, POST"},
+                200,
+                {
+                    "Access-Control-Allow-Methods": methods,
+                    "Access-Control-Allow-Headers": "Authorization, Content-Type, registries-trace-id, "
+                    "invitation_token",
+                },
+            )
 
-        setattr(f, 'options', options)
+        setattr(f, "options", options)
         return f
 
     return wrapper
@@ -58,22 +66,25 @@ def snake2camelback(snake_dict: dict):
     """Convert the passed dictionary's keys from snake_case to camelBack case."""
     return camelize(snake_dict)
 
+
 def getrequiredmemberships():
-    membership =''
+    membership = ""
     for group in MinistryTeamWithKeycloackGroup:
-        membership+='{0},'.format(group.value)
+        membership += "{0},".format(group.value)
     for procgroup in ProcessingTeamWithKeycloackGroup:
-        membership+='{0},'.format(procgroup.value)
-    membership+='Intake Team,Flex Team'   
+        membership += "{0},".format(procgroup.value)
+    membership += "Intake Team,Flex Team"
     return membership
 
+
 def allowedorigins():
-    _allowedcors = os.getenv('CORS_ORIGIN')
+    _allowedcors = os.getenv("CORS_ORIGIN")
     allowedcors = []
-    if ',' in _allowedcors:
-        for entry in re.split(",",_allowedcors):
+    if "," in _allowedcors:
+        for entry in re.split(",", _allowedcors):
             allowedcors.append(entry)
     return allowedcors
+
 
 class Singleton(type):
     """Singleton meta."""
@@ -89,19 +100,26 @@ class Singleton(type):
 
 def digitify(payload: str) -> int:
     """Return the digits from the string."""
-    return int(re.sub(r'\D', '', payload))
+    return int(re.sub(r"\D", "", payload))
 
 
 def escape_wam_friendly_url(param):
     """Return encoded/escaped url."""
-    base64_org_name = base64.b64encode(bytes(param, encoding='utf-8')).decode('utf-8')
-    encode_org_name = urllib.parse.quote(base64_org_name, safe='')
+    base64_org_name = base64.b64encode(bytes(param, encoding="utf-8")).decode("utf-8")
+    encode_org_name = urllib.parse.quote(base64_org_name, safe="")
     return encode_org_name
 
 
 def pstformat(dt):
     if dt is not None:
-        tolocaltime = maya.MayaDT.from_datetime(dt).datetime(to_timezone='America/Vancouver', naive=False)
+        tolocaltime = maya.MayaDT.from_datetime(dt).datetime(
+            to_timezone="America/Vancouver", naive=False
+        )
         return tolocaltime.isoformat()
     else:
-        return ''
+        return ""
+
+
+# converts to json
+def to_json(obj):
+    return json.dumps(obj, default=lambda obj: obj.__dict__)
