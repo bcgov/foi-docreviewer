@@ -574,67 +574,71 @@ const Redlining = React.forwardRef(
     //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
   useEffect(() => {
-    if (currentLayer) {
-      if (currentLayer.name.toLowerCase() === 'response package') {
-        // Manually create white boxes to simulate redaction because apply redaction is permanent
-        
-        const existingAnnotations = annotManager.getAnnotationsList();
-        const redactions = existingAnnotations.filter(a => a.Subject === 'Redact');
-        var rects = []
-        for (const redaction of redactions) {
-          rects = rects.concat(redaction.getQuads().map(q => {
-            return {
-              page: redaction.getPageNumber(),
-              rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1)
-            }
-          }
-          ));
-        }
-        annotManager.deleteAnnotations(redactions, {imported: true, force: true, source: "layerchange"});
-        var newAnnots = []
-        for (const rect of rects) {
-          const annot = new annots.RectangleAnnotation();
-          annot.setRect(rect.rect);
-          annot.FillColor = new annots.Color(255,255,255,1);
-          annot.Color = new annots.Color(255,255,255,1);
-          annot.setPageNumber(rect.page);
-          newAnnots.push(annot)
-        }
-        annotManager.addAnnotations(newAnnots, {imported: true, source: "layerchange"});
-        for (const annot of newAnnots) {
-          annotManager.bringToBack(annot);
-        }
-        annotManager.drawAnnotationsFromList(newAnnots);
-        annotManager.enableReadOnlyMode();
-      } else {
-        fetchAnnotations(
-          requestid,
-          currentLayer.name,
-          async (data) => {
-            setMerge(true);
-            if (!fetchAnnotResponse) {
-              setFetchAnnotResponse(data)
-            } else {
-              annotManager.disableReadOnlyMode();
-              docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
-              const existingAnnotations = annotManager.getAnnotationsList();
-              await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
-              for (const docid in data) {
-                assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
+    const changeLayer = async () => {
+      if (currentLayer) {
+        if (currentLayer.name.toLowerCase() === 'response package') {
+          // Manually create white boxes to simulate redaction because apply redaction is permanent
+          
+          const existingAnnotations = annotManager.getAnnotationsList();
+          const redactions = existingAnnotations.filter(a => a.Subject === 'Redact');
+          var rects = []
+          for (const redaction of redactions) {
+            rects = rects.concat(redaction.getQuads().map(q => {
+              return {
+                page: redaction.getPageNumber(),
+                rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1)
               }
             }
-          },
-          (error) => {
-            console.log('Error:',error);
+            ));
           }
-        );
-        fetchPageFlag(
-          requestid,
-          currentLayer.redactionlayerid,
-          (error) => console.log(error)
-        )
+          await annotManager.ungroupAnnotations(existingAnnotations);
+          await annotManager.deleteAnnotations(redactions, {imported: true,  force: true, source: "layerchange"});
+          var newAnnots = []
+          for (const rect of rects) {
+            const annot = new annots.RectangleAnnotation();
+            annot.setRect(rect.rect);
+            annot.FillColor = new annots.Color(255,255,255,1);
+            annot.Color = new annots.Color(255,255,255,1);
+            annot.setPageNumber(rect.page);
+            newAnnots.push(annot)
+          }
+          annotManager.addAnnotations(newAnnots, {imported: true, source: "layerchange"});
+          for (const annot of newAnnots) {
+            annotManager.bringToBack(annot);
+          }
+          annotManager.drawAnnotationsFromList(newAnnots);
+          annotManager.enableReadOnlyMode();
+        } else {
+          fetchAnnotations(
+            requestid,
+            currentLayer.name,
+            async (data) => {
+              setMerge(true);
+              if (!fetchAnnotResponse) {
+                setFetchAnnotResponse(data)
+              } else {
+                annotManager.disableReadOnlyMode();
+                docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
+                const existingAnnotations = annotManager.getAnnotationsList();
+                await annotManager.deleteAnnotations(existingAnnotations, {imported: true, force: true, source: "layerchange" });
+                for (const docid in data) {
+                  assignAnnotations(docid, pageMappedDocs.docIdLookup[docid], data, new DOMParser());
+                }
+              }
+            },
+            (error) => {
+              console.log('Error:',error);
+            }
+          );
+          fetchPageFlag(
+            requestid,
+            currentLayer.redactionlayerid,
+            (error) => console.log(error)
+          )
+        }
       }
     }
+    changeLayer();
   }, [currentLayer]);
 
     useEffect(() => {
@@ -661,15 +665,12 @@ const Redlining = React.forwardRef(
         //do not run if redline is saving
         if (redlineSaving) return;
         let localDocumentInfo = currentDocument;
-        annotations.forEach((annot) => {
-          let displayedDoc =
-            pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
+        if (currentLayer.name.toLowerCase() === 'response package') return;
+        for (let annot of annotations) {
+          let displayedDoc = pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
           let individualPageNo = displayedDoc.page;
-          annot.setCustomData(
-            "originalPageNo",
-            JSON.stringify(individualPageNo - 1)
-          );
-        });
+          annot.setCustomData("originalPageNo", JSON.stringify(individualPageNo - 1));
+        }
         let _annotationtring =
           docInstance.Core.annotationManager.exportAnnotations({
             annotationList: annotations,
@@ -726,6 +727,7 @@ const Redlining = React.forwardRef(
                     flagid: pageFlagTypes["Withheld in Full"],
                     docid: displayedDoc.docid,
                   });
+                  annotManager.bringToBack(annotations[i])
                 } else {
                   pageSelectionList.push({
                     page: Number(individualPageNo),
