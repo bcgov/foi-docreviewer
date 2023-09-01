@@ -175,9 +175,9 @@ class Annotation(db.Model):
     @classmethod
     def saveannotations(cls, annots, redactionlayerid, userinfo)-> DefaultMethodResult:
         begin, size, limit = getbatchconfig()
-        if len(annots) > 0 and len(annots) <= begin:
+        if len(annots) > 0 and len(annots) < begin:
             return cls.__chunksaveannotations(annots, redactionlayerid, userinfo)
-        elif len(annots) > begin and len(annots) <= limit:
+        elif len(annots) >= begin and len(annots) <= limit:
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
             return DefaultMethodResult(False, 'Invalid Annotation Request',  -1)

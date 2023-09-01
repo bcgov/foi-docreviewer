@@ -55,9 +55,9 @@ class AnnotationSection(db.Model):
     @classmethod
     def savesections(cls, annots, _foiministryrequestid, userinfo)-> DefaultMethodResult:
         begin, size, limit = getbatchconfig()
-        if len(annots) > 0 and len(annots) <= begin:
+        if len(annots) > 0 and len(annots) < begin:
             return cls.__chunksavesections(annots, _foiministryrequestid, userinfo)
-        elif len(annots) > begin and len(annots) <= limit:
+        elif len(annots) >= begin and len(annots) <= limit:
             return cls.__bulksavesections(annots, _foiministryrequestid, userinfo, size)
         else:
             return DefaultMethodResult(False, 'Invalid Annotation Section Request',  -1)
