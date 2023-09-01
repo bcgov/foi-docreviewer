@@ -714,8 +714,7 @@ const Redlining = React.forwardRef(
                 let customData = annot.children.find(
                   (element) => element.name == "trn-custom-data"
                 );
-                console.log("\nExistingId ??",customData?.attributes?.bytes?.includes("existingId"))
-                if (!customData?.attributes?.bytes?.includes("existingId")){
+                if (!customData?.attributes?.bytes?.includes("isDelete")){
                   let displayedDoc =
                     pageMappedDocs.stitchedPageLookup[
                       Number(annot.attributes.page) + 1
@@ -1466,27 +1465,22 @@ const Redlining = React.forwardRef(
           annot.fitText(pageInfo, pageMatrix, pageRotation);
           if (redaction.type == "fullPage"){
             annot.setCustomData("trn-redaction-type", "fullPage");
-            console.log("!!!!",node.getElementsByTagName('trn-custom-data'))
             let txt = new DOMParser().parseFromString(
               node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
               "text/html"
             );
             let customData = JSON.parse(txt.documentElement.textContent);
-            let existingFreeTextId= customData.existingFreeTextId;
-            let existingRedactId= customData.existingId;
-            
-            annot.setCustomData("existingId", existingFreeTextId);
-            // annotManager.deleteAnnotation(
-            //   annotManager.getAnnotationById(existingFreeTextId)
-            // );
-            // annotManager.deleteAnnotation(
-            //   annotManager.getAnnotationById(existingRedactId)
-            // );
-            annotationsToDelete.push(annotManager.getAnnotationById(existingFreeTextId));
-            annotationsToDelete.push(annotManager.getAnnotationById(existingRedactId));
-            // annotManager.deleteAnnotations(annotationsToDelete, {
-            // force: true,
-            // });
+            annot.setCustomData("existingId", customData.existingFreeTextId);
+            //Setting the existing annotationId in the new annotations for deleting
+            //from backend.
+            let existingFreeTextAnnot= annotManager.getAnnotationById(customData.existingFreeTextId);
+            let existingRedactAnnot= annotManager.getAnnotationById(customData.existingId);
+            if(!!existingFreeTextAnnot && !!existingRedactAnnot){
+              existingFreeTextAnnot.setCustomData("isDelete", true);
+              existingRedactAnnot.setCustomData("isDelete", true);
+              annotationsToDelete.push(existingFreeTextAnnot);
+              annotationsToDelete.push(existingRedactAnnot);
+            }
           }
           sectionAnnotations.push(annot);
           redactionInfo.push({
@@ -1496,17 +1490,17 @@ const Redlining = React.forwardRef(
           for (let section of redactionSections) {
             section.count++;
           }
-          console.log("\nannotationsToDelete:",annotationsToDelete)
-          annotManager.deleteAnnotations(annotationsToDelete, {
-            force: true,
-          });
+          //delete if there are existing fullpage redactions
+          if(annotationsToDelete?.length > 0){
+            annotManager.deleteAnnotations(annotationsToDelete, {
+              force: true,
+            });
+          }
           // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           annotManager.groupAnnotations(annot, [redaction]);
           
         }
-        // annotManager.deleteAnnotations(annotationsToDelete, {
-        //     force: true,
-        //   });
+        
         annotManager.addAnnotations(sectionAnnotations);
         
         // Always redraw annotation
