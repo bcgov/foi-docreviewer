@@ -711,29 +711,35 @@ const Redlining = React.forwardRef(
             if (action === "delete") {
               let annotObjs = [];
               for (let annot of annots[0].children) {
-                let displayedDoc =
-                  pageMappedDocs.stitchedPageLookup[
-                    Number(annot.attributes.page) + 1
-                  ];
-                let individualPageNo = displayedDoc.page;
-                if (annot.name === "redact") {
-                  annotObjs.push({
-                    page: annot.attributes.page,
-                    name: annot.attributes.name,
-                    type: annot.name,
-                  });
-                } else {
-                  deleteAnnotation(
-                    requestid,
-                    displayedDoc.docid,
-                    displayedDoc.docversion,
-                    currentLayer.redactionlayerid,
-                    annot.attributes.name,
-                    (data) => {},
-                    (error) => {
-                      console.log(error);
-                    }
-                  );
+                let customData = annot.children.find(
+                  (element) => element.name == "trn-custom-data"
+                );
+                console.log("\nExistingId ??",customData?.attributes?.bytes?.includes("existingId"))
+                if (!customData?.attributes?.bytes?.includes("existingId")){
+                  let displayedDoc =
+                    pageMappedDocs.stitchedPageLookup[
+                      Number(annot.attributes.page) + 1
+                    ];
+                  let individualPageNo = displayedDoc.page;
+                  if (annot.name === "redact") {
+                    annotObjs.push({
+                      page: annot.attributes.page,
+                      name: annot.attributes.name,
+                      type: annot.name,
+                    });
+                  } else {
+                    deleteAnnotation(
+                      requestid,
+                      displayedDoc.docid,
+                      displayedDoc.docversion,
+                      currentLayer.redactionlayerid,
+                      annot.attributes.name,
+                      (data) => {},
+                      (error) => {
+                        console.log(error);
+                      }
+                    );
+                  }
                 }
               }
               setDeleteQueue(annotObjs);
@@ -754,6 +760,21 @@ const Redlining = React.forwardRef(
                       flagid: pageFlagTypes["Withheld in Full"],
                       docid: displayedDoc.docid,
                     });
+                    
+                    let parentRedaction;
+                    let allAnnotations = docInstance.Core.annotationManager.getAnnotationsList();
+                    let _selectedAnnotations= allAnnotations.find(annot => (annot.Subject == "Free Text" && annot.getCustomData("trn-redaction-type")== 'fullPage' &&
+                      annot.PageNumber == Number(annotatn.attributes.page)+1));
+                    if(!!_selectedAnnotations){
+                      parentRedaction = allAnnotations?.find(
+                        (r) =>
+                          r.Subject === "Redact" && r.InReplyTo === _selectedAnnotations?.Id
+                      );
+                    }
+                    if(!!parentRedaction){
+                      annotations[i].setCustomData("existingId", parentRedaction?.Id);
+                      annotations[i].setCustomData("existingFreeTextId", _selectedAnnotations?.Id);
+                    }
                   } else {
                     pageSelectionList.push({
                       page: Number(individualPageNo),
@@ -1409,7 +1430,10 @@ const Redlining = React.forwardRef(
         }
         // add section annotation
         var sectionAnnotations = [];
+        let annotationsToDelete=[];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
+          let annotationsToDelete=[];
+
           let redaction = annotManager.getAnnotationById(node.attributes.name);
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
@@ -1440,9 +1464,30 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
           annot.fitText(pageInfo, pageMatrix, pageRotation);
-          if (redaction.type == "fullPage")
+          if (redaction.type == "fullPage"){
             annot.setCustomData("trn-redaction-type", "fullPage");
-
+            console.log("!!!!",node.getElementsByTagName('trn-custom-data'))
+            let txt = new DOMParser().parseFromString(
+              node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
+              "text/html"
+            );
+            let customData = JSON.parse(txt.documentElement.textContent);
+            let existingFreeTextId= customData.existingFreeTextId;
+            let existingRedactId= customData.existingId;
+            
+            annot.setCustomData("existingId", existingFreeTextId);
+            // annotManager.deleteAnnotation(
+            //   annotManager.getAnnotationById(existingFreeTextId)
+            // );
+            // annotManager.deleteAnnotation(
+            //   annotManager.getAnnotationById(existingRedactId)
+            // );
+            annotationsToDelete.push(annotManager.getAnnotationById(existingFreeTextId));
+            annotationsToDelete.push(annotManager.getAnnotationById(existingRedactId));
+            // annotManager.deleteAnnotations(annotationsToDelete, {
+            // force: true,
+            // });
+          }
           sectionAnnotations.push(annot);
           redactionInfo.push({
             annotationname: redactionObj.name,
@@ -1451,10 +1496,19 @@ const Redlining = React.forwardRef(
           for (let section of redactionSections) {
             section.count++;
           }
+          console.log("\nannotationsToDelete:",annotationsToDelete)
+          annotManager.deleteAnnotations(annotationsToDelete, {
+            force: true,
+          });
           // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           annotManager.groupAnnotations(annot, [redaction]);
+          
         }
+        // annotManager.deleteAnnotations(annotationsToDelete, {
+        //     force: true,
+        //   });
         annotManager.addAnnotations(sectionAnnotations);
+        
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
       }

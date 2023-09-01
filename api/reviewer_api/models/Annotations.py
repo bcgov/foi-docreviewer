@@ -175,7 +175,8 @@ class Annotation(db.Model):
         
     @classmethod
     def saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
-        annotkey = cls.getannotationkey(annot["name"])
+        annotkey = cls.getannotationkey(annot["existingid"]) if annot["existingid"] is not None else cls.getannotationkey(annot["name"])
+        print("\nannotkey:",annotkey)
         if annotkey is None:
             return cls.newannotation(annot, redactionlayerid, userinfo)
         else:
@@ -217,7 +218,8 @@ class Annotation(db.Model):
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation', annot["name"])
-            cls.deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
+            existingannotationname = annot["existingid"] if annot["existingid"] is not None else annot["name"]
+            cls.deactivateannotation(existingannotationname, annot["docid"], 1, userinfo)
             values = [{
                 "annotationid" : id,
                 "annotationname": annot["name"],

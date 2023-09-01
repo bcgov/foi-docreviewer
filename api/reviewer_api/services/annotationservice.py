@@ -88,6 +88,7 @@ class annotationservice:
 
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
+        print("\nannots::",annots)
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
         if len(annots) < 1:
             return DefaultMethodResult(True,'No valid Annotations found', -1) 
@@ -122,7 +123,9 @@ class annotationservice:
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
                     "originalpageno": customdatadict['originalPageNo'],
                     "docid": customdatadict['docid'],
-                    "docversion": customdatadict['docversion']
+                    "docversion": customdatadict['docversion'],
+                    "type": customdatadict['trn-redaction-type'],
+                    "existingid": customdatadict['existingId'] if 'existingId' in customdatadict else None
                 })
         return annots
     
