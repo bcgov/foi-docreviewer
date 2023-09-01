@@ -145,8 +145,10 @@ class AnnotationSection(db.Model):
                 "foiministryrequestid": _foiministryrequestid,
                 "section": annot["sectionsschema"],
                 "createdby": userinfo,
-                "version": pkkey['version'] + 1,
-                "isactive": True
+                "isactive": True,
+                "version": pkkey['version'] + 1 if pkkey is not None and "version" in pkkey else 1,
+                "id": pkkey['id'] if pkkey is not None and "id" in pkkey else None
+                
                 })
                 idxannots.append(annot["name"])
             db.session.bulk_insert_mappings(AnnotationSection, datalist)
