@@ -70,7 +70,7 @@ class redactionservice:
         redactionlayerid,
     ):
         result = annotationservice().deactivateannotation(
-            annotationname, documentid, documentversion, userinfo
+            annotationname, redactionlayerid, userinfo
         )
         if result.success == True and page is not None:
             documentpageflagservice().removepageflag(
@@ -89,7 +89,7 @@ class redactionservice:
         redactionlayerid,
     ):
         result = annotationservice().deactivateannotation(
-            annotationname, documentid, documentversion, userinfo
+            annotationname, redactionlayerid, userinfo
         )
         if result.success == True:
             newresult = Annotation.getredactionsbypage(
