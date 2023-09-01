@@ -168,8 +168,6 @@ class Annotation(db.Model):
                 apks[row['annotationname']] = {"annotationid": row['annotationid'], "version": row['version']}
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return apks
@@ -180,7 +178,6 @@ class Annotation(db.Model):
         if len(annots) > 0 and len(annots) <= begin:
             return cls.__chunksaveannotations(annots, redactionlayerid, userinfo)
         elif len(annots) > begin and len(annots) <= limit:
-            print('batch processing')
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
             return DefaultMethodResult(False, 'Invalid Annotation Request',  -1)
@@ -202,7 +199,6 @@ class Annotation(db.Model):
                 return DefaultMethodResult(True, 'Annotations failed',  ','.join(failedannots))
         except Exception as ex:
             logging.error(ex)
-            raise ex
 
     @classmethod
     def __bulksaveannotations(cls, annots, redactionlayerid, userinfo, size=100)->DefaultMethodResult:
@@ -219,7 +215,6 @@ class Annotation(db.Model):
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
-            raise ex
 
     @classmethod
     def __saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
@@ -256,7 +251,6 @@ class Annotation(db.Model):
             return DefaultMethodResult(True, 'Annotation added', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()   
 
@@ -284,7 +278,6 @@ class Annotation(db.Model):
             return idxannots
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()     
 
@@ -313,7 +306,6 @@ class Annotation(db.Model):
             return DefaultMethodResult(True, 'Annotation updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()  
         
@@ -349,7 +341,6 @@ class Annotation(db.Model):
             return DefaultMethodResult(True, 'Annotations are updated', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()
     """
@@ -371,8 +362,6 @@ class Annotation(db.Model):
             return DefaultMethodResult(True, 'Annotations are updated', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
 

@@ -48,8 +48,6 @@ class AnnotationSection(db.Model):
                 apks[row['annotationname']] = {"id": row['id'], "version": row['version']}
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return apks
@@ -60,7 +58,6 @@ class AnnotationSection(db.Model):
         if len(annots) > 0 and len(annots) <= begin:
             return cls.__chunksavesections(annots, _foiministryrequestid, userinfo)
         elif len(annots) > begin and len(annots) <= limit:
-            print('batch processing')
             return cls.__bulksavesections(annots, _foiministryrequestid, userinfo, size)
         else:
             return DefaultMethodResult(False, 'Invalid Annotation Section Request',  -1)
@@ -83,8 +80,6 @@ class AnnotationSection(db.Model):
                 return DefaultMethodResult(True, 'Annotation sections are failed', ','.join(failedsections))
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
 
@@ -103,7 +98,6 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
-            raise ex
 
     @classmethod
     def __savesection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
@@ -136,7 +130,6 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotation Sections are added', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close() 
 
@@ -161,7 +154,6 @@ class AnnotationSection(db.Model):
             return idxannots
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()
 
@@ -187,7 +179,6 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotation sections are updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()  
 
@@ -217,8 +208,6 @@ class AnnotationSection(db.Model):
             return DefaultMethodResult(True, 'Annotation sections are updated', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
 
@@ -238,8 +227,6 @@ class AnnotationSection(db.Model):
                 mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return mapping
@@ -266,8 +253,6 @@ class AnnotationSection(db.Model):
                 mapping.append({"annotationname":row["redactannotation"], "sectionannotation":row["annotationname"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return mapping
