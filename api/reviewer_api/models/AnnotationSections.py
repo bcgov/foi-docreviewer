@@ -93,7 +93,7 @@ class AnnotationSection(db.Model):
                 _pkvsections = cls.__getbulksectionkey(annotnames) 
                 if _pkvsections not in (None, {}):
                     cls.__bulknewsections(wkannot, _pkvsections, _foiministryrequestid, userinfo)   
-                    cls.__bulkdeactivatesections(annotnames, userinfo)
+                    cls.__bulkarchivesections(annotnames, userinfo)
                     idxannots.extend(annotnames)
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
@@ -106,6 +106,7 @@ class AnnotationSection(db.Model):
             return cls.__newsection(annot, _foiministryrequestid, userinfo)
         else:
             return cls.__updatesection(annot, _foiministryrequestid, userinfo, sectkey[0], sectkey[1])
+            
 
     @classmethod
     def __newsection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
@@ -164,7 +165,6 @@ class AnnotationSection(db.Model):
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation Section', annot["name"])
-            cls.__deactivatesection(annot["name"], userinfo)
             values = [{
                 "id" : id,
                 "annotationname": annot["name"],
@@ -177,7 +177,8 @@ class AnnotationSection(db.Model):
             insertstmt = insert(AnnotationSection).values(values)
             secttmt = insertstmt.on_conflict_do_nothing()
             db.session.execute(secttmt)    
-            db.session.commit() 
+            db.session.commit()
+            cls.__archivesection(annot["name"], userinfo) 
             return DefaultMethodResult(True, 'Annotation sections are updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
@@ -185,18 +186,11 @@ class AnnotationSection(db.Model):
             db.session.close()  
 
     @classmethod
-    def __deactivatesection(cls, _annotationname, userinfo)->DefaultMethodResult:
-        try:
-            db.session.query(AnnotationSection).filter(AnnotationSection.annotationname == _annotationname).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
-            db.session.commit()
-            return DefaultMethodResult(True,'Annotation Sections are  deactivated',_annotationname)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
+    def __archivesection(cls, _annotationname, userinfo)->DefaultMethodResult:
+        return cls.__bulkarchivesections([_annotationname], userinfo)
 
     @classmethod
-    def __bulkdeactivatesections(cls, idxannots, userinfo)->DefaultMethodResult:
+    def __bulkarchivesections(cls, idxannots, userinfo)->DefaultMethodResult:
         try:
             sql = """update "AnnotationSections" a set isactive  = false, updatedby = :userinfo, updated_at=now() 
                     from (select distinct on (annotationname)  "annotationname", "version", id  
@@ -208,6 +202,21 @@ class AnnotationSection(db.Model):
             db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo)})
             db.session.commit()
             return DefaultMethodResult(True, 'Annotation sections are updated', ','.join(idxannots))
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+
+    @classmethod
+    def bulkdeletesections(cls, idxannots, userinfo)->DefaultMethodResult:
+        try:
+            sql = """update "AnnotationSections" a set isactive  = false, updatedby = :userinfo, updated_at=now()
+                    where a.annotationname in :idxannots
+                    and a.isactive = true;"""
+            db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo)})
+            db.session.commit()
+            return DefaultMethodResult(True, 'Annotation sections are deleted', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
         finally:

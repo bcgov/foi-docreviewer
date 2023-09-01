@@ -210,7 +210,7 @@ class Annotation(db.Model):
                 _pkvannots = cls.__getbulkannotationkey(annotnames) 
                 if _pkvannots not in (None, {}):
                     cls.__bulknewannotations(wkannot, _pkvannots, redactionlayerid, userinfo)   
-                    cls.__bulkdeactivateannotations(annotnames, redactionlayerid, userinfo)
+                    cls.__bulkarchiveannotation(annotnames, redactionlayerid, userinfo)
                     idxannots.extend(annotnames)
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
@@ -247,7 +247,7 @@ class Annotation(db.Model):
             if len(result) > 0:
                 idxannot =  result[0]
                 if idxannot['isactive'] == False:
-                    return cls.updateannotation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
+                    return cls.__updateannotation(annot, redactionlayerid, userinfo, idxannot['annotationid'], idxannot['version'])
             return DefaultMethodResult(True, 'Annotation added', annot["name"])
         except Exception as ex:
             logging.error(ex)
@@ -287,7 +287,6 @@ class Annotation(db.Model):
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation', annot["name"])
-            cls.__deactivateannotation(annot["name"], annot["docid"], 1, userinfo)
             values = [{
                 "annotationid" : id,
                 "annotationname": annot["name"],
@@ -304,6 +303,7 @@ class Annotation(db.Model):
             annotstmt = insertstmt.on_conflict_do_nothing()
             db.session.execute(annotstmt)    
             db.session.commit() 
+            cls.__archiveannotation(annot["name"], redactionlayerid, userinfo)
             return DefaultMethodResult(True, 'Annotation updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
@@ -311,43 +311,12 @@ class Annotation(db.Model):
             db.session.close()  
         
     @classmethod
-    def __deactivateannotation(cls, _annotationname, _documentid, _documentversion, userinfo)->DefaultMethodResult:
-        try:
-            db.session.query(Annotation).filter(Annotation.annotationname == _annotationname, Annotation.documentid == _documentid, Annotation.documentversion == _documentversion).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
-            db.session.commit()
-            return DefaultMethodResult(True,'Annotation deactivated',_annotationname)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
+    def __archiveannotation(cls, _annotationname, redactionlayerid, userinfo)->DefaultMethodResult:
+        return cls.__bulkarchiveannotation([_annotationname], redactionlayerid, userinfo)    
 
-    """
+    
     @classmethod
-    def bulkdeactivateannotations(cls, annots, _pkvannots, redactionlayerid, userinfo)->DefaultMethodResult:
-        datalist = []
-        idxannots = []
-        try:
-            for annot in annots:  
-                pkkey = _pkvannots[annot["name"]]  
-                datalist.append({
-                "annotationname": annot["name"],
-                "annotationid": pkkey['annotationid'],
-                "version": pkkey['version'],
-                "isactive": False,
-                "updatedby": userinfo
-                })
-                idxannots.append(annot["name"])
-            db.session.bulk_update_mappings(Annotation, datalist)
-            db.session.commit() 
-            return DefaultMethodResult(True, 'Annotations are updated', ','.join(idxannots))
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-    """
-
-    @classmethod
-    def __bulkdeactivateannotations(cls, idxannots, redactionlayerid, userinfo)->DefaultMethodResult:
+    def __bulkarchiveannotation(cls, idxannots, redactionlayerid, userinfo)->DefaultMethodResult:
         try:
             sql = """update "Annotations" a set isactive  = false, updatedby = :userinfo, updated_at=now() 
                     from (select distinct on (annotationname)  "annotationname", "version", annotationid  
@@ -361,6 +330,22 @@ class Annotation(db.Model):
             db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo), 'redactionlayerid': redactionlayerid})
             db.session.commit()
             return DefaultMethodResult(True, 'Annotations are updated', ','.join(idxannots))
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+
+    @classmethod
+    def bulkdeleteannotations(cls, idxannots, redactionlayerid, userinfo)->DefaultMethodResult:
+        try:
+            sql = """update "Annotations" a set isactive  = false, updatedby = :userinfo, updated_at=now()                      
+                    where a.annotationname in :idxannots
+                    and a.redactionlayerid = :redactionlayerid
+                    and a.isactive = True"""
+            db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo), 'redactionlayerid': redactionlayerid})
+            db.session.commit()
+            return DefaultMethodResult(True, 'Annotations are deleted', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
         finally:
