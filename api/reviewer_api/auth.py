@@ -104,8 +104,6 @@ class AuthHelper:
             unverified_claims = josejwt.get_unverified_claims(
                 token.partition("Bearer")[2].strip()
             )
-            print("unverified_claims")
-            print(unverified_claims)
             claim_name = (
                 "foi_preferred_username"
                 if "foi_preferred_username" in unverified_claims

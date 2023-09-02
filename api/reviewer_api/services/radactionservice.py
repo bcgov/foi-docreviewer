@@ -70,7 +70,7 @@ class redactionservice:
         redactionlayerid,
     ):
         result = annotationservice().deactivateannotation(
-            annotationname, documentid, documentversion, userinfo
+            annotationname, redactionlayerid, userinfo
         )
         if result.success == True and page is not None:
             documentpageflagservice().removepageflag(
@@ -89,7 +89,7 @@ class redactionservice:
         redactionlayerid,
     ):
         result = annotationservice().deactivateannotation(
-            annotationname, documentid, documentversion, userinfo
+            annotationname, redactionlayerid, userinfo
         )
         if result.success == True:
             newresult = Annotation.getredactionsbypage(
@@ -128,7 +128,6 @@ class redactionservice:
         job = jobrecordservice().insertpdfstitchjobstatus(
             _jobmessage, userinfo["userid"]
         )
-        print(job)
         if job.success:
             _message = self.__preparemessageforzipservice(redlineschema, userinfo, job)
             print(_message)
