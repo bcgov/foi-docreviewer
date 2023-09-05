@@ -112,7 +112,7 @@ def ispdfstichjobcompleted(jobid, category):
             conn.close()
 
 
-def isredlinezipjobcompleted(jobid, category):
+def isredlineresponsezipjobcompleted(jobid, category):
     conn = getdbconnection()
     try:
         cursor = conn.cursor()

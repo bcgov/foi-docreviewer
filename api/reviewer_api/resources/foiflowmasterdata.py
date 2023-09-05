@@ -223,8 +223,8 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             )
 
             # generate save url for stitched file
-            filename = str(ministryrequestid)
             filepathlist = data["filepath"].split("/")[4:]
+            filename = filepathlist[0]
             filepath_put = "{0}/responsepackage/{1}.pdf".format(
                 filepathlist[0], filename
             )
