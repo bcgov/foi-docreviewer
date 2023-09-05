@@ -9,6 +9,8 @@ from sqlalchemy.sql.schema import ForeignKey, ForeignKeyConstraint
 from reviewer_api.models.Annotations import Annotation
 import logging
 from sqlalchemy import text
+from reviewer_api.utils.util import split, getbatchconfig
+import json
 
 class AnnotationSection(db.Model):
     __tablename__ = 'AnnotationSections'
@@ -26,7 +28,7 @@ class AnnotationSection(db.Model):
 
     
     @classmethod
-    def getsectionkey(cls, _annotationname):
+    def __getsectionkey(cls, _annotationname):
         try:
             return db.session.query(AnnotationSection.id, AnnotationSection.version).filter(and_(AnnotationSection.annotationname == _annotationname)).order_by(AnnotationSection.version.desc()).first()
         except Exception as ex:
@@ -35,12 +37,39 @@ class AnnotationSection(db.Model):
             db.session.close()
 
     @classmethod
-    def savesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
+    def __getbulksectionkey(cls, _annotationnames):
+        apks = {}
+        try:
+            sql = """select distinct on (annotationname)  "annotationname", "version", id  
+               from "AnnotationSections" as2 where annotationname IN :annotationnames
+               order by annotationname, version desc;"""
+            rs = db.session.execute(text(sql), {'annotationnames': tuple(_annotationnames)})
+            for row in rs:
+                apks[row['annotationname']] = {"id": row['id'], "version": row['version']}
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        return apks
+
+    @classmethod
+    def savesections(cls, annots, _foiministryrequestid, userinfo)-> DefaultMethodResult:
+        begin, size, limit = getbatchconfig()
+        if len(annots) > 0 and len(annots) < begin:
+            return cls.__chunksavesections(annots, _foiministryrequestid, userinfo)
+        elif len(annots) >= begin and len(annots) <= limit:
+            return cls.__bulksavesections(annots, _foiministryrequestid, userinfo, size)
+        else:
+            return DefaultMethodResult(False, 'Invalid Annotation Section Request',  -1)
+
+
+    @classmethod
+    def __chunksavesections(cls, annots, _foiministryrequestid, userinfo)->DefaultMethodResult:
         successections = []
         failedsections = []
         try:
             for annot in annots:
-                resp = cls.savesection(annot, _foiministryrequestid, userinfo)
+                resp = cls.__savesection(annot, _foiministryrequestid, userinfo)
                 if resp.success == True:
                     successections.append(annot["name"])    
                 else:
@@ -51,21 +80,36 @@ class AnnotationSection(db.Model):
                 return DefaultMethodResult(True, 'Annotation sections are failed', ','.join(failedsections))
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
 
     @classmethod
-    def savesection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
-        sectkey = cls.getsectionkey(annot["name"])
-        if sectkey is None:
-            return cls.newsection(annot, _foiministryrequestid, userinfo)
-        else:
-            return cls.updatesection(annot, _foiministryrequestid, userinfo, sectkey[0], sectkey[1])
+    def __bulksavesections(cls, annots, _foiministryrequestid, userinfo, size=100)->DefaultMethodResult:
+        idxannots  = []
+        try:
+            wkannots =  split(annots,  size) 
+            for wkannot in wkannots:
+                annotnames = [d['name'] for d in wkannot]
+                _pkvsections = cls.__getbulksectionkey(annotnames) 
+                if _pkvsections not in (None, {}):
+                    cls.__bulknewsections(wkannot, _pkvsections, _foiministryrequestid, userinfo)   
+                    cls.__bulkarchivesections(annotnames, userinfo)
+                    idxannots.extend(annotnames)
+            return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
+        except Exception as ex:
+            logging.error(ex)
 
     @classmethod
-    def newsection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
+    def __savesection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
+        sectkey = cls.__getsectionkey(annot["name"])
+        if sectkey is None:
+            return cls.__newsection(annot, _foiministryrequestid, userinfo)
+        else:
+            return cls.__updatesection(annot, _foiministryrequestid, userinfo, sectkey[0], sectkey[1])
+            
+
+    @classmethod
+    def __newsection(cls, annot, _foiministryrequestid, userinfo) -> DefaultMethodResult:
         try:
             values = [{
                 "annotationname": annot["name"],
@@ -83,20 +127,44 @@ class AnnotationSection(db.Model):
             if len(result) > 0:
                 idxsect =  result[0]
                 if idxsect['isactive'] == False:
-                    return cls.updatesection(annot, _foiministryrequestid, userinfo, idxsect['id'], idxsect['version'])
+                    return cls.__updatesection(annot, _foiministryrequestid, userinfo, idxsect['id'], idxsect['version'])
             return DefaultMethodResult(True, 'Annotation Sections are added', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close() 
 
     @classmethod
-    def updatesection(cls, annot, _foiministryrequestid, userinfo, id= None, version=None) -> DefaultMethodResult:
+    def __bulknewsections(cls, annots, _pkvannots, _foiministryrequestid, userinfo):
+        datalist = []
+        idxannots = []
+        try:
+            for annot in annots:    
+                pkkey = _pkvannots[annot["name"]]
+                datalist.append({
+                "annotationname": annot["name"],
+                "foiministryrequestid": _foiministryrequestid,
+                "section": annot["sectionsschema"],
+                "createdby": userinfo,
+                "isactive": True,
+                "version": pkkey['version'] + 1 if pkkey is not None and "version" in pkkey else 1,
+                "id": pkkey['id'] if pkkey is not None and "id" in pkkey else None
+                
+                })
+                idxannots.append(annot["name"])
+            db.session.bulk_insert_mappings(AnnotationSection, datalist)
+            db.session.commit()             
+            return idxannots
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def __updatesection(cls, annot, _foiministryrequestid, userinfo, id= None, version=None) -> DefaultMethodResult:
         try:
             if id is None or version is None:
                 return DefaultMethodResult(True, 'Unable to Save Annotation Section', annot["name"])
-            cls.deactivatesection(annot["name"], userinfo)
             values = [{
                 "id" : id,
                 "annotationname": annot["name"],
@@ -109,20 +177,46 @@ class AnnotationSection(db.Model):
             insertstmt = insert(AnnotationSection).values(values)
             secttmt = insertstmt.on_conflict_do_nothing()
             db.session.execute(secttmt)    
-            db.session.commit() 
+            db.session.commit()
+            cls.__archivesection(annot["name"], userinfo) 
             return DefaultMethodResult(True, 'Annotation sections are updated', annot["name"])
         except Exception as ex:
             logging.error(ex)
-            raise ex
         finally:
             db.session.close()  
 
     @classmethod
-    def deactivatesection(cls, _annotationname, userinfo)->DefaultMethodResult:
+    def __archivesection(cls, _annotationname, userinfo)->DefaultMethodResult:
+        return cls.__bulkarchivesections([_annotationname], userinfo)
+
+    @classmethod
+    def __bulkarchivesections(cls, idxannots, userinfo)->DefaultMethodResult:
         try:
-            db.session.query(AnnotationSection).filter(AnnotationSection.annotationname == _annotationname).update({"isactive": False, "updated_at": datetime.now(), "updatedby": userinfo}, synchronize_session=False)
+            sql = """update "AnnotationSections" a set isactive  = false, updatedby = :userinfo, updated_at=now() 
+                    from (select distinct on (annotationname)  "annotationname", "version", id  
+                    from "AnnotationSections"  where annotationname in :idxannots
+                    order by annotationname, version desc) b  
+                    where a.annotationname = b.annotationname
+                    and a."version" < b.version
+                    and a.isactive = true;"""
+            db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo)})
             db.session.commit()
-            return DefaultMethodResult(True,'Annotation Sections are  deactivated',_annotationname)
+            return DefaultMethodResult(True, 'Annotation sections are updated', ','.join(idxannots))
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+
+    @classmethod
+    def bulkdeletesections(cls, idxannots, userinfo)->DefaultMethodResult:
+        try:
+            sql = """update "AnnotationSections" a set isactive  = false, updatedby = :userinfo, updated_at=now()
+                    where a.annotationname in :idxannots
+                    and a.isactive = true;"""
+            db.session.execute(text(sql), {'idxannots': tuple(idxannots), 'userinfo': json.dumps(userinfo)})
+            db.session.commit()
+            return DefaultMethodResult(True, 'Annotation sections are deleted', ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
         finally:
@@ -144,8 +238,6 @@ class AnnotationSection(db.Model):
                 mapping.append({"sectionannotationname":row["sectionannotationname"], "redactannotation":row["redactannotation"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return mapping
@@ -172,8 +264,6 @@ class AnnotationSection(db.Model):
                 mapping.append({"annotationname":row["redactannotation"], "sectionannotation":row["annotationname"], "ids": row["ids"]})
         except Exception as ex:
             logging.error(ex)
-            db.session.close()
-            raise ex
         finally:
             db.session.close()
         return mapping
