@@ -88,7 +88,6 @@ class annotationservice:
 
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema['xml'])
-        print("\nannots::",annots)
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
         if len(annots) < 1:
             return DefaultMethodResult(True,'No valid Annotations found', -1) 
@@ -101,8 +100,9 @@ class annotationservice:
         else:
             return DefaultMethodResult(False,'Failed to save Annotation', resp.identifier)
         #Collect all existing IDS
-        delete_annots = []
-        self.__deleteannotations(delete_annots, _redactionlayerid, userinfo)
+        delete_annots = [item['existingid'] for item in annots if item['existingid'] is not None]
+        if len(delete_annots) > 0:
+            self.__deleteannotations(delete_annots, _redactionlayerid, userinfo)
         return DefaultMethodResult(True,'Annotation successfully saved', resp.identifier)
 
     
