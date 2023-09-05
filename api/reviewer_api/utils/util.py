@@ -129,7 +129,7 @@ def to_json(obj):
 def getbatchconfig():
     _batchconfig_str = os.getenv('BATCH_CONFIG',None)
     if _batchconfig_str in (None,''):
-        return 1, 100, 250
+        return 2, 100, 250
     _batchconfig = json.loads(_batchconfig_str)
     _begin = _batchconfig["begin"] if "begin" in _batchconfig else 2
     _size =  _batchconfig["size"] if "size" in _batchconfig else 100
