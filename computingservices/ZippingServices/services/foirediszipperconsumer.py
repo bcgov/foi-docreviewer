@@ -11,7 +11,7 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb, zipper_stream_key, jsonmessageparser
-from .zipperservice import processmessage
+from .zipperservice import processmessage, sendnotification
 from .notificationservice import notificationservice
 
 
@@ -72,18 +72,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                                 error
                             )
                         )
-
-                    if (
-                        readyfornotification == True
-                        and producermessage.category.lower() == "harms"
-                    ):
-                        notificationservice().sendharmsnotification(producermessage)
-                    elif (
-                        readyfornotification == True
-                        and producermessage.category.lower() == "redline"
-                    ):
-                        notificationservice().sendredlinenotification(producermessage)
-
+                    sendnotification(readyfornotification, producermessage)
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
         # else:

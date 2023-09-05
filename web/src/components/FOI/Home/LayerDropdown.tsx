@@ -35,7 +35,7 @@ const LayerDropdown = ({
     }
 
     useEffect(() => {
-        setLayer(currentLayer.redactionlayerid)
+        setLayer(currentLayer?.redactionlayerid)
     }, [currentLayer])
 
     const handleModalContinue = (e: any) => {
