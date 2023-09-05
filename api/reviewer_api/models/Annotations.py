@@ -208,9 +208,9 @@ class Annotation(db.Model):
             for wkannot in wkannots:
                 annotnames = [d['name'] for d in wkannot]
                 _pkvannots = cls.__getbulkannotationkey(annotnames) 
-                    cls.__bulknewannotations(wkannot, _pkvannots, redactionlayerid, userinfo)   
-                    cls.__bulkarchiveannotation(annotnames, redactionlayerid, userinfo)
-                    idxannots.extend(annotnames)
+                cls.__bulknewannotations(wkannot, _pkvannots, redactionlayerid, userinfo)   
+                cls.__bulkarchiveannotation(annotnames, redactionlayerid, userinfo)
+                idxannots.extend(annotnames)
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
