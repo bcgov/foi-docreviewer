@@ -34,6 +34,7 @@ import {
   fetchPageFlag,
   fetchKeywordsMasterData,
   triggerDownloadRedlines,
+  triggerDownloadFinalPackage,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -1755,6 +1756,55 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const prepareMessageForRedlineZipping = (
+      divObj,
+      divisionCountForToast,
+      stitchedDocPath,
+      zipServiceMessage
+    ) => {
+      const zipDocObj = {
+        divisionid: divObj.divisionid,
+        divisionname: divObj.divisionname,
+        files: [],
+      };
+      const stitchedDocPathArray = stitchedDocPath.split("/");
+      let fileName =
+        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
+      const requestNumber = decodeURIComponent(fileName).split(" - ")[0];
+      fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
+      const file = {
+        filename: fileName,
+        s3uripath: decodeURIComponent(stitchedDocPath.split("?")[0]),
+      };
+      zipDocObj.files.push(file);
+
+      if (incompatibleFiles.length > 0) {
+        const divIncompatableFiles = incompatibleFiles
+          .filter((record) =>
+            record.divisions.some(
+              (division) => division.divisionid === divObj.divisionid
+            )
+          )
+          .map((record) => {
+            return {
+              filename: divObj.divisionname + "/" + record.filename,
+              s3uripath: record.filepath,
+            };
+          });
+        zipDocObj.files = [...zipDocObj.files, ...divIncompatableFiles];
+      }
+      zipServiceMessage.attributes.push(zipDocObj);
+      if (divisionCountForToast === zipServiceMessage.attributes.length) {
+        zipServiceMessage.requestnumber = requestNumber;
+        zipServiceMessage.bcgovcode = bcgovcode;
+        triggerDownloadRedlines(zipServiceMessage, (error) => {
+          console.log(error);
+        });
+      }
+      return zipServiceMessage;
+    };
+
     const saveRedlineDocument = (_instance) => {
       let arr = [];
       const divisions = [
@@ -1950,7 +2000,7 @@ const Redlining = React.forwardRef(
                         isLoading: true,
                       });
 
-                      await saveFilesinS3(
+                      saveFilesinS3(
                         { filepath: stitchedDocPath },
                         _blob,
                         (_res) => {
@@ -1967,67 +2017,12 @@ const Redlining = React.forwardRef(
                             draggable: true,
                             closeButton: true,
                           });
-                          const zipDocObj = {
-                            divisionid: divObj.divisionid,
-                            divisionname: divObj.divisionname,
-                            files: [],
-                          };
-                          const stitchedDocPathArray =
-                            stitchedDocPath.split("/");
-                          let fileName =
-                            stitchedDocPathArray[
-                              stitchedDocPathArray.length - 1
-                            ].split("?")[0];
-                          const bcgovcode =
-                            stitchedDocPathArray[3].split("-")[0];
-                          const requestNumber =
-                            decodeURIComponent(fileName).split(" - ")[0];
-                          fileName =
-                            divObj.divisionname +
-                            "/" +
-                            decodeURIComponent(fileName);
-                          const file = {
-                            filename: fileName,
-                            s3uripath: decodeURIComponent(
-                              stitchedDocPath.split("?")[0]
-                            ),
-                          };
-                          zipDocObj.files.push(file);
-                          if (incompatibleFiles.length > 0) {
-                            // Filter records where divisionid is 6
-                            const divIncompatableFiles = incompatibleFiles
-                              .filter((record) =>
-                                record.divisions.some(
-                                  (division) =>
-                                    division.divisionid === divObj.divisionid
-                                )
-                              )
-                              .map((record) => {
-                                return {
-                                  filename:
-                                    divObj.divisionname + "/" + record.filename,
-                                  s3uripath: record.filepath,
-                                };
-                              });
-                            zipDocObj.files = [
-                              ...zipDocObj.files,
-                              ...divIncompatableFiles,
-                            ];
-                          }
-                          zipServiceMessage.attributes.push(zipDocObj);
-                          if (
-                            divisionCountForToast ===
-                            zipServiceMessage.attributes.length
-                          ) {
-                            zipServiceMessage.requestnumber = requestNumber;
-                            zipServiceMessage.bcgovcode = bcgovcode;
-                            triggerDownloadRedlines(
-                              zipServiceMessage,
-                              (error) => {
-                                console.log(error);
-                              }
-                            );
-                          }
+                          prepareMessageForRedlineZipping(
+                            divObj,
+                            divisionCountForToast,
+                            stitchedDocPath,
+                            zipServiceMessage
+                          );
                         },
                         (_err) => {
                           console.log(_err);
@@ -2077,9 +2072,56 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
     };
 
+    const prepareMessageForResponseZipping = (
+      stitchedfilepath,
+      zipServiceMessage
+    ) => {
+      const stitchedDocPathArray = stitchedfilepath.split("/");
+      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
+      const requestNumber = stitchedDocPathArray[4];
+
+      let fileName =
+        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+      fileName = decodeURIComponent(fileName);
+
+      const file = {
+        filename: fileName,
+        s3uripath: decodeURIComponent(stitchedfilepath.split("?")[0]),
+      };
+      const zipDocObj = {
+        files: [],
+      };
+      zipDocObj.files.push(file);
+
+      if (incompatibleFiles.length > 0) {
+        const _incompatableFiles = incompatibleFiles.map((record) => {
+          return {
+            filename: record.filename,
+            s3uripath: record.filepath,
+          };
+        });
+        zipDocObj.files = [...zipDocObj.files, ..._incompatableFiles];
+      }
+
+      zipServiceMessage.attributes.push(zipDocObj);
+      zipServiceMessage.bcgovcode = bcgovcode;
+      zipServiceMessage.requestnumber = requestNumber;
+      triggerDownloadFinalPackage(zipServiceMessage, (error) => {
+        console.log(error);
+      });
+    };
+
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
       // console.log("divisions: ", divisions);
+
+      let zipServiceMessage = {
+        ministryrequestid: requestid,
+        category: "responsepackage",
+        attributes: [],
+        requestnumber: "",
+        bcgovcode: "",
+      };
 
       getResponsePackagePreSignedUrl(
         requestid,
@@ -2176,7 +2218,7 @@ const Redlining = React.forwardRef(
                   render: "Saving final package to Object Storage...",
                   isLoading: true,
                 });
-                await saveFilesinS3(
+                saveFilesinS3(
                   { filepath: res.s3path_save },
                   _blob,
                   (_res) => {
@@ -2193,6 +2235,10 @@ const Redlining = React.forwardRef(
                       draggable: true,
                       closeButton: true,
                     });
+                    prepareMessageForResponseZipping(
+                      res.s3path_save,
+                      zipServiceMessage
+                    );
                   },
                   (_err) => {
                     console.log(_err);

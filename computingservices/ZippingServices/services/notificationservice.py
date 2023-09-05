@@ -1,8 +1,8 @@
-from .zipperdboperations import ispdfstichjobcompleted, isredlinezipjobcompleted
+from .zipperdboperations import ispdfstichjobcompleted, isredlineresponsezipjobcompleted
 from utils.foizipperconfig import notification_stream_key
 from utils.foiredisstreamdb import notificationredisstreamdb
 from models.harrmsnotificationmessage import harmsnotificationmessage
-from models.redlinenotificationmessage import redlinenotificationmessage
+from models.redlineresponsenotificationmessage import redlineresponsenotificationmessage
 import logging, json
 
 
@@ -24,33 +24,61 @@ class notificationservice:
         else:
             logging.info("pdfstitch not yet complete, no message sent")
 
-    def sendredlinenotification(self, producermessage):
-        complete, err = self.__isredlinezipjobcompleted(
+    def sendredlineresponsenotification(self, producermessage):
+        complete, err = self.__isredlineresponsezipjobcompleted(
             producermessage.jobid, producermessage.category.lower()
         )
-        print("Complete = {0} Error = {1}", complete, err)
+
         if complete or err:
-            self.__redlinepublishtostream(producermessage, err)
+            if producermessage.category.lower() == "redline":
+                self.__redlinepublishtostream(producermessage, err)
+            elif producermessage.category.lower() == "responsepackage":
+                self.__responsepackagepublishtostream(producermessage, err)
         else:
             logging.info("redline zipping is not yet completed, no message to sent")
 
+    def __responsepackagepublishtostream(self, message, error=False):
+        try:
+            notification_msg = redlineresponsenotificationmessage(
+                ministryrequestid=message.ministryrequestid,
+                serviceid="pdfstitchforresponsepackage",
+                createdby=message.createdby,
+                errorflag=self.__booltostr(error),
+            )
+
+            logging.info(
+                "Response package Notification message = %s ", notification_msg.__dict__
+            )
+            notificationstream = notificationredisstreamdb.Stream(
+                notification_stream_key
+            )
+
+            msgid = notificationstream.add(notification_msg.__dict__, id="*")
+            logging.info("Response package Notification message for msgid = %s ", msgid)
+        except Exception as error:
+            logging.error(
+                f"Unable to write to notification stream for response package pdfstitch | ministryrequestid= {message.ministryrequestid}"
+            )
+            logging.error(error)
+
     def __redlinepublishtostream(self, message, error=False):
         try:
-            notification_msg = redlinenotificationmessage(
+            notification_msg = redlineresponsenotificationmessage(
                 ministryrequestid=message.ministryrequestid,
                 serviceid="pdfstitchforredline",
                 createdby=message.createdby,
                 errorflag=self.__booltostr(error),
             )
 
-            logging.info("Notification message = %s ", notification_msg.__dict__)
-            print(f"Notification message =  {notification_msg.__dict__}")
+            logging.info(
+                "Redline Notification message = %s ", notification_msg.__dict__
+            )
             notificationstream = notificationredisstreamdb.Stream(
                 notification_stream_key
             )
 
             msgid = notificationstream.add(notification_msg.__dict__, id="*")
-            logging.info("Notification message for msgid = %s ", msgid)
+            logging.info("Redline Notification message for msgid = %s ", msgid)
         except Exception as error:
             logging.error(
                 f"Unable to write to notification stream for redline pdfstitch | ministryrequestid= {message.ministryrequestid}"
@@ -70,14 +98,13 @@ class notificationservice:
                 errorflag=self.__booltostr(error),
             )
 
-            logging.info("Notification message = %s ", notification_msg.__dict__)
-            print(f"Notification message =  {notification_msg.__dict__}")
+            logging.info("Harms Notification message = %s ", notification_msg.__dict__)
             notificationstream = notificationredisstreamdb.Stream(
                 notification_stream_key
             )
 
             msgid = notificationstream.add(notification_msg.__dict__, id="*")
-            logging.info("Notification message for msgid = %s ", msgid)
+            logging.info("Harms Notification message for msgid = %s ", msgid)
         except Exception as error:
             logging.error(
                 f"Unable to write to notification stream for pdfstitch | ministryrequestid= {message.ministryrequestid}"
@@ -112,5 +139,5 @@ class notificationservice:
             )
         return complete, err, total_skippedfilecount, skippedfiles
 
-    def __isredlinezipjobcompleted(self, jobid, category):
-        return isredlinezipjobcompleted(jobid, category)
+    def __isredlineresponsezipjobcompleted(self, jobid, category):
+        return isredlineresponsezipjobcompleted(jobid, category)
