@@ -53,8 +53,8 @@ class FOIFlowS3Presigned(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    # @auth.require
-    # @auth.ismemberofgroups(getrequiredmemberships())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid):
         try:
             document = documentservice().getdocument(documentid)
