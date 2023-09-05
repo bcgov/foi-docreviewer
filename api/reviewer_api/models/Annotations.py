@@ -208,10 +208,9 @@ class Annotation(db.Model):
             for wkannot in wkannots:
                 annotnames = [d['name'] for d in wkannot]
                 _pkvannots = cls.__getbulkannotationkey(annotnames) 
-                if _pkvannots not in (None, {}):
-                    cls.__bulknewannotations(wkannot, _pkvannots, redactionlayerid, userinfo)   
-                    cls.__bulkarchiveannotation(annotnames, redactionlayerid, userinfo)
-                    idxannots.extend(annotnames)
+                cls.__bulknewannotations(wkannot, _pkvannots, redactionlayerid, userinfo)   
+                cls.__bulkarchiveannotation(annotnames, redactionlayerid, userinfo)
+                idxannots.extend(annotnames)
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
@@ -260,7 +259,7 @@ class Annotation(db.Model):
         idxannots = []
         try:
             for annot in annots:    
-                pkkey = _pkvannots[annot["name"]]
+                pkkey = _pkvannots[annot["name"]] if _pkvannots not in (None, {}) else None
                 datalist.append({
                 "annotationname": annot["name"],
                 "documentid": annot["docid"],
