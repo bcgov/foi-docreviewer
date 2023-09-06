@@ -127,67 +127,76 @@ class FOIFlowS3PresignedRedline(Resource):
                 aws_secret_access_key=secretkey,
                 region_name=s3region,
             )
-
             for div in data["divdocumentList"]:
-                division_name = div["documentlist"][0]["divisions"][0]["name"]
+                if len(div["documentlist"]) > 0:
+                    division_name = div["documentlist"][0]["divisions"][0]["name"]
+                elif len(div["incompatableList"]) > 0:
+                    division_name = div["incompatableList"][0]["divisions"][0]["name"]
+                    filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
 
-                # generate save url for stitched file
-                filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
-                    filepathlist[0], division_name
-                )
-
-                # filename_put, file_extension_put = os.path.splitext(filepath_put)
-                # filepath_put = filename_put+'.pdf'
-                s3path_save = s3client.generate_presigned_url(
-                    ClientMethod="get_object",
-                    Params={
-                        "Bucket": formsbucket,
-                        "Key": "{0}".format(filepath_put),
-                        "ResponseContentType": "application/pdf",
-                    },
-                    ExpiresIn=3600,
-                    HttpMethod="PUT",
-                )
-
-                # for save/put - stitch by division
-                div["s3path_save"] = s3path_save
-
-                # retrieve annotations for stitch by division
-                div[
-                    "annotationXML"
-                ] = redactionservice().getannotationsbyrequestdivision(
-                    ministryrequestid, div["divisionid"]
-                )
-
-                for doc in div["documentlist"]:
-                    filepathlist = doc["filepath"].split("/")[4:]
-
-                    # for load/get
-                    filepath_get = "/".join(filepathlist)
-                    filename_get, file_extension_get = os.path.splitext(filepath_get)
-                    file_extension_get = (
-                        file_extension_get.replace(".", "")
-                        if file_extension_get.lower() in imageextensions
-                        else "pdf"
+                if len(div["documentlist"]) > 0:
+                    # generate save url for stitched file
+                    filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                    filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
+                        filepathlist[0], division_name
                     )
 
-                    doc["s3path_load"] = s3client.generate_presigned_url(
+                    # filename_put, file_extension_put = os.path.splitext(filepath_put)
+                    # filepath_put = filename_put+'.pdf'
+                    s3path_save = s3client.generate_presigned_url(
                         ClientMethod="get_object",
                         Params={
                             "Bucket": formsbucket,
-                            "Key": "{0}.{1}".format(filename_get, file_extension_get),
-                            "ResponseContentType": "{0}/{1}".format(
-                                "image"
-                                if file_extension_get.lower() in imageextensions
-                                else "application",
-                                file_extension_get,
-                            ),
+                            "Key": "{0}".format(filepath_put),
+                            "ResponseContentType": "application/pdf",
                         },
                         ExpiresIn=3600,
-                        HttpMethod="GET",
+                        HttpMethod="PUT",
                     )
 
+                    # for save/put - stitch by division
+                    div["s3path_save"] = s3path_save
+
+                    # retrieve annotations for stitch by division
+                    div[
+                        "annotationXML"
+                    ] = redactionservice().getannotationsbyrequestdivision(
+                        ministryrequestid, div["divisionid"]
+                    )
+
+                    for doc in div["documentlist"]:
+                        filepathlist = doc["filepath"].split("/")[4:]
+
+                        # for load/get
+                        filepath_get = "/".join(filepathlist)
+                        filename_get, file_extension_get = os.path.splitext(
+                            filepath_get
+                        )
+                        file_extension_get = (
+                            file_extension_get.replace(".", "")
+                            if file_extension_get.lower() in imageextensions
+                            else "pdf"
+                        )
+
+                        doc["s3path_load"] = s3client.generate_presigned_url(
+                            ClientMethod="get_object",
+                            Params={
+                                "Bucket": formsbucket,
+                                "Key": "{0}.{1}".format(
+                                    filename_get, file_extension_get
+                                ),
+                                "ResponseContentType": "{0}/{1}".format(
+                                    "image"
+                                    if file_extension_get.lower() in imageextensions
+                                    else "application",
+                                    file_extension_get,
+                                ),
+                            },
+                            ExpiresIn=3600,
+                            HttpMethod="GET",
+                        )
+            data["requestnumber"] = filepathlist[0]
+            data["bcgovcode"] = formsbucket.split("-")[0]
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
@@ -244,6 +253,8 @@ class FOIFlowS3PresignedResponsePackage(Resource):
 
             # for save/put - stitch by division
             data["s3path_save"] = s3path_save
+            data["requestnumber"] = filepathlist[0]
+            data["bcgovcode"] = formsbucket.split("-")[0]
 
             return json.dumps(data), 200
         except BusinessException as exception:
