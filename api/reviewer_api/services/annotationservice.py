@@ -134,10 +134,8 @@ class annotationservice:
                     "page": annot.getAttribute("page"),
                     "xml": annot.toxml(),
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
-                    "originalpageno": customdatadict['originalPageNo'],
                     "docid": customdatadict['docid'],
-                    "docversion": customdatadict['docversion'],
-                    "type": customdatadict['trn-redaction-type'],
+                    "docversion": customdatadict['docversion'] if 'docversion' in customdatadict else 1,
                     "existingid": customdatadict['existingId'] if 'existingId' in customdatadict else None
                 })
         return annots
