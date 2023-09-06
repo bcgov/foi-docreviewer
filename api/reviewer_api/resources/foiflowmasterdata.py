@@ -130,11 +130,6 @@ class FOIFlowS3PresignedRedline(Resource):
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     division_name = div["documentlist"][0]["divisions"][0]["name"]
-                elif len(div["incompatableList"]) > 0:
-                    division_name = div["incompatableList"][0]["divisions"][0]["name"]
-                    filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
-
-                if len(div["documentlist"]) > 0:
                     # generate save url for stitched file
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                     filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
@@ -195,6 +190,8 @@ class FOIFlowS3PresignedRedline(Resource):
                             ExpiresIn=3600,
                             HttpMethod="GET",
                         )
+                elif len(div["incompatableList"]) > 0:
+                    filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = formsbucket.split("-")[0]
             return json.dumps(data), 200
