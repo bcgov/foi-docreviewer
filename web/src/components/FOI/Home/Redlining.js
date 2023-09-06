@@ -1782,7 +1782,6 @@ const Redlining = React.forwardRef(
 
             let stitchedDocObj = null;
             let stitchedDocPath = divObj.s3path_save;
-            const incompatableList = divObj.incompatableList;
             let stitchedXMLArray = [];
 
             let docCount = 0;
@@ -2003,8 +2002,6 @@ const Redlining = React.forwardRef(
       zipServiceMessage
     ) => {
       const stitchedDocPathArray = stitchedfilepath.split("/");
-      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
-      const requestNumber = stitchedDocPathArray[4];
 
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -2019,19 +2016,7 @@ const Redlining = React.forwardRef(
       };
       zipDocObj.files.push(file);
 
-      if (incompatibleFiles.length > 0) {
-        const _incompatableFiles = incompatibleFiles.map((record) => {
-          return {
-            filename: record.filename,
-            s3uripath: record.filepath,
-          };
-        });
-        zipDocObj.files = [...zipDocObj.files, ..._incompatableFiles];
-      }
-
       zipServiceMessage.attributes.push(zipDocObj);
-      zipServiceMessage.bcgovcode = bcgovcode;
-      zipServiceMessage.requestnumber = requestNumber;
       triggerDownloadFinalPackage(zipServiceMessage, (error) => {
         console.log(error);
       });
@@ -2056,6 +2041,8 @@ const Redlining = React.forwardRef(
           // console.log("getResponsePackagePreSignedUrl: ", res);
           // res.s3path_save;
           const toastID = toast.loading("Start generating final package...");
+          zipServiceMessage.requestnumber = res.requestnumber;
+          zipServiceMessage.bcgovcode = res.bcgovcode;
 
           // go through annotations and get all section stamps
           annotationManager.exportAnnotations().then(async (xfdfString) => {
