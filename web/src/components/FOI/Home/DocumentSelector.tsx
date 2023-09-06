@@ -128,13 +128,31 @@ const DocumentSelector = ({
     }
 
 
+    function intersection(setA: any, setB: any) {
+        const _intersection = new Set();
+        for (const elem of setB) {
+            if (setA.has(elem)) {
+            _intersection.add(elem);
+            }
+        }
+        return _intersection;
+    }
+
     const updatePageCount = () => {
         let totalFilteredPages = 0;
         pageFlags?.forEach((element: any) => {
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-            let documentSpecificCount = element?.pageflag?.filter((obj: any) => (filterFlags.includes(obj.flagid)))?.length;
+            let documentSpecificCount = element?.pageflag?.filter((obj: any) => {
+                if (obj.flagid  === pageFlagTypes["Consult"]) {
+                    const consultFilter = new Set(consulteeFilter);
+                    const selectedMinistries = new Set([...obj.programareaid, ...obj.other]);
+                    const consultOverlap = intersection(consultFilter, selectedMinistries);
+                    return filterFlags.includes(obj.flagid) && consultOverlap.size > 0;
+                }
+                return filterFlags.includes(obj.flagid);
+            })?.length;
             totalFilteredPages += documentSpecificCount;
         });
         return filterFlags.length > 0 ? totalFilteredPages : totalPageCount;
