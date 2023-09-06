@@ -231,6 +231,8 @@ const Redlining = React.forwardRef(
       fetchSections(requestid, (error) => console.log(error));
       WebViewer(
         {
+          licenseKey:
+            "demo:1694019284368:7c378469030000000022f8587aff41ce48e30ddc52ef03d29d5e661297",
           path: "/webviewer",
           preloadWorker: "pdf",
           // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
