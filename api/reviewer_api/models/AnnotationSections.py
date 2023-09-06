@@ -91,10 +91,9 @@ class AnnotationSection(db.Model):
             for wkannot in wkannots:
                 annotnames = [d['name'] for d in wkannot]
                 _pkvsections = cls.__getbulksectionkey(annotnames) 
-                if _pkvsections not in (None, {}):
-                    cls.__bulknewsections(wkannot, _pkvsections, _foiministryrequestid, userinfo)   
-                    cls.__bulkarchivesections(annotnames, userinfo)
-                    idxannots.extend(annotnames)
+                cls.__bulknewsections(wkannot, _pkvsections, _foiministryrequestid, userinfo)   
+                cls.__bulkarchivesections(annotnames, userinfo)
+                idxannots.extend(annotnames)
             return DefaultMethodResult(True, 'Annotations added',  ','.join(idxannots))
         except Exception as ex:
             logging.error(ex)
@@ -140,7 +139,7 @@ class AnnotationSection(db.Model):
         idxannots = []
         try:
             for annot in annots:    
-                pkkey = _pkvannots[annot["name"]]
+                pkkey = _pkvannots[annot["name"]] if _pkvannots not in (None, {}) else None
                 datalist.append({
                 "annotationname": annot["name"],
                 "foiministryrequestid": _foiministryrequestid,

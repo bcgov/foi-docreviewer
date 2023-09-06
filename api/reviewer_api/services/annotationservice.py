@@ -100,8 +100,9 @@ class annotationservice:
         else:
             return DefaultMethodResult(False,'Failed to save Annotation', resp.identifier)
         #Collect all existing IDS
-        delete_annots = []
-        self.__deleteannotations(delete_annots, _redactionlayerid, userinfo)
+        delete_annots = [item['existingid'] for item in annots if item['existingid'] is not None]
+        if len(delete_annots) > 0:
+            self.__deleteannotations(delete_annots, _redactionlayerid, userinfo)
         return DefaultMethodResult(True,'Annotation successfully saved', resp.identifier)
 
     
@@ -135,7 +136,9 @@ class annotationservice:
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
                     "originalpageno": customdatadict['originalPageNo'],
                     "docid": customdatadict['docid'],
-                    "docversion": customdatadict['docversion']
+                    "docversion": customdatadict['docversion'],
+                    "type": customdatadict['trn-redaction-type'],
+                    "existingid": customdatadict['existingId'] if 'existingId' in customdatadict else None
                 })
         return annots
     
