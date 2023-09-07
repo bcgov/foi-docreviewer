@@ -1277,6 +1277,9 @@ const Redlining = React.forwardRef(
             .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
             .map((s) => s.section)
             .join(", ");
+          if(redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25){
+            redactionSections="  ";
+          }
           childAnnotation.setContents(redactionSections);
           const displayedDoc =
             pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1368,6 +1371,9 @@ const Redlining = React.forwardRef(
               .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
               .map((s) => s.section)
               .join(", ");
+            if(redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25){
+              redactionSections="  ";
+            }
             childAnnotation.setContents(redactionSections);
             const displayedDoc =
               pageMappedDocs.stitchedPageLookup[
@@ -1462,6 +1468,9 @@ const Redlining = React.forwardRef(
           let redactionSectionsString = redactionSections
             .map((s) => s.section)
             .join(", ");
+          if(selectedSections?.length == 1 && selectedSections[0] === 25){
+            redactionSectionsString="  ";
+          }
           annot.setAutoSizeType("auto");
           annot.setContents(redactionSectionsString);
           annot.setCustomData("parentRedaction", redaction.Id);
