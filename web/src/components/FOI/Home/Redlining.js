@@ -1769,28 +1769,27 @@ const Redlining = React.forwardRef(
     const prepareMessageForRedlineZipping = (
       divObj,
       divisionCountForToast,
-      stitchedDocPath,
-      zipServiceMessage
+      zipServiceMessage,
+      stitchedDocPath = ""
     ) => {
       const zipDocObj = {
         divisionid: divObj.divisionid,
         divisionname: divObj.divisionname,
         files: [],
       };
-      const stitchedDocPathArray = stitchedDocPath.split("/");
-      let fileName =
-        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
-      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
-      const requestNumber = decodeURIComponent(fileName).split(" - ")[0];
-      fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
-      const file = {
-        filename: fileName,
-        s3uripath: decodeURIComponent(stitchedDocPath.split("?")[0]),
-      };
-      zipDocObj.files.push(file);
-
-      if (incompatibleFiles.length > 0) {
-        const divIncompatableFiles = incompatibleFiles
+      if (stitchedDocPath) {
+        const stitchedDocPathArray = stitchedDocPath?.split("/");
+        let fileName =
+          stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+        fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
+        const file = {
+          filename: fileName,
+          s3uripath: decodeURIComponent(stitchedDocPath?.split("?")[0]),
+        };
+        zipDocObj.files.push(file);
+      }
+      if (divObj.incompatableList.length > 0) {
+        const divIncompatableFiles = divObj.incompatableList
           .filter((record) =>
             record.divisions.some(
               (division) => division.divisionid === divObj.divisionid
@@ -1806,8 +1805,6 @@ const Redlining = React.forwardRef(
       }
       zipServiceMessage.attributes.push(zipDocObj);
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
-        zipServiceMessage.requestnumber = requestNumber;
-        zipServiceMessage.bcgovcode = bcgovcode;
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
         });
@@ -1817,9 +1814,10 @@ const Redlining = React.forwardRef(
 
     const saveRedlineDocument = (_instance) => {
       let arr = [];
+      const divisionFilesList = [...documentList, ...incompatibleFiles];
       const divisions = [
         ...new Map(
-          documentList.reduce(
+          divisionFilesList.reduce(
             (acc, file) => [
               ...acc,
               ...new Map(
@@ -1844,10 +1842,14 @@ const Redlining = React.forwardRef(
         let divDocList = documentList.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
+        let incompatableList = incompatibleFiles.filter((doc) =>
+          doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
+        );
         let newDivObj = {
           divisionid: div.divisionid,
           divisionname: div.name,
           documentlist: divDocList,
+          incompatableList: incompatableList,
         };
         newDocList.push(newDivObj);
       }
@@ -1864,6 +1866,8 @@ const Redlining = React.forwardRef(
         newDocList,
         async (res) => {
           let domParser = new DOMParser();
+          zipServiceMessage.requestnumber = res.requestnumber;
+          zipServiceMessage.bcgovcode = res.bcgovcode;
           for (let divObj of res.divdocumentList) {
             let pageMappingsByDivisions = {};
 
@@ -1881,6 +1885,14 @@ const Redlining = React.forwardRef(
             let totalPageCount = 0;
             let totalPageCountIncludeRemoved = 0;
             let pagesToRemove = []; //for each stitched division pdf
+            if (!stitchedDocPath) {
+              prepareMessageForRedlineZipping(
+                divObj,
+                divisionCountForToast,
+                zipServiceMessage,
+                stitchedDocPath
+              );
+            }
             for (let doc of divObj.documentlist) {
               docCount++;
               pageMappingsByDivisions[doc.documentid] = {};
@@ -2030,8 +2042,8 @@ const Redlining = React.forwardRef(
                           prepareMessageForRedlineZipping(
                             divObj,
                             divisionCountForToast,
-                            stitchedDocPath,
-                            zipServiceMessage
+                            zipServiceMessage,
+                            stitchedDocPath
                           );
                         },
                         (_err) => {
@@ -2087,8 +2099,6 @@ const Redlining = React.forwardRef(
       zipServiceMessage
     ) => {
       const stitchedDocPathArray = stitchedfilepath.split("/");
-      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
-      const requestNumber = stitchedDocPathArray[4];
 
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -2103,19 +2113,7 @@ const Redlining = React.forwardRef(
       };
       zipDocObj.files.push(file);
 
-      if (incompatibleFiles.length > 0) {
-        const _incompatableFiles = incompatibleFiles.map((record) => {
-          return {
-            filename: record.filename,
-            s3uripath: record.filepath,
-          };
-        });
-        zipDocObj.files = [...zipDocObj.files, ..._incompatableFiles];
-      }
-
       zipServiceMessage.attributes.push(zipDocObj);
-      zipServiceMessage.bcgovcode = bcgovcode;
-      zipServiceMessage.requestnumber = requestNumber;
       triggerDownloadFinalPackage(zipServiceMessage, (error) => {
         console.log(error);
       });
@@ -2140,6 +2138,8 @@ const Redlining = React.forwardRef(
           // console.log("getResponsePackagePreSignedUrl: ", res);
           // res.s3path_save;
           const toastID = toast.loading("Start generating final package...");
+          zipServiceMessage.requestnumber = res.requestnumber;
+          zipServiceMessage.bcgovcode = res.bcgovcode;
 
           // go through annotations and get all section stamps
           annotationManager.exportAnnotations().then(async (xfdfString) => {
