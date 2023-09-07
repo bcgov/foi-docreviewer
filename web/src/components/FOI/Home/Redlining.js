@@ -1431,9 +1431,16 @@ const Redlining = React.forwardRef(
             );
             setSelectedSections([]);
             if (redactionSectionsIds.length > 0) {
-              redactionInfo.find(
-                (r) => r.annotationname === redactionObj.name
-              ).sections.ids = redactionSectionsIds;
+
+              redactionObj.names?.forEach((name) => {
+                const info = redactionInfo.find((r) => r.annotationname === name);
+                if (info) {
+                  info.sections.ids = redactionSectionsIds;
+                }
+              });
+              // redactionInfo.find(
+              //   (r) => r.annotationname === redactionObj.name
+              // ).sections.ids = redactionSectionsIds;
             }
             setEditAnnot(null);
           });
@@ -1505,10 +1512,13 @@ const Redlining = React.forwardRef(
             }
           }
           sectionAnnotations.push(annot);
-          redactionInfo.push({
-            annotationname: redactionObj.name,
-            sections: { annotationname: annot.Id, ids: redactionSectionsIds },
-          });
+          for(let redactObj of redactionObj.names){
+            redactionInfo.push({
+              annotationname: redactObj,
+              sections: { annotationname: annot.Id, ids: redactionSectionsIds },
+            });
+          }
+          
           for (let section of redactionSections) {
             section.count++;
           }
