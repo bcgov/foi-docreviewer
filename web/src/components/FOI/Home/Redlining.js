@@ -34,6 +34,7 @@ import {
   fetchPageFlag,
   fetchKeywordsMasterData,
   triggerDownloadRedlines,
+  triggerDownloadFinalPackage,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -711,29 +712,34 @@ const Redlining = React.forwardRef(
             if (action === "delete") {
               let annotObjs = [];
               for (let annot of annots[0].children) {
-                let displayedDoc =
-                  pageMappedDocs.stitchedPageLookup[
-                    Number(annot.attributes.page) + 1
-                  ];
-                let individualPageNo = displayedDoc.page;
-                if (annot.name === "redact") {
-                  annotObjs.push({
-                    page: annot.attributes.page,
-                    name: annot.attributes.name,
-                    type: annot.name,
-                  });
-                } else {
-                  deleteAnnotation(
-                    requestid,
-                    displayedDoc.docid,
-                    displayedDoc.docversion,
-                    currentLayer.redactionlayerid,
-                    annot.attributes.name,
-                    (data) => {},
-                    (error) => {
-                      console.log(error);
-                    }
-                  );
+                let customData = annot.children.find(
+                  (element) => element.name == "trn-custom-data"
+                );
+                if (!customData?.attributes?.bytes?.includes("isDelete")){
+                  let displayedDoc =
+                    pageMappedDocs.stitchedPageLookup[
+                      Number(annot.attributes.page) + 1
+                    ];
+                  let individualPageNo = displayedDoc.page;
+                  if (annot.name === "redact") {
+                    annotObjs.push({
+                      page: annot.attributes.page,
+                      name: annot.attributes.name,
+                      type: annot.name,
+                    });
+                  } else {
+                    deleteAnnotation(
+                      requestid,
+                      displayedDoc.docid,
+                      displayedDoc.docversion,
+                      currentLayer.redactionlayerid,
+                      annot.attributes.name,
+                      (data) => {},
+                      (error) => {
+                        console.log(error);
+                      }
+                    );
+                  }
                 }
               }
               setDeleteQueue(annotObjs);
@@ -754,6 +760,34 @@ const Redlining = React.forwardRef(
                       flagid: pageFlagTypes["Withheld in Full"],
                       docid: displayedDoc.docid,
                     });
+
+                    let parentRedaction;
+                    let allAnnotations =
+                      docInstance.Core.annotationManager.getAnnotationsList();
+                    let _selectedAnnotations = allAnnotations.find(
+                      (annot) =>
+                        annot.Subject == "Free Text" &&
+                        annot.getCustomData("trn-redaction-type") ==
+                          "fullPage" &&
+                        annot.PageNumber == Number(annotatn.attributes.page) + 1
+                    );
+                    if (!!_selectedAnnotations) {
+                      parentRedaction = allAnnotations?.find(
+                        (r) =>
+                          r.Subject === "Redact" &&
+                          r.InReplyTo === _selectedAnnotations?.Id
+                      );
+                    }
+                    if (!!parentRedaction) {
+                      annotations[i].setCustomData(
+                        "existingId",
+                        parentRedaction?.Id
+                      );
+                      annotations[i].setCustomData(
+                        "existingFreeTextId",
+                        _selectedAnnotations?.Id
+                      );
+                    }
                   } else {
                     pageSelectionList.push({
                       page: Number(individualPageNo),
@@ -770,6 +804,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
                   );
+                  annotations[i].IsHoverable = false;
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -780,7 +815,7 @@ const Redlining = React.forwardRef(
                   });
                 setNewRedaction({
                   pages: annot.attributes.page,
-                  name: annot.attributes.name,
+                  names: annots[0].children.map((a) => a.attributes.name),
                   astr: astr,
                   type: annot.name,
                 });
@@ -824,7 +859,14 @@ const Redlining = React.forwardRef(
                 );
               }
             } else if (action === "modify") {
-              // handles saving modify actions and initial save of redaction due to grouping
+              console.log(info);
+              if (
+                info.source === "group" &&
+                newRedaction.astr.includes(annotations[0].Id) // if we are grouping the newly created annotations do not save
+              ) {
+                return;
+              }
+              // handles saving modify actions
               let selectedAnnotations =
                 docInstance.Core.annotationManager.getSelectedAnnotations();
               let username = docViewer
@@ -847,7 +889,6 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      setNewRedaction(null);
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
@@ -858,12 +899,7 @@ const Redlining = React.forwardRef(
                       console.log(error);
                     },
                     currentLayer.redactionlayerid,
-                    newRedaction
-                      ? createPageFlagPayload(
-                          pageSelections,
-                          currentLayer.redactionlayerid
-                        )
-                      : null
+                    null
                   );
                   const _resizeAnnot = {
                     pages: annot.attributes.page,
@@ -886,7 +922,6 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      setNewRedaction(null);
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
@@ -897,12 +932,7 @@ const Redlining = React.forwardRef(
                       console.log(error);
                     },
                     currentLayer.redactionlayerid,
-                    newRedaction
-                      ? createPageFlagPayload(
-                          pageSelections,
-                          currentLayer.redactionlayerid
-                        )
-                      : null
+                    null
                   );
                 }
               }
@@ -1182,6 +1212,9 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
+          if (_annotation.Subject === "Redact") {
+            _annotation.IsHoverable = false;
+          }
           annotManager.redrawAnnotation(_annotation);
           annotManager.setPermissionCheckCallback((author, _annotation) => {
             if (_annotation.Subject !== "Redact" && author !== username) {
@@ -1309,7 +1342,7 @@ const Redlining = React.forwardRef(
       else return _resizeAnnot;
     };
 
-    const saveRedaction = (_resizeAnnot = {}) => {
+    const saveRedaction = async (_resizeAnnot = {}) => {
       setModalOpen(false);
       setSaveDisabled(true);
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot); //newRedaction? newRedaction:  (editAnnot ? editAnnot :_resizeAnnot);
@@ -1392,9 +1425,16 @@ const Redlining = React.forwardRef(
             );
             setSelectedSections([]);
             if (redactionSectionsIds.length > 0) {
-              redactionInfo.find(
-                (r) => r.annotationname === redactionObj.name
-              ).sections.ids = redactionSectionsIds;
+
+              redactionObj.names?.forEach((name) => {
+                const info = redactionInfo.find((r) => r.annotationname === name);
+                if (info) {
+                  info.sections.ids = redactionSectionsIds;
+                }
+              });
+              // redactionInfo.find(
+              //   (r) => r.annotationname === redactionObj.name
+              // ).sections.ids = redactionSectionsIds;
             }
             setEditAnnot(null);
           });
@@ -1409,7 +1449,10 @@ const Redlining = React.forwardRef(
         }
         // add section annotation
         var sectionAnnotations = [];
+        let annotationsToDelete = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
+          let annotationsToDelete = [];
+
           let redaction = annotManager.getAnnotationById(node.attributes.name);
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
@@ -1440,23 +1483,78 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
           annot.fitText(pageInfo, pageMatrix, pageRotation);
-          if (redaction.type == "fullPage")
+          if (redaction.type == "fullPage") {
             annot.setCustomData("trn-redaction-type", "fullPage");
-
+            let txt = new DOMParser().parseFromString(
+              node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
+              "text/html"
+            );
+            let customData = JSON.parse(txt.documentElement.textContent);
+            annot.setCustomData("existingId", customData.existingFreeTextId);
+            //Setting the existing annotationId in the new annotations for deleting
+            //from backend.
+            let existingFreeTextAnnot= annotManager.getAnnotationById(customData.existingFreeTextId);
+            let existingRedactAnnot= annotManager.getAnnotationById(customData.existingId);
+            if(!!existingFreeTextAnnot && !!existingRedactAnnot){
+              existingFreeTextAnnot.setCustomData("isDelete", true);
+              existingRedactAnnot.setCustomData("isDelete", true);
+              annotationsToDelete.push(existingFreeTextAnnot);
+              annotationsToDelete.push(existingRedactAnnot);
+            }
+          }
           sectionAnnotations.push(annot);
-          redactionInfo.push({
-            annotationname: redactionObj.name,
-            sections: { annotationname: annot.Id, ids: redactionSectionsIds },
-          });
+          for(let redactObj of redactionObj.names){
+            redactionInfo.push({
+              annotationname: redactObj,
+              sections: { annotationname: annot.Id, ids: redactionSectionsIds },
+            });
+          }
+          
           for (let section of redactionSections) {
             section.count++;
           }
+          //delete if there are existing fullpage redactions
+          if(annotationsToDelete?.length > 0){
+            annotManager.deleteAnnotations(annotationsToDelete, {
+              force: true,
+            });
+          }
           // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
-          annotManager.groupAnnotations(annot, [redaction]);
+          await annotManager.groupAnnotations(annot, [redaction]);
         }
+        // annotManager.deleteAnnotations(annotationsToDelete, {
+        //     force: true,
+        //   });
+        let annotationList = [];
+        for (let name of newRedaction.names) {
+          annotationList.push(annotManager.getAnnotationById(name));
+        }
+        astr = await annotManager.exportAnnotations({
+          annotList: annotationList,
+          useDisplayAuthor: true,
+        });
+        saveAnnotation(
+          requestid,
+          astr,
+          (data) => {
+            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+              console.log(error)
+            );
+          },
+          (error) => {
+            console.log(error);
+          },
+          currentLayer.redactionlayerid,
+          createPageFlagPayload(
+            pageFlagSelections,
+            currentLayer.redactionlayerid
+          )
+        );
         annotManager.addAnnotations(sectionAnnotations);
+
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
+        setNewRedaction(null);
       }
     };
 
@@ -1517,7 +1615,7 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       while (deleteQueue?.length > 0) {
         let annot = deleteQueue.pop();
-        if (annot && annot.name !== newRedaction?.name) {
+        if (annot && !newRedaction?.names.includes(annot.name)) {
           let stitchedPageNo = Number(annot.page) + 1;
           let displayedDoc = pageMappedDocs.stitchedPageLookup[stitchedPageNo];
           deleteRedaction(
@@ -1666,6 +1764,55 @@ const Redlining = React.forwardRef(
       if (modalSortNumbered) {
         setModalSortAsc(!modalSortAsc);
       }
+    };
+
+    const prepareMessageForRedlineZipping = (
+      divObj,
+      divisionCountForToast,
+      stitchedDocPath,
+      zipServiceMessage
+    ) => {
+      const zipDocObj = {
+        divisionid: divObj.divisionid,
+        divisionname: divObj.divisionname,
+        files: [],
+      };
+      const stitchedDocPathArray = stitchedDocPath.split("/");
+      let fileName =
+        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
+      const requestNumber = decodeURIComponent(fileName).split(" - ")[0];
+      fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
+      const file = {
+        filename: fileName,
+        s3uripath: decodeURIComponent(stitchedDocPath.split("?")[0]),
+      };
+      zipDocObj.files.push(file);
+
+      if (incompatibleFiles.length > 0) {
+        const divIncompatableFiles = incompatibleFiles
+          .filter((record) =>
+            record.divisions.some(
+              (division) => division.divisionid === divObj.divisionid
+            )
+          )
+          .map((record) => {
+            return {
+              filename: divObj.divisionname + "/" + record.filename,
+              s3uripath: record.filepath,
+            };
+          });
+        zipDocObj.files = [...zipDocObj.files, ...divIncompatableFiles];
+      }
+      zipServiceMessage.attributes.push(zipDocObj);
+      if (divisionCountForToast === zipServiceMessage.attributes.length) {
+        zipServiceMessage.requestnumber = requestNumber;
+        zipServiceMessage.bcgovcode = bcgovcode;
+        triggerDownloadRedlines(zipServiceMessage, (error) => {
+          console.log(error);
+        });
+      }
+      return zipServiceMessage;
     };
 
     const saveRedlineDocument = (_instance) => {
@@ -1863,7 +2010,7 @@ const Redlining = React.forwardRef(
                         isLoading: true,
                       });
 
-                      await saveFilesinS3(
+                      saveFilesinS3(
                         { filepath: stitchedDocPath },
                         _blob,
                         (_res) => {
@@ -1880,67 +2027,12 @@ const Redlining = React.forwardRef(
                             draggable: true,
                             closeButton: true,
                           });
-                          const zipDocObj = {
-                            divisionid: divObj.divisionid,
-                            divisionname: divObj.divisionname,
-                            files: [],
-                          };
-                          const stitchedDocPathArray =
-                            stitchedDocPath.split("/");
-                          let fileName =
-                            stitchedDocPathArray[
-                              stitchedDocPathArray.length - 1
-                            ].split("?")[0];
-                          const bcgovcode =
-                            stitchedDocPathArray[3].split("-")[0];
-                          const requestNumber =
-                            decodeURIComponent(fileName).split(" - ")[0];
-                          fileName =
-                            divObj.divisionname +
-                            "/" +
-                            decodeURIComponent(fileName);
-                          const file = {
-                            filename: fileName,
-                            s3uripath: decodeURIComponent(
-                              stitchedDocPath.split("?")[0]
-                            ),
-                          };
-                          zipDocObj.files.push(file);
-                          if (incompatibleFiles.length > 0) {
-                            // Filter records where divisionid is 6
-                            const divIncompatableFiles = incompatibleFiles
-                              .filter((record) =>
-                                record.divisions.some(
-                                  (division) =>
-                                    division.divisionid === divObj.divisionid
-                                )
-                              )
-                              .map((record) => {
-                                return {
-                                  filename:
-                                    divObj.divisionname + "/" + record.filename,
-                                  s3uripath: record.filepath,
-                                };
-                              });
-                            zipDocObj.files = [
-                              ...zipDocObj.files,
-                              ...divIncompatableFiles,
-                            ];
-                          }
-                          zipServiceMessage.attributes.push(zipDocObj);
-                          if (
-                            divisionCountForToast ===
-                            zipServiceMessage.attributes.length
-                          ) {
-                            zipServiceMessage.requestnumber = requestNumber;
-                            zipServiceMessage.bcgovcode = bcgovcode;
-                            triggerDownloadRedlines(
-                              zipServiceMessage,
-                              (error) => {
-                                console.log(error);
-                              }
-                            );
-                          }
+                          prepareMessageForRedlineZipping(
+                            divObj,
+                            divisionCountForToast,
+                            stitchedDocPath,
+                            zipServiceMessage
+                          );
                         },
                         (_err) => {
                           console.log(_err);
@@ -1990,9 +2082,56 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
     };
 
+    const prepareMessageForResponseZipping = (
+      stitchedfilepath,
+      zipServiceMessage
+    ) => {
+      const stitchedDocPathArray = stitchedfilepath.split("/");
+      const bcgovcode = stitchedDocPathArray[3].split("-")[0];
+      const requestNumber = stitchedDocPathArray[4];
+
+      let fileName =
+        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+      fileName = decodeURIComponent(fileName);
+
+      const file = {
+        filename: fileName,
+        s3uripath: decodeURIComponent(stitchedfilepath.split("?")[0]),
+      };
+      const zipDocObj = {
+        files: [],
+      };
+      zipDocObj.files.push(file);
+
+      if (incompatibleFiles.length > 0) {
+        const _incompatableFiles = incompatibleFiles.map((record) => {
+          return {
+            filename: record.filename,
+            s3uripath: record.filepath,
+          };
+        });
+        zipDocObj.files = [...zipDocObj.files, ..._incompatableFiles];
+      }
+
+      zipServiceMessage.attributes.push(zipDocObj);
+      zipServiceMessage.bcgovcode = bcgovcode;
+      zipServiceMessage.requestnumber = requestNumber;
+      triggerDownloadFinalPackage(zipServiceMessage, (error) => {
+        console.log(error);
+      });
+    };
+
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
       // console.log("divisions: ", divisions);
+
+      let zipServiceMessage = {
+        ministryrequestid: requestid,
+        category: "responsepackage",
+        attributes: [],
+        requestnumber: "",
+        bcgovcode: "",
+      };
 
       getResponsePackagePreSignedUrl(
         requestid,
@@ -2089,7 +2228,7 @@ const Redlining = React.forwardRef(
                   render: "Saving final package to Object Storage...",
                   isLoading: true,
                 });
-                await saveFilesinS3(
+                saveFilesinS3(
                   { filepath: res.s3path_save },
                   _blob,
                   (_res) => {
@@ -2106,6 +2245,10 @@ const Redlining = React.forwardRef(
                       draggable: true,
                       closeButton: true,
                     });
+                    prepareMessageForResponseZipping(
+                      res.s3path_save,
+                      zipServiceMessage
+                    );
                   },
                   (_err) => {
                     console.log(_err);

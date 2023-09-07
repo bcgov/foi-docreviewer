@@ -119,7 +119,19 @@ def pstformat(dt):
     else:
         return ""
 
+def split(list_a, chunk_size):
+        return [list_a[i:i + chunk_size] for i in range(0, len(list_a), chunk_size)]
 
 # converts to json
 def to_json(obj):
     return json.dumps(obj, default=lambda obj: obj.__dict__)
+
+def getbatchconfig():
+    _batchconfig_str = os.getenv('BATCH_CONFIG',None)
+    if _batchconfig_str in (None,''):
+        return 2, 100, 250
+    _batchconfig = json.loads(_batchconfig_str)
+    _begin = _batchconfig["begin"] if "begin" in _batchconfig else 2
+    _size =  _batchconfig["size"] if "size" in _batchconfig else 100
+    _limit = _batchconfig["limit"] if "limit" in _batchconfig else 250    
+    return _begin, _size, _limit

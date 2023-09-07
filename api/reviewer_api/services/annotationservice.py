@@ -99,10 +99,24 @@ class annotationservice:
                     return DefaultMethodResult(False,'Failed to save Annotation Section', resp.identifier)
         else:
             return DefaultMethodResult(False,'Failed to save Annotation', resp.identifier)
+        #Collect all existing IDS
+        delete_annots = [item['existingid'] for item in annots if item['existingid'] is not None]
+        if len(delete_annots) > 0:
+            self.__deleteannotations(delete_annots, _redactionlayerid, userinfo)
         return DefaultMethodResult(True,'Annotation successfully saved', resp.identifier)
 
-    def deactivateannotation(self, annotationname, documentid, documentversion, userinfo):
-        return Annotation.deactivateannotation(annotationname, documentid, documentversion, userinfo)
+    
+
+    def deactivateannotation(self, annotationname, redactionlayerid, userinfo):
+        return self.__deleteannotations([annotationname], redactionlayerid, userinfo)
+    
+    def __deleteannotations(self, annotationnames, redactionlayerid, userinfo):
+        if annotationnames not in (None, []) and len(annotationnames) > 0:
+            resp = Annotation.bulkdeleteannotations(annotationnames, redactionlayerid, userinfo)
+            if resp.success == True:
+                AnnotationSection.bulkdeletesections(annotationnames, userinfo)
+            return resp
+        return DefaultMethodResult(True,'No Annotations marked for delete', -1)
 
     def __getdateformat(self):
         return '%Y %b %d | %I:%M %p'
@@ -120,9 +134,9 @@ class annotationservice:
                     "page": annot.getAttribute("page"),
                     "xml": annot.toxml(),
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
-                    "originalpageno": customdatadict['originalPageNo'],
                     "docid": customdatadict['docid'],
-                    "docversion": customdatadict['docversion']
+                    "docversion": customdatadict['docversion'] if 'docversion' in customdatadict else 1,
+                    "existingid": customdatadict['existingId'] if 'existingId' in customdatadict else None
                 })
         return annots
     

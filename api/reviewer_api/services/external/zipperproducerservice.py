@@ -10,8 +10,7 @@ class zipperproducerservice:
     host = os.getenv("ZIPPER_REDIS_HOST")
     port = os.getenv("ZIPPER_REDIS_PORT")
     password = os.getenv("ZIPPER_REDIS_PASSWORD")
-    print("host = ", host)
-    print("port = ", port)
+
     db = Database(host=host, port=port, db=0, password=password)
 
     def add(self, streamkey, payload):

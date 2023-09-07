@@ -331,3 +331,22 @@ export const triggerDownloadRedlines = (
     errorCallback("Error in triggering download redline:",error);
   });
 };
+
+export const triggerDownloadFinalPackage = (
+  requestJSON: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_FINALPACKAGE}`;
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download final package");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download final package:",error);
+  });
+};
