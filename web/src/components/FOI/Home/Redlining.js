@@ -630,7 +630,7 @@ const Redlining = React.forwardRef(
               annotManager.bringToBack(annot);
             }
             annotManager.drawAnnotationsFromList(newAnnots);
-            annotManager.setReadOnly(true);
+            annotManager.enableReadOnlyMode();
           } else {
             fetchAnnotations(
               requestid,
@@ -640,7 +640,7 @@ const Redlining = React.forwardRef(
                 if (!fetchAnnotResponse) {
                   setFetchAnnotResponse(data);
                 } else {
-                  annotManager.setReadOnly(false);
+                  annotManager.disableReadOnlyMode();
                   docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
                   const existingAnnotations = annotManager.getAnnotationsList();
                   await annotManager.deleteAnnotations(existingAnnotations, {
@@ -1222,6 +1222,9 @@ const Redlining = React.forwardRef(
         _annotations.forEach((_annotation) => {
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            if (_annotation.type === "fullPage") {
+              annotManager.bringToBack(_annotation);
+            }
           }
           annotManager.redrawAnnotation(_annotation);
           annotManager.setPermissionCheckCallback((author, _annotation) => {
@@ -1539,6 +1542,7 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            setPageSelections([]);
             fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
               console.log(error)
             );
