@@ -131,7 +131,7 @@ class annotationservice:
                 customdatadict = json.loads(customdata)
                 annots.append({
                     "name": annot.getAttribute("name"),
-                    "page": annot.getAttribute("page"),
+                    "page": customdatadict['originalPageNo'],
                     "xml": annot.toxml(),
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
                     "docid": customdatadict['docid'],

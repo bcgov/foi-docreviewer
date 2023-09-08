@@ -16,6 +16,9 @@
     "comment": "Kommentar",
     "reply": "Lägg till svar",
     "copy": "Kopiera",
+    "cut": "Skära",
+    "paste": "Klistra",
+    "pasteWithoutFormatting": "Klistra in utan att formatera",
     "delete": "Radera",
     "group": "Grupp",
     "ungroup": "Dela upp gruppen",
@@ -78,6 +81,7 @@
     "showLess": "visa mindre",
     "showMore": "...Mer",
     "chooseFile": "Välj en fil",
+    "changeDate": "Byt datum",
     "browse": "Bläddra bland filer",
     "selectYourOption": "Välj ditt alternativ",
     "open": "Öppna",
@@ -85,6 +89,7 @@
     "select": "Välj",
     "moveToTop": "Flytta till toppen",
     "moveToBottom": "Flytta till botten",
+    "backToMenu": "Tillbaka till menyn",
     "redactPages": "Redigera sidor",
     "playAudio": "Spela upp ljud",
     "pauseAudio": "Pausa ljud",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "Svara på valda kommentarer ({{count}})",
     "comparePages": "Jämför sidor",
     "startComparison": "Starta jämförelse",
-    "back": "Tillbaka"
+    "showComparison": "Visa jämförelse",
+    "back": "Tillbaka",
+    "clearSignature": "Tydlig signatur",
+    "newDocument": "Nytt dokument"
   },
   "annotation": {
     "areaMeasurement": "Område",
@@ -250,6 +258,7 @@
     "errorEnterMeasurement": "Numret du har angett är ogiltigt, du kan ange värden som 7,5 eller 7 1/2",
     "linkURLorPage": "Länka URL eller en sida",
     "warning": "Varning",
+    "svgMalicious": "SVG-skript ignoreras för säkerhets skull",
     "enterContentEditingMode": "Du är på väg att gå in i innehållsredigeringsläge.",
     "existingAnnotationWarning": "Befintliga kommentarer kanske inte matchar texten efter att den har redigerats.",
     "changesCannotBeUndone": "Eventuella ändringar kan inte ångras.",
@@ -379,7 +388,8 @@
       "qualityHigh": "Hög",
       "includeAnnotations": "Inkludera kommentarer",
       "includeComments": "Inkludera kommentarer",
-      "printSettings": "Utskriftsinställningar"
+      "printSettings": "Utskriftsinställningar",
+      "printGrayscale": "Skriv ut gråskala"
     },
     "printInfo": {
       "author": "Författare",
@@ -425,12 +435,10 @@
       "drawSignature": "Rita signatur*",
       "drawInitial": "Rita initialer*",
       "pickInitialsFile": "Välj initialer",
-      "noSignatures": "Det finns för närvarande inga sparade signaturer."
+      "noSignatures": "Det finns för närvarande inga sparade signaturer.",
+      "fontStyle": "typsnitt"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Dra och släpp din fil här",
-      "selectFile": "Välj din fil här",
-      "or": "Eller",
       "yourFiles": "Dina filer",
       "chooseFile": "Välj en fil",
       "localFile": "Lokal fil",
@@ -447,7 +455,9 @@
       "filters": "Filter",
       "user": "Användare",
       "type": "Typ",
-      "status": "Status"
+      "status": "Status",
+      "filterSettings": "Filterinställningar",
+      "filterDocument": "Filtrera dokument och kommentarspanel"
     },
     "state": {
       "accepted": "Accepterad",
@@ -512,6 +522,12 @@
         "ifToContinue": "Är du säker på att du vill fortsätta?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Ta bort innehåll",
+        "message": "Är du säker på att du vill ta bort det valda innehållet? Detta kan inte ångras."
+      }
+    },
     "stylePopup": {
       "textStyle": "Textstil",
       "colors": "Färger",
@@ -557,7 +573,8 @@
     "thumbnailPanel": {
       "delete": "Radera",
       "rotateClockwise": "Medurs",
-      "rotateCounterClockwise": "Moturs"
+      "rotateCounterClockwise": "Moturs",
+      "moreOptions": "Fler alternativ"
     },
     "thumbnailsControlOverlay": {
       "move": "Flytta sidor"
@@ -607,13 +624,13 @@
     },
     "settings": {
       "settings": "inställningar",
+      "searchSettings": "Sökinställningar",
       "general": "Allmän",
-      "keyboardShortcut": "Tangentbordsgenväg",
-      "advancedSetting": "Avancerade inställningar",
       "language": "Språk",
       "theme": "Tema",
       "darkMode": "Mörkt läge",
       "lightMode": "Ljusläge",
+      "advancedSetting": "Avancerade inställningar",
       "viewing": "Visning",
       "disableFadePageNavigationComponent": "Inaktivera Fade Page Navigation Component",
       "disableFadePageNavigationComponentDesc": "Håll alltid sidnavigeringskomponenten på skärmen. Standardbeteendet är att blekna det efter en viss period av inaktivitet.",
@@ -638,7 +655,52 @@
       "disablePageDeletionConfirmationModal": "Inaktivera bekräftelsemodal för borttagning av sida",
       "disablePageDeletionConfirmationModalDesc": "Inaktivera bekräftelsemodal när du tar bort en sida från miniatyrvyn",
       "disableMultiselect": "Inaktivera Multiselect",
-      "disableMultiselectDesc": "Inaktivera multival i den vänstra miniatyrpanelen"
+      "disableMultiselectDesc": "Inaktivera multival i den vänstra miniatyrpanelen",
+      "miscellaneous": "Diverse",
+      "keyboardShortcut": "Tangentbordsgenväg",
+      "command": "Kommando",
+      "description": "Beskrivning",
+      "action": "Handling",
+      "rotateDocumentClockwise": "Rotera dokumentet medurs",
+      "rotateDocumentCounterclockwise": "Rotera dokumentet moturs",
+      "copyText": "Kopiera markerad text eller anteckningar",
+      "pasteText": "Klistra in text eller kommentarer",
+      "undoChange": "Ångra en anteckningsändring",
+      "redoChange": "Gör om en anteckningsändring",
+      "openFile": "Öppna filväljaren",
+      "openSearch": "Öppna sököverlägget",
+      "zoomIn": "Zooma in",
+      "zoomOut": "Zooma ut",
+      "fitScreenWidth": "Anpassa dokumentet till skärmens bredd på en liten skärm (< 640px), annars anpassa det till dess ursprungliga storlek",
+      "print": "Skriva ut",
+      "bookmarkOpenPanel": "Bokmärk snabbt en sida och öppna bokmärkespanelen",
+      "goToPreviousPage": "Gå till föregående sida",
+      "goToNextPage": "Gå till nästa sida",
+      "goToPreviousPageArrowUp": "Gå till föregående sida i enkellayoutläge (ArrowUp)",
+      "goToNextPageArrowDown": "Gå till nästa sida i enkellayoutläge (ArrowDown)",
+      "holdSwitchPan": "Håll ned för att växla till panoreringsläge och släpp för att återgå till föregående verktyg",
+      "selectAnnotationEdit": "Välj verktyget AnnotationEdit",
+      "selectPan": "Välj panoreringsverktyget",
+      "selectCreateArrowTool": "Välj verktyget AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Välj verktyget AnnotationCreateCallout",
+      "selectEraserTool": "Välj verktyget Annotation Eraser",
+      "selectCreateFreeHandTool": "Välj verktyget AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Välj verktyget AnnotationCreateStamp",
+      "selectCreateLineTool": "Välj verktyget AnnotationCreateLine",
+      "selectCreateStickyTool": "Välj verktyget AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Välj verktyget AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Välj verktyget AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Välj verktyget AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Välj verktyget AnnotationCreateFreeText",
+      "openSignatureModal": "Öppna signaturmodalen eller överlägget",
+      "selectCreateTextSquigglyTool": "Välj verktyget AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Välj verktyget AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Välj verktyget AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Välj verktyget AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Redigera tangentbordsgenväg",
+      "setShorcut": "Ställ in genväg",
+      "pressKeyToSet": "Tryck på tangenten eller tangenterna för att ställa in ny genväg.",
+      "shortcutAlreadyExists": "Kortkommandot ovan finns redan."
     }
   },
   "warning": {
@@ -681,6 +743,10 @@
       "title": "Stäng utan att ladda ner?",
       "message": "Det har gjorts ändringar i det här dokumentet, är du säker på att du vill stänga det utan att ladda ner ditt arbete? Du kan inte ångra den här åtgärden.",
       "rejectDownloadButton": "Stäng utan nedladdning"
+    },
+    "connectToURL": {
+      "title": "Säkerhetsvarning",
+      "message": "Det här dokumentet försöker ansluta till:\n\n{{- uri}}.\n\n Om du litar på det här dokumentet klickar du på Bekräfta för att öppna det."
     }
   },
   "shortcut": {
@@ -1015,8 +1081,32 @@
     "watermarkOptions": "Vattenstämpelalternativ",
     "watermarks": "Vattenstämplar"
   },
+  "portfolioPanel": {
+    "portfolioPanelTitle": "PDF-portfölj",
+    "portfolioAddFile": "Lägg till fil",
+    "portfolioAddFolder": "Lägg till mapp",
+    "portfolioCreateFolder": "Skapa mapp",
+    "portfolioNewFolder": "Ny mapp",
+    "portfolioNewFolderPlaceholder": "Mapp namn"
+  },
   "languageModal": {
     "selectLanguage": "Välj språk"
+  },
+  "officeEditor": {
+    "bold": "Djärv",
+    "italic": "Kursiv",
+    "underline": "Understrykning",
+    "textColor": "Text färg",
+    "leftAlign": "Vänsterjustera",
+    "centerAlign": "Centrera",
+    "rightAlign": "Högerjustera",
+    "justify": "Rättfärdiga",
+    "lineSpacing": "Rad- och styckeavstånd",
+    "bulletList": "Punktlista",
+    "numberList": "Numrerad lista",
+    "insertLink": "Infoga länk",
+    "insertImage": "Infoga bild",
+    "notSupportedOnMobile": "Office-redigering stöds inte på mobila enheter."
   },
   "insertPageModal": {
     "title": "Lägg till ny sida",
@@ -1100,6 +1190,19 @@
     "watermark": "Vattenstämpel",
     "addWatermark": "Lägg till vattenstämpel",
     "save": "Spara fil",
-    "pageError": "Ogiltig sida. Giltiga sidintervall är mellan 1 -"
+    "pageError": "Ogiltig sida. Giltiga sidintervall är mellan 1 -",
+    "fileNameCannotBeEmpty": "Filnamnet får inte vara tomt"
+  },
+  "portfolio": {
+    "createPDFPortfolio": "Skapa PDF-portfölj",
+    "uploadFiles": "Ladda upp filer",
+    "uploadFolder": "Ladda upp mapp",
+    "addFiles": "Lägga till filer",
+    "addFolder": "Lägg till mapp"
+  },
+  "filePicker": {
+    "dragAndDrop": "Dra och släpp din fil här",
+    "selectFile": "Välj din fil här",
+    "or": "Eller"
   }
 }

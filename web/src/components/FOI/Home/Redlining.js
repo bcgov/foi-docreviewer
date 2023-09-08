@@ -206,7 +206,7 @@ const Redlining = React.forwardRef(
             editRedactions(
               docInstance?.Core?.annotationManager,
               docInstance?.Core?.annotationManager.exportAnnotations({
-                annotList: _selectedRedactions,
+                annotationList: _selectedRedactions,
                 useDisplayAuthor: true,
               })
             );
@@ -231,6 +231,8 @@ const Redlining = React.forwardRef(
       fetchSections(requestid, (error) => console.log(error));
       WebViewer(
         {
+          licenseKey:
+            "demo:1694019284368:7c378469030000000022f8587aff41ce48e30ddc52ef03d29d5e661297",
           path: "/webviewer",
           preloadWorker: "pdf",
           // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
@@ -390,7 +392,7 @@ const Redlining = React.forwardRef(
                 editAnnotation(
                   annotationManager,
                   annotationManager.exportAnnotations({
-                    annotList: _selectedRedaction,
+                    annotationList: _selectedRedaction,
                     useDisplayAuthor: true,
                   })
                 );
@@ -420,7 +422,7 @@ const Redlining = React.forwardRef(
           .setStyles(() => ({
             FillColor: new Annotations.Color(255, 255, 255),
           }));
-        documentViewer.addEventListener("documentLoaded", () => {
+        documentViewer.addEventListener("documentLoaded", async () => {
           PDFNet.initialize(); // Only needs to be initialized once
 
           fetchKeywordsMasterData(
@@ -585,84 +587,88 @@ const Redlining = React.forwardRef(
     //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
     useEffect(() => {
-      if (currentLayer) {
-        if (currentLayer.name.toLowerCase() === "response package") {
-          // Manually create white boxes to simulate redaction because apply redaction is permanent
+      const changeLayer = async () => {
+        if (currentLayer) {
+          if (currentLayer.name.toLowerCase() === "response package") {
+            // Manually create white boxes to simulate redaction because apply redaction is permanent
 
-          const existingAnnotations = annotManager.getAnnotationsList();
-          const redactions = existingAnnotations.filter(
-            (a) => a.Subject === "Redact"
-          );
-          var rects = [];
-          for (const redaction of redactions) {
-            rects = rects.concat(
-              redaction.getQuads().map((q) => {
-                return {
-                  page: redaction.getPageNumber(),
-                  rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1),
-                };
-              })
+            const existingAnnotations = annotManager.getAnnotationsList();
+            const redactions = existingAnnotations.filter(
+              (a) => a.Subject === "Redact"
+            );
+            var rects = [];
+            for (const redaction of redactions) {
+              rects = rects.concat(
+                redaction.getQuads().map((q) => {
+                  return {
+                    page: redaction.getPageNumber(),
+                    rect: new docViewerMath.Rect(q.x1, q.y3, q.x2, q.y1),
+                  };
+                })
+              );
+            }
+            await annotManager.ungroupAnnotations(existingAnnotations);
+            await annotManager.deleteAnnotations(redactions, {
+              imported: true,
+              force: true,
+              source: "layerchange",
+            });
+            var newAnnots = [];
+            for (const rect of rects) {
+              const annot = new annots.RectangleAnnotation();
+              annot.setRect(rect.rect);
+              annot.FillColor = new annots.Color(255, 255, 255, 1);
+              annot.Color = new annots.Color(255, 255, 255, 1);
+              annot.setPageNumber(rect.page);
+              newAnnots.push(annot);
+            }
+            annotManager.addAnnotations(newAnnots, {
+              imported: true,
+              source: "layerchange",
+            });
+            for (const annot of newAnnots) {
+              annotManager.bringToBack(annot);
+            }
+            annotManager.drawAnnotationsFromList(newAnnots);
+            annotManager.enableReadOnlyMode();
+          } else {
+            fetchAnnotations(
+              requestid,
+              currentLayer.name,
+              async (data) => {
+                setMerge(true);
+                if (!fetchAnnotResponse) {
+                  setFetchAnnotResponse(data);
+                } else {
+                  annotManager.disableReadOnlyMode();
+                  docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
+                  const existingAnnotations = annotManager.getAnnotationsList();
+                  await annotManager.deleteAnnotations(existingAnnotations, {
+                    imported: true,
+                    force: true,
+                    source: "layerchange",
+                  });
+                  for (const docid in data) {
+                    assignAnnotations(
+                      docid,
+                      pageMappedDocs.docIdLookup[docid],
+                      data,
+                      new DOMParser()
+                    );
+                  }
+                }
+              },
+              (error) => {
+                console.log("Error:", error);
+              }
+            );
+            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+              console.log(error)
             );
           }
-          annotManager.deleteAnnotations(redactions, {
-            imported: true,
-            force: true,
-            source: "layerchange",
-          });
-          var newAnnots = [];
-          for (const rect of rects) {
-            const annot = new annots.RectangleAnnotation();
-            annot.setRect(rect.rect);
-            annot.FillColor = new annots.Color(255, 255, 255, 1);
-            annot.Color = new annots.Color(255, 255, 255, 1);
-            annot.setPageNumber(rect.page);
-            newAnnots.push(annot);
-          }
-          annotManager.addAnnotations(newAnnots, {
-            imported: true,
-            source: "layerchange",
-          });
-          for (const annot of newAnnots) {
-            annotManager.bringToBack(annot);
-          }
-          annotManager.drawAnnotationsFromList(newAnnots);
-          annotManager.setReadOnly(true);
-        } else {
-          fetchAnnotations(
-            requestid,
-            currentLayer.name,
-            async (data) => {
-              setMerge(true);
-              if (!fetchAnnotResponse) {
-                setFetchAnnotResponse(data);
-              } else {
-                annotManager.setReadOnly(false);
-                docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
-                const existingAnnotations = annotManager.getAnnotationsList();
-                await annotManager.deleteAnnotations(existingAnnotations, {
-                  imported: true,
-                  force: true,
-                  source: "layerchange",
-                });
-                for (const docid in data) {
-                  assignAnnotations(
-                    docid,
-                    pageMappedDocs.docIdLookup[docid],
-                    data,
-                    new DOMParser()
-                  );
-                }
-              }
-            },
-            (error) => {
-              console.log("Error:", error);
-            }
-          );
-          fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-            console.log(error)
-          );
         }
-      }
+      };
+      changeLayer();
     }, [currentLayer]);
 
     useEffect(() => {
@@ -689,6 +695,7 @@ const Redlining = React.forwardRef(
           if (info.imported) return;
           //do not run if redline is saving
           if (redlineSaving) return;
+          if (currentLayer.name.toLowerCase() === "response package") return;
           let localDocumentInfo = currentDocument;
           annotations.forEach((annot) => {
             let displayedDoc =
@@ -715,7 +722,7 @@ const Redlining = React.forwardRef(
                 let customData = annot.children.find(
                   (element) => element.name == "trn-custom-data"
                 );
-                if (!customData?.attributes?.bytes?.includes("isDelete")){
+                if (!customData?.attributes?.bytes?.includes("isDelete")) {
                   let displayedDoc =
                     pageMappedDocs.stitchedPageLookup[
                       Number(annot.attributes.page) + 1
@@ -760,6 +767,7 @@ const Redlining = React.forwardRef(
                       flagid: pageFlagTypes["Withheld in Full"],
                       docid: displayedDoc.docid,
                     });
+                    annotManager.bringToBack(annotations[i]);
 
                     let parentRedaction;
                     let allAnnotations =
@@ -1214,6 +1222,9 @@ const Redlining = React.forwardRef(
         _annotations.forEach((_annotation) => {
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            if (_annotation.type === "fullPage") {
+              annotManager.bringToBack(_annotation);
+            }
           }
           annotManager.redrawAnnotation(_annotation);
           annotManager.setPermissionCheckCallback((author, _annotation) => {
@@ -1305,7 +1316,7 @@ const Redlining = React.forwardRef(
         childAnnotations.push(childAnnotation);
       }
       let _annotationtring = annotManager.exportAnnotations({
-        annotList: childAnnotations,
+        annotationList: childAnnotations,
         useDisplayAuthor: true,
       });
       let sectn = {
@@ -1407,7 +1418,7 @@ const Redlining = React.forwardRef(
 
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
-            annotList: [childAnnotation],
+            annotationList: [childAnnotation],
             useDisplayAuthor: true,
           });
           let sectn = {
@@ -1502,9 +1513,13 @@ const Redlining = React.forwardRef(
             annot.setCustomData("existingId", customData.existingFreeTextId);
             //Setting the existing annotationId in the new annotations for deleting
             //from backend.
-            let existingFreeTextAnnot= annotManager.getAnnotationById(customData.existingFreeTextId);
-            let existingRedactAnnot= annotManager.getAnnotationById(customData.existingId);
-            if(!!existingFreeTextAnnot && !!existingRedactAnnot){
+            let existingFreeTextAnnot = annotManager.getAnnotationById(
+              customData.existingFreeTextId
+            );
+            let existingRedactAnnot = annotManager.getAnnotationById(
+              customData.existingId
+            );
+            if (!!existingFreeTextAnnot && !!existingRedactAnnot) {
               existingFreeTextAnnot.setCustomData("isDelete", true);
               existingRedactAnnot.setCustomData("isDelete", true);
               annotationsToDelete.push(existingFreeTextAnnot);
@@ -1523,7 +1538,7 @@ const Redlining = React.forwardRef(
             section.count++;
           }
           //delete if there are existing fullpage redactions
-          if(annotationsToDelete?.length > 0){
+          if (annotationsToDelete?.length > 0) {
             annotManager.deleteAnnotations(annotationsToDelete, {
               force: true,
             });
@@ -1546,6 +1561,7 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            setPageSelections([]);
             fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
               console.log(error)
             );
