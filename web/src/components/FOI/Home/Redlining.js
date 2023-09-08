@@ -1515,7 +1515,7 @@ const Redlining = React.forwardRef(
           for(let redactObj of redactionObj.names){
             let annotAdded=redactionInfo?.find(redaction => redaction.annotationname == redactObj);
             let sectionAdded=redactionInfo?.find(redaction => redaction.sections.annotationname == annot.Id);
-            if(!(!!sectionAdded) && !(!!annotAdded)){
+            if(!sectionAdded && !annotAdded){
               redactionInfo.push({
                 annotationname: redactObj,
                 sections: { annotationname: annot.Id, ids: redactionSectionsIds },
