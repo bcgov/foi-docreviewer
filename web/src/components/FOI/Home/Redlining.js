@@ -1528,10 +1528,14 @@ const Redlining = React.forwardRef(
           }
           sectionAnnotations.push(annot);
           for(let redactObj of redactionObj.names){
-            redactionInfo.push({
-              annotationname: redactObj,
-              sections: { annotationname: annot.Id, ids: redactionSectionsIds },
-            });
+            let annotAdded=redactionInfo?.find(redaction => redaction.annotationname == redactObj);
+            let sectionAdded=redactionInfo?.find(redaction => redaction.sections.annotationname == annot.Id);
+            if(!sectionAdded && !annotAdded){
+              redactionInfo.push({
+                annotationname: redactObj,
+                sections: { annotationname: annot.Id, ids: redactionSectionsIds },
+              });
+            }
           }
           
           for (let section of redactionSections) {
@@ -1646,7 +1650,7 @@ const Redlining = React.forwardRef(
           deleteRedaction(
             requestid,
             displayedDoc.docid,
-            displayedDoc.version,
+            displayedDoc.docversion,
             currentLayer.redactionlayerid,
             annot.name,
             (data) => {

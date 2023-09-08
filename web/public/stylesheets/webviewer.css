@@ -38,3 +38,7 @@
 .PageRedactionModal .container .body .selection-options .ui__choice:nth-of-type(4){
     display:none
 }
+
+.freetext-editor{
+    visibility: hidden;
+}
