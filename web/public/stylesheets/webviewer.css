@@ -21,3 +21,7 @@
         }
     }
 }
+/* This style is for removing the section stamp from appearing twice while redacting */
+.freetext-editor{
+    visibility: hidden;
+}
