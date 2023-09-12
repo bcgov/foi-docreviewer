@@ -291,13 +291,13 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, oldRows)
 
-    def getdocuments(self, requestid):
+    def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
                 method='GET',
-                url=requestapiurl + "/api/foiflow/divisions",
+                url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode),
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
-        divisions = {div['divisionid']: div for div in divisions_data}
+        divisions = {div['divisionid']: div for div in divisions_data['divisions']}
 
         documents = {document['documentmasterid']: document for document in self.getdedupestatus(requestid)}
         attachments = []
