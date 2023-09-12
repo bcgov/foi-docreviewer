@@ -1361,16 +1361,17 @@ const Redlining = React.forwardRef(
       setSaveDisabled(true);
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot); //newRedaction? newRedaction:  (editAnnot ? editAnnot :_resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
-      let childAnnotation;
-      let childSection = "";
-      let i = redactionInfo?.findIndex(
-        (a) => a.annotationname === redactionObj?.name
-      );
-      if (i >= 0) {
-        childSection = redactionInfo[i]?.sections.annotationname;
-        childAnnotation = annotManager.getAnnotationById(childSection);
-      }
+
       if (editAnnot || _resizeAnnot?.type === "redact") {
+        let childAnnotation;
+        let childSection = "";
+        let i = redactionInfo?.findIndex(
+          (a) => a.annotationname === redactionObj?.names[0]
+        );
+        if (i >= 0) {
+          childSection = redactionInfo[i]?.sections.annotationname;
+          childAnnotation = annotManager.getAnnotationById(childSection);
+        }
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let redaction = annotManager.getAnnotationById(node.attributes.name);
           let coords = node.attributes.coords;
@@ -1603,7 +1604,7 @@ const Redlining = React.forwardRef(
         let annot = annots[0].children[0];
         setEditAnnot({
           pages: annot.attributes.page,
-          name: annot.attributes.name,
+          names: [annot.attributes.name],
           astr: astr,
           type: annot.name,
         });
@@ -1634,7 +1635,7 @@ const Redlining = React.forwardRef(
       if (editAnnot) {
         setSelectedSections(
           redactionInfo
-            .find((redaction) => redaction.annotationname === editAnnot.name)
+            .find((redaction) => redaction.annotationname === editAnnot.names[0])
             .sections?.ids?.map((id) => id)
         );
         setModalOpen(true);
