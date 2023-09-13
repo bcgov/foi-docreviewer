@@ -911,7 +911,7 @@ const Redlining = React.forwardRef(
                   );
                   const _resizeAnnot = {
                     pages: annot.attributes.page,
-                    name: annot.attributes.name,
+                    names: [annot.attributes.name],
                     astr: astr,
                     type: annot.name,
                   };
