@@ -424,21 +424,21 @@ const Redlining = React.forwardRef(
           }));
         documentViewer.addEventListener("documentLoaded", async () => {
           PDFNet.initialize(); // Only needs to be initialized once
-
-          fetchKeywordsMasterData(
-            (data) => {
-              if (data) {
-                let keywordArray = data.map((elmnt) => elmnt.keyword);
-                var regexFromMyArray = new String(keywordArray.join("|"));
-                setSearchKeywords(regexFromMyArray);
-                instance.UI.searchTextFull(regexFromMyArray, {
-                  wholeWord: true,
-                  regex: true,
-                });
-              }
-            },
-            (error) => console.log(error)
-          );
+          //Commenting the preset search code now- might need in later release
+          // fetchKeywordsMasterData(
+          //   (data) => {
+          //     if (data) {
+          //       let keywordArray = data.map((elmnt) => elmnt.keyword);
+          //       var regexFromMyArray = new String(keywordArray.join("|"));
+          //       setSearchKeywords(regexFromMyArray);
+          //       instance.UI.searchTextFull(regexFromMyArray, {
+          //         wholeWord: true,
+          //         regex: true,
+          //       });
+          //     }
+          //   },
+          //   (error) => console.log(error)
+          // );
           //update user info
           let newusername = user?.name || user?.preferred_username || "";
           let username = annotationManager.getCurrentUser();
@@ -1189,10 +1189,10 @@ const Redlining = React.forwardRef(
       }
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
-      docInstance.UI.searchTextFull(searchKeywords, {
-        wholeWord: true,
-        regex: true,
-      });
+      // docInstance.UI.searchTextFull(searchKeywords, {
+      //   wholeWord: true,
+      //   regex: true,
+      // });
     };
 
     const assignAnnotations = async (
@@ -2421,8 +2421,9 @@ const Redlining = React.forwardRef(
               </button>
             ) : (
               <button
-                className="btn-bottom btn-cancel"
+                className={`btn-bottom btn-cancel ${saveDisabled && 'btn-disabled'}`}
                 onClick={saveDefaultSections}
+                disabled={saveDisabled}
               >
                 Save as Default
               </button>
