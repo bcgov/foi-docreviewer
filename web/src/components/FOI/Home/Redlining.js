@@ -2421,8 +2421,9 @@ const Redlining = React.forwardRef(
               </button>
             ) : (
               <button
-                className="btn-bottom btn-cancel"
+                className={`btn-bottom btn-cancel ${saveDisabled && 'btn-disabled'}`}
                 onClick={saveDefaultSections}
+                disabled={saveDisabled}
               >
                 Save as Default
               </button>
