@@ -183,7 +183,6 @@ services:
       - NOTIFICATION_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
       - NOTIFICATION_REDIS_PORT=${DEDUPE_REDIS_PORT}
 
-
   foi-docreviewer-pdfstitch:
       container_name: foi-docreviewer-pdfstitch
       depends_on:
