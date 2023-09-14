@@ -288,7 +288,7 @@ const Redlining = React.forwardRef(
             setModalFor("redline");
             setModalTitle("Redline for Sign Off");
             setModalMessage([
-              "Are you sure want to create the redline PDF for ministry sign off?",
+              "Are you sure want to create the redline PDF for ministry sign off?",<br /> ,<br />,<span>When you create the redline PDF, your web browser page will automatically refresh</span>
             ]);
             setModalButtonLabel("Create Redline PDF");
             setRedlineModalOpen(true);
@@ -1834,9 +1834,11 @@ const Redlining = React.forwardRef(
         zipDocObj.files = [...zipDocObj.files, ...divIncompatableFiles];
       }
       zipServiceMessage.attributes.push(zipDocObj);
+      
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
-        triggerDownloadRedlines(zipServiceMessage, (error) => {
+        triggerDownloadRedlines(zipServiceMessage, (error) => {          
           console.log(error);
+          window.location.reload()
         });
       }
       return zipServiceMessage;
@@ -2074,7 +2076,8 @@ const Redlining = React.forwardRef(
                             divisionCountForToast,
                             zipServiceMessage,
                             stitchedDocPath
-                          );
+                          );                         
+                          
                         },
                         (_err) => {
                           console.log(_err);
