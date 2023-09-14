@@ -1098,7 +1098,7 @@ const Redlining = React.forwardRef(
           let pdfDoc = await doc.getPDFDoc();
 
           // Create an Image that can be reused multiple times in the document or multiple on the same page.
-          const img = await docInstance.PDFNet.Image.createFromURL(
+          const img = await docInstance.Core.PDFNet.Image.createFromURL(
             pdfDoc,
             file.s3url
           );
@@ -1110,10 +1110,10 @@ const Redlining = React.forwardRef(
           let page = await pdfDoc.getPage(await pdfDoc.getPageCount());
 
           // ElementBuilder is used to build new Element objects
-          const builder = await docInstance.PDFNet.ElementBuilder.create();
+          const builder = await docInstance.Core.PDFNet.ElementBuilder.create();
 
           // ElementWriter is used to write Elements to the page
-          const writer = await docInstance.PDFNet.ElementWriter.create();
+          const writer = await docInstance.Core.PDFNet.ElementWriter.create();
 
           // begin writing to the page
           await writer.beginOnPage(page);
@@ -1138,6 +1138,8 @@ const Redlining = React.forwardRef(
 
           // save changes to the current page
           await writer.end();
+          await builder.destroy();
+          await writer.destroy();
           mappedDoc.pageMappings = [
             { pageNo: 1, stitchedPageNo: doc.getPageCount() },
           ];
