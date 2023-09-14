@@ -1706,6 +1706,9 @@ const Redlining = React.forwardRef(
     const saveDefaultSections = () => {
       setModalOpen(false);
       setDefaultSections(selectedSections);
+      if (editAnnot || editRedacts) { // saving default sections for new redaction will be handled by the useEffect below
+        saveRedaction();
+      }
     };
 
     const clearDefaultSections = () => {
