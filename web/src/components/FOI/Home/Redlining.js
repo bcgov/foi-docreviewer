@@ -1094,86 +1094,34 @@ const Redlining = React.forwardRef(
           division: "",
           pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
         };
-        if ([".jpg", ".png"].includes(file.file.attributes.extension)) {
-          let pdfDoc = await doc.getPDFDoc();
 
-          // Create an Image that can be reused multiple times in the document or multiple on the same page.
-          const img = await docInstance.PDFNet.Image.createFromURL(
-            pdfDoc,
-            file.s3url
-          );
-          let height = await img.getImageHeight();
-          let width = await img.getImageWidth();
-
-          // insert blank page
-          await doc.insertBlankPages([doc.getPageCount() + 1], 612, 792); // default PDFTron page size
-          let page = await pdfDoc.getPage(await pdfDoc.getPageCount());
-
-          // ElementBuilder is used to build new Element objects
-          const builder = await docInstance.PDFNet.ElementBuilder.create();
-
-          // ElementWriter is used to write Elements to the page
-          const writer = await docInstance.PDFNet.ElementWriter.create();
-
-          // begin writing to the page
-          await writer.beginOnPage(page);
-          var scaledWidth;
-          var scaledHeight;
-          if (width > height) {
-            scaledWidth = 612;
-            scaledHeight = (612 / width) * height;
-          } else {
-            scaledWidth = (792 / height) * width;
-            scaledHeight = 792;
+        let newDoc = await docInstance.Core.createDocument(
+          file.s3url,
+          {loadAsPDF: true} /* , license key here */
+        );
+        const pages = [];
+        mappedDoc = { pageMappings: [] };
+        let stitchedPageNo = 0;
+        for (let i = 0; i < newDoc.getPageCount(); i++) {
+          pages.push(i + 1);
+          let pageNo = i + 1;
+          stitchedPageNo = doc.getPageCount() + (i + 1);
+          if (stitchedPageNo > 61) {
+            console.log("here");
           }
-          writer.writePlacedElement(
-            await builder.createImageScaled(
-              img,
-              0,
-              792 - scaledHeight,
-              scaledWidth,
-              scaledHeight
-            )
-          );
-
-          // save changes to the current page
-          await writer.end();
-          mappedDoc.pageMappings = [
-            { pageNo: 1, stitchedPageNo: doc.getPageCount() },
-          ];
-          mappedDocs["stitchedPageLookup"][doc.getPageCount()] = {
-            docid: file.file.documentid,
-            page: 1,
+          let pageMappings = {
+            pageNo: pageNo,
+            stitchedPageNo: stitchedPageNo,
           };
-        } else {
-          let newDoc = await docInstance.Core.createDocument(
-            file.s3url,
-            {} /* , license key here */
-          );
-          const pages = [];
-          mappedDoc = { pageMappings: [] };
-          let stitchedPageNo = 0;
-          for (let i = 0; i < newDoc.getPageCount(); i++) {
-            pages.push(i + 1);
-            let pageNo = i + 1;
-            stitchedPageNo = doc.getPageCount() + (i + 1);
-            if (stitchedPageNo > 61) {
-              console.log("here");
-            }
-            let pageMappings = {
-              pageNo: pageNo,
-              stitchedPageNo: stitchedPageNo,
-            };
-            mappedDoc.pageMappings.push(pageMappings);
-            mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
-              docid: file.file.documentid,
-              docversion: file.file.version,
-              page: pageNo,
-            };
-          }
-          // Insert (merge) pages
-          await doc.insertPages(newDoc, pages);
+          mappedDoc.pageMappings.push(pageMappings);
+          mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
+            docid: file.file.documentid,
+            docversion: file.file.version,
+            page: pageNo,
+          };
         }
+        // Insert (merge) pages
+        await doc.insertPages(newDoc, pages);
         mappedDocs["docIdLookup"][file.file.documentid] = {
           docId: file.file.documentid,
           version: file.file.version,
