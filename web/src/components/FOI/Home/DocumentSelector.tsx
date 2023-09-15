@@ -253,14 +253,27 @@ const DocumentSelector = ({
         }
     };
 
-    const handleSelect = (event: any, nodeIds: any) => {
-        setSelected(nodeIds);
+    const handleSelect = (event: any, nodeIds: any) => {     
+             
         let selectedNodes = nodeIds.map((n: any) => JSON.parse(n));
+
+        let _selectedpages = selectedNodes.filter((n: any) => n.page)
+       if(selected.length > 1 && nodeIds.length > 1)
+       {
+        setSelected(selected.concat(nodeIds));
+       }
+       else{
+        if(_selectedpages.length > 0)
+        {
+            setSelected(nodeIds)
+        }
+       }
+
         if (selectedNodes.length === 1 && !_.isEqual(Object.keys(selectedNodes[0]), ["division"])) {
             let selectedFile = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
             selectTreeItem(selectedFile, selectedNodes[0].page || 1);
         }
-        setSelectedPages(selectedNodes.filter((n: any) => n.page));
+        setSelectedPages(_selectedpages);
     };
 
     const openContextMenu = (file: any, page: number, e: any) => {
