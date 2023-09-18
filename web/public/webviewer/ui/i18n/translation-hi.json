@@ -16,6 +16,9 @@
     "comment": "टिप्पणी",
     "reply": "उत्तर जोड़ें",
     "copy": "प्रतिलिपि",
+    "cut": "काटना",
+    "paste": "पेस्ट करें",
+    "pasteWithoutFormatting": "बिना फॉर्मेट किए पेस्ट करें",
     "delete": "हटाएं",
     "group": "समूह",
     "ungroup": "असमूहीकृत",
@@ -78,6 +81,7 @@
     "showLess": "कम दिखाएं",
     "showMore": "...अधिक",
     "chooseFile": "एक फ़ाइल चुनें",
+    "changeDate": "बदलाव दिनांक",
     "browse": "फ़ाइलों को ब्राउज़ करें",
     "selectYourOption": "अपना विकल्प चुनें",
     "open": "खुला हुआ",
@@ -85,6 +89,7 @@
     "select": "चुनते हैं",
     "moveToTop": "शीर्ष पर जाएं",
     "moveToBottom": "नीचे ले जाएँ",
+    "backToMenu": "मैन्यू में वापस",
     "redactPages": "पृष्ठ सुधारें",
     "playAudio": "ऑडियो चलाएं",
     "pauseAudio": "ऑडियो विराम",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "चयनित टिप्पणियों का उत्तर दें",
     "comparePages": "पृष्ठों की तुलना करें",
     "startComparison": "तुलना शुरू करें",
-    "back": "पीछे"
+    "showComparison": "तुलना दिखाएँ",
+    "back": "पीछे",
+    "clearSignature": "स्पष्ट हस्ताक्षर",
+    "newDocument": "नया दस्तावेज़"
   },
   "annotation": {
     "areaMeasurement": "क्षेत्र",
@@ -250,6 +258,7 @@
     "errorEnterMeasurement": "आपके द्वारा दर्ज किया गया नंबर अमान्य है, आप 7.5 या 7 1/2 . जैसे मान दर्ज कर सकते हैं",
     "linkURLorPage": "लिंक यूआरएल या पेज",
     "warning": "चेतावनी",
+    "svgMalicious": "सुरक्षा के लिए SVG स्क्रिप्ट को नज़रअंदाज़ किया गया",
     "enterContentEditingMode": "आप सामग्री संपादन मोड में प्रवेश करने वाले हैं।",
     "existingAnnotationWarning": "संपादित किए जाने के बाद मौजूदा एनोटेशन टेक्स्ट से मेल नहीं खा सकते हैं।",
     "changesCannotBeUndone": "किए गए किसी भी परिवर्तन को पूर्ववत नहीं किया जा सकता है।",
@@ -379,7 +388,8 @@
       "qualityHigh": "उच्च",
       "includeAnnotations": "एनोटेशन शामिल करें",
       "includeComments": "टिप्पणियाँ शामिल करें",
-      "printSettings": "प्रिंट सेटिंग्स"
+      "printSettings": "प्रिंट सेटिंग्स",
+      "printGrayscale": "ग्रेस्केल प्रिंट करें"
     },
     "printInfo": {
       "author": "लेखक",
@@ -425,12 +435,10 @@
       "drawSignature": "हस्ताक्षर बनाएं*",
       "drawInitial": "आद्याक्षर ड्रा करें*",
       "pickInitialsFile": "आद्याक्षर चुनें",
-      "noSignatures": "वर्तमान में कोई सहेजे गए हस्ताक्षर नहीं हैं।"
+      "noSignatures": "वर्तमान में कोई सहेजे गए हस्ताक्षर नहीं हैं।",
+      "fontStyle": "लिपि शैली"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "अपनी फ़ाइल को यहां खींचें और छोड़ें",
-      "selectFile": "यहां अपनी फाइल चुनें",
-      "or": "या",
       "yourFiles": "आपकी फ़ाइलें",
       "chooseFile": "एक फ़ाइल चुनें",
       "localFile": "स्थानीय फ़ाइल",
@@ -447,7 +455,9 @@
       "filters": "फिल्टर",
       "user": "उपयोगकर्ता",
       "type": "टाइप",
-      "status": "दर्जा"
+      "status": "दर्जा",
+      "filterSettings": "फ़िल्टर सेटिंग्स",
+      "filterDocument": "दस्तावेज़ और टिप्पणी पैनल फ़िल्टर करें"
     },
     "state": {
       "accepted": "स्वीकार किया हुआ",
@@ -512,6 +522,12 @@
         "ifToContinue": "क्या आप वाकई जारी रखना चाहते हैं?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "सामग्री हटाएं",
+        "message": "क्या आप वाकई चयनित सामग्री को हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता."
+      }
+    },
     "stylePopup": {
       "textStyle": "पाठ शैली",
       "colors": "रंग की",
@@ -557,7 +573,8 @@
     "thumbnailPanel": {
       "delete": "हटाएं",
       "rotateClockwise": "दक्षिणावर्त",
-      "rotateCounterClockwise": "वामावर्त"
+      "rotateCounterClockwise": "वामावर्त",
+      "moreOptions": "अधिक विकल्प"
     },
     "thumbnailsControlOverlay": {
       "move": "पन्ने ले जाएँ"
@@ -607,13 +624,13 @@
     },
     "settings": {
       "settings": "समायोजन",
+      "searchSettings": "खोज सेंटिंग",
       "general": "सामान्य",
-      "keyboardShortcut": "कुंजीपटल संक्षिप्त रीति",
-      "advancedSetting": "उन्नत व्यवस्था",
       "language": "भाषा",
       "theme": "थीम",
       "darkMode": "डार्क मोड",
       "lightMode": "लाइट मोड",
+      "advancedSetting": "उन्नत व्यवस्था",
       "viewing": "देखना",
       "disableFadePageNavigationComponent": "फीका पृष्ठ नेविगेशन घटक अक्षम करें",
       "disableFadePageNavigationComponentDesc": "पेज नेविगेशन कंपोनेंट को हमेशा स्क्रीन पर रखें। निष्क्रियता की निश्चित अवधि के बाद इसे फीका करना डिफ़ॉल्ट व्यवहार है।",
@@ -638,7 +655,52 @@
       "disablePageDeletionConfirmationModal": "पृष्ठ हटाना पुष्टिकरण मोडल अक्षम करें",
       "disablePageDeletionConfirmationModalDesc": "थंबनेल दृश्य से किसी पृष्ठ को हटाते समय पुष्टिकरण मोडल अक्षम करें",
       "disableMultiselect": "बहुचयन अक्षम करें",
-      "disableMultiselectDesc": "बाएं थंबनेल पैनल में बहु-चयन अक्षम करें"
+      "disableMultiselectDesc": "बाएं थंबनेल पैनल में बहु-चयन अक्षम करें",
+      "miscellaneous": "विविध",
+      "keyboardShortcut": "कुंजीपटल संक्षिप्त रीति",
+      "command": "आज्ञा",
+      "description": "विवरण",
+      "action": "गतिविधि",
+      "rotateDocumentClockwise": "दस्तावेज़ को दक्षिणावर्त घुमाएँ",
+      "rotateDocumentCounterclockwise": "दस्तावेज़ को वामावर्त घुमाएँ",
+      "copyText": "चयनित टेक्स्ट या एनोटेशन कॉपी करें",
+      "pasteText": "टेक्स्ट या एनोटेशन पेस्ट करें",
+      "undoChange": "एनोटेशन परिवर्तन पूर्ववत करें",
+      "redoChange": "एनोटेशन परिवर्तन फिर से करें",
+      "openFile": "फ़ाइल पिकर खोलें",
+      "openSearch": "खोज ओवरले खोलें",
+      "zoomIn": "ज़ूम इन",
+      "zoomOut": "ज़ूम आउट",
+      "fitScreenWidth": "छोटे स्क्रीन में दस्तावेज़ को स्क्रीन की चौड़ाई में फ़िट करें (< 640px), अन्यथा इसे उसके मूल आकार में फ़िट करें",
+      "print": "छाप",
+      "bookmarkOpenPanel": "जल्दी से एक पेज बुकमार्क करें और बुकमार्क पैनल खोलें",
+      "goToPreviousPage": "पिछले पृष्ठ पर जाएँ",
+      "goToNextPage": "अगले पृष्ठ पर जाएँ",
+      "goToPreviousPageArrowUp": "सिंगल लेआउट मोड में पिछले पेज पर जाएं (एरोअप)",
+      "goToNextPageArrowDown": "सिंगल लेआउट मोड में अगले पेज पर जाएं (एरोडाउन)",
+      "holdSwitchPan": "पैन मोड में स्विच करने के लिए होल्ड करें और पिछले टूल पर वापस जाने के लिए रिलीज़ करें",
+      "selectAnnotationEdit": "एनोटेशन एडिट टूल का चयन करें",
+      "selectPan": "पैन टूल का चयन करें",
+      "selectCreateArrowTool": "एनोटेशनक्रिएटएरो टूल का चयन करें",
+      "selectCreateCalloutTool": "AnnotationCreateCallout टूल चुनें",
+      "selectEraserTool": "एनोटेशन इरेज़र टूल का चयन करें",
+      "selectCreateFreeHandTool": "एनोटेशन क्रिएट फ्रीहैंड टूल का चयन करें",
+      "selectCreateStampTool": "AnnotationCreateStamp टूल का चयन करें",
+      "selectCreateLineTool": "एनोटेशनक्रिएटलाइन टूल का चयन करें",
+      "selectCreateStickyTool": "एनोटेशन क्रिएट स्टिकी टूल का चयन करें",
+      "selectCreateEllipseTool": "AnnotationCreateEllipse टूल चुनें",
+      "selectCreateRectangleTool": "AnnotationCreateRectangle टूल चुनें",
+      "selectCreateRubberStampTool": "AnnotationCreateRubberStamp टूल चुनें",
+      "selectCreateFreeTextTool": "एनोटेशनक्रिएटफ्रीटेक्स्ट टूल का चयन करें",
+      "openSignatureModal": "सिग्नेचर मोडल या ओवरले खोलें",
+      "selectCreateTextSquigglyTool": "AnnotationCreateTextSquiggly टूल का चयन करें",
+      "selectCreateTextHighlightTool": "AnnotationCreateTextHighlight टूल चुनें",
+      "selectCreateTextStrikeoutTool": "AnnotationCreateTextStrikeout टूल चुनें",
+      "selectCreateTextUnderlineTool": "AnnotationCreateTextUnderline टूल चुनें",
+      "editKeyboardShorcut": "कीबोर्ड शॉर्टकट संपादित करें",
+      "setShorcut": "शॉर्टकट सेट करें",
+      "pressKeyToSet": "नया शॉर्टकट सेट करने के लिए कुंजी या कुंजियां दबाएं।",
+      "shortcutAlreadyExists": "ऊपर दिया गया कीबोर्ड शॉर्टकट पहले से मौजूद है।"
     }
   },
   "warning": {
@@ -681,6 +743,10 @@
       "title": "डाउनलोड किए बिना बंद करें?",
       "message": "इस दस्तावेज़ में परिवर्तन किए गए हैं, क्या आप वाकई अपना काम डाउनलोड किए बिना इसे बंद करना चाहते हैं? आप इस क्रिया को पूर्ववत नहीं कर सकते।",
       "rejectDownloadButton": "डाउनलोड के बिना बंद करें"
+    },
+    "connectToURL": {
+      "title": "सुरक्षा चेतावनी",
+      "message": "यह दस्तावेज़ इससे कनेक्ट करने का प्रयास कर रहा है:\n\n{{- uri}}\n\n यदि आप इस दस्तावेज़ पर भरोसा करते हैं, तो इसे खोलने के लिए पुष्टि करें पर क्लिक करें।"
     }
   },
   "shortcut": {
@@ -1015,8 +1081,32 @@
     "watermarkOptions": "वॉटरमार्क विकल्प",
     "watermarks": "वाटरमार्क"
   },
+  "portfolioPanel": {
+    "portfolioPanelTitle": "पीडीएफ पोर्टफोलियो",
+    "portfolioAddFile": "फ़ाइल जोड़ें",
+    "portfolioAddFolder": "फ़ोल्डर जोड़ें",
+    "portfolioCreateFolder": "फोल्डर बनाएं",
+    "portfolioNewFolder": "नया फ़ोल्डर",
+    "portfolioNewFolderPlaceholder": "फ़ोल्डर का नाम"
+  },
   "languageModal": {
     "selectLanguage": "भाषा का चयन करें"
+  },
+  "officeEditor": {
+    "bold": "निडर",
+    "italic": "तिरछा",
+    "underline": "रेखांकन",
+    "textColor": "पाठ का रंग",
+    "leftAlign": "बाएं संरेखित करें",
+    "centerAlign": "केंद्र संरेखित करें",
+    "rightAlign": "सही संरेखित करें",
+    "justify": "न्यायोचित ठहराना",
+    "lineSpacing": "लाइन और पैराग्राफ स्पेसिंग",
+    "bulletList": "बुलेटेड सूची",
+    "numberList": "क्रमांकित सूची",
+    "insertLink": "लिंक डालें",
+    "insertImage": "चित्र डालें",
+    "notSupportedOnMobile": "कार्यालय संपादन मोबाइल उपकरणों पर समर्थित नहीं है।"
   },
   "insertPageModal": {
     "title": "नया पेज जोड़ें",
@@ -1100,6 +1190,19 @@
     "watermark": "वाटर-मार्क",
     "addWatermark": "वॉटरमार्क जोड़िए",
     "save": "फाइल सुरक्षित करें",
-    "pageError": "अमान्य पृष्ठ। मान्य पृष्ठ श्रेणियां 1 के बीच हैं -"
+    "pageError": "अमान्य पृष्ठ। मान्य पृष्ठ श्रेणियां 1 के बीच हैं -",
+    "fileNameCannotBeEmpty": "फ़ाइल नाम रिक्त नहीं हो सकता"
+  },
+  "portfolio": {
+    "createPDFPortfolio": "पीडीएफ पोर्टफोलियो बनाएं",
+    "uploadFiles": "फाइलें अपलोड करें",
+    "uploadFolder": "फ़ोल्डर अपलोड करें",
+    "addFiles": "फाइलें जोड़ो",
+    "addFolder": "फ़ोल्डर जोड़ें"
+  },
+  "filePicker": {
+    "dragAndDrop": "अपनी फ़ाइल को यहां खींचें और छोड़ें",
+    "selectFile": "यहां अपनी फ़ाइल चुनें",
+    "or": "या"
   }
 }

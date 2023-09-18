@@ -16,6 +16,9 @@
     "comment": "コメント",
     "reply": "返信する",
     "copy": "コピー",
+    "cut": "切る",
+    "paste": "ペースト",
+    "pasteWithoutFormatting": "書式なしで貼り付け",
     "delete": "削除",
     "group": "グループ化",
     "ungroup": "グループ解除",
@@ -78,6 +81,7 @@
     "showLess": "表示を減らす",
     "showMore": "...さらに表示",
     "chooseFile": "ファイルを選択してください",
+    "changeDate": "変更日",
     "browse": "ブラウズファイル",
     "selectYourOption": "オプションを選択してください",
     "open": "開ける",
@@ -85,6 +89,7 @@
     "select": "選択する",
     "moveToTop": "上に移動",
     "moveToBottom": "下に移動",
+    "backToMenu": "メニューに戻る",
     "redactPages": "ページを編集する",
     "playAudio": "オーディオを再生",
     "pauseAudio": "オーディオの一時停止",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "選択した注釈に返信 ({{count}})",
     "comparePages": "ページを比較する",
     "startComparison": "比較を開始",
-    "back": "戻る"
+    "showComparison": "比較を表示",
+    "back": "戻る",
+    "clearSignature": "明確な署名",
+    "newDocument": "新しいドキュメント"
   },
   "annotation": {
     "areaMeasurement": "面積測定",
@@ -250,6 +258,7 @@
     "errorEnterMeasurement": "入力した数値は無効です。7.5や7 1/2などの値を入力できます",
     "linkURLorPage": "ページまたはURLのリンクを挿入",
     "warning": "警告",
+    "svgMalicious": "セキュリティのために無視される SVG スクリプト",
     "enterContentEditingMode": "編集モードを開始しようとしています。",
     "existingAnnotationWarning": "編集内容が既存の注釈と一致しない場合があります。",
     "changesCannotBeUndone": "行った変更は元に戻せません。",
@@ -379,7 +388,8 @@
       "qualityHigh": "きれい",
       "includeAnnotations": "注釈を含める",
       "includeComments": "コメントを含める",
-      "printSettings": "印刷設定"
+      "printSettings": "印刷設定",
+      "printGrayscale": "グレースケール印刷"
     },
     "printInfo": {
       "author": "作成者",
@@ -425,12 +435,10 @@
       "drawSignature": "署名を描く*",
       "drawInitial": "イニシャルを描く*",
       "pickInitialsFile": "イニシャルを選択",
-      "noSignatures": "現在、保存されている署名はありません。"
+      "noSignatures": "現在、保存されている署名はありません。",
+      "fontStyle": "フォントスタイル"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "ここにファイルをドラッグ＆ドロップ",
-      "selectFile": "ここでファイルを選択",
-      "or": "または",
       "yourFiles": "あなたのファイル",
       "chooseFile": "ファイルを選択",
       "localFile": "ローカルファイル",
@@ -447,7 +455,9 @@
       "filters": "フィルタ",
       "user": "ユーザー",
       "type": "タイプ",
-      "status": "状態"
+      "status": "状態",
+      "filterSettings": "フィルター設定",
+      "filterDocument": "ドキュメントとコメント パネルをフィルター処理する"
     },
     "state": {
       "accepted": "承認",
@@ -512,6 +522,12 @@
         "ifToContinue": "続行してもよろしいですか？"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "コンテンツの削除",
+        "message": "選択したコンテンツを削除してもよろしいですか?これを元に戻すことはできません。"
+      }
+    },
     "stylePopup": {
       "textStyle": "テキストスタイル",
       "colors": "色",
@@ -557,7 +573,8 @@
     "thumbnailPanel": {
       "delete": "削除",
       "rotateClockwise": "右90°回転",
-      "rotateCounterClockwise": "左90°回転"
+      "rotateCounterClockwise": "左90°回転",
+      "moreOptions": "より多くのオプション"
     },
     "thumbnailsControlOverlay": {
       "move": "ページを移動する"
@@ -607,13 +624,13 @@
     },
     "settings": {
       "settings": "設定",
+      "searchSettings": "検索設定",
       "general": "全般的",
-      "keyboardShortcut": "キーボード ショートカット",
-      "advancedSetting": "詳細設定",
       "language": "言語",
       "theme": "テーマ",
       "darkMode": "ダークモード",
       "lightMode": "ライトモード",
+      "advancedSetting": "詳細設定",
       "viewing": "閲覧中",
       "disableFadePageNavigationComponent": "フェード ページ ナビゲーション コンポーネントを無効にする",
       "disableFadePageNavigationComponentDesc": "ページ ナビゲーション コンポーネントを常に画面に表示します。デフォルトの動作は、非アクティブ状態が一定時間続くとフェードすることです。",
@@ -638,7 +655,52 @@
       "disablePageDeletionConfirmationModal": "ページ削除確認モーダルを無効にする",
       "disablePageDeletionConfirmationModalDesc": "サムネイル ビューからページを削除するときの確認モーダルを無効にする",
       "disableMultiselect": "複数選択を無効にする",
-      "disableMultiselectDesc": "左側のサムネイル パネルで複数選択を無効にする"
+      "disableMultiselectDesc": "左側のサムネイル パネルで複数選択を無効にする",
+      "miscellaneous": "その他",
+      "keyboardShortcut": "キーボード ショートカット",
+      "command": "指示",
+      "description": "説明",
+      "action": "アクション",
+      "rotateDocumentClockwise": "ドキュメントを時計回りに回転",
+      "rotateDocumentCounterclockwise": "ドキュメントを反時計回りに回転",
+      "copyText": "選択したテキストまたは注釈をコピーする",
+      "pasteText": "テキストまたは注釈を貼り付ける",
+      "undoChange": "注釈の変更を元に戻す",
+      "redoChange": "注釈の変更をやり直す",
+      "openFile": "ファイルピッカーを開く",
+      "openSearch": "検索オーバーレイを開く",
+      "zoomIn": "ズームイン",
+      "zoomOut": "ズームアウトする",
+      "fitScreenWidth": "小さな画面 (< 640px) ではドキュメントを画面幅に合わせます。それ以外の場合は元のサイズに合わせます",
+      "print": "印刷する",
+      "bookmarkOpenPanel": "ページをすばやくブックマークして、ブックマーク パネルを開く",
+      "goToPreviousPage": "前のページへ",
+      "goToNextPage": "次のページへ",
+      "goToPreviousPageArrowUp": "シングルレイアウトモードで前のページに移動 (ArrowUp)",
+      "goToNextPageArrowDown": "シングルレイアウトモードで次のページに移動 (ArrowDown)",
+      "holdSwitchPan": "長押しするとパン モードに切り替わり、離すと前のツールに戻ります",
+      "selectAnnotationEdit": "AnnotationEdit ツールを選択します",
+      "selectPan": "パン ツールを選択します。",
+      "selectCreateArrowTool": "AnnotationCreateArrow ツールを選択します",
+      "selectCreateCalloutTool": "AnnotationCreateCallout ツールを選択します",
+      "selectEraserTool": "注釈消しゴムツールを選択します",
+      "selectCreateFreeHandTool": "AnnotationCreateFreeHand ツールを選択します。",
+      "selectCreateStampTool": "AnnotationCreateStamp ツールを選択します",
+      "selectCreateLineTool": "AnnotationCreateLine ツールを選択します",
+      "selectCreateStickyTool": "AnnotationCreateSticky ツールを選択します",
+      "selectCreateEllipseTool": "AnnotationCreateEllipse ツールを選択します。",
+      "selectCreateRectangleTool": "AnnotationCreateRectangle ツールを選択します。",
+      "selectCreateRubberStampTool": "AnnotationCreateRubberStamp ツールを選択します",
+      "selectCreateFreeTextTool": "AnnotationCreateFreeText ツールを選択します",
+      "openSignatureModal": "署名モーダルまたはオーバーレイを開く",
+      "selectCreateTextSquigglyTool": "AnnotationCreateTextSquiggly ツールを選択します。",
+      "selectCreateTextHighlightTool": "AnnotationCreateTextHighlight ツールを選択します",
+      "selectCreateTextStrikeoutTool": "AnnotationCreateTextStrikeout ツールを選択します。",
+      "selectCreateTextUnderlineTool": "AnnotationCreateTextUnderline ツールを選択します。",
+      "editKeyboardShorcut": "キーボード ショートカットの編集",
+      "setShorcut": "ショートカットを設定",
+      "pressKeyToSet": "キーまたはキーを押して、新しいショートカットを設定します。",
+      "shortcutAlreadyExists": "上記のキーボード ショートカットは既に存在します。"
     }
   },
   "warning": {
@@ -681,6 +743,10 @@
       "title": "ダウンロードせずに閉じますか？",
       "message": "このドキュメントに変更が加えられましたが、作業内容をダウンロードせずに閉じてもよろしいですか？このアクションを元に戻すことはできません。",
       "rejectDownloadButton": "ダウンロードせずに閉じる"
+    },
+    "connectToURL": {
+      "title": "セキュリティ警告",
+      "message": "このドキュメントは次の場所に接続しようとしています:\n\n{{- uri}}\n\n このドキュメントが信頼できる場合は、[確認] をクリックして開きます。"
     }
   },
   "shortcut": {
@@ -1015,8 +1081,32 @@
     "watermarkOptions": "透かしオプション",
     "watermarks": "透かし"
   },
+  "portfolioPanel": {
+    "portfolioPanelTitle": "PDFポートフォリオ",
+    "portfolioAddFile": "ファイルの追加",
+    "portfolioAddFolder": "フォルダーを追加",
+    "portfolioCreateFolder": "フォルダーを作る",
+    "portfolioNewFolder": "新しいフォルダー",
+    "portfolioNewFolderPlaceholder": "フォルダ名"
+  },
   "languageModal": {
     "selectLanguage": "言語を選択する"
+  },
+  "officeEditor": {
+    "bold": "大胆な",
+    "italic": "イタリック",
+    "underline": "下線",
+    "textColor": "テキストの色",
+    "leftAlign": "左揃え",
+    "centerAlign": "中央揃え",
+    "rightAlign": "右揃え",
+    "justify": "正当化する",
+    "lineSpacing": "行と段落の間隔",
+    "bulletList": "箇条書きリスト",
+    "numberList": "番号付きリスト",
+    "insertLink": "リンクを挿入",
+    "insertImage": "画像を挿入",
+    "notSupportedOnMobile": "Office 編集は、モバイル デバイスではサポートされていません。"
   },
   "insertPageModal": {
     "title": "新しいページを追加",
@@ -1100,6 +1190,19 @@
     "watermark": "透かし",
     "addWatermark": "透かしを追加",
     "save": "ファイルを保存",
-    "pageError": "ページが無効です。有効なページ範囲は 1 ～"
+    "pageError": "ページが無効です。有効なページ範囲は 1 ～",
+    "fileNameCannotBeEmpty": "ファイル名を空にすることはできません"
+  },
+  "portfolio": {
+    "createPDFPortfolio": "PDF ポートフォリオを作成する",
+    "uploadFiles": "ファイルをアップロードする",
+    "uploadFolder": "アップロードフォルダー",
+    "addFiles": "追加ファイル",
+    "addFolder": "フォルダーを追加"
+  },
+  "filePicker": {
+    "dragAndDrop": "ここにファイルをドラッグ＆ドロップします",
+    "selectFile": "ここでファイルを選択してください",
+    "or": "また"
   }
 }

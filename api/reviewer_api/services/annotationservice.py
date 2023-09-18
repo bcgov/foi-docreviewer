@@ -13,7 +13,7 @@ from reviewer_api.services.redactionlayerservice import redactionlayerservice
 import os
 import maya
 import json
-
+import pytz
 from xml.dom.minidom import parseString
 
 class annotationservice:
@@ -127,11 +127,14 @@ class annotationservice:
         annots = []
         for annot in annotations:
             if self.__isvalid(annot) == True:
+                formatted_utc= self.__converttoutctime(annot)
                 customdata = annot.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")
                 customdatadict = json.loads(customdata)
+                if formatted_utc is not None:
+                    annot.setAttribute("creationdate", formatted_utc)
                 annots.append({
                     "name": annot.getAttribute("name"),
-                    "page": annot.getAttribute("page"),
+                    "page": customdatadict['originalPageNo'],
                     "xml": annot.toxml(),
                     "sectionsschema": SectionAnnotationSchema().loads(customdata),
                     "docid": customdatadict['docid'],
@@ -163,4 +166,18 @@ class annotationservice:
                 return True
             return False
         return True
+
+
+    def __converttoutctime(self,annot):  
+        original_timestamp = annot.getAttribute("creationdate")
+        # Extract date and time components from the timestamp
+        timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
+        timestamp_str = timestamp_str.replace("'", ":")  # Replace single quotes
+        if timestamp_str.endswith(":"):
+            timestamp_str = timestamp_str[:-1]
+        timestamp_utc = maya.parse(timestamp_str).datetime().astimezone(pytz.UTC)
+        # Format the UTC time in the same format as the original timestamp
+        formatted_utc = "D:" + timestamp_utc.strftime("%Y%m%d%H%M%S")
+        return formatted_utc
+
 

@@ -25,7 +25,10 @@ class RedactionLayer(db.Model):
                             select redactionlayerid as rlid, count(redactionlayerid) 
                             from public."Annotations" a
                             join public."Documents" d on d.documentid = a.documentid
+                            join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
+							left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
                             where foiministryrequestid = :ministryrequestid and a.isactive = true
+							and (dd.deleted is false or dd.deleted is null)
                             group by redactionlayerid
                         ) sq on sq.rlid = rl.redactionlayerid
                     '''

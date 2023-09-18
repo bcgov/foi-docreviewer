@@ -16,6 +16,9 @@
     "comment": "Bình Luận",
     "reply": "Thêm trả lời",
     "copy": "Sao chép",
+    "cut": "Cắt",
+    "paste": "Dán",
+    "pasteWithoutFormatting": "Dán mà không cần định dạng",
     "delete": "Xóa",
     "group": "Nhóm",
     "ungroup": "Bỏ gộp nhóm",
@@ -78,6 +81,7 @@
     "showLess": "hiển thị ít hơn",
     "showMore": "...nhiều hơn",
     "chooseFile": "Chọn một tệp",
+    "changeDate": "Thay đổi ngày",
     "browse": "Duyệt qua tệp",
     "selectYourOption": "Chọn tùy chọn của bạn",
     "open": "Mở",
@@ -85,6 +89,7 @@
     "select": "Chọn",
     "moveToTop": "Di chuyển lên trên cùng",
     "moveToBottom": "Di chuyển xuống dưới cùng",
+    "backToMenu": "Quay lại Menu",
     "redactPages": "Biên tập lại các trang",
     "playAudio": "Phát âm thanh",
     "pauseAudio": "Tạm dừng âm thanh",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "Trả lời các chú thích đã chọn ({{count}})",
     "comparePages": "So sánh các trang",
     "startComparison": "Bắt đầu so sánh",
-    "back": "Mặt sau"
+    "showComparison": "Hiển thị so sánh",
+    "back": "Mặt sau",
+    "clearSignature": "Xóa chữ ký",
+    "newDocument": "Tài liệu mới"
   },
   "annotation": {
     "areaMeasurement": "Diện tích",
@@ -250,6 +258,7 @@
     "errorEnterMeasurement": "Số bạn đã nhập không hợp lệ, bạn có thể nhập các giá trị như 7,5 hoặc 7 1/2",
     "linkURLorPage": "Liên kết URL hoặc một Trang",
     "warning": "Cảnh báo",
+    "svgMalicious": "Tập lệnh SVG bị bỏ qua để bảo mật",
     "enterContentEditingMode": "Bạn sắp vào chế độ chỉnh sửa nội dung.",
     "existingAnnotationWarning": "Chú thích hiện có có thể không khớp với văn bản sau khi đã được chỉnh sửa.",
     "changesCannotBeUndone": "Bất kỳ thay đổi nào được thực hiện không thể được hoàn tác.",
@@ -379,7 +388,8 @@
       "qualityHigh": "Cao",
       "includeAnnotations": "Bao gồm chú thích",
       "includeComments": "Bao gồm bình luận",
-      "printSettings": "Cài đặt in"
+      "printSettings": "Cài đặt in",
+      "printGrayscale": "In thang độ xám"
     },
     "printInfo": {
       "author": "Tác giả",
@@ -425,12 +435,10 @@
       "drawSignature": "Vẽ Chữ ký *",
       "drawInitial": "Rút tên viết tắt *",
       "pickInitialsFile": "Chọn tên viết tắt",
-      "noSignatures": "Hiện tại không có chữ ký nào được lưu."
+      "noSignatures": "Hiện tại không có chữ ký nào được lưu.",
+      "fontStyle": "kiểu phông chữ"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Kéo & Thả tệp của bạn tại đây",
-      "selectFile": "Chọn tệp của bạn ở đây",
-      "or": "Hoặc",
       "yourFiles": "Tệp của bạn",
       "chooseFile": "Chọn một tệp",
       "localFile": "Tệp Cục Bộ",
@@ -447,7 +455,9 @@
       "filters": "Bộ lọc",
       "user": "Người sử dụng",
       "type": "Loại hình",
-      "status": "Trạng thái"
+      "status": "Trạng thái",
+      "filterSettings": "Cài đặt bộ lọc",
+      "filterDocument": "Lọc tài liệu và bảng nhận xét"
     },
     "state": {
       "accepted": "Đã Chấp Nhận",
@@ -512,6 +522,12 @@
         "ifToContinue": "Bạn có chắc chắn muốn tiếp tục không?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Xóa nội dung",
+        "message": "Bạn có chắc chắn muốn xóa nội dung đã chọn không? Không thể hoàn tác thao tác này."
+      }
+    },
     "stylePopup": {
       "textStyle": "Kiểu Văn Bản",
       "colors": "Màu",
@@ -557,7 +573,8 @@
     "thumbnailPanel": {
       "delete": "Xóa",
       "rotateClockwise": "Theo chiều kim đồng hồ",
-      "rotateCounterClockwise": "Ngược chiều kim đồng hồ"
+      "rotateCounterClockwise": "Ngược chiều kim đồng hồ",
+      "moreOptions": "Lựa chọn khác"
     },
     "thumbnailsControlOverlay": {
       "move": "Di chuyển trang"
@@ -607,13 +624,13 @@
     },
     "settings": {
       "settings": "Cài đặt",
+      "searchSettings": "Thiết lập tìm kiếm",
       "general": "Chung",
-      "keyboardShortcut": "Phim tăt",
-      "advancedSetting": "Cài đặt nâng cao",
       "language": "Ngôn ngữ",
       "theme": "Chủ đề",
       "darkMode": "Chế độ tối",
       "lightMode": "Chế độ sáng",
+      "advancedSetting": "Cài đặt nâng cao",
       "viewing": "Đang xem",
       "disableFadePageNavigationComponent": "Tắt thành phần điều hướng trang làm mờ",
       "disableFadePageNavigationComponentDesc": "Luôn giữ Thành phần Điều hướng Trang trên màn hình. Hành vi mặc định là làm mờ dần nó sau một thời gian không hoạt động nhất định.",
@@ -638,7 +655,52 @@
       "disablePageDeletionConfirmationModal": "Tắt phương thức xác nhận xóa trang",
       "disablePageDeletionConfirmationModalDesc": "Tắt phương thức xác nhận khi xóa trang khỏi chế độ xem hình thu nhỏ",
       "disableMultiselect": "Tắt nhiều lựa chọn",
-      "disableMultiselectDesc": "Tắt nhiều lựa chọn trong bảng hình thu nhỏ bên trái"
+      "disableMultiselectDesc": "Tắt nhiều lựa chọn trong bảng hình thu nhỏ bên trái",
+      "miscellaneous": "Điều khoản khác",
+      "keyboardShortcut": "Phim tăt",
+      "command": "Yêu cầu",
+      "description": "Sự mô tả",
+      "action": "Hoạt động",
+      "rotateDocumentClockwise": "Xoay tài liệu theo chiều kim đồng hồ",
+      "rotateDocumentCounterclockwise": "Xoay tài liệu ngược chiều kim đồng hồ",
+      "copyText": "Sao chép văn bản hoặc chú thích đã chọn",
+      "pasteText": "Dán văn bản hoặc chú thích",
+      "undoChange": "Hoàn tác thay đổi chú thích",
+      "redoChange": "Làm lại thay đổi chú thích",
+      "openFile": "Mở bộ chọn tệp",
+      "openSearch": "Mở lớp phủ tìm kiếm",
+      "zoomIn": "Phóng to",
+      "zoomOut": "Thu nhỏ",
+      "fitScreenWidth": "Vừa tài liệu với chiều rộng màn hình trong một màn hình nhỏ (< 640px), nếu không thì vừa với kích thước ban đầu",
+      "print": "In",
+      "bookmarkOpenPanel": "Nhanh chóng đánh dấu một trang và mở bảng đánh dấu trang",
+      "goToPreviousPage": "Tới trang trước",
+      "goToNextPage": "Đến trang tiếp theo",
+      "goToPreviousPageArrowUp": "Chuyển đến trang trước ở chế độ bố cục đơn (ArrowUp)",
+      "goToNextPageArrowDown": "Chuyển đến trang tiếp theo ở chế độ bố cục đơn (ArrowDown)",
+      "holdSwitchPan": "Giữ để chuyển sang chế độ Pan và thả ra để quay lại công cụ trước đó",
+      "selectAnnotationEdit": "Chọn công cụ AnnotationEdit",
+      "selectPan": "Chọn công cụ Pan",
+      "selectCreateArrowTool": "Chọn công cụ AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Chọn công cụ AnnotationCreateCallout",
+      "selectEraserTool": "Chọn công cụ AnnotationEraser",
+      "selectCreateFreeHandTool": "Chọn công cụ AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Chọn công cụ AnnotationCreateStamp",
+      "selectCreateLineTool": "Chọn công cụ AnnotationCreateLine",
+      "selectCreateStickyTool": "Chọn công cụ AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Chọn công cụ AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Chọn công cụ AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Chọn công cụ AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Chọn công cụ AnnotationCreateFreeText",
+      "openSignatureModal": "Mở phương thức chữ ký hoặc lớp phủ",
+      "selectCreateTextSquigglyTool": "Chọn công cụ AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Chọn công cụ AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Chọn công cụ AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Chọn công cụ AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Chỉnh sửa phím tắt",
+      "setShorcut": "Đặt phím tắt",
+      "pressKeyToSet": "Nhấn phím hoặc các phím để thiết lập phím tắt mới.",
+      "shortcutAlreadyExists": "Phím tắt ở trên đã tồn tại."
     }
   },
   "warning": {
@@ -681,6 +743,10 @@
       "title": "Đóng mà không tải xuống?",
       "message": "Có những thay đổi được thực hiện đối với tài liệu này, bạn có chắc chắn muốn đóng nó mà không tải xuống công việc của mình không? Bạn không thể hoàn tác hành động này.",
       "rejectDownloadButton": "Đóng mà không cần tải xuống"
+    },
+    "connectToURL": {
+      "title": "Cảnh báo an ninh",
+      "message": "Tài liệu này đang cố kết nối với:\n\n{{-uri}}\n\n Nếu bạn tin tưởng tài liệu này, hãy nhấp vào Xác nhận để mở nó."
     }
   },
   "shortcut": {
@@ -1015,8 +1081,32 @@
     "watermarkOptions": "Tùy chọn hình mờ",
     "watermarks": "Hình mờ"
   },
+  "portfolioPanel": {
+    "portfolioPanelTitle": "Danh mục đầu tư PDF",
+    "portfolioAddFile": "Thêm tập tin",
+    "portfolioAddFolder": "Thêm thư mục",
+    "portfolioCreateFolder": "Tạo thư mục",
+    "portfolioNewFolder": "Thư mục mới",
+    "portfolioNewFolderPlaceholder": "Tên thư mục"
+  },
   "languageModal": {
     "selectLanguage": "Chọn ngôn ngữ"
+  },
+  "officeEditor": {
+    "bold": "In đậm",
+    "italic": "chữ nghiêng",
+    "underline": "gạch dưới",
+    "textColor": "Văn bản màu",
+    "leftAlign": "Căn trái",
+    "centerAlign": "Căn giữa",
+    "rightAlign": "Căn phải",
+    "justify": "biện minh",
+    "lineSpacing": "Giãn cách dòng & đoạn",
+    "bulletList": "danh sách gạch đầu dòng",
+    "numberList": "danh sách được đánh số",
+    "insertLink": "Chèn đường dẫn",
+    "insertImage": "Chèn hình ảnh",
+    "notSupportedOnMobile": "Chỉnh sửa văn phòng không được hỗ trợ trên thiết bị di động."
   },
   "insertPageModal": {
     "title": "Thêm trang mới",
@@ -1100,6 +1190,19 @@
     "watermark": "Chữ ký ảnh",
     "addWatermark": "Thêm hình mờ",
     "save": "Lưu tập tin",
-    "pageError": "Trang không hợp lệ. Phạm vi trang hợp lệ là từ 1 -"
+    "pageError": "Trang không hợp lệ. Phạm vi trang hợp lệ là từ 1 -",
+    "fileNameCannotBeEmpty": "Tên tệp không được để trống"
+  },
+  "portfolio": {
+    "createPDFPortfolio": "Tạo danh mục đầu tư PDF",
+    "uploadFiles": "Tải tệp lên",
+    "uploadFolder": "Thư mục tải lên",
+    "addFiles": "Thêm các tập tin",
+    "addFolder": "Thêm thư mục"
+  },
+  "filePicker": {
+    "dragAndDrop": "Kéo và thả tệp của bạn vào đây",
+    "selectFile": "Chọn tập tin của bạn ở đây",
+    "or": "Hoặc"
   }
 }

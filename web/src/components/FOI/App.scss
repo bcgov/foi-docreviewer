@@ -117,7 +117,8 @@
   flex-basis: 50%;
 }
 
-.btn-bottom {
+.btn-disabled{
+  cursor: not-allowed;
 }
 
 .foippa-modal-actions{
