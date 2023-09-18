@@ -1,4 +1,3 @@
-
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
     let stitchedPageNo = 0;
     if (docid && !Array.isArray(pageMappedDocs) ) {
@@ -51,5 +50,3 @@ export const getProgramAreas = (pageFlagList) => {
     let consult = pageFlagList.find((pageFlag) => pageFlag.name === 'Consult')
     return (({others , programareas }) => (others ? { others, programareas } : {others: [], programareas}))(consult);
 }
-
-

@@ -259,7 +259,6 @@ const Redlining = React.forwardRef(
         documentViewer.setToolMode(
           documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
         );
-        instance.UI.setPrintedNoteDateFormat('DD.MM.YYYY HH:MM');
         //customize header - insert a dropdown button
         const document = instance.UI.iframeWindow.document;
         setIframeDocument(document);
@@ -374,10 +373,6 @@ const Redlining = React.forwardRef(
             newCustomElement
           );
         });
-
-        const wvIframe = instance.UI.iframeWindow;
-        let value1=wvIframe.document.querySelector(".author-and-time");
-        console.log("Date:",value1)
 
         const Edit = () => {
           let _selectedAnnotations = annotationManager.getSelectedAnnotations();
