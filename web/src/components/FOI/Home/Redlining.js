@@ -259,7 +259,6 @@ const Redlining = React.forwardRef(
         documentViewer.setToolMode(
           documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
         );
-
         //customize header - insert a dropdown button
         const document = instance.UI.iframeWindow.document;
         setIframeDocument(document);
@@ -374,6 +373,7 @@ const Redlining = React.forwardRef(
             newCustomElement
           );
         });
+
         const Edit = () => {
           let _selectedAnnotations = annotationManager.getSelectedAnnotations();
           const disableEdit = _selectedAnnotations.some(
