@@ -47,7 +47,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { toast } from "react-toastify";
 import { pageFlagTypes, RequestStates } from "../../../constants/enum";
-import { getStitchedPageNoFromOriginal, createPageFlagPayload } from "./utils";
+import {
+  getStitchedPageNoFromOriginal,
+  createPageFlagPayload,
+  sortByLastModified,
+} from "./utils";
 import _ from "lodash";
 
 const Redlining = React.forwardRef(
@@ -1888,6 +1892,7 @@ const Redlining = React.forwardRef(
         let divDocList = documentList.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
+        divDocList = sortByLastModified(divDocList);
         let incompatableList = incompatibleFiles.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
@@ -2031,6 +2036,26 @@ const Redlining = React.forwardRef(
                     (v, k) => k + 1
                   );
                   let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                  // console.log(
+                  //   `docObj instanceof PDFNet.PDFDoc = ${
+                  //     docObj instanceof PDFNet.PDFDoc
+                  //   }`
+                  // );
+                  // const sourcePage = await docObj?.getPage(1);
+                  // const mediaBox = await sourcePage?.getMediaBox();
+                  // console.log(mediaBox);
+                  // const left = mediaBox[0];
+                  // const bottom = mediaBox[1];
+                  // const right = mediaBox[2];
+                  // const top = mediaBox[3];
+                  // const pageRect = await _instance?.PDFNet.Rect.init(
+                  //   left,
+                  //   bottom,
+                  //   right,
+                  //   top
+                  // );
+                  // const newPage = await stitchedDocObj.pageCreate(pageRect);
+                  // await stitchedDocObj.pagePushBack(newPage);
                   await stitchedDocObj.insertPages(
                     docObj,
                     pages,
@@ -2176,6 +2201,8 @@ const Redlining = React.forwardRef(
         requestnumber: "",
         bcgovcode: "",
       };
+
+      // console.log(`documentList[0] >>>>> ${JSON.stringify(documentList[0])}`);
 
       getResponsePackagePreSignedUrl(
         requestid,
