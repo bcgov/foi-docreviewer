@@ -132,6 +132,7 @@ class annotationservice:
                 customdatadict = json.loads(customdata)
                 if formatted_utc is not None:
                     annot.setAttribute("creationdate", formatted_utc)
+                    annot.setAttribute("date", formatted_utc)
                 annots.append({
                     "name": annot.getAttribute("name"),
                     "page": customdatadict['originalPageNo'],
