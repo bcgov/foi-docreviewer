@@ -43,7 +43,7 @@ export const docSorting = (a, b) => {
   if (b.file) {
     b = b.file;
   }
-  var sort =
+  let sort =
     Date.parse(a.attributes.lastmodified) -
     Date.parse(b.attributes.lastmodified);
   if (sort === 0) {
@@ -71,21 +71,3 @@ export const getProgramAreas = (pageFlagList) => {
 
 // Helper function to sort files by lastmodified date
 export const sortByLastModified = (files) => files.sort(docSorting);
-// files.sort(
-//   (a, b) =>
-//     new Date(a?.attributes?.lastmodified) -
-//     new Date(b?.attributes?.lastmodified)
-// );
-//   files.sort((a, b) => {
-//     const dateComparison =
-//       new Date(a.attributes.lastmodified) - new Date(b.attributes.lastmodified);
-
-//     if (dateComparison !== 0) {
-//       return dateComparison;
-//     }
-
-//     const filenameA = a.filename.toLowerCase();
-//     const filenameB = b.filename.toLowerCase();
-
-//     return filenameA.localeCompare(filenameB);
-//   });
