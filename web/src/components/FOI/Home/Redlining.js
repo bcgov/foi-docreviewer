@@ -47,7 +47,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { toast } from "react-toastify";
 import { pageFlagTypes, RequestStates } from "../../../constants/enum";
-import { getStitchedPageNoFromOriginal, createPageFlagPayload } from "./utils";
+import {
+  getStitchedPageNoFromOriginal,
+  createPageFlagPayload,
+  sortByLastModified,
+} from "./utils";
 import _ from "lodash";
 
 const Redlining = React.forwardRef(
@@ -287,7 +291,13 @@ const Redlining = React.forwardRef(
             setModalFor("redline");
             setModalTitle("Redline for Sign Off");
             setModalMessage([
-              "Are you sure want to create the redline PDF for ministry sign off?",<br /> ,<br />,<span>When you create the redline PDF, your web browser page will automatically refresh</span>
+              "Are you sure want to create the redline PDF for ministry sign off?",
+              <br />,
+              <br />,
+              <span>
+                When you create the redline PDF, your web browser page will
+                automatically refresh
+              </span>,
             ]);
             setModalButtonLabel("Create Redline PDF");
             setRedlineModalOpen(true);
@@ -1097,7 +1107,7 @@ const Redlining = React.forwardRef(
 
         let newDoc = await docInstance.Core.createDocument(
           file.s3url,
-          {loadAsPDF: true} /* , license key here */
+          { loadAsPDF: true } /* , license key here */
         );
         const pages = [];
         mappedDoc = { pageMappings: [] };
@@ -1236,8 +1246,11 @@ const Redlining = React.forwardRef(
             .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
             .map((s) => s.section)
             .join(", ");
-          if(redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25){
-            redactionSections="  ";
+          if (
+            redactionSectionsIds?.length == 1 &&
+            redactionSectionsIds[0] === 25
+          ) {
+            redactionSections = "  ";
           }
           childAnnotation.setContents(redactionSections);
           const displayedDoc =
@@ -1331,8 +1344,11 @@ const Redlining = React.forwardRef(
               .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
               .map((s) => s.section)
               .join(", ");
-            if(redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25){
-              redactionSections="  ";
+            if (
+              redactionSectionsIds?.length == 1 &&
+              redactionSectionsIds[0] === 25
+            ) {
+              redactionSections = "  ";
             }
             childAnnotation.setContents(redactionSections);
             const displayedDoc =
@@ -1391,9 +1407,10 @@ const Redlining = React.forwardRef(
             );
             setSelectedSections([]);
             if (redactionSectionsIds.length > 0) {
-
               redactionObj.names?.forEach((name) => {
-                const info = redactionInfo.find((r) => r.annotationname === name);
+                const info = redactionInfo.find(
+                  (r) => r.annotationname === name
+                );
                 if (info) {
                   info.sections.ids = redactionSectionsIds;
                 }
@@ -1435,8 +1452,8 @@ const Redlining = React.forwardRef(
           let redactionSectionsString = redactionSections
             .map((s) => s.section)
             .join(", ");
-          if(selectedSections?.length == 1 && selectedSections[0] === 25){
-            redactionSectionsString="  ";
+          if (selectedSections?.length == 1 && selectedSections[0] === 25) {
+            redactionSectionsString = "  ";
           }
           annot.setAutoSizeType("auto");
           annot.setContents(redactionSectionsString);
@@ -1476,17 +1493,24 @@ const Redlining = React.forwardRef(
             }
           }
           sectionAnnotations.push(annot);
-          for(let redactObj of redactionObj.names){
-            let annotAdded=redactionInfo?.find(redaction => redaction.annotationname == redactObj);
-            let sectionAdded=redactionInfo?.find(redaction => redaction.sections.annotationname == annot.Id);
-            if(!sectionAdded && !annotAdded){
+          for (let redactObj of redactionObj.names) {
+            let annotAdded = redactionInfo?.find(
+              (redaction) => redaction.annotationname == redactObj
+            );
+            let sectionAdded = redactionInfo?.find(
+              (redaction) => redaction.sections.annotationname == annot.Id
+            );
+            if (!sectionAdded && !annotAdded) {
               redactionInfo.push({
                 annotationname: redactObj,
-                sections: { annotationname: annot.Id, ids: redactionSectionsIds },
+                sections: {
+                  annotationname: annot.Id,
+                  ids: redactionSectionsIds,
+                },
               });
             }
           }
-          
+
           for (let section of redactionSections) {
             section.count++;
           }
@@ -1583,7 +1607,9 @@ const Redlining = React.forwardRef(
       if (editAnnot) {
         setSelectedSections(
           redactionInfo
-            .find((redaction) => redaction.annotationname === editAnnot.names[0])
+            .find(
+              (redaction) => redaction.annotationname === editAnnot.names[0]
+            )
             .sections?.ids?.map((id) => id)
         );
         setModalOpen(true);
@@ -1654,7 +1680,8 @@ const Redlining = React.forwardRef(
     const saveDefaultSections = () => {
       setModalOpen(false);
       setDefaultSections(selectedSections);
-      if (editAnnot || editRedacts) { // saving default sections for new redaction will be handled by the useEffect below
+      if (editAnnot || editRedacts) {
+        // saving default sections for new redaction will be handled by the useEffect below
         saveRedaction();
       }
     };
@@ -1785,11 +1812,11 @@ const Redlining = React.forwardRef(
         zipDocObj.files = [...zipDocObj.files, ...divIncompatableFiles];
       }
       zipServiceMessage.attributes.push(zipDocObj);
-      
+
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
-        triggerDownloadRedlines(zipServiceMessage, (error) => {          
+        triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
-          window.location.reload()
+          window.location.reload();
         });
       }
       return zipServiceMessage;
@@ -1825,6 +1852,7 @@ const Redlining = React.forwardRef(
         let divDocList = documentList.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
+        divDocList = sortByLastModified(divDocList);
         let incompatableList = incompatibleFiles.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
@@ -2027,8 +2055,7 @@ const Redlining = React.forwardRef(
                             divisionCountForToast,
                             zipServiceMessage,
                             stitchedDocPath
-                          );                         
-                          
+                          );
                         },
                         (_err) => {
                           console.log(_err);
@@ -2375,7 +2402,9 @@ const Redlining = React.forwardRef(
               </button>
             ) : (
               <button
-                className={`btn-bottom btn-cancel ${saveDisabled && 'btn-disabled'}`}
+                className={`btn-bottom btn-cancel ${
+                  saveDisabled && "btn-disabled"
+                }`}
                 onClick={saveDefaultSections}
                 disabled={saveDisabled}
               >
