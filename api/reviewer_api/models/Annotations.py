@@ -175,19 +175,11 @@ class Annotation(db.Model):
     @classmethod
     def saveannotations(cls, annots, redactionlayerid, userinfo)-> DefaultMethodResult:
         begin, size, limit = getbatchconfig()
-        print(begin)
-        print(size)
-        print(limit)
-        print(len(annots))
-        print(annots)
         if len(annots) > 0 and len(annots) < begin:
-            print('chunk processing')
             return cls.__chunksaveannotations(annots, redactionlayerid, userinfo)
         elif len(annots) >= begin and len(annots) <= limit:
-            print('bulk processing')
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
-            print('invalid')
             return DefaultMethodResult(False, 'Invalid Annotation Request',  -1)
 
     @classmethod
@@ -226,8 +218,6 @@ class Annotation(db.Model):
     @classmethod
     def __saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         annotkey = cls.__getannotationkey(annot["name"])
-        print(annot["name"])
-        print(annotkey)
         if annotkey is None:
             return cls.__newannotation(annot, redactionlayerid, userinfo)
         else:
