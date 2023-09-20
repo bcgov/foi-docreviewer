@@ -2198,33 +2198,31 @@ const Redlining = React.forwardRef(
                 });
               }
             }
-          });
 
-          // remove duplicate and not responsive pages
-          let pagesToRemove = [];
-          for (const infoForEachDoc of pageFlags) {
-            for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-              // pageflag duplicate or not responsive
-              if (
-                pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
-                pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemove.push(
-                  getStitchedPageNoFromOriginal(
-                    infoForEachDoc.documentid,
-                    pageFlagsForEachDoc.page,
-                    pageMappedDocs
-                  )
-                );
+            // remove duplicate and not responsive pages
+            let pagesToRemove = [];
+            for (const infoForEachDoc of pageFlags) {
+              for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+                // pageflag duplicate or not responsive
+                if (
+                  pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
+                  pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
+                ) {
+                  pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      infoForEachDoc.documentid,
+                      pageFlagsForEachDoc.page,
+                      pageMappedDocs
+                    )
+                  );
+                }
               }
             }
-          }
-          const doc = documentViewer.getDocument();
-          await doc.removePages(pagesToRemove);
+            let doc = documentViewer.getDocument();
+            let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
+            await doc.removePages(pagesToRemove);
 
-          //apply redaction and save to s3
-          annotationManager.applyRedactions().then(async (results) => {
-            const doc = documentViewer.getDocument();
+            //apply redaction and save to s3
 
             doc
               .getFileData({
