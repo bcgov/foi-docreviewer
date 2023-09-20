@@ -772,6 +772,8 @@ const Redlining = React.forwardRef(
                     ];
                   individualPageNo = displayedDoc.page;
                   if (annotations[i]?.type === "fullPage") {
+                    annotations[i].NoResize = true;
+                    annotations[i].NoMove = true;
                     pageSelectionList.push({
                       page: Number(individualPageNo),
                       flagid: pageFlagTypes["Withheld in Full"],
@@ -1030,6 +1032,8 @@ const Redlining = React.forwardRef(
             Author: user?.name || user?.preferred_username || "",
           });
           annot.type = "fullPage";
+          annot.NoResize = true;
+          annot.NoMove = true;
           annot.setCustomData("trn-redaction-type", "fullPage");
           newAnnots.push(annot);
         }
@@ -1181,6 +1185,8 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             if (_annotation.type === "fullPage") {
+              _annotation.NoResize = true;
+              _annotation.NoMove = true;
               annotManager.bringToBack(_annotation);
             }
           }
@@ -1324,6 +1330,7 @@ const Redlining = React.forwardRef(
       let astr = parser.parseFromString(redactionObj.astr);
 
       if (editAnnot || _resizeAnnot?.type === "redact") {
+        console.log("_resizeAnnot:",_resizeAnnot);
         let childAnnotation;
         let childSection = "";
         let i = redactionInfo?.findIndex(
@@ -1423,6 +1430,7 @@ const Redlining = React.forwardRef(
           });
         }
       } else {
+        console.log("_resizeAnnot!!!:",_resizeAnnot);
         var pageFlagSelections = pageSelections;
         if (
           (defaultSections.length > 0 && defaultSections[0] === 25) ||
@@ -1470,6 +1478,8 @@ const Redlining = React.forwardRef(
           const pageRotation = doc.getPageRotation(annot.PageNumber);
           annot.fitText(pageInfo, pageMatrix, pageRotation);
           if (redaction.type == "fullPage") {
+            annot.NoResize = true;
+            annot.NoMove = true;
             annot.setCustomData("trn-redaction-type", "fullPage");
             let txt = new DOMParser().parseFromString(
               node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
@@ -2097,7 +2107,6 @@ const Redlining = React.forwardRef(
           saveResponsePackage(docViewer, annotManager);
           break;
         default:
-        // console.log("123");
       }
     };
 
@@ -2132,7 +2141,6 @@ const Redlining = React.forwardRef(
 
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
-      // console.log("divisions: ", divisions);
 
       let zipServiceMessage = {
         ministryrequestid: requestid,
@@ -2182,11 +2190,9 @@ const Redlining = React.forwardRef(
                 }
               }
             }
-            // console.log("stamps: ", sectionStamps);
 
             // add section stamps to redactions as overlay text
             let annotList = annotationManager.getAnnotationsList();
-            // console.log("annot list: ", annotList);
             toast.update(toastID, {
               render: "Saving section stamps...",
               isLoading: true,
