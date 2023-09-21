@@ -155,7 +155,15 @@ const DocumentSelector = ({
             })?.length;
             totalFilteredPages += documentSpecificCount;
         });
-        return filterFlags.length > 0 ? totalFilteredPages : totalPageCount;
+        let unflagged = 0;
+        if (filterFlags.length > 0 && filterFlags.includes(0)) {
+            filesForDisplay?.forEach((file: any) => {
+                let flagedpages = file.pageFlag ? file.pageFlag.length : 0;
+                unflagged += file.pagecount - flagedpages;
+            });
+
+        }
+        return filterFlags.length > 0 ? totalFilteredPages + unflagged : totalPageCount;
     }
 
 
@@ -329,13 +337,10 @@ const DocumentSelector = ({
                 ));
 
             }
-
             else
-                 setFilesForDisplay(filteredFiles.filter((file: any) =>
-                    file.pageFlag?.find((obj: any) => (obj.flagid != 4 && filters.includes(obj.flagid)))));
-                if (filters.includes(0)) {
-                    setFilesForDisplay(filteredFiles);
-                }
+                 setFilesForDisplay(filteredFiles.filter((file: any) =>  ((filters.includes(0) && (typeof file.pageFlag === "undefined" || file.pageFlag?.length == 0 || file.pagecount != file.pageFlag?.length))
+                              || (file.pageFlag?.find((obj: any) => ((obj.flagid != 4 && filters.includes(obj.flagid))))))
+                    ));
         }
         else
             setFilesForDisplay(filteredFiles);
