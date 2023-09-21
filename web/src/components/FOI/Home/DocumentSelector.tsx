@@ -16,7 +16,7 @@ import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/ser
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass, faAngleDown
+    faCircleStop, faCircleXmark, faBookmark, faMagnifyingGlass, faAngleDown, faCircleExclamation
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -112,7 +112,7 @@ const DocumentSelector = ({
 
     const setPageData = (data: any) => {
         setConsultMinistries(data.find((flag: any) => flag.name === 'Consult').programareas);
-        setPageFlagList(data);
+        setPageFlagList(data);        
     }
 
     const updateCompletionCounter = () => {
@@ -212,7 +212,7 @@ const DocumentSelector = ({
                 return faSpinner;
             case 8:
             case "Page Left Off":
-                return faBookmark;
+                return faBookmark;                
             default:
                 return null;
         }
@@ -309,6 +309,11 @@ const DocumentSelector = ({
         return false;
     }
 
+    const isUnflagged = (pageflags: Array<any>, pageNo: number) => {
+        const isFound = pageflags?.some(pageflag => pageflag.page == pageNo)
+        return !isFound;
+        }
+
     const filterFiles = (filters: Array<number>, consulteeFilters: Array<number>) => {
         if (filters?.length > 0) {
             if (consulteeFilters.length > 0) {
@@ -326,8 +331,11 @@ const DocumentSelector = ({
             }
 
             else
-                setFilesForDisplay(filteredFiles.filter((file: any) =>
+                 setFilesForDisplay(filteredFiles.filter((file: any) =>
                     file.pageFlag?.find((obj: any) => (obj.flagid != 4 && filters.includes(obj.flagid)))));
+                if (filters.includes(0)) {
+                    setFilesForDisplay(filteredFiles);
+                }
         }
         else
             setFilesForDisplay(filteredFiles);
@@ -422,7 +430,6 @@ const DocumentSelector = ({
                     .map((value: any) => JSON.stringify({ id: value, code: codeById[value] || value }))
             )).map((strObject: any) => JSON.parse(strObject));
             
-            console.log(namedConsultValues);
             setOpenConsulteeModal(true);
             setAssignedConsulteeList(namedConsultValues);
             setAnchorEl(e.currentTarget);
@@ -577,8 +584,16 @@ const DocumentSelector = ({
                                             onClick={(event) => applyFilter(item.pageflagid, null, event, [])} id={item.pageflagid}
                                             icon={assignIcon(item.pageflagid) as IconProp} size='1x' />
                                     }
+                                    
                                 </>
                             )}
+
+                            < >
+                            <FontAwesomeIcon key='0' title='No Flag'
+                                            className='filterIcons'
+                                            onClick={(event) => applyFilter(0, null, event, [])} id='0'
+                                            icon={faCircleExclamation as IconProp} size='1x' />
+                            </>
                         </span>
 
                         <Popover
@@ -749,12 +764,22 @@ const DocumentSelector = ({
                                                             </>
                                                         ) :
                                                         (
-                                                            (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) &&
+                                                            (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
+                                                            (
                                                             <>
                                                                 <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                             </>
+                                                            )
+                                                            :
+                                                            (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
+                                                            (
+                                                            <>                                                 
+                                                            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                                                            </>
+                                                            )
                                                         )
                                                     )
                                                     :
@@ -762,7 +787,7 @@ const DocumentSelector = ({
                                                         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                                                             title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                        :
+                                                        :                                                    
                                                         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                                                             onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                                                     )
