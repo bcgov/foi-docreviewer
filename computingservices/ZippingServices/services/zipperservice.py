@@ -93,6 +93,9 @@ def sendnotification(readyfornotification, producermessage):
 
 def __getdocumentbytearray(file, s3credentials):
     try:
+        print("__getdocumentbytearray")
+        print(file)
+        print(s3credentials)
         return gets3documentbytearray(file, s3credentials)
     except Exception as error:
         logging.error(error)
@@ -109,11 +112,15 @@ def __zipfilesandupload(_message, s3credentials):
                 _jsonfiles = json.loads(_message.filestozip)
                 for fileobj in _jsonfiles:
                     filename = fileobj["filename"]
+                    print("filename = ", filename)
                     zip.writestr(
                         filename, __getdocumentbytearray(fileobj, s3credentials)
                     )
+                    print("***** zip.writestr *****")
             tp.seek(0)
+            print("before tp.read()")
             zipped_bytes = tp.read()
+            print("after tp.read()")
 
             filepath = __getzipfilepath(_message.category, _message.requestnumber)
             logging.info("zipfilename = %s", filepath)
@@ -134,6 +141,9 @@ def __zipfilesandupload(_message, s3credentials):
 
 
 def __getzipfilepath(category, filename):
+    print("inside __getzipfilepath")
+    print("category = ", category)
+    print("filename = ", filename)
     return (
         category.capitalize() + "/" + filename + ".zip"
         if category is not None
