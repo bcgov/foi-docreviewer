@@ -113,6 +113,8 @@ def __zipfilesandupload(_message, s3credentials):
                 for fileobj in _jsonfiles:
                     filename = fileobj["filename"]
                     print("filename = ", filename)
+                    docarray = __getdocumentbytearray(fileobj, s3credentials)
+                    print("after __getdocumentbytearray")
                     zip.writestr(
                         filename, __getdocumentbytearray(fileobj, s3credentials)
                     )
