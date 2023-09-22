@@ -37,8 +37,6 @@ def gets3documentbytearray(file, s3credentials):
         try:
             s3_access_key_id= s3credentials.s3accesskey
             s3_secret_access_key= s3credentials.s3secretkey
-            print("s3_access_key_id = ",s3_access_key_id)
-            print("s3_secret_access_key = ",s3_secret_access_key)
             auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
                             aws_secret_access_key=s3_secret_access_key,
                             aws_host=s3_host,
