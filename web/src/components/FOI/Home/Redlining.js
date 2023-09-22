@@ -1281,6 +1281,9 @@ const Redlining = React.forwardRef(
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+        var rect = childAnnotation.getRect();
+        rect.x2 = Math.ceil(rect.x2);
+        childAnnotation.setRect(rect);
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
       }
@@ -1388,6 +1391,9 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(pageNumber);
           const pageRotation = doc.getPageRotation(pageNumber);
           childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+          var rect = childAnnotation.getRect();
+          rect.x2 = Math.ceil(rect.x2);
+          childAnnotation.setRect(rect);
 
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
@@ -1463,7 +1469,6 @@ const Redlining = React.forwardRef(
           if (selectedSections?.length == 1 && selectedSections[0] === 25) {
             redactionSectionsString = "  ";
           }
-          annot.setAutoSizeType("auto");
           annot.setContents(redactionSectionsString);
           annot.setCustomData("parentRedaction", redaction.Id);
           annot.setCustomData(
@@ -1477,6 +1482,9 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
           annot.fitText(pageInfo, pageMatrix, pageRotation);
+          var rect = annot.getRect();
+          rect.x2 = Math.ceil(rect.x2);
+          annot.setRect(rect);
           if (redaction.type == "fullPage") {
             annot.setCustomData("trn-redaction-type", "fullPage");
             let txt = new DOMParser().parseFromString(
