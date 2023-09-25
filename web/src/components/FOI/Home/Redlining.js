@@ -1345,7 +1345,6 @@ const Redlining = React.forwardRef(
       let astr = parser.parseFromString(redactionObj.astr);
 
       if (editAnnot || _resizeAnnot?.type === "redact") {
-        console.log("_resizeAnnot:",_resizeAnnot);
         let childAnnotation;
         let childSection = "";
         let i = redactionInfo?.findIndex(
