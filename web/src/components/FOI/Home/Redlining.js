@@ -781,7 +781,6 @@ const Redlining = React.forwardRef(
                   individualPageNo = displayedDoc.page;
                   if (annotations[i]?.type === "fullPage") {
                     annotations[i].NoResize = true;
-                    annotations[i].NoMove = true;
                     pageSelectionList.push({
                       page: Number(individualPageNo),
                       flagid: pageFlagTypes["Withheld in Full"],
