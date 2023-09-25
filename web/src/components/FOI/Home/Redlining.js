@@ -780,6 +780,7 @@ const Redlining = React.forwardRef(
                     ];
                   individualPageNo = displayedDoc.page;
                   if (annotations[i]?.type === "fullPage") {
+                    annotations[i].NoResize = true;
                     pageSelectionList.push({
                       page: Number(individualPageNo),
                       flagid: pageFlagTypes["Withheld in Full"],
@@ -821,6 +822,7 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                     });
                   }
+                  annotations[i].NoMove = true;
                   annotations[i].setCustomData("docid", displayedDoc.docid);
                   annotations[i].setCustomData(
                     "docversion",
@@ -855,6 +857,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
                   );
+                  annot.NoMove = true;
                 }
 
                 let astr =
@@ -964,6 +967,7 @@ const Redlining = React.forwardRef(
               }
             }
           });
+          docInstance.Core.Annotations.NoMove=true;
           setAnnots(docInstance.Core.Annotations);
         }
       },
@@ -1038,6 +1042,8 @@ const Redlining = React.forwardRef(
             Author: user?.name || user?.preferred_username || "",
           });
           annot.type = "fullPage";
+          annot.NoResize = true;
+          annot.NoMove = true;
           annot.setCustomData("trn-redaction-type", "fullPage");
           newAnnots.push(annot);
         }
@@ -1186,9 +1192,12 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
+          _annotation.NoMove = true;
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            
             if (_annotation.type === "fullPage") {
+              _annotation.NoResize = true;
               annotManager.bringToBack(_annotation);
             }
           }
@@ -1346,6 +1355,7 @@ const Redlining = React.forwardRef(
         }
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let redaction = annotManager.getAnnotationById(node.attributes.name);
+          redaction.NoMove = true;
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
@@ -1391,10 +1401,10 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(pageNumber);
           const pageRotation = doc.getPageRotation(pageNumber);
           childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-          var rect = childAnnotation.getRect();
+          childAnnotation.NoMove = true;
+          let rect = childAnnotation.getRect();
           rect.x2 = Math.ceil(rect.x2);
           childAnnotation.setRect(rect);
-
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
             annotationList: [childAnnotation],
@@ -1481,11 +1491,13 @@ const Redlining = React.forwardRef(
           const pageInfo = doc.getPageInfo(annot.PageNumber);
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
+          annot.NoMove = true;
           annot.fitText(pageInfo, pageMatrix, pageRotation);
           var rect = annot.getRect();
           rect.x2 = Math.ceil(rect.x2);
           annot.setRect(rect);
           if (redaction.type == "fullPage") {
+            annot.NoResize = true;
             annot.setCustomData("trn-redaction-type", "fullPage");
             let txt = new DOMParser().parseFromString(
               node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
@@ -2113,7 +2125,6 @@ const Redlining = React.forwardRef(
           saveResponsePackage(docViewer, annotManager);
           break;
         default:
-        // console.log("123");
       }
     };
 
@@ -2148,7 +2159,6 @@ const Redlining = React.forwardRef(
 
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
-      // console.log("divisions: ", divisions);
 
       let zipServiceMessage = {
         ministryrequestid: requestid,
@@ -2198,11 +2208,9 @@ const Redlining = React.forwardRef(
                 }
               }
             }
-            // console.log("stamps: ", sectionStamps);
 
             // add section stamps to redactions as overlay text
             let annotList = annotationManager.getAnnotationsList();
-            // console.log("annot list: ", annotList);
             toast.update(toastID, {
               render: "Saving section stamps...",
               isLoading: true,
