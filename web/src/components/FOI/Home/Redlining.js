@@ -815,6 +815,7 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                     });
                   }
+                  annotations[i].NoMove = true;
                   annotations[i].setCustomData("docid", displayedDoc.docid);
                   annotations[i].setCustomData(
                     "docversion",
@@ -849,6 +850,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
                   );
+                  annot.NoMove = true;
                 }
 
                 let astr =
@@ -958,6 +960,7 @@ const Redlining = React.forwardRef(
               }
             }
           });
+          docInstance.Core.Annotations.NoMove=true;
           setAnnots(docInstance.Core.Annotations);
         }
       },
@@ -1182,11 +1185,12 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
+          _annotation.NoMove = true;
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
-              _annotation.NoMove = true;
               annotManager.bringToBack(_annotation);
             }
           }
@@ -1342,6 +1346,7 @@ const Redlining = React.forwardRef(
         }
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let redaction = annotManager.getAnnotationById(node.attributes.name);
+          redaction.NoMove = true;
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
@@ -1387,6 +1392,7 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(pageNumber);
           const pageRotation = doc.getPageRotation(pageNumber);
           childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+          childAnnotation.NoMove = true;
 
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
@@ -1476,10 +1482,10 @@ const Redlining = React.forwardRef(
           const pageInfo = doc.getPageInfo(annot.PageNumber);
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
+          annot.NoMove = true;
           annot.fitText(pageInfo, pageMatrix, pageRotation);
           if (redaction.type == "fullPage") {
             annot.NoResize = true;
-            annot.NoMove = true;
             annot.setCustomData("trn-redaction-type", "fullPage");
             let txt = new DOMParser().parseFromString(
               node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
