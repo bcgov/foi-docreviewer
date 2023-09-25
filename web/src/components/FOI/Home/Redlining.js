@@ -1447,7 +1447,6 @@ const Redlining = React.forwardRef(
           });
         }
       } else {
-        console.log("_resizeAnnot!!!:",_resizeAnnot);
         var pageFlagSelections = pageSelections;
         if (
           (defaultSections.length > 0 && defaultSections[0] === 25) ||
