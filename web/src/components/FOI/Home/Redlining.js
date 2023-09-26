@@ -192,16 +192,6 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    const disableMultiSelectEdit = (_selectedAnnotations) => {
-      if (_selectedAnnotations && _selectedAnnotations.length > 0) {
-        return _selectedAnnotations.some(
-          (obj) =>
-            obj.Subject !== "Redact" && obj.getCustomData("sections") === ""
-        );
-      }
-      return true;
-    };
-
     // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
