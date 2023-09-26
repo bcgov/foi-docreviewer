@@ -37,7 +37,7 @@ const DocumentSelector = ({
     setIndividualDoc,
     pageMappedDocs
 }: any) => {
-
+    const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const [files, setFiles] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
@@ -72,6 +72,13 @@ const DocumentSelector = ({
             (error: any) => console.log(error)
         );
     }, []);
+
+    useEffect(() => {
+        console.log("requestInfo", requestInfo);
+        if(requestInfo.requesttype == "personal" && ["MSD", "MCF"].includes(requestInfo.bcgovcode)) {
+            setOrganizeBy("division");
+        }
+    }, [requestInfo]);
 
     useEffect(() => {
         setPageFlagChanged(false);

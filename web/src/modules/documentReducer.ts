@@ -17,6 +17,8 @@ const documents = (state = initialState, action:any)=> {
       return {...state, documentList: action.payload};
     case ACTION_CONSTANTS.SET_KEYWORDS:
         return {...state, keywords: action.payload};
+    case ACTION_CONSTANTS.SET_REQUEST_INFO:
+        return {...state, requestinfo: action.payload};
     default:
       return state;
   }
