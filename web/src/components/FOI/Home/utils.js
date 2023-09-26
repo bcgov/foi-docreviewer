@@ -71,3 +71,27 @@ export const getProgramAreas = (pageFlagList) => {
 
 // Helper function to sort files by lastmodified date
 export const sortByLastModified = (files) => files.sort(docSorting);
+
+export const getValidSections = (sections, redactionSectionsIds) => {
+  return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);
+};
+
+export const getSections = (sections, redactionSectionsIds) => {
+  return getValidSections(sections, redactionSectionsIds).map((s) => ({
+    id: s.id,
+    section: s.section,
+  }));
+};
+
+export const createRedactionSectionsString = (
+  sections,
+  redactionSectionsIds
+) => {
+  let redactionSections = getValidSections(sections, redactionSectionsIds)
+    .map((s) => s.section)
+    .join(", ");
+  if (redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25) {
+    redactionSections = "  ";
+  }
+  return redactionSections;
+};

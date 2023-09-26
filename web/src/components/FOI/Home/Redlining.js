@@ -51,6 +51,9 @@ import {
   getStitchedPageNoFromOriginal,
   createPageFlagPayload,
   sortByLastModified,
+  createRedactionSectionsString,
+  getSections,
+  getValidSections,
 } from "./utils";
 import _ from "lodash";
 
@@ -119,10 +122,8 @@ const Redlining = React.forwardRef(
 
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
-    const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
-      []
-    );
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
+    const [enableMultiSelect, setEnableMultiSelect] = useState(false);
 
     //xml parser
     const parser = new XMLParser();
@@ -188,15 +189,21 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    //START: Bulk Edit using Multi Select Option
-    const MultiSelectEdit = () => {
-      let _selectedAnnotations = multiSelectedAnnotations;
-      const disableEdit =
-        _selectedAnnotations.length === 0 ||
-        _selectedAnnotations?.some(
+    const disableMultiSelectEdit = (_selectedAnnotations) => {
+      if (_selectedAnnotations && _selectedAnnotations.length > 0) {
+        return _selectedAnnotations.some(
           (obj) =>
             obj.Subject !== "Redact" && obj.getCustomData("sections") === ""
         );
+      }
+      return true;
+    };
+
+    //START: Bulk Edit using Multi Select Option
+    const MultiSelectEdit = () => {
+      let _selectedAnnotations =
+        docInstance?.Core?.annotationManager.getSelectedAnnotations();
+      const disableEdit = disableMultiSelectEdit(_selectedAnnotations);
       const _selectedRedactions = _selectedAnnotations?.filter(
         (obj) =>
           obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
@@ -500,7 +507,7 @@ const Redlining = React.forwardRef(
               multiDeleteButton?.addEventListener("click", function () {
                 root = null;
                 setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
+                setEnableMultiSelect(false);
               });
             }
 
@@ -510,7 +517,7 @@ const Redlining = React.forwardRef(
               closeButton?.addEventListener("click", function () {
                 root = null;
                 setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
+                setEnableMultiSelect(false);
               });
             }
 
@@ -524,7 +531,7 @@ const Redlining = React.forwardRef(
               if (isActive) {
                 root = null;
                 setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
+                setEnableMultiSelect(false);
               }
             });
 
@@ -551,31 +558,7 @@ const Redlining = React.forwardRef(
                     setMultiSelectFooter(root);
                   }
                   checkbox.addEventListener("click", function () {
-                    checkbox = listItem.querySelector('input[type="checkbox"]');
-                    const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
-                    // Check if the span element has the "ui__choice--checked" class
-                    const isChecked = spanWrapper.classList.contains(
-                      "ui__choice--checked"
-                    ); //actual scenario isChecked = true when you uncheck the checkbox
-                    const selectedIdString = checkbox.id?.split("_");
-                    if (selectedIdString.length > 0) {
-                      const annotationName = selectedIdString[1];
-                      const _annot =
-                        annotationManager.getAnnotationById(annotationName);
-                      setMultiSelectedAnnotations((prevSelectedAnnotations) => {
-                        const isExists = prevSelectedAnnotations.find(
-                          (_annotation) => _annotation.Id === annotationName
-                        );
-                        if (isExists === undefined && !isChecked) {
-                          return [...prevSelectedAnnotations, _annot];
-                        } else if (isExists && isChecked) {
-                          return prevSelectedAnnotations.filter(
-                            (_annotation) => _annotation.Id !== annotationName
-                          );
-                        }
-                        return prevSelectedAnnotations;
-                      });
-                    }
+                    setEnableMultiSelect(true);
                   });
                 }
               });
@@ -586,15 +569,6 @@ const Redlining = React.forwardRef(
         );
       });
     }, []);
-
-    //START: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
-    useEffect(() => {
-      if (multiSelectFooter) {
-        multiSelectFooter.render(<MultiSelectEdit />);
-      }
-    }, [multiSelectedAnnotations]);
-
-    //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
     useEffect(() => {
       const changeLayer = async () => {
@@ -970,25 +944,9 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       annotManager?.addEventListener("annotationSelected", (annotations) => {
-        //START - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
-        // get freetext annotations with redaction sections alone
-        const _selectedRedactions = annotations.filter(
-          (obj) =>
-            obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
-        );
-        let annotationName = _selectedRedactions[0]?.Id;
-        if (annotationName) {
-          setMultiSelectedAnnotations((prevSelectedAnnotations) => {
-            const isExists = prevSelectedAnnotations.find(
-              (_annotation) => _annotation.Id === annotationName
-            );
-            if (isExists === undefined) {
-              return [...prevSelectedAnnotations, _selectedRedactions[0]];
-            }
-            return prevSelectedAnnotations;
-          });
+        if (multiSelectFooter && enableMultiSelect) {
+          multiSelectFooter.render(<MultiSelectEdit />);
         }
-        //END - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
       });
 
       annotManager?.removeEventListener(
@@ -1011,6 +969,8 @@ const Redlining = React.forwardRef(
       newRedaction,
       pageSelections,
       redlineSaving,
+      multiSelectFooter,
+      enableMultiSelect,
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1242,26 +1202,16 @@ const Redlining = React.forwardRef(
         childAnnotation.Y = _redact.Y;
         childAnnotation.FontSize = _redact.FontSize;
         if (redactionSectionsIds.length > 0) {
-          let redactionSections = sections
-            .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-            .map((s) => s.section)
-            .join(", ");
-          if (
-            redactionSectionsIds?.length == 1 &&
-            redactionSectionsIds[0] === 25
-          ) {
-            redactionSections = "  ";
-          }
+          let redactionSections = createRedactionSectionsString(
+            sections,
+            redactionSectionsIds
+          );
           childAnnotation.setContents(redactionSections);
           const displayedDoc =
             pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
           childAnnotation.setCustomData(
             "sections",
-            JSON.stringify(
-              sections
-                .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-                .map((s) => ({ id: s.id, section: s.section }))
-            )
+            JSON.stringify(getSections(sections, redactionSectionsIds))
           );
           childAnnotation.setCustomData("docid", displayedDoc.docid);
           childAnnotation.setCustomData("docversion", displayedDoc.docversion);
@@ -1303,7 +1253,7 @@ const Redlining = React.forwardRef(
           });
         }
         setSelectedSections([]);
-        setMultiSelectedAnnotations([]);
+        setEnableMultiSelect(false);
         setEditRedacts(null);
       });
 
@@ -1340,16 +1290,10 @@ const Redlining = React.forwardRef(
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
           let redactionSectionsIds = selectedSections;
           if (redactionSectionsIds.length > 0) {
-            let redactionSections = sections
-              .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-              .map((s) => s.section)
-              .join(", ");
-            if (
-              redactionSectionsIds?.length == 1 &&
-              redactionSectionsIds[0] === 25
-            ) {
-              redactionSections = "  ";
-            }
+            let redactionSections = createRedactionSectionsString(
+              sections,
+              redactionSectionsIds
+            );
             childAnnotation.setContents(redactionSections);
             const displayedDoc =
               pageMappedDocs.stitchedPageLookup[
@@ -1357,11 +1301,7 @@ const Redlining = React.forwardRef(
               ];
             childAnnotation.setCustomData(
               "sections",
-              JSON.stringify(
-                sections
-                  .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-                  .map((s) => ({ id: s.id, section: s.section }))
-              )
+              JSON.stringify(getSections(sections, redactionSectionsIds))
             );
             childAnnotation.setCustomData("docid", displayedDoc.docid);
             childAnnotation.setCustomData(
@@ -1446,23 +1386,16 @@ const Redlining = React.forwardRef(
           annot.Author = user?.name || user?.preferred_username || "";
           let redactionSectionsIds =
             defaultSections.length > 0 ? defaultSections : selectedSections;
-          let redactionSections = sections.filter(
-            (s) => redactionSectionsIds.indexOf(s.id) > -1
+          let redactionSections = createRedactionSectionsString(
+            sections,
+            redactionSectionsIds
           );
-          let redactionSectionsString = redactionSections
-            .map((s) => s.section)
-            .join(", ");
-          if (selectedSections?.length == 1 && selectedSections[0] === 25) {
-            redactionSectionsString = "  ";
-          }
           annot.setAutoSizeType("auto");
-          annot.setContents(redactionSectionsString);
+          annot.setContents(redactionSections);
           annot.setCustomData("parentRedaction", redaction.Id);
           annot.setCustomData(
             "sections",
-            JSON.stringify(
-              redactionSections.map((s) => ({ id: s.id, section: s.section }))
-            )
+            JSON.stringify(getSections(sections, redactionSectionsIds))
           );
           const doc = docViewer.getDocument();
           const pageInfo = doc.getPageInfo(annot.PageNumber);
@@ -1511,7 +1444,10 @@ const Redlining = React.forwardRef(
             }
           }
 
-          for (let section of redactionSections) {
+          for (let section of getValidSections(
+            sections,
+            redactionSectionsIds
+          )) {
             section.count++;
           }
           //delete if there are existing fullpage redactions
