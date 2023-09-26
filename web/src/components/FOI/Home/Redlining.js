@@ -56,6 +56,7 @@ import {
   getSections,
   getValidSections,
 } from "./utils";
+import MultiSelectEdit from "./MultiSelectEdit";
 import _ from "lodash";
 
 const Redlining = React.forwardRef(
@@ -200,42 +201,6 @@ const Redlining = React.forwardRef(
       }
       return true;
     };
-
-    //START: Bulk Edit using Multi Select Option
-    const MultiSelectEdit = () => {
-      let _selectedAnnotations =
-        docInstance?.Core?.annotationManager.getSelectedAnnotations();
-      const disableEdit = disableMultiSelectEdit(_selectedAnnotations);
-      const _selectedRedactions = _selectedAnnotations?.filter(
-        (obj) =>
-          obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
-      );
-      return (
-        <button
-          type="button"
-          className="Button ActionButton"
-          style={disableEdit ? { cursor: "default" } : {}}
-          onClick={() => {
-            editRedactions(
-              docInstance?.Core?.annotationManager,
-              docInstance?.Core?.annotationManager.exportAnnotations({
-                annotationList: _selectedRedactions,
-                useDisplayAuthor: true,
-              })
-            );
-          }}
-          disabled={disableEdit}
-        >
-          <div
-            className="Icon"
-            style={disableEdit ? { color: "#868e9587" } : {}}
-          >
-            <EditLogo />
-          </div>
-        </button>
-      );
-    };
-    //END: Bulk Edit using Multi Select Option
 
     // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
@@ -960,7 +925,12 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       annotManager?.addEventListener("annotationSelected", (annotations) => {
         if (multiSelectFooter && enableMultiSelect) {
-          multiSelectFooter.render(<MultiSelectEdit />);
+          multiSelectFooter.render(
+            <MultiSelectEdit
+              docInstance={docInstance}
+              editRedactions={editRedactions}
+            />
+          );
         }
       });
 
