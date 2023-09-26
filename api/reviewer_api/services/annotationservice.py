@@ -37,6 +37,23 @@ class annotationservice:
             annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
         return annotationobj
     
+    def getrequestannotationspagination(self, ministryrequestid, mappedlayerids, page, size):
+        result = Annotation.get_request_annotations_pagination(ministryrequestid, mappedlayerids, page, size)
+        annotations = [] 
+        for item in result.items:
+            annotations.append({'pagenumber': item.pagenumber, 'annotation': item.annotation, 'documentid': item.documentid})
+        meta = {
+            'page': result.page,
+            'pages': result.pages,
+            'total': result.total,
+            'prev_num': result.prev_num,
+            'next_num': result.next_num,
+            'has_next': result.has_next,
+            'has_prev': result.has_prev,        
+        }
+
+        return {'data': annotations , 'meta': meta} 
+        
     def getrequestdivisionannotations(self, ministryrequestid, divisionid):
         annotations = Annotation.getrequestdivisionannotations(ministryrequestid, divisionid)
         annotationobj = {}

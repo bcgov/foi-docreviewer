@@ -7,6 +7,8 @@ from sqlalchemy.orm import relationship, backref, aliased
 import logging
 import json
 from reviewer_api.utils.util import split, getbatchconfig
+from .Documents import Document
+from .DocumentMaster import DocumentMaster
 
 class Annotation(db.Model):
     __tablename__ = 'Annotations'
@@ -71,6 +73,20 @@ class Annotation(db.Model):
             'updatedby': row['updatedby'],
             'updated_at': row['updated_at']
         } for row in rs]
+
+    @classmethod
+    def get_request_annotations_pagination(cls, ministryrequestid, mappedlayerids, page, size):
+        _deleted = DocumentMaster.getdeleted(ministryrequestid)
+        _session = db.session
+        _subquery_annotation = _session.query(Annotation.pagenumber, Annotation.annotation, Document.documentid).join(
+                                Document,
+                                and_(Annotation.documentid == Document.documentid, 
+                                     Document.documentmasterid.notin_(_deleted),
+                                     Document.foiministryrequestid == ministryrequestid)
+                                ).filter(Annotation.redactionlayerid.in_(mappedlayerids), Annotation.isactive == True).order_by(Document.documentid, Annotation.pagenumber, Annotation.annotationid)
+        result = _subquery_annotation.paginate(page=page, per_page=size)
+        return result
+        
 
     @classmethod
     def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
