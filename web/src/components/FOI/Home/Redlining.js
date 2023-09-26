@@ -56,7 +56,7 @@ import {
   getSections,
   getValidSections,
 } from "./utils";
-import MultiSelectEdit from "./MultiSelectEdit";
+import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
 
 const Redlining = React.forwardRef(
@@ -361,46 +361,12 @@ const Redlining = React.forwardRef(
             );
           });
 
-          const Edit = () => {
-            let _selectedAnnotations =
-              annotationManager.getSelectedAnnotations();
-            const disableEdit = _selectedAnnotations.some(
-              (obj) =>
-                obj.Subject !== "Redact" && obj.getCustomData("sections") === ""
-            );
-            const _selectedRedaction = _selectedAnnotations.filter(
-              (obj) => obj.Subject === "Redact"
-            );
-            return (
-              <button
-                type="button"
-                class="Button ActionButton"
-                style={disableEdit ? { cursor: "default" } : {}}
-                onClick={() => {
-                  editAnnotation(
-                    annotationManager,
-                    annotationManager.exportAnnotations({
-                      annotationList: _selectedRedaction,
-                      useDisplayAuthor: true,
-                    })
-                  );
-                }}
-                disabled={disableEdit}
-              >
-                <div
-                  class="Icon"
-                  style={disableEdit ? { color: "#868e9587" } : {}}
-                >
-                  <EditLogo />
-                </div>
-              </button>
-            );
-          };
-
           instance.UI.annotationPopup.add({
             type: "customElement",
             title: "Edit",
-            render: () => <Edit />,
+            render: () => (
+              <Edit instance={instance} editAnnotation={editAnnotation} />
+            ),
           });
           setDocInstance(instance);
 
