@@ -43,6 +43,7 @@ TRACER = Tracer.get_instance()
 
 s3host = os.getenv("OSS_S3_HOST")
 s3region = os.getenv("OSS_S3_REGION")
+webviewerlicense = os.getenv("PDFTRON_WEBVIEWER_LICENSE")
 
 imageextensions = [".png", ".jpg", ".jpeg", ".gif"]
 
@@ -254,5 +255,19 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             data["bcgovcode"] = formsbucket.split("-")[0]
 
             return json.dumps(data), 200
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500
+
+@cors_preflight("POST,OPTIONS")
+@API.route("/foiflow/webviewerlicense")
+class WebveiwerLicense(Resource):
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.hasusertype('iao')
+    def get():
+        try:
+            return json.dumps({"license": webviewerlicense}), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500

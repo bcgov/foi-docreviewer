@@ -76,9 +76,8 @@ def processmessage(message):
             isziping=False,
             status="error",
             finalmessage=message,
-            message=traceback.format_exc(),
+            message='Error while processing zipper message - ' + str(ex)
         )
-        raise
 
 
 def sendnotification(readyfornotification, producermessage):

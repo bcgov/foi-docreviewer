@@ -350,3 +350,23 @@ export const triggerDownloadFinalPackage = (
     errorCallback("Error in triggering download final package:",error);
   });
 };
+
+export const fetchPDFTronLicense = (
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_LICENSE}`;
+  let response = httpGETRequest(apiUrlPost, {}, UserService.getToken() ?? '')
+  response
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download final package");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download final package:",error);
+  });
+  return response;
+};
