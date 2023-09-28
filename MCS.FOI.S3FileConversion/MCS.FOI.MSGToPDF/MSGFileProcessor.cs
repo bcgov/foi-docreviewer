@@ -1,4 +1,5 @@
 ﻿using MsgReader.Outlook;
+using MsgReader;
 using Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
@@ -8,10 +9,13 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Syncfusion.DocIO;
+using System.Collections.Generic;
+using Syncfusion.Pdf.HtmlToPdf;
+using System.ComponentModel.DataAnnotations;
 
 namespace MCS.FOI.MSGToPDF
 {
-    public class MSGFileProcessor : IMSGFileProcessor , IDisposable
+    public class MSGFileProcessor : IMSGFileProcessor, IDisposable
     {
         public Stream SourceStream { get; set; }
         public bool IsSinglePDFOutput { get; set; }
@@ -40,7 +44,7 @@ namespace MCS.FOI.MSGToPDF
             output = new();
             attachmentsObj = new();
             try
-            {               
+            {
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
                     for (int attempt = 1; attempt <= FailureAttemptCount; attempt++)
@@ -48,13 +52,159 @@ namespace MCS.FOI.MSGToPDF
                         try
                         {
                             using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
+                            Dictionary<string, Boolean> fileNameHash = new();
+                            foreach (Object attachment in msg.Attachments)
+                            {
+                                attachmentStream = new();
+                                if (attachment.GetType().FullName.ToLower().Contains("message"))
+                                {
+                                    var _attachment = (Storage.Message)attachment;
+                                    var filename = _attachment.FileName;
+                                    var extension = Path.GetExtension(filename);
+                                    if (!string.IsNullOrEmpty(extension))
+                                    {
+                                        _attachment.Save(attachmentStream);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+
+                                        if (fileNameHash.ContainsKey(filename))
+                                        {
+
+                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        }
+                                        fileNameHash.Add(filename, true);
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    }
+                                }
+                                else
+                                {
+                                    var _attachment = (Storage.Attachment)attachment;
+                                    var filename = _attachment.FileName;
+                                    var extension = Path.GetExtension(filename);
+
+                                    if (!string.IsNullOrEmpty(extension))
+                                    {
+                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
+
+                                        if (fileNameHash.ContainsKey(filename))
+                                        {
+
+                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                        }
+                                        Console.WriteLine("attachmentname: " + _attachment.FileName);
+                                        Console.WriteLine("attachmentpos: " + _attachment.RenderingPosition);
+                                        Console.WriteLine("attachmentmime: " + _attachment.MimeType);
+                                        fileNameHash.Add(filename, true);
+                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
+                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                    }
+                                }
+                            }
+
+                            msg.CharsetDetectionEncodingConfidenceLevel = 0.7f;
                             if (msg.BodyRtf != null)
                             {
-                                byte[] byteArray = Encoding.ASCII.GetBytes(System.Net.WebUtility.HtmlDecode(msg.BodyRtf));
+                                //using var fs0 = new FileStream("C:\\folder\\log.txt", FileMode.Create, FileAccess.Write);
+                                var msgReader = new Reader();
+
+                                var inputStream = new MemoryStream();
+                                //SourceStream.CopyTo(inputStream);
+                                //List<MemoryStream> result = msgReader.ExtractToStream(inputStream, true);
+
+
+                                //using var htmlfs = new FileStream("C:\\folder\\test.txt", FileMode.Create, FileAccess.Write);
+                                //result[0].WriteTo(htmlfs);
+                                //string bin = BitConverter.ToString(((Storage.Attachment)msg.Attachments[0]).Data).Replace("-", string.Empty);
+                                //Console.WriteLine(bin);
+                                string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
+                                //var ms = new MemoryStream();
+                                //var success = false;
+                                //(ms, success) = ConvertHTMLtoPDF(body, ms);
+
+                                //using var fs1 = new FileStream("C:\\folder\\blinkconverted.pdf", FileMode.Create, FileAccess.Write);
+                                //using var fs2 = new FileStream("C:\\folder\\syncfusionconverted.pdf", FileMode.Create, FileAccess.Write);
+                                //using var fs3 = new FileStream("C:\\folder\\syncfusionconverted.docx", FileMode.Create, FileAccess.Write);
+                                //using var fs4 = new FileStream("C:\\folder\\test.txt", FileMode.Create, FileAccess.Write);
+                                //ms.WriteTo(fs1);
+                                var bodyreplaced = Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", "");
+                                const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
+                                const string imgString = "<img";
+                                bool htmlInline = bodyreplaced.Contains(imgString);
+                                bool rtfInline = bodyreplaced.Contains(rtfInlineObject);
+                                if (htmlInline || rtfInline)
+                                {
+                                    var inlineAttachments = new List<Storage.Attachment>();
+                                    foreach (Object attachment in msg.Attachments)
+                                    {
+                                        if (!attachment.GetType().FullName.ToLower().Contains("message"))
+                                        {
+                                            var _attachment = (Storage.Attachment)attachment;
+                                            if (htmlInline && !String.IsNullOrEmpty(_attachment.ContentId) && bodyreplaced.Contains(_attachment.ContentId))
+                                            {
+                                                inlineAttachments.Add(_attachment);
+                                                //attachmentStream = new();
+                                                //attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                                //attachmentsObj.Remove(attachmentStream);
+                                            }
+                                            else if (rtfInline)
+                                            {
+                                                inlineAttachments.Add(_attachment);
+                                                //attachmentStream = new();
+                                                //attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                                //attachmentsObj.Remove(attachmentStream); 
+                                            }
+                                        }
+                                    }
+                                    foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.RenderingPosition))
+                                    {
+                                        if (htmlInline)
+                                        {
+                                            var match = Regex.Match(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>");
+                                            var width = float.Parse(Regex.Match(match.Value, "(?<=width=\")\\d+").Value);
+                                            var height = float.Parse(Regex.Match(match.Value, "(?<=height=\")\\d+").Value);
+                                            const float maxSize = 750;
+                                            if (width > maxSize)
+                                            {
+                                                float scale = maxSize / width;
+                                                width = maxSize;
+                                                height = scale * height;
+                                            }
+                                            else if (height > maxSize)
+                                            {
+                                                float scale = maxSize / height;
+                                                height = maxSize;
+                                                width = scale * width;
+                                            }
+                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img width='" + width.ToString() + "' height ='" + height.ToString() + "' src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                        }
+                                        else if (rtfInline)
+                                        {
+                                            //using var fs5 = new FileStream("C:\\folder\\image.png", FileMode.Create, FileAccess.Write);
+                                            //fs5.Write(inlineAttachment.Data, 0, inlineAttachment.Data.Length);
+                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                            //var string1 = Convert.ToBase64String(inlineAttachment.Data);
+                                            //var string2 = BitConverter.ToString(inlineAttachment.Data).Replace("-", string.Empty);
+                                        }
+                                    }
+                                }
+
+
+                                byte[] byteArray = Encoding.ASCII.GetBytes(msg.BodyRtf);
                                 using (MemoryStream messageStream = new MemoryStream(byteArray))
                                 {
+                                    //messageStream.WriteTo(fs4);
                                     using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
                                     {
+                                        //rtfDoc.Save(fs3, FormatType.Docx);
                                         // Replace leading tabs, issue with syncfusion
                                         rtfDoc.ReplaceFirst = true;
                                         var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
@@ -138,7 +288,8 @@ namespace MCS.FOI.MSGToPDF
 
                                     }
                                 }
-                            } else
+                            }
+                            else
                             {
                                 WordDocument doc = GetEmailMetatdata(msg);
                                 doc.LastParagraph.AppendText("This email does not have a message body.");
@@ -154,66 +305,13 @@ namespace MCS.FOI.MSGToPDF
                                 }
                             }
 
-                            
+
 
                             //string htmlString = GenerateHtmlfromMsg(msg);
                             //bool isConverted;
                             //(output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
-                            Dictionary<string, Boolean> fileNameHash = new();
 
-                            foreach (Object attachment in msg.Attachments)
-                            {
-                                 attachmentStream = new();
-                                if (attachment.GetType().FullName.ToLower().Contains("message"))
-                                {
-                                    var _attachment = (Storage.Message)attachment;
-                                    var filename = _attachment.FileName;
-                                    var extension = Path.GetExtension(filename);
-                                    if (!string.IsNullOrEmpty(extension))
-                                    {
-                                        _attachment.Save(attachmentStream);
-                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
 
-                                        if (fileNameHash.ContainsKey(filename))
-                                        {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
-                                        }
-                                        fileNameHash.Add(filename, true);
-                                        attachmentInfo.Add("filename", _attachment.FileName);
-                                        attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
-                                    }
-                                }
-                                else
-                                {
-                                    var _attachment = (Storage.Attachment)attachment;
-                                    var filename = _attachment.FileName;
-                                    var extension = Path.GetExtension(filename);
-
-                                    if (!string.IsNullOrEmpty(extension))
-                                    {
-                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                        Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-
-                                        if (fileNameHash.ContainsKey(filename))
-                                        {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
-                                        }
-                                        fileNameHash.Add(filename, true);
-                                        attachmentInfo.Add("filename", _attachment.FileName);
-                                        attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
-                                        attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
-                                    }
-                                }
-                            }
                             break;
                         }
                         catch (Exception e)
@@ -345,7 +443,7 @@ namespace MCS.FOI.MSGToPDF
 
                 //Message body
                 string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
-              
+
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                 htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
                                     <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
@@ -371,10 +469,12 @@ namespace MCS.FOI.MSGToPDF
                 //Initialize HTML to PDF converter with Blink rendering engine
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
                 BlinkConverterSettings settings = new BlinkConverterSettings();
-                settings.EnableHyperLink = false;
+                settings.EnableHyperLink = true;
+                settings.SinglePageLayout = SinglePageLayout.FitHeight;
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                settings.Scale = 1.0F;
                 htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
@@ -382,7 +482,7 @@ namespace MCS.FOI.MSGToPDF
                 document.Save(output);
                 document.Close(true);
                 isConverted = true;
-                
+
             }
             catch (Exception ex)
             {
@@ -487,6 +587,15 @@ namespace MCS.FOI.MSGToPDF
             paragraph.AppendBreak(BreakType.LineBreak);
 
             return doc;
+        }
+
+        private static string ReplaceFirstOccurrence(string text, string search, string replace)
+        {
+            var index = text.IndexOf(search, StringComparison.Ordinal);
+            if (index < 0)
+                return text;
+
+            return text.Substring(0, index) + replace + text.Substring(index + search.Length);
         }
 
         protected virtual void Dispose(bool disposing)
