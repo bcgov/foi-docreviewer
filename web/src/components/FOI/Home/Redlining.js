@@ -618,14 +618,11 @@ const Redlining = React.forwardRef(
             let displayedDoc =
               pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
             let individualPageNo = displayedDoc.page;
-            annot.setCustomData(
-              "originalPageNo",
-              JSON.stringify(individualPageNo - 1)
-            );
+            annot.setCustomData("originalPageNo", `${individualPageNo - 1}`);
           });
           let _annotationtring =
             docInstance.Core.annotationManager.exportAnnotations({
-              annotList: annotations,
+              annotationList: annotations,
               useDisplayAuthor: true,
             });
           _annotationtring.then(async (astr) => {
@@ -707,11 +704,11 @@ const Redlining = React.forwardRef(
                     if (!!parentRedaction) {
                       annotations[i].setCustomData(
                         "existingId",
-                        parentRedaction?.Id
+                        `${parentRedaction?.Id}`
                       );
                       annotations[i].setCustomData(
                         "existingFreeTextId",
-                        _selectedAnnotations?.Id
+                        `${_selectedAnnotations?.Id}`
                       );
                     }
                   } else {
@@ -722,14 +719,17 @@ const Redlining = React.forwardRef(
                     });
                   }
                   annotations[i].NoMove = true;
-                  annotations[i].setCustomData("docid", displayedDoc.docid);
+                  annotations[i].setCustomData(
+                    "docid",
+                    `${displayedDoc.docid}`
+                  );
                   annotations[i].setCustomData(
                     "docversion",
-                    displayedDoc.docversion
+                    `${displayedDoc.docversion}`
                   );
                   annotations[i].setCustomData(
                     "redactionlayerid",
-                    currentLayer.redactionlayerid
+                    `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
                 });
@@ -737,7 +737,7 @@ const Redlining = React.forwardRef(
                 let annot = annots[0].children[0];
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
-                    annotList: annotations,
+                    annotationList: annotations,
                     useDisplayAuthor: true,
                   });
                 setNewRedaction({
@@ -750,18 +750,21 @@ const Redlining = React.forwardRef(
                 for (let annot of annotations) {
                   displayedDoc =
                     pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
-                  annot.setCustomData("docid", displayedDoc.docid);
-                  annot.setCustomData("docversion", displayedDoc.docversion);
+                  annot.setCustomData("docid", `${displayedDoc.docid}`);
+                  annot.setCustomData(
+                    "docversion",
+                    `${displayedDoc.docversion}`
+                  );
                   annot.setCustomData(
                     "redactionlayerid",
-                    currentLayer.redactionlayerid
+                    `${currentLayer.redactionlayerid}`
                   );
                   annot.NoMove = true;
                 }
 
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
-                    annotList: annotations,
+                    annotationList: annotations,
                     useDisplayAuthor: true,
                   });
 
@@ -1160,8 +1163,11 @@ const Redlining = React.forwardRef(
             "sections",
             JSON.stringify(getSections(sections, redactionSectionsIds))
           );
-          childAnnotation.setCustomData("docid", displayedDoc.docid);
-          childAnnotation.setCustomData("docversion", displayedDoc.docversion);
+          childAnnotation.setCustomData("docid", `${displayedDoc.docid}`);
+          childAnnotation.setCustomData(
+            "docversion",
+            `${displayedDoc.docversion}`
+          );
         }
         const doc = docViewer.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1254,10 +1260,10 @@ const Redlining = React.forwardRef(
               "sections",
               JSON.stringify(getSections(sections, redactionSectionsIds))
             );
-            childAnnotation.setCustomData("docid", displayedDoc.docid);
+            childAnnotation.setCustomData("docid", `${displayedDoc.docid}`);
             childAnnotation.setCustomData(
               "docversion",
-              displayedDoc.docversion
+              `${displayedDoc.docversion}`
             );
           }
           const doc = docViewer.getDocument();
@@ -1346,7 +1352,7 @@ const Redlining = React.forwardRef(
           );
           annot.setAutoSizeType("auto");
           annot.setContents(redactionSections);
-          annot.setCustomData("parentRedaction", redaction.Id);
+          annot.setCustomData("parentRedaction", `${redaction.Id}`);
           annot.setCustomData(
             "sections",
             JSON.stringify(getSections(sections, redactionSectionsIds))
@@ -1368,7 +1374,10 @@ const Redlining = React.forwardRef(
               "text/html"
             );
             let customData = JSON.parse(txt.documentElement.textContent);
-            annot.setCustomData("existingId", customData.existingFreeTextId);
+            annot.setCustomData(
+              "existingId",
+              `${customData.existingFreeTextId}`
+            );
             //Setting the existing annotationId in the new annotations for deleting
             //from backend.
             let existingFreeTextAnnot = annotManager.getAnnotationById(
@@ -1378,8 +1387,8 @@ const Redlining = React.forwardRef(
               customData.existingId
             );
             if (!!existingFreeTextAnnot && !!existingRedactAnnot) {
-              existingFreeTextAnnot.setCustomData("isDelete", true);
-              existingRedactAnnot.setCustomData("isDelete", true);
+              existingFreeTextAnnot.setCustomData("isDelete", `${true}`);
+              existingRedactAnnot.setCustomData("isDelete", `${true}`);
               annotationsToDelete.push(existingFreeTextAnnot);
               annotationsToDelete.push(existingRedactAnnot);
             }
@@ -1426,7 +1435,7 @@ const Redlining = React.forwardRef(
           annotationList.push(annotManager.getAnnotationById(name));
         }
         astr = await annotManager.exportAnnotations({
-          annotList: annotationList,
+          annotationList: annotationList,
           useDisplayAuthor: true,
         });
         saveAnnotation(
