@@ -33,6 +33,7 @@ import {
   fetchSections,
   fetchPageFlag,
   fetchKeywordsMasterData,
+  fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
 } from "../../../apiManager/services/docReviewerService";
@@ -51,7 +52,11 @@ import {
   getStitchedPageNoFromOriginal,
   createPageFlagPayload,
   sortByLastModified,
+  createRedactionSectionsString,
+  getSections,
+  getValidSections,
 } from "./utils";
+import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
 
 const Redlining = React.forwardRef(
@@ -69,6 +74,7 @@ const Redlining = React.forwardRef(
       incompatibleFiles,
       setIsStitchingLoaded,
       isStitchingLoaded,
+      licenseKey,
     },
     ref
   ) => {
@@ -119,10 +125,8 @@ const Redlining = React.forwardRef(
 
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
-    const [multiSelectedAnnotations, setMultiSelectedAnnotations] = useState(
-      []
-    );
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
+    const [enableMultiSelect, setEnableMultiSelect] = useState(false);
 
     //xml parser
     const parser = new XMLParser();
@@ -188,413 +192,315 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    //START: Bulk Edit using Multi Select Option
-    const MultiSelectEdit = () => {
-      let _selectedAnnotations = multiSelectedAnnotations;
-      const disableEdit =
-        _selectedAnnotations.length === 0 ||
-        _selectedAnnotations?.some(
-          (obj) =>
-            obj.Subject !== "Redact" && obj.getCustomData("sections") === ""
-        );
-      const _selectedRedactions = _selectedAnnotations?.filter(
-        (obj) =>
-          obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
-      );
-      return (
-        <button
-          type="button"
-          className="Button ActionButton"
-          style={disableEdit ? { cursor: "default" } : {}}
-          onClick={() => {
-            editRedactions(
-              docInstance?.Core?.annotationManager,
-              docInstance?.Core?.annotationManager.exportAnnotations({
-                annotationList: _selectedRedactions,
-                useDisplayAuthor: true,
-              })
-            );
-          }}
-          disabled={disableEdit}
-        >
-          <div
-            className="Icon"
-            style={disableEdit ? { color: "#868e9587" } : {}}
-          >
-            <EditLogo />
-          </div>
-        </button>
-      );
-    };
-    //END: Bulk Edit using Multi Select Option
-
     // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
-      let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-      fetchSections(requestid, (error) => console.log(error));
-      WebViewer(
-        {
-          licenseKey:
-            "demo:1694019284368:7c378469030000000022f8587aff41ce48e30ddc52ef03d29d5e661297",
-          path: "/webviewer",
-          preloadWorker: "pdf",
-          // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
-          initialDoc: currentDocumentS3Url,
-          fullAPI: true,
-          enableRedaction: true,
-          useDownloader: false,
-          css: "/stylesheets/webviewer.css",
-          loadAsPDF: true,
-        },
-        viewer.current
-      ).then((instance) => {
-        const {
-          documentViewer,
-          annotationManager,
-          Annotations,
-          PDFNet,
-          Search,
-          Math,
-          createDocument,
-        } = instance.Core;
-        instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
-        instance.UI.enableElements(["attachmentPanelButton"]);
-        documentViewer.setToolMode(
-          documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
+      let initializeWebViewer = async () => {
+        let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
+        fetchSections(requestid, (error) => console.log(error));
+        let response = await fetchPDFTronLicense(null, (error) =>
+          console.log(error)
         );
-        //customize header - insert a dropdown button
-        const document = instance.UI.iframeWindow.document;
-        setIframeDocument(document);
-        instance.UI.setHeaderItems((header) => {
-          const parent = documentViewer.getScrollViewElement().parentElement;
+        WebViewer(
+          {
+            licenseKey: response.data.license,
+            path: "/webviewer",
+            preloadWorker: "pdf",
+            // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
+            initialDoc: currentDocumentS3Url,
+            fullAPI: true,
+            enableRedaction: true,
+            useDownloader: false,
+            css: "/stylesheets/webviewer.css",
+            loadAsPDF: true,
+          },
+          viewer.current
+        ).then((instance) => {
+          const {
+            documentViewer,
+            annotationManager,
+            Annotations,
+            PDFNet,
+            Search,
+            Math,
+            createDocument,
+          } = instance.Core;
+          instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
+          instance.UI.enableElements(["attachmentPanelButton"]);
+          documentViewer.setToolMode(
+            documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
+          );
+          //customize header - insert a dropdown button
+          const document = instance.UI.iframeWindow.document;
+          setIframeDocument(document);
+          instance.UI.setHeaderItems((header) => {
+            const parent = documentViewer.getScrollViewElement().parentElement;
 
-          const menu = document.createElement("div");
-          menu.classList.add("Overlay");
-          menu.classList.add("FlyoutMenu");
-          menu.id = "saving_menu";
+            const menu = document.createElement("div");
+            menu.classList.add("Overlay");
+            menu.classList.add("FlyoutMenu");
+            menu.id = "saving_menu";
 
-          const redlineForSignOffBtn = document.createElement("button");
-          redlineForSignOffBtn.textContent = "Redline for Sign Off";
-          redlineForSignOffBtn.id = "redline_for_sign_off";
-          redlineForSignOffBtn.className = "redline_for_sign_off";
-          redlineForSignOffBtn.style.backgroundColor = "transparent";
-          redlineForSignOffBtn.style.border = "none";
-          redlineForSignOffBtn.style.padding = "8px 8px 8px 10px";
-          redlineForSignOffBtn.style.cursor = "pointer";
-          redlineForSignOffBtn.style.alignItems = "left";
-          redlineForSignOffBtn.disabled = !enableSavingRedline;
-          // redlineForSignOffBtn.style.color = '#069';
+            const redlineForSignOffBtn = document.createElement("button");
+            redlineForSignOffBtn.textContent = "Redline for Sign Off";
+            redlineForSignOffBtn.id = "redline_for_sign_off";
+            redlineForSignOffBtn.className = "redline_for_sign_off";
+            redlineForSignOffBtn.style.backgroundColor = "transparent";
+            redlineForSignOffBtn.style.border = "none";
+            redlineForSignOffBtn.style.padding = "8px 8px 8px 10px";
+            redlineForSignOffBtn.style.cursor = "pointer";
+            redlineForSignOffBtn.style.alignItems = "left";
+            redlineForSignOffBtn.disabled = !enableSavingRedline;
+            // redlineForSignOffBtn.style.color = '#069';
 
-          redlineForSignOffBtn.onclick = () => {
-            // Save to s3
-            setModalFor("redline");
-            setModalTitle("Redline for Sign Off");
-            setModalMessage([
-              "Are you sure want to create the redline PDF for ministry sign off?",
-              <br />,
-              <br />,
-              <span>
-                When you create the redline PDF, your web browser page will
-                automatically refresh
-              </span>,
-            ]);
-            setModalButtonLabel("Create Redline PDF");
-            setRedlineModalOpen(true);
-          };
-
-          menu.appendChild(redlineForSignOffBtn);
-
-          const finalPackageBtn = document.createElement("button");
-          finalPackageBtn.textContent = "Final Package for Applicant";
-          finalPackageBtn.id = "final_package";
-          finalPackageBtn.className = "final_package";
-          finalPackageBtn.style.backgroundColor = "transparent";
-          finalPackageBtn.style.border = "none";
-          finalPackageBtn.style.padding = "8px 8px 8px 10px";
-          finalPackageBtn.style.cursor = "pointer";
-          finalPackageBtn.style.alignItems = "left";
-          // finalPackageBtn.style.color = '#069';
-          finalPackageBtn.disabled = !enableSavingFinal;
-
-          finalPackageBtn.onclick = () => {
-            // Download
-            // console.log("Response Package for Application");
-            setModalFor("responsepackage");
-            setModalTitle("Create Package for Applicant");
-            setModalMessage([
-              "This should only be done when all redactions are finalized and ready to ",
-              <b>
-                <i>be</i>
-              </b>,
-              " sent to the ",
-              <b>
-                <i>Applicant</i>
-              </b>,
-              ". This will ",
-              <b>
-                <i>permanently</i>
-              </b>,
-              " apply the redactions and automatically create page stamps.",
-            ]);
-            setModalButtonLabel("Create Applicant Package");
-            setRedlineModalOpen(true);
-            // saveResponsePackage(documentViewer, annotationManager);
-          };
-
-          menu.appendChild(finalPackageBtn);
-
-          const renderCustomMenu = () => {
-            const menuBtn = document.createElement("button");
-            menuBtn.textContent = "Create Response PDF";
-            menuBtn.id = "create_response_pdf";
-
-            menu.style.right = "auto";
-            menu.style.top = "30px";
-            menu.style.minWidth = "200px";
-            menu.padding = "0px";
-            menu.style.display = "none";
-            parent.appendChild(menu);
-
-            menuBtn.onclick = async () => {
-              if (menu.style.display == "flex") {
-                menu.style.display = "none";
-              } else {
-                menu.style.left = `${
-                  document.body.clientWidth - (menuBtn.clientWidth + 96)
-                }px`;
-                menu.style.display = "flex";
-              }
+            redlineForSignOffBtn.onclick = () => {
+              // Save to s3
+              setModalFor("redline");
+              setModalTitle("Redline for Sign Off");
+              setModalMessage([
+                "Are you sure want to create the redline PDF for ministry sign off?",
+                <br />,
+                <br />,
+                <span>
+                  When you create the redline PDF, your web browser page will
+                  automatically refresh
+                </span>,
+              ]);
+              setModalButtonLabel("Create Redline PDF");
+              setRedlineModalOpen(true);
             };
 
-            return menuBtn;
-          };
+            menu.appendChild(redlineForSignOffBtn);
 
-          const newCustomElement = {
-            type: "customElement",
-            render: renderCustomMenu,
-          };
+            const finalPackageBtn = document.createElement("button");
+            finalPackageBtn.textContent = "Final Package for Applicant";
+            finalPackageBtn.id = "final_package";
+            finalPackageBtn.className = "final_package";
+            finalPackageBtn.style.backgroundColor = "transparent";
+            finalPackageBtn.style.border = "none";
+            finalPackageBtn.style.padding = "8px 8px 8px 10px";
+            finalPackageBtn.style.cursor = "pointer";
+            finalPackageBtn.style.alignItems = "left";
+            // finalPackageBtn.style.color = '#069';
+            finalPackageBtn.disabled = !enableSavingFinal;
 
-          // header.push(newCustomElement);
-          // insert dropdown button in front of search button
-          header.headers.default.splice(
-            header.headers.default.length - 3,
-            0,
-            newCustomElement
-          );
-        });
+            finalPackageBtn.onclick = () => {
+              // Download
+              // console.log("Response Package for Application");
+              setModalFor("responsepackage");
+              setModalTitle("Create Package for Applicant");
+              setModalMessage([
+                "This should only be done when all redactions are finalized and ready to ",
+                <b>
+                  <i>be</i>
+                </b>,
+                " sent to the ",
+                <b>
+                  <i>Applicant</i>
+                </b>,
+                ". This will ",
+                <b>
+                  <i>permanently</i>
+                </b>,
+                " apply the redactions and automatically create page stamps.",
+              ]);
+              setModalButtonLabel("Create Applicant Package");
+              setRedlineModalOpen(true);
+              // saveResponsePackage(documentViewer, annotationManager);
+            };
 
-        const Edit = () => {
-          let _selectedAnnotations = annotationManager.getSelectedAnnotations();
-          const disableEdit = _selectedAnnotations.some(
-            (obj) =>
-              obj.Subject !== "Redact" && obj.getCustomData("sections") === ""
-          );
-          const _selectedRedaction = _selectedAnnotations.filter(
-            (obj) => obj.Subject === "Redact"
-          );
-          return (
-            <button
-              type="button"
-              class="Button ActionButton"
-              style={disableEdit ? { cursor: "default" } : {}}
-              onClick={() => {
-                editAnnotation(
-                  annotationManager,
-                  annotationManager.exportAnnotations({
-                    annotationList: _selectedRedaction,
-                    useDisplayAuthor: true,
-                  })
-                );
-              }}
-              disabled={disableEdit}
-            >
-              <div
-                class="Icon"
-                style={disableEdit ? { color: "#868e9587" } : {}}
-              >
-                <EditLogo />
-              </div>
-            </button>
-          );
-        };
+            menu.appendChild(finalPackageBtn);
 
-        instance.UI.annotationPopup.add({
-          type: "customElement",
-          title: "Edit",
-          render: () => <Edit />,
-        });
-        setDocInstance(instance);
+            const renderCustomMenu = () => {
+              const menuBtn = document.createElement("button");
+              menuBtn.textContent = "Create Response PDF";
+              menuBtn.id = "create_response_pdf";
 
-        PDFNet.initialize();
-        documentViewer
-          .getTool(instance.Core.Tools.ToolNames.REDACTION)
-          .setStyles(() => ({
-            FillColor: new Annotations.Color(255, 255, 255),
-          }));
-        documentViewer.addEventListener("documentLoaded", async () => {
-          PDFNet.initialize(); // Only needs to be initialized once
-          //Commenting the preset search code now- might need in later release
-          // fetchKeywordsMasterData(
-          //   (data) => {
-          //     if (data) {
-          //       let keywordArray = data.map((elmnt) => elmnt.keyword);
-          //       var regexFromMyArray = new String(keywordArray.join("|"));
-          //       setSearchKeywords(regexFromMyArray);
-          //       instance.UI.searchTextFull(regexFromMyArray, {
-          //         wholeWord: true,
-          //         regex: true,
-          //       });
-          //     }
-          //   },
-          //   (error) => console.log(error)
-          // );
-          //update user info
-          let newusername = user?.name || user?.preferred_username || "";
-          let username = annotationManager.getCurrentUser();
-          if (newusername && newusername !== username)
-            annotationManager.setCurrentUser(newusername);
+              menu.style.right = "auto";
+              menu.style.top = "30px";
+              menu.style.minWidth = "200px";
+              menu.padding = "0px";
+              menu.style.display = "none";
+              parent.appendChild(menu);
 
-          //update isloaded flag
-          //localStorage.setItem("isDocumentLoaded", "true");
+              menuBtn.onclick = async () => {
+                if (menu.style.display == "flex") {
+                  menu.style.display = "none";
+                } else {
+                  menu.style.left = `${
+                    document.body.clientWidth - (menuBtn.clientWidth + 96)
+                  }px`;
+                  menu.style.display = "flex";
+                }
+              };
 
-          //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
-          let localDocumentInfo = currentDocument;
-          if (Object.entries(individualDoc["file"])?.length <= 0)
-            individualDoc = localDocumentInfo;
-          // fetchAnnotations(
-          //   requestid,
-          //   (data) => {
-          //     if (data) setMerge(true);
-          //     setFetchAnnotResponse(data);
-          //   },
-          //   (error) => {
-          //     console.log("Error:", error);
-          //   }
-          // );
+              return menuBtn;
+            };
 
-          fetchAnnotationsInfo(requestid, (error) => {
-            console.log("Error:", error);
+            const newCustomElement = {
+              type: "customElement",
+              render: renderCustomMenu,
+            };
+
+            // header.push(newCustomElement);
+            // insert dropdown button in front of search button
+            header.headers.default.splice(
+              header.headers.default.length - 3,
+              0,
+              newCustomElement
+            );
           });
 
-          setDocViewer(documentViewer);
-          setAnnotManager(annotationManager);
-          setAnnots(Annotations);
-          setDocViewerMath(Math);
-        });
+          instance.UI.annotationPopup.add({
+            type: "customElement",
+            title: "Edit",
+            render: () => (
+              <Edit instance={instance} editAnnotation={editAnnotation} />
+            ),
+          });
+          setDocInstance(instance);
 
-        let root = null;
+          PDFNet.initialize();
+          documentViewer
+            .getTool(instance.Core.Tools.ToolNames.REDACTION)
+            .setStyles(() => ({
+              FillColor: new Annotations.Color(255, 255, 255),
+            }));
+          documentViewer.addEventListener("documentLoaded", async () => {
+            PDFNet.initialize(); // Only needs to be initialized once
+            //Commenting the preset search code now- might need in later release
+            // fetchKeywordsMasterData(
+            //   (data) => {
+            //     if (data) {
+            //       let keywordArray = data.map((elmnt) => elmnt.keyword);
+            //       var regexFromMyArray = new String(keywordArray.join("|"));
+            //       setSearchKeywords(regexFromMyArray);
+            //       instance.UI.searchTextFull(regexFromMyArray, {
+            //         wholeWord: true,
+            //         regex: true,
+            //       });
+            //     }
+            //   },
+            //   (error) => console.log(error)
+            // );
+            //update user info
+            let newusername = user?.name || user?.preferred_username || "";
+            let username = annotationManager.getCurrentUser();
+            if (newusername && newusername !== username)
+              annotationManager.setCurrentUser(newusername);
 
-        // add event listener for hiding saving menu
-        document.body.addEventListener(
-          "click",
-          (e) => {
-            document.getElementById("saving_menu").style.display = "none";
+            //update isloaded flag
+            //localStorage.setItem("isDocumentLoaded", "true");
 
-            //START: Bulk Edit using Multi Select Option
-            //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
-            const multiDeleteButton = document.querySelector(
-              '[data-element="multiDeleteButton"]'
-            );
-            if (multiDeleteButton) {
-              multiDeleteButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              });
-            }
+            //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
+            let localDocumentInfo = currentDocument;
+            if (Object.entries(individualDoc["file"])?.length <= 0)
+              individualDoc = localDocumentInfo;
+            // fetchAnnotations(
+            //   requestid,
+            //   (data) => {
+            //     if (data) setMerge(true);
+            //     setFetchAnnotResponse(data);
+            //   },
+            //   (error) => {
+            //     console.log("Error:", error);
+            //   }
+            // );
 
-            //remove MultiSelectedAnnotations on click of multi-select-footer close button
-            const closeButton = document.querySelector(".close-container");
-            if (closeButton) {
-              closeButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              });
-            }
-
-            //remove MultiSelectedAnnotations on click of multi-select-button
-            const button = document.querySelector(
-              '[data-element="multiSelectModeButton"]'
-            );
-
-            button?.addEventListener("click", function () {
-              const isActive = button?.classList.contains("active");
-              if (isActive) {
-                root = null;
-                setMultiSelectFooter(root);
-                setMultiSelectedAnnotations([]);
-              }
+            fetchAnnotationsInfo(requestid, (error) => {
+              console.log("Error:", error);
             });
 
-            const isButtonActive = button?.classList.contains("active");
-            if (isButtonActive) {
-              const _multiSelectFooter = document.querySelector(
-                ".multi-select-footer"
+            setDocViewer(documentViewer);
+            setAnnotManager(annotationManager);
+            setAnnots(Annotations);
+            setDocViewerMath(Math);
+          });
+
+          let root = null;
+
+          // add event listener for hiding saving menu
+          document.body.addEventListener(
+            "click",
+            (e) => {
+              document.getElementById("saving_menu").style.display = "none";
+
+              //START: Bulk Edit using Multi Select Option
+              //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
+              const multiDeleteButton = document.querySelector(
+                '[data-element="multiDeleteButton"]'
               );
-              let editButton = document.querySelector(".edit-button");
-              if (!editButton) {
-                editButton = document.createElement("div");
-                editButton.classList.add("edit-button");
-                _multiSelectFooter?.insertBefore(
-                  editButton,
-                  _multiSelectFooter.firstChild
-                );
+              if (multiDeleteButton) {
+                multiDeleteButton?.addEventListener("click", function () {
+                  root = null;
+                  setMultiSelectFooter(root);
+                  setEnableMultiSelect(false);
+                });
               }
-              const listItems = document.querySelectorAll('[role="listitem"]');
-              listItems.forEach((listItem) => {
-                let checkbox = listItem.querySelector('input[type="checkbox"]');
-                if (checkbox) {
-                  if (root === null) {
-                    root = createRoot(editButton);
-                    setMultiSelectFooter(root);
-                  }
-                  checkbox.addEventListener("click", function () {
-                    checkbox = listItem.querySelector('input[type="checkbox"]');
-                    const spanWrapper = checkbox.parentElement.parentElement; // Get the parent span element
-                    // Check if the span element has the "ui__choice--checked" class
-                    const isChecked = spanWrapper.classList.contains(
-                      "ui__choice--checked"
-                    ); //actual scenario isChecked = true when you uncheck the checkbox
-                    const selectedIdString = checkbox.id?.split("_");
-                    if (selectedIdString.length > 0) {
-                      const annotationName = selectedIdString[1];
-                      const _annot =
-                        annotationManager.getAnnotationById(annotationName);
-                      setMultiSelectedAnnotations((prevSelectedAnnotations) => {
-                        const isExists = prevSelectedAnnotations.find(
-                          (_annotation) => _annotation.Id === annotationName
-                        );
-                        if (isExists === undefined && !isChecked) {
-                          return [...prevSelectedAnnotations, _annot];
-                        } else if (isExists && isChecked) {
-                          return prevSelectedAnnotations.filter(
-                            (_annotation) => _annotation.Id !== annotationName
-                          );
-                        }
-                        return prevSelectedAnnotations;
-                      });
-                    }
-                  });
+
+              //remove MultiSelectedAnnotations on click of multi-select-footer close button
+              const closeButton = document.querySelector(".close-container");
+              if (closeButton) {
+                closeButton?.addEventListener("click", function () {
+                  root = null;
+                  setMultiSelectFooter(root);
+                  setEnableMultiSelect(false);
+                });
+              }
+
+              //remove MultiSelectedAnnotations on click of multi-select-button
+              const button = document.querySelector(
+                '[data-element="multiSelectModeButton"]'
+              );
+
+              button?.addEventListener("click", function () {
+                const isActive = button?.classList.contains("active");
+                if (isActive) {
+                  root = null;
+                  setMultiSelectFooter(root);
+                  setEnableMultiSelect(false);
                 }
               });
-              //END: Bulk Edit using Multi Select Option
-            }
-          },
-          true
-        );
-      });
+
+              const isButtonActive = button?.classList.contains("active");
+              if (isButtonActive) {
+                const _multiSelectFooter = document.querySelector(
+                  ".multi-select-footer"
+                );
+                let editButton = document.querySelector(".edit-button");
+                if (!editButton) {
+                  editButton = document.createElement("div");
+                  editButton.classList.add("edit-button");
+                  _multiSelectFooter?.insertBefore(
+                    editButton,
+                    _multiSelectFooter.firstChild
+                  );
+                }
+                const listItems =
+                  document.querySelectorAll('[role="listitem"]');
+                listItems.forEach((listItem) => {
+                  let checkbox = listItem.querySelector(
+                    'input[type="checkbox"]'
+                  );
+                  if (checkbox) {
+                    if (root === null) {
+                      root = createRoot(editButton);
+                      setMultiSelectFooter(root);
+                    }
+                    checkbox.addEventListener("click", function () {
+                      setEnableMultiSelect(true);
+                    });
+                  }
+                });
+                //END: Bulk Edit using Multi Select Option
+              }
+            },
+            true
+          );
+        });
+      };
+      initializeWebViewer();
     }, []);
-
-    //START: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
-    useEffect(() => {
-      if (multiSelectFooter) {
-        multiSelectFooter.render(<MultiSelectEdit />);
-      }
-    }, [multiSelectedAnnotations]);
-
-    //END: UE to render MultiSelectEdit part of Bulk Edit using Multi Select Option
 
     useEffect(() => {
       const changeLayer = async () => {
@@ -773,6 +679,7 @@ const Redlining = React.forwardRef(
                     ];
                   individualPageNo = displayedDoc.page;
                   if (annotations[i]?.type === "fullPage") {
+                    annotations[i].NoResize = true;
                     pageSelectionList.push({
                       page: Number(individualPageNo),
                       flagid: pageFlagTypes["Withheld in Full"],
@@ -814,6 +721,7 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                     });
                   }
+                  annotations[i].NoMove = true;
                   annotations[i].setCustomData("docid", displayedDoc.docid);
                   annotations[i].setCustomData(
                     "docversion",
@@ -848,6 +756,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     currentLayer.redactionlayerid
                   );
+                  annot.NoMove = true;
                 }
 
                 let astr =
@@ -957,6 +866,7 @@ const Redlining = React.forwardRef(
               }
             }
           });
+          docInstance.Core.Annotations.NoMove = true;
           setAnnots(docInstance.Core.Annotations);
         }
       },
@@ -971,25 +881,14 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       annotManager?.addEventListener("annotationSelected", (annotations) => {
-        //START - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
-        // get freetext annotations with redaction sections alone
-        const _selectedRedactions = annotations.filter(
-          (obj) =>
-            obj.Subject !== "Redact" && obj.getCustomData("sections") !== ""
-        );
-        let annotationName = _selectedRedactions[0]?.Id;
-        if (annotationName) {
-          setMultiSelectedAnnotations((prevSelectedAnnotations) => {
-            const isExists = prevSelectedAnnotations.find(
-              (_annotation) => _annotation.Id === annotationName
-            );
-            if (isExists === undefined) {
-              return [...prevSelectedAnnotations, _selectedRedactions[0]];
-            }
-            return prevSelectedAnnotations;
-          });
+        if (multiSelectFooter && enableMultiSelect) {
+          multiSelectFooter.render(
+            <MultiSelectEdit
+              docInstance={docInstance}
+              editRedactions={editRedactions}
+            />
+          );
         }
-        //END - handled grouped annotation selection due to auto multi select issue part of Bulk Edit using Multi Select Option.
       });
 
       annotManager?.removeEventListener(
@@ -1012,6 +911,8 @@ const Redlining = React.forwardRef(
       newRedaction,
       pageSelections,
       redlineSaving,
+      multiSelectFooter,
+      enableMultiSelect,
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1031,6 +932,8 @@ const Redlining = React.forwardRef(
             Author: user?.name || user?.preferred_username || "",
           });
           annot.type = "fullPage";
+          annot.NoResize = true;
+          annot.NoMove = true;
           annot.setCustomData("trn-redaction-type", "fullPage");
           newAnnots.push(annot);
         }
@@ -1179,9 +1082,12 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
+          _annotation.NoMove = true;
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+
             if (_annotation.type === "fullPage") {
+              _annotation.NoResize = true;
               annotManager.bringToBack(_annotation);
             }
           }
@@ -1243,26 +1149,16 @@ const Redlining = React.forwardRef(
         childAnnotation.Y = _redact.Y;
         childAnnotation.FontSize = _redact.FontSize;
         if (redactionSectionsIds.length > 0) {
-          let redactionSections = sections
-            .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-            .map((s) => s.section)
-            .join(", ");
-          if (
-            redactionSectionsIds?.length == 1 &&
-            redactionSectionsIds[0] === 25
-          ) {
-            redactionSections = "  ";
-          }
+          let redactionSections = createRedactionSectionsString(
+            sections,
+            redactionSectionsIds
+          );
           childAnnotation.setContents(redactionSections);
           const displayedDoc =
             pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
           childAnnotation.setCustomData(
             "sections",
-            JSON.stringify(
-              sections
-                .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-                .map((s) => ({ id: s.id, section: s.section }))
-            )
+            JSON.stringify(getSections(sections, redactionSectionsIds))
           );
           childAnnotation.setCustomData("docid", displayedDoc.docid);
           childAnnotation.setCustomData("docversion", displayedDoc.docversion);
@@ -1274,6 +1170,9 @@ const Redlining = React.forwardRef(
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+        var rect = childAnnotation.getRect();
+        rect.x2 = Math.ceil(rect.x2);
+        childAnnotation.setRect(rect);
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
       }
@@ -1304,7 +1203,7 @@ const Redlining = React.forwardRef(
           });
         }
         setSelectedSections([]);
-        setMultiSelectedAnnotations([]);
+        setEnableMultiSelect(false);
         setEditRedacts(null);
       });
 
@@ -1336,21 +1235,16 @@ const Redlining = React.forwardRef(
         }
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let redaction = annotManager.getAnnotationById(node.attributes.name);
+          redaction.NoMove = true;
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
           let redactionSectionsIds = selectedSections;
           if (redactionSectionsIds.length > 0) {
-            let redactionSections = sections
-              .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-              .map((s) => s.section)
-              .join(", ");
-            if (
-              redactionSectionsIds?.length == 1 &&
-              redactionSectionsIds[0] === 25
-            ) {
-              redactionSections = "  ";
-            }
+            let redactionSections = createRedactionSectionsString(
+              sections,
+              redactionSectionsIds
+            );
             childAnnotation.setContents(redactionSections);
             const displayedDoc =
               pageMappedDocs.stitchedPageLookup[
@@ -1358,11 +1252,7 @@ const Redlining = React.forwardRef(
               ];
             childAnnotation.setCustomData(
               "sections",
-              JSON.stringify(
-                sections
-                  .filter((s) => redactionSectionsIds.indexOf(s.id) > -1)
-                  .map((s) => ({ id: s.id, section: s.section }))
-              )
+              JSON.stringify(getSections(sections, redactionSectionsIds))
             );
             childAnnotation.setCustomData("docid", displayedDoc.docid);
             childAnnotation.setCustomData(
@@ -1381,7 +1271,10 @@ const Redlining = React.forwardRef(
           const pageMatrix = doc.getPageMatrix(pageNumber);
           const pageRotation = doc.getPageRotation(pageNumber);
           childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-
+          childAnnotation.NoMove = true;
+          let rect = childAnnotation.getRect();
+          rect.x2 = Math.ceil(rect.x2);
+          childAnnotation.setRect(rect);
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
             annotationList: [childAnnotation],
@@ -1447,30 +1340,28 @@ const Redlining = React.forwardRef(
           annot.Author = user?.name || user?.preferred_username || "";
           let redactionSectionsIds =
             defaultSections.length > 0 ? defaultSections : selectedSections;
-          let redactionSections = sections.filter(
-            (s) => redactionSectionsIds.indexOf(s.id) > -1
+          let redactionSections = createRedactionSectionsString(
+            sections,
+            redactionSectionsIds
           );
-          let redactionSectionsString = redactionSections
-            .map((s) => s.section)
-            .join(", ");
-          if (selectedSections?.length == 1 && selectedSections[0] === 25) {
-            redactionSectionsString = "  ";
-          }
           annot.setAutoSizeType("auto");
-          annot.setContents(redactionSectionsString);
+          annot.setContents(redactionSections);
           annot.setCustomData("parentRedaction", redaction.Id);
           annot.setCustomData(
             "sections",
-            JSON.stringify(
-              redactionSections.map((s) => ({ id: s.id, section: s.section }))
-            )
+            JSON.stringify(getSections(sections, redactionSectionsIds))
           );
           const doc = docViewer.getDocument();
           const pageInfo = doc.getPageInfo(annot.PageNumber);
           const pageMatrix = doc.getPageMatrix(annot.PageNumber);
           const pageRotation = doc.getPageRotation(annot.PageNumber);
+          annot.NoMove = true;
           annot.fitText(pageInfo, pageMatrix, pageRotation);
+          var rect = annot.getRect();
+          rect.x2 = Math.ceil(rect.x2);
+          annot.setRect(rect);
           if (redaction.type == "fullPage") {
+            annot.NoResize = true;
             annot.setCustomData("trn-redaction-type", "fullPage");
             let txt = new DOMParser().parseFromString(
               node.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
@@ -1512,7 +1403,10 @@ const Redlining = React.forwardRef(
             }
           }
 
-          for (let section of redactionSections) {
+          for (let section of getValidSections(
+            sections,
+            redactionSectionsIds
+          )) {
             section.count++;
           }
           //delete if there are existing fullpage redactions
@@ -2022,6 +1916,7 @@ const Redlining = React.forwardRef(
                       // saves the document with annotations in it
                       xfdfString: xfdfString,
                       downloadType: downloadType,
+                      flatten: true,
                     })
                     .then(async (_data) => {
                       const _arr = new Uint8Array(_data);
@@ -2098,7 +1993,6 @@ const Redlining = React.forwardRef(
           saveResponsePackage(docViewer, annotManager);
           break;
         default:
-        // console.log("123");
       }
     };
 
@@ -2133,7 +2027,6 @@ const Redlining = React.forwardRef(
 
     const saveResponsePackage = async (documentViewer, annotationManager) => {
       const downloadType = "pdf";
-      // console.log("divisions: ", divisions);
 
       let zipServiceMessage = {
         ministryrequestid: requestid,
@@ -2183,11 +2076,9 @@ const Redlining = React.forwardRef(
                 }
               }
             }
-            // console.log("stamps: ", sectionStamps);
 
             // add section stamps to redactions as overlay text
             let annotList = annotationManager.getAnnotationsList();
-            // console.log("annot list: ", annotList);
             toast.update(toastID, {
               render: "Saving section stamps...",
               isLoading: true,
@@ -2199,33 +2090,31 @@ const Redlining = React.forwardRef(
                 });
               }
             }
-          });
 
-          // remove duplicate and not responsive pages
-          let pagesToRemove = [];
-          for (const infoForEachDoc of pageFlags) {
-            for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-              // pageflag duplicate or not responsive
-              if (
-                pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
-                pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemove.push(
-                  getStitchedPageNoFromOriginal(
-                    infoForEachDoc.documentid,
-                    pageFlagsForEachDoc.page,
-                    pageMappedDocs
-                  )
-                );
+            // remove duplicate and not responsive pages
+            let pagesToRemove = [];
+            for (const infoForEachDoc of pageFlags) {
+              for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+                // pageflag duplicate or not responsive
+                if (
+                  pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
+                  pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
+                ) {
+                  pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      infoForEachDoc.documentid,
+                      pageFlagsForEachDoc.page,
+                      pageMappedDocs
+                    )
+                  );
+                }
               }
             }
-          }
-          const doc = documentViewer.getDocument();
-          await doc.removePages(pagesToRemove);
+            let doc = documentViewer.getDocument();
+            let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
+            await doc.removePages(pagesToRemove);
 
-          //apply redaction and save to s3
-          annotationManager.applyRedactions().then(async (results) => {
-            const doc = documentViewer.getDocument();
+            //apply redaction and save to s3
 
             doc
               .getFileData({
