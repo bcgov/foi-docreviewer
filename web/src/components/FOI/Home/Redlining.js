@@ -524,11 +524,12 @@ const Redlining = React.forwardRef(
               );
             }
             await annotManager.ungroupAnnotations(existingAnnotations);
-            await annotManager.deleteAnnotations(redactions, {
-              imported: true,
-              force: true,
-              source: "layerchange",
-            });
+            await annotManager.hideAnnotations(redactions);
+            // await annotManager.deleteAnnotations(redactions, {
+            //   imported: true,
+            //   force: true,
+            //   source: "layerchange",
+            // });
             var newAnnots = [];
             for (const rect of rects) {
               const annot = new annots.RectangleAnnotation();
