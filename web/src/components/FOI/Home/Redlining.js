@@ -790,7 +790,6 @@ const Redlining = React.forwardRef(
                 );
               }
             } else if (action === "modify") {
-              console.log(info);
               if (
                 info.source === "group" &&
                 newRedaction.astr.includes(annotations[0].Id) // if we are grouping the newly created annotations do not save
@@ -2142,7 +2141,6 @@ const Redlining = React.forwardRef(
                   { filepath: res.s3path_save },
                   _blob,
                   (_res) => {
-                    console.log(_res);
                     toast.update(toastID, {
                       render: "Final package is saved to Object Storage",
                       type: "success",
