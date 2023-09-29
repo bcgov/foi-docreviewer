@@ -194,7 +194,7 @@ namespace MCS.FOI.MSGToPDF
                                     }                                    
                                 }
 
-                                
+                                Console.WriteLine(bodyreplaced);
                                 byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
                                 using (MemoryStream messageStream = new MemoryStream(byteArray))
                                 {
