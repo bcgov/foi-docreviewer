@@ -100,6 +100,7 @@ namespace MCS.FOI.MSGToPDF
                                         Console.WriteLine("attachmentname: " + _attachment.FileName);
                                         Console.WriteLine("attachmentpos: " + _attachment.RenderingPosition);
                                         Console.WriteLine("attachmentmime: " + extension);
+                                        Console.WriteLine("attachmentsize: " + _attachment.Data.Length.ToString());
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
