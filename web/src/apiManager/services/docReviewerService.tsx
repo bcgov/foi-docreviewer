@@ -86,17 +86,28 @@ export const saveAnnotation = (
   sections?: object,
 ) => {
   let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}`;
-  let requestJSON = sections ?{
-    "xml": annotation,
-    "sections": sections,
-    "redactionlayerid": redactionLayer
-    } : 
-    {
+  let requestJSON = {};
+  if (sections && pageFlags) {
+    requestJSON = {
+      "xml": annotation,
+      "sections": sections,
+      "pageflags":pageFlags,
+      "redactionlayerid": redactionLayer
+      } 
+  } else if (sections) {
+    requestJSON = {
+      "xml": annotation,
+      "sections": sections,
+      "redactionlayerid": redactionLayer
+      } 
+  } else {
+    requestJSON = {
       "xml": annotation,
       "pageflags":pageFlags,
       "foiministryrequestid":requestid,
       "redactionlayerid": redactionLayer
     }
+  }
   let useAppSelector = useSelector;
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
     .then((res:any) => {

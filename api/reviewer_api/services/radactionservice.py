@@ -48,12 +48,18 @@ class redactionservice:
         result = annotationservice().saveannotation(annotationschema, userinfo)
         if (
             result.success == True
-            and "foiministryrequestid" in annotationschema
             and "pageflags" in annotationschema
             and annotationschema["pageflags"] is not None
         ):
+            foiministryrequestid = None
+            if "foiministryrequestid" in annotationschema:
+                foiministryrequestid = annotationschema["foiministryrequestid"]
+            elif "sections" in annotationschema:
+                foiministryrequestid = annotationschema["sections"][
+                    "foiministryrequestid"
+                ]
             documentpageflagservice().bulksavepageflag(
-                annotationschema["foiministryrequestid"],
+                foiministryrequestid,
                 annotationschema["pageflags"],
                 userinfo,
             )
