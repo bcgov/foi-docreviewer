@@ -39,9 +39,6 @@ class annotationservice:
     
     def getrequestannotationspagination(self, ministryrequestid, mappedlayerids, page, size):
         result = Annotation.get_request_annotations_pagination(ministryrequestid, mappedlayerids, page, size)
-        annotations = [] 
-        for item in result.items:
-            annotations.append({'pagenumber': item.pagenumber, 'annotation': item.annotation, 'documentid': item.documentid})
         meta = {
             'page': result.page,
             'pages': result.pages,
@@ -51,8 +48,17 @@ class annotationservice:
             'has_next': result.has_next,
             'has_prev': result.has_prev,        
         }
-
-        return {'data': annotations , 'meta': meta} 
+        return {'data': self.__formatannotations(result.items) , 'meta': meta} 
+    
+    def __formatannotations(self, annotations):
+        annotationobj = {}
+        for annot in annotations:
+            if annot.documentid not in annotationobj:
+                annotationobj[annot.documentid] = []
+            annotationobj[annot.documentid].append(annot.annotation)
+        for documentid in annotationobj:
+            annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
+        return annotationobj    
         
     def getrequestdivisionannotations(self, ministryrequestid, divisionid):
         annotations = Annotation.getrequestdivisionannotations(ministryrequestid, divisionid)
