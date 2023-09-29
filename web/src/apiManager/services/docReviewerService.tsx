@@ -362,11 +362,11 @@ export const fetchPDFTronLicense = (
     if (res.data) {
       callback(res.data);
     } else {
-      throw new Error("Error while triggering download final package");
+      throw new Error("Error in fetching PDFTronLicense");
     }
   })
   .catch((error:any) => {
-    errorCallback("Error in triggering download final package:",error);
+    errorCallback("Error in fetching PDFTronLicense:",error);
   });
   return response;
 };
