@@ -1274,15 +1274,6 @@ const Redlining = React.forwardRef(
           let X = coords?.substring(0, coords.indexOf(","));
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
 
-          //page flag updates
-          updatePageFlags(
-            defaultSections,
-            selectedSections,
-            fullpageredaction,
-            pageFlagTypes,
-            displayedDoc,
-            pageSelectionList
-          );
           let redactionSectionsIds = selectedSections;
           if (redactionSectionsIds.length > 0) {
             let redactionSections = createRedactionSectionsString(
@@ -1329,28 +1320,50 @@ const Redlining = React.forwardRef(
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
             let annot = annots[0].children[0];
-
-            saveAnnotation(
-              requestid,
-              astr,
-              (data) => {
-                setPageSelections([]);
-                fetchPageFlag(
-                  requestid,
-                  currentLayer.redactionlayerid,
-                  (error) => console.log(error)
-                );
-              },
-              (error) => {
-                console.log(error);
-              },
-              currentLayer.redactionlayerid,
-              createPageFlagPayload(
-                pageSelectionList,
-                currentLayer.redactionlayerid
-              ),
-              sectn
-            );
+            if (_resizeAnnot?.type === "redact") {
+              saveAnnotation(
+                requestid,
+                astr,
+                (data) => {},
+                (error) => {
+                  console.log(error);
+                },
+                currentLayer.redactionlayerid,
+                null,
+                sectn
+              );
+            } else {
+              //page flag updates
+              updatePageFlags(
+                defaultSections,
+                selectedSections,
+                fullpageredaction,
+                pageFlagTypes,
+                displayedDoc,
+                pageSelectionList
+              );
+              saveAnnotation(
+                requestid,
+                astr,
+                (data) => {
+                  setPageSelections([]);
+                  fetchPageFlag(
+                    requestid,
+                    currentLayer.redactionlayerid,
+                    (error) => console.log(error)
+                  );
+                },
+                (error) => {
+                  console.log(error);
+                },
+                currentLayer.redactionlayerid,
+                createPageFlagPayload(
+                  pageSelectionList,
+                  currentLayer.redactionlayerid
+                ),
+                sectn
+              );
+            }
             setSelectedSections([]);
             if (redactionSectionsIds.length > 0) {
               redactionObj.names?.forEach((name) => {
