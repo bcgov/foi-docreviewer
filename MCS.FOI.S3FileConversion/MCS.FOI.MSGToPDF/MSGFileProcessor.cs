@@ -98,7 +98,7 @@ namespace MCS.FOI.MSGToPDF
                                         }
                                         Console.WriteLine("attachmentname: " + _attachment.FileName);
                                         Console.WriteLine("attachmentpos: " + _attachment.RenderingPosition);
-                                        Console.WriteLine("attachmentmime: " + _attachment.MimeType);
+                                        Console.WriteLine("attachmentmime: " + extension);
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
@@ -110,7 +110,7 @@ namespace MCS.FOI.MSGToPDF
                                 }
                             }
 
-                            msg.CharsetDetectionEncodingConfidenceLevel = 0.7f;
+                            //msg.CharsetDetectionEncodingConfidenceLevel = 0.7f;
                             if (msg.BodyRtf != null)
                             {
                                 //using var fs0 = new FileStream("C:\\folder\\log.txt", FileMode.Create, FileAccess.Write);
@@ -131,7 +131,7 @@ namespace MCS.FOI.MSGToPDF
                                 //(ms, success) = ConvertHTMLtoPDF(body, ms);
 
                                 //using var fs1 = new FileStream("C:\\folder\\blinkconverted.pdf", FileMode.Create, FileAccess.Write);
-                                //using var fs2 = new FileStream("C:\\folder\\syncfusionconverted.pdf", FileMode.Create, FileAccess.Write);
+                                using var fs2 = new FileStream("C:\\folder\\syncfusionconverted.pdf", FileMode.Create, FileAccess.Write);
                                 //using var fs3 = new FileStream("C:\\folder\\syncfusionconverted.docx", FileMode.Create, FileAccess.Write);
                                 //using var fs4 = new FileStream("C:\\folder\\test.txt", FileMode.Create, FileAccess.Write);
                                 //ms.WriteTo(fs1);
@@ -190,7 +190,7 @@ namespace MCS.FOI.MSGToPDF
                                         {
                                             //using var fs5 = new FileStream("C:\\folder\\image.png", FileMode.Create, FileAccess.Write);
                                             //fs5.Write(inlineAttachment.Data, 0, inlineAttachment.Data.Length);
-                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img src=\"data:image/" + Path.GetExtension(inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
                                             //var string1 = Convert.ToBase64String(inlineAttachment.Data);
                                             //var string2 = BitConverter.ToString(inlineAttachment.Data).Replace("-", string.Empty);
                                         }
@@ -198,11 +198,11 @@ namespace MCS.FOI.MSGToPDF
                                 }
 
 
-                                byte[] byteArray = Encoding.ASCII.GetBytes(msg.BodyRtf);
+                                byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
                                 using (MemoryStream messageStream = new MemoryStream(byteArray))
                                 {
                                     //messageStream.WriteTo(fs4);
-                                    using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
+                                    using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Html))
                                     {
                                         //rtfDoc.Save(fs3, FormatType.Docx);
                                         // Replace leading tabs, issue with syncfusion
