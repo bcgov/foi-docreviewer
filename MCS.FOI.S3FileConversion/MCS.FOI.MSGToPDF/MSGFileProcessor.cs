@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using Syncfusion.Pdf.HtmlToPdf;
 using System.ComponentModel.DataAnnotations;
 using System;
+using RtfPipe.Tokens;
+using System.IO;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -97,10 +99,6 @@ namespace MCS.FOI.MSGToPDF
 
                                             filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
                                         }
-                                        Console.WriteLine("attachmentname: " + _attachment.FileName);
-                                        Console.WriteLine("attachmentpos: " + _attachment.RenderingPosition);
-                                        Console.WriteLine("attachmentmime: " + extension);
-                                        Console.WriteLine("attachmentsize: " + _attachment.Data.Length.ToString());
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
@@ -148,23 +146,7 @@ namespace MCS.FOI.MSGToPDF
                                     {
                                         if (htmlInline)
                                         {
-                                            var match = Regex.Match(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>");
-                                            var width = float.Parse(Regex.Match(match.Value, "(?<=width=\")\\d+").Value);
-                                            var height = float.Parse(Regex.Match(match.Value, "(?<=height=\")\\d+").Value);
-                                            const float maxSize = 750;
-                                            if (width > maxSize)
-                                            {
-                                                float scale = maxSize / width;
-                                                width = maxSize;
-                                                height = scale * height;
-                                            }
-                                            else if (height > maxSize)
-                                            {
-                                                float scale = maxSize / height;
-                                                height = maxSize;
-                                                width = scale * width;
-                                            }
-                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img width='" + width.ToString() + "' height ='" + height.ToString() + "' src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
                                             foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                             {
                                                 if (attachment.Value["cid"] == inlineAttachment.ContentId)
@@ -191,17 +173,14 @@ namespace MCS.FOI.MSGToPDF
                                                 bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + inlineAttachment.FileName + "**]</b>");
                                             }
                                         }
-                                    }                                    
+                                    }
                                 }
 
-                                Console.WriteLine(bodyreplaced);
                                 byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
                                 using (MemoryStream messageStream = new MemoryStream(byteArray))
-                                {
-                                    //messageStream.WriteTo(fs4);
+                                {                                    
                                     using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Html))
                                     {
-                                        //rtfDoc.Save(fs3, FormatType.Docx);
                                         // Replace leading tabs, issue with syncfusion
                                         rtfDoc.ReplaceFirst = true;
                                         var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
@@ -209,21 +188,24 @@ namespace MCS.FOI.MSGToPDF
 
                                         List<Entity> pictures = rtfDoc.FindAllItemsByProperty(EntityType.Picture, "", "");
 
-                                        foreach (WPicture picture in pictures)
+                                        if (pictures != null)
                                         {
-                                            picture.LockAspectRatio = true;
-                                            const float maxSize = 500;
-                                            if (picture.Height > maxSize && picture.Height >= picture.Width)
+                                            foreach (WPicture picture in pictures)
                                             {
-                                                var scale = (maxSize / picture.Height) * 100;
-                                                picture.HeightScale = scale;
-                                                picture.WidthScale = scale;
-                                            }
-                                            if (picture.Width > maxSize)
-                                            {
-                                                var scale = (maxSize / picture.Width) * 100;
-                                                picture.HeightScale = scale;
-                                                picture.WidthScale = scale;
+                                                picture.LockAspectRatio = true;
+                                                const float maxSize = 500;
+                                                if (picture.Height > maxSize && picture.Height >= picture.Width)
+                                                {
+                                                    var scale = (maxSize / picture.Height) * 100;
+                                                    picture.HeightScale = scale;
+                                                    picture.WidthScale = scale;
+                                                }
+                                                if (picture.Width > maxSize)
+                                                {
+                                                    var scale = (maxSize / picture.Width) * 100;
+                                                    picture.HeightScale = scale;
+                                                    picture.WidthScale = scale;
+                                                }
                                             }
                                         }
 
