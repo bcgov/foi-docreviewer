@@ -33,7 +33,7 @@ const ContextMenu = ({
 
     const popoverEnter = (e: any) => {
         setOrgListAnchorPosition(
-            e.currentTarget.getBoundingClientRect()
+            e?.currentTarget?.getBoundingClientRect()
         );
         setOpenConsultPopup(true)
     };
