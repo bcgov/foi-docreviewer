@@ -58,11 +58,12 @@ class redactionservice:
                 foiministryrequestid = annotationschema["sections"][
                     "foiministryrequestid"
                 ]
-            documentpageflagservice().bulksavepageflag(
-                foiministryrequestid,
-                annotationschema["pageflags"],
-                userinfo,
-            )
+            if foiministryrequestid:
+                documentpageflagservice().bulksavepageflag(
+                    foiministryrequestid,
+                    annotationschema["pageflags"],
+                    userinfo,
+                )
         return result
 
     def deactivateannotation(
