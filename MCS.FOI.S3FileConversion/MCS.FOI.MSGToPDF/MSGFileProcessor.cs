@@ -146,23 +146,7 @@ namespace MCS.FOI.MSGToPDF
                                     {
                                         if (htmlInline)
                                         {
-                                            var match = Regex.Match(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>");
-                                            var width = float.Parse(Regex.Match(match.Value, "(?<=width=\")\\d+").Value);
-                                            var height = float.Parse(Regex.Match(match.Value, "(?<=height=\")\\d+").Value);
-                                            const float maxSize = 750;
-                                            if (width > maxSize)
-                                            {
-                                                float scale = maxSize / width;
-                                                width = maxSize;
-                                                height = scale * height;
-                                            }
-                                            else if (height > maxSize)
-                                            {
-                                                float scale = maxSize / height;
-                                                height = maxSize;
-                                                width = scale * width;
-                                            }
-                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img width='" + width.ToString() + "' height ='" + height.ToString() + "' src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
                                             foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                             {
                                                 if (attachment.Value["cid"] == inlineAttachment.ContentId)
