@@ -1731,12 +1731,65 @@ const Redlining = React.forwardRef(
       return zipServiceMessage;
     };
 
-    const stampPageNumber = async (_docViwer,PDFNet,divisionsdocpages)=>{
-      for(let pagecount =1 ; pagecount <= divisionsdocpages.length ; pagecount++)
+    const stampPageNumberRedline = async (_docViwer, PDFNet, divisionsdocpages) => {
+      for (
+        let pagecount = 1;
+        pagecount <= divisionsdocpages.length;
+        pagecount++
+      ) {
+        const doc = await _docViwer.getPDFDoc();
+
+        // Run PDFNet methods with memory management
+        await PDFNet.runWithCleanup(async () => {
+          // lock the document before a write operation
+          // runWithCleanup will auto unlock when complete
+          doc.lock();
+          const s = await PDFNet.Stamper.create(
+            PDFNet.Stamper.SizeType.e_relative_scale,
+            0.3,
+            0.3
+          );
+
+          await s.setAlignment(
+            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+          );
+          const font = await PDFNet.Font.create(
+            doc,
+            PDFNet.Font.StandardType1Font.e_courier
+          );
+          await s.setFont(font);
+          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+          await s.setFontColor(redColorPt);
+          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+          await s.setAsBackground(false);
+          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+
+          await s.stampText(
+            doc,
+            `${requestnumber} , Page ${
+              divisionsdocpages[pagecount - 1].stitchedPageNo
+            }`,
+            pgSet
+          );
+        });
+      }
+    };
+
+    const stampPageNumberResponse = async (_docViwer,PDFNet)=>{
+
+     
+
+      for(let pagecount =1 ; pagecount <= _docViwer.getPageCount() ; pagecount++)
         {
       
-              const doc = await _docViwer.getPDFDoc();
-
+          try {
+              let doc = null;
+           
+              let _docmain = _docViwer.getDocument();
+              doc = await _docmain.getPDFDoc()
+           
+                          
               // Run PDFNet methods with memory management
               await PDFNet.runWithCleanup(async () => {
 
@@ -1752,12 +1805,16 @@ const Redlining = React.forwardRef(
                 await s.setFontColor(redColorPt);
                 await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
                 await s.setAsBackground(false);
-                const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-                
-                  
-                await s.stampText(doc, `${requestnumber} , Page ${divisionsdocpages[pagecount-1].stitchedPageNo}`, pgSet);
-                      
+                const pgSet = await PDFNet.PageSet.createRange(pagecount , pagecount);
+                              
+                await s.stampText(doc, `${requestnumber} , Page ${pagecount}`, pgSet);
+                                                     
               });
+            }
+            catch(err){
+              console.log(err)
+              throw err;
+            }
           } 
     }
 
@@ -1961,7 +2018,7 @@ const Redlining = React.forwardRef(
                     })
    
                     divisionstichpages.sort((a,b) => (a.stitchedPageNo > b.stitchedPageNo) ? 1 : ((b.stitchedPageNo > a.stitchedPageNo) ? -1 : 0))
-                    await stampPageNumber(stitchedDocObj,PDFNet, divisionstichpages)
+                    await stampPageNumberRedline(stitchedDocObj,PDFNet, divisionstichpages)
 
                   }
 
@@ -2052,7 +2109,7 @@ const Redlining = React.forwardRef(
           saveRedlineDocument(docInstance);
           break;
         case "responsepackage":
-          saveResponsePackage(docViewer, annotManager);
+          saveResponsePackage(docViewer, annotManager,docInstance);
           break;
         default:
       }
@@ -2087,7 +2144,7 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const saveResponsePackage = async (documentViewer, annotationManager) => {
+    const saveResponsePackage = async (documentViewer, annotationManager,_instance) => {
       const downloadType = "pdf";
 
       let zipServiceMessage = {
@@ -2172,12 +2229,19 @@ const Redlining = React.forwardRef(
                 }
               }
             }
+
+            
+            
+
             let doc = documentViewer.getDocument();
             let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
 
-            //apply redaction and save to s3
+            const {  PDFNet   } = _instance.Core;
+            PDFNet.initialize()
+            await stampPageNumberResponse(documentViewer,PDFNet)
 
+            //apply redaction and save to s3
             doc
               .getFileData({
                 // saves the document with annotations in it
