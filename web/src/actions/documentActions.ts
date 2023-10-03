@@ -51,6 +51,13 @@ export const setRequestStatus = (data: any) => (dispatch:any) =>{
     })
 }
 
+export const setRequestNumber = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REQUEST_NUMBER,
+        payload:data
+    })
+}
+
 export const setRedactionLayers = (data: any) => (dispatch:any) =>{
     dispatch({
         type:ACTION_CONSTANTS.SET_REDACTION_LAYERS,
