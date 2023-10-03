@@ -127,5 +127,4 @@ export const updatePageFlags = (
       docid: displayedDoc?.docid,
     });
   }
-  // return pageSelectionList;
 };

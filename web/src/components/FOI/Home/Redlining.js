@@ -1396,7 +1396,6 @@ const Redlining = React.forwardRef(
             flag.flagid = pageFlagTypes["In Progress"];
             return flag;
           });
-          // pageFlagSelections[0].flagid = pageFlagTypes["In Progress"];
         }
         // add section annotation
         var sectionAnnotations = [];
@@ -1794,35 +1793,50 @@ const Redlining = React.forwardRef(
       return zipServiceMessage;
     };
 
-    const stampPageNumber = async (_docViwer,PDFNet,divisionsdocpages)=>{
-      for(let pagecount =1 ; pagecount <= divisionsdocpages.length ; pagecount++)
-        {
-      
-              const doc = await _docViwer.getPDFDoc();
+    const stampPageNumber = async (_docViwer, PDFNet, divisionsdocpages) => {
+      for (
+        let pagecount = 1;
+        pagecount <= divisionsdocpages.length;
+        pagecount++
+      ) {
+        const doc = await _docViwer.getPDFDoc();
 
-              // Run PDFNet methods with memory management
-              await PDFNet.runWithCleanup(async () => {
+        // Run PDFNet methods with memory management
+        await PDFNet.runWithCleanup(async () => {
+          // lock the document before a write operation
+          // runWithCleanup will auto unlock when complete
+          doc.lock();
+          const s = await PDFNet.Stamper.create(
+            PDFNet.Stamper.SizeType.e_relative_scale,
+            0.3,
+            0.3
+          );
 
-                // lock the document before a write operation
-                // runWithCleanup will auto unlock when complete
-                doc.lock();
-                const s = await PDFNet.Stamper.create(PDFNet.Stamper.SizeType.e_relative_scale, 0.3, 0.3);
-              
-                await s.setAlignment(PDFNet.Stamper.HorizontalAlignment.e_horizontal_center, PDFNet.Stamper.VerticalAlignment.e_vertical_bottom);
-                const font = await PDFNet.Font.create(doc, PDFNet.Font.StandardType1Font.e_courier);
-                await s.setFont(font);
-                const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-                await s.setFontColor(redColorPt);
-                await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-                await s.setAsBackground(false);
-                const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-                
-                  
-                await s.stampText(doc, `${requestnumber} , Page ${divisionsdocpages[pagecount-1].stitchedPageNo}`, pgSet);
-                      
-              });
-          } 
-    }
+          await s.setAlignment(
+            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+          );
+          const font = await PDFNet.Font.create(
+            doc,
+            PDFNet.Font.StandardType1Font.e_courier
+          );
+          await s.setFont(font);
+          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+          await s.setFontColor(redColorPt);
+          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+          await s.setAsBackground(false);
+          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+
+          await s.stampText(
+            doc,
+            `${requestnumber} , Page ${
+              divisionsdocpages[pagecount - 1].stitchedPageNo
+            }`,
+            pgSet
+          );
+        });
+      }
+    };
 
     const saveRedlineDocument = (_instance) => {
       let arr = [];
@@ -1984,8 +1998,8 @@ const Redlining = React.forwardRef(
                 pageMappingsByDivisions[doc.documentid]
               ).length;
               totalPageCountIncludeRemoved += doc.pagecount;
-              const {  PDFNet   } = _instance.Core;
-              PDFNet.initialize()
+              const { PDFNet } = _instance.Core;
+              PDFNet.initialize();
               await _instance.Core.createDocument(doc.s3path_load, {
                 loadAsPDF: true,
               }).then(async (docObj) => {
@@ -2004,28 +2018,39 @@ const Redlining = React.forwardRef(
                     pages,
                     pageIndexToInsert
                   );
-
-                 
-                  
                 }
 
                 // save to s3 once all doc stitched
                 if (docCount == divObj.documentlist.length) {
-           
-                  if(pageMappedDocs!=undefined)
-                  {
-                    let divisionstichpages = []
-                    let divisionsdocpages = Object.values(pageMappedDocs.docIdLookup).filter((obj) =>  { return obj.division === divObj.divisionid}).map((obj)=>{return obj.pageMappings})
-                    divisionsdocpages.forEach(function(_arr){
-                      _arr.forEach(function(value){
-                        divisionstichpages.push(value)
+                  if (pageMappedDocs != undefined) {
+                    let divisionstichpages = [];
+                    let divisionsdocpages = Object.values(
+                      pageMappedDocs.docIdLookup
+                    )
+                      .filter((obj) => {
+                        return obj.division === divObj.divisionid;
                       })
-                    
-                    })
-   
-                    divisionstichpages.sort((a,b) => (a.stitchedPageNo > b.stitchedPageNo) ? 1 : ((b.stitchedPageNo > a.stitchedPageNo) ? -1 : 0))
-                    await stampPageNumber(stitchedDocObj,PDFNet, divisionstichpages)
+                      .map((obj) => {
+                        return obj.pageMappings;
+                      });
+                    divisionsdocpages.forEach(function (_arr) {
+                      _arr.forEach(function (value) {
+                        divisionstichpages.push(value);
+                      });
+                    });
 
+                    divisionstichpages.sort((a, b) =>
+                      a.stitchedPageNo > b.stitchedPageNo
+                        ? 1
+                        : b.stitchedPageNo > a.stitchedPageNo
+                        ? -1
+                        : 0
+                    );
+                    await stampPageNumber(
+                      stitchedDocObj,
+                      PDFNet,
+                      divisionstichpages
+                    );
                   }
 
                   // remove duplicate and not responsive pages
