@@ -257,7 +257,6 @@ class Annotation(db.Model):
     ) -> DefaultMethodResult:
         successannots = []
         failedannots = []
-        print("<<<<<<<<< __chunksaveannotations >>>>>>>>>>")
         try:
             for annot in annots:
                 resp = cls.__saveannotation(annot, redactionlayerid, userinfo)
@@ -281,7 +280,6 @@ class Annotation(db.Model):
         cls, annots, redactionlayerid, userinfo, size=100
     ) -> DefaultMethodResult:
         idxannots = []
-        print("<<<<<<<<<<< __bulksaveannotations >>>>>>>>>>>>")
         try:
             wkannots = split(annots, size)
             for wkannot in wkannots:
@@ -299,7 +297,6 @@ class Annotation(db.Model):
     @classmethod
     def __saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         annotkey = cls.__getannotationkey(annot["name"])
-        print("annotkey == ", annotkey)
         if annotkey is None:
             return cls.__newannotation(annot, redactionlayerid, userinfo)
         else:
@@ -310,7 +307,6 @@ class Annotation(db.Model):
     @classmethod
     def __newannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
-            print("<<<<<<<< __newannotation >>>>>>>>>")
             values = [
                 {
                     "annotationname": annot["name"],
@@ -399,7 +395,6 @@ class Annotation(db.Model):
         cls, annot, redactionlayerid, userinfo, id=None, version=None
     ) -> DefaultMethodResult:
         try:
-            print("<<<<<<< __updateannotation >>>>>>>>")
             if id is None or version is None:
                 return DefaultMethodResult(
                     True, "Unable to Save Annotation", annot["name"]
