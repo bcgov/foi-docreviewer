@@ -101,3 +101,36 @@ export const createRedactionSectionsString = (
   }
   return redactionSections;
 };
+
+export const updatePageFlags = (
+  defaultSections,
+  selectedSections,
+  fullpageredaction,
+  pageFlagTypes,
+  displayedDoc,
+  pageSelectionList
+) => {
+  //page flag updates
+  if (
+    (defaultSections.length > 0 && defaultSections[0] === 25) ||
+    (selectedSections && selectedSections[0] === 25)
+  ) {
+    pageSelectionList.push({
+      page: Number(displayedDoc?.page),
+      flagid: pageFlagTypes["In Progress"],
+      docid: displayedDoc?.docid,
+    });
+  } else if (fullpageredaction === "fullPage") {
+    pageSelectionList.push({
+      page: Number(displayedDoc?.page),
+      flagid: pageFlagTypes["Withheld in Full"],
+      docid: displayedDoc?.docid,
+    });
+  } else if (selectedSections && selectedSections[0] !== 25) {
+    pageSelectionList.push({
+      page: Number(displayedDoc?.page),
+      flagid: pageFlagTypes["Partial Disclosure"],
+      docid: displayedDoc?.docid,
+    });
+  }
+};

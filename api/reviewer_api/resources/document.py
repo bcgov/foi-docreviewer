@@ -99,7 +99,7 @@ class GetDocuments(Resource):
             jsonObj = response.json()
 
             result = documentservice().getdocuments(requestid)
-            return json.dumps({"requeststatusid": jsonObj["requeststatusid"], "documents": result}), 200
+            return json.dumps({"requeststatusid": jsonObj["requeststatusid"], "documents": result,"requestnumber":jsonObj["axisRequestId"]}), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
