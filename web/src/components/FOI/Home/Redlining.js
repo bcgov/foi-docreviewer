@@ -42,7 +42,7 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { REDACTION_SELECT_LIMIT, PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -58,7 +58,6 @@ import {
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
-import { REDACTION_SELECT_LIMIT } from '../../../constants/constants'
 
 const Redlining = React.forwardRef(
   (
@@ -1603,10 +1602,15 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (newRedaction) {
-        if (defaultSections.length > 0) {
-          saveRedaction();
+        if(newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
+          setWarningModalOpen(true);
+          cancelRedaction();
         } else {
-          setModalOpen(true);
+          if (defaultSections.length > 0) {
+            saveRedaction();
+          } else {
+            setModalOpen(true);
+          }
         }
       }
     }, [defaultSections, newRedaction]);
