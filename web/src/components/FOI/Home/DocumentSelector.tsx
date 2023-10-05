@@ -323,7 +323,7 @@ const DocumentSelector = ({
         }
         setOpenContextPopup(true);
         setAnchorPosition(
-            e.currentTarget.getBoundingClientRect()
+            e?.currentTarget?.getBoundingClientRect()
         );
         setDisableHover(true);
     }

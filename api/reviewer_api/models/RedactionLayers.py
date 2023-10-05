@@ -1,15 +1,16 @@
-from .db import  db, ma
+from .db import db, ma
 from .default_method_result import DefaultMethodResult
 from datetime import datetime as datetime2
 from sqlalchemy import or_, and_, text
 import logging
 
+
 class RedactionLayer(db.Model):
-    __tablename__ = 'RedactionLayers' 
+    __tablename__ = "RedactionLayers"
     # Defining the columns
-    redactionlayerid = db.Column(db.Integer, primary_key=True,autoincrement=True)
-    name = db.Column(db.String(255), unique=False, nullable=False)  
-    description = db.Column(db.String(255), unique=False, nullable=False)    
+    redactionlayerid = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), unique=False, nullable=False)
+    description = db.Column(db.String(255), unique=False, nullable=False)
     sortorder = db.Column(db.String(100), unique=False, nullable=True)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     createdby = db.Column(db.String(120), unique=False, nullable=True)
@@ -20,7 +21,7 @@ class RedactionLayer(db.Model):
     @classmethod
     def getall(cls, ministryrequestid):
         try:
-            sql = '''select rl.*, case when sq.count is null then 0 else sq.count end as count 
+            sql = """select rl.*, case when sq.count is null then 0 else sq.count end as count 
                         from public."RedactionLayers" rl left join (
                             select redactionlayerid as rlid, count(redactionlayerid) 
                             from public."Annotations" a
@@ -30,16 +31,19 @@ class RedactionLayer(db.Model):
                             where foiministryrequestid = :ministryrequestid and a.isactive = true
 							and (dd.deleted is false or dd.deleted is null)
                             group by redactionlayerid
-                        ) sq on sq.rlid = rl.redactionlayerid
-                    '''
-            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
-            return [{
-                'redactionlayerid': row['redactionlayerid'],
-                'name': row['name'],
-                'description': row['description'],
-                'sortorder': row['sortorder'],
-                'count': row['count'],
-            } for row in rs]
+                        ) as sq on sq.rlid = rl.redactionlayerid
+                    """
+            rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
+            return [
+                {
+                    "redactionlayerid": row["redactionlayerid"],
+                    "name": row["name"],
+                    "description": row["description"],
+                    "sortorder": row["sortorder"],
+                    "count": row["count"],
+                }
+                for row in rs
+            ]
         except Exception as ex:
             logging.error(ex)
         finally:
@@ -49,14 +53,19 @@ class RedactionLayer(db.Model):
     def getredlineredactionlayer(cls):
         try:
             pageflag_schema = RedactionLayerSchema(many=False)
-            query = db.session.query(RedactionLayer).filter_by(isactive=True, name ='Redline').order_by(RedactionLayer.sortorder.desc()).first()
+            query = (
+                db.session.query(RedactionLayer)
+                .filter_by(isactive=True, name="Redline")
+                .order_by(RedactionLayer.sortorder.desc())
+                .first()
+            )
             return pageflag_schema.dump(query)
         except Exception as ex:
             logging.error(ex)
         finally:
-            db.session.close()    
-    
+            db.session.close()
+
 
 class RedactionLayerSchema(ma.Schema):
     class Meta:
-        fields = ('redactionlayerid', 'name', 'description','sortorder')
+        fields = ("redactionlayerid", "name", "description", "sortorder")
