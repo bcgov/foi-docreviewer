@@ -43,8 +43,7 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES, ANNOTATION_PAGE_SIZE } from "../../../constants/constants";
-import { REDACTION_SELECT_LIMIT, PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { PDFVIEWER_DISABLED_FEATURES, ANNOTATION_PAGE_SIZE, REDACTION_SELECT_LIMIT } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
