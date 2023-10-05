@@ -43,7 +43,7 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { PDFVIEWER_DISABLED_FEATURES, ANNOTATION_PAGE_SIZE } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -55,8 +55,6 @@ import {
   sortByLastModified,
 } from "./utils";
 import _ from "lodash";
-
-const ANNOTATIONS_PAGINATION_SIZE = 500;
 
 const Redlining = React.forwardRef(
   (
@@ -657,7 +655,7 @@ const Redlining = React.forwardRef(
               requestid, 
               currentLayer.name, 
               1, 
-              ANNOTATIONS_PAGINATION_SIZE,
+              ANNOTATION_PAGE_SIZE,
               async (data) => {
                 let meta = data['meta'];
                 if (!fetchAnnotResponse) {
@@ -1173,7 +1171,7 @@ const Redlining = React.forwardRef(
 
     const fetchandApplyAnnotations = async (mappedDocs, domParser, startPageIndex=1, lastPageIndex=1) => {      
       for (let i = startPageIndex ; i <= lastPageIndex; i++) {
-        fetchAnnotationsByPagination(requestid, currentLayer.name, i, ANNOTATIONS_PAGINATION_SIZE,
+        fetchAnnotationsByPagination(requestid, currentLayer.name, i, ANNOTATION_PAGE_SIZE,
           async (data) => {
             assignAnnotationsPagination(
             mappedDocs,
