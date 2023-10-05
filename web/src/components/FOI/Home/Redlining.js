@@ -42,7 +42,7 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { REDACTION_SELECT_LIMIT, PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -76,6 +76,7 @@ const Redlining = React.forwardRef(
       setIsStitchingLoaded,
       isStitchingLoaded,
       licenseKey,
+      setWarningModalOpen
     },
     ref
   ) => {
@@ -888,7 +889,22 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
-      annotManager?.addEventListener("annotationSelected", (annotations) => {
+      annotManager?.addEventListener("annotationSelected", (annotations, action) => {
+
+        if (action === 'selected') {
+          if(annotManager?.getSelectedAnnotations().length > (REDACTION_SELECT_LIMIT*2)) {
+            console.log("reached max - deselect");
+            annotManager?.deselectAnnotations(annotations);
+            setWarningModalOpen(true);
+          }
+        }
+        // else if (action === 'deselected') {
+        //   console.log('annotation deselection');
+        // }
+  
+        // console.log('annotation list', annotations);
+        // console.log('full annotation list', annotManager?.getSelectedAnnotations());
+
         if (multiSelectFooter && enableMultiSelect) {
           multiSelectFooter.render(
             <MultiSelectEdit
@@ -1156,7 +1172,7 @@ const Redlining = React.forwardRef(
         childAnnotation.PageNumber = _redact?.getPageNumber();
         childAnnotation.X = _redact.X;
         childAnnotation.Y = _redact.Y;
-        childAnnotation.FontSize = _redact.FontSize;
+        childAnnotation.FontSize = Math.min(parseInt(_redact.FontSize), 12) + "pt";
         const fullpageredaction = _redact.getCustomData("trn-redaction-type");
         const displayedDoc =
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1523,7 +1539,7 @@ const Redlining = React.forwardRef(
             currentLayer.redactionlayerid
           )
         );
-        annotManager.addAnnotations(sectionAnnotations);
+        annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
 
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
@@ -1535,7 +1551,7 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       _annot.X = X || _redaction.X;
       _annot.Y = _redaction.Y;
-      _annot.FontSize = _redaction.FontSize;
+      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 12) + "pt";
       return _annot;
     };
 
@@ -1663,10 +1679,15 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (newRedaction) {
-        if (defaultSections.length > 0) {
-          saveRedaction();
+        if(newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
+          setWarningModalOpen(true);
+          cancelRedaction();
         } else {
-          setModalOpen(true);
+          if (defaultSections.length > 0) {
+            saveRedaction();
+          } else {
+            setModalOpen(true);
+          }
         }
       }
     }, [defaultSections, newRedaction]);
@@ -2268,6 +2289,7 @@ const Redlining = React.forwardRef(
                 });
               }
             }
+            annotManager.ungroupAnnotations(annotList);
 
             // remove duplicate and not responsive pages
             let pagesToRemove = [];
