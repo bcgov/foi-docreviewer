@@ -16,6 +16,12 @@ import { docSorting } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
+import ReactModal from "react-modal-resizable-draggable";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import CloseIcon from "@material-ui/icons/Close";
+import IconButton from "@material-ui/core/IconButton";
 
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
@@ -34,6 +40,7 @@ function Home() {
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
   const [pageMappedDocs, setPageMappedDocs] = useState([]);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
 
   const redliningRef = useRef();
 
@@ -115,6 +122,10 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos);
   };
 
+  const closeWarningMessage = () => {
+    setWarningModalOpen(false);
+  };
+
   return (
     <div className="App">
       <Grid container>
@@ -129,6 +140,7 @@ function Home() {
                 setCurrentPageInfo={setCurrentPageInfo}
                 setIndividualDoc={setIndividualDoc}
                 pageMappedDocs={pageMappedDocs}
+                setWarningModalOpen={setWarningModalOpen}
               />
             )
             // : <div>Loading</div>
@@ -154,6 +166,7 @@ function Home() {
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
+                  setWarningModalOpen={setWarningModalOpen}
                 />
               )
             // : <div>Loading</div>
@@ -167,6 +180,32 @@ function Home() {
           )}
         </Grid>
       </Grid>
+      <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog"}
+          isOpen={warningModalOpen}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+          <h2 className="state-change-header"></h2>
+            <IconButton className="title-col3" onClick={closeWarningMessage}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"dialog-content-nomargin"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span className="confirmation-message">
+                Selected pages or redactions reached the limit. <br></br>
+              </span>
+            </DialogContentText>
+          </DialogContent>
+        </ReactModal>
     </div>
   );
 }

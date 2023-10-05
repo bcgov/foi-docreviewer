@@ -32,6 +32,7 @@ import _, { forEach } from "lodash";
 import Popover from "@material-ui/core/Popover";
 import MenuList from "@material-ui/core/MenuList";
 import MenuItem from "@material-ui/core/MenuItem";
+import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 
 
 const DocumentSelector = ({
@@ -41,7 +42,8 @@ const DocumentSelector = ({
     totalPageCount,
     setCurrentPageInfo,
     setIndividualDoc,
-    pageMappedDocs
+    pageMappedDocs,
+    setWarningModalOpen
 }: any) => {
 
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -55,7 +57,7 @@ const DocumentSelector = ({
     const [pageFlagChanged, setPageFlagChanged] = useState(false);
     const [filesForDisplay, setFilesForDisplay] = useState(files);
     const [consultMinistries, setConsultMinistries] = useState<any>([]);
-    const [selectedPages, setSelectedPages] = useState([]);
+    const [selectedPages, setSelectedPages] = useState<any>([]);
     const [consultInfo, setConsultInfo] = useState({});
     const [filterFlags, setFilterFlags] = useState<any>([]);
     const [filteredFiles, setFilteredFiles] = useState(files);
@@ -261,26 +263,41 @@ const DocumentSelector = ({
         }
     };
 
-    const handleSelect = (event: any, nodeIds: any) => {     
-             
-        let selectedNodes = nodeIds.map((n: any) => JSON.parse(n));
+    const handleSelect = (event: any, nodeIds: any) => {
 
-        let _selectedpages = selectedNodes.filter((n: any) => n.page)
-       if(selected.length > 1 && nodeIds.length > 1)
-       {
-        setSelected(selected.concat(nodeIds));
-       }
-       else{
-        if(_selectedpages.length > 0)
-        {
-            setSelected(nodeIds)
+        let selectedpages:any[] = [];
+        let selectedothers:any[] = [];
+        let selectedNodes:any[] = [];
+        for (var n of nodeIds) {
+            let _n = JSON.parse(n);
+            selectedNodes.push(_n);
+            if(_n.page) {
+                selectedpages.push(n);
+            } else {
+                selectedothers.push(n);
+            }
         }
-       }
 
         if (selectedNodes.length === 1 && !_.isEqual(Object.keys(selectedNodes[0]), ["division"])) {
             let selectedFile = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
             selectTreeItem(selectedFile, selectedNodes[0].page || 1);
         }
+
+        // if new select includes divisions and filenames:
+        // 1. remove divisions and filenames from new select
+        // 2. join old select and new select
+        // else only keep new select
+        if(selectedothers.length > 0) {
+            selectedpages = [...new Set([...selected, ...selectedpages])];
+        }
+
+        if(selectedpages.length > PAGE_SELECT_LIMIT) {
+            selectedpages.shift();
+            setWarningModalOpen(true);
+        }
+
+        setSelected(selectedpages);
+        let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
         setSelectedPages(_selectedpages);
     };
 
