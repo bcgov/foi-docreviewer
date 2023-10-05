@@ -58,6 +58,7 @@ import {
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
+import { REDACTION_SELECT_LIMIT } from '../../../constants/constants'
 
 const Redlining = React.forwardRef(
   (
@@ -75,6 +76,7 @@ const Redlining = React.forwardRef(
       setIsStitchingLoaded,
       isStitchingLoaded,
       licenseKey,
+      setWarningModalOpen
     },
     ref
   ) => {
@@ -879,7 +881,22 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
-      annotManager?.addEventListener("annotationSelected", (annotations) => {
+      annotManager?.addEventListener("annotationSelected", (annotations, action) => {
+
+        if (action === 'selected') {
+          if(annotManager?.getSelectedAnnotations().length > (REDACTION_SELECT_LIMIT*2)) {
+            console.log("reached max - deselect");
+            annotManager?.deselectAnnotations(annotations);
+            setWarningModalOpen(true);
+          }
+        }
+        // else if (action === 'deselected') {
+        //   console.log('annotation deselection');
+        // }
+  
+        // console.log('annotation list', annotations);
+        // console.log('full annotation list', annotManager?.getSelectedAnnotations());
+
         if (multiSelectFooter && enableMultiSelect) {
           multiSelectFooter.render(
             <MultiSelectEdit
