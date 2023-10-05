@@ -1523,7 +1523,7 @@ const Redlining = React.forwardRef(
             currentLayer.redactionlayerid
           )
         );
-        annotManager.addAnnotations(sectionAnnotations);
+        annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
 
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
@@ -2268,6 +2268,7 @@ const Redlining = React.forwardRef(
                 });
               }
             }
+            annotManager.ungroupAnnotations(annotList);
 
             // remove duplicate and not responsive pages
             let pagesToRemove = [];
