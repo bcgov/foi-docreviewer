@@ -322,7 +322,11 @@ class Annotation(db.Model):
             ]
             insertstmt = insert(Annotation).values(values)
             upsertstmt = insertstmt.on_conflict_do_update(
-                index_elements=[Annotation.annotationname, Annotation.version],
+                index_elements=[
+                    Annotation.annotationname,
+                    Annotation.version,
+                    Annotation.redactionlayerid,
+                ],
                 set_={
                     "isactive": False,
                     "updatedby": userinfo,

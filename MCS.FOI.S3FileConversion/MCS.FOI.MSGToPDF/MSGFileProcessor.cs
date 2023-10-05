@@ -12,6 +12,9 @@ using Syncfusion.DocIO;
 using System.Collections.Generic;
 using Syncfusion.Pdf.HtmlToPdf;
 using System.ComponentModel.DataAnnotations;
+using System;
+using RtfPipe.Tokens;
+using System.IO;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -96,12 +99,10 @@ namespace MCS.FOI.MSGToPDF
 
                                             filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
                                         }
-                                        Console.WriteLine("attachmentname: " + _attachment.FileName);
-                                        Console.WriteLine("attachmentpos: " + _attachment.RenderingPosition);
-                                        Console.WriteLine("attachmentmime: " + extension);
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("cid", _attachment.ContentId);
                                         attachmentInfo.Add("size", _attachment.Data.Length.ToString());
                                         attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
@@ -109,32 +110,12 @@ namespace MCS.FOI.MSGToPDF
                                     }
                                 }
                             }
-
-                            //msg.CharsetDetectionEncodingConfidenceLevel = 0.7f;
                             if (msg.BodyRtf != null)
                             {
-                                //using var fs0 = new FileStream("C:\\folder\\log.txt", FileMode.Create, FileAccess.Write);
                                 var msgReader = new Reader();
 
                                 var inputStream = new MemoryStream();
-                                //SourceStream.CopyTo(inputStream);
-                                //List<MemoryStream> result = msgReader.ExtractToStream(inputStream, true);
-
-
-                                //using var htmlfs = new FileStream("C:\\folder\\test.txt", FileMode.Create, FileAccess.Write);
-                                //result[0].WriteTo(htmlfs);
-                                //string bin = BitConverter.ToString(((Storage.Attachment)msg.Attachments[0]).Data).Replace("-", string.Empty);
-                                //Console.WriteLine(bin);
                                 string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
-                                //var ms = new MemoryStream();
-                                //var success = false;
-                                //(ms, success) = ConvertHTMLtoPDF(body, ms);
-
-                                //using var fs1 = new FileStream("C:\\folder\\blinkconverted.pdf", FileMode.Create, FileAccess.Write);
-                                using var fs2 = new FileStream("C:\\folder\\syncfusionconverted.pdf", FileMode.Create, FileAccess.Write);
-                                //using var fs3 = new FileStream("C:\\folder\\syncfusionconverted.docx", FileMode.Create, FileAccess.Write);
-                                //using var fs4 = new FileStream("C:\\folder\\test.txt", FileMode.Create, FileAccess.Write);
-                                //ms.WriteTo(fs1);
                                 var bodyreplaced = Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", "");
                                 const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                                 const string imgString = "<img";
@@ -148,19 +129,16 @@ namespace MCS.FOI.MSGToPDF
                                         if (!attachment.GetType().FullName.ToLower().Contains("message"))
                                         {
                                             var _attachment = (Storage.Attachment)attachment;
-                                            if (htmlInline && !String.IsNullOrEmpty(_attachment.ContentId) && bodyreplaced.Contains(_attachment.ContentId))
+                                            if (htmlInline)
                                             {
-                                                inlineAttachments.Add(_attachment);
-                                                //attachmentStream = new();
-                                                //attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                                //attachmentsObj.Remove(attachmentStream);
+                                                if (!String.IsNullOrEmpty(_attachment.ContentId) && bodyreplaced.Contains(_attachment.ContentId))
+                                                {
+                                                    inlineAttachments.Add(_attachment);
+                                                }
                                             }
                                             else if (rtfInline)
                                             {
                                                 inlineAttachments.Add(_attachment);
-                                                //attachmentStream = new();
-                                                //attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
-                                                //attachmentsObj.Remove(attachmentStream); 
                                             }
                                         }
                                     }
@@ -168,47 +146,68 @@ namespace MCS.FOI.MSGToPDF
                                     {
                                         if (htmlInline)
                                         {
-                                            var match = Regex.Match(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>");
-                                            var width = float.Parse(Regex.Match(match.Value, "(?<=width=\")\\d+").Value);
-                                            var height = float.Parse(Regex.Match(match.Value, "(?<=height=\")\\d+").Value);
-                                            const float maxSize = 750;
-                                            if (width > maxSize)
+                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                             {
-                                                float scale = maxSize / width;
-                                                width = maxSize;
-                                                height = scale * height;
+                                                if (attachment.Value["cid"] == inlineAttachment.ContentId)
+                                                {
+                                                    attachmentsObj.Remove(attachment.Key);
+                                                }
                                             }
-                                            else if (height > maxSize)
-                                            {
-                                                float scale = maxSize / height;
-                                                height = maxSize;
-                                                width = scale * width;
-                                            }
-                                            bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img width='" + width.ToString() + "' height ='" + height.ToString() + "' src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
                                         }
                                         else if (rtfInline)
                                         {
-                                            //using var fs5 = new FileStream("C:\\folder\\image.png", FileMode.Create, FileAccess.Write);
-                                            //fs5.Write(inlineAttachment.Data, 0, inlineAttachment.Data.Length);
-                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img src=\"data:image/" + Path.GetExtension(inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
-                                            //var string1 = Convert.ToBase64String(inlineAttachment.Data);
-                                            //var string2 = BitConverter.ToString(inlineAttachment.Data).Replace("-", string.Empty);
+                                            if (inlineAttachment.OleAttachment)
+                                            {
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img src=\"data:image/" + Path.GetExtension(inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                                {
+                                                    if (attachment.Value["filename"] == inlineAttachment.FileName)
+                                                    {
+                                                        attachmentsObj.Remove(attachment.Key);
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + inlineAttachment.FileName + "**]</b>");
+                                            }
                                         }
                                     }
                                 }
 
-
                                 byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
                                 using (MemoryStream messageStream = new MemoryStream(byteArray))
-                                {
-                                    //messageStream.WriteTo(fs4);
+                                {                                    
                                     using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Html))
                                     {
-                                        //rtfDoc.Save(fs3, FormatType.Docx);
                                         // Replace leading tabs, issue with syncfusion
                                         rtfDoc.ReplaceFirst = true;
                                         var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
                                         var occurences = rtfDoc.Replace(regex, "\r\n");
+
+                                        List<Entity> pictures = rtfDoc.FindAllItemsByProperty(EntityType.Picture, "", "");
+
+                                        if (pictures != null)
+                                        {
+                                            foreach (WPicture picture in pictures)
+                                            {
+                                                picture.LockAspectRatio = true;
+                                                const float maxSize = 500;
+                                                if (picture.Height > maxSize && picture.Height >= picture.Width)
+                                                {
+                                                    var scale = (maxSize / picture.Height) * 100;
+                                                    picture.HeightScale = scale;
+                                                    picture.WidthScale = scale;
+                                                }
+                                                if (picture.Width > maxSize)
+                                                {
+                                                    var scale = (maxSize / picture.Width) * 100;
+                                                    picture.HeightScale = scale;
+                                                    picture.WidthScale = scale;
+                                                }
+                                            }
+                                        }
 
                                         //Gets all the hyperlink fields in the document
 
@@ -310,6 +309,8 @@ namespace MCS.FOI.MSGToPDF
                             //string htmlString = GenerateHtmlfromMsg(msg);
                             //bool isConverted;
                             //(output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
+
+                            
 
 
                             break;
