@@ -42,7 +42,7 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { REDACTION_SELECT_LIMIT, PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -76,6 +76,7 @@ const Redlining = React.forwardRef(
       setIsStitchingLoaded,
       isStitchingLoaded,
       licenseKey,
+      setWarningModalOpen
     },
     ref
   ) => {
@@ -888,7 +889,22 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
-      annotManager?.addEventListener("annotationSelected", (annotations) => {
+      annotManager?.addEventListener("annotationSelected", (annotations, action) => {
+
+        if (action === 'selected') {
+          if(annotManager?.getSelectedAnnotations().length > (REDACTION_SELECT_LIMIT*2)) {
+            console.log("reached max - deselect");
+            annotManager?.deselectAnnotations(annotations);
+            setWarningModalOpen(true);
+          }
+        }
+        // else if (action === 'deselected') {
+        //   console.log('annotation deselection');
+        // }
+  
+        // console.log('annotation list', annotations);
+        // console.log('full annotation list', annotManager?.getSelectedAnnotations());
+
         if (multiSelectFooter && enableMultiSelect) {
           multiSelectFooter.render(
             <MultiSelectEdit
@@ -1663,10 +1679,15 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (newRedaction) {
-        if (defaultSections.length > 0) {
-          saveRedaction();
+        if(newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
+          setWarningModalOpen(true);
+          cancelRedaction();
         } else {
-          setModalOpen(true);
+          if (defaultSections.length > 0) {
+            saveRedaction();
+          } else {
+            setModalOpen(true);
+          }
         }
       }
     }, [defaultSections, newRedaction]);
