@@ -1879,7 +1879,7 @@ const Redlining = React.forwardRef(
             }
           } 
     }
-
+    //BANG
     const saveRedlineDocument = (_instance) => {
       let arr = [];
       const divisionFilesList = [...documentList, ...incompatibleFiles];
@@ -1971,8 +1971,8 @@ const Redlining = React.forwardRef(
               doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
               for (const flagInfo of doc.pageFlag) {
                 if (
-                  flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                  flagInfo.flagid == pageFlagTypes["Not Responsive"]
+                  flagInfo.flagid === pageFlagTypes["Duplicate"] ||
+                  flagInfo.flagid === pageFlagTypes["Not Responsive"]
                 ) {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   pagesToRemove.push(
@@ -2061,7 +2061,7 @@ const Redlining = React.forwardRef(
                     pageIndexToInsert
                   );
                 }
-
+                console.log(divObj.documentlist)
                 // save to s3 once all doc stitched
                 if (docCount == divObj.documentlist.length) {
            
@@ -2080,7 +2080,9 @@ const Redlining = React.forwardRef(
                     await stampPageNumberRedline(stitchedDocObj,PDFNet, divisionstichpages)
 
                   }
-
+                  ///BANG
+                  console.log(pagesToRemove)
+                  console.log(stitchedDocObj)
                   // remove duplicate and not responsive pages
                   await stitchedDocObj.removePages(pagesToRemove);
 
@@ -2165,6 +2167,7 @@ const Redlining = React.forwardRef(
       setRedlineSaving(true);
       switch (modalFor) {
         case "redline":
+          //BANG
           saveRedlineDocument(docInstance);
           break;
         case "responsepackage":
@@ -2275,8 +2278,8 @@ const Redlining = React.forwardRef(
               for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
                 // pageflag duplicate or not responsive
                 if (
-                  pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
-                  pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
+                  pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
+                  pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
                 ) {
                   pagesToRemove.push(
                     getStitchedPageNoFromOriginal(
@@ -2293,7 +2296,10 @@ const Redlining = React.forwardRef(
             
 
             let doc = documentViewer.getDocument();
+            console.log(doc)
+            console.log(pagesToRemove)
             let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
+            //BANG
             await doc.removePages(pagesToRemove);
 
             const {  PDFNet   } = _instance.Core;
