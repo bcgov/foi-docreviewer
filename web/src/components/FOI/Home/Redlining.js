@@ -1172,7 +1172,7 @@ const Redlining = React.forwardRef(
         childAnnotation.PageNumber = _redact?.getPageNumber();
         childAnnotation.X = _redact.X;
         childAnnotation.Y = _redact.Y;
-        childAnnotation.FontSize = _redact.FontSize;
+        childAnnotation.FontSize = Math.min(parseInt(_redact.FontSize), 12) + "pt";
         const fullpageredaction = _redact.getCustomData("trn-redaction-type");
         const displayedDoc =
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1551,7 +1551,7 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       _annot.X = X || _redaction.X;
       _annot.Y = _redaction.Y;
-      _annot.FontSize = _redaction.FontSize;
+      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 12) + "pt";
       return _annot;
     };
 
