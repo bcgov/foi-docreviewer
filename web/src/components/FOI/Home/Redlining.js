@@ -1900,7 +1900,7 @@ const Redlining = React.forwardRef(
             }
           } 
     }
-    //BANG
+
     const saveRedlineDocument = (_instance) => {
       let arr = [];
       const divisionFilesList = [...documentList, ...incompatibleFiles];
@@ -1958,8 +1958,11 @@ const Redlining = React.forwardRef(
           let domParser = new DOMParser();
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
+          //ADD IN LOGIC HERE TO FILTER OUT DIVOBJS FROM DOCUMENTLISTS (DOCS) THAT HAVE PAGESTOREMOVE.LENGTH = DOCS.PAGECOUNT
+          // ISSUe = if any DIVISION GROUP (DIV OBJ) WHICH HAS X DOCUMENTS AND X PAGES, IF YOU REMOVE PAGES THAT ARE EQUAL TO ALL THE PAGES IN THE DIV OBJ (AND ALL ITS DOCS) = ERROR
           for (let divObj of res.divdocumentList) {
             let pageMappingsByDivisions = {};
+            console.log(divObj)
 
             currentDivisionCount++;
             toast.update(toastID, {
@@ -2101,7 +2104,6 @@ const Redlining = React.forwardRef(
                     await stampPageNumberRedline(stitchedDocObj,PDFNet, divisionstichpages)
 
                   }
-                  ///BANG
                   console.log(pagesToRemove)
                   console.log(stitchedDocObj)
                   // remove duplicate and not responsive pages
@@ -2188,7 +2190,6 @@ const Redlining = React.forwardRef(
       setRedlineSaving(true);
       switch (modalFor) {
         case "redline":
-          //BANG
           saveRedlineDocument(docInstance);
           break;
         case "responsepackage":
@@ -2321,7 +2322,6 @@ const Redlining = React.forwardRef(
             console.log(doc)
             console.log(pagesToRemove)
             let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
-            //BANG
             await doc.removePages(pagesToRemove);
 
             const {  PDFNet   } = _instance.Core;
