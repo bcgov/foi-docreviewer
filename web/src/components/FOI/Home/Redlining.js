@@ -135,7 +135,7 @@ const Redlining = React.forwardRef(
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
-    const [errorFlag, setErrorFlag] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
 
 
     //xml parser
@@ -1087,18 +1087,18 @@ const Redlining = React.forwardRef(
           },
           (error) => {
             console.log("Error:", error);
-            setErrorFlag(true);
+            setErrorMessage('Error occurred while fetching redaction details, please refresh browser and try again');
           }
         );
       } 
    }
 
    useEffect(() => {
-    if (errorFlag) {
-      errorToast('Internal server error occurred while fetching redaction details');
+    if (errorMessage) {
+      errorToast(errorMessage);
     }
     
-  }, [errorFlag]);
+  }, [errorMessage]);
 
 
     const assignAnnotationsPagination = async (
