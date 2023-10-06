@@ -504,7 +504,7 @@ const Redlining = React.forwardRef(
             },
             true
           );
-          checkSavingRedlineButton(instance)
+          checkSavingRedlineButton(instance) // Run this once files loaded
         });
       };
       initializeWebViewer();
