@@ -1095,7 +1095,7 @@ const Redlining = React.forwardRef(
 
    useEffect(() => {
     if (errorFlag) {
-      errorToast('Internal Server Error');
+      errorToast('Internal server error occurred while fetching redaction details');
     }
     
   }, [errorFlag]);
