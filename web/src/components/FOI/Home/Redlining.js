@@ -504,6 +504,7 @@ const Redlining = React.forwardRef(
             },
             true
           );
+          checkSavingRedlineButton(instance)
         });
       };
       initializeWebViewer();
