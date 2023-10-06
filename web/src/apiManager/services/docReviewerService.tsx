@@ -56,6 +56,30 @@ export const fetchAnnotations = (
     });
 };
 
+export const fetchAnnotationsByPagination = (
+  ministryrequestid: number,
+  redactionlayer: string = "redline",
+  activepage: number,
+  size: number,
+  callback: any,
+  errorCallback: any
+) => {
+  console.log('get annotations here - 1');
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+};
+
 export const fetchAnnotationsInfo = (
   ministryrequestid: number,
   //callback: any,
