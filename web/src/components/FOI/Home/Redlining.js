@@ -25,7 +25,6 @@ import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-line.svg";
 import {
-  fetchAnnotations,
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
   saveAnnotation,
@@ -44,6 +43,7 @@ import {
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
 import { PDFVIEWER_DISABLED_FEATURES, ANNOTATION_PAGE_SIZE, REDACTION_SELECT_LIMIT } from "../../../constants/constants";
+import { errorToast } from "../../../helper/helper";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -135,6 +135,8 @@ const Redlining = React.forwardRef(
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
+    const [errorFlag, setErrorFlag] = useState(false);
+
 
     //xml parser
     const parser = new XMLParser();
@@ -403,17 +405,7 @@ const Redlining = React.forwardRef(
             //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
-              individualDoc = localDocumentInfo;
-            // fetchAnnotations(
-            //   requestid,
-            //   (data) => {
-            //     if (data) setMerge(true);
-            //     setFetchAnnotResponse(data);
-            //   },
-            //   (error) => {
-            //     console.log("Error:", error);
-            //   }
-            // );
+              individualDoc = localDocumentInfo;            
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
@@ -1095,10 +1087,19 @@ const Redlining = React.forwardRef(
           },
           (error) => {
             console.log("Error:", error);
+            setErrorFlag(true);
           }
         );
       } 
    }
+
+   useEffect(() => {
+    if (errorFlag) {
+      errorToast('Internal Server Error');
+    }
+    
+  }, [errorFlag]);
+
 
     const assignAnnotationsPagination = async (
       pageMappedDocs,
