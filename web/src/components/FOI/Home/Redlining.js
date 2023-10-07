@@ -1853,7 +1853,7 @@ const Redlining = React.forwardRef(
             doc,
             `${requestnumber} , Page ${
               divisionsdocpages[pagecount - 1].stitchedPageNo
-            }`,
+            } of ${docViewer.getPageCount()}`,
             pgSet
           );
         });
@@ -1891,7 +1891,7 @@ const Redlining = React.forwardRef(
                 await s.setAsBackground(false);
                 const pgSet = await PDFNet.PageSet.createRange(pagecount , pagecount);
                               
-                await s.stampText(doc, `${requestnumber} , Page ${pagecount}`, pgSet);
+                await s.stampText(doc, `${requestnumber} , Page ${pagecount} of ${_docViwer.getPageCount()}`, pgSet);
                                                      
               });
             }
