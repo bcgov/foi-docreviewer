@@ -1935,11 +1935,21 @@ const Redlining = React.forwardRef(
         let incompatableList = incompatibleFiles.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
+        let totalPageCount = 0;
+        let totalPagesToRemove =  0;
+        for (let doc of divDocList) {
+          totalPageCount += doc.pagecount;
+          for (let flagInfo of doc.pageFlag) {
+            flagInfo.flagid === pageFlagTypes["Duplicate"] || flagInfo.flagid === pageFlagTypes["Not Responsive"] ? totalPagesToRemove++ : totalPagesToRemove += 0;
+          }
+        }
         let newDivObj = {
           divisionid: div.divisionid,
           divisionname: div.name,
           documentlist: divDocList,
           incompatableList: incompatableList,
+          totalPageCount: totalPageCount,
+          totalPagesToRemove: totalPagesToRemove
         };
         newDocList.push(newDivObj);
       }
@@ -1958,9 +1968,14 @@ const Redlining = React.forwardRef(
           let domParser = new DOMParser();
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
-          //ADD IN LOGIC HERE TO FILTER OUT DIVOBJS FROM DOCUMENTLISTS (DOCS) THAT HAVE PAGESTOREMOVE.LENGTH = DOCS.PAGECOUNT
+          //READ THIS!!!
+          // ADD IN LOGIC HERE TO FILTER OUT DIVOBJS FROM DOCUMENTLISTS (DOCS) THAT HAVE PAGESTOREMOVE.LENGTH = DOCS.PAGECOUNT
           // ISSUe = if any DIVISION GROUP (DIV OBJ) WHICH HAS X DOCUMENTS AND X PAGES, IF YOU REMOVE PAGES THAT ARE EQUAL TO ALL THE PAGES IN THE DIV OBJ (AND ALL ITS DOCS) = ERROR
-          for (let divObj of res.divdocumentList) {
+          //RULE do not do a stitch job where pagestoremove from all docs in dib obj = total pages of docs in div obj
+          // solution = adjust stitching logic OR create FE rule/validaiton -> if total pages of docs assosiated with a div Obj === to pageflags associated iwth dupicate or no responsive = ERROR MSG
+          //reuse pages to remove AND pagegalgs and newDocList state variable (SEE RICHARD CHAT)
+          const filteredDivDocumentlist = res.divdocumentList.filter(divObj => divObj.totalPageCount !== divObj.totalPagesToRemove);
+          for (let divObj of filteredDivDocumentlist) {
             let pageMappingsByDivisions = {};
             console.log(divObj)
 
@@ -2009,7 +2024,7 @@ const Redlining = React.forwardRef(
                     pagesToRemoveEachDoc.length;
                 }
               }
-
+              
               // update annotation xml
               if (divObj.annotationXML[doc.documentid]) {
                 let updatedXML = [];
@@ -2085,7 +2100,6 @@ const Redlining = React.forwardRef(
                     pageIndexToInsert
                   );
                 }
-                console.log(divObj.documentlist)
                 // save to s3 once all doc stitched
                 if (docCount == divObj.documentlist.length) {
            
