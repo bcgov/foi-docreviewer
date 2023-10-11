@@ -167,6 +167,42 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
+    def getredactionsbydocuments(cls, _documentpagesmapping, redactionlayerid):
+        try:
+            query = cls.__generateannotationquery(
+                _documentpagesmapping, redactionlayerid
+            )
+            rs = db.session.execute(text(query))
+            db.session.close()
+            return [
+                {
+                    "documentid": row["documentid"],
+                    "pagenumber": row["pagenumber"],
+                }
+                for row in rs
+            ]
+
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def __generateannotationquery(cls, _documentpagesmapping, redactionlayerid):
+        conditions = []
+        for item in _documentpagesmapping:
+            docid = item["docid"]
+            pages = item["pages"]
+            page_condition = f"(documentid = {docid} AND pagenumber IN ({', '.join(map(str, pages))}))"
+            conditions.append(page_condition)
+
+        inner_condition = " OR ".join(conditions)
+        outer_condition = f"isactive = true AND redactionlayerid = {redactionlayerid} AND annotation ILIKE '%<redact %'"
+        query = f'SELECT documentid, pagenumber FROM "Annotations" WHERE ({inner_condition}) AND ({outer_condition}) ORDER BY annotationid ASC;'
+        print("query === ", query)
+        return query
+
+    @classmethod
     def getannotationinfo(cls, _documentid, _documentversion):
         try:
             annotation_schema = AnnotationSchema(many=True)
