@@ -99,12 +99,12 @@ class redactionservice:
         inputdocpagesmapping = self.__getdocumentpagesmapping(
             annotationschema["annotations"]
         )
-
+        print("<<< start getredactionsbydocuments >>>")
         # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
         skipdocpagesmapping = Annotation.getredactionsbydocuments(
             inputdocpagesmapping, redactionlayerid
         )
-
+        print("<<< end getredactionsbydocuments >>>")
         # pages not having redactions
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, skipdocpagesmapping
