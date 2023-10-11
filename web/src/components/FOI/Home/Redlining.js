@@ -1946,15 +1946,6 @@ const Redlining = React.forwardRef(
               0.3
             );
 
-            // lock the document before a write operation
-            // runWithCleanup will auto unlock when complete
-            doc.lock();
-            const s = await PDFNet.Stamper.create(
-              PDFNet.Stamper.SizeType.e_relative_scale,
-              0.3,
-              0.3
-            );
-
             await s.setAlignment(
               PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
               PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
