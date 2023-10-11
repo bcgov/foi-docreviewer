@@ -29,6 +29,7 @@ def processmessage(message):
             message="",
         )
         result = __zipfilesandupload(message, s3credentials)
+        
         recordjobstatus(
             pdfstitchmessage=message,
             version=4,
@@ -103,6 +104,7 @@ def __getdocumentbytearray(file, s3credentials):
 
 def __zipfilesandupload(_message, s3credentials):
     zipped_bytes = None
+    docobj = None
     try:
         with tempfile.SpooledTemporaryFile() as tp:
             with zipfile.ZipFile(
@@ -115,7 +117,7 @@ def __zipfilesandupload(_message, s3credentials):
                     docarray = __getdocumentbytearray(fileobj, s3credentials)
                     print("after __getdocumentbytearray")
                     zip.writestr(
-                        filename, __getdocumentbytearray(fileobj, s3credentials)
+                        filename, docarray
                     )
                     print("***** zip.writestr *****")
             tp.seek(0)
@@ -136,9 +138,10 @@ def __zipfilesandupload(_message, s3credentials):
     except Exception as ex:
         logging.error("error in writing the bytearray")
         logging.error(ex)
-        raise
-    finally:
-        zipped_bytes = None
+        docobj = {"success": False, "filename": '', "documentpath": None}
+        return docobj
+        #raise
+
 
 
 def __getzipfilepath(category, filename):
