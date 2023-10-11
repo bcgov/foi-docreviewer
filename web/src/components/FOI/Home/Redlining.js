@@ -504,7 +504,6 @@ const Redlining = React.forwardRef(
             },
             true
           );
-          checkSavingRedlineButton(instance)
         });
       };
       initializeWebViewer();
@@ -1003,7 +1002,7 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       checkSavingRedlineButton(docInstance);
-    }, [pageFlags]);
+    }, [pageFlags, isStitchingLoaded]);
 
     const stitchDocumentsFunc = async (doc) => {
       let docCopy = [...docsForStitcing];
