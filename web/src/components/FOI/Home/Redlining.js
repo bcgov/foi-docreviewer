@@ -637,6 +637,12 @@ const Redlining = React.forwardRef(
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
             setRedactionType(annotations[0]?.type);
+            if(annotations[0].IsText){
+              annotManager.deleteAnnotation(
+                annotManager.getAnnotationById(annotations[0].Id)
+              );
+              return;
+            }
             if (action === "delete") {
               let annotObjs = [];
               for (let annot of annots[0].children) {
