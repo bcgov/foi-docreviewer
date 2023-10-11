@@ -4,7 +4,7 @@ import "../../../styles.scss";
 import "../App.scss";
 import DocumentSelector from "./DocumentSelector";
 import Redlining from "./Redlining";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
   fetchPageFlag,
@@ -17,11 +17,11 @@ import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
 import ReactModal from "react-modal-resizable-draggable";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import CloseIcon from "@material-ui/icons/Close";
-import IconButton from "@material-ui/core/IconButton";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import CloseIcon from "@mui/icons-material/Close";
+import IconButton from "@mui/material/IconButton";
 
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);

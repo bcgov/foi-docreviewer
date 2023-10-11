@@ -1,9 +1,9 @@
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import CloseIcon from '@material-ui/icons/Close';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import CloseIcon from '@mui/icons-material/Close';
 import IconButton from "@mui/material/IconButton";
 
 const PageLeftOffModal = ({
@@ -22,7 +22,7 @@ const PageLeftOffModal = ({
                 maxWidth={'md'}
                 //fullWidth={true}
             >
-                <DialogTitle disableTypography id="state-change-dialog-title" className="consult-modal-margin">
+                <DialogTitle id="state-change-dialog-title" className="consult-modal-margin">
                     <h2 className="state-change-header">Page Left Off Bookmark</h2>
                     <IconButton aria-label="close" onClick={() => setOpenPageLeftOffModal(false)}>
                         <CloseIcon />
