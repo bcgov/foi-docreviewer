@@ -1967,12 +1967,7 @@ const Redlining = React.forwardRef(
           let domParser = new DOMParser();
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
-          //READ THIS!!!
-          // ADD IN LOGIC HERE TO FILTER OUT DIVOBJS FROM DOCUMENTLISTS (DOCS) THAT HAVE PAGESTOREMOVE.LENGTH = DOCS.PAGECOUNT
-          // ISSUe = if any DIVISION GROUP (DIV OBJ) WHICH HAS X DOCUMENTS AND X PAGES, IF YOU REMOVE PAGES THAT ARE EQUAL TO ALL THE PAGES IN THE DIV OBJ (AND ALL ITS DOCS) = ERROR
-          //RULE do not do a stitch job where pagestoremove from all docs in dib obj = total pages of docs in div obj
-          // solution = adjust stitching logic OR create FE rule/validaiton -> if total pages of docs assosiated with a div Obj === to pageflags associated iwth dupicate or no responsive = ERROR MSG
-          //reuse pages to remove AND pagegalgs and newDocList state variable (SEE RICHARD CHAT)
+          
           const filteredDivDocumentlist = res.divdocumentList.filter(divObj => divObj.totalPageCount !== divObj.totalPagesToRemove);
           const divisionCountForToast = filteredDivDocumentlist.length;
           for (let divObj of filteredDivDocumentlist) {
@@ -2023,7 +2018,7 @@ const Redlining = React.forwardRef(
                     pagesToRemoveEachDoc.length;
                 }
               }
-              
+
               // update annotation xml
               if (divObj.annotationXML[doc.documentid]) {
                 let updatedXML = [];
@@ -2099,6 +2094,7 @@ const Redlining = React.forwardRef(
                     pageIndexToInsert
                   );
                 }
+
                 // save to s3 once all doc stitched
                 if (docCount == divObj.documentlist.length) {
            
@@ -2117,6 +2113,7 @@ const Redlining = React.forwardRef(
                     await stampPageNumberRedline(stitchedDocObj,PDFNet, divisionstichpages)
 
                   }
+
                   // remove duplicate and not responsive pages
                   await stitchedDocObj.removePages(pagesToRemove);
 
