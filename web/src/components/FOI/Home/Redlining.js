@@ -1922,7 +1922,6 @@ const Redlining = React.forwardRef(
       ];
       const downloadType = "pdf";
 
-      const divisionCountForToast = divisions.length;
       let currentDivisionCount = 0;
       const toastID = toast.loading("Start saving redline...");
 
@@ -1975,9 +1974,9 @@ const Redlining = React.forwardRef(
           // solution = adjust stitching logic OR create FE rule/validaiton -> if total pages of docs assosiated with a div Obj === to pageflags associated iwth dupicate or no responsive = ERROR MSG
           //reuse pages to remove AND pagegalgs and newDocList state variable (SEE RICHARD CHAT)
           const filteredDivDocumentlist = res.divdocumentList.filter(divObj => divObj.totalPageCount !== divObj.totalPagesToRemove);
+          const divisionCountForToast = filteredDivDocumentlist.length;
           for (let divObj of filteredDivDocumentlist) {
             let pageMappingsByDivisions = {};
-            console.log(divObj)
 
             currentDivisionCount++;
             toast.update(toastID, {
@@ -2118,8 +2117,6 @@ const Redlining = React.forwardRef(
                     await stampPageNumberRedline(stitchedDocObj,PDFNet, divisionstichpages)
 
                   }
-                  console.log(pagesToRemove)
-                  console.log(stitchedDocObj)
                   // remove duplicate and not responsive pages
                   await stitchedDocObj.removePages(pagesToRemove);
 
@@ -2333,8 +2330,6 @@ const Redlining = React.forwardRef(
             
 
             let doc = documentViewer.getDocument();
-            console.log(doc)
-            console.log(pagesToRemove)
             let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
 
