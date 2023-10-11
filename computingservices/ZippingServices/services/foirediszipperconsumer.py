@@ -60,7 +60,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                                 _message
                             )
                             print(producermessage)
-                            processmessage(producermessage) 
+                            #processmessage(producermessage) #TOD : TRAIL CODE, Need to uncomment
                             readyfornotification = True
                             print(
                                 "Processing is completed for Job ID {0} for category {1}".format(
