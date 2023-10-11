@@ -1939,7 +1939,9 @@ const Redlining = React.forwardRef(
         for (let doc of divDocList) {
           totalPageCount += doc.pagecount;
           for (let flagInfo of doc.pageFlag) {
-            flagInfo.flagid === pageFlagTypes["Duplicate"] || flagInfo.flagid === pageFlagTypes["Not Responsive"] ? totalPagesToRemove++ : totalPagesToRemove += 0;
+            if (flagInfo.flagid === pageFlagTypes["Duplicate"] || flagInfo.flagid === pageFlagTypes["Not Responsive"]) {
+              totalPagesToRemove++;
+            }
           }
         }
         let newDivObj = {
