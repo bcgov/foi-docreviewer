@@ -15,4 +15,7 @@ export const SESSION_LIFETIME = 21600000;
 export const PDFVIEWER_DISABLED_FEATURES=(window._env_ && window._env_.REACT_APP_PDFVIEWERDISABLED) ||
 process.env.REACT_APP_PDFVIEWERDISABLED ||
 "toolbarGroup-Edit,toolbarGroup-Insert,toolbarGroup-Forms,toolbarGroup-FillAndSign,insertPage,modalRedactButton,annotationRedactButton,richTextFormats,colorPalette,annotationGroupButton,annotationUngroupButton,multiGroupButton,multiUngroupButton";
+export const ANNOTATION_PAGE_SIZE = (window._env_ && window._env_.REACT_APP_ANNOTATION_PAGE_SIZE) || process.env.REACT_APP_ANNOTATION_PAGE_SIZE || 500;
 
+export const PAGE_SELECT_LIMIT = (window._env_ && window._env_.REACT_APP_PAGE_SELECT_LIMIT) || process.env.REACT_APP_PAGE_SELECT_LIMIT || 250;
+export const REDACTION_SELECT_LIMIT = (window._env_ && window._env_.REACT_APP_REDACTION_SELECT_LIMIT) || process.env.REACT_APP_REDACTION_SELECT_LIMIT || 250;

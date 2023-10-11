@@ -25,7 +25,7 @@ import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-line.svg";
 import {
-  fetchAnnotations,
+  fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
   saveAnnotation,
   deleteRedaction,
@@ -42,7 +42,8 @@ import {
   saveFilesinS3,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
-import { PDFVIEWER_DISABLED_FEATURES } from "../../../constants/constants";
+import { PDFVIEWER_DISABLED_FEATURES, ANNOTATION_PAGE_SIZE, REDACTION_SELECT_LIMIT } from "../../../constants/constants";
+import { errorToast } from "../../../helper/helper";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
@@ -76,6 +77,7 @@ const Redlining = React.forwardRef(
       setIsStitchingLoaded,
       isStitchingLoaded,
       licenseKey,
+      setWarningModalOpen
     },
     ref
   ) => {
@@ -133,6 +135,8 @@ const Redlining = React.forwardRef(
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
+
 
     //xml parser
     const parser = new XMLParser();
@@ -401,17 +405,7 @@ const Redlining = React.forwardRef(
             //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
-              individualDoc = localDocumentInfo;
-            // fetchAnnotations(
-            //   requestid,
-            //   (data) => {
-            //     if (data) setMerge(true);
-            //     setFetchAnnotResponse(data);
-            //   },
-            //   (error) => {
-            //     console.log("Error:", error);
-            //   }
-            // );
+              individualDoc = localDocumentInfo;            
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
@@ -555,36 +549,40 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
-            fetchAnnotations(
-              requestid,
-              currentLayer.name,
+            fetchAnnotationsByPagination(
+              requestid, 
+              currentLayer.name, 
+              1, 
+              ANNOTATION_PAGE_SIZE,
               async (data) => {
-                setMerge(true);
+                let meta = data['meta'];
                 if (!fetchAnnotResponse) {
+                  setMerge(true);
                   setFetchAnnotResponse(data);
                 } else {
                   annotManager.disableReadOnlyMode();
                   docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
                   const existingAnnotations = annotManager.getAnnotationsList();
                   await annotManager.deleteAnnotations(existingAnnotations, {
-                    imported: true,
-                    force: true,
-                    source: "layerchange",
+                        imported: true,
+                        force: true,
+                        source: "layerchange",
                   });
-                  for (const docid in data) {
-                    assignAnnotations(
-                      docid,
-                      pageMappedDocs.docIdLookup[docid],
-                      data,
-                      new DOMParser()
+                  let domParser = new DOMParser();
+                    assignAnnotationsPagination(
+                      pageMappedDocs,
+                      data['data'],
+                      domParser
                     );
-                  }
+                    if (meta['has_next'] === true) {
+                      fetchandApplyAnnotations(pageMappedDocs, domParser, meta['next_num'], meta['pages']);
+                    }
+                  
                 }
-              },
-              (error) => {
+              }, (error) => {
                 console.log("Error:", error);
               }
-            );
+            ); 
             fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
               console.log(error)
             );
@@ -915,7 +913,22 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
-      annotManager?.addEventListener("annotationSelected", (annotations) => {
+      annotManager?.addEventListener("annotationSelected", (annotations, action) => {
+
+        if (action === 'selected') {
+          if(annotManager?.getSelectedAnnotations().length > (REDACTION_SELECT_LIMIT*2)) {
+            console.log("reached max - deselect");
+            annotManager?.deselectAnnotations(annotations);
+            setWarningModalOpen(true);
+          }
+        }
+        // else if (action === 'deselected') {
+        //   console.log('annotation deselection');
+        // }
+  
+        // console.log('annotation list', annotations);
+        // console.log('full annotation list', annotManager?.getSelectedAnnotations());
+
         if (multiSelectFooter && enableMultiSelect) {
           multiSelectFooter.render(
             <MultiSelectEdit
@@ -1030,12 +1043,8 @@ const Redlining = React.forwardRef(
         division: removedFirstElement.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
       };
-      assignAnnotations(
-        removedFirstElement.file.documentid,
-        mappedDoc,
-        fetchAnnotResponse,
-        domParser
-      );
+      
+      
       for (let file of docCopy) {
         mappedDoc = {
           docId: 0,
@@ -1056,7 +1065,7 @@ const Redlining = React.forwardRef(
           let pageNo = i + 1;
           stitchedPageNo = doc.getPageCount() + (i + 1);
           if (stitchedPageNo > 61) {
-            console.log("here");
+            //console.log("here");
           }
           let pageMappings = {
             pageNo: pageNo,
@@ -1077,30 +1086,56 @@ const Redlining = React.forwardRef(
           division: file.file.divisions[0].divisionid,
           pageMappings: mappedDoc.pageMappings,
         };
-        assignAnnotations(
-          file.file.documentid,
-          mappedDoc,
-          fetchAnnotResponse,
-          domParser
-        );
       }
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
-      // docInstance.UI.searchTextFull(searchKeywords, {
-      //   wholeWord: true,
-      //   regex: true,
-      // });
+      if (fetchAnnotResponse) {
+        assignAnnotationsPagination(
+          mappedDocs,
+          fetchAnnotResponse['data'],
+          domParser
+        );
+        let meta = fetchAnnotResponse['meta'];
+        if (meta['has_next'] === true) {
+          fetchandApplyAnnotations(mappedDocs, domParser, meta['next_num'], meta['pages']);
+         }
+      }
     };
 
-    const assignAnnotations = async (
-      documentid,
-      mappedDoc,
+    const fetchandApplyAnnotations = async (mappedDocs, domParser, startPageIndex=1, lastPageIndex=1) => {      
+      for (let i = startPageIndex ; i <= lastPageIndex; i++) {
+        fetchAnnotationsByPagination(requestid, currentLayer.name, i, ANNOTATION_PAGE_SIZE,
+          async (data) => {
+            assignAnnotationsPagination(
+            mappedDocs,
+            data['data'],
+            domParser
+          );
+          },
+          (error) => {
+            console.log("Error:", error);
+            setErrorMessage('Error occurred while fetching redaction details, please refresh browser and try again');
+          }
+        );
+      } 
+   }
+
+   useEffect(() => {
+    if (errorMessage) {
+      errorToast(errorMessage);
+    }
+    
+  }, [errorMessage]);
+
+
+    const assignAnnotationsPagination = async (
+      pageMappedDocs,
       annotData,
       domParser
     ) => {
       let username = docViewer?.getAnnotationManager()?.getCurrentUser();
-      if (annotData[documentid]) {
-        let xml = parser.parseFromString(annotData[documentid]);
+      for(const entry in annotData) {
+        let xml = parser.parseFromString(annotData[entry]);      
         for (let annot of xml.getElementsByTagName("annots")[0].children) {
           let txt = domParser.parseFromString(
             annot.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
@@ -1108,6 +1143,7 @@ const Redlining = React.forwardRef(
           );
           let customData = JSON.parse(txt.documentElement.textContent);
           let originalPageNo = customData.originalPageNo;
+          let mappedDoc = pageMappedDocs?.docIdLookup[entry];
           annot.attributes.page = (
             mappedDoc.pageMappings.find(
               (p) => p.pageNo - 1 === Number(originalPageNo)
@@ -1139,6 +1175,9 @@ const Redlining = React.forwardRef(
         });
       }
     };
+    
+
+      
 
     useEffect(() => {
       if (docsForStitcing.length > 0 && merge && docViewer) {
@@ -1183,7 +1222,7 @@ const Redlining = React.forwardRef(
         childAnnotation.PageNumber = _redact?.getPageNumber();
         childAnnotation.X = _redact.X;
         childAnnotation.Y = _redact.Y;
-        childAnnotation.FontSize = _redact.FontSize;
+        childAnnotation.FontSize = Math.min(parseInt(_redact.FontSize), 12) + "pt";
         const fullpageredaction = _redact.getCustomData("trn-redaction-type");
         const displayedDoc =
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1550,7 +1589,7 @@ const Redlining = React.forwardRef(
             currentLayer.redactionlayerid
           )
         );
-        annotManager.addAnnotations(sectionAnnotations);
+        annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
 
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
@@ -1562,7 +1601,7 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       _annot.X = X || _redaction.X;
       _annot.Y = _redaction.Y;
-      _annot.FontSize = _redaction.FontSize;
+      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 12) + "pt";
       return _annot;
     };
 
@@ -1674,10 +1713,15 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (newRedaction) {
-        if (defaultSections.length > 0) {
-          saveRedaction();
+        if(newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
+          setWarningModalOpen(true);
+          cancelRedaction();
         } else {
-          setModalOpen(true);
+          if (defaultSections.length > 0) {
+            saveRedaction();
+          } else {
+            setModalOpen(true);
+          }
         }
       }
     }, [defaultSections, newRedaction]);
@@ -2315,6 +2359,7 @@ const Redlining = React.forwardRef(
                 });
               }
             }
+            annotManager.ungroupAnnotations(annotList);
 
             // remove duplicate and not responsive pages
             let pagesToRemove = [];

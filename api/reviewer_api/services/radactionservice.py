@@ -24,13 +24,14 @@ class redactionservice:
             documentid, documentversion, pagenumber
         )
 
-    def getannotationsbyrequest(self, ministryrequestid, _redactionlayer):
+    def getannotationsbyrequest(self, ministryrequestid, _redactionlayer, page=None, size=None):
         mappedlayerids = redactionlayerservice().getmappedredactionlayers(
             _redactionlayer
         )
-        return annotationservice().getrequestannotations(
-            ministryrequestid, mappedlayerids
-        )
+        if page is not None and size is not None:
+            return annotationservice().getrequestannotationspagination(ministryrequestid, mappedlayerids, page, size)
+        return annotationservice().getrequestannotations(ministryrequestid, mappedlayerids)
+    
 
     def getannotationsbyrequestdivision(self, ministryrequestid, divisionid):
         return annotationservice().getrequestdivisionannotations(

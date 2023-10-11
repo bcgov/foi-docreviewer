@@ -35,13 +35,16 @@ export const fetchDocuments = (
     });
 };
 
-export const fetchAnnotations = (
+export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
   redactionlayer: string = "redline",
+  activepage: number,
+  size: number,
   callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}`
+  console.log('get annotations here - 1');
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
