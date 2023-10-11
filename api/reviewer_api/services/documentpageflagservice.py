@@ -5,6 +5,7 @@ import logging
 from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
+from datetime import datetime
 
 
 class documentpageflagservice:
@@ -155,18 +156,18 @@ class documentpageflagservice:
             item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
         ]
 
-        print("<<< start getdocumentpageflagsbydocids >>>")
+        print(f"<<< start getdocumentpageflagsbydocids >>> {datetime.now()}")
         # get the pageflag details(all columns from table) for the pages with no redactions
         pageflags = self.getdocumentpageflagsbydocids(
             requestid, redactionlayerid, documentids
         )
-        print("<<< end getdocumentpageflagsbydocids >>>")
+        print(f"<<< end getdocumentpageflagsbydocids >>> {datetime.now()}")
 
-        print("<<< start __filterandsavepageflags >>>")
+        print(f"<<< start __filterandsavepageflags >>> {datetime.now()}")
         self.__filterandsavepageflags(
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
-        print("<<< end __filterandsavepageflags >>>")
+        print(f"<<< end __filterandsavepageflags >>> {datetime.now()}")
 
     def __filterandsavepageflags(
         self,

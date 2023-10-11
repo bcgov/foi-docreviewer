@@ -11,6 +11,7 @@ from reviewer_api.services.jobrecordservice import jobrecordservice
 from reviewer_api.services.external.zipperproducerservice import zipperproducerservice
 
 from reviewer_api.utils.util import to_json
+from datetime import datetime
 
 
 class redactionservice:
@@ -99,12 +100,12 @@ class redactionservice:
         inputdocpagesmapping = self.__getdocumentpagesmapping(
             annotationschema["annotations"]
         )
-        print("<<< start getredactionsbydocuments >>>")
+        print(f"<<< start getredactionsbydocuments >>> {datetime.now()}")
         # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
         skipdocpagesmapping = Annotation.getredactionsbydocuments(
             inputdocpagesmapping, redactionlayerid
         )
-        print("<<< end getredactionsbydocuments >>>")
+        print(f"<<< end getredactionsbydocuments >>> {datetime.now()}")
         # pages not having redactions
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, skipdocpagesmapping
