@@ -634,6 +634,12 @@ const Redlining = React.forwardRef(
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
             setRedactionType(annotations[0]?.type);
+            if(annotations[0].IsText){
+              annotManager.deleteAnnotation(
+                annotManager.getAnnotationById(annotations[0].Id)
+              );
+              return;
+            }
             if (action === "delete") {
               let annotObjs = [];
               for (let annot of annots[0].children) {
@@ -993,7 +999,7 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       checkSavingRedlineButton(docInstance);
-    }, [pageFlags]);
+    }, [pageFlags, isStitchingLoaded]);
 
     const stitchDocumentsFunc = async (doc) => {
       let docCopy = [...docsForStitcing];
@@ -1875,7 +1881,7 @@ const Redlining = React.forwardRef(
             doc,
             `${requestnumber} , Page ${
               divisionsdocpages[pagecount - 1].stitchedPageNo
-            }`,
+            } of ${docViewer.getPageCount()}`,
             pgSet
           );
         });
@@ -1913,7 +1919,7 @@ const Redlining = React.forwardRef(
                 await s.setAsBackground(false);
                 const pgSet = await PDFNet.PageSet.createRange(pagecount , pagecount);
                               
-                await s.stampText(doc, `${requestnumber} , Page ${pagecount}`, pgSet);
+                await s.stampText(doc, `${requestnumber} , Page ${pagecount} of ${_docViwer.getPageCount()}`, pgSet);
                                                      
               });
             }
