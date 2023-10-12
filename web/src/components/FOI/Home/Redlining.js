@@ -313,6 +313,12 @@ const Redlining = React.forwardRef(
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
+                <br />,
+                <br />,
+                <span>
+                  When you create the response package, your web browser page will
+                  automatically refresh
+                </span>,
               ]);
               setModalButtonLabel("Create Applicant Package");
               setRedlineModalOpen(true);
