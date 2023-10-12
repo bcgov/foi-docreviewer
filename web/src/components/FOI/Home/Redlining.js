@@ -313,6 +313,12 @@ const Redlining = React.forwardRef(
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
+                <br />,
+                <br />,
+                <span>
+                  When you create the response package, your web browser page will
+                  automatically refresh
+                </span>,
               ]);
               setModalButtonLabel("Create Applicant Package");
               setRedlineModalOpen(true);
@@ -2370,7 +2376,7 @@ const Redlining = React.forwardRef(
                   _blob,
                   (_res) => {
                     toast.update(toastID, {
-                      render: "Final package is saved to Object Storage",
+                      render: "Final package is saved to Object Storage. Page will reload in 3 seconds..",
                       type: "success",
                       className: "file-upload-toast",
                       isLoading: false,
@@ -2385,6 +2391,9 @@ const Redlining = React.forwardRef(
                       res.s3path_save,
                       zipServiceMessage
                     );
+                    setTimeout(() => {
+                      window.location.reload(true)
+                    }, 3000)
                   },
                   (_err) => {
                     console.log(_err);
