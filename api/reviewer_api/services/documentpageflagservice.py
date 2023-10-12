@@ -5,6 +5,7 @@ import logging
 from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
+from datetime import datetime
 
 
 class documentpageflagservice:
@@ -29,6 +30,12 @@ class documentpageflagservice:
         if pageflag not in (None, {}):
             return pageflag["pageflag"], pageflag["attributes"]
         return [], None
+
+    def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
+        layerids = redactionlayerservice().getmappedredactionlayers(
+            {"redactionlayerid": redactionlayerid}
+        )
+        return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
     def removebookmark(self, requestid, redactionlayerid, userinfo):
         pageflags = self.getpageflags(requestid, redactionlayerid)
@@ -140,6 +147,68 @@ class documentpageflagservice:
                 json.dumps(userinfo),
                 redactionlayerid,
             )
+
+    # method to update pageflags by removing the necessary pageflags for a document
+    def updatepageflags(
+        self, requestid, deldocpagesmapping, redactionlayerid, userinfo
+    ):
+        documentids = [
+            item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
+        ]
+
+        print(f"<<< start getdocumentpageflagsbydocids >>> {datetime.now()}")
+        # get the pageflag details(all columns from table) for the pages with no redactions
+        pageflags = self.getdocumentpageflagsbydocids(
+            requestid, redactionlayerid, documentids
+        )
+        print(f"<<< end getdocumentpageflagsbydocids >>> {datetime.now()}")
+
+        print(f"<<< start __filterandsavepageflags >>> {datetime.now()}")
+        self.__filterandsavepageflags(
+            pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
+        )
+        print(f"<<< end __filterandsavepageflags >>> {datetime.now()}")
+
+    def __filterandsavepageflags(
+        self,
+        pageflags,
+        deldocpagesmapping,
+        requestid,
+        userinfo,
+        redactionlayerid,
+    ):
+        for page_data in deldocpagesmapping:
+            if len(page_data["pages"]) > 0:
+                pages_to_remove = page_data["pages"]
+                for pageflag in pageflags:
+                    if pageflag["documentid"] == page_data["docid"]:
+                        updatedpageflags = self.__getupdatedpageflag(
+                            pageflag, pages_to_remove
+                        )
+                        pageflag["pageflag"] = (
+                            json.dumps(updatedpageflags)
+                            if updatedpageflags not in (None, "")
+                            else None
+                        )
+                        break
+                DocumentPageflag.savepageflag(
+                    requestid,
+                    pageflag["documentid"],
+                    pageflag["documentversion"],
+                    pageflag["pageflag"],
+                    json.dumps(userinfo),
+                    redactionlayerid,
+                )
+
+    def __getupdatedpageflag(self, pageflag, pages_to_remove):
+        # returns the updated pageflag after removing the pages with pageflags [1, 3, 7]
+        # conditions to check: if the page is part of pages_to_remove
+        # or flagid in [1(Partial Disclosure), 3 (Withheld in Full), 7(In Progress)]
+        return [
+            entry
+            for entry in pageflag["pageflag"]
+            if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 3, 7]
+        ]
 
     def __createnewpageflag(self, pageflag, data):
         formattted_data = self.__formatpageflag(data)
