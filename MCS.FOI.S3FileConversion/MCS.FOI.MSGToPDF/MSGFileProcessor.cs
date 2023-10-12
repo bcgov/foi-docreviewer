@@ -149,7 +149,7 @@ namespace MCS.FOI.MSGToPDF
                                             bodyreplaced = Regex.Replace(bodyreplaced, "<img.*cid:" + inlineAttachment.ContentId + ".*?>", "<img src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
                                             foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                             {
-                                                if (attachment.Value["cid"] == inlineAttachment.ContentId)
+                                                if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == inlineAttachment.ContentId)
                                                 {
                                                     attachmentsObj.Remove(attachment.Key);
                                                 }
