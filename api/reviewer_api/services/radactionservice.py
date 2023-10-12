@@ -11,6 +11,7 @@ from reviewer_api.services.jobrecordservice import jobrecordservice
 from reviewer_api.services.external.zipperproducerservice import zipperproducerservice
 
 from reviewer_api.utils.util import to_json
+from datetime import datetime
 
 
 class redactionservice:
@@ -23,13 +24,14 @@ class redactionservice:
             documentid, documentversion, pagenumber
         )
 
-    def getannotationsbyrequest(self, ministryrequestid, _redactionlayer):
+    def getannotationsbyrequest(self, ministryrequestid, _redactionlayer, page=None, size=None):
         mappedlayerids = redactionlayerservice().getmappedredactionlayers(
             _redactionlayer
         )
-        return annotationservice().getrequestannotations(
-            ministryrequestid, mappedlayerids
-        )
+        if page is not None and size is not None:
+            return annotationservice().getrequestannotationspagination(ministryrequestid, mappedlayerids, page, size)
+        return annotationservice().getrequestannotations(ministryrequestid, mappedlayerids)
+    
 
     def getannotationsbyrequestdivision(self, ministryrequestid, divisionid):
         return annotationservice().getrequestdivisionannotations(
@@ -68,50 +70,98 @@ class redactionservice:
 
     def deactivateannotation(
         self,
-        annotationname,
-        documentid,
-        documentversion,
+        annotationschema,
         userinfo,
         requestid,
-        page,
         redactionlayerid,
     ):
+        annotationnames = [
+            anno["annotationname"] for anno in annotationschema["annotations"]
+        ]
         result = annotationservice().deactivateannotation(
-            annotationname, redactionlayerid, userinfo
+            annotationnames, redactionlayerid, userinfo
         )
-        if result.success == True and page is not None:
-            documentpageflagservice().removepageflag(
-                requestid, documentid, documentversion, page, redactionlayerid, userinfo
-            )
         return result
 
     def deactivateredaction(
         self,
-        annotationname,
-        documentid,
-        documentversion,
+        annotationschema,
         userinfo,
         requestid,
-        page,
         redactionlayerid,
     ):
+        annotationnames = [
+            anno["annotationname"] for anno in annotationschema["annotations"]
+        ]
         result = annotationservice().deactivateannotation(
-            annotationname, redactionlayerid, userinfo
+            annotationnames, redactionlayerid, userinfo
         )
-        if result.success == True:
-            newresult = Annotation.getredactionsbypage(
-                documentid, documentversion, page, redactionlayerid
+        ### Remove/Update pageflags start here ###
+        # totaldocumentpagesmapping docid and pages mapping
+        inputdocpagesmapping = self.__getdocumentpagesmapping(
+            annotationschema["annotations"]
+        )
+        print(f"<<< start getredactionsbydocuments >>> {datetime.now()}")
+        # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
+        skipdocpagesmapping = Annotation.getredactionsbydocuments(
+            inputdocpagesmapping, redactionlayerid
+        )
+        print(f"<<< end getredactionsbydocuments >>> {datetime.now()}")
+        # pages not having redactions
+        deldocpagesmapping = self.__getdeldocpagesmapping(
+            inputdocpagesmapping, skipdocpagesmapping
+        )
+
+        if deldocpagesmapping:
+            documentpageflagservice().updatepageflags(
+                requestid,
+                deldocpagesmapping,
+                redactionlayerid,
+                userinfo,
             )
-            if len(newresult) == 0:
-                documentpageflagservice().removepageflag(
-                    requestid,
-                    documentid,
-                    documentversion,
-                    page,
-                    redactionlayerid,
-                    userinfo,
-                )
+        ### Remove/Update pageflags end here ###
         return result
+
+    def __getdeldocpagesmapping(self, inputdocpagesmapping, skipdocpagesmapping):
+        #  item["pagenumber"] + 1 is because the page in pageflags starts with 1
+        skip_combinations = {
+            (item["documentid"], item["pagenumber"]) for item in skipdocpagesmapping
+        }
+
+        # Filter inputdocpagesmapping to obtain deletedocumentpagesmapping
+        deldocpagesmapping = [
+            {
+                "docid": item["docid"],
+                "pages": [
+                    page + 1
+                    for page in item["pages"]
+                    if (item["docid"], page) not in skip_combinations
+                ],
+            }
+            for item in inputdocpagesmapping
+            if len(item["pages"]) > 0
+        ]
+        return deldocpagesmapping
+
+    def __getdocumentpagesmapping(self, annotations):
+        output_dict = {}
+        # Iterate through the annotations and organize the data
+        for annotation in annotations:
+            docid = annotation["docid"]
+            page = annotation["page"] - 1  # in DB the page starts with 0
+
+            # If docid is not in the output_dict, create an entry with an empty list of pages
+            if docid not in output_dict:
+                output_dict[docid] = {"docid": docid, "pages": []}
+
+            # Append the page to the list of pages for the corresponding docid
+            output_dict[docid]["pages"].append(page)
+
+        # Convert the values of the output_dict into a list
+        output_list = list(output_dict.values())
+
+        # Print the resulting list
+        return output_list
 
     def getdocumentmapper(self, bucket):
         return DocumentPathMapper.getmapper(bucket)

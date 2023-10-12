@@ -32,17 +32,18 @@ def getcredentialsbybcgovcode(bcgovcode):
 def gets3documentbytearray(file, s3credentials):
     retry = 0
     filepath = file['s3uripath']
+    print("filepath = ", filepath)
     while True:
         try:
             s3_access_key_id= s3credentials.s3accesskey
             s3_secret_access_key= s3credentials.s3secretkey
-
             auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
                             aws_secret_access_key=s3_secret_access_key,
                             aws_host=s3_host,
                             aws_region=s3_region,
                             aws_service=s3_service)
             response= requests.get(filepath, auth=auth,stream=True)
+            print("got response from s3")
             return response.content
         except Exception as ex:
             if retry > int(failureattempt):
