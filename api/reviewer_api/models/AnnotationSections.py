@@ -415,9 +415,9 @@ class AnnotationSection(db.Model):
                         (select distinct (json_array_elements((as1.section::json->>'ids')::json)->>'id')::integer
                         from public."AnnotationSections" as1
                         join public."Annotations" a on a.annotationname = as1.annotationname
-                        join public."Documents" d on d.documentid = a.documentid
-                        join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
-                        left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+                        join public."Documents" d on d.documentid = a.documentid and d.foiministryrequestid = :ministryrequestid
+                        join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
+                        left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                         where as1.foiministryrequestid = :ministryrequestid and as1.isactive  = true
                         and (dd.deleted is null or dd.deleted is false)
                         and a.isactive = true)
