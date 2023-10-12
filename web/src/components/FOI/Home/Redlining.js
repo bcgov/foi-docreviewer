@@ -2309,6 +2309,7 @@ const Redlining = React.forwardRef(
               if (sectionStamps[annot.Id]) {
                 annotationManager.setAnnotationStyles(annot, {
                   OverlayText: sectionStamps[annot.Id],
+                  FontSize: Math.min(parseInt(annot.FontSize), 12) + "pt",
                 });
               }
             }
