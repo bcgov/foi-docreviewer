@@ -24,14 +24,19 @@ class redactionservice:
             documentid, documentversion, pagenumber
         )
 
-    def getannotationsbyrequest(self, ministryrequestid, _redactionlayer, page=None, size=None):
+    def getannotationsbyrequest(
+        self, ministryrequestid, _redactionlayer, page=None, size=None
+    ):
         mappedlayerids = redactionlayerservice().getmappedredactionlayers(
             _redactionlayer
         )
         if page is not None and size is not None:
-            return annotationservice().getrequestannotationspagination(ministryrequestid, mappedlayerids, page, size)
-        return annotationservice().getrequestannotations(ministryrequestid, mappedlayerids)
-    
+            return annotationservice().getrequestannotationspagination(
+                ministryrequestid, mappedlayerids, page, size
+            )
+        return annotationservice().getrequestannotations(
+            ministryrequestid, mappedlayerids
+        )
 
     def getannotationsbyrequestdivision(self, ministryrequestid, divisionid):
         return annotationservice().getrequestdivisionannotations(
@@ -101,17 +106,24 @@ class redactionservice:
         inputdocpagesmapping = self.__getdocumentpagesmapping(
             annotationschema["annotations"]
         )
+        print("inputdocpagesmapping == ", inputdocpagesmapping)
         print(f"<<< start getredactionsbydocuments >>> {datetime.now()}")
         # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
-        skipdocpagesmapping = Annotation.getredactionsbydocuments(
+
+        # skipdocpagesmapping = Annotation.getredactionsbydocuments(
+        #     inputdocpagesmapping, redactionlayerid
+        # )
+        # print("skipdocpagesmapping == ", skipdocpagesmapping)
+        skipdocpagesmapping = self.__getskipdocpagesmapping(
             inputdocpagesmapping, redactionlayerid
         )
+        print("skipdocpagesmapping == ", skipdocpagesmapping)
         print(f"<<< end getredactionsbydocuments >>> {datetime.now()}")
         # pages not having redactions
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, skipdocpagesmapping
         )
-
+        print("deldocpagesmapping == ", deldocpagesmapping)
         if deldocpagesmapping:
             documentpageflagservice().updatepageflags(
                 requestid,
@@ -122,10 +134,23 @@ class redactionservice:
         ### Remove/Update pageflags end here ###
         return result
 
+    def __getskipdocpagesmapping(self, _documentpagesmapping, _redactionlayerid):
+        skipdata = []
+        # gets the documentid and pages to skip based on documentid and pages
+        for item in _documentpagesmapping:
+            docid = item["docid"]
+            pages = item["pages"]
+            skipdata.extend(
+                Annotation.getredactionsbydocumentpages(docid, pages, _redactionlayerid)
+            )
+        return skipdata
+
     def __getdeldocpagesmapping(self, inputdocpagesmapping, skipdocpagesmapping):
         #  item["pagenumber"] + 1 is because the page in pageflags starts with 1
         skip_combinations = {
-            (item["documentid"], item["pagenumber"]) for item in skipdocpagesmapping
+            (item["documentid"], item["pagenumber"])
+            for item in skipdocpagesmapping
+            if len(skipdocpagesmapping) > 0
         }
 
         # Filter inputdocpagesmapping to obtain deletedocumentpagesmapping

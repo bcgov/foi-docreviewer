@@ -102,18 +102,33 @@ class Annotation(db.Model):
         ]
 
     @classmethod
-    def get_request_annotations_pagination(cls, ministryrequestid, mappedlayerids, page, size):
+    def get_request_annotations_pagination(
+        cls, ministryrequestid, mappedlayerids, page, size
+    ):
         _deleted = DocumentMaster.getdeleted(ministryrequestid)
         _session = db.session
-        _subquery_annotation = _session.query(Annotation.pagenumber, Annotation.annotation, Document.documentid).join(
-                                Document,
-                                and_(Annotation.documentid == Document.documentid, 
-                                     Document.documentmasterid.notin_(_deleted),
-                                     Document.foiministryrequestid == ministryrequestid)
-                                ).filter(Annotation.redactionlayerid.in_(mappedlayerids), Annotation.isactive == True).order_by(Document.documentid, Annotation.pagenumber, Annotation.annotationid)
+        _subquery_annotation = (
+            _session.query(
+                Annotation.pagenumber, Annotation.annotation, Document.documentid
+            )
+            .join(
+                Document,
+                and_(
+                    Annotation.documentid == Document.documentid,
+                    Document.documentmasterid.notin_(_deleted),
+                    Document.foiministryrequestid == ministryrequestid,
+                ),
+            )
+            .filter(
+                Annotation.redactionlayerid.in_(mappedlayerids),
+                Annotation.isactive == True,
+            )
+            .order_by(
+                Document.documentid, Annotation.pagenumber, Annotation.annotationid
+            )
+        )
         result = _subquery_annotation.paginate(page=page, per_page=size)
         return result
-        
 
     @classmethod
     def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
@@ -169,6 +184,30 @@ class Annotation(db.Model):
                         Annotation.documentversion == _documentversion,
                         Annotation.isactive == True,
                         Annotation.pagenumber == _pagenum - 1,
+                        Annotation.redactionlayerid == redactionlayerid,
+                        Annotation.annotation.ilike("%<redact %"),
+                    )
+                )
+                .order_by(Annotation.annotationid.asc())
+                .all()
+            )
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getredactionsbydocumentpages(cls, _documentid, _pages, redactionlayerid):
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = (
+                db.session.query(Annotation.documentid, Annotation.pagenumber)
+                .filter(
+                    and_(
+                        Annotation.documentid == _documentid,
+                        Annotation.isactive == True,
+                        Annotation.pagenumber.in_(_pages),
                         Annotation.redactionlayerid == redactionlayerid,
                         Annotation.annotation.ilike("%<redact %"),
                     )
