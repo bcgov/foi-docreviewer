@@ -130,52 +130,46 @@ export const saveAnnotation = (
 
 export const deleteAnnotation = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
   redactionlayerid: number,
-  annotationname: string = "",
+  annotations: any,
   callback: any,
   errorCallback: any,
-  page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}`;
 
-  httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
+let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${redactionlayerid}`;
+const data = {annotations: annotations};
+httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while deleting an annotation for (doc# ${documentid}, annotationname ${annotationname})`);            
+        throw new Error(`Error while deleting annotations for (requestid# ${requestid}, redactionlayerid ${redactionlayerid})`);            
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in deleting an annotation");
+      errorCallback("Error in deleting annotations");
     });
 };
 
 export const deleteRedaction = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
   redactionlayerid: number,
-  annotationname: string = "",
+  redactions: any,
   callback: any,
   errorCallback: any,
-  page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${redactionlayerid}/${page}`;
-
-  httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
+  let apiUrlPost: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${redactionlayerid}`;
+  const data = {annotations: redactions}
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while deleting a redaction for (doc# ${documentid}, annotationname ${annotationname})`);            
+        throw new Error(`Error while deleting redactions for (requestid# ${requestid}, redactionlayerid ${redactionlayerid})`);            
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in deleting a redaction");
+      errorCallback("Error in deleting redactions");
     });
 };
 
