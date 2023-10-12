@@ -7,6 +7,8 @@ from sqlalchemy.orm import relationship, backref, aliased
 import logging
 import json
 from reviewer_api.utils.util import split, getbatchconfig
+from .Documents import Document
+from .DocumentMaster import DocumentMaster
 
 
 class Annotation(db.Model):
@@ -100,6 +102,20 @@ class Annotation(db.Model):
         ]
 
     @classmethod
+    def get_request_annotations_pagination(cls, ministryrequestid, mappedlayerids, page, size):
+        _deleted = DocumentMaster.getdeleted(ministryrequestid)
+        _session = db.session
+        _subquery_annotation = _session.query(Annotation.pagenumber, Annotation.annotation, Document.documentid).join(
+                                Document,
+                                and_(Annotation.documentid == Document.documentid, 
+                                     Document.documentmasterid.notin_(_deleted),
+                                     Document.foiministryrequestid == ministryrequestid)
+                                ).filter(Annotation.redactionlayerid.in_(mappedlayerids), Annotation.isactive == True).order_by(Document.documentid, Annotation.pagenumber, Annotation.annotationid)
+        result = _subquery_annotation.paginate(page=page, per_page=size)
+        return result
+        
+
+    @classmethod
     def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
         sql = """
                 select a.*
@@ -165,6 +181,42 @@ class Annotation(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
+
+    @classmethod
+    def getredactionsbydocuments(cls, _documentpagesmapping, redactionlayerid):
+        try:
+            query = cls.__generateannotationquery(
+                _documentpagesmapping, redactionlayerid
+            )
+            rs = db.session.execute(text(query))
+            db.session.close()
+            return [
+                {
+                    "documentid": row["documentid"],
+                    "pagenumber": row["pagenumber"],
+                }
+                for row in rs
+            ]
+
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def __generateannotationquery(cls, _documentpagesmapping, redactionlayerid):
+        conditions = []
+        for item in _documentpagesmapping:
+            docid = item["docid"]
+            pages = item["pages"]
+            page_condition = f"(documentid = {docid} AND pagenumber IN ({', '.join(map(str, pages))}))"
+            conditions.append(page_condition)
+
+        inner_condition = " OR ".join(conditions)
+        outer_condition = f"isactive = true AND redactionlayerid = {redactionlayerid} AND annotation ILIKE '%<redact %'"
+        query = f'SELECT documentid, pagenumber FROM "Annotations" WHERE ({inner_condition}) AND ({outer_condition}) ORDER BY annotationid ASC;'
+        print("query === ", query)
+        return query
 
     @classmethod
     def getannotationinfo(cls, _documentid, _documentversion):

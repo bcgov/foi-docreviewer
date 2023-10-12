@@ -33,6 +33,7 @@ from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.schemas.annotationrequest import (
     AnnotationRequest,
+    BulkAnnotationRequest,
     SectionRequestSchema,
     SectionSchema,
 )
@@ -72,6 +73,33 @@ class Annotations(Resource):
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
+@cors_preflight("GET,OPTIONS")
+@API.route('/annotation/<int:ministryrequestid>/<string:redactionlayer>/<int:page>/<int:size>')
+class AnnotationPagination(Resource):
+    """ Retrives the foi request based on the queue type.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @cors_preflight('GET,OPTIONS')
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def get(ministryrequestid, redactionlayer="redline", page=1, size=1000):
+        try:
+            isvalid, _redactionlayer = redactionservice().validateredactionlayer(
+                redactionlayer, ministryrequestid
+            )
+            if isvalid == True:
+                result = redactionservice().getannotationsbyrequest(
+                    ministryrequestid, _redactionlayer, page, size
+                )
+                return result, 200
+        except KeyError as err:
+            return {"status": False, "message": err.__str__()}, 400
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500
+
+
 
 @cors_preflight("POST, OPTIONS")
 @API.route("/annotation")
@@ -100,14 +128,8 @@ class SaveAnnotations(Resource):
             return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight("DELETE,OPTIONS")
-@API.route(
-    "/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>",
-    defaults={"page": None},
-)
-@API.route(
-    "/annotation/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>"
-)
+@cors_preflight("POST,OPTIONS")
+@API.route("/annotation/<string:requestid>/<int:redactionlayerid>")
 class DeactivateAnnotations(Resource):
 
     """save or update an annotation for a document"""
@@ -116,22 +138,17 @@ class DeactivateAnnotations(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(
+    def post(
         requestid,
-        documentid,
-        documentversion,
-        annotationname,
         redactionlayerid,
-        page: None,
     ):
         try:
+            requestjson = request.get_json()
+            annotationschema = BulkAnnotationRequest().load(requestjson)
             result = redactionservice().deactivateannotation(
-                annotationname,
-                documentid,
-                documentversion,
+                annotationschema,
                 AuthHelper.getuserinfo(),
                 requestid,
-                page,
                 redactionlayerid,
             )
             return {
@@ -145,10 +162,8 @@ class DeactivateAnnotations(Resource):
             return {"status": exception.status_code, "message": exception.message}, 500
 
 
-@cors_preflight("DELETE,OPTIONS")
-@API.route(
-    "/redaction/<string:requestid>/<int:documentid>/<int:documentversion>/<string:annotationname>/<int:redactionlayerid>/<int:page>"
-)
+@cors_preflight("POST,OPTIONS")
+@API.route("/redaction/<string:requestid>/<int:redactionlayerid>")
 class DeactivateRedactions(Resource):
 
     """save or update an annotation for a document"""
@@ -157,17 +172,14 @@ class DeactivateRedactions(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def delete(
-        requestid, documentid, documentversion, annotationname, redactionlayerid, page
-    ):
+    def post(requestid, redactionlayerid):
         try:
+            requestjson = request.get_json()
+            annotationschema = BulkAnnotationRequest().load(requestjson)
             result = redactionservice().deactivateredaction(
-                annotationname,
-                documentid,
-                documentversion,
+                annotationschema,
                 AuthHelper.getuserinfo(),
                 requestid,
-                page,
                 redactionlayerid,
             )
             return {
