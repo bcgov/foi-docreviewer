@@ -1957,7 +1957,6 @@ const Redlining = React.forwardRef(
       ];
       const downloadType = "pdf";
 
-      const divisionCountForToast = divisions.length;
       let currentDivisionCount = 0;
       const toastID = toast.loading("Start saving redline...");
 
@@ -1970,11 +1969,23 @@ const Redlining = React.forwardRef(
         let incompatableList = incompatibleFiles.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
+        let totalPageCount = 0;
+        let totalPagesToRemove =  0;
+        for (let doc of divDocList) {
+          totalPageCount += doc.pagecount;
+          for (let flagInfo of doc.pageFlag) {
+            if (flagInfo.flagid === pageFlagTypes["Duplicate"] || flagInfo.flagid === pageFlagTypes["Not Responsive"]) {
+              totalPagesToRemove++;
+            }
+          }
+        }
         let newDivObj = {
           divisionid: div.divisionid,
           divisionname: div.name,
           documentlist: divDocList,
           incompatableList: incompatableList,
+          totalPageCount: totalPageCount,
+          totalPagesToRemove: totalPagesToRemove
         };
         newDocList.push(newDivObj);
       }
@@ -1993,7 +2004,10 @@ const Redlining = React.forwardRef(
           let domParser = new DOMParser();
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
-          for (let divObj of res.divdocumentList) {
+          
+          const filteredDivDocumentlist = res.divdocumentList.filter(divObj => divObj.totalPageCount !== divObj.totalPagesToRemove);
+          const divisionCountForToast = filteredDivDocumentlist.length;
+          for (let divObj of filteredDivDocumentlist) {
             let pageMappingsByDivisions = {};
 
             currentDivisionCount++;
@@ -2027,8 +2041,8 @@ const Redlining = React.forwardRef(
               doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
               for (const flagInfo of doc.pageFlag) {
                 if (
-                  flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                  flagInfo.flagid == pageFlagTypes["Not Responsive"]
+                  flagInfo.flagid === pageFlagTypes["Duplicate"] ||
+                  flagInfo.flagid === pageFlagTypes["Not Responsive"]
                 ) {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   pagesToRemove.push(
@@ -2333,8 +2347,8 @@ const Redlining = React.forwardRef(
               for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
                 // pageflag duplicate or not responsive
                 if (
-                  pageFlagsForEachDoc.flagid == pageFlagTypes["Duplicate"] ||
-                  pageFlagsForEachDoc.flagid == pageFlagTypes["Not Responsive"]
+                  pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
+                  pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
                 ) {
                   pagesToRemove.push(
                     getStitchedPageNoFromOriginal(
