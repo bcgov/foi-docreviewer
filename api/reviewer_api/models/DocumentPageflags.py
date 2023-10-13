@@ -110,9 +110,9 @@ class DocumentPageflag(db.Model):
         try:              
             sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
                      from "DocumentPageflags" dp
-                     join "Documents" d on dp.documentid = d.documentid
-                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
-                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+                     join "Documents" d on dp.documentid = d.documentid and d.foiministryrequestid = :foiministryrequestid
+                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :foiministryrequestid
+                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :foiministryrequestid
                      where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
                      and redactionlayerid in :redactionlayerid
                      order by dp.documentid, dp.documentversion desc, dp.id desc;
