@@ -7,9 +7,8 @@ import React, {
   useImperativeHandle,
   useCallback,
 } from "react";
-import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
-import { useDispatch, useSelector } from "react-redux";
+import {useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
 import ReactModal from "react-modal-resizable-draggable";
@@ -19,11 +18,10 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
-import Switch, { SwitchProps } from "@mui/material/Switch";
+import Switch from "@mui/material/Switch";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
-import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-line.svg";
 import {
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
@@ -63,7 +61,7 @@ import {
   updatePageFlags,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
-import _, { forEach } from "lodash";
+import _ from "lodash";
 
 const Redlining = React.forwardRef(
   (
@@ -100,9 +98,7 @@ const Redlining = React.forwardRef(
     );
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
-
     const viewer = useRef(null);
-    const saveButton = useRef(null);
 
     const documentList = useAppSelector(
       (state) => state.documents?.documentList
@@ -183,9 +179,7 @@ const Redlining = React.forwardRef(
             stopLoop = true;
           }
 
-          if (stopLoop) return false; //stop loop
-
-          return true; //continue loop
+          return !(stopLoop); //stop / continue loop
         });
       } else {
         return false;
@@ -234,9 +228,7 @@ const Redlining = React.forwardRef(
             annotationManager,
             Annotations,
             PDFNet,
-            Search,
-            Math,
-            createDocument,
+            docMath,
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
@@ -417,7 +409,7 @@ const Redlining = React.forwardRef(
             setDocViewer(documentViewer);
             setAnnotManager(annotationManager);
             setAnnots(Annotations);
-            setDocViewerMath(Math);
+            setDocViewerMath(docMath);
           });
 
           let root = null;
@@ -553,8 +545,7 @@ const Redlining = React.forwardRef(
             annotManager.enableReadOnlyMode();
           } else {
             fetchAnnotationsByPagination(
-              requestid,
-              currentLayer.name,
+              requestid,              
               1,
               ANNOTATION_PAGE_SIZE,
               async (data) => {
@@ -589,7 +580,8 @@ const Redlining = React.forwardRef(
               },
               (error) => {
                 console.log("Error:", error);
-              }
+              },
+              currentLayer.name
             );
             fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
               console.log(error)
@@ -625,7 +617,6 @@ const Redlining = React.forwardRef(
           //do not run if redline is saving
           if (redlineSaving) return;
           if (currentLayer.name.toLowerCase() === "response package") return;
-          let localDocumentInfo = currentDocument;
           annotations.forEach((annot) => {
             let displayedDoc =
               pageMappedDocs.stitchedPageLookup[annot.getPageNumber()];
@@ -633,7 +624,7 @@ const Redlining = React.forwardRef(
             annot.setCustomData("originalPageNo", `${individualPageNo - 1}`);
           });
           let _annotationtring =
-            docInstance.Core.annotationManager.exportAnnotations({
+            docInstance?.Core.annotationManager.exportAnnotations({
               annotationList: annotations,
               useDisplayAuthor: true,
             });
@@ -660,7 +651,6 @@ const Redlining = React.forwardRef(
                     pageMappedDocs.stitchedPageLookup[
                       Number(annot.attributes.page) + 1
                     ];
-                  let individualPageNo = displayedDoc.page;
                   if (annot.name === "redact") {
                     redactObjs.push({
                       page: Number(displayedDoc.page),
@@ -739,14 +729,14 @@ const Redlining = React.forwardRef(
                           "fullPage" &&
                         annot.PageNumber == Number(annotatn.attributes.page) + 1
                     );
-                    if (!!_selectedAnnotations) {
+                    if (_selectedAnnotations) {
                       parentRedaction = allAnnotations?.find(
                         (r) =>
                           r.Subject === "Redact" &&
                           r.InReplyTo === _selectedAnnotations?.Id
                       );
                     }
-                    if (!!parentRedaction) {
+                    if (parentRedaction) {
                       annotations[i].setCustomData(
                         "existingId",
                         `${parentRedaction?.Id}`
@@ -1133,8 +1123,7 @@ const Redlining = React.forwardRef(
     ) => {
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
         fetchAnnotationsByPagination(
-          requestid,
-          currentLayer.name,
+          requestid,         
           i,
           ANNOTATION_PAGE_SIZE,
           async (data) => {
@@ -1145,7 +1134,8 @@ const Redlining = React.forwardRef(
             setErrorMessage(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
-          }
+          },
+          currentLayer.name,
         );
       }
     };
@@ -1288,7 +1278,7 @@ const Redlining = React.forwardRef(
         const pageMatrix = doc.getPageMatrix(pageNumber);
         const pageRotation = doc.getPageRotation(pageNumber);
         childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-        var rect = childAnnotation.getRect();
+        let rect = childAnnotation.getRect();
         rect.x2 = Math.ceil(rect.x2);
         childAnnotation.setRect(rect);
         annotManager.redrawAnnotation(childAnnotation);
@@ -1346,7 +1336,7 @@ const Redlining = React.forwardRef(
     const saveRedaction = async (_resizeAnnot = {}) => {
       setModalOpen(false);
       setSaveDisabled(true);
-      let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot); //newRedaction? newRedaction:  (editAnnot ? editAnnot :_resizeAnnot);
+      let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
 
       if (editAnnot || _resizeAnnot?.type === "redact") {
@@ -1416,7 +1406,6 @@ const Redlining = React.forwardRef(
             //parse annotation xml
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
-            let annot = annots[0].children[0];
             if (_resizeAnnot?.type === "redact") {
               saveAnnotation(
                 requestid,
@@ -1471,15 +1460,12 @@ const Redlining = React.forwardRef(
                   info.sections.ids = redactionSectionsIds;
                 }
               });
-              // redactionInfo.find(
-              //   (r) => r.annotationname === redactionObj.name
-              // ).sections.ids = redactionSectionsIds;
             }
             setEditAnnot(null);
           });
         }
       } else {
-        var pageFlagSelections = pageSelections;
+        let pageFlagSelections = pageSelections;
         if (
           (defaultSections.length > 0 && defaultSections[0] === 25) ||
           selectedSections[0] === 25
@@ -1490,11 +1476,9 @@ const Redlining = React.forwardRef(
           });
         }
         // add section annotation
-        var sectionAnnotations = [];
-        let annotationsToDelete = [];
+        let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let annotationsToDelete = [];
-
           let redaction = annotManager.getAnnotationById(node.attributes.name);
           let coords = node.attributes.coords;
           let X = coords?.substring(0, coords.indexOf(","));
@@ -1522,7 +1506,7 @@ const Redlining = React.forwardRef(
           const pageRotation = doc.getPageRotation(annot.PageNumber);
           annot.NoMove = true;
           annot.fitText(pageInfo, pageMatrix, pageRotation);
-          var rect = annot.getRect();
+          let rect = annot.getRect();
           rect.x2 = Math.ceil(rect.x2);
           annot.setRect(rect);
           if (redaction.type == "fullPage") {
@@ -1586,9 +1570,6 @@ const Redlining = React.forwardRef(
           // grouping the section annotation with the redaction will trigger a modify event, which will also save the redaction
           await annotManager.groupAnnotations(annot, [redaction]);
         }
-        // annotManager.deleteAnnotations(annotationsToDelete, {
-        //     force: true,
-        //   });
         let annotationList = [];
         for (let name of newRedaction.names) {
           annotationList.push(annotManager.getAnnotationById(name));
@@ -1754,7 +1735,7 @@ const Redlining = React.forwardRef(
 
     const handleSectionSelected = (e) => {
       let sectionID = e.target.getAttribute("data-sectionid");
-      var newSelectedSections;
+      let newSelectedSections;
       if (e.target.checked) {
         newSelectedSections = [...selectedSections, Number(sectionID)];
       } else {
@@ -2135,7 +2116,7 @@ const Redlining = React.forwardRef(
                         ] -
                           1) +
                         '"';
-                      annotxml = annotxml.replace(oldPageNum, newPage);
+                      annotxml.replace(oldPageNum, newPage);
 
                       if (
                         xmlObj.name === "redact" ||
@@ -2211,7 +2192,6 @@ const Redlining = React.forwardRef(
                   // remove duplicate and not responsive pages
                   await stitchedDocObj.removePages(pagesToRemove);
 
-                  // console.log("s3path_save", stitchedDocPath);
                   let xfdfString =
                     '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
                     stitchedXMLArray.join() +
@@ -2349,8 +2329,6 @@ const Redlining = React.forwardRef(
         requestid,
         documentList[0],
         async (res) => {
-          // console.log("getResponsePackagePreSignedUrl: ", res);
-          // res.s3path_save;
           const toastID = toast.loading("Start generating final package...");
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
@@ -2423,7 +2401,7 @@ const Redlining = React.forwardRef(
             }
 
             let doc = documentViewer.getDocument();
-            let results = await annotationManager.applyRedactions(); // must apply redactions before removing pages
+            await annotationManager.applyRedactions(); // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
 
             const { PDFNet } = _instance.Core;
@@ -2490,6 +2468,18 @@ const Redlining = React.forwardRef(
       );
     };
 
+    const compareValues = (a, b) => {
+      if (modalSortNumbered) {
+        if (modalSortAsc) {
+          return a.id - b.id;
+        } else {
+          return b.id - a.id;
+        }
+      } else {
+        return b.count - a.count;
+      }
+    }
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -2548,14 +2538,7 @@ const Redlining = React.forwardRef(
               </Stack>
               <div style={{ overflowY: "scroll" }}>
                 <List className="section-list">
-                  {sections
-                    ?.sort((a, b) =>
-                      modalSortNumbered
-                        ? modalSortAsc
-                          ? a.id - b.id
-                          : b.id - a.id
-                        : b.count - a.count
-                    )
+                  {sections?.sort(compareValues)
                     .map((section, index) => (
                       <ListItem key={"list-item" + section.id}>
                         <input

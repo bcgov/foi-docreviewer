@@ -1,12 +1,11 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
+import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
-import { useSelector } from "react-redux";
 
 
 export const fetchDocuments = (
@@ -37,11 +36,11 @@ export const fetchDocuments = (
 
 export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
-  redactionlayer: string = "redline",
   activepage: number,
   size: number,
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  redactionlayer: string = "redline"
 ) => {
   console.log('get annotations here - 1');
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
@@ -111,8 +110,7 @@ export const saveAnnotation = (
       "redactionlayerid": redactionLayer
     }
   }
-  let useAppSelector = useSelector;
-  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         if (redactionLayer) {
@@ -184,7 +182,6 @@ export const fetchSections = (
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setSections(res.data) as any);
-        //callback(res.data);
       } else {
         throw new Error();
       }
@@ -230,11 +227,7 @@ export const savePageFlag = (
     "<requestid>",
     foiministryrquestid
   )
-  // let requestJSON = data || {
-  //   "page": pagenumber,
-  //   "flagid": flagid,
-  //   }
-  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() || '', isBearer: true})
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
@@ -268,7 +261,6 @@ export const fetchPageFlag = (
           return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-        //callback(res.data);
       } else {
         throw new Error();
       }
@@ -283,7 +275,6 @@ export const fetchKeywordsMasterData = (
   callback: any,
   errorCallback: any
 ) => {
-  //let apiUrlGet: string = API.DOCREVIEWER_GET_ALL_PAGEFLAGS;
   httpGETRequest(API.DOCREVIEWER_GET_ALL_KEYWORDS, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
@@ -298,7 +289,7 @@ export const fetchKeywordsMasterData = (
 };
 
 export const fetchRedactionLayerMasterData = (
-  mininstryrequestid: Number,
+  mininstryrequestid: number,
   callback: any,
   errorCallback: any
 ) => {
