@@ -126,8 +126,11 @@ const DocumentSelector = ({
             let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
+<<<<<<< HEAD
         /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
            as it may show 100% even if the result is 99.9% */ 
+=======
+>>>>>>> e19e5e9e40ef01fede708d0b13ed8316a9e73f1c
         return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.floor((totalPagesWithFlags / totalPageCount) * 100) : 0;
     }
 
