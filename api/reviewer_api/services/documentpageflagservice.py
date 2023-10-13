@@ -155,19 +155,13 @@ class documentpageflagservice:
         documentids = [
             item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
         ]
-
-        print(f"<<< start getdocumentpageflagsbydocids >>> {datetime.now()}")
         # get the pageflag details(all columns from table) for the pages with no redactions
         pageflags = self.getdocumentpageflagsbydocids(
             requestid, redactionlayerid, documentids
         )
-        print(f"<<< end getdocumentpageflagsbydocids >>> {datetime.now()}")
-
-        print(f"<<< start __filterandsavepageflags >>> {datetime.now()}")
         self.__filterandsavepageflags(
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
-        print(f"<<< end __filterandsavepageflags >>> {datetime.now()}")
 
     def __filterandsavepageflags(
         self,
