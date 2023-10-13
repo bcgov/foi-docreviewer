@@ -7,7 +7,6 @@ import React, {
   useImperativeHandle,
   useCallback,
 } from "react";
-import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
@@ -221,6 +220,7 @@ const Redlining = React.forwardRef(
             preloadWorker: "pdf",
             // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
             initialDoc: currentDocumentS3Url,
+            disableVirtualDisplayMode: true,
             fullAPI: true,
             enableRedaction: true,
             useDownloader: false,
@@ -450,6 +450,15 @@ const Redlining = React.forwardRef(
                   setEnableMultiSelect(false);
                 });
               }
+              //remove MultiSelectedAnnotations on click of Delete WarningModalSignButton
+              const warningButton = document.querySelector(
+                '[data-element="WarningModalSignButton"]'
+              );
+              warningButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setEnableMultiSelect(false);
+              });
 
               //remove MultiSelectedAnnotations on click of multi-select-button
               const button = document.querySelector(
@@ -1330,6 +1339,7 @@ const Redlining = React.forwardRef(
         }
         setSelectedSections([]);
         setEnableMultiSelect(false);
+        setMultiSelectFooter(null);
         setEditRedacts(null);
       });
 
@@ -2013,11 +2023,14 @@ const Redlining = React.forwardRef(
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
         let totalPageCount = 0;
-        let totalPagesToRemove =  0;
+        let totalPagesToRemove = 0;
         for (let doc of divDocList) {
           totalPageCount += doc.pagecount;
           for (let flagInfo of doc.pageFlag) {
-            if (flagInfo.flagid === pageFlagTypes["Duplicate"] || flagInfo.flagid === pageFlagTypes["Not Responsive"]) {
+            if (
+              flagInfo.flagid === pageFlagTypes["Duplicate"] ||
+              flagInfo.flagid === pageFlagTypes["Not Responsive"]
+            ) {
               totalPagesToRemove++;
             }
           }
@@ -2028,7 +2041,7 @@ const Redlining = React.forwardRef(
           documentlist: divDocList,
           incompatableList: incompatableList,
           totalPageCount: totalPageCount,
-          totalPagesToRemove: totalPagesToRemove
+          totalPagesToRemove: totalPagesToRemove,
         };
         newDocList.push(newDivObj);
       }
@@ -2047,8 +2060,10 @@ const Redlining = React.forwardRef(
           let domParser = new DOMParser();
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
-          
-          const filteredDivDocumentlist = res.divdocumentList.filter(divObj => divObj.totalPageCount !== divObj.totalPagesToRemove);
+
+          const filteredDivDocumentlist = res.divdocumentList.filter(
+            (divObj) => divObj.totalPageCount !== divObj.totalPagesToRemove
+          );
           const divisionCountForToast = filteredDivDocumentlist.length;
           for (let divObj of filteredDivDocumentlist) {
             let pageMappingsByDivisions = {};
