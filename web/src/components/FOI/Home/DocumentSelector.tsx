@@ -126,7 +126,7 @@ const DocumentSelector = ({
             let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
-        return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.round((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.floor((totalPagesWithFlags / totalPageCount) * 100) : 0;
     }
 
 
