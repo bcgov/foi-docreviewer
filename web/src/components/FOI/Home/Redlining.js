@@ -450,6 +450,15 @@ const Redlining = React.forwardRef(
                   setEnableMultiSelect(false);
                 });
               }
+              //remove MultiSelectedAnnotations on click of Delete WarningModalSignButton
+              const warningButton = document.querySelector(
+                '[data-element="WarningModalSignButton"]'
+              );
+              warningButton?.addEventListener("click", function () {
+                root = null;
+                setMultiSelectFooter(root);
+                setEnableMultiSelect(false);
+              });
 
               //remove MultiSelectedAnnotations on click of multi-select-button
               const button = document.querySelector(
@@ -1330,6 +1339,7 @@ const Redlining = React.forwardRef(
         }
         setSelectedSections([]);
         setEnableMultiSelect(false);
+        setMultiSelectFooter(null);
         setEditRedacts(null);
       });
 
