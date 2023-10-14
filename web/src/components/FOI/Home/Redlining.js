@@ -611,6 +611,22 @@ const Redlining = React.forwardRef(
       }
     }, [iframeDocument]);
 
+    const removeRedactAnnotationDocContent = async (annotations) => {
+
+      annotations.forEach((_redactionannot) => {   
+        if(_redactionannot.Subject === "Redact")             
+        {
+          let redactcontent = _redactionannot.getContents()
+          if(redactcontent != undefined)
+          {
+            _redactionannot.setContents('')
+            _redactionannot.setCustomData('trn-annot-preview','')
+          }
+        }
+      })
+
+    }
+
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
         // If the event is triggered by importing then it can be ignored
@@ -683,7 +699,11 @@ const Redlining = React.forwardRef(
             } else if (action === "add") {
               let displayedDoc;
               let individualPageNo;
+
+              await removeRedactAnnotationDocContent(annotations)
+
               if (annotations[0].Subject === "Redact") {
+                
                 let pageSelectionList = [...pageSelections];
                 annots[0].children?.forEach((annotatn, i) => {
                   displayedDoc =
