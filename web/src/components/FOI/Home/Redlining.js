@@ -220,7 +220,6 @@ const Redlining = React.forwardRef(
             preloadWorker: "pdf",
             // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
             initialDoc: currentDocumentS3Url,
-            disableVirtualDisplayMode: true,
             fullAPI: true,
             enableRedaction: true,
             useDownloader: false,
