@@ -116,7 +116,7 @@ namespace MCS.FOI.MSGToPDF
 
                                 var inputStream = new MemoryStream();
                                 string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
-                                var bodyreplaced = Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", "");
+                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", ""), "<link.*?>", "");
                                 const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                                 const string imgString = "<img";
                                 bool htmlInline = bodyreplaced.Contains(imgString);
