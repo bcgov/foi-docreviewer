@@ -68,9 +68,9 @@ class Annotation(db.Model):
 					  from  "Documents" docs
                       where docs.foiministryrequestid = :ministryrequestid
 					  order by docs.documentid, docs.version desc) as d
-				on (d.documentid = a.documentid and d.version = a.documentversion)
-                join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
-                left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+				on (d.documentid = a.documentid and d.version = a.documentversion and d.foiministryrequestid = :ministryrequestid)
+                join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
+                left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                 where d.foiministryrequestid = :ministryrequestid
                 and (dd.deleted is false or dd.deleted is null)
                 and a.redactionlayerid in :_mappedlayerids
@@ -196,66 +196,6 @@ class Annotation(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
-
-    @classmethod
-    def getredactionsbydocumentpages(cls, _documentid, _pages, redactionlayerid):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = (
-                db.session.query(Annotation.documentid, Annotation.pagenumber)
-                .filter(
-                    and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.isactive == True,
-                        Annotation.pagenumber.in_(_pages),
-                        Annotation.redactionlayerid == redactionlayerid,
-                        Annotation.annotation.ilike("%<redact %"),
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
-                .all()
-            )
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
-    @classmethod
-    def getredactionsbydocuments(cls, _documentpagesmapping, redactionlayerid):
-        try:
-            query = cls.__generateannotationquery(
-                _documentpagesmapping, redactionlayerid
-            )
-            rs = db.session.execute(text(query))
-            db.session.close()
-            return [
-                {
-                    "documentid": row["documentid"],
-                    "pagenumber": row["pagenumber"],
-                }
-                for row in rs
-            ]
-
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
-    @classmethod
-    def __generateannotationquery(cls, _documentpagesmapping, redactionlayerid):
-        conditions = []
-        for item in _documentpagesmapping:
-            docid = item["docid"]
-            pages = item["pages"]
-            page_condition = f"(documentid = {docid} AND pagenumber IN ({', '.join(map(str, pages))}))"
-            conditions.append(page_condition)
-
-        inner_condition = " OR ".join(conditions)
-        outer_condition = f"isactive = true AND redactionlayerid = {redactionlayerid} AND annotation ILIKE '%<redact %'"
-        query = f'SELECT documentid, pagenumber FROM "Annotations" WHERE ({inner_condition}) AND ({outer_condition}) ORDER BY annotationid ASC;'
-        print("query === ", query)
-        return query
 
     @classmethod
     def getannotationinfo(cls, _documentid, _documentversion):
@@ -575,6 +515,30 @@ class Annotation(db.Model):
             return DefaultMethodResult(
                 True, "Annotations are deleted", ",".join(idxannots)
             )
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getredactionsbydocumentpages(cls, _documentid, _pages, redactionlayerid):
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = (
+                db.session.query(Annotation.documentid, Annotation.pagenumber)
+                .filter(
+                    and_(
+                        Annotation.documentid == _documentid,
+                        Annotation.isactive == True,
+                        Annotation.pagenumber.in_(_pages),
+                        Annotation.redactionlayerid == redactionlayerid,
+                        Annotation.annotation.ilike("%<redact %"),
+                    )
+                )
+                .order_by(Annotation.annotationid.asc())
+                .all()
+            )
+            return annotation_schema.dump(query)
         except Exception as ex:
             logging.error(ex)
         finally:

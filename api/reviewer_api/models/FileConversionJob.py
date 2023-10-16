@@ -36,7 +36,7 @@ class FileConversionJob(db.Model):
         try:
             sql = """select  count(1)  as completed
                             FROM "FileConversionJob" fcj
-                            left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
+                            left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                             where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
 
             rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
@@ -44,7 +44,7 @@ class FileConversionJob(db.Model):
 
             sql = """select inputfilepath as filepath, status from public."FileConversionJob" dj
                     join (select max(fileconversionjobid) from public."FileConversionJob" fcj
-                    left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%'
+                    left outer join "DocumentDeleted" dd on fcj.inputfilepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                     where (deleted is false or deleted is null)
                     group by inputfilepath) sq on sq.max = dj.fileconversionjobid
                     where status = 'error' and ministryrequestid = :ministryrequestid"""

@@ -214,14 +214,11 @@ class documentservice:
         return filtered
 
     def __getattachments(self, records, documentmasterid, result=[]):
-        # print("documentmasterid === ", documentmasterid)
         for entry in records:
             if entry["recordid"] is None:
-                # print("entry === ", entry)
                 if entry["parentid"] not in [None, ""] and int(
                     entry["parentid"]
                 ) == int(documentmasterid):
-                    # print("<<<< inside if >>>>")
                     result.append(entry)
                     result = self.__getattachments(
                         records, entry["documentmasterid"], result
@@ -444,7 +441,6 @@ class documentservice:
                     "divisions"
                 ].extend(document["attributes"]["divisions"])
                 removeids.append(document["documentmasterid"])
-        print(documents)
         for id in removeids:
             documents.pop(id)
 

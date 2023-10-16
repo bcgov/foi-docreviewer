@@ -73,16 +73,19 @@ class Annotations(Resource):
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
+
 @cors_preflight("GET,OPTIONS")
-@API.route('/annotation/<int:ministryrequestid>/<string:redactionlayer>/<int:page>/<int:size>')
+@API.route(
+    "/annotation/<int:ministryrequestid>/<string:redactionlayer>/<int:page>/<int:size>"
+)
 class AnnotationPagination(Resource):
-    """ Retrives the foi request based on the queue type.
-    """
+    """Retrives the foi request based on the queue type."""
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    @cors_preflight('GET,OPTIONS')
+    @cors_preflight("GET,OPTIONS")
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(ministryrequestid, redactionlayer="redline", page=1, size=1000):
         try:
@@ -98,7 +101,6 @@ class AnnotationPagination(Resource):
             return {"status": False, "message": err.__str__()}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
-
 
 
 @cors_preflight("POST, OPTIONS")
@@ -293,7 +295,6 @@ class SaveFinalPackage(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            print(requestjson)
             finalpackageschema = FinalPackageSchema().load(requestjson)
             result = redactionservice().triggerdownloadredlinefinalpackage(
                 finalpackageschema, AuthHelper.getuserinfo()

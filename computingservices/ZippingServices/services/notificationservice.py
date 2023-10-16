@@ -116,9 +116,7 @@ class notificationservice:
 
     def __getskippedfiledetails(self, data):
         total_skippedfilecount = 0
-        total_skippedfiles = []
-
-        print("data stitchedoutput is {0}".format(data))
+        total_skippedfiles = []       
         data = json.loads(data)
         for output in data["stitchedoutput"]:
             skippedfilecount = output["skippedfilecount"]

@@ -292,11 +292,11 @@ class Document(db.Model):
             return db.session.query(
                 func.min(DocumentHashCodes.documentid).label('minid'), DocumentHashCodes.rank1hash
             ).join(
-                Document, Document.documentid == DocumentHashCodes.documentid
+                Document, Document.documentid == DocumentHashCodes.documentid and Document.foiministryrequestid == requestid
             ).join(
-                DocumentMaster, Document.documentmasterid == DocumentMaster.documentmasterid
+                DocumentMaster, Document.documentmasterid == DocumentMaster.documentmasterid and DocumentMaster.ministryrequestid == requestid
             ).join(
-                DocumentDeleted, DocumentMaster.filepath.contains(DocumentDeleted.filepath), isouter=True
+                DocumentDeleted, DocumentMaster.filepath.contains(DocumentDeleted.filepath) and DocumentDeleted.ministryrequestid == requestid, isouter=True
             ).filter(
                 Document.foiministryrequestid == requestid,
                 DocumentDeleted.deleted == False or DocumentDeleted.deleted == None,
