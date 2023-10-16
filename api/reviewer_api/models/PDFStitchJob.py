@@ -108,7 +108,6 @@ class PDFStitchJob(db.Model):
             # Combine the two queries using union
             final_query = query1.union(query2)
             row = final_query.one_or_none()
-            print("row = ", row)
             if row is not None and len(row) > 0:
                 print("Query returned at least one row.")
                 return {"recordchanged": True}
