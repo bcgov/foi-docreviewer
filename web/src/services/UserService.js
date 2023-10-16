@@ -1,6 +1,4 @@
-import {
-  ANONYMOUS_USER
-} from "../constants/constants";
+import { ANONYMOUS_USER } from "../constants/constants";
 import {
   setUserRole,
   setUserToken,
@@ -27,42 +25,42 @@ const tokenUpdateThreshold = 600; // if token expires in less than 10 minutes (6
 
 const KeycloakData = _kc;
 
-
 const doLogin = KeycloakData.login;
 const doLogout = KeycloakData.logout;
 const getToken = () => KeycloakData.token;
 
 const initKeycloak = (store, ...rest) => {
-  const done = rest.length ? rest[0] : () => { };
+  const done = rest.length ? rest[0] : () => {};
   KeycloakData.init({
     // onLoad: "check-sso",
     onLoad: "login-required",
     // silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
     pkceMethod: "S256",
     checkLoginIframe: false,
-  }).then((authenticated) => {
-    console.log(`authenticated = ${authenticated}`)
-    if (authenticated) {
-      store.dispatch(setUserToken(KeycloakData.token));
-      KeycloakData.loadUserInfo().then((res) => {
-        store.dispatch(setUserDetails(res));
-        const userGroups = res.groups.map((group) => group.slice(1));
-        const authorized =
-          isIntakeTeam(userGroups) ||
-          isFlexTeam(userGroups) ||
-          isProcessingTeam(userGroups) ||
-          isMinistryLogin(userGroups);
-        store.dispatch(setUserAuthorization(authorized));
-      });
-      done(null, KeycloakData);
-      refreshToken(store);
-    } else {
-      console.warn("not authenticated!");
-      doLogin();
-    }
-  }).catch((error) => {
-    console.log(error);
-  });
+  })
+    .then((authenticated) => {
+      if (authenticated) {
+        store.dispatch(setUserToken(KeycloakData.token));
+        KeycloakData.loadUserInfo().then((res) => {
+          store.dispatch(setUserDetails(res));
+          const userGroups = res.groups.map((group) => group.slice(1));
+          const authorized =
+            isIntakeTeam(userGroups) ||
+            isFlexTeam(userGroups) ||
+            isProcessingTeam(userGroups) ||
+            isMinistryLogin(userGroups);
+          store.dispatch(setUserAuthorization(authorized));
+        });
+        done(null, KeycloakData);
+        refreshToken(store);
+      } else {
+        console.warn("not authenticated!");
+        doLogin();
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+    });
 };
 let refreshInterval;
 const refreshToken = (store) => {
@@ -96,13 +94,11 @@ const authenticateAnonymousUser = (store) => {
   store.dispatch(setUserRole([user]));
 };
 
-
-
 const UserService = {
   initKeycloak,
   userLogout,
   getToken,
-  authenticateAnonymousUser
+  authenticateAnonymousUser,
 };
 
 export default UserService;

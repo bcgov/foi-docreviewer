@@ -20,7 +20,11 @@ from reviewer_api.auth import auth, AuthHelper
 from os import getenv
 
 # from reviewer_api.tracer import Tracer
-from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
+from reviewer_api.utils.util import (
+    cors_preflight,
+    allowedorigins,
+    getrequiredmemberships,
+)
 from reviewer_api.exceptions import BusinessException
 from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema
 import json
@@ -29,15 +33,17 @@ import logging
 
 from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
 
-API = Namespace('PDFStitchPackage Services', description='Endpoints for PDFStitchPackage')
+API = Namespace(
+    "PDFStitchPackage Services", description="Endpoints for PDFStitchPackage"
+)
 # TRACER = Tracer.get_instance()
 
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/pdfstitch/<requestid>/<category>')
+@cors_preflight("GET,OPTIONS")
+@API.route("/pdfstitch/<requestid>/<category>")
 class GetPDFStitchedDocuments(Resource):
-    """Get document list.
-    """
+    """Get document list."""
+
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -46,18 +52,18 @@ class GetPDFStitchedDocuments(Resource):
     def get(requestid, category):
         try:
             result = pdfstitchpackageservice().getpdfstitchpackage(requestid, category)
-            print("getpdfstitchpackage >>>> ", json.dumps(result))
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {"status": False, "message": err.messages}, 400
         except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
 
-@cors_preflight('GET,OPTIONS')
-@API.route('/recordschanged/<requestid>/<category>')
+
+@cors_preflight("GET,OPTIONS")
+@API.route("/recordschanged/<requestid>/<category>")
 class GetRecordsChangedStatus(Resource):
-    """Get document list.
-    """
+    """Get document list."""
+
     @staticmethod
     # @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -68,9 +74,9 @@ class GetRecordsChangedStatus(Resource):
             result = pdfstitchpackageservice().getrecordschanged(requestid, category)
             return json.dumps(result), 200
         except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            return {"status": False, "message": err.messages}, 400
         except BusinessException as exception:
             print("error = ", exception.message)
-            return {'status': exception.status_code, 'message':exception.message}, 500
+            return {"status": exception.status_code, "message": exception.message}, 500
         except Exception as ex:
             print("ex = ", ex)

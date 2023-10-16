@@ -4,12 +4,12 @@ import TreeView from '@mui/lab/TreeView';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TreeItem, { treeItemClasses } from "@mui/lab/TreeItem";
-import SearchIcon from "@material-ui/icons/Search";
+import SearchIcon from "@mui/icons-material/Search";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputBase from "@mui/material/InputBase";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
@@ -29,9 +29,9 @@ import { useAppSelector } from '../../../hooks/hook';
 import { getStitchedPageNoFromOriginal, docSorting, getProgramAreas } from "./utils";
 import { pageFlagTypes } from '../../../constants/enum';
 import _, { forEach } from "lodash";
-import Popover from "@material-ui/core/Popover";
-import MenuList from "@material-ui/core/MenuList";
-import MenuItem from "@material-ui/core/MenuItem";
+import Popover from "@mui/material/Popover";
+import MenuList from "@mui/material/MenuList";
+import MenuItem from "@mui/material/MenuItem";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 
 

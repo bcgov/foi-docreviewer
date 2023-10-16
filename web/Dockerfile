@@ -1,6 +1,6 @@
 # base image
 # FROM node:14.17.0-alpine as build-stage
-FROM artifacts.developer.gov.bc.ca/docker-remote/node:14.17.0-alpine as build-stage
+FROM artifacts.developer.gov.bc.ca/docker-remote/node:20.8.0-alpine as build-stage
 
 # set working directory
 WORKDIR /web
@@ -39,12 +39,12 @@ COPY package-lock.json /web/package-lock.json
 COPY package.json /web/package.json
 
 
-RUN npm install --unsafe-perm
+RUN npm install --unsafe-perm --force
 #RUN npm install react-scripts@3.0.1 -g --silent
 COPY . /web
 RUN npm run build
 
-FROM artifacts.developer.gov.bc.ca/docker-remote/nginx:1.17 as production-stage
+FROM artifacts.developer.gov.bc.ca/docker-remote/nginx:1.25.2 as production-stage
 RUN mkdir /app
 COPY --from=build-stage /web/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
