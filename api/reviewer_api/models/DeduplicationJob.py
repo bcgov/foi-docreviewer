@@ -35,7 +35,7 @@ class DeduplicationJob(db.Model):
         try:
             sql = """select  count(1)  as completed
                             FROM "DeduplicationJob" dj
-                            left outer join "DocumentDeleted" dd on dj.filepath ilike dd.filepath || '%'
+                            left outer join "DocumentDeleted" dd on dj.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                             where status = 'completed' and ministryrequestid = :ministryrequestid and (deleted is false or deleted is null) """
 
             rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
@@ -43,7 +43,7 @@ class DeduplicationJob(db.Model):
 
             sql = """select filepath, status from public."DeduplicationJob" dj
                     join (select max(deduplicationjobid) from public."DeduplicationJob" fcj
-                    left outer join "DocumentDeleted" dd on fcj.filepath ilike dd.filepath || '%'
+                    left outer join "DocumentDeleted" dd on fcj.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                     where (deleted is false or deleted is null)
                     group by fcj.filepath) sq on sq.max = dj.deduplicationjobid
                     where status = 'error' and ministryrequestid = :ministryrequestid"""

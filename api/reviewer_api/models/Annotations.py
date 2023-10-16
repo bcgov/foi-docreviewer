@@ -68,9 +68,9 @@ class Annotation(db.Model):
 					  from  "Documents" docs
                       where docs.foiministryrequestid = :ministryrequestid
 					  order by docs.documentid, docs.version desc) as d
-				on (d.documentid = a.documentid and d.version = a.documentversion)
-                join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
-                left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+				on (d.documentid = a.documentid and d.version = a.documentversion and d.foiministryrequestid = :ministryrequestid)
+                join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
+                left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                 where d.foiministryrequestid = :ministryrequestid
                 and (dd.deleted is false or dd.deleted is null)
                 and a.redactionlayerid in :_mappedlayerids

@@ -58,8 +58,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                             )
                             producermessage = jsonmessageparser.getzipperproducermessage(
                                 _message
-                            )
-                            print(producermessage)
+                            )                            
                             processmessage(producermessage)
                             readyfornotification = True
                             print(
