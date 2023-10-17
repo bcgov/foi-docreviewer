@@ -476,8 +476,9 @@ const DocumentSelector = ({
         setAnchorEl(null);
         setOpenConsulteeModal(false)
     };
+    
 
-    const consulteeFilterView = (file: any, division: any, p: number) => {
+    const consulteeFilterView = (file: any, p: number, division?: any) => {
         return (
         (consulteeFilter.length > 0 ?
             ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
@@ -486,21 +487,191 @@ const DocumentSelector = ({
                     (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                 &&
                 <>
-                    <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                    <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                 </>
             ) :
-            (
-                (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) &&
-                <>
-                    <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </>
-            )
+            viewWithoutConsulteeFilter(file, p)
         )
         );
+    }
+
+    const noFilterView = (file: any, p: number, division?: any) => {
+        return (
+            (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
+                <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                :
+                <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+            )
+        )
+    }
+
+    const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
+        return file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p, pageMappedDocs) : p;
+    }
+
+    const viewWithoutConsulteeFilter = (file: any, p:number) => {
+        return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
+        (
+        <>
+            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+        </>
+        )
+        :
+        (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
+        (
+        <>                                                 
+        <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+        </>
+        )
+    }
+
+    // const dateFilteredConsulteeFilterView= (file: any, p: number) => {
+    //     return (
+    //         (consulteeFilter.length > 0 ?
+    //             ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+    //                 ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+    //                     (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+    //                         (obj.other?.some((val: any) => consulteeFilter.includes(val))) )))
+    //                 &&
+    //                 <>
+    //                     <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+    //                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayPageNoWithConsult(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayPageNoWithoutConsult(file, pageMappedDocs, p + 1)}`}
+    //                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //                 </>
+    //             ) :
+    //             viewWithoutConsulteeFilter(file, p)
+    //         )
+    //     )
+    // }
+
+    // const dateFilteredNoFilterView = (file: any, p: number) => {
+    //     return (
+    //         (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
+    //             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+    //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayPageNoWithConsult(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayPageNoWithoutConsult(file, pageMappedDocs, p + 1)}`}
+    //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //             :                                                    
+    //             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+    //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //         )
+    //     )
+    // }
+
+    const sortByModifiedDateView = filesForDisplay.sort(docSorting).map((file: any, index: number) => { 
+        return (
+            <Tooltip
+                sx={{
+                    backgroundColor: 'white',
+                    color: 'rgba(0, 0, 0, 0.87)',
+                    // boxShadow: theme.shadows[1],
+                    fontSize: 11
+                }}
+                title={<>
+                    Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                    {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+                </>}
+                placement="bottom-end"
+                arrow
+                key={file?.documentid}
+                disableHoverListener={disableHover}
+            >
+                <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
+                    {[...Array(file.pagecount)].map((_x, p) =>
+                    (filterFlags.length > 0 ?
+                        //dateFilteredConsulteeFilterView(file,p)
+                        consulteeFilterView(file,p)
+                        :
+                        //dateFilteredNoFilterView(file,p)      
+                        noFilterView(file,p)                                               
+                    )
+                    )}
+                    {pageFlagList && pageFlagList?.length > 0 &&
+                        <ContextMenu
+                            openFOIPPAModal={openFOIPPAModal}
+                            requestId={requestid}
+                            pageFlagList={pageFlagList}
+                            assignIcon={assignIcon}
+                            anchorPosition={anchorPosition}
+                            openContextPopup={openContextPopup}
+                            setOpenContextPopup={setOpenContextPopup}
+                            selectedPages={selectedPages}
+                            consultInfo={consultInfo}
+                            updatePageFlags={updatePageFlags}
+                            pageMappedDocs={pageMappedDocs}
+                        />
+                    }
+                </TreeItem>
+            </Tooltip>
+        )
+    })
+
+    const sortByDivisionFilterView = divisions.map((division: any, index) => {
+        return(
+            <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
+                {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
+                    <Tooltip
+                        sx={{
+                            backgroundColor: 'white',
+                            color: 'rgba(0, 0, 0, 0.87)',
+                            fontSize: 11
+                        }}
+                        title={<>
+                            Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                            {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+                        </>}
+                        placement="bottom-end"
+                        arrow
+                        key={file.documentid}
+                        disableHoverListener={disableHover}
+                    >
+
+                        <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
+                            {[...Array(file.pagecount)].map((_x, p) =>
+                            (filterFlags.length > 0 ?
+                                consulteeFilterView(file,p,division)
+                                :
+                                noFilterView(file,p,division)
+                            )
+                            )
+                            }
+                            {pageFlagList && pageFlagList?.length > 0 &&
+                                <ContextMenu
+                                    openFOIPPAModal={openFOIPPAModal}
+                                    requestId={requestid}
+                                    pageFlagList={pageFlagList}
+                                    assignIcon={assignIcon}
+                                    anchorPosition={anchorPosition}
+                                    openContextPopup={openContextPopup}
+                                    setOpenContextPopup={setOpenContextPopup}
+                                    selectedPages={selectedPages}
+                                    consultInfo={consultInfo}
+                                    updatePageFlags={updatePageFlags}
+                                />
+                            }
+                        </TreeItem>
+                    </Tooltip>
+                )}
+            </TreeItem>
+        )
+    })
+
+    const displayFiles = () => {
+        return (
+            (filesForDisplay.length > 0 &&
+                (organizeBy === "division" ?
+                    sortByDivisionFilterView :
+                    sortByModifiedDateView
+                )
+            )
+        )
     }
 
     return (
@@ -681,166 +852,7 @@ const DocumentSelector = ({
                         {filesForDisplay.length <= 0 && filterBookmark ?
                             <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
                             :
-                            (filesForDisplay.length > 0 &&
-                                (organizeBy === "division" ?
-                                    divisions.map((division: any, index) =>
-                                        <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
-                                            {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
-                                                <Tooltip
-                                                    sx={{
-                                                        backgroundColor: 'white',
-                                                        color: 'rgba(0, 0, 0, 0.87)',
-                                                        fontSize: 11
-                                                    }}
-                                                    title={<>
-                                                        Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                                                        {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                                                    </>}
-                                                    placement="bottom-end"
-                                                    arrow
-                                                    key={file.documentid}
-                                                    disableHoverListener={disableHover}
-                                                >
-
-                                                    <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
-                                                        {[...Array(file.pagecount)].map((_x, p) =>
-                                                        (filterFlags.length > 0 ?
-                                                            consulteeFilterView(file,division,p)
-                                                            // (consulteeFilter.length > 0 ?
-                                                            //     ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                                                            //         (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-                                                            //             (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-                                                            //             (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
-                                                            //         &&
-                                                            //         <>
-                                                            //             <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                            //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                            //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            //         </>
-                                                            //     ) :
-                                                            //     (
-                                                            //         (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) &&
-                                                            //         <>
-                                                            //             <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                            //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                            //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            //         </>
-                                                            //     )
-                                                            // )
-                                                            :
-                                                            (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-                                                                <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                                :
-                                                                <StyledTreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            )
-                                                        )
-                                                        )
-                                                        }
-                                                        {pageFlagList && pageFlagList?.length > 0 &&
-                                                            <ContextMenu
-                                                                openFOIPPAModal={openFOIPPAModal}
-                                                                requestId={requestid}
-                                                                pageFlagList={pageFlagList}
-                                                                assignIcon={assignIcon}
-                                                                anchorPosition={anchorPosition}
-                                                                openContextPopup={openContextPopup}
-                                                                setOpenContextPopup={setOpenContextPopup}
-                                                                selectedPages={selectedPages}
-                                                                consultInfo={consultInfo}
-                                                                updatePageFlags={updatePageFlags}
-                                                            />
-                                                        }
-                                                    </TreeItem>
-                                                </Tooltip>
-                                            )}
-                                        </TreeItem>
-                                    )
-                                    :
-                                    filesForDisplay.sort(docSorting).map((file: any, index: number) =>
-                                        <Tooltip
-                                            sx={{
-                                                backgroundColor: 'white',
-                                                color: 'rgba(0, 0, 0, 0.87)',
-                                                // boxShadow: theme.shadows[1],
-                                                fontSize: 11
-                                            }}
-                                            title={<>
-                                                Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                                                {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                                            </>}
-                                            placement="bottom-end"
-                                            arrow
-                                            key={file?.documentid}
-                                            disableHoverListener={disableHover}
-                                        >
-                                            <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                                                {[...Array(file.pagecount)].map((_x, p) =>
-                                                (filterFlags.length > 0 ?
-                                                    (consulteeFilter.length > 0 ?
-                                                        ((file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                                                            ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-                                                                (obj.programareaid && obj.programareaid.some((val: any) => consulteeFilter.includes(val))) ||
-                                                                    (obj.other && obj.other.some((val: any) => consulteeFilter.includes(val))) )))
-                                                            &&
-                                                            <>
-                                                                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            </>
-                                                        ) :
-                                                        (
-                                                            (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
-                                                            (
-                                                            <>
-                                                                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            </>
-                                                            )
-                                                            :
-                                                            (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
-                                                            (
-                                                            <>                                                 
-                                                            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                            </>
-                                                            )
-                                                        )
-                                                    )
-                                                    :
-                                                    (file.pageFlag && file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-                                                        <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-                                                            title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                            onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                        :                                                    
-                                                        <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                                                            onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                                                    )
-                                                )
-                                                )}
-                                                {pageFlagList && pageFlagList?.length > 0 &&
-                                                    <ContextMenu
-                                                        openFOIPPAModal={openFOIPPAModal}
-                                                        requestId={requestid}
-                                                        pageFlagList={pageFlagList}
-                                                        assignIcon={assignIcon}
-                                                        anchorPosition={anchorPosition}
-                                                        openContextPopup={openContextPopup}
-                                                        setOpenContextPopup={setOpenContextPopup}
-                                                        selectedPages={selectedPages}
-                                                        consultInfo={consultInfo}
-                                                        updatePageFlags={updatePageFlags}
-                                                        pageMappedDocs={pageMappedDocs}
-                                                    />
-                                                }
-                                            </TreeItem>
-                                        </Tooltip>
-                                    )
-                                )
-                            )
+                            displayFiles()
                         }
                     </TreeView>
                 </Stack>

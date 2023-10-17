@@ -117,7 +117,6 @@ const Redlining = React.forwardRef(
     const [defaultSections, setDefaultSections] = useState([]);
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
-    const [redactionType, setRedactionType] = useState(null);
     const [pageSelections, setPageSelections] = useState([]);
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
     const [modalSortAsc, setModalSortAsc] = useState(true);
@@ -229,7 +228,7 @@ const Redlining = React.forwardRef(
             annotationManager,
             Annotations,
             PDFNet,
-            docMath,
+            Math,
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
@@ -257,7 +256,6 @@ const Redlining = React.forwardRef(
             redlineForSignOffBtn.style.cursor = "pointer";
             redlineForSignOffBtn.style.alignItems = "left";
             redlineForSignOffBtn.disabled = !enableSavingRedline;
-            // redlineForSignOffBtn.style.color = '#069';
 
             redlineForSignOffBtn.onclick = () => {
               // Save to s3
@@ -265,9 +263,9 @@ const Redlining = React.forwardRef(
               setModalTitle("Redline for Sign Off");
               setModalMessage([
                 "Are you sure want to create the redline PDF for ministry sign off?",
-                <br />,
-                <br />,
-                <span>
+                <br key="lineBreak1"/>,
+                <br key="lineBreak2"/>,
+                <span key="modalDescription">
                   When you create the redline PDF, your web browser page will
                   automatically refresh
                 </span>,
@@ -287,32 +285,30 @@ const Redlining = React.forwardRef(
             finalPackageBtn.style.padding = "8px 8px 8px 10px";
             finalPackageBtn.style.cursor = "pointer";
             finalPackageBtn.style.alignItems = "left";
-            // finalPackageBtn.style.color = '#069';
+            
             finalPackageBtn.disabled = !enableSavingFinal;
 
             finalPackageBtn.onclick = () => {
               // Download
-              // console.log("Response Package for Application");
               setModalFor("responsepackage");
               setModalTitle("Create Package for Applicant");
               setModalMessage([
                 "This should only be done when all redactions are finalized and ready to ",
-                <b>
+                <b key="bold1">
                   <i>be</i>
                 </b>,
                 " sent to the ",
-                <b>
+                <b key="bold2">
                   <i>Applicant</i>
                 </b>,
                 ". This will ",
-                <b>
+                <b key="bold3">
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
               ]);
               setModalButtonLabel("Create Applicant Package");
               setRedlineModalOpen(true);
-              // saveResponsePackage(documentViewer, annotationManager);
             };
 
             menu.appendChild(finalPackageBtn);
@@ -398,7 +394,6 @@ const Redlining = React.forwardRef(
             //update isloaded flag
             //localStorage.setItem("isDocumentLoaded", "true");
 
-            //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
@@ -410,7 +405,7 @@ const Redlining = React.forwardRef(
             setDocViewer(documentViewer);
             setAnnotManager(annotationManager);
             setAnnots(Annotations);
-            setDocViewerMath(docMath);
+            setDocViewerMath(Math);
           });
 
           let root = null;
@@ -517,7 +512,7 @@ const Redlining = React.forwardRef(
             const redactions = existingAnnotations.filter(
               (a) => a.Subject === "Redact"
             );
-            var rects = [];
+            let rects = [];
             for (const redaction of redactions) {
               rects = rects.concat(
                 redaction.getQuads().map((q) => {
@@ -530,12 +525,7 @@ const Redlining = React.forwardRef(
             }
             await annotManager.ungroupAnnotations(existingAnnotations);
             await annotManager.hideAnnotations(redactions);
-            // await annotManager.deleteAnnotations(redactions, {
-            //   imported: true,
-            //   force: true,
-            //   source: "layerchange",
-            // });
-            var newAnnots = [];
+            let newAnnots = [];
             for (const rect of rects) {
               const annot = new annots.RectangleAnnotation();
               annot.setRect(rect.rect);
@@ -642,7 +632,6 @@ const Redlining = React.forwardRef(
             //parse annotation xml
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
-            setRedactionType(annotations[0]?.type);
             if (annotations[0].IsText) {
               annotManager.deleteAnnotation(
                 annotManager.getAnnotationById(annotations[0].Id)
@@ -837,7 +826,7 @@ const Redlining = React.forwardRef(
             } else if (action === "modify") {
               if (
                 info.source === "group" &&
-                newRedaction.astr.includes(annotations[0].Id) // if we are grouping the newly created annotations do not save
+                newRedaction?.astr.includes(annotations[0].Id) // if we are grouping the newly created annotations do not save
               ) {
                 return;
               }
@@ -940,13 +929,6 @@ const Redlining = React.forwardRef(
               setWarningModalOpen(true);
             }
           }
-          // else if (action === 'deselected') {
-          //   console.log('annotation deselection');
-          // }
-
-          // console.log('annotation list', annotations);
-          // console.log('full annotation list', annotManager?.getSelectedAnnotations());
-
           if (multiSelectFooter && enableMultiSelect) {
             multiSelectFooter.render(
               <MultiSelectEdit
@@ -984,7 +966,7 @@ const Redlining = React.forwardRef(
 
     useImperativeHandle(ref, () => ({
       addFullPageRedaction(pageNumbers) {
-        var newAnnots = [];
+        let newAnnots = [];
         for (let pageNumber of pageNumbers) {
           let height = docViewer.getPageHeight(pageNumber);
           let width = docViewer.getPageWidth(pageNumber);
@@ -1082,9 +1064,6 @@ const Redlining = React.forwardRef(
           pages.push(i + 1);
           let pageNo = i + 1;
           stitchedPageNo = doc.getPageCount() + (i + 1);
-          if (stitchedPageNo > 61) {
-            //console.log("here");
-          }
           let pageMappings = {
             pageNo: pageNo,
             stitchedPageNo: stitchedPageNo,
@@ -1281,7 +1260,7 @@ const Redlining = React.forwardRef(
             `${displayedDoc.docversion}`
           );
         }
-        const doc = docViewer.getDocument();
+        const doc = docViewer?.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
 
         const pageInfo = doc.getPageInfo(pageNumber);
@@ -1415,8 +1394,6 @@ const Redlining = React.forwardRef(
           };
           _annotationtring.then((astr) => {
             //parse annotation xml
-            let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
-            let annots = jObj.getElementsByTagName("annots");
             if (_resizeAnnot?.type === "redact") {
               saveAnnotation(
                 requestid,
@@ -1675,9 +1652,6 @@ const Redlining = React.forwardRef(
       while (deleteQueue?.length > 0) {
         let annot = deleteQueue.pop();
         if (annot && !newRedaction?.names.includes(annot.name)) {
-          let stitchedPageNo = Number(annot.page) + 1;
-          let displayedDoc = pageMappedDocs.stitchedPageLookup[stitchedPageNo];
-
           if (annot.type === "redact" && redactionInfo) {
             let i = redactionInfo.findIndex(
               (a) => a.annotationname === annot.name
@@ -1734,13 +1708,11 @@ const Redlining = React.forwardRef(
         if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
           setWarningModalOpen(true);
           cancelRedaction();
-        } else {
-          if (defaultSections.length > 0) {
+        } else if (defaultSections.length > 0) {
             saveRedaction();
           } else {
             setModalOpen(true);
           }
-        }
       }
     }, [defaultSections, newRedaction]);
 
@@ -2191,13 +2163,7 @@ const Redlining = React.forwardRef(
                       });
                     });
 
-                    divisionstichpages.sort((a, b) =>
-                      a.stitchedPageNo > b.stitchedPageNo
-                        ? 1
-                        : b.stitchedPageNo > a.stitchedPageNo
-                        ? -1
-                        : 0
-                    );
+                    divisionstichpages.sort((a, b) => a.stitchedPageNo - b.stitchedPageNo);
                     await stampPageNumberRedline(
                       stitchedDocObj,
                       PDFNet,
