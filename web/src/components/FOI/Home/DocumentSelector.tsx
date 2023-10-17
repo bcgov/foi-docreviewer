@@ -535,38 +535,6 @@ const DocumentSelector = ({
         )
     }
 
-    // const dateFilteredConsulteeFilterView= (file: any, p: number) => {
-    //     return (
-    //         (consulteeFilter.length > 0 ?
-    //             ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-    //                 ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-    //                     (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-    //                         (obj.other?.some((val: any) => consulteeFilter.includes(val))) )))
-    //                 &&
-    //                 <>
-    //                     <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-    //                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayPageNoWithConsult(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayPageNoWithoutConsult(file, pageMappedDocs, p + 1)}`}
-    //                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-    //                 </>
-    //             ) :
-    //             viewWithoutConsulteeFilter(file, p)
-    //         )
-    //     )
-    // }
-
-    // const dateFilteredNoFilterView = (file: any, p: number) => {
-    //     return (
-    //         (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-    //             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
-    //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayPageNoWithConsult(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayPageNoWithoutConsult(file, pageMappedDocs, p + 1)}`}
-    //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-    //             :                                                    
-    //             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-    //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-    //         )
-    //     )
-    // }
-
     const sortByModifiedDateView = filesForDisplay.sort(docSorting).map((file: any, index: number) => { 
         return (
             <Tooltip
@@ -588,10 +556,8 @@ const DocumentSelector = ({
                 <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
                     {[...Array(file.pagecount)].map((_x, p) =>
                     (filterFlags.length > 0 ?
-                        //dateFilteredConsulteeFilterView(file,p)
                         consulteeFilterView(file,p)
                         :
-                        //dateFilteredNoFilterView(file,p)      
                         noFilterView(file,p)                                               
                     )
                     )}
