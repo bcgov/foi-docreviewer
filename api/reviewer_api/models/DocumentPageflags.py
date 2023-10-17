@@ -32,7 +32,6 @@ class DocumentPageflag(db.Model):
     redactionlayerid = db.Column(
         db.Integer, db.ForeignKey("RedactionLayers.redactionlayerid")
     )
-    # redactionlayer = relationship("RedactionLayer", backref=backref("RedactionLayers"), uselist=False)
 
     @classmethod
     def createpageflag(
@@ -162,43 +161,15 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
 
-    # new method added to get the DocumentPageflags for set of documentids
-    @classmethod
-    def getpageflagsbydocids(
-        cls, _foiministryrequestid, _documentids, _redactionlayerids
-    ):
-        try:
-            pageflag_schema = DocumentPageflagSchema(many=True)
-            query = (
-                db.session.query(DocumentPageflag)
-                .filter(
-                    and_(
-                        DocumentPageflag.foiministryrequestid == _foiministryrequestid,
-                        DocumentPageflag.documentid.in_(_documentids),
-                        DocumentPageflag.redactionlayerid.in_(_redactionlayerids),
-                    )
-                )
-                .order_by(
-                    DocumentPageflag.id.desc(), DocumentPageflag.documentversion.desc()
-                )
-                .all()
-            )
-            return pageflag_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-            raise ex
-        finally:
-            db.session.close()
-
     @classmethod
     def getpageflag_by_request(cls, _foiministryrequestid, redactionlayerid):
         pageflags = []
         try:
             sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
                      from "DocumentPageflags" dp
-                     join "Documents" d on dp.documentid = d.documentid
-                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid
-                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%'
+                     join "Documents" d on dp.documentid = d.documentid and d.foiministryrequestid = :foiministryrequestid
+                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :foiministryrequestid
+                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :foiministryrequestid
                      where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
                      and redactionlayerid in :redactionlayerid
                      order by dp.documentid, dp.documentversion desc, dp.id desc;
@@ -249,6 +220,34 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
         return pageflags
+
+    # new method added to get the DocumentPageflags for set of documentids
+    @classmethod
+    def getpageflagsbydocids(
+        cls, _foiministryrequestid, _documentids, _redactionlayerids
+    ):
+        try:
+            pageflag_schema = DocumentPageflagSchema(many=True)
+            query = (
+                db.session.query(DocumentPageflag)
+                .filter(
+                    and_(
+                        DocumentPageflag.foiministryrequestid == _foiministryrequestid,
+                        DocumentPageflag.documentid.in_(_documentids),
+                        DocumentPageflag.redactionlayerid.in_(_redactionlayerids),
+                    )
+                )
+                .order_by(
+                    DocumentPageflag.id.desc(), DocumentPageflag.documentversion.desc()
+                )
+                .all()
+            )
+            return pageflag_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
 
 
 class DocumentPageflagSchema(ma.Schema):

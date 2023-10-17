@@ -214,7 +214,6 @@ const Redlining = React.forwardRef(
             preloadWorker: "pdf",
             // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
             initialDoc: currentDocumentS3Url,
-            disableVirtualDisplayMode: true,
             fullAPI: true,
             enableRedaction: true,
             useDownloader: false,
@@ -306,6 +305,12 @@ const Redlining = React.forwardRef(
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
+                <br />,
+                <br />,
+                <span>
+                  When you create the response package, your web browser page will
+                  automatically refresh
+                </span>,
               ]);
               setModalButtonLabel("Create Applicant Package");
               setRedlineModalOpen(true);
@@ -605,6 +610,22 @@ const Redlining = React.forwardRef(
       }
     }, [iframeDocument]);
 
+    const removeRedactAnnotationDocContent = async (annotations) => {
+
+      annotations.forEach((_redactionannot) => {   
+        if(_redactionannot.Subject === "Redact")             
+        {
+          let redactcontent = _redactionannot.getContents()
+          if(redactcontent != undefined)
+          {
+            _redactionannot.setContents('')
+            _redactionannot.setCustomData('trn-annot-preview','')
+          }
+        }
+      })
+
+    }
+
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
         // If the event is triggered by importing then it can be ignored
@@ -701,7 +722,11 @@ const Redlining = React.forwardRef(
             } else if (action === "add") {
               let displayedDoc;
               let individualPageNo;
+
+              await removeRedactAnnotationDocContent(annotations)
+
               if (annotations[0].Subject === "Redact") {
+                
                 let pageSelectionList = [...pageSelections];
                 annots[0].children?.forEach((annotatn, i) => {
                   displayedDoc =
@@ -2409,7 +2434,7 @@ const Redlining = React.forwardRef(
                   _blob,
                   (_res) => {
                     toast.update(toastID, {
-                      render: "Final package is saved to Object Storage",
+                      render: "Final package is saved to Object Storage. Page will reload in 3 seconds..",
                       type: "success",
                       className: "file-upload-toast",
                       isLoading: false,
@@ -2424,6 +2449,9 @@ const Redlining = React.forwardRef(
                       res.s3path_save,
                       zipServiceMessage
                     );
+                    setTimeout(() => {
+                      window.location.reload(true)
+                    }, 3000)
                   },
                   (_err) => {
                     console.log(_err);

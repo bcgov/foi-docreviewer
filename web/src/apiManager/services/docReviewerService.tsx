@@ -42,7 +42,7 @@ export const fetchAnnotationsByPagination = (
   errorCallback: any,
   redactionlayer: string = "redline"
 ) => {
-  console.log('get annotations here - 1');
+  
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())

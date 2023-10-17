@@ -160,22 +160,13 @@ class redactionservice:
 
     def __getdocumentpagesmapping(self, annotations):
         output_dict = {}
-        # Iterate through the annotations and organize the data
         for annotation in annotations:
             docid = annotation["docid"]
             page = annotation["page"] - 1  # in DB the page starts with 0
-
-            # If docid is not in the output_dict, create an entry with an empty list of pages
             if docid not in output_dict:
                 output_dict[docid] = {"docid": docid, "pages": []}
-
-            # Append the page to the list of pages for the corresponding docid
             output_dict[docid]["pages"].append(page)
-
-        # Convert the values of the output_dict into a list
         output_list = list(output_dict.values())
-
-        # Print the resulting list
         return output_list
 
     def getdocumentmapper(self, bucket):
@@ -204,7 +195,6 @@ class redactionservice:
             _message = self.__preparemessageforzipservice(
                 finalpackageschema, userinfo, job
             )
-            print(_message)
             return zipperproducerservice().add(self.zipperstreamkey, _message)
 
     # redline/final package download: prepare message for zipping service
