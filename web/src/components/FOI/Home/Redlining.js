@@ -30,7 +30,7 @@ import {
   deleteAnnotation,
   fetchSections,
   fetchPageFlag,
-  fetchKeywordsMasterData,
+  //fetchKeywordsMasterData,
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
@@ -122,14 +122,13 @@ const Redlining = React.forwardRef(
     const [modalSortAsc, setModalSortAsc] = useState(true);
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
-    const [searchKeywords, setSearchKeywords] = useState("");
+    //const [searchKeywords, setSearchKeywords] = useState("");
     const [iframeDocument, setIframeDocument] = useState(null);
     const [modalFor, setModalFor] = useState("");
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
     const [redlineSaving, setRedlineSaving] = useState(false);
-
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
@@ -264,7 +263,7 @@ const Redlining = React.forwardRef(
                 "Are you sure want to create the redline PDF for ministry sign off?",
                 <br key="lineBreak1"/>,
                 <br key="lineBreak2"/>,
-                <span key="modalDescription">
+                <span key="modalDescription1">
                   When you create the redline PDF, your web browser page will
                   automatically refresh
                 </span>,
@@ -305,9 +304,9 @@ const Redlining = React.forwardRef(
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
-                <br />,
-                <br />,
-                <span>
+                <br key="break1"/>,
+                <br key="break2"/>,
+                <span key="modalDescription2">
                   When you create the response package, your web browser page will
                   automatically refresh
                 </span>,
