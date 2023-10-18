@@ -140,6 +140,9 @@ const Redlining = React.forwardRef(
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
 
+    const [isstitched, setisstitched] = useState(false);
+    const [pdftronDocObjects, setpdftronDocObjects] = useState(null);
+
     //xml parser
     const parser = new XMLParser();
 
@@ -318,8 +321,8 @@ const Redlining = React.forwardRef(
                 <br />,
                 <br />,
                 <span>
-                  When you create the response package, your web browser page will
-                  automatically refresh
+                  When you create the response package, your web browser page
+                  will automatically refresh
                 </span>,
               ]);
               setModalButtonLabel("Create Applicant Package");
@@ -386,34 +389,17 @@ const Redlining = React.forwardRef(
             }));
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
-            //Commenting the preset search code now- might need in later release
-            // fetchKeywordsMasterData(
-            //   (data) => {
-            //     if (data) {
-            //       let keywordArray = data.map((elmnt) => elmnt.keyword);
-            //       var regexFromMyArray = new String(keywordArray.join("|"));
-            //       setSearchKeywords(regexFromMyArray);
-            //       instance.UI.searchTextFull(regexFromMyArray, {
-            //         wholeWord: true,
-            //         regex: true,
-            //       });
-            //     }
-            //   },
-            //   (error) => console.log(error)
-            // );
             //update user info
             let newusername = user?.name || user?.preferred_username || "";
             let username = annotationManager.getCurrentUser();
             if (newusername && newusername !== username)
               annotationManager.setCurrentUser(newusername);
-
-            //update isloaded flag
-            //localStorage.setItem("isDocumentLoaded", "true");
-
-            //let crrntDocumentInfo = JSON.parse(localStorage.getItem("currentDocumentInfo"));
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
+
+            // let _doc = documentViewer.getDocument();
+            await mergeobjectspreparation(createDocument);
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
@@ -518,6 +504,32 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    let mergeobjectspreparation = async (createDocument) => {
+      let docCopy = [...docsForStitcing];
+      let removedFirstElement = docCopy?.shift();
+      let _pdftronDocObjs = [];
+
+      docCopy.forEach(async (file) => {
+        await createDocument(file.s3url).then(async (newDoc) => {
+          const pages = [];
+
+          for (let i = 0; i < newDoc.getPageCount(); i++) {
+            pages.push(i + 1);
+          }
+          //Preparing PDFTRON Document object collection for merging
+          _pdftronDocObjs.push({
+            file: file,
+            pages: pages,
+            pdftronobject: newDoc,
+          });
+        });
+
+        if (_pdftronDocObjs.length === docCopy.length) {
+          setpdftronDocObjects(_pdftronDocObjs);
+        }
+      });
+    };
 
     useEffect(() => {
       const changeLayer = async () => {
@@ -628,20 +640,16 @@ const Redlining = React.forwardRef(
     }, [iframeDocument]);
 
     const removeRedactAnnotationDocContent = async (annotations) => {
-
-      annotations.forEach((_redactionannot) => {   
-        if(_redactionannot.Subject === "Redact")             
-        {
-          let redactcontent = _redactionannot.getContents()
-          if(redactcontent != undefined)
-          {
-            _redactionannot.setContents('')
-            _redactionannot.setCustomData('trn-annot-preview','')
+      annotations.forEach((_redactionannot) => {
+        if (_redactionannot.Subject === "Redact") {
+          let redactcontent = _redactionannot.getContents();
+          if (redactcontent != undefined) {
+            _redactionannot.setContents("");
+            _redactionannot.setCustomData("trn-annot-preview", "");
           }
         }
-      })
-
-    }
+      });
+    };
 
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
@@ -743,10 +751,9 @@ const Redlining = React.forwardRef(
               let displayedDoc;
               let individualPageNo;
 
-              await removeRedactAnnotationDocContent(annotations)
+              await removeRedactAnnotationDocContent(annotations);
 
               if (annotations[0].Subject === "Redact") {
-                
                 let pageSelectionList = [...pageSelections];
                 annots[0].children?.forEach((annotatn, i) => {
                   displayedDoc =
@@ -1075,7 +1082,152 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    const stitchDocumentsFunc = async (doc) => {
+    // const stitchDocumentsFunc = async (doc) => {
+    //   let docCopy = [...docsForStitcing];
+    //   let removedFirstElement = docCopy?.shift();
+    //   let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
+    //   let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
+    //   let domParser = new DOMParser();
+    //   for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
+    //     let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
+    //     mappedDocs["stitchedPageLookup"][i + 1] = {
+    //       docid: removedFirstElement.file.documentid,
+    //       docversion: removedFirstElement.file.version,
+    //       page: i + 1,
+    //     };
+    //     mappedDoc.pageMappings.push(firstDocMappings);
+    //   }
+    //   mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
+    //     docId: removedFirstElement.file.documentid,
+    //     version: removedFirstElement.file.version,
+    //     division: removedFirstElement.file.divisions[0].divisionid,
+    //     pageMappings: mappedDoc.pageMappings,
+    //   };
+
+    //   for (let file of docCopy) {
+    //     mappedDoc = {
+    //       docId: 0,
+    //       version: 0,
+    //       division: "",
+    //       pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
+    //     };
+    //     let newDoc = await docInstance.Core.createDocument(
+    //       file.s3url,
+    //       { loadAsPDF: true } /* , license key here */
+    //     );
+    //     const pages = [];
+    //     mappedDoc = { pageMappings: [] };
+    //     let stitchedPageNo = 0;
+    //     for (let i = 0; i < newDoc.getPageCount(); i++) {
+    //       pages.push(i + 1);
+    //       let pageNo = i + 1;
+    //       stitchedPageNo = doc.getPageCount() + (i + 1);
+    //       if (stitchedPageNo > 61) {
+    //         //console.log("here");
+    //       }
+    //       let pageMappings = {
+    //         pageNo: pageNo,
+    //         stitchedPageNo: stitchedPageNo,
+    //       };
+    //       mappedDoc.pageMappings.push(pageMappings);
+    //       mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
+    //         docid: file.file.documentid,
+    //         docversion: file.file.version,
+    //         page: pageNo,
+    //       };
+    //     }
+    //     // Insert (merge) pages
+    //     await doc.insertPages(newDoc, pages);
+
+    //     const pageCount = docInstance.Core.documentViewer
+    //       .getDocument()
+    //       .getPageCount();
+    //     if (pageCount > 800) {
+    //       docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+    //     }
+    //     mappedDocs["docIdLookup"][file.file.documentid] = {
+    //       docId: file.file.documentid,
+    //       version: file.file.version,
+    //       division: file.file.divisions[0].divisionid,
+    //       pageMappings: mappedDoc.pageMappings,
+    //     };
+    //   }
+    //   console.log(`stitching ended..... [${new Date()}]`);
+    //   setPageMappedDocs(mappedDocs);
+    //   setIsStitchingLoaded(true);
+    //   if (fetchAnnotResponse) {
+    //     assignAnnotationsPagination(
+    //       mappedDocs,
+    //       fetchAnnotResponse["data"],
+    //       domParser
+    //     );
+    //     let meta = fetchAnnotResponse["meta"];
+    //     if (meta["has_next"] === true) {
+    //       fetchandApplyAnnotations(
+    //         mappedDocs,
+    //         domParser,
+    //         meta["next_num"],
+    //         meta["pages"]
+    //       );
+    //     }
+    //   }
+    // };
+
+    const stitchPages = (
+      _doc,
+      docCopy,
+      pdftronDocObjs,
+      mappedDoc,
+      mappedDocs
+    ) => {
+      let index = _doc.getPageCount();
+      docCopy.forEach(async (doc) => {
+        mappedDoc = { pageMappings: [] };
+        let stitchdoc = pdftronDocObjs.filter(
+          (_pdocobj) => _pdocobj.file.file.documentid == doc.file.documentid
+        );
+        let j = 0;
+
+        for (
+          let i = index + 1;
+          i <= index + stitchdoc[0]["pages"].length;
+          i++
+        ) {
+          let pageMapping = {
+            pageNo: stitchdoc[0]["pages"][j],
+            stitchedPageNo: i,
+          };
+          mappedDoc.pageMappings.push(pageMapping);
+          mappedDocs["stitchedPageLookup"][i] = {
+            docid: doc.file.documentid,
+            docversion: doc.file.version,
+            page: stitchdoc[0]["pages"][j],
+          };
+        }
+        mappedDocs["docIdLookup"][doc.file.documentid] = {
+          docId: doc.file.documentid,
+          version: doc.file.version,
+          division: doc.file.divisions[0].divisionid,
+          pageMappings: mappedDoc.pageMappings,
+        };
+
+        index = index + stitchdoc[0]["pages"].length;
+
+        await _doc.insertPages(
+          stitchdoc[0]["pdftronobject"],
+          stitchdoc[0]["pages"],
+          index
+        );
+        const pageCount = docInstance.Core.documentViewer
+          .getDocument()
+          .getPageCount();
+        if (pageCount > 800) {
+          docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+        }
+      });
+    };
+
+    const stitchDocumentsFunc = async (_doc, pdftronDocObjs) => {
       let docCopy = [...docsForStitcing];
       let removedFirstElement = docCopy?.shift();
       let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
@@ -1097,48 +1249,9 @@ const Redlining = React.forwardRef(
         pageMappings: mappedDoc.pageMappings,
       };
 
-      for (let file of docCopy) {
-        mappedDoc = {
-          docId: 0,
-          version: 0,
-          division: "",
-          pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
-        };
+      stitchPages(_doc, docCopy, pdftronDocObjs, mappedDoc, mappedDocs);
 
-        let newDoc = await docInstance.Core.createDocument(
-          file.s3url,
-          { loadAsPDF: true } /* , license key here */
-        );
-        const pages = [];
-        mappedDoc = { pageMappings: [] };
-        let stitchedPageNo = 0;
-        for (let i = 0; i < newDoc.getPageCount(); i++) {
-          pages.push(i + 1);
-          let pageNo = i + 1;
-          stitchedPageNo = doc.getPageCount() + (i + 1);
-          if (stitchedPageNo > 61) {
-            //console.log("here");
-          }
-          let pageMappings = {
-            pageNo: pageNo,
-            stitchedPageNo: stitchedPageNo,
-          };
-          mappedDoc.pageMappings.push(pageMappings);
-          mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
-            docid: file.file.documentid,
-            docversion: file.file.version,
-            page: pageNo,
-          };
-        }
-        // Insert (merge) pages
-        await doc.insertPages(newDoc, pages);
-        mappedDocs["docIdLookup"][file.file.documentid] = {
-          docId: file.file.documentid,
-          version: file.file.version,
-          division: file.file.divisions[0].divisionid,
-          pageMappings: mappedDoc.pageMappings,
-        };
-      }
+      console.log(`stitching ended..... [${new Date()}]`);
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
@@ -1239,11 +1352,25 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      if (docsForStitcing.length > 0 && merge && docViewer) {
+      if (
+        isstitched === false &&
+        pdftronDocObjects?.length > 0 &&
+        docsForStitcing.length > 0 &&
+        merge &&
+        docViewer
+      ) {
         const doc = docViewer.getDocument();
-        stitchDocumentsFunc(doc);
+        console.log(`stitching started..... [${new Date()}]`);
+        stitchDocumentsFunc(doc, pdftronDocObjects);
+        setisstitched(true);
       }
-    }, [docsForStitcing, fetchAnnotResponse, docViewer]);
+    }, [
+      isstitched,
+      pdftronDocObjects,
+      docsForStitcing,
+      fetchAnnotResponse,
+      docViewer,
+    ]);
 
     useEffect(() => {
       //update user name
@@ -2489,7 +2616,8 @@ const Redlining = React.forwardRef(
                   _blob,
                   (_res) => {
                     toast.update(toastID, {
-                      render: "Final package is saved to Object Storage. Page will reload in 3 seconds..",
+                      render:
+                        "Final package is saved to Object Storage. Page will reload in 3 seconds..",
                       type: "success",
                       className: "file-upload-toast",
                       isLoading: false,
@@ -2505,8 +2633,8 @@ const Redlining = React.forwardRef(
                       zipServiceMessage
                     );
                     setTimeout(() => {
-                      window.location.reload(true)
-                    }, 3000)
+                      window.location.reload(true);
+                    }, 3000);
                   },
                   (_err) => {
                     console.log(_err);
