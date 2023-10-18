@@ -213,6 +213,7 @@ const Redlining = React.forwardRef(
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
+        console.log("loading webviewer", response.data.license);
         WebViewer(
           {
             licenseKey: response.data.license,
@@ -237,6 +238,7 @@ const Redlining = React.forwardRef(
             Math,
             createDocument,
           } = instance.Core;
+          console.log("i'm in");
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
           documentViewer.setToolMode(
@@ -1105,10 +1107,12 @@ const Redlining = React.forwardRef(
           pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
         };
 
+        console.log("createdoc start", Date.now());
         let newDoc = await docInstance.Core.createDocument(
           file.s3url,
           { loadAsPDF: true } /* , license key here */
         );
+        console.log("createdoc end", Date.now());
         const pages = [];
         mappedDoc = { pageMappings: [] };
         let stitchedPageNo = 0;
@@ -1131,7 +1135,9 @@ const Redlining = React.forwardRef(
           };
         }
         // Insert (merge) pages
+        console.log("insert start", Date.now());
         await doc.insertPages(newDoc, pages);
+        console.log("insert end", Date.now());
         mappedDocs["docIdLookup"][file.file.documentid] = {
           docId: file.file.documentid,
           version: file.file.version,
@@ -1950,7 +1956,7 @@ const Redlining = React.forwardRef(
           await s.stampText(
             doc,
             `${requestnumber} , Page ${
-              divisionsdocpages[pagecount - 1].stitchedPageNo
+              divisionsdocpages[pagecount - 1]?.stitchedPageNo
             } of ${docViewer.getPageCount()}`,
             pgSet
           );

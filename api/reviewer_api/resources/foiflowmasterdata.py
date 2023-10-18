@@ -101,6 +101,61 @@ class FOIFlowS3Presigned(Resource):
 
 
 @cors_preflight("POST,OPTIONS")
+@API.route("/foiflow/oss/presigned")
+class FOIFlowS3PresignedList(Resource):
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post():
+        try:
+            data = request.get_json()
+            documentmapper = redactionservice().getdocumentmapper(
+                data["documentobjs"][0]["file"]["filepath"].split("/")[3]
+            )
+            attribute = json.loads(documentmapper["attributes"])
+
+            current_app.logger.debug("Inside Presigned List api!!")
+            formsbucket = documentmapper["bucket"]
+            s3client = boto3.client(
+                "s3",
+                config=Config(signature_version="s3v4"),
+                endpoint_url="https://{0}/".format(s3host),
+                aws_access_key_id=attribute["s3accesskey"],
+                aws_secret_access_key=attribute["s3secretkey"],
+                region_name=s3region,
+            )
+
+            documentobjs = []
+            documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
+            documents = documentservice().getdocumentbyids(documentids)
+            for documentinfo in data["documentobjs"]:
+                filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                filename, file_extension = os.path.splitext(filepath)
+                documentinfo["s3url"] = s3client.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={
+                        "Bucket": formsbucket,
+                        "Key": "{0}".format(filepath),
+                        "ResponseContentType": "{0}/{1}".format(
+                            "image"
+                            if file_extension.lower() in imageextensions
+                            else "application",
+                            file_extension.replace(".", ""),
+                        ),
+                    },
+                    ExpiresIn=3600,
+                    HttpMethod="GET",
+                )
+                documentobjs.append(documentinfo)
+
+            return json.dumps(documentobjs), 200
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500
+
+
+@cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
 class FOIFlowS3PresignedRedline(Resource):
     @staticmethod
