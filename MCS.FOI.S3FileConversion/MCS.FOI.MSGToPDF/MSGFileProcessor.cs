@@ -114,8 +114,9 @@ namespace MCS.FOI.MSGToPDF
                             {
                                 var msgReader = new Reader();
                                 string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
-                                AppDomain.CurrentDomain.SetData("REGEX_DEFAULT_MATCH_TIMEOUT", TimeSpan.FromMilliseconds(10000));
-                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", ""), "<link.*?>", "");
+                                var options = RegexOptions.None;
+                                var timeout = TimeSpan.FromSeconds(10);
+                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout);
                                 const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                                 const string imgString = "<img";
                                 bool htmlInline = bodyreplaced.Contains(imgString);
