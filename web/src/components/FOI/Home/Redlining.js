@@ -399,8 +399,9 @@ const Redlining = React.forwardRef(
               individualDoc = localDocumentInfo;
 
             // let _doc = documentViewer.getDocument();
-            await mergeobjectspreparation(createDocument);
 
+            await MergeObjectsPreparation(createDocument);
+            console.log(`download documents ended...... ${new Date()}`);
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
@@ -505,7 +506,8 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
-    let mergeobjectspreparation = async (createDocument) => {
+    let MergeObjectsPreparation = async (createDocument) => {
+      console.log(`Download documents started .... ${new Date()}`);
       let docCopy = [...docsForStitcing];
       let removedFirstElement = docCopy?.shift();
       let _pdftronDocObjs = [];
@@ -526,6 +528,7 @@ const Redlining = React.forwardRef(
         });
 
         if (_pdftronDocObjs.length === docCopy.length) {
+          console.log(`setpdftronDocObjects`);
           setpdftronDocObjects(_pdftronDocObjs);
         }
       });
@@ -1082,97 +1085,6 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    // const stitchDocumentsFunc = async (doc) => {
-    //   let docCopy = [...docsForStitcing];
-    //   let removedFirstElement = docCopy?.shift();
-    //   let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
-    //   let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-    //   let domParser = new DOMParser();
-    //   for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
-    //     let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
-    //     mappedDocs["stitchedPageLookup"][i + 1] = {
-    //       docid: removedFirstElement.file.documentid,
-    //       docversion: removedFirstElement.file.version,
-    //       page: i + 1,
-    //     };
-    //     mappedDoc.pageMappings.push(firstDocMappings);
-    //   }
-    //   mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
-    //     docId: removedFirstElement.file.documentid,
-    //     version: removedFirstElement.file.version,
-    //     division: removedFirstElement.file.divisions[0].divisionid,
-    //     pageMappings: mappedDoc.pageMappings,
-    //   };
-
-    //   for (let file of docCopy) {
-    //     mappedDoc = {
-    //       docId: 0,
-    //       version: 0,
-    //       division: "",
-    //       pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
-    //     };
-    //     let newDoc = await docInstance.Core.createDocument(
-    //       file.s3url,
-    //       { loadAsPDF: true } /* , license key here */
-    //     );
-    //     const pages = [];
-    //     mappedDoc = { pageMappings: [] };
-    //     let stitchedPageNo = 0;
-    //     for (let i = 0; i < newDoc.getPageCount(); i++) {
-    //       pages.push(i + 1);
-    //       let pageNo = i + 1;
-    //       stitchedPageNo = doc.getPageCount() + (i + 1);
-    //       if (stitchedPageNo > 61) {
-    //         //console.log("here");
-    //       }
-    //       let pageMappings = {
-    //         pageNo: pageNo,
-    //         stitchedPageNo: stitchedPageNo,
-    //       };
-    //       mappedDoc.pageMappings.push(pageMappings);
-    //       mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
-    //         docid: file.file.documentid,
-    //         docversion: file.file.version,
-    //         page: pageNo,
-    //       };
-    //     }
-    //     // Insert (merge) pages
-    //     await doc.insertPages(newDoc, pages);
-
-    //     const pageCount = docInstance.Core.documentViewer
-    //       .getDocument()
-    //       .getPageCount();
-    //     if (pageCount > 800) {
-    //       docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-    //     }
-    //     mappedDocs["docIdLookup"][file.file.documentid] = {
-    //       docId: file.file.documentid,
-    //       version: file.file.version,
-    //       division: file.file.divisions[0].divisionid,
-    //       pageMappings: mappedDoc.pageMappings,
-    //     };
-    //   }
-    //   console.log(`stitching ended..... [${new Date()}]`);
-    //   setPageMappedDocs(mappedDocs);
-    //   setIsStitchingLoaded(true);
-    //   if (fetchAnnotResponse) {
-    //     assignAnnotationsPagination(
-    //       mappedDocs,
-    //       fetchAnnotResponse["data"],
-    //       domParser
-    //     );
-    //     let meta = fetchAnnotResponse["meta"];
-    //     if (meta["has_next"] === true) {
-    //       fetchandApplyAnnotations(
-    //         mappedDocs,
-    //         domParser,
-    //         meta["next_num"],
-    //         meta["pages"]
-    //       );
-    //     }
-    //   }
-    // };
-
     const stitchPages = (
       _doc,
       docCopy,
@@ -1213,23 +1125,23 @@ const Redlining = React.forwardRef(
 
         index = index + stitchdoc[0]["pages"].length;
 
-        const prms= _doc.insertPages(
+        const prms = _doc.insertPages(
           stitchdoc[0]["pdftronobject"],
           stitchdoc[0]["pages"],
           index
         );
 
         prms
-      .then(() => {
-        // This function is called when the page insertion is complete
-        console.log('Page insertion is complete.');
-        setIsStitchingLoaded(true);
-        // Call any other functions or perform additional tasks here
-      })
-      .catch((error) => {
-        // Handle errors if the promise is rejected
-        console.error('An error occurred during page insertion:', error);
-      });
+          .then(() => {
+            // This function is called when the page insertion is complete
+            console.log(`Page insertion is complete... ${new Date()}`);
+            setIsStitchingLoaded(true);
+            // Call any other functions or perform additional tasks here
+          })
+          .catch((error) => {
+            // Handle errors if the promise is rejected
+            console.error("An error occurred during page insertion:", error);
+          });
         const pageCount = docInstance.Core.documentViewer
           .getDocument()
           .getPageCount();
@@ -1262,8 +1174,7 @@ const Redlining = React.forwardRef(
         pageMappings: mappedDoc.pageMappings,
       };
       stitchPages(_doc, docCopy, pdftronDocObjs, mappedDoc, mappedDocs);
-
-      console.log(`stitching ended..... [${new Date()}]`);
+      console.log(mappedDocs);
       setPageMappedDocs(mappedDocs);
       //setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
