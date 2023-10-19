@@ -747,6 +747,7 @@ const DocumentSelector = ({
                                                                 selectedPages={selectedPages}
                                                                 consultInfo={consultInfo}
                                                                 updatePageFlags={updatePageFlags}
+                                                                pageMappedDocs={pageMappedDocs}
                                                             />
                                                         }
                                                     </TreeItem>
