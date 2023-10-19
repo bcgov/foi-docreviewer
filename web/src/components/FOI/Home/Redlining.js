@@ -1135,6 +1135,12 @@ const Redlining = React.forwardRef(
           .then(() => {
             // This function is called when the page insertion is complete
             console.log(`Page insertion is complete... ${new Date()}`);
+            const pageCount = docInstance.Core.documentViewer
+              .getDocument()
+              .getPageCount();
+            if (pageCount > 800) {
+              docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+            }
             setIsStitchingLoaded(true);
             // Call any other functions or perform additional tasks here
           })
@@ -1142,12 +1148,6 @@ const Redlining = React.forwardRef(
             // Handle errors if the promise is rejected
             console.error("An error occurred during page insertion:", error);
           });
-        const pageCount = docInstance.Core.documentViewer
-          .getDocument()
-          .getPageCount();
-        if (pageCount > 800) {
-          docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-        }
       });
       //setIsStitchingLoaded(true);
     };
