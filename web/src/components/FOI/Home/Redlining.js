@@ -1213,11 +1213,23 @@ const Redlining = React.forwardRef(
 
         index = index + stitchdoc[0]["pages"].length;
 
-        await _doc.insertPages(
+        const prms= _doc.insertPages(
           stitchdoc[0]["pdftronobject"],
           stitchdoc[0]["pages"],
           index
         );
+
+        prms
+      .then(() => {
+        // This function is called when the page insertion is complete
+        console.log('Page insertion is complete.');
+        setIsStitchingLoaded(true);
+        // Call any other functions or perform additional tasks here
+      })
+      .catch((error) => {
+        // Handle errors if the promise is rejected
+        console.error('An error occurred during page insertion:', error);
+      });
         const pageCount = docInstance.Core.documentViewer
           .getDocument()
           .getPageCount();
@@ -1225,6 +1237,7 @@ const Redlining = React.forwardRef(
           docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
         }
       });
+      //setIsStitchingLoaded(true);
     };
 
     const stitchDocumentsFunc = async (_doc, pdftronDocObjs) => {
@@ -1248,12 +1261,11 @@ const Redlining = React.forwardRef(
         division: removedFirstElement.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
       };
-
       stitchPages(_doc, docCopy, pdftronDocObjs, mappedDoc, mappedDocs);
 
       console.log(`stitching ended..... [${new Date()}]`);
       setPageMappedDocs(mappedDocs);
-      setIsStitchingLoaded(true);
+      //setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
           mappedDocs,
