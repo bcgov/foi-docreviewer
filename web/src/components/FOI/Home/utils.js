@@ -13,7 +13,7 @@ export const createPageFlagPayload = (
   flagId = 0,
   data = {}
 ) => {
-  var documentpageflags = {};
+  let documentpageflags = {};
   for (let page of selectedPages) {
     if (!(page.docid in documentpageflags)) {
       documentpageflags[page.docid] = [];
@@ -24,7 +24,7 @@ export const createPageFlagPayload = (
       ...data,
     });
   }
-  var payload = { documentpageflags: [] };
+  let payload = { documentpageflags: [] };
   for (let docid in documentpageflags) {
     payload.documentpageflags.push({
       documentid: docid,
@@ -90,8 +90,8 @@ export const createRedactionSectionsString = (
   const compareFn = (a, b) => {
     let sectionA = parseFloat(a.section.split('s. ')[1])
     let sectionB = parseFloat(b.section.split('s. ')[1])
-    if (sectionA === undefined) sectionA = 100
-    if (sectionB === undefined) sectionB = 100
+    if (sectionA == undefined) sectionA = 100
+    if (sectionB == undefined) sectionB = 100
     return sectionA - sectionB
   }
   let redactionSections = getValidSections(sections, redactionSectionsIds)
