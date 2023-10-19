@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import Chip from "@mui/material/Chip";
-import TreeView from '@mui/lab/TreeView';
+import {TreeView, TreeItem} from '@mui/x-tree-view';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import TreeItem, { treeItemClasses } from "@mui/lab/TreeItem";
+import { treeItemClasses } from "@mui/x-tree-view/TreeItem";
 import SearchIcon from "@mui/icons-material/Search";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputBase from "@mui/material/InputBase";
@@ -773,8 +773,8 @@ const DocumentSelector = ({
                                 vertical: "top",
                                 horizontal: "center",
                             }}
-                            PaperProps={{
-                                style: { marginTop: '10px', padding: '10px' }
+                            slotProps={{
+                                paper: {style: { marginTop: '10px', padding: '10px' }}
                             }}
                             onClose={() => handleClose()}>
                             <div className='consultDropDown'>
