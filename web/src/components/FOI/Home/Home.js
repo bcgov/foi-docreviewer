@@ -75,7 +75,6 @@ function Home() {
             documentObjs,
             (newDocumentObjs) => {
               doclist = newDocumentObjs?.sort(docSorting);
-              console.log(doclist);
               setCurrentDocument({
                 file: doclist[0]?.file || {},
                 page: 1,
