@@ -1069,34 +1069,34 @@ const Redlining = React.forwardRef(
     ) => {
       let index = _doc.getPageCount();
       docCopy.forEach(async (doc) => {
-        mappedDoc = { pageMappings: [] };
+        //mappedDoc = { pageMappings: [] };
         let stitchdoc = pdftronDocObjs.filter(
           (_pdocobj) => _pdocobj.file.file.documentid == doc.file.documentid
         );
         let j = 0;
 
-        for (
-          let i = index + 1;
-          i <= index + stitchdoc[0]["pages"].length;
-          i++
-        ) {
-          let pageMapping = {
-            pageNo: stitchdoc[0]["pages"][j],
-            stitchedPageNo: i,
-          };
-          mappedDoc.pageMappings.push(pageMapping);
-          mappedDocs["stitchedPageLookup"][i] = {
-            docid: doc.file.documentid,
-            docversion: doc.file.version,
-            page: stitchdoc[0]["pages"][j],
-          };
-        }
-        mappedDocs["docIdLookup"][doc.file.documentid] = {
-          docId: doc.file.documentid,
-          version: doc.file.version,
-          division: doc.file.divisions[0].divisionid,
-          pageMappings: mappedDoc.pageMappings,
-        };
+        // for (
+        //   let i = index + 1;
+        //   i <= index + stitchdoc[0]["pages"].length;
+        //   i++
+        // ) {
+        //   let pageMapping = {
+        //     pageNo: stitchdoc[0]["pages"][j],
+        //     stitchedPageNo: i,
+        //   };
+        //   mappedDoc.pageMappings.push(pageMapping);
+        //   mappedDocs["stitchedPageLookup"][i] = {
+        //     docid: doc.file.documentid,
+        //     docversion: doc.file.version,
+        //     page: stitchdoc[0]["pages"][j],
+        //   };
+        // }
+        // mappedDocs["docIdLookup"][doc.file.documentid] = {
+        //   docId: doc.file.documentid,
+        //   version: doc.file.version,
+        //   division: doc.file.divisions[0].divisionid,
+        //   pageMappings: mappedDoc.pageMappings,
+        // };
 
         index = index + stitchdoc[0]["pages"].length;
 
@@ -1133,35 +1133,35 @@ const Redlining = React.forwardRef(
       let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
       let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
-      for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
-        let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
-        mappedDocs["stitchedPageLookup"][i + 1] = {
-          docid: removedFirstElement.file.documentid,
-          docversion: removedFirstElement.file.version,
-          page: i + 1,
-        };
-        mappedDoc.pageMappings.push(firstDocMappings);
-      }
-      mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
-        docId: removedFirstElement.file.documentid,
-        version: removedFirstElement.file.version,
-        division: removedFirstElement.file.divisions[0].divisionid,
-        pageMappings: mappedDoc.pageMappings,
-      };
+      // for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
+      //   let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
+      //   mappedDocs["stitchedPageLookup"][i + 1] = {
+      //     docid: removedFirstElement.file.documentid,
+      //     docversion: removedFirstElement.file.version,
+      //     page: i + 1,
+      //   };
+      //   mappedDoc.pageMappings.push(firstDocMappings);
+      // }
+      // mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
+      //   docId: removedFirstElement.file.documentid,
+      //   version: removedFirstElement.file.version,
+      //   division: removedFirstElement.file.divisions[0].divisionid,
+      //   pageMappings: mappedDoc.pageMappings,
+      // };
       stitchPages(_doc, docCopy, pdftronDocObjs, mappedDoc, mappedDocs);
       console.log(mappedDocs);
-      setPageMappedDocs(mappedDocs);
+      //setPageMappedDocs(mappedDocs);
       //setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
-          mappedDocs,
+          pageMappedDocs,
           fetchAnnotResponse["data"],
           domParser
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
           fetchandApplyAnnotations(
-            mappedDocs,
+            pageMappedDocs,
             domParser,
             meta["next_num"],
             meta["pages"]

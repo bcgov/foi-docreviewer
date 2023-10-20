@@ -86,6 +86,7 @@ function Home() {
           await Promise.all(urlPromises);
           let doclist = documentObjs?.sort(docSorting);
           const doclistwithSortOrder = addSortOrderToDocumentList(doclist);
+          prepareMapperObj(doclistwithSortOrder);
           setCurrentDocument({
             file: doclist[0].file || {},
             page: 1,
@@ -94,7 +95,7 @@ function Home() {
           // localStorage.setItem("currentDocumentS3Url", s3data);
           setS3Url(doclist[0].s3url);
           setS3UrlReady(true);
-          setDocsForStitcing(doclistwithSortOrder);
+          setDocsForStitcing(doclistwithSortOrder);         
           setTotalPageCount(totalPageCountVal);
         }
       },
@@ -118,6 +119,41 @@ function Home() {
       (error) => console.log(error)
     );
   }, []);
+
+
+  const prepareMapperObj = (doclistwithSortOrder) => {
+    let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
+    let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
+
+    let index = 0;
+    doclistwithSortOrder.forEach((sortedDoc) => {
+      mappedDoc = { pageMappings: [] };
+      let j = 0;
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
+        j++;
+        let pageMapping = {
+          pageNo: j,
+          stitchedPageNo: i,
+        };
+        mappedDoc.pageMappings.push(pageMapping);
+        mappedDocs["stitchedPageLookup"][i] = {
+          docid: sortedDoc.file.documentid,
+          docversion: sortedDoc.file.version,
+          page: j //stitchdoc[0]["pages"][j],
+        };
+      }
+      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
+        docId: sortedDoc.file.documentid,
+        version: sortedDoc.file.version,
+        division: sortedDoc.file.divisions[0].divisionid,
+        pageMappings: mappedDoc.pageMappings,
+      };
+
+      index = index + sortedDoc.file.pagecount;
+    });
+    setPageMappedDocs(mappedDocs);
+  }
+  
 
   const openFOIPPAModal = (pageNos) => {
     redliningRef?.current?.addFullPageRedaction(pageNos);
