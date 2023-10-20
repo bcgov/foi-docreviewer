@@ -518,7 +518,6 @@ const Redlining = React.forwardRef(
         });
 
         if (_pdftronDocObjs.length === docCopy.length) {
-          console.log(`setpdftronDocObjects`);
           setpdftronDocObjects(_pdftronDocObjs);
         }
       });
@@ -1060,56 +1059,22 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    const stitchPages = (
-      _doc,
-      docCopy,
-      pdftronDocObjs,
-      mappedDoc,
-      mappedDocs
-    ) => {
+    const stitchPages = (_doc, docCopy, pdftronDocObjs) => {
       let index = _doc.getPageCount();
       docCopy.forEach(async (doc) => {
-        //mappedDoc = { pageMappings: [] };
         let stitchdoc = pdftronDocObjs.filter(
           (_pdocobj) => _pdocobj.file.file.documentid == doc.file.documentid
         );
-        let j = 0;
-
-        // for (
-        //   let i = index + 1;
-        //   i <= index + stitchdoc[0]["pages"].length;
-        //   i++
-        // ) {
-        //   let pageMapping = {
-        //     pageNo: stitchdoc[0]["pages"][j],
-        //     stitchedPageNo: i,
-        //   };
-        //   mappedDoc.pageMappings.push(pageMapping);
-        //   mappedDocs["stitchedPageLookup"][i] = {
-        //     docid: doc.file.documentid,
-        //     docversion: doc.file.version,
-        //     page: stitchdoc[0]["pages"][j],
-        //   };
-        // }
-        // mappedDocs["docIdLookup"][doc.file.documentid] = {
-        //   docId: doc.file.documentid,
-        //   version: doc.file.version,
-        //   division: doc.file.divisions[0].divisionid,
-        //   pageMappings: mappedDoc.pageMappings,
-        // };
-
         index = index + stitchdoc[0]["pages"].length;
 
-        const prms = _doc.insertPages(
+        const promise = _doc.insertPages(
           stitchdoc[0]["pdftronobject"],
           stitchdoc[0]["pages"],
           index
         );
 
-        prms
+        promise
           .then(() => {
-            // This function is called when the page insertion is complete
-            console.log(`Page insertion is complete... ${new Date()}`);
             const pageCount = docInstance.Core.documentViewer
               .getDocument()
               .getPageCount();
@@ -1117,41 +1082,18 @@ const Redlining = React.forwardRef(
               docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
             }
             setIsStitchingLoaded(true);
-            // Call any other functions or perform additional tasks here
           })
           .catch((error) => {
-            // Handle errors if the promise is rejected
             console.error("An error occurred during page insertion:", error);
           });
       });
-      //setIsStitchingLoaded(true);
     };
 
     const stitchDocumentsFunc = async (_doc, pdftronDocObjs) => {
       let docCopy = [...docsForStitcing];
       let removedFirstElement = docCopy?.shift();
-      let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
-      let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
-      // for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
-      //   let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
-      //   mappedDocs["stitchedPageLookup"][i + 1] = {
-      //     docid: removedFirstElement.file.documentid,
-      //     docversion: removedFirstElement.file.version,
-      //     page: i + 1,
-      //   };
-      //   mappedDoc.pageMappings.push(firstDocMappings);
-      // }
-      // mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
-      //   docId: removedFirstElement.file.documentid,
-      //   version: removedFirstElement.file.version,
-      //   division: removedFirstElement.file.divisions[0].divisionid,
-      //   pageMappings: mappedDoc.pageMappings,
-      // };
-      stitchPages(_doc, docCopy, pdftronDocObjs, mappedDoc, mappedDocs);
-      console.log(mappedDocs);
-      //setPageMappedDocs(mappedDocs);
-      //setIsStitchingLoaded(true);
+      stitchPages(_doc, docCopy, pdftronDocObjs);
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
           pageMappedDocs,

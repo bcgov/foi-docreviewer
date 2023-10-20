@@ -12,7 +12,7 @@ import {
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrl } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { docSorting, addSortOrderToDocumentList } from "./utils";
+import { docSorting } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -85,8 +85,10 @@ function Home() {
           });
           await Promise.all(urlPromises);
           let doclist = documentObjs?.sort(docSorting);
-          const doclistwithSortOrder = addSortOrderToDocumentList(doclist);
-          prepareMapperObj(doclistwithSortOrder);
+
+          //prepareMapperObj will add sortorder to doclist and prepare the PageMappedDocs object
+          prepareMapperObj(doclist);
+
           setCurrentDocument({
             file: doclist[0].file || {},
             page: 1,
@@ -95,7 +97,7 @@ function Home() {
           // localStorage.setItem("currentDocumentS3Url", s3data);
           setS3Url(doclist[0].s3url);
           setS3UrlReady(true);
-          setDocsForStitcing(doclistwithSortOrder);         
+          setDocsForStitcing(doclist);
           setTotalPageCount(totalPageCountVal);
         }
       },
@@ -120,13 +122,12 @@ function Home() {
     );
   }, []);
 
-
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
     let index = 0;
-    doclistwithSortOrder.forEach((sortedDoc) => {
+    doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       let j = 0;
       for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
@@ -139,7 +140,7 @@ function Home() {
         mappedDocs["stitchedPageLookup"][i] = {
           docid: sortedDoc.file.documentid,
           docversion: sortedDoc.file.version,
-          page: j //stitchdoc[0]["pages"][j],
+          page: j,
         };
       }
       mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
@@ -150,10 +151,10 @@ function Home() {
       };
 
       index = index + sortedDoc.file.pagecount;
+      sortedDoc.sortorder = _index + 1;
     });
     setPageMappedDocs(mappedDocs);
-  }
-  
+  };
 
   const openFOIPPAModal = (pageNos) => {
     redliningRef?.current?.addFullPageRedaction(pageNos);

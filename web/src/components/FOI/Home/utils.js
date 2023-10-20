@@ -63,13 +63,6 @@ export const docSorting = (a, b) => {
   return sort;
 };
 
-export const addSortOrderToDocumentList = (doclist) => {
-  return doclist.map((obj, index) => ({
-    ...obj,
-    sortorder: index + 1,
-  }));
-};
-
 export const getProgramAreas = (pageFlagList) => {
   let consult = pageFlagList.find((pageFlag) => pageFlag.name === "Consult");
   return (({ others, programareas }) =>
