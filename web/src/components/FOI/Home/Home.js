@@ -10,7 +10,7 @@ import {
   fetchPageFlag,
   fetchRedactionLayerMasterData,
 } from "../../../apiManager/services/docReviewerService";
-import { getFOIS3DocumentPreSignedUrl } from "../../../apiManager/services/foiOSSService";
+import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
 import { docSorting } from "./utils";
 import { store } from "../../../services/StoreService";
@@ -65,36 +65,31 @@ function Home() {
         if (_files.length > 0) {
           let urlPromises = [];
           _files.forEach((file, index) => {
-            let documentObj = { file: {}, s3url: "" };
+            documentObjs.push({ file: file, s3url: "" });
             let filePageCount = file?.pagecount;
             totalPageCountVal += filePageCount;
-            urlPromises.push(
-              getFOIS3DocumentPreSignedUrl(
-                file.documentid,
-                (s3data) => {
-                  presignedurls.push(s3data);
-                  documentObj.file = file;
-                  documentObj.s3url = s3data;
-                  documentObjs.push(documentObj);
-                },
-                (error) => {
-                  console.log(error);
-                }
-              )
-            );
           });
-          await Promise.all(urlPromises);
-          let doclist = documentObjs?.sort(docSorting);
-          setCurrentDocument({
-            file: doclist[0].file || {},
-            page: 1,
-            currentDocumentS3Url: doclist[0].s3url,
-          });
-          // localStorage.setItem("currentDocumentS3Url", s3data);
-          setS3Url(doclist[0].s3url);
-          setS3UrlReady(true);
-          setDocsForStitcing(doclist);
-          setTotalPageCount(totalPageCountVal);
+
+          let doclist = [];
+          getFOIS3DocumentPreSignedUrls(
+            documentObjs,
+            (newDocumentObjs) => {
+              doclist = newDocumentObjs?.sort(docSorting);
+              setCurrentDocument({
+                file: doclist[0]?.file || {},
+                page: 1,
+                currentDocumentS3Url: doclist[0]?.s3url,
+              });
+              // localStorage.setItem("currentDocumentS3Url", s3data);
+              setS3Url(doclist[0]?.s3url);
+              setS3UrlReady(true);
+              setDocsForStitcing(doclist);
+              setTotalPageCount(totalPageCountVal);
+            },
+            (error) => {
+              console.log(error);
+            }
+          );
         }
       },
       (error) => {
