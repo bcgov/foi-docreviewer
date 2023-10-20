@@ -29,6 +29,7 @@ from reviewer_api.services.documentpageflagservice import documentpageflagservic
 
 API = Namespace('Document Pageflag Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 
 
@@ -47,8 +48,8 @@ class SaveDocumentPageflag(Resource):
             payload = BulkDocumentPageflagSchema().load(request.get_json())
             result = documentpageflagservice().bulksavepageflag(requestid, payload, AuthHelper.getuserinfo())
             return {'status': True, 'message':result, 'id': requestid} , 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         
@@ -67,8 +68,8 @@ class GetDocumentPageflag(Resource):
         try:
             result = documentpageflagservice().getdocumentpageflags(requestid,redactionlayerid, documentid, documentversion)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
@@ -87,7 +88,7 @@ class GetDocumentPageflag(Resource):
         try:
             result = documentpageflagservice().getpageflags(requestid, redactionlayerid)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
