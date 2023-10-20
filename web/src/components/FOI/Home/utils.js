@@ -63,6 +63,13 @@ export const docSorting = (a, b) => {
   return sort;
 };
 
+export const addSortOrderToDocumentList = (doclist) => {
+  return doclist.map((obj, index) => ({
+    ...obj,
+    sortorder: index + 1,
+  }));
+};
+
 export const getProgramAreas = (pageFlagList) => {
   let consult = pageFlagList.find((pageFlag) => pageFlag.name === "Consult");
   return (({ others, programareas }) =>
@@ -88,12 +95,12 @@ export const createRedactionSectionsString = (
   redactionSectionsIds
 ) => {
   const compareFn = (a, b) => {
-    let sectionA = parseFloat(a.section.split('s. ')[1])
-    let sectionB = parseFloat(b.section.split('s. ')[1])
-    if (sectionA == undefined) sectionA = 100
-    if (sectionB == undefined) sectionB = 100
-    return sectionA - sectionB
-  }
+    let sectionA = parseFloat(a.section.split("s. ")[1]);
+    let sectionB = parseFloat(b.section.split("s. ")[1]);
+    if (sectionA == undefined) sectionA = 100;
+    if (sectionB == undefined) sectionB = 100;
+    return sectionA - sectionB;
+  };
   let redactionSections = getValidSections(sections, redactionSectionsIds)
     .sort(compareFn)
     .map((s) => s.section)

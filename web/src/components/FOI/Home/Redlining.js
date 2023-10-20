@@ -390,10 +390,8 @@ const Redlining = React.forwardRef(
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
 
-            // let _doc = documentViewer.getDocument();
-
             await MergeObjectsPreparation(instance.Core.createDocument);
-            console.log(`download documents ended...... ${new Date()}`);
+
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });

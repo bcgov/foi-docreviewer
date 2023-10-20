@@ -12,7 +12,7 @@ import {
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrl } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { docSorting } from "./utils";
+import { docSorting, addSortOrderToDocumentList } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -85,6 +85,7 @@ function Home() {
           });
           await Promise.all(urlPromises);
           let doclist = documentObjs?.sort(docSorting);
+          const doclistwithSortOrder = addSortOrderToDocumentList(doclist);
           setCurrentDocument({
             file: doclist[0].file || {},
             page: 1,
@@ -93,7 +94,7 @@ function Home() {
           // localStorage.setItem("currentDocumentS3Url", s3data);
           setS3Url(doclist[0].s3url);
           setS3UrlReady(true);
-          setDocsForStitcing(doclist);
+          setDocsForStitcing(doclistwithSortOrder);
           setTotalPageCount(totalPageCountVal);
         }
       },
@@ -181,31 +182,31 @@ function Home() {
         </Grid>
       </Grid>
       <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog"}
-          isOpen={warningModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
+        initWidth={800}
+        initHeight={300}
+        minWidth={600}
+        minHeight={250}
+        className={"state-change-dialog"}
+        isOpen={warningModalOpen}
+      >
+        <DialogTitle disableTypography id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
-            <IconButton className="title-col3" onClick={closeWarningMessage}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span className="confirmation-message">
-                Selected pages or redactions reached the limit. <br></br>
-              </span>
-            </DialogContentText>
-          </DialogContent>
-        </ReactModal>
+          <IconButton className="title-col3" onClick={closeWarningMessage}>
+            <i className="dialog-close-button">Close</i>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent className={"dialog-content-nomargin"}>
+          <DialogContentText
+            id="state-change-dialog-description"
+            component={"span"}
+          >
+            <span className="confirmation-message">
+              Selected pages or redactions reached the limit. <br></br>
+            </span>
+          </DialogContentText>
+        </DialogContent>
+      </ReactModal>
     </div>
   );
 }
