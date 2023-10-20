@@ -392,7 +392,7 @@ const Redlining = React.forwardRef(
 
             // let _doc = documentViewer.getDocument();
 
-            await MergeObjectsPreparation(createDocument);
+            await MergeObjectsPreparation(instance.Core.createDocument);
             console.log(`download documents ended...... ${new Date()}`);
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
