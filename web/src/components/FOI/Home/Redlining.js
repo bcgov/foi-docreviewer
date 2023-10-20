@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import { createRoot } from "react-dom/client";
-import {useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
 import ReactModal from "react-modal-resizable-draggable";
@@ -177,7 +177,7 @@ const Redlining = React.forwardRef(
             stopLoop = true;
           }
 
-          return !(stopLoop); //stop / continue loop
+          return !stopLoop; //stop / continue loop
         });
       } else {
         return false;
@@ -206,7 +206,6 @@ const Redlining = React.forwardRef(
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
-        console.log("loading webviewer", response.data.license);
         WebViewer(
           {
             licenseKey: response.data.license,
@@ -229,7 +228,6 @@ const Redlining = React.forwardRef(
             PDFNet,
             Math,
           } = instance.Core;
-          console.log("i'm in");
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
           documentViewer.setToolMode(
@@ -263,8 +261,8 @@ const Redlining = React.forwardRef(
               setModalTitle("Redline for Sign Off");
               setModalMessage([
                 "Are you sure want to create the redline PDF for ministry sign off?",
-                <br key="lineBreak1"/>,
-                <br key="lineBreak2"/>,
+                <br key="lineBreak1" />,
+                <br key="lineBreak2" />,
                 <span key="modalDescription1">
                   When you create the redline PDF, your web browser page will
                   automatically refresh
@@ -285,7 +283,7 @@ const Redlining = React.forwardRef(
             finalPackageBtn.style.padding = "8px 8px 8px 10px";
             finalPackageBtn.style.cursor = "pointer";
             finalPackageBtn.style.alignItems = "left";
-            
+
             finalPackageBtn.disabled = !enableSavingFinal;
 
             finalPackageBtn.onclick = () => {
@@ -306,11 +304,11 @@ const Redlining = React.forwardRef(
                   <i>permanently</i>
                 </b>,
                 " apply the redactions and automatically create page stamps.",
-                <br key="break1"/>,
-                <br key="break2"/>,
+                <br key="break1" />,
+                <br key="break2" />,
                 <span key="modalDescription2">
-                  When you create the response package, your web browser page will
-                  automatically refresh
+                  When you create the response package, your web browser page
+                  will automatically refresh
                 </span>,
               ]);
               setModalButtonLabel("Create Applicant Package");
@@ -551,7 +549,7 @@ const Redlining = React.forwardRef(
             annotManager.enableReadOnlyMode();
           } else {
             fetchAnnotationsByPagination(
-              requestid,              
+              requestid,
               1,
               ANNOTATION_PAGE_SIZE,
               async (data) => {
@@ -612,20 +610,16 @@ const Redlining = React.forwardRef(
     }, [iframeDocument]);
 
     const removeRedactAnnotationDocContent = async (annotations) => {
-
-      annotations.forEach((_redactionannot) => {   
-        if(_redactionannot.Subject === "Redact")             
-        {
-          let redactcontent = _redactionannot.getContents()
-          if(redactcontent != undefined)
-          {
-            _redactionannot.setContents('')
-            _redactionannot.setCustomData('trn-annot-preview','')
+      annotations.forEach((_redactionannot) => {
+        if (_redactionannot.Subject === "Redact") {
+          let redactcontent = _redactionannot.getContents();
+          if (redactcontent != undefined) {
+            _redactionannot.setContents("");
+            _redactionannot.setCustomData("trn-annot-preview", "");
           }
         }
-      })
-
-    }
+      });
+    };
 
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
@@ -724,10 +718,9 @@ const Redlining = React.forwardRef(
               let displayedDoc;
               let individualPageNo;
 
-              await removeRedactAnnotationDocContent(annotations)
+              await removeRedactAnnotationDocContent(annotations);
 
               if (annotations[0].Subject === "Redact") {
-                
                 let pageSelectionList = [...pageSelections];
                 annots[0].children?.forEach((annotatn, i) => {
                   displayedDoc =
@@ -950,7 +943,6 @@ const Redlining = React.forwardRef(
               annotManager?.getSelectedAnnotations().length >
               REDACTION_SELECT_LIMIT * 2
             ) {
-              console.log("reached max - deselect");
               annotManager?.deselectAnnotations(annotations);
               setWarningModalOpen(true);
             }
@@ -1079,12 +1071,10 @@ const Redlining = React.forwardRef(
           pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
         };
 
-        console.log("createdoc start", Date.now());
         let newDoc = await docInstance.Core.createDocument(
           file.s3url,
           { loadAsPDF: true } /* , license key here */
         );
-        console.log("createdoc end", Date.now());
         const pages = [];
         mappedDoc = { pageMappings: [] };
         let stitchedPageNo = 0;
@@ -1103,16 +1093,20 @@ const Redlining = React.forwardRef(
             page: pageNo,
           };
         }
-        // Insert (merge) pages
-        console.log("insert start", Date.now());
-        await doc.insertPages(newDoc, pages);
-        console.log("insert end", Date.now());
         mappedDocs["docIdLookup"][file.file.documentid] = {
           docId: file.file.documentid,
           version: file.file.version,
           division: file.file.divisions[0].divisionid,
           pageMappings: mappedDoc.pageMappings,
         };
+        // Insert (merge) pages
+        await doc.insertPages(newDoc, pages);
+      }
+      const pageCount = docInstance.Core.documentViewer
+        .getDocument()
+        .getPageCount();
+      if (pageCount > 800) {
+        docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
       }
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
@@ -1142,7 +1136,7 @@ const Redlining = React.forwardRef(
     ) => {
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
         fetchAnnotationsByPagination(
-          requestid,         
+          requestid,
           i,
           ANNOTATION_PAGE_SIZE,
           async (data) => {
@@ -1154,7 +1148,7 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name,
+          currentLayer.name
         );
       }
     };
@@ -1739,10 +1733,10 @@ const Redlining = React.forwardRef(
           setWarningModalOpen(true);
           cancelRedaction();
         } else if (defaultSections.length > 0) {
-            saveRedaction();
-          } else {
-            setModalOpen(true);
-          }
+          saveRedaction();
+        } else {
+          setModalOpen(true);
+        }
       }
     }, [defaultSections, newRedaction]);
 
@@ -2193,7 +2187,9 @@ const Redlining = React.forwardRef(
                       });
                     });
 
-                    divisionstichpages.sort((a, b) => a.stitchedPageNo - b.stitchedPageNo);
+                    divisionstichpages.sort(
+                      (a, b) => a.stitchedPageNo - b.stitchedPageNo
+                    );
                     await stampPageNumberRedline(
                       stitchedDocObj,
                       PDFNet,
@@ -2439,7 +2435,8 @@ const Redlining = React.forwardRef(
                   _blob,
                   (_res) => {
                     toast.update(toastID, {
-                      render: "Final package is saved to Object Storage. Page will reload in 3 seconds..",
+                      render:
+                        "Final package is saved to Object Storage. Page will reload in 3 seconds..",
                       type: "success",
                       className: "file-upload-toast",
                       isLoading: false,
@@ -2455,8 +2452,8 @@ const Redlining = React.forwardRef(
                       zipServiceMessage
                     );
                     setTimeout(() => {
-                      window.location.reload(true)
-                    }, 3000)
+                      window.location.reload(true);
+                    }, 3000);
                   },
                   (_err) => {
                     console.log(_err);
@@ -2493,7 +2490,7 @@ const Redlining = React.forwardRef(
       } else {
         return b.count - a.count;
       }
-    }
+    };
 
     return (
       <div>
@@ -2553,32 +2550,31 @@ const Redlining = React.forwardRef(
               </Stack>
               <div style={{ overflowY: "scroll" }}>
                 <List className="section-list">
-                  {sections?.sort(compareValues)
-                    .map((section, index) => (
-                      <ListItem key={"list-item" + section.id}>
-                        <input
-                          type="checkbox"
-                          className="section-checkbox"
-                          key={"section-checkbox" + section.id}
-                          id={"section" + section.id}
-                          data-sectionid={section.id}
-                          onChange={handleSectionSelected}
-                          disabled={
-                            selectedSections.length > 0 &&
-                            (section.id === 25
-                              ? !selectedSections.includes(25)
-                              : selectedSections.includes(25))
-                          }
-                          defaultChecked={selectedSections.includes(section.id)}
-                        />
-                        <label
-                          key={"list-label" + section.id}
-                          className="check-item"
-                        >
-                          {section.section + " - " + section.description}
-                        </label>
-                      </ListItem>
-                    ))}
+                  {sections?.sort(compareValues).map((section, index) => (
+                    <ListItem key={"list-item" + section.id}>
+                      <input
+                        type="checkbox"
+                        className="section-checkbox"
+                        key={"section-checkbox" + section.id}
+                        id={"section" + section.id}
+                        data-sectionid={section.id}
+                        onChange={handleSectionSelected}
+                        disabled={
+                          selectedSections.length > 0 &&
+                          (section.id === 25
+                            ? !selectedSections.includes(25)
+                            : selectedSections.includes(25))
+                        }
+                        defaultChecked={selectedSections.includes(section.id)}
+                      />
+                      <label
+                        key={"list-label" + section.id}
+                        className="check-item"
+                      >
+                        {section.section + " - " + section.description}
+                      </label>
+                    </ListItem>
+                  ))}
                 </List>
               </div>
               {/* <span className="confirmation-message">
