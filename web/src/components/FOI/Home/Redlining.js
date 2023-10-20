@@ -812,7 +812,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     `${currentLayer.redactionlayerid}`
                   );
-                  annot.NoMove = true;
+                  // annot.NoMove = true;
                 }
 
                 let astr =
@@ -1185,7 +1185,7 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
-          _annotation.NoMove = true;
+          // _annotation.NoMove = true;
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
 
@@ -1194,16 +1194,16 @@ const Redlining = React.forwardRef(
               annotManager.bringToBack(_annotation);
             }
           }
+          if (
+            _annotation.Subject !== "Redact" &&
+            _annotation.Author !== username
+          ) {
+            _annotation.NoResize = true;
+          }
+          if (_annotation.Author !== username) {
+            _annotation.LockedContents = true;
+          }
           annotManager.redrawAnnotation(_annotation);
-          annotManager.setPermissionCheckCallback((author, _annotation) => {
-            if (_annotation.Subject !== "Redact" && author !== username) {
-              _annotation.NoResize = true;
-            }
-            if (author !== username) {
-              _annotation.LockedContents = true;
-            }
-            return true;
-          });
         });
       }
     };
