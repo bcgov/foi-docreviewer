@@ -137,17 +137,7 @@ class Document(db.Model):
 
             selectedcolumns = [
                 Document.documentid,
-                Document.version,
-                Document.filename,
-                DocumentMaster.filepath,
-                Document.attributes,
-                Document.foiministryrequestid,
-                Document.createdby,
-                Document.created_at,
-                Document.updatedby,
-                Document.updated_at,
-                Document.statusid,           
-                Document.pagecount
+                DocumentMaster.filepath
             ]
 
             query = _session.query(
