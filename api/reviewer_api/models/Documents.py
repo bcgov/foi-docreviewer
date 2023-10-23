@@ -124,6 +124,46 @@ class Document(db.Model):
             db.session.close()
 
     @classmethod
+    def getdocumentsbyids(cls, idlist):
+        try:
+            _session = db.session
+
+            #subquery for getting latest version for documents for one foi ministry request
+            subquery_maxversion = _session.query(Document.documentid, func.max(Document.version).label('max_version')).group_by(Document.documentid).subquery()
+            joincondition_maxversion = [
+                subquery_maxversion.c.documentid == Document.documentid,
+                subquery_maxversion.c.max_version == Document.version,
+            ]
+
+            selectedcolumns = [
+                Document.documentid,
+                DocumentMaster.filepath
+            ]
+
+            query = _session.query(
+                                    *selectedcolumns
+                                ).join(
+                                    subquery_maxversion,
+                                    and_(*joincondition_maxversion)
+                                ).join(
+                                    DocumentMaster,
+                                    DocumentMaster.documentmasterid == Document.documentmasterid
+                                ).filter(
+                                    Document.documentid.in_(idlist)
+                                ).all()
+
+            documents = {
+                row.documentid: row.filepath
+                for row in query
+            }
+            return documents
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+
+    @classmethod
     def getdocumentsdedupestatus(cls, requestid):
         try:
             sq = cls.__getoriginalsubquery(requestid).add_columns(

@@ -37,6 +37,7 @@ API = Namespace(
     "PDFStitchPackage Services", description="Endpoints for PDFStitchPackage"
 )
 # TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 
 @cors_preflight("GET,OPTIONS")
@@ -53,8 +54,8 @@ class GetPDFStitchedDocuments(Resource):
         try:
             result = pdfstitchpackageservice().getpdfstitchpackage(requestid, category)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -73,8 +74,8 @@ class GetRecordsChangedStatus(Resource):
         try:
             result = pdfstitchpackageservice().getrecordschanged(requestid, category)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             print("error = ", exception.message)
             return {"status": exception.status_code, "message": exception.message}, 500

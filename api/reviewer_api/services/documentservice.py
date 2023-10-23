@@ -459,6 +459,9 @@ class documentservice:
     def getdocument(self, documentid):
         return Document.getdocument(documentid)
 
+    def getdocumentbyids(self, documentids):
+        return Document.getdocumentsbyids(documentids)
+
     def savedocument(self, documentid, documentversion, newfilepath, userid):
         return
 

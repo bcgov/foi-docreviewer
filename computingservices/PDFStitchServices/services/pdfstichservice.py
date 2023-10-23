@@ -146,7 +146,7 @@ class pdfstitchservice(basestitchservice):
                 return convertimagetopdf(raw_bytes_data)
             return raw_bytes_data
         except Exception as e:
-            logging.error(f"Error merging {file.filename}:", e)
+            logging.error(f"Error merging {file.filename}: " + str(e))
             raise ValueError(file.filename, e)
         
         
