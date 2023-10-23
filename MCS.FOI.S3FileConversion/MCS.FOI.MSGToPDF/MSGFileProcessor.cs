@@ -113,10 +113,10 @@ namespace MCS.FOI.MSGToPDF
                             if (msg.BodyRtf != null)
                             {
                                 var msgReader = new Reader();
-
-                                var inputStream = new MemoryStream();
                                 string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
-                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", ""), "<link.*?>", "");
+                                var options = RegexOptions.None;
+                                var timeout = TimeSpan.FromSeconds(10);
+                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout);
                                 const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                                 const string imgString = "<img";
                                 bool htmlInline = bodyreplaced.Contains(imgString);
@@ -190,7 +190,7 @@ namespace MCS.FOI.MSGToPDF
 
                                         if (pictures != null)
                                         {
-                                            foreach (WPicture picture in pictures)
+                                            foreach (WPicture picture in pictures.OfType<WPicture>())
                                             {
                                                 picture.LockAspectRatio = true;
                                                 const float maxSize = 500;

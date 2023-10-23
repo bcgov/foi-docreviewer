@@ -99,7 +99,7 @@ class GetDocuments(Resource):
             # get request status
             jsonObj = response.json()
 
-            result = documentservice().getdocuments(requestid)
+            result = documentservice().getdocuments(requestid, jsonObj['bcgovcode'])
             return json.dumps({"requeststatusid": jsonObj["requeststatusid"], "documents": result,"requestnumber":jsonObj["axisRequestId"]}), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
