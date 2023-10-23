@@ -24,6 +24,7 @@ from reviewer_api.utils.util import (
     cors_preflight,
     allowedorigins,
     getrequiredmemberships,
+    is_single_redline_package
 )
 from reviewer_api.exceptions import BusinessException
 import json
@@ -35,7 +36,6 @@ from botocore.config import Config
 
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
-
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
 )
@@ -98,8 +98,7 @@ class FOIFlowS3Presigned(Resource):
             return json.dumps(response), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
-
-
+"""
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
 class FOIFlowS3PresignedRedline(Resource):
@@ -198,6 +197,123 @@ class FOIFlowS3PresignedRedline(Resource):
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+"""
+
+@cors_preflight("POST,OPTIONS")
+@API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
+class FOIFlowS3PresignedRedline(Resource):
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post(ministryrequestid):
+        try:            
+            data = request.get_json()
+            documentmapper = redactionservice().getdocumentmapper(
+                data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
+            )
+            attribute = json.loads(documentmapper["attributes"])
+
+            # current_app.logger.debug("Inside Presigned api!!")
+            formsbucket = documentmapper["bucket"]
+            accesskey = attribute["s3accesskey"]
+            secretkey = attribute["s3secretkey"]
+            s3client = boto3.client(
+                "s3",
+                config=Config(signature_version="s3v4"),
+                endpoint_url="https://{0}/".format(s3host),
+                aws_access_key_id=accesskey,
+                aws_secret_access_key=secretkey,
+                region_name=s3region,
+            )
+            _bcgovcode = formsbucket.split("-")[0]
+            singlepkgpath = None;
+            #New Logic - Begin
+            for div in data["divdocumentList"]:
+                if len(div["documentlist"]) > 0:
+                    filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                    if is_single_redline_package(_bcgovcode) == False:
+                        division_name = div["documentlist"][0]["divisions"][0]["name"]
+                        # generate save url for stitched file
+                        filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
+                            filepathlist[0], division_name
+                        )
+
+                            # filename_put, file_extension_put = os.path.splitext(filepath_put)
+                            # filepath_put = filename_put+'.pdf'
+                        s3path_save = s3client.generate_presigned_url(
+                            ClientMethod="get_object",
+                            Params={
+                                "Bucket": formsbucket,
+                                "Key": "{0}".format(filepath_put),
+                                "ResponseContentType": "application/pdf",
+                            },
+                            ExpiresIn=3600,
+                            HttpMethod="PUT",
+                        )
+
+                            # for save/put - stitch by division
+                        div["s3path_save"] = s3path_save
+                    for doc in div["documentlist"]:
+                        # for load/get
+                        filepath_get = "/".join(filepathlist)
+                        filename_get, file_extension_get = os.path.splitext(
+                                        filepath_get
+                            )
+                        file_extension_get = (
+                                        file_extension_get.replace(".", "")
+                                        if file_extension_get.lower() in imageextensions
+                                        else "pdf"
+                                )
+
+                        doc["s3path_load"] = s3client.generate_presigned_url(
+                                        ClientMethod="get_object",
+                                        Params={
+                                            "Bucket": formsbucket,
+                                            "Key": "{0}.{1}".format(
+                                                filename_get, file_extension_get
+                                            ),
+                                            "ResponseContentType": "{0}/{1}".format(
+                                                "image"
+                                                if file_extension_get.lower() in imageextensions
+                                                else "application",
+                                                file_extension_get,
+                                            ),
+                                        },
+                                        ExpiresIn=3600,
+                                        HttpMethod="GET",
+                                    )
+                elif len(div["incompatableList"]) > 0:
+                    filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
+                if is_single_redline_package(_bcgovcode) and singlepkgpath is None :                        
+                    if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
+                        div = data["divdocumentList"][0] 
+                        filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                        filename = filepathlist[0]
+                        filepath_put = "{0}/redline/{1}.pdf".format(
+                            filepathlist[0],filename
+                        )
+                        s3path_save = s3client.generate_presigned_url(
+                            ClientMethod="get_object",
+                            Params={
+                            "Bucket": formsbucket,
+                            "Key": "{0}".format(filepath_put),
+                            "ResponseContentType": "application/pdf",
+                            },
+                            ExpiresIn=3600,
+                            HttpMethod="PUT",
+                        )
+                        singlepkgpath = s3path_save
+                        data["s3path_save"] = s3path_save
+            data["requestnumber"] = filepathlist[0]
+            data["bcgovcode"] = _bcgovcode
+            data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"
+            return json.dumps(data), 200
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500
+
+
 
 
 @cors_preflight("POST,OPTIONS")

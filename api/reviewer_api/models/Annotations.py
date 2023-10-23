@@ -116,6 +116,30 @@ class Annotation(db.Model):
         
 
     @classmethod
+    def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
+        sql = """
+                select a.*
+                from "Annotations" a
+                join (
+                    select distinct on (docs.documentid) docs.*
+					from  "Documents" docs
+                    where docs.foiministryrequestid = :ministryrequestid and docs.documentid = :documentid
+					order by docs.documentid, docs.version desc
+                ) as d on (d.documentid = a.documentid and d.version = a.documentversion)
+				inner join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid or dm.processingparentid = d.documentmasterid
+                where a.isactive = true and a.redactionlayerid in :_mappedlayerids
+            """
+        rs = db.session.execute(
+            text(sql),
+            {"ministryrequestid": ministryrequestid, "_mappedlayerids": tuple(mappedlayerids), "documentid": documentid},
+        )
+        db.session.close()
+        return [
+            row["annotation"]            
+            for row in rs
+        ]
+
+    @classmethod
     def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
         sql = """
                 select a.*
