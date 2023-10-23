@@ -176,5 +176,5 @@ export const getSliceSetDetails = async (
 };
 
 export const sortDocObjects = (_pdftronDocObjs) => {
-  return _pdftronDocObjs.sort((a, b) => a.sortorder > b.sortorder);
+  return _pdftronDocObjs.sort((a, b) => a.sortorder - b.sortorder);
 };

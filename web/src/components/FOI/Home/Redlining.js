@@ -398,7 +398,7 @@ const Redlining = React.forwardRef(
               doclistCopy.length,
               true
             );
-            // doclistCopy?.shift();
+            doclistCopy?.shift();
             let setCount = slicerdetails.setcount;
             let slicer = slicerdetails.slicer;
             let objpreptasks = new Array(setCount);
@@ -1120,7 +1120,7 @@ const Redlining = React.forwardRef(
       pdftronDocObjs.forEach(async (filerow) => {
         console.log(stichedfiles);
         let _exists = stichedfiles.filter(
-          (_file) => _file.file.documentid === filerow.file.documentid
+          (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
         if (_exists?.length === 0) {
           index = index + filerow.pages.length;
@@ -1291,7 +1291,7 @@ const Redlining = React.forwardRef(
         // console.log(
         //   `stichedfiles.length = ${stichedfiles.length}, docsForStitcing.length = ${docsForStitcing.length}`
         // );
-        if (stichedfiles.length === docsForStitcing.length) {
+        if (stichedfiles.length + 1 === docsForStitcing.length) {
           console.log(`End of stitching...`);
           const pageCount = docInstance.Core.documentViewer
             .getDocument()
@@ -1299,12 +1299,18 @@ const Redlining = React.forwardRef(
           if (pageCount > 800) {
             docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
           }
-          // setIsStitchingLoaded(true);
+          setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
         }
       }
-    }, [pdftronDocObjects, docsForStitcing, fetchAnnotResponse, docViewer]);
+    }, [
+      pdftronDocObjects,
+      docsForStitcing,
+      stichedfiles,
+      fetchAnnotResponse,
+      docViewer,
+    ]);
 
     useEffect(() => {
       //update user name
