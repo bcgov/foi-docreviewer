@@ -385,6 +385,11 @@ const Redlining = React.forwardRef(
             if (newusername && newusername !== username)
               annotationManager.setCurrentUser(newusername);
 
+            setDocViewer(documentViewer);
+            setAnnotManager(annotationManager);
+            setAnnots(Annotations);
+            setDocViewerMath(Math);
+
             //update isloaded flag
             //localStorage.setItem("isDocumentLoaded", "true");
 
@@ -421,11 +426,6 @@ const Redlining = React.forwardRef(
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
-
-            setDocViewer(documentViewer);
-            setAnnotManager(annotationManager);
-            setAnnots(Annotations);
-            setDocViewerMath(Math);
           });
 
           let root = null;
