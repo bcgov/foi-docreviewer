@@ -66,7 +66,6 @@ export const fetchDocumentAnnotations = (
   callback: any,
   errorCallback: any
 ) => {
-  console.log('get annotations here - 1');
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())

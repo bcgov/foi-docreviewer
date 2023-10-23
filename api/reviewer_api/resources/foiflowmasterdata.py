@@ -256,6 +256,7 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
+                        filepathlist = doc["filepath"].split("/")[4:]
                         # for load/get
                         filepath_get = "/".join(filepathlist)
                         filename_get, file_extension_get = os.path.splitext(
