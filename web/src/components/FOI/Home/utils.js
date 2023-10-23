@@ -136,3 +136,45 @@ export const updatePageFlags = (
     });
   }
 };
+
+export const getSliceSetDetails = async (
+  totaldocCount,
+  autoselectslicer = false
+) => {
+  let slicersetdetail = new Object();
+  slicersetdetail.slicer = 100; //default
+
+  if (totaldocCount > slicersetdetail.slicer) {
+    if (autoselectslicer) {
+      switch (true) {
+        case totaldocCount > 200 && totaldocCount <= 400:
+          slicersetdetail.slicer = 200;
+          break;
+        case totaldocCount > 400 && totaldocCount <= 600:
+          slicersetdetail.slicer = 200;
+          break;
+        case totaldocCount > 600 && totaldocCount <= 1000:
+          slicersetdetail.slicer = 300;
+          break;
+        case totaldocCount > 1000 && totaldocCount <= 3000:
+          slicersetdetail.slicer = 400;
+          break;
+        case totaldocCount > 3000:
+          slicersetdetail.slicer = 500;
+          break;
+        default:
+          slicersetdetail.slicer = 100;
+          break;
+      }
+    }
+  } else {
+    slicersetdetail.slicer = totaldocCount;
+  }
+
+  slicersetdetail.setcount = Math.ceil(totaldocCount / slicersetdetail.slicer);
+  return slicersetdetail;
+};
+
+export const sortDocObjects = (_pdftronDocObjs) => {
+  return _pdftronDocObjs.sort((a, b) => a.sortorder > b.sortorder);
+};

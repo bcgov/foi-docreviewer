@@ -59,6 +59,8 @@ import {
   getSections,
   getValidSections,
   updatePageFlags,
+  getSliceSetDetails,
+  sortDocObjects,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -135,8 +137,8 @@ const Redlining = React.forwardRef(
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
 
-    const [isstitched, setisstitched] = useState(false);
-    const [pdftronDocObjects, setpdftronDocObjects] = useState(null);
+    const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
+    const [stichedfiles, setstichedfiles] = useState([]);
 
     //xml parser
     const parser = new XMLParser();
@@ -390,7 +392,31 @@ const Redlining = React.forwardRef(
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
 
-            await MergeObjectsPreparation(instance.Core.createDocument);
+            // await mergeObjectsPreparation(instance.Core.createDocument);
+            let doclistCopy = [...docsForStitcing];
+            let slicerdetails = await getSliceSetDetails(
+              doclistCopy.length,
+              true
+            );
+            // doclistCopy?.shift();
+            let setCount = slicerdetails.setcount;
+            let slicer = slicerdetails.slicer;
+            let objpreptasks = new Array(setCount);
+            for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+              let sliceDoclist = doclistCopy.splice(0, slicer);
+              console.log(
+                `slicecount = ${slicecount}, sliceDocCount = ${sliceDoclist.length}`
+              );
+              objpreptasks.push(
+                mergeObjectsPreparation(
+                  instance.Core.createDocument,
+                  sliceDoclist,
+                  slicecount
+                )
+              );
+            }
+
+            Promise.all(objpreptasks);
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
@@ -496,7 +522,7 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
-    let MergeObjectsPreparation = async (createDocument) => {
+    let mergeObjectsPreparation1 = async (createDocument) => {
       console.log(`Download documents started .... ${new Date()}`);
       let docCopy = [...docsForStitcing];
       let removedFirstElement = docCopy?.shift();
@@ -520,6 +546,36 @@ const Redlining = React.forwardRef(
         if (_pdftronDocObjs.length === docCopy.length) {
           setpdftronDocObjects(_pdftronDocObjs);
         }
+      });
+    };
+
+    const mergeObjectsPreparation = async (
+      createDocument,
+      slicedsetofdoclist,
+      set
+    ) => {
+      let _pdftronDocObjs = [];
+      slicedsetofdoclist.forEach(async (filerow) => {
+        await createDocument(filerow.s3url).then(async (newDoc) => {
+          const pages = [];
+
+          for (let i = 0; i < newDoc.getPageCount(); i++) {
+            pages.push(i + 1);
+          }
+
+          // _pdftronDocObjs = [...pdftronDocObjects]
+          _pdftronDocObjs.push({
+            file: filerow,
+            sortorder: filerow.sortorder,
+            pages: pages,
+            pdftronobject: newDoc,
+            set: set,
+            totalsetcount: slicedsetofdoclist.length,
+          });
+          if (_pdftronDocObjs.length === slicedsetofdoclist.length) {
+            setpdftronDocObjects(...pdftronDocObjects, _pdftronDocObjs);
+          }
+        });
       });
     };
 
@@ -1059,7 +1115,22 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    const stitchPages = (_doc, docCopy, pdftronDocObjs) => {
+    const stitchPages = (_doc, pdftronDocObjs) => {
+      let index = _doc.getPageCount();
+      pdftronDocObjs.forEach(async (filerow) => {
+        console.log(stichedfiles);
+        let _exists = stichedfiles.filter(
+          (_file) => _file.file.documentid === filerow.file.documentid
+        );
+        if (_exists?.length === 0) {
+          index = index + filerow.pages.length;
+          _doc.insertPages(filerow.pdftronobject, filerow.pages, index);
+          setstichedfiles((_arr) => [..._arr, filerow]);
+        }
+      });
+    };
+
+    const stitchPages1 = (_doc, docCopy, pdftronDocObjs) => {
       let index = _doc.getPageCount();
       docCopy.forEach(async (doc) => {
         let stitchdoc = pdftronDocObjs.filter(
@@ -1089,11 +1160,11 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const stitchDocumentsFunc = async (_doc, pdftronDocObjs) => {
-      let docCopy = [...docsForStitcing];
-      let removedFirstElement = docCopy?.shift();
+    const stitchDocumentsFunc = async (_doc, _pdftronDocObjs) => {
+      // let docCopy = [...docsForStitcing];
+      // let removedFirstElement = docCopy?.shift();
       let domParser = new DOMParser();
-      stitchPages(_doc, docCopy, pdftronDocObjs);
+      stitchPages(_doc, _pdftronDocObjs);
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
           pageMappedDocs,
@@ -1193,24 +1264,47 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (
-        isstitched === false &&
         pdftronDocObjects?.length > 0 &&
         docsForStitcing.length > 0 &&
         merge &&
         docViewer
       ) {
-        const doc = docViewer.getDocument();
-        console.log(`stitching started..... [${new Date()}]`);
-        stitchDocumentsFunc(doc, pdftronDocObjects);
-        setisstitched(true);
+        let sliceset = 0;
+        let totalSetCount = 0;
+        let _pdftronDocObjects = pdftronDocObjects?.filter(function (el) {
+          sliceset = el.set;
+          totalSetCount = el.totalsetcount;
+          return stichedfiles.indexOf(el) < 0;
+        });
+        _pdftronDocObjects = sortDocObjects(_pdftronDocObjects);
+
+        const _doc = docViewer.getDocument();
+        if (_doc) {
+          // console.log(
+          //   `stitching started .... ${sliceset}/${totalSetCount}: ${new Date()}`
+          // );
+          stitchDocumentsFunc(_doc, _pdftronDocObjects);
+          // console.log(
+          //   `stitching ended .... ${sliceset}/${totalSetCount}: ${new Date()}`
+          // );
+        }
+        // console.log(
+        //   `stichedfiles.length = ${stichedfiles.length}, docsForStitcing.length = ${docsForStitcing.length}`
+        // );
+        if (stichedfiles.length === docsForStitcing.length) {
+          console.log(`End of stitching...`);
+          const pageCount = docInstance.Core.documentViewer
+            .getDocument()
+            .getPageCount();
+          if (pageCount > 800) {
+            docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+          }
+          // setIsStitchingLoaded(true);
+          setpdftronDocObjects([]);
+          setstichedfiles([]);
+        }
       }
-    }, [
-      isstitched,
-      pdftronDocObjects,
-      docsForStitcing,
-      fetchAnnotResponse,
-      docViewer,
-    ]);
+    }, [pdftronDocObjects, docsForStitcing, fetchAnnotResponse, docViewer]);
 
     useEffect(() => {
       //update user name
