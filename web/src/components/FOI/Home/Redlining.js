@@ -139,6 +139,7 @@ const Redlining = React.forwardRef(
 
     const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
     const [stichedfiles, setstichedfiles] = useState([]);
+    const [isStitched, setIsStitched] = useState(false);
 
     //xml parser
     const parser = new XMLParser();
@@ -1004,10 +1005,12 @@ const Redlining = React.forwardRef(
         newRedaction,
         pageSelections,
         redlineSaving,
+        isStitchingLoaded,
       ]
     );
 
     useEffect(() => {
+      console.log(" <<<<<<<< UE >>>>>>");
       annotManager?.addEventListener(
         "annotationSelected",
         (annotations, action) => {
@@ -1046,13 +1049,14 @@ const Redlining = React.forwardRef(
         );
       };
     }, [
-      pageMappedDocs,
+      // pageMappedDocs,
       currentLayer,
       newRedaction,
       pageSelections,
       redlineSaving,
       multiSelectFooter,
       enableMultiSelect,
+      isStitchingLoaded,
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1247,16 +1251,16 @@ const Redlining = React.forwardRef(
               annotManager.bringToBack(_annotation);
             }
           }
+          if (
+            _annotation.Subject !== "Redact" &&
+            _annotation.Author !== username
+          ) {
+            _annotation.NoResize = true;
+          }
+          if (_annotation.Author !== username) {
+            _annotation.LockedContents = true;
+          }
           annotManager.redrawAnnotation(_annotation);
-          annotManager.setPermissionCheckCallback((author, _annotation) => {
-            if (_annotation.Subject !== "Redact" && author !== username) {
-              _annotation.NoResize = true;
-            }
-            if (author !== username) {
-              _annotation.LockedContents = true;
-            }
-            return true;
-          });
         });
       }
     };
@@ -1279,17 +1283,8 @@ const Redlining = React.forwardRef(
 
         const _doc = docViewer.getDocument();
         if (_doc) {
-          // console.log(
-          //   `stitching started .... ${sliceset}/${totalSetCount}: ${new Date()}`
-          // );
           stitchDocumentsFunc(_doc, _pdftronDocObjects);
-          // console.log(
-          //   `stitching ended .... ${sliceset}/${totalSetCount}: ${new Date()}`
-          // );
         }
-        // console.log(
-        //   `stichedfiles.length = ${stichedfiles.length}, docsForStitcing.length = ${docsForStitcing.length}`
-        // );
         if (stichedfiles.length + 1 === docsForStitcing.length) {
           console.log(`End of stitching...`);
           const pageCount = docInstance.Core.documentViewer
@@ -1298,6 +1293,7 @@ const Redlining = React.forwardRef(
           if (pageCount > 800) {
             docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
           }
+
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
