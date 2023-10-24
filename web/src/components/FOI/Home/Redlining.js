@@ -148,7 +148,8 @@ const Redlining = React.forwardRef(
     const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
     const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
     
-    let redlineToastID = null;
+    const toastId = React.useRef(null);
+
 
     //xml parser
     const parser = new XMLParser();
@@ -1854,6 +1855,8 @@ const Redlining = React.forwardRef(
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
           window.location.reload();
+          
+
         });
       }
       return zipServiceMessage;
@@ -2109,20 +2112,29 @@ const Redlining = React.forwardRef(
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj= null;
       for (const [key, value ] of Object.entries(stitchlist)) {
-        toast.update(redlineToastID, {
-          render: redlineSinglePackage == "N" ? `Generating redline PDF for ${divCount+1} of ${noofdivision} divisions...`: `Generating redline PDF...`,
-          isLoading: true,
-        });
+        
         divCount++;
         let docCount = 0;        
         let division = key;
         let documentlist = stitchlist[key];
+        console.log(redlineSinglePkg);
+        if (redlineSinglePkg == "N") {
+          toast.update(toastId.current, {
+            render: `Generating redline PDF for ${divCount+1} of ${noofdivision} divisions...`,
+            isLoading: true
+          });
+        } else {
+          toast.update(toastId.current, {
+            render:`Generating redline PDF...`,
+            isLoading: true
+          });
+        }
         
         for (let doc of documentlist) { 
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
           }).then(async (docObj) => {
-           
+            
             docCount++;
             if (docCount == 1) {
               stitchedDocObj = docObj;
@@ -2162,8 +2174,8 @@ const Redlining = React.forwardRef(
 
 
 
-useEffect(() => {    
-  const stitchAndUploadDocument = async () => {
+useEffect(() => {   
+  const StitchAndUploadDocument = async () => {
     const { PDFNet } = docInstance.Core;
       const downloadType = "pdf";
       let currentDivisionCount = 0;
@@ -2171,9 +2183,10 @@ useEffect(() => {
       for (const [key, value] of Object.entries(redlineStitchObject)) {        
         //Object.keys(redlineStitchObject).forEach(function(key) {
         currentDivisionCount++;
-        toast.update(redlineToastID, {
+        toast.update(toastId.current, {
           render: redlineSinglePackage == "N" ? `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} document to Object Storage...`: `Saving redline PDF to Object Storage...`,
           isLoading: true,
+          autoClose: 5000
         });        
         
         let divisionid = key;
@@ -2199,16 +2212,13 @@ useEffect(() => {
                         const _blob = new Blob([_arr], {
                           type: "application/pdf",
                         });
-                        console.log(redlineSinglePackage);
-                        console.log(toast);
                         
                         saveFilesinS3(
                           { filepath: redlineStitchInfo[divisionid]['s3path'] },
                           _blob,
-                          (_res) => {
-                            
+                          (_res) => {  
                             // ######### call another process for zipping and generate download here ##########
-                            toast.update(redlineToastID, {
+                            toast.update(toastId.current, {
                               render: redlineSinglePackage == "N" ? `${currentDivisionCount} of ${divisionCountForToast} document is saved to Object Storage` : `Redline PDF saved to Object Storage`,
                               type: "success",
                               className: "file-upload-toast",
@@ -2224,7 +2234,7 @@ useEffect(() => {
                           },
                           (_err) => {
                             console.log(_err);
-                            toast.update(redlineToastID, {
+                            toast.update(toastId.current, {
                               render:
                                 "Failed to save redline pdf to Object Storage",
                               type: "error",
@@ -2245,7 +2255,7 @@ useEffect(() => {
 
   
   if(redlineStitchObject && redlineDocumentAnnotations && redlineStitchInfo && redlinepageMappings) {
-    stitchAndUploadDocument();
+    StitchAndUploadDocument();
   }
   }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]); 
 
@@ -2360,7 +2370,12 @@ useEffect(() => {
 
 
     const saveRedlineDocument= (_instance) => {
-      redlineToastID = toast.loading("Start saving redline...");
+      toastId.current = toast(`Start saving redline...`, {
+        autoClose: false,
+        closeButton: false,
+        isLoading: true 
+      });
+    
       const divisionFilesList = [...documentList, ...incompatibleFiles];    
       const divisions = getDivisionsForSaveRedline(divisionFilesList);
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
@@ -2369,7 +2384,7 @@ useEffect(() => {
         requestid,
         normalizeforPdfStitchingReq(divisionDocuments),
         async (res) => {     
-          toast.update(redlineToastID, {
+          toast.update(toastId.current, {
             render: `Start saving redline...`,
             isLoading: true,
           });     

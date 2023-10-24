@@ -292,7 +292,7 @@ class FOIFlowS3PresignedRedline(Resource):
                         div = data["divdocumentList"][0] 
                         filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                         filename = filepathlist[0]
-                        filepath_put = "{0}/redline/{1}.pdf".format(
+                        filepath_put = "{0}/redline/{1} - Redline.pdf".format(
                             filepathlist[0],filename
                         )
                         s3path_save = s3client.generate_presigned_url(
