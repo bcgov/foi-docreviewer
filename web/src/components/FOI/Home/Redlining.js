@@ -1163,11 +1163,8 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const stitchDocumentsFunc = async (_doc, _pdftronDocObjs) => {
-      // let docCopy = [...docsForStitcing];
-      // let removedFirstElement = docCopy?.shift();
+    const applyAnnotationsFunc = () => {
       let domParser = new DOMParser();
-      stitchPages(_doc, _pdftronDocObjs);
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
           pageMappedDocs,
@@ -1283,7 +1280,7 @@ const Redlining = React.forwardRef(
 
         const _doc = docViewer.getDocument();
         if (_doc) {
-          stitchDocumentsFunc(_doc, _pdftronDocObjects);
+          stitchPages(_doc, _pdftronDocObjects);
         }
         if (stichedfiles.length + 1 === docsForStitcing.length) {
           console.log(`End of stitching...`);
@@ -1293,7 +1290,7 @@ const Redlining = React.forwardRef(
           if (pageCount > 800) {
             docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
           }
-
+          applyAnnotationsFunc();
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
