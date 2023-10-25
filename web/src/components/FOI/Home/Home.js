@@ -120,9 +120,11 @@ function Home() {
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
     let index = 0;
+    let stitchIndex = 1;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       let j = 0;
+      const pages = [];
       for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
         j++;
         let pageMapping = {
@@ -143,8 +145,14 @@ function Home() {
         pageMappings: mappedDoc.pageMappings,
       };
 
+      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
+        pages.push(i + 1);
+      }
       index = index + sortedDoc.file.pagecount;
       sortedDoc.sortorder = _index + 1;
+      sortedDoc.stitchIndex = stitchIndex;
+      sortedDoc.pages = pages;
+      stitchIndex += sortedDoc.file.pagecount;
     });
     setPageMappedDocs(mappedDocs);
   };
