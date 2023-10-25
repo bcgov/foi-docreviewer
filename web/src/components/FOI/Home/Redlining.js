@@ -531,16 +531,17 @@ const Redlining = React.forwardRef(
       let _pdftronDocObjs = [];
       slicedsetofdoclist.forEach(async (filerow) => {
         await createDocument(filerow.s3url).then(async (newDoc) => {
-          const pages = [];
+          // const pages = [];
 
-          for (let i = 0; i < newDoc.getPageCount(); i++) {
-            pages.push(i + 1);
-          }
+          // for (let i = 0; i < newDoc.getPageCount(); i++) {
+          //   pages.push(i + 1);
+          // }
           _pdftronDocObjs.push({
             file: filerow,
             sortorder: filerow.sortorder,
-            pages: pages,
+            pages: filerow.pages,
             pdftronobject: newDoc,
+            stitchIndex: filerow.stitchIndex,
             set: set,
             totalsetcount: slicedsetofdoclist.length,
           });
@@ -1020,7 +1021,7 @@ const Redlining = React.forwardRef(
         );
       };
     }, [
-      // pageMappedDocs,
+      pageMappedDocs,
       currentLayer,
       newRedaction,
       pageSelections,
@@ -1090,15 +1091,28 @@ const Redlining = React.forwardRef(
     }, [pageFlags, isStitchingLoaded]);
 
     const stitchPages = (_doc, pdftronDocObjs) => {
-      let index = _doc.getPageCount();
+      // let index = _doc.getPageCount();
       pdftronDocObjs.forEach(async (filerow) => {
         let _exists = stichedfiles.filter(
           (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
         if (_exists?.length === 0) {
-          index = index + filerow.pages.length;
-          _doc.insertPages(filerow.pdftronobject, filerow.pages, filerow.file.stitchIndex);
+          let index = filerow.file.stitchIndex;
+          _doc.insertPages(filerow.pdftronobject, filerow.pages, index);
           setstichedfiles((_arr) => [..._arr, filerow]);
+          // const promise = _doc.insertPages(
+          //   filerow.pdftronobject,
+          //   filerow.pages,
+          //   index
+          // );
+          // //add then and try
+          // promise
+          //   .then(() => {
+          //     setstichedfiles((_arr) => [..._arr, filerow]);
+          //   })
+          //   .catch((error) => {
+          //     console.error("An error occurred during page insertion:", error);
+          //   });
         }
       });
     };
@@ -1212,6 +1226,8 @@ const Redlining = React.forwardRef(
       ) {
         let sliceset = 0;
         let totalSetCount = 0;
+        console.log(`stichedfiles >>> `);
+        console.log(stichedfiles);
         let _pdftronDocObjects = pdftronDocObjects?.filter(function (el) {
           sliceset = el.set;
           totalSetCount = el.totalsetcount;
@@ -1220,11 +1236,15 @@ const Redlining = React.forwardRef(
         _pdftronDocObjects = sortDocObjects(_pdftronDocObjects);
 
         const _doc = docViewer.getDocument();
-        if (_doc) {
+        if (_doc && _pdftronDocObjects.length > 0) {
+          console.log(`_pdftronDocObjects >>> `);
+          console.log(_pdftronDocObjects);
           stitchPages(_doc, _pdftronDocObjects);
         }
+
         if (stichedfiles.length + 1 === docsForStitcing.length) {
           console.log(`End of stitching...`);
+          console.log(stichedfiles);
           const pageCount = docInstance.Core.documentViewer
             .getDocument()
             .getPageCount();
