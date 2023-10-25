@@ -523,33 +523,6 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
-    let mergeObjectsPreparation1 = async (createDocument) => {
-      console.log(`Download documents started .... ${new Date()}`);
-      let docCopy = [...docsForStitcing];
-      let removedFirstElement = docCopy?.shift();
-      let _pdftronDocObjs = [];
-
-      docCopy.forEach(async (file) => {
-        await createDocument(file.s3url).then(async (newDoc) => {
-          const pages = [];
-
-          for (let i = 0; i < newDoc.getPageCount(); i++) {
-            pages.push(i + 1);
-          }
-          //Preparing PDFTRON Document object collection for merging
-          _pdftronDocObjs.push({
-            file: file,
-            pages: pages,
-            pdftronobject: newDoc,
-          });
-        });
-
-        if (_pdftronDocObjs.length === docCopy.length) {
-          setpdftronDocObjects(_pdftronDocObjs);
-        }
-      });
-    };
-
     const mergeObjectsPreparation = async (
       createDocument,
       slicedsetofdoclist,
@@ -563,8 +536,6 @@ const Redlining = React.forwardRef(
           for (let i = 0; i < newDoc.getPageCount(); i++) {
             pages.push(i + 1);
           }
-
-          // _pdftronDocObjs = [...pdftronDocObjects]
           _pdftronDocObjs.push({
             file: filerow,
             sortorder: filerow.sortorder,
@@ -886,7 +857,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     `${currentLayer.redactionlayerid}`
                   );
-                  annot.NoMove = true;
+                  // annot.NoMove = true;
                 }
 
                 let astr =
@@ -1121,7 +1092,6 @@ const Redlining = React.forwardRef(
     const stitchPages = (_doc, pdftronDocObjs) => {
       let index = _doc.getPageCount();
       pdftronDocObjs.forEach(async (filerow) => {
-        console.log(stichedfiles);
         let _exists = stichedfiles.filter(
           (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
@@ -1130,36 +1100,6 @@ const Redlining = React.forwardRef(
           _doc.insertPages(filerow.pdftronobject, filerow.pages, filerow.file.stitchIndex);
           setstichedfiles((_arr) => [..._arr, filerow]);
         }
-      });
-    };
-
-    const stitchPages1 = (_doc, docCopy, pdftronDocObjs) => {
-      let index = _doc.getPageCount();
-      docCopy.forEach(async (doc) => {
-        let stitchdoc = pdftronDocObjs.filter(
-          (_pdocobj) => _pdocobj.file.file.documentid == doc.file.documentid
-        );
-        index = index + stitchdoc[0]["pages"].length;
-
-        const promise = _doc.insertPages(
-          stitchdoc[0]["pdftronobject"],
-          stitchdoc[0]["pages"],
-          index
-        );
-
-        promise
-          .then(() => {
-            const pageCount = docInstance.Core.documentViewer
-              .getDocument()
-              .getPageCount();
-            if (pageCount > 800) {
-              docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-            }
-            setIsStitchingLoaded(true);
-          })
-          .catch((error) => {
-            console.error("An error occurred during page insertion:", error);
-          });
       });
     };
 
@@ -1239,9 +1179,10 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
-          _annotation.NoMove = true;
+          // _annotation.NoMove = true;
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            _annotation.NoMove = true;
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
