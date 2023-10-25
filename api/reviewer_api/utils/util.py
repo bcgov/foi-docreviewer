@@ -34,7 +34,7 @@ from reviewer_api.utils.enums import (
     ProcessingTeamWithKeycloackGroup,
 )
 import maya
-
+from reviewer_api.utils.constants import REDLINE_SINGLE_PKG_MINISTRIES
 
 def cors_preflight(methods):
     # Render an option method on the class.
@@ -135,3 +135,10 @@ def getbatchconfig():
     _size =  _batchconfig["size"] if "size" in _batchconfig else 100
     _limit = _batchconfig["limit"] if "limit" in _batchconfig else 250    
     return _begin, _size, _limit
+
+def is_single_redline_package(bcgovcode):
+    if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
+        _pkg_ministries = REDLINE_SINGLE_PKG_MINISTRIES.replace(" ", "").split(',')
+        if bcgovcode.upper() in _pkg_ministries:
+            return True
+    return False

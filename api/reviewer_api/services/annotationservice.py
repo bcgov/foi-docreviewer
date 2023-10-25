@@ -57,6 +57,10 @@ class annotationservice:
             "has_prev": result.has_prev,
         }
         return {"data": self.__formatannotations(result.items), "meta": meta}
+    
+    def getdocumentannotations(self, ministryrequestid, mappedlayerids, documentid):
+        result = Annotation.get_document_annotations(ministryrequestid, mappedlayerids, documentid)
+        return {documentid: result}
 
     def __formatannotations(self, annotations):
         annotationobj = {}
