@@ -8,8 +8,8 @@ class FileSchema(Schema):
 
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
-    divisionname = fields.Str(data_key="divisionname", allow_none=False)
-    divisionid = fields.Int(data_key="divisionid", allow_none=False)
+    divisionname = fields.Str(data_key="divisionname", allow_none=True)
+    divisionid = fields.Int(data_key="divisionid", allow_none=True)
 
 
 class RedlineSchema(Schema):
