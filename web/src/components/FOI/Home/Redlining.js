@@ -1127,7 +1127,7 @@ const Redlining = React.forwardRef(
         );
         if (_exists?.length === 0) {
           index = index + filerow.pages.length;
-          _doc.insertPages(filerow.pdftronobject, filerow.pages, index);
+          _doc.insertPages(filerow.pdftronobject, filerow.pages, filerow.file.stitchIndex);
           setstichedfiles((_arr) => [..._arr, filerow]);
         }
       });
