@@ -2117,7 +2117,6 @@ const Redlining = React.forwardRef(
         let docCount = 0;        
         let division = key;
         let documentlist = stitchlist[key];
-        console.log(redlineSinglePkg);
         if (redlineSinglePkg == "N") {
           toast.update(toastId.current, {
             render: `Generating redline PDF for ${divCount+1} of ${noofdivision} divisions...`,
@@ -2426,12 +2425,12 @@ useEffect(() => {
                   }
             }
             if (res.issingleredlinepackage == "Y" && divCount == res.divdocumentList.length) {
-              stitchDocuments['0'] = documentsObjArr;
+              stitchDocuments['0'] = sortByLastModified(documentsObjArr);
               stitchDoc['0'] = {'documentids':documentids, 's3path':res.s3path_save, 'stitchpages': divisionstitchpages, 'bcgovcode': res.bcgovcode};
              } 
              if (res.issingleredlinepackage != "Y" && docCount == div.documentlist.length) {
               let divdocumentids = documentsObjArr.map(obj=> obj.documentid);
-              stitchDocuments[div.divisionid] = div.documentlist; 
+              stitchDocuments[div.divisionid] = sortByLastModified(div.documentlist); 
               stitchDoc[div.divisionid] = {'documentids': divdocumentids, 's3path':div.s3path_save, 'stitchpages': divisionstitchpages, 'bcgovcode': res.bcgovcode};   
               divisionstitchpages = [];  
               documentsObjArr = [];
