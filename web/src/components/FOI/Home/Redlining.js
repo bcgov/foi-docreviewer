@@ -531,23 +531,36 @@ const Redlining = React.forwardRef(
       let _pdftronDocObjs = [];
       slicedsetofdoclist.forEach(async (filerow) => {
         await createDocument(filerow.s3url).then(async (newDoc) => {
+          setpdftronDocObjects((_arr) => [
+            ..._arr,
+            {
+              file: filerow,
+              sortorder: filerow.sortorder,
+              pages: filerow.pages,
+              pdftronobject: newDoc,
+              stitchIndex: filerow.stitchIndex,
+              set: set,
+              totalsetcount: slicedsetofdoclist.length,
+            },
+          ]);
+
           // const pages = [];
 
           // for (let i = 0; i < newDoc.getPageCount(); i++) {
           //   pages.push(i + 1);
           // }
-          _pdftronDocObjs.push({
-            file: filerow,
-            sortorder: filerow.sortorder,
-            pages: filerow.pages,
-            pdftronobject: newDoc,
-            stitchIndex: filerow.stitchIndex,
-            set: set,
-            totalsetcount: slicedsetofdoclist.length,
-          });
-          if (_pdftronDocObjs.length === slicedsetofdoclist.length) {
-            setpdftronDocObjects(...pdftronDocObjects, _pdftronDocObjs);
-          }
+          // _pdftronDocObjs.push({
+          //   file: filerow,
+          //   sortorder: filerow.sortorder,
+          //   pages: filerow.pages,
+          //   pdftronobject: newDoc,
+          //   stitchIndex: filerow.stitchIndex,
+          //   set: set,
+          //   totalsetcount: slicedsetofdoclist.length,
+          // });
+          // if (_pdftronDocObjs.length === slicedsetofdoclist.length) {
+          // setpdftronDocObjects(...pdftronDocObjects, _pdftronDocObjs)
+          // }
         });
       });
     };
@@ -1097,22 +1110,9 @@ const Redlining = React.forwardRef(
           (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
         if (_exists?.length === 0) {
-          let index = filerow.file.stitchIndex;
+          let index = filerow.stitchIndex;
           _doc.insertPages(filerow.pdftronobject, filerow.pages, index);
           setstichedfiles((_arr) => [..._arr, filerow]);
-          // const promise = _doc.insertPages(
-          //   filerow.pdftronobject,
-          //   filerow.pages,
-          //   index
-          // );
-          // //add then and try
-          // promise
-          //   .then(() => {
-          //     setstichedfiles((_arr) => [..._arr, filerow]);
-          //   })
-          //   .catch((error) => {
-          //     console.error("An error occurred during page insertion:", error);
-          //   });
         }
       });
     };
@@ -1228,12 +1228,14 @@ const Redlining = React.forwardRef(
         let totalSetCount = 0;
         console.log(`stichedfiles >>> `);
         console.log(stichedfiles);
-        let _pdftronDocObjects = pdftronDocObjects?.filter(function (el) {
-          sliceset = el.set;
-          totalSetCount = el.totalsetcount;
-          return stichedfiles.indexOf(el) < 0;
-        });
-        _pdftronDocObjects = sortDocObjects(_pdftronDocObjects);
+        // let _pdftronDocObjects = pdftronDocObjects?.filter(function (el) {
+        //   sliceset = el.set;
+        //   totalSetCount = el.totalsetcount;
+        //   return stichedfiles.indexOf(el) < 0;
+        // });
+        let doclistCopy = [...docsForStitcing];
+        doclistCopy?.shift(); //remove first document from the list
+        let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
 
         const _doc = docViewer.getDocument();
         if (_doc && _pdftronDocObjects.length > 0) {
