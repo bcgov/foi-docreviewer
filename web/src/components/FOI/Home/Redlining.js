@@ -1119,6 +1119,7 @@ const Redlining = React.forwardRef(
                 console.log(
                   `Download and Stitching completed.... ${new Date()}`
                 );
+                applyAnnotationsFunc();
                 setIsStitchingLoaded(true);
                 setpdftronDocObjects([]);
                 setstichedfiles([]);
@@ -1218,16 +1219,24 @@ const Redlining = React.forwardRef(
               annotManager.bringToBack(_annotation);
             }
           }
-          if (
-            _annotation.Subject !== "Redact" &&
-            _annotation.Author !== username
-          ) {
-            _annotation.NoResize = true;
-          }
-          if (_annotation.Author !== username) {
-            _annotation.LockedContents = true;
-          }
+          // if (
+          //   _annotation.Subject !== "Redact" &&
+          //   _annotation.Author !== username
+          // ) {
+          //   _annotation.NoResize = true;
+          //   _annotation.LockedContents = true;
+          // }
           annotManager.redrawAnnotation(_annotation);
+
+          annotManager.setPermissionCheckCallback((author, _annotation) => {
+            if (_annotation.Subject !== "Redact" && author !== username) {
+              _annotation.NoResize = true;
+            }
+            if (author !== username) {
+              _annotation.LockedContents = true;
+            }
+            return true;
+          });
         });
       }
     };
@@ -1249,7 +1258,7 @@ const Redlining = React.forwardRef(
         }
 
         if (stichedfiles.length + 1 === docsForStitcing.length) {
-          applyAnnotationsFunc();
+          // applyAnnotationsFunc();
         }
       }
     }, [
