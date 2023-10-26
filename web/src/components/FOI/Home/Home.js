@@ -75,7 +75,8 @@ function Home() {
             documentObjs,
             (newDocumentObjs) => {
               doclist = newDocumentObjs?.sort(docSorting);
-              //prepareMapperObj will add sortorder to doclist and prepare the PageMappedDocs object
+              //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
+              //and prepare the PageMappedDocs object
               prepareMapperObj(doclist);
               setCurrentDocument({
                 file: doclist[0]?.file || {},
