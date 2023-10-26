@@ -154,13 +154,13 @@ export const getSliceSetDetails = async (
           slicersetdetail.slicer = 200;
           break;
         case totaldocCount > 600 && totaldocCount <= 1000:
-          slicersetdetail.slicer = 300;
+          slicersetdetail.slicer = 200;
           break;
         case totaldocCount > 1000 && totaldocCount <= 3000:
-          slicersetdetail.slicer = 400;
+          slicersetdetail.slicer = 500;
           break;
         case totaldocCount > 3000:
-          slicersetdetail.slicer = 500;
+          slicersetdetail.slicer = 600;
           break;
         default:
           slicersetdetail.slicer = 100;
@@ -175,6 +175,31 @@ export const getSliceSetDetails = async (
   return slicersetdetail;
 };
 
-export const sortDocObjects = (_pdftronDocObjs) => {
-  return _pdftronDocObjs.sort((a, b) => a.sortorder - b.sortorder);
+export const sortDocObjects = (_pdftronDocObjs, doclist) => {
+  let __refinedpdftronDocObjs = _pdftronDocObjs.sort(
+    (a, b) => a.sortorder - b.sortorder
+  );
+  let returnObjs = [];
+  for (
+    let _soCtr = 0, _dlCtr = 0;
+    _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
+    _dlCtr++, _soCtr++
+  ) {
+    console.log("I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    if (
+      __refinedpdftronDocObjs[_soCtr] != null &&
+      __refinedpdftronDocObjs[_soCtr] != undefined
+    ) {
+      if (
+        __refinedpdftronDocObjs[_soCtr].file.file.documentid ===
+        doclist[_dlCtr].file.documentid
+      ) {
+        returnObjs.push(__refinedpdftronDocObjs[_soCtr]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return returnObjs;
 };
