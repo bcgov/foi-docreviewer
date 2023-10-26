@@ -412,7 +412,7 @@ const Redlining = React.forwardRef(
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
-
+            console.log(`Download and Stitching started.... ${new Date()}`);
             let doclistCopy = [...docsForStitcing];
             let slicerdetails = await getSliceSetDetails(
               doclistCopy.length,
@@ -748,21 +748,26 @@ const Redlining = React.forwardRef(
                 );
               }
               if (redactObjs?.length > 0) {
-                deleteRedaction(
-                  requestid,
-                  currentLayer.redactionlayerid,
-                  redactObjs,
-                  (data) => {
-                    fetchPageFlag(
-                      requestid,
-                      currentLayer.redactionlayerid,
-                      (error) => console.log(error)
-                    );
-                  },
-                  (error) => {
-                    console.log(error);
-                  }
+                const existsInRedactionObjs = newRedaction?.names?.some(
+                  (name) => redactObjs.some((obj) => obj.name === name)
                 );
+                if (!existsInRedactionObjs) {
+                  deleteRedaction(
+                    requestid,
+                    currentLayer.redactionlayerid,
+                    redactObjs,
+                    (data) => {
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
+                    (error) => {
+                      console.log(error);
+                    }
+                  );
+                }
               }
               setDeleteQueue(redactObjs);
             } else if (action === "add") {
@@ -1111,6 +1116,9 @@ const Redlining = React.forwardRef(
                     docInstance.UI.LayoutMode.Single
                   );
                 }
+                console.log(
+                  `Download and Stitching completed.... ${new Date()}`
+                );
                 setIsStitchingLoaded(true);
                 setpdftronDocObjects([]);
                 setstichedfiles([]);
