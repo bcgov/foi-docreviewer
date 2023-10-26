@@ -144,7 +144,7 @@ const Redlining = React.forwardRef(
     const [redlineStitchInfo, setRedlineStitchInfo] = useState(null);
     const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
     const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
-    
+
     const toastId = React.useRef(null);
 
 
@@ -1835,7 +1835,6 @@ const Redlining = React.forwardRef(
       redlineSinglePkg,
       stitchedDocPath = ""      
     ) => {
-      console.log('inside zipper, ', redlineSinglePkg);
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
@@ -2144,7 +2143,27 @@ const Redlining = React.forwardRef(
         }    
     }
 
-    const stitchForRedlineExport = async (_instance, stitchlist, redlineSinglePkg) => {  
+    const isIgnoredDocument = (doc, docObj, divisionDocuments) => {
+      const divdocumentlist = JSON.parse(JSON.stringify(divisionDocuments));
+      let removepagesCount = 0;
+      for (let divsionentry of divdocumentlist) {
+        for (let docentry of divsionentry['documentlist']) {
+            if (doc.documentid == docentry.documentid) {
+              for (const flagInfo of docentry.pageFlag) {
+                if (
+                  flagInfo.flagid == pageFlagTypes["Duplicate"] || flagInfo.flagid == pageFlagTypes["Not Responsive"]
+                ){
+                  removepagesCount++;
+                }        
+            }
+            }
+          }
+        }
+        
+      return docObj.getPageCount() == removepagesCount;
+    }
+
+    const stitchForRedlineExport = async (_instance, divisionDocuments, stitchlist, redlineSinglePkg) => {  
       let requestStitchObject = {}   
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
@@ -2171,31 +2190,32 @@ const Redlining = React.forwardRef(
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
           }).then(async (docObj) => {
-            
-            docCount++;
-            if (docCount == 1) {
-              stitchedDocObj = docObj;
-            } else {
-              
-              // create an array containing 1…N
-              let pages = Array.from(
-                { length: doc.pagecount },
-                (v, k) => k + 1
-              );
-              let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-              await stitchedDocObj.insertPages(
-                docObj,
-                pages,
-                pageIndexToInsert
-              );
-                           
-            }
+           docCount++;
+           if (isIgnoredDocument(doc, docObj, divisionDocuments) == false) {
+              if (docCount == 1) {
+                stitchedDocObj = docObj;
+              } else {
+                
+                // create an array containing 1…N
+                let pages = Array.from(
+                  { length: doc.pagecount },
+                  (v, k) => k + 1
+                );
+                let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                await stitchedDocObj.insertPages(
+                  docObj,
+                  pages,
+                  pageIndexToInsert
+                );
+                            
+              }
+          }
           });           
-          if (docCount == documentlist.length && redlineSinglePkg == "N") { 
+          if (docCount == documentlist.length && redlineSinglePkg == "N" && stitchedDocObj != null) { 
             requestStitchObject[division] = stitchedDocObj;
           }
          }
-         if (redlineSinglePkg == "Y") { 
+         if (redlineSinglePkg == "Y" && stitchedDocObj != null) { 
           requestStitchObject['0'] = stitchedDocObj;
         }
          if (divCount == noofdivision) {          
@@ -2281,7 +2301,6 @@ const Redlining = React.forwardRef(
         let currentDivisionCount = 0;
         const divisionCountForToast = Object.keys(redlineStitchObject).length;
         for (const [key, value] of Object.entries(redlineStitchObject)) {        
-          //Object.keys(redlineStitchObject).forEach(function(key) {
           currentDivisionCount++;
           toast.update(toastId.current, {
             render: redlineSinglePackage == "N" ? `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} document to Object Storage...`: `Saving redline PDF to Object Storage...`,
@@ -2427,7 +2446,7 @@ const Redlining = React.forwardRef(
             }
           }
           setRedlineStitchInfo(stitchDoc);
-          stitchForRedlineExport(_instance, stitchDocuments, res.issingleredlinepackage);
+          stitchForRedlineExport(_instance, divisionDocuments, stitchDocuments, res.issingleredlinepackage);
         },
         (error) => {
           console.log("Error fetching document:", error);
