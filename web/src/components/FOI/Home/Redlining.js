@@ -1104,17 +1104,30 @@ const Redlining = React.forwardRef(
     }, [pageFlags, isStitchingLoaded]);
 
     const stitchPages = (_doc, pdftronDocObjs) => {
-      // let index = _doc.getPageCount();
-      pdftronDocObjs.forEach(async (filerow) => {
+      for (let filerow of pdftronDocObjs) {
         let _exists = stichedfiles.filter(
           (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
         if (_exists?.length === 0) {
           let index = filerow.stitchIndex;
-          _doc.insertPages(filerow.pdftronobject, filerow.pages, index);
+          _doc
+            .insertPages(filerow.pdftronobject, filerow.pages, index)
+            .then(() => {
+              console.log(
+                `docViewer.getPageCount() = ${docViewer.getPageCount()}, docsForStitcing.totalPageCount = ${
+                  docsForStitcing.totalPageCount
+                }`
+              );
+              if (docViewer.getPageCount() === docsForStitcing.totalPageCount) {
+                setIsStitchingLoaded(true);
+              }
+            })
+            .catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            });
           setstichedfiles((_arr) => [..._arr, filerow]);
         }
-      });
+      }
     };
 
     const applyAnnotationsFunc = () => {
@@ -1247,16 +1260,36 @@ const Redlining = React.forwardRef(
         if (stichedfiles.length + 1 === docsForStitcing.length) {
           console.log(`End of stitching...`);
           console.log(stichedfiles);
-          const pageCount = docInstance.Core.documentViewer
-            .getDocument()
-            .getPageCount();
+          // const pageCount = docInstance.Core.documentViewer
+          //   .getDocument()
+          //   .getPageCount();
+          // docInstance.Core.documentViewer.refreshAll();
+          const pageCount = _doc.getPageCount();
           if (pageCount > 800) {
             docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
           }
           applyAnnotationsFunc();
-          setIsStitchingLoaded(true);
+          // setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
+          //   console.log(
+          //     `stitchPageCount == ${
+          //       stichedfiles[stichedfiles.length - 1].stitchIndex +
+          //       stichedfiles[stichedfiles.length - 1].file.file.pagecount -
+          //       1
+          //     }, pageCount = ${pageCount}`
+          //   );
+          //   if (
+          //     pageCount ===
+          //     stichedfiles[stichedfiles.length - 1].stitchIndex +
+          //       stichedfiles[stichedfiles.length - 1].file.file.pagecount -
+          //       1
+          //   ) {
+          //     console.log(`<<<<<<<<< set loaded = true >>>>>>>>`);
+          //     setIsStitchingLoaded(true);
+          //     setpdftronDocObjects([]);
+          //     setstichedfiles([]);
+          //   }
         }
       }
     }, [
