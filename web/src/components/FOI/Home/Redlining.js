@@ -956,7 +956,6 @@ const Redlining = React.forwardRef(
               annotManager?.getSelectedAnnotations().length >
               REDACTION_SELECT_LIMIT * 2
             ) {
-              console.log("reached max - deselect");
               annotManager?.deselectAnnotations(annotations);
               setWarningModalOpen(true);
             }
@@ -1915,7 +1914,7 @@ const Redlining = React.forwardRef(
           await s.stampText(
             doc,
             `${requestnumber} , Page ${
-              divisionsdocpages[pagecount - 1].stitchedPageNo
+              divisionsdocpages[pagecount - 1]?.stitchedPageNo
             } of ${docViewer.getPageCount()}`,
             pgSet
           );

@@ -45,6 +45,7 @@ API = Namespace(
     description="Endpoints for document and annotation operations",
 )
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 
 @cors_preflight("GET,OPTIONS")
@@ -68,8 +69,8 @@ class Annotations(Resource):
                     ministryrequestid, _redactionlayer
                 )
                 return json.dumps(result), 200
-        except KeyError as err:
-            return {"status": False, "message": err.__str__()}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -97,8 +98,8 @@ class AnnotationPagination(Resource):
                     ministryrequestid, _redactionlayer, page, size
                 )
                 return result, 200
-        except KeyError as err:
-            return {"status": False, "message": err.__str__()}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -150,8 +151,8 @@ class SaveAnnotations(Resource):
                 "message": result.message,
                 "annotationid": result.identifier,
             }, 201
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -184,8 +185,8 @@ class DeactivateAnnotations(Resource):
                 "message": result.message,
                 "annotationid": result.identifier,
             }, 200
-        except KeyError as err:
-            return {"status": False, "message": err.message}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -215,8 +216,8 @@ class DeactivateRedactions(Resource):
                 "message": result.message,
                 "annotationid": result.identifier,
             }, 200
-        except KeyError as err:
-            return {"status": False, "message": err.message}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -234,8 +235,8 @@ class AnnotationMetadata(Resource):
         try:
             result = redactionservice().getannotationinfobyrequest(ministryrequestid)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -275,8 +276,8 @@ class GetAccount(Resource):
         try:
             result = redactionservice().gets3serviceaccount(usergroup)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -302,8 +303,8 @@ class SaveRedlines(Resource):
                 "status": result.success,
                 "message": result.message,
             }, 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
@@ -329,7 +330,7 @@ class SaveFinalPackage(Resource):
                 "status": result.success,
                 "message": result.message,
             }, 200
-        except KeyError as err:
-            return {"status": False, "message": err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500

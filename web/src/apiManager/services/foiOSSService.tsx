@@ -25,6 +25,25 @@ export const getFOIS3DocumentPreSignedUrl = (
         });
 };
 
+export const getFOIS3DocumentPreSignedUrls = (
+    documentObjs: any,
+    callback: any,
+    errorCallback: any
+) => {
+    const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL;
+    httpPOSTRequest({url: apiurl, data: {"documentobjs":documentObjs}, token: UserService.getToken() || ''})
+    .then((res:any) => {
+        if (res.data) {
+            callback(res.data);
+        } else {
+            throw new Error("fetch presigned s3 url with empty response");
+        }
+    })
+    .catch((error:any) => {
+        errorCallback(error);
+    });
+};
+
 export const getFOIS3DocumentRedlinePreSignedUrl = (
     ministryrequestID: any,
     documentList: any[],

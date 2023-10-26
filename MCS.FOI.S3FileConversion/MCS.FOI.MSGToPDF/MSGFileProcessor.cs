@@ -110,15 +110,17 @@ namespace MCS.FOI.MSGToPDF
                                     }
                                 }
                             }
+                            WordDocument doc = GetEmailMetatdata(msg);
                             if (msg.BodyRtf != null)
                             {
-                                var msgReader = new Reader();
 
-                                var inputStream = new MemoryStream();
-                                string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.Both, "text/html; charset=utf-8", false);
-                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(body.Replace("<br>", "<br/>").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\""), "<meta .*?>", ""), "<link.*?>", "");
+                                var msgReader = new Reader();
+                                string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", false);
+                                var options = RegexOptions.None;
+                                var timeout = TimeSpan.FromSeconds(10);
+                                var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(body, "<br.*?>", "<br/>", options, timeout), "<hr.*?>", "<hr/>", options, timeout), "href=\"[^\"]*=[^\"]\"", "", options, timeout).Replace(";=\"\"", "").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout), "<img src=\"(?!cid).*?>", "", options, timeout);
                                 const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
-                                const string imgString = "<img";
+                                const string imgString = "<img src=\"cid";
                                 bool htmlInline = bodyreplaced.Contains(imgString);
                                 bool rtfInline = bodyreplaced.Contains(rtfInlineObject);
                                 if (htmlInline || rtfInline)
@@ -190,7 +192,7 @@ namespace MCS.FOI.MSGToPDF
 
                                         if (pictures != null)
                                         {
-                                            foreach (WPicture picture in pictures)
+                                            foreach (WPicture picture in pictures.OfType<WPicture>())
                                             {
                                                 picture.LockAspectRatio = true;
                                                 const float maxSize = 500;
@@ -242,7 +244,6 @@ namespace MCS.FOI.MSGToPDF
                                         }
 
 
-                                        WordDocument doc = GetEmailMetatdata(msg);
 
 
                                         //Sets the break-code of First section of source document as NoBreak to avoid imported from a new page
@@ -290,7 +291,6 @@ namespace MCS.FOI.MSGToPDF
                             }
                             else
                             {
-                                WordDocument doc = GetEmailMetatdata(msg);
                                 doc.LastParagraph.AppendText("This email does not have a message body.");
 
                                 using (DocIORenderer renderer = new DocIORenderer())
