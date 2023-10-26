@@ -129,6 +129,33 @@ class Annotation(db.Model):
         )
         result = _subquery_annotation.paginate(page=page, per_page=size)
         return result
+    @classmethod
+    def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
+        try:
+            sql = """
+                    select a.*
+                    from "Annotations" a
+                    join (
+                        select distinct on (docs.documentid) docs.*
+                        from  "Documents" docs
+                        where docs.foiministryrequestid = :ministryrequestid and docs.documentid = :documentid
+                        order by docs.documentid, docs.version desc
+                    ) as d on (d.documentid = a.documentid and d.version = a.documentversion and d.foiministryrequestid = :ministryrequestid)
+                    inner join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid or dm.processingparentid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
+                    where a.isactive = true and a.redactionlayerid in :_mappedlayerids
+                """
+            rs = db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid, "_mappedlayerids": tuple(mappedlayerids), "documentid": documentid},
+            )
+            return [
+                row["annotation"]            
+                for row in rs
+            ]
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
