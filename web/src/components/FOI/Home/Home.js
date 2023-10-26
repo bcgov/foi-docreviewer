@@ -121,6 +121,7 @@ function Home() {
 
     let index = 0;
     let stitchIndex = 1;
+    let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       let j = 0;
@@ -137,6 +138,7 @@ function Home() {
           docversion: sortedDoc.file.version,
           page: j,
         };
+        totalPageCount = i;
       }
       mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
         docId: sortedDoc.file.documentid,
@@ -154,6 +156,7 @@ function Home() {
       sortedDoc.pages = pages;
       stitchIndex += sortedDoc.file.pagecount;
     });
+    doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
   };
 
