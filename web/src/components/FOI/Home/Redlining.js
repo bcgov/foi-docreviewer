@@ -380,6 +380,21 @@ const Redlining = React.forwardRef(
             }));
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
+            //Commenting the preset search code now- might need in later release
+            // fetchKeywordsMasterData(
+            //   (data) => {
+            //     if (data) {
+            //       let keywordArray = data.map((elmnt) => elmnt.keyword);
+            //       var regexFromMyArray = new String(keywordArray.join("|"));
+            //       setSearchKeywords(regexFromMyArray);
+            //       instance.UI.searchTextFull(regexFromMyArray, {
+            //         wholeWord: true,
+            //         regex: true,
+            //       });
+            //     }
+            //   },
+            //   (error) => console.log(error)
+            // );
             //update user info
             let newusername = user?.name || user?.preferred_username || "";
             let username = annotationManager.getCurrentUser();
@@ -398,7 +413,6 @@ const Redlining = React.forwardRef(
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
 
-            // await mergeObjectsPreparation(instance.Core.createDocument);
             let doclistCopy = [...docsForStitcing];
             let slicerdetails = await getSliceSetDetails(
               doclistCopy.length,
@@ -410,9 +424,6 @@ const Redlining = React.forwardRef(
             let objpreptasks = new Array(setCount);
             for (let slicecount = 1; slicecount <= setCount; slicecount++) {
               let sliceDoclist = doclistCopy.splice(0, slicer);
-              console.log(
-                `slicecount = ${slicecount}, sliceDocCount = ${sliceDoclist.length}`
-              );
               objpreptasks.push(
                 mergeObjectsPreparation(
                   instance.Core.createDocument,
@@ -528,7 +539,6 @@ const Redlining = React.forwardRef(
       slicedsetofdoclist,
       set
     ) => {
-      let _pdftronDocObjs = [];
       slicedsetofdoclist.forEach(async (filerow) => {
         await createDocument(filerow.s3url).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
@@ -543,24 +553,6 @@ const Redlining = React.forwardRef(
               totalsetcount: slicedsetofdoclist.length,
             },
           ]);
-
-          // const pages = [];
-
-          // for (let i = 0; i < newDoc.getPageCount(); i++) {
-          //   pages.push(i + 1);
-          // }
-          // _pdftronDocObjs.push({
-          //   file: filerow,
-          //   sortorder: filerow.sortorder,
-          //   pages: filerow.pages,
-          //   pdftronobject: newDoc,
-          //   stitchIndex: filerow.stitchIndex,
-          //   set: set,
-          //   totalsetcount: slicedsetofdoclist.length,
-          // });
-          // if (_pdftronDocObjs.length === slicedsetofdoclist.length) {
-          // setpdftronDocObjects(...pdftronDocObjects, _pdftronDocObjs)
-          // }
         });
       });
     };
@@ -995,7 +987,6 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
-      console.log(" <<<<<<<< UE >>>>>>");
       annotManager?.addEventListener(
         "annotationSelected",
         (annotations, action) => {
@@ -1113,13 +1104,16 @@ const Redlining = React.forwardRef(
           _doc
             .insertPages(filerow.pdftronobject, filerow.pages, index)
             .then(() => {
-              console.log(
-                `docViewer.getPageCount() = ${docViewer.getPageCount()}, docsForStitcing.totalPageCount = ${
-                  docsForStitcing.totalPageCount
-                }`
-              );
-              if (docViewer.getPageCount() === docsForStitcing.totalPageCount) {
+              const pageCount = docViewer.getPageCount();
+              if (pageCount === docsForStitcing.totalPageCount) {
+                if (pageCount > 800) {
+                  docInstance.UI.setLayoutMode(
+                    docInstance.UI.LayoutMode.Single
+                  );
+                }
                 setIsStitchingLoaded(true);
+                setpdftronDocObjects([]);
+                setstichedfiles([]);
               }
             })
             .catch((error) => {
@@ -1237,59 +1231,17 @@ const Redlining = React.forwardRef(
         merge &&
         docViewer
       ) {
-        let sliceset = 0;
-        let totalSetCount = 0;
-        console.log(`stichedfiles >>> `);
-        console.log(stichedfiles);
-        // let _pdftronDocObjects = pdftronDocObjects?.filter(function (el) {
-        //   sliceset = el.set;
-        //   totalSetCount = el.totalsetcount;
-        //   return stichedfiles.indexOf(el) < 0;
-        // });
         let doclistCopy = [...docsForStitcing];
         doclistCopy?.shift(); //remove first document from the list
         let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
 
         const _doc = docViewer.getDocument();
         if (_doc && _pdftronDocObjects.length > 0) {
-          console.log(`_pdftronDocObjects >>> `);
-          console.log(_pdftronDocObjects);
           stitchPages(_doc, _pdftronDocObjects);
         }
 
         if (stichedfiles.length + 1 === docsForStitcing.length) {
-          console.log(`End of stitching...`);
-          console.log(stichedfiles);
-          // const pageCount = docInstance.Core.documentViewer
-          //   .getDocument()
-          //   .getPageCount();
-          // docInstance.Core.documentViewer.refreshAll();
-          const pageCount = _doc.getPageCount();
-          if (pageCount > 800) {
-            docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-          }
           applyAnnotationsFunc();
-          // setIsStitchingLoaded(true);
-          setpdftronDocObjects([]);
-          setstichedfiles([]);
-          //   console.log(
-          //     `stitchPageCount == ${
-          //       stichedfiles[stichedfiles.length - 1].stitchIndex +
-          //       stichedfiles[stichedfiles.length - 1].file.file.pagecount -
-          //       1
-          //     }, pageCount = ${pageCount}`
-          //   );
-          //   if (
-          //     pageCount ===
-          //     stichedfiles[stichedfiles.length - 1].stitchIndex +
-          //       stichedfiles[stichedfiles.length - 1].file.file.pagecount -
-          //       1
-          //   ) {
-          //     console.log(`<<<<<<<<< set loaded = true >>>>>>>>`);
-          //     setIsStitchingLoaded(true);
-          //     setpdftronDocObjects([]);
-          //     setstichedfiles([]);
-          //   }
         }
       }
     }, [
