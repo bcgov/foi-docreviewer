@@ -139,7 +139,6 @@ const Redlining = React.forwardRef(
 
     const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
     const [stichedfiles, setstichedfiles] = useState([]);
-    const [isStitched, setIsStitched] = useState(false);
 
     //xml parser
     const parser = new XMLParser();
@@ -203,7 +202,6 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -354,7 +352,6 @@ const Redlining = React.forwardRef(
               render: renderCustomMenu,
             };
 
-            // header.push(newCustomElement);
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -868,7 +865,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     `${currentLayer.redactionlayerid}`
                   );
-                  // annot.NoMove = true;
+                  // annot.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
                 }
 
                 let astr =
@@ -1209,7 +1206,7 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
-          // _annotation.NoMove = true;
+          // _annotation.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
@@ -1219,13 +1216,6 @@ const Redlining = React.forwardRef(
               annotManager.bringToBack(_annotation);
             }
           }
-          // if (
-          //   _annotation.Subject !== "Redact" &&
-          //   _annotation.Author !== username
-          // ) {
-          //   _annotation.NoResize = true;
-          //   _annotation.LockedContents = true;
-          // }
           annotManager.redrawAnnotation(_annotation);
 
           annotManager.setPermissionCheckCallback((author, _annotation) => {
@@ -1255,10 +1245,6 @@ const Redlining = React.forwardRef(
         const _doc = docViewer.getDocument();
         if (_doc && _pdftronDocObjects.length > 0) {
           stitchPages(_doc, _pdftronDocObjects);
-        }
-
-        if (stichedfiles.length + 1 === docsForStitcing.length) {
-          // applyAnnotationsFunc();
         }
       }
     }, [
