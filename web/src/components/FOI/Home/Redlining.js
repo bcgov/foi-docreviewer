@@ -418,6 +418,7 @@ const Redlining = React.forwardRef(
             doclistCopy?.shift();
             let setCount = slicerdetails.setcount;
             let slicer = slicerdetails.slicer;
+            console.log(`slicer = ${slicer}, setCount = ${setCount}`);
             let objpreptasks = new Array(setCount);
             for (let slicecount = 1; slicecount <= setCount; slicecount++) {
               let sliceDoclist = doclistCopy.splice(0, slicer);
@@ -1108,14 +1109,15 @@ const Redlining = React.forwardRef(
             .then(() => {
               const pageCount = docViewer.getPageCount();
               if (pageCount === docsForStitcing.totalPageCount) {
+                console.log(
+                  `Download and Stitching completed.... ${new Date()}`
+                );
+
                 if (pageCount > 800) {
                   docInstance.UI.setLayoutMode(
                     docInstance.UI.LayoutMode.Single
                   );
                 }
-                console.log(
-                  `Download and Stitching completed.... ${new Date()}`
-                );
                 applyAnnotationsFunc();
                 setIsStitchingLoaded(true);
                 setpdftronDocObjects([]);
