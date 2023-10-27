@@ -59,6 +59,8 @@ import {
   getSections,
   getValidSections,
   updatePageFlags,
+  getSliceSetDetails,
+  sortDocObjects,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -135,6 +137,9 @@ const Redlining = React.forwardRef(
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
 
+    const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
+    const [stichedfiles, setstichedfiles] = useState([]);
+
     //xml parser
     const parser = new XMLParser();
 
@@ -197,7 +202,6 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -348,7 +352,6 @@ const Redlining = React.forwardRef(
               render: renderCustomMenu,
             };
 
-            // header.push(newCustomElement);
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -395,21 +398,43 @@ const Redlining = React.forwardRef(
             if (newusername && newusername !== username)
               annotationManager.setCurrentUser(newusername);
 
+            setDocViewer(documentViewer);
+            setAnnotManager(annotationManager);
+            setAnnots(Annotations);
+            setDocViewerMath(Math);
+
             //update isloaded flag
             //localStorage.setItem("isDocumentLoaded", "true");
 
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
+            console.log(`Download and Stitching started.... ${new Date()}`);
+            let doclistCopy = [...docsForStitcing];
+            let slicerdetails = await getSliceSetDetails(
+              doclistCopy.length,
+              true
+            );
+            doclistCopy?.shift();
+            let setCount = slicerdetails.setcount;
+            let slicer = slicerdetails.slicer;
+            let objpreptasks = new Array(setCount);
+            for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+              let sliceDoclist = doclistCopy.splice(0, slicer);
+              objpreptasks.push(
+                mergeObjectsPreparation(
+                  instance.Core.createDocument,
+                  sliceDoclist,
+                  slicecount
+                )
+              );
+            }
+
+            Promise.all(objpreptasks);
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
-
-            setDocViewer(documentViewer);
-            setAnnotManager(annotationManager);
-            setAnnots(Annotations);
-            setDocViewerMath(Math);
           });
 
           let root = null;
@@ -505,6 +530,29 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    const mergeObjectsPreparation = async (
+      createDocument,
+      slicedsetofdoclist,
+      set
+    ) => {
+      slicedsetofdoclist.forEach(async (filerow) => {
+        await createDocument(filerow.s3url).then(async (newDoc) => {
+          setpdftronDocObjects((_arr) => [
+            ..._arr,
+            {
+              file: filerow,
+              sortorder: filerow.sortorder,
+              pages: filerow.pages,
+              pdftronobject: newDoc,
+              stitchIndex: filerow.stitchIndex,
+              set: set,
+              totalsetcount: slicedsetofdoclist.length,
+            },
+          ]);
+        });
+      });
+    };
 
     useEffect(() => {
       const changeLayer = async () => {
@@ -697,21 +745,26 @@ const Redlining = React.forwardRef(
                 );
               }
               if (redactObjs?.length > 0) {
-                deleteRedaction(
-                  requestid,
-                  currentLayer.redactionlayerid,
-                  redactObjs,
-                  (data) => {
-                    fetchPageFlag(
-                      requestid,
-                      currentLayer.redactionlayerid,
-                      (error) => console.log(error)
-                    );
-                  },
-                  (error) => {
-                    console.log(error);
-                  }
+                const existsInRedactionObjs = newRedaction?.names?.some(
+                  (name) => redactObjs.some((obj) => obj.name === name)
                 );
+                if (!existsInRedactionObjs) {
+                  deleteRedaction(
+                    requestid,
+                    currentLayer.redactionlayerid,
+                    redactObjs,
+                    (data) => {
+                      fetchPageFlag(
+                        requestid,
+                        currentLayer.redactionlayerid,
+                        (error) => console.log(error)
+                      );
+                    },
+                    (error) => {
+                      console.log(error);
+                    }
+                  );
+                }
               }
               setDeleteQueue(redactObjs);
             } else if (action === "add") {
@@ -812,7 +865,7 @@ const Redlining = React.forwardRef(
                     "redactionlayerid",
                     `${currentLayer.redactionlayerid}`
                   );
-                  annot.NoMove = true;
+                  // annot.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
                 }
 
                 let astr =
@@ -931,6 +984,7 @@ const Redlining = React.forwardRef(
         newRedaction,
         pageSelections,
         redlineSaving,
+        isStitchingLoaded,
       ]
     );
 
@@ -980,6 +1034,7 @@ const Redlining = React.forwardRef(
       redlineSaving,
       multiSelectFooter,
       enableMultiSelect,
+      isStitchingLoaded,
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1041,85 +1096,52 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    const stitchDocumentsFunc = async (doc) => {
-      let docCopy = [...docsForStitcing];
-      let removedFirstElement = docCopy?.shift();
-      let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
-      let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-      let domParser = new DOMParser();
-      for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
-        let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
-        mappedDocs["stitchedPageLookup"][i + 1] = {
-          docid: removedFirstElement.file.documentid,
-          docversion: removedFirstElement.file.version,
-          page: i + 1,
-        };
-        mappedDoc.pageMappings.push(firstDocMappings);
-      }
-      mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
-        docId: removedFirstElement.file.documentid,
-        version: removedFirstElement.file.version,
-        division: removedFirstElement.file.divisions[0].divisionid,
-        pageMappings: mappedDoc.pageMappings,
-      };
-
-      for (let file of docCopy) {
-        mappedDoc = {
-          docId: 0,
-          version: 0,
-          division: "",
-          pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
-        };
-
-        let newDoc = await docInstance.Core.createDocument(
-          file.s3url,
-          { loadAsPDF: true } /* , license key here */
+    const stitchPages = (_doc, pdftronDocObjs) => {
+      for (let filerow of pdftronDocObjs) {
+        let _exists = stichedfiles.filter(
+          (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
-        const pages = [];
-        mappedDoc = { pageMappings: [] };
-        let stitchedPageNo = 0;
-        for (let i = 0; i < newDoc.getPageCount(); i++) {
-          pages.push(i + 1);
-          let pageNo = i + 1;
-          stitchedPageNo = doc.getPageCount() + (i + 1);
-          let pageMappings = {
-            pageNo: pageNo,
-            stitchedPageNo: stitchedPageNo,
-          };
-          mappedDoc.pageMappings.push(pageMappings);
-          mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
-            docid: file.file.documentid,
-            docversion: file.file.version,
-            page: pageNo,
-          };
+        if (_exists?.length === 0) {
+          let index = filerow.stitchIndex;
+          _doc
+            .insertPages(filerow.pdftronobject, filerow.pages, index)
+            .then(() => {
+              const pageCount = docViewer.getPageCount();
+              if (pageCount === docsForStitcing.totalPageCount) {
+                if (pageCount > 800) {
+                  docInstance.UI.setLayoutMode(
+                    docInstance.UI.LayoutMode.Single
+                  );
+                }
+                console.log(
+                  `Download and Stitching completed.... ${new Date()}`
+                );
+                applyAnnotationsFunc();
+                setIsStitchingLoaded(true);
+                setpdftronDocObjects([]);
+                setstichedfiles([]);
+              }
+            })
+            .catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            });
+          setstichedfiles((_arr) => [..._arr, filerow]);
         }
-        mappedDocs["docIdLookup"][file.file.documentid] = {
-          docId: file.file.documentid,
-          version: file.file.version,
-          division: file.file.divisions[0].divisionid,
-          pageMappings: mappedDoc.pageMappings,
-        };
-        // Insert (merge) pages
-        await doc.insertPages(newDoc, pages);
       }
-      const pageCount = docInstance.Core.documentViewer
-        .getDocument()
-        .getPageCount();
-      if (pageCount > 800) {
-        docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-      }
-      setPageMappedDocs(mappedDocs);
-      setIsStitchingLoaded(true);
+    };
+
+    const applyAnnotationsFunc = () => {
+      let domParser = new DOMParser();
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
-          mappedDocs,
+          pageMappedDocs,
           fetchAnnotResponse["data"],
           domParser
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
           fetchandApplyAnnotations(
-            mappedDocs,
+            pageMappedDocs,
             domParser,
             meta["next_num"],
             meta["pages"]
@@ -1184,9 +1206,10 @@ const Redlining = React.forwardRef(
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
         _annotations.forEach((_annotation) => {
-          _annotation.NoMove = true;
+          // _annotation.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
+            _annotation.NoMove = true;
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
@@ -1194,6 +1217,7 @@ const Redlining = React.forwardRef(
             }
           }
           annotManager.redrawAnnotation(_annotation);
+
           annotManager.setPermissionCheckCallback((author, _annotation) => {
             if (_annotation.Subject !== "Redact" && author !== username) {
               _annotation.NoResize = true;
@@ -1208,11 +1232,28 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      if (docsForStitcing.length > 0 && merge && docViewer) {
-        const doc = docViewer.getDocument();
-        stitchDocumentsFunc(doc);
+      if (
+        pdftronDocObjects?.length > 0 &&
+        docsForStitcing.length > 0 &&
+        merge &&
+        docViewer
+      ) {
+        let doclistCopy = [...docsForStitcing];
+        doclistCopy?.shift(); //remove first document from the list
+        let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
+
+        const _doc = docViewer.getDocument();
+        if (_doc && _pdftronDocObjects.length > 0) {
+          stitchPages(_doc, _pdftronDocObjects);
+        }
       }
-    }, [docsForStitcing, fetchAnnotResponse, docViewer]);
+    }, [
+      pdftronDocObjects,
+      docsForStitcing,
+      stichedfiles,
+      fetchAnnotResponse,
+      docViewer,
+    ]);
 
     useEffect(() => {
       //update user name
