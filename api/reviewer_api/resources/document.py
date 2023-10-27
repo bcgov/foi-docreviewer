@@ -95,9 +95,16 @@ class GetDocuments(Resource):
                 timeout=float(requestapitimeout)
             )
             response.raise_for_status()
-            bcgovcode = response.json()['bcgovcode']
-            result = documentservice().getdocuments(requestid,bcgovcode)
-            return json.dumps(result), 200
+
+            jsonobj = response.json()
+            requestinfo = {
+                "requeststatusid": jsonobj["requeststatusid"],
+                "bcgovcode": jsonobj["bcgovcode"],
+                "currentstate": jsonobj["currentState"],
+                "requesttype": jsonobj["requestType"]
+            }
+            result = documentservice().getdocuments(requestid,requestinfo["bcgovcode"])
+            return json.dumps({"requestinfo": requestinfo, "documents": result}), 200
         except KeyError as err:
             return {'status': False, 'message':err.messages}, 400
         except BusinessException as exception:
