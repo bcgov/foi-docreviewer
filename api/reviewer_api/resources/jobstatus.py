@@ -27,6 +27,7 @@ from reviewer_api.services.jobrecordservice import jobrecordservice
 
 API = Namespace('Job Status', description='Endpoints for getting and posting deduplication and file conversion job status of documents')
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 @cors_preflight('GET,OPTIONS')
 @API.route('/dedupestatus/<requestid>')
@@ -42,8 +43,8 @@ class GetDedupeStatus(Resource):
         try:
             result = documentservice().getdedupestatus(requestid)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
@@ -62,8 +63,8 @@ class GetDedupeStatus(Resource):
             requestjson = request.get_json()
             result = jobrecordservice().recordjobstatus(requestjson, AuthHelper.getuserid())
             return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         
@@ -83,8 +84,8 @@ class AddPDFStitchJobStatus(Resource):
             result = jobrecordservice().insertpdfstitchjobstatus(requestjson, AuthHelper.getuserid())
             respcode = 200 if result.success == True else 500
             return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
@@ -103,8 +104,8 @@ class GetPDFStitchJobStatus(Resource):
         try:
             result = jobrecordservice().getpdfstitchjobstatus(requestid, category)
             return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         

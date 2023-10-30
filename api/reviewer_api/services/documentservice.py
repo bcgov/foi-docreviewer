@@ -7,8 +7,12 @@ from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
-from reviewer_api.models.ProgramAreaDivisions import ProgramAreaDivision
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
+import requests
+from reviewer_api.auth import auth, AuthHelper
+from os import getenv
+
+requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 
 
 class documentservice:
@@ -398,11 +402,13 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, oldRows)
 
-    def getdocuments(self, requestid):
-        divisions = {
-            div["divisionid"]: div
-            for div in ProgramAreaDivision.getallprogramareadivisons()
-        }
+    def getdocuments(self, requestid,bcgovcode):
+        divisions_data = requests.request(
+                method='GET',
+                url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode) + "/all",
+                headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
+            ).json()
+        divisions = {div['divisionid']: div for div in divisions_data['divisions']}
 
         documents = {
             document["documentmasterid"]: document
@@ -458,6 +464,9 @@ class documentservice:
 
     def getdocument(self, documentid):
         return Document.getdocument(documentid)
+
+    def getdocumentbyids(self, documentids):
+        return Document.getdocumentsbyids(documentids)
 
     def savedocument(self, documentid, documentversion, newfilepath, userid):
         return

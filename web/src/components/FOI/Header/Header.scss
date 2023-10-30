@@ -3,6 +3,14 @@ nav {
     color: #fff;
 }
 
+.navicons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 30px 2px 0px;
+}
+
 .foiHeader {
     .container {
         height: 40px;
