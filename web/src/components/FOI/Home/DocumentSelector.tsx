@@ -44,6 +44,7 @@ const DocumentSelector = ({
     setWarningModalOpen
 }: any) => {
 
+    const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
     const [files] = useState(documents);
@@ -82,6 +83,12 @@ const DocumentSelector = ({
             (error: any) => console.log(error)
         );
     }, []);
+
+    useEffect(() => {
+        if(requestInfo.requesttype == "personal" && ["MSD", "MCF"].includes(requestInfo.bcgovcode)) {
+            setOrganizeBy("division");
+        }
+    }, [requestInfo]);
 
     const updatePageFlags = () => {
         fetchPageFlagsMasterData(

@@ -405,7 +405,7 @@ class documentservice:
     def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
                 method='GET',
-                url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode),
+                url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode) + "/all",
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
         divisions = {div['divisionid']: div for div in divisions_data['divisions']}
