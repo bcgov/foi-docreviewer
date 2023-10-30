@@ -198,8 +198,31 @@ const Redlining = React.forwardRef(
 
       return !stopLoop;
     };
-    const [enableSavingRedline, setEnableSavingRedline] = useState(
-      isReadyForSignOff() &&
+
+    const isValidDownload = () => {
+      let isvalid = false;
+      let pageFlagArray = [];
+      if (pageFlags?.length > 0) {
+          for(let pageFlagInfo of pageFlags)  {
+              pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
+                    [
+                      pageFlagTypes["Partial Disclosure"],
+                      pageFlagTypes["Full Disclosure"],
+                      pageFlagTypes["Withheld in Full"]
+                    ].includes(flag.flagid)
+                  );
+                  if (pageFlagArray.length > 0) {
+                    if(isvalid == false) {
+                      isvalid = true; 
+                    }                                        
+                  }            
+          } 
+      }
+      return isvalid;
+    };
+
+    const [enableSavingRedline, setEnableSavingRedline] = useState(      
+      isReadyForSignOff() && isValidDownload() &&
         [
           RequestStates["Records Review"],
           RequestStates["Ministry Sign Off"],
@@ -268,7 +291,7 @@ const Redlining = React.forwardRef(
             redlineForSignOffBtn.style.alignItems = "left";
             redlineForSignOffBtn.disabled = !enableSavingRedline;
 
-            redlineForSignOffBtn.onclick = () => {
+            redlineForSignOffBtn.onclick = () => {  
               // Save to s3
               setModalFor("redline");
               setModalTitle("Redline for Sign Off");
@@ -1024,7 +1047,7 @@ const Redlining = React.forwardRef(
     }));
 
     const checkSavingRedlineButton = (_instance) => {
-      let _enableSavingRedline = isReadyForSignOff();
+      let _enableSavingRedline = isReadyForSignOff() && isValidDownload();
 
       setEnableSavingRedline(
         _enableSavingRedline &&
@@ -1039,13 +1062,13 @@ const Redlining = React.forwardRef(
       );
       if (_instance) {
         const document = _instance.UI.iframeWindow.document;
-        document.getElementById("redline_for_sign_off").disabled =
-          !_enableSavingRedline ||
-          ![
-            RequestStates["Records Review"],
-            RequestStates["Ministry Sign Off"],
-            RequestStates["Peer Review"],
-          ].includes(requestStatus);
+        document.getElementById("redline_for_sign_off").disabled = 
+        !_enableSavingRedline ||
+        ![
+          RequestStates["Records Review"],
+          RequestStates["Ministry Sign Off"],
+          RequestStates["Peer Review"],
+        ].includes(requestStatus);;
         document.getElementById("final_package").disabled =
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
       }
