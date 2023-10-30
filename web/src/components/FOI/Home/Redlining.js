@@ -139,6 +139,7 @@ const Redlining = React.forwardRef(
 
     const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
     const [stichedfiles, setstichedfiles] = useState([]);
+    const [stitchPageCount, setStitchPageCount] = useState(0);
 
     //xml parser
     const parser = new XMLParser();
@@ -1109,19 +1110,20 @@ const Redlining = React.forwardRef(
             .then(() => {
               const pageCount = docViewer.getPageCount();
               if (pageCount === docsForStitcing.totalPageCount) {
-                console.log(
-                  `Download and Stitching completed.... ${new Date()}`
-                );
+                setStitchPageCount(pageCount);
+                // console.log(
+                //   `Download and Stitching completed.... ${new Date()}`
+                // );
 
-                if (pageCount > 800) {
-                  docInstance.UI.setLayoutMode(
-                    docInstance.UI.LayoutMode.Single
-                  );
-                }
-                applyAnnotationsFunc();
-                setIsStitchingLoaded(true);
-                setpdftronDocObjects([]);
-                setstichedfiles([]);
+                // if (pageCount > 800) {
+                //   docInstance.UI.setLayoutMode(
+                //     docInstance.UI.LayoutMode.Single
+                //   );
+                // }
+                // applyAnnotationsFunc();
+                // setIsStitchingLoaded(true);
+                // setpdftronDocObjects([]);
+                // setstichedfiles([]);
               }
             })
             .catch((error) => {
@@ -1256,6 +1258,20 @@ const Redlining = React.forwardRef(
       fetchAnnotResponse,
       docViewer,
     ]);
+
+    useEffect(() => {
+      if (stitchPageCount === docsForStitcing.totalPageCount) {
+        console.log(`Download and Stitching completed.... ${new Date()}`);
+
+        if (stitchPageCount > 800) {
+          docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+        }
+        applyAnnotationsFunc();
+        setIsStitchingLoaded(true);
+        setpdftronDocObjects([]);
+        setstichedfiles([]);
+      }
+    }, [stitchPageCount]);
 
     useEffect(() => {
       //update user name
