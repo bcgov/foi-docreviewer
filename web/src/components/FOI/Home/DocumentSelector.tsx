@@ -289,13 +289,12 @@ const DocumentSelector = ({
         }
 
         if(selectedpages.length > PAGE_SELECT_LIMIT) {
-            selectedpages.shift();
             setWarningModalOpen(true);
+        } else {
+            setSelected(selectedpages);
+            let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
+            setSelectedPages(_selectedpages);
         }
-
-        setSelected(selectedpages);
-        let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
-        setSelectedPages(_selectedpages);
     };
 
     const openContextMenu = (file: any, page: number, e: any) => {
