@@ -135,8 +135,7 @@ const Redlining = React.forwardRef(
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
-
-
+    
     const [redlinepageMappings, setRedlinepageMappings] = useState(null);
     const [redlineIncompatabileMappings, setRedlineIncompatabileMappings] = useState(null);
     const [redlineDocumentAnnotations, setRedlineDocumentAnnotations] = useState(null);
@@ -625,11 +624,9 @@ const Redlining = React.forwardRef(
     const removeRedactAnnotationDocContent = async (annotations) => {
       annotations.forEach((_redactionannot) => {
         if (_redactionannot.Subject === "Redact") {
-          let redactcontent = _redactionannot.getContents();
-          if (redactcontent != undefined) {
-            _redactionannot.setContents("");
-            _redactionannot.setCustomData("trn-annot-preview", "");
-          }
+          let redactcontent = _redactionannot.getContents();          
+            _redactionannot?.setContents("");
+            _redactionannot?.setCustomData("trn-annot-preview", "");          
         }
       });
     };
@@ -639,8 +636,8 @@ const Redlining = React.forwardRef(
         // If the event is triggered by importing then it can be ignored
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
-
-        if (info.source !== "redactionApplied") {
+      
+        if (info.source !== "redactionApplied" && info.source !== "cancelRedaction") {
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving
@@ -661,12 +658,6 @@ const Redlining = React.forwardRef(
             //parse annotation xml
             let jObj = parser.parseFromString(astr); // Assume xmlText contains the example XML
             let annots = jObj.getElementsByTagName("annots");
-            if (annotations[0].IsText) {
-              annotManager.deleteAnnotation(
-                annotManager.getAnnotationById(annotations[0].Id)
-              );
-              return;
-            }
             if (action === "delete") {
               let redactObjs = [];
               let annotObjs = [];
@@ -948,6 +939,8 @@ const Redlining = React.forwardRef(
     );
 
     useEffect(() => {
+      
+
       annotManager?.addEventListener(
         "annotationSelected",
         (annotations, action) => {
@@ -993,7 +986,7 @@ const Redlining = React.forwardRef(
       pageSelections,
       redlineSaving,
       multiSelectFooter,
-      enableMultiSelect,
+      enableMultiSelect,      
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1714,6 +1707,7 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
+            
       setModalOpen(false);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -1721,7 +1715,11 @@ const Redlining = React.forwardRef(
         let astr = parser.parseFromString(newRedaction.astr, "text/xml");
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           annotManager.deleteAnnotation(
-            annotManager.getAnnotationById(node.attributes.name)
+            annotManager.getAnnotationById(node.attributes.name), {
+              imported: true,
+              force: true,
+              source: "cancelRedaction",
+            }
           );
         }
       }
