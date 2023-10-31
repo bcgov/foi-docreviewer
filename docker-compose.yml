@@ -75,6 +75,7 @@ services:
       - ZIPPER_REDIS_PORT=${DEDUPE_REDIS_PORT}
       - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
       - BATCH_CONFIG=${BATCH_CONFIG}
+      - REDLINE_SINGLE_PKG_MINISTRIES=${REDLINE_SINGLE_PKG_MINISTRIES}
 
   foi-docreviewer-db:
     image: postgres

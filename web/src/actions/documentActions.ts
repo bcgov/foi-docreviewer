@@ -44,6 +44,13 @@ export const setKeywords = (data: any) => (dispatch:any) =>{
     })
 }
 
+export const setRequestInfo = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REQUEST_INFO,
+        payload:data
+    })
+}
+
 export const setRequestStatus = (data: any) => (dispatch:any) =>{
     dispatch({
         type:ACTION_CONSTANTS.SET_REQUEST_STATUS,

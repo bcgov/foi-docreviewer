@@ -37,6 +37,12 @@ class redactionservice:
         return annotationservice().getrequestannotations(
             ministryrequestid, mappedlayerids
         )
+    
+    def getannotationsbydocument(self, ministryrequestid, _redactionlayer, documentid):
+        mappedlayerids = redactionlayerservice().getmappedredactionlayers(
+            _redactionlayer
+        )
+        return annotationservice().getdocumentannotations(ministryrequestid, mappedlayerids, documentid)
 
     def getannotationsbyrequestdivision(self, ministryrequestid, divisionid):
         return annotationservice().getrequestdivisionannotations(
