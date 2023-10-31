@@ -779,26 +779,21 @@ const Redlining = React.forwardRef(
                 );
               }
               if (redactObjs?.length > 0) {
-                const existsInRedactionObjs = newRedaction?.names?.some(
-                  (name) => redactObjs.some((obj) => obj.name === name)
+                deleteRedaction(
+                  requestid,
+                  currentLayer.redactionlayerid,
+                  redactObjs,
+                  (data) => {
+                    fetchPageFlag(
+                      requestid,
+                      currentLayer.redactionlayerid,
+                      (error) => console.log(error)
+                    );
+                  },
+                  (error) => {
+                    console.log(error);
+                  }
                 );
-                if (!existsInRedactionObjs) {
-                  deleteRedaction(
-                    requestid,
-                    currentLayer.redactionlayerid,
-                    redactObjs,
-                    (data) => {
-                      fetchPageFlag(
-                        requestid,
-                        currentLayer.redactionlayerid,
-                        (error) => console.log(error)
-                      );
-                    },
-                    (error) => {
-                      console.log(error);
-                    }
-                  );
-                }
               }
               setDeleteQueue(redactObjs);
             } else if (action === "add") {
@@ -1143,19 +1138,6 @@ const Redlining = React.forwardRef(
               const pageCount = docViewer.getPageCount();
               if (pageCount === docsForStitcing.totalPageCount) {
                 setStitchPageCount(pageCount);
-                // console.log(
-                //   `Download and Stitching completed.... ${new Date()}`
-                // );
-
-                // if (pageCount > 800) {
-                //   docInstance.UI.setLayoutMode(
-                //     docInstance.UI.LayoutMode.Single
-                //   );
-                // }
-                // applyAnnotationsFunc();
-                // setIsStitchingLoaded(true);
-                // setpdftronDocObjects([]);
-                // setstichedfiles([]);
               }
             })
             .catch((error) => {
