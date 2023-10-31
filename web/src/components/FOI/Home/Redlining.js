@@ -378,24 +378,19 @@ const Redlining = React.forwardRef(
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             
-            //Search Document Logic
-            // const regexString = "/\w+(\|\w+)*/g"
+            //Search Document Logic (for multi-keyword search and etc)
             const originalSearch = instance.UI.searchTextFull;
+            //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
             instance.UI.overrideSearchExecution((searchPattern, options) => {
               options.ambientString=true;
               if (searchPattern.includes("|")) {
                 options.regex = true;
-                console.log(options)
-                console.log("search", searchPattern)
-                console.log(searchPattern.split("|"))
                 //Conditional that ensures that there is no blank string after | and inbetween (). When regex is on, a character MUST follow | and must be inbetween () or else the regex search breaks as it is not a valid regex expression
                 if (!searchPattern.split("|").includes("") && !searchPattern.split("()").includes("")) {
                   originalSearch.apply(this, [searchPattern, options]);
                 }
               } else {
                 options.regex = false;
-                console.log(options)
-                console.log("search", searchPattern)
                 originalSearch.apply(this, [searchPattern, options]);
               }
             });
