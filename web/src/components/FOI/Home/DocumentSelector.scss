@@ -188,6 +188,14 @@
     color: #808080;
 }
 
+.MuiTreeItem-content.Mui-selected {
+    background-color: rgba(25, 118, 210, 0.4) !important;
+}
+
+.MuiTreeItem-content:hover {
+    background-color: rgba(25, 118, 210, 0.2) !important
+}
+
 .filterIcons {
     color: #808080;
     margin-right: 10px;
