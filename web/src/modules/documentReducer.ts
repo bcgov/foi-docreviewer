@@ -1,6 +1,7 @@
 import ACTION_CONSTANTS from "../actions/actionConstants";
 const initialState = {
-  redactionInfo: []
+  redactionInfo: [],
+  redactionLayers: [],
 }
 
 const documents = (state = initialState, action:any)=> {
@@ -11,12 +12,26 @@ const documents = (state = initialState, action:any)=> {
         return {...state, isPageLeftOff: action.payload};
     case ACTION_CONSTANTS.SET_SECTIONS:
       return {...state, sections: action.payload};
+    case ACTION_CONSTANTS.SET_REQUEST_NUMBER:
+        return {...state, requestnumber: action.payload};  
     case ACTION_CONSTANTS.SET_PAGE_FLAGS:
       return {...state, pageFlags: action.payload};
     case ACTION_CONSTANTS.SET_DOCUMENT_LIST:
       return {...state, documentList: action.payload};
     case ACTION_CONSTANTS.SET_KEYWORDS:
         return {...state, keywords: action.payload};
+    case ACTION_CONSTANTS.SET_REQUEST_INFO:
+        return {...state, requestinfo: action.payload};
+    case ACTION_CONSTANTS.SET_REQUEST_STATUS:
+        return {...state, requeststatus: action.payload};
+    case ACTION_CONSTANTS.SET_REDACTION_LAYERS:
+        return {...state, redactionLayers: action.payload};
+    case ACTION_CONSTANTS.SET_CURRENT_LAYER:
+        return {...state, currentLayer: action.payload};
+    case ACTION_CONSTANTS.INC_REDACTION_LAYER:
+        let layer: any = state.redactionLayers.find((l: any) => l.redactionlayerid === action.payload);
+        layer.count++;
+        return {...state, redactionLayers: state.redactionLayers };
     default:
       return state;
   }

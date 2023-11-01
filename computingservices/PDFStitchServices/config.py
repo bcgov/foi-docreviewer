@@ -42,3 +42,8 @@ health_check_interval = os.getenv('HEALTH_CHECK_INTERVAL', 15)
 numbering_enabled = os.getenv('NUMBERING_ENABLED')
 notification_enabled = os.getenv('NOTIFICATION_ENABLED')
 
+zipperredishost = os.getenv('ZIPPER_REDIS_HOST') 
+zipperredisport = os.getenv('ZIPPER_REDIS_PASSWORD')
+zipperredispassword = os.getenv('ZIPPER_REDIS_PORT')
+zipperstreamkey = os.getenv('ZIPPER_STREAM_KEY')
+

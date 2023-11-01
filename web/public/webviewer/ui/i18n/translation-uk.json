@@ -16,6 +16,9 @@
     "comment": "Коментар",
     "reply": "Додати відповідь",
     "copy": "Копія",
+    "cut": "Вирізати",
+    "paste": "Вставити",
+    "pasteWithoutFormatting": "Вставити без форматування",
     "delete": "Видалити",
     "group": "Група",
     "ungroup": "Розгрупувати",
@@ -78,6 +81,7 @@
     "showLess": "показувати менше",
     "showMore": "...більше",
     "chooseFile": "Виберіть файл",
+    "changeDate": "Змінити дату",
     "browse": "Огляд файлів",
     "selectYourOption": "Виберіть свій варіант",
     "open": "відчинено",
@@ -85,6 +89,7 @@
     "select": "Виберіть",
     "moveToTop": "Перейти вгору",
     "moveToBottom": "Переміститися вниз",
+    "backToMenu": "Назад до меню",
     "redactPages": "Редагувати сторінки",
     "playAudio": "Відтворити аудіо",
     "pauseAudio": "звукова пауза",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "Відповідь на вибрані анотації ({{count}})",
     "comparePages": "Порівняти сторінки",
     "startComparison": "Почати порівняння",
-    "back": "Назад"
+    "showComparison": "Показати порівняння",
+    "back": "Назад",
+    "clearSignature": "Чіткий підпис",
+    "newDocument": "Новий документ"
   },
   "annotation": {
     "areaMeasurement": "Площа",
@@ -109,6 +117,8 @@
     "formFillCheckmark": "Поставте галочку",
     "formFillCross": "Хрест",
     "distanceMeasurement": "Відстань",
+    "rectangularAreaMeasurement": "Прямокутна область",
+    "ellipseMeasurement": "Площа еліпса",
     "countMeasurement": "Вимірювання підрахунку",
     "ellipse": "Еліпс",
     "eraser": "Гумка",
@@ -129,6 +139,7 @@
     "redact": "Редагувати",
     "formFillDot": "Крапка",
     "signature": "Підпис",
+    "snipping": "Інструмент обрізки",
     "squiggly": "Хвиляста",
     "stamp": "штамп",
     "stickyNote": "Примітка",
@@ -250,6 +261,7 @@
     "errorEnterMeasurement": "Введене число недійсне, ви можете ввести такі значення, як 7,5 або 7 1/2",
     "linkURLorPage": "URL-адреса посилання або сторінка",
     "warning": "Увага",
+    "svgMalicious": "Сценарій SVG ігнорується з міркувань безпеки",
     "enterContentEditingMode": "Ви збираєтеся увійти в режим редагування вмісту.",
     "existingAnnotationWarning": "Існуючі анотації можуть не збігатися з текстом після його редагування.",
     "changesCannotBeUndone": "Будь-які внесені зміни не можна скасувати.",
@@ -379,7 +391,8 @@
       "qualityHigh": "Високий",
       "includeAnnotations": "Включіть анотації",
       "includeComments": "Включіть коментарі",
-      "printSettings": "Налаштування друку"
+      "printSettings": "Налаштування друку",
+      "printGrayscale": "Друк у градаціях сірого"
     },
     "printInfo": {
       "author": "Автор",
@@ -425,12 +438,10 @@
       "drawSignature": "Намалювати підпис*",
       "drawInitial": "Намалювати ініціали*",
       "pickInitialsFile": "Виберіть Ініціали",
-      "noSignatures": "Наразі немає збережених підписів."
+      "noSignatures": "Наразі немає збережених підписів.",
+      "fontStyle": "стиль шрифту"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Перетягніть свій файл сюди",
-      "selectFile": "Виберіть свій файл тут",
-      "or": "Або",
       "yourFiles": "Ваші файли",
       "chooseFile": "Виберіть файл",
       "localFile": "Локальний файл",
@@ -447,7 +458,9 @@
       "filters": "фільтри",
       "user": "Користувач",
       "type": "Тип",
-      "status": "Статус"
+      "status": "Статус",
+      "filterSettings": "Налаштування фільтра",
+      "filterDocument": "Фільтр документів і панель коментарів"
     },
     "state": {
       "accepted": "Прийнято",
@@ -512,6 +525,12 @@
         "ifToContinue": "Ви впевнені, що бажаєте продовжити?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Видалити вміст",
+        "message": "Ви впевнені, що бажаєте видалити вибраний вміст? Цю дію не можна скасувати."
+      }
+    },
     "stylePopup": {
       "textStyle": "Стиль тексту",
       "colors": "Кольори",
@@ -557,7 +576,8 @@
     "thumbnailPanel": {
       "delete": "Видалити",
       "rotateClockwise": "За годинниковою стрілкою",
-      "rotateCounterClockwise": "Проти годинникової стрілки"
+      "rotateCounterClockwise": "Проти годинникової стрілки",
+      "moreOptions": "Більше варіантів"
     },
     "thumbnailsControlOverlay": {
       "move": "Переміщення сторінок"
@@ -607,13 +627,13 @@
     },
     "settings": {
       "settings": "Налаштування",
+      "searchSettings": "Налаштування пошуку",
       "general": "Загальний",
-      "keyboardShortcut": "Комбінація клавіш",
-      "advancedSetting": "Розширені налаштування",
       "language": "Мову",
       "theme": "Тема",
       "darkMode": "Темний режим",
       "lightMode": "Світловий режим",
+      "advancedSetting": "Розширені налаштування",
       "viewing": "Перегляд",
       "disableFadePageNavigationComponent": "Вимкнути навігаційний компонент Fade Page",
       "disableFadePageNavigationComponentDesc": "Завжди тримайте компонент навігації сторінкою на екрані. Поведінка за замовчуванням — зникати після певного періоду бездіяльності.",
@@ -638,7 +658,52 @@
       "disablePageDeletionConfirmationModal": "Вимкнути модаль підтвердження видалення сторінки",
       "disablePageDeletionConfirmationModalDesc": "Вимкніть режим підтвердження під час видалення сторінки з перегляду мініатюр",
       "disableMultiselect": "Вимкнути Multiselect",
-      "disableMultiselectDesc": "Вимкніть багаторазовий вибір на лівій панелі мініатюр"
+      "disableMultiselectDesc": "Вимкніть багаторазовий вибір на лівій панелі мініатюр",
+      "miscellaneous": "Різне",
+      "keyboardShortcut": "Комбінація клавіш",
+      "command": "Команда",
+      "description": "опис",
+      "action": "Дія",
+      "rotateDocumentClockwise": "Поверніть документ за годинниковою стрілкою",
+      "rotateDocumentCounterclockwise": "Поверніть документ проти годинникової стрілки",
+      "copyText": "Скопіюйте виділений текст або анотації",
+      "pasteText": "Вставте текст або анотації",
+      "undoChange": "Скасувати зміну анотації",
+      "redoChange": "Повторити зміну анотації",
+      "openFile": "Відкрийте засіб вибору файлів",
+      "openSearch": "Відкрийте накладку пошуку",
+      "zoomIn": "Приближувати",
+      "zoomOut": "Зменшення",
+      "fitScreenWidth": "Підігніть документ до ширини екрана на маленькому екрані (< 640 пікселів), інакше підігніть його до оригінального розміру",
+      "print": "Роздрукувати",
+      "bookmarkOpenPanel": "Швидко додайте сторінку в закладки та відкрийте панель закладок",
+      "goToPreviousPage": "Перейти на попередню сторінку",
+      "goToNextPage": "Перейти на наступну сторінку",
+      "goToPreviousPageArrowUp": "Перейти до попередньої сторінки в режимі єдиного макета (стрілка вгору)",
+      "goToNextPageArrowDown": "Перейти до наступної сторінки в режимі єдиного макета (стрілка вниз)",
+      "holdSwitchPan": "Утримуйте, щоб перейти в режим панорамування, і відпустіть, щоб повернутися до попереднього інструменту",
+      "selectAnnotationEdit": "Виберіть інструмент AnnotationEdit",
+      "selectPan": "Виберіть інструмент «Панорамування».",
+      "selectCreateArrowTool": "Виберіть інструмент AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Виберіть інструмент AnnotationCreateCallout",
+      "selectEraserTool": "Виберіть інструмент AnnotationEraser",
+      "selectCreateFreeHandTool": "Виберіть інструмент AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Виберіть інструмент AnnotationCreateStamp",
+      "selectCreateLineTool": "Виберіть інструмент AnnotationCreateLine",
+      "selectCreateStickyTool": "Виберіть інструмент AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Виберіть інструмент AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Виберіть інструмент AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Виберіть інструмент AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Виберіть інструмент AnnotationCreateFreeText",
+      "openSignatureModal": "Відкрийте модальний підпис або накладення",
+      "selectCreateTextSquigglyTool": "Виберіть інструмент AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Виберіть інструмент AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Виберіть інструмент AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Виберіть інструмент AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Редагувати комбінацію клавіш",
+      "setShorcut": "Встановити ярлик",
+      "pressKeyToSet": "Натисніть клавішу або клавіші, щоб встановити новий ярлик.",
+      "shortcutAlreadyExists": "Комбінація клавіш вище вже існує."
     }
   },
   "warning": {
@@ -681,6 +746,10 @@
       "title": "Закрити без завантаження?",
       "message": "У цей документ внесено зміни. Ви впевнені, що бажаєте закрити його, не завантажуючи свою роботу? Ви не можете скасувати цю дію.",
       "rejectDownloadButton": "Закрити без завантаження"
+    },
+    "connectToURL": {
+      "title": "Попередження безпеки",
+      "message": "Цей документ намагається підключитися до:\n\n{{- uri}}\n\n Якщо ви довіряєте цьому документу, натисніть Підтвердити, щоб відкрити його."
     }
   },
   "shortcut": {
@@ -973,6 +1042,18 @@
       "cancelMessage": "Ви впевнені, що хочете скасувати обрізання всіх вибраних сторінок?"
     }
   },
+  "snippingPopUp": {
+    "title": "Інструмент обрізки",
+    "clipboard": "Копіювати до буферу обміну",
+    "download": "Завантажити",
+    "cropAndRemove": "Обрізати та Видалити",
+    "snippingModal": {
+      "applyTitle": "Застосувати обрізку?",
+      "applyMessage": "Ця дія назавжди обріже вказану область і видалить інші сторінки. Це не можна скасувати.",
+      "cancelTitle": "Скасувати обрізку?",
+      "cancelMessage": "Ви впевнені, що хочете припинити обрізку?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Абзац",
     "text": "текст"
@@ -1015,8 +1096,44 @@
     "watermarkOptions": "Параметри водяного знака",
     "watermarks": "Водяні знаки"
   },
+  "portfolio": {
+    "createPDFPortfolio": "Створити PDF-портфоліо",
+    "uploadFiles": "Завантажити файли",
+    "uploadFolder": "Завантажити папку",
+    "addFiles": "Додати файли",
+    "addFile": "Додати файл",
+    "addFolder": "Додати папку",
+    "createFolder": "Створити папку",
+    "portfolioPanelTitle": "PDF-портфоліо",
+    "portfolioNewFolder": "Нова папка",
+    "portfolioFolderPlaceholder": "Назва папки",
+    "portfolioFilePlaceholder": "Ім'я файлу",
+    "folderNameAlreadyExists": "Назва папки вже існує",
+    "fileNameAlreadyExists": "Назва файлу вже існує",
+    "openFile": "Відкрити в новій вкладці",
+    "fileAlreadyExists": "Файл уже існує",
+    "fileAlreadyExistsMessage": "Файл \"{{fileName}}\" вже існує в портфоліо.",
+    "deletePortfolio": "Ви впевнені, що хочете видалити \"{{fileName}}\"?",
+    "reselect": "Виберіть повторно"
+  },
   "languageModal": {
     "selectLanguage": "Оберіть мову"
+  },
+  "officeEditor": {
+    "bold": "Жирний",
+    "italic": "Курсив",
+    "underline": "Підкреслити",
+    "textColor": "Колір тексту",
+    "leftAlign": "Вирівняти по лівому краю",
+    "centerAlign": "Вирівнювання по центру",
+    "rightAlign": "Вирівняти по правому краю",
+    "justify": "Обґрунтуйте",
+    "lineSpacing": "Міжрядковий і абзацний інтервали",
+    "bulletList": "Маркірований список",
+    "numberList": "Нумерований список",
+    "insertLink": "Вставте посилання",
+    "insertImage": "Вставте зображення",
+    "notSupportedOnMobile": "Редагування Office не підтримується на мобільних пристроях."
   },
   "insertPageModal": {
     "title": "Додати нову сторінку",
@@ -1100,6 +1217,12 @@
     "watermark": "Водяний знак",
     "addWatermark": "Додати водяний знак",
     "save": "Зберегти файл",
-    "pageError": "Недійсна сторінка. Дійсні діапазони сторінок від 1 до"
+    "pageError": "Недійсна сторінка. Дійсні діапазони сторінок від 1 до",
+    "fileNameCannotBeEmpty": "Назва файлу не може бути пустою"
+  },
+  "filePicker": {
+    "dragAndDrop": "Перетягніть файл сюди",
+    "selectFile": "Виберіть свій файл тут",
+    "or": "Або"
   }
 }

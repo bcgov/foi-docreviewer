@@ -1,8 +1,10 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest, httpDELETERequest } from "../httpRequestHandler";
+import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags, setDocumentList } from "../../actions/documentActions";
+import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo
+} from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
 
@@ -16,8 +18,13 @@ export const fetchDocuments = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        store.dispatch(setDocumentList(res.data) as any);
-        callback(res.data);
+        // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
+        const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
+        store.dispatch(setDocumentList(__files) as any);
+        store.dispatch(setRequestNumber(res.data.requestnumber) as any);
+        store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
+        store.dispatch(setRequestInfo(res.data.requestinfo) as any);
+        callback(res.data.documents);
       } else {
         throw new Error();
       }
@@ -28,12 +35,16 @@ export const fetchDocuments = (
     });
 };
 
-export const fetchAnnotations = (
+export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
+  activepage: number,
+  size: number,
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  redactionlayer: string = "redline"
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}`
+  
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -48,6 +59,27 @@ export const fetchAnnotations = (
     });
 };
 
+export const fetchDocumentAnnotations = (
+  ministryrequestid: number,
+  redactionlayer: string = "redline",
+  documentid: number,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+};
 export const fetchAnnotationsInfo = (
   ministryrequestid: number,
   //callback: any,
@@ -70,30 +102,45 @@ export const fetchAnnotationsInfo = (
 
 export const saveAnnotation = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
   annotation: string = "",
   callback: any,
   errorCallback: any,
-  pageFlags?: Array<any>,
+  redactionLayer?: number,
+  pageFlags?: object,
   sections?: object,
 ) => {
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${documentid}/${documentversion}`;
-  let requestJSON = sections ?{
-    "xml": annotation,
-    "sections": sections,
-    } : 
-    {
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}`;
+  let requestJSON = {};
+  if (sections && pageFlags) {
+    requestJSON = {
+      "xml": annotation,
+      "sections": sections,
+      "pageflags":pageFlags,
+      "redactionlayerid": redactionLayer
+      } 
+  } else if (sections) {
+    requestJSON = {
+      "xml": annotation,
+      "sections": sections,
+      "redactionlayerid": redactionLayer
+      } 
+  } else {
+    requestJSON = {
       "xml": annotation,
       "pageflags":pageFlags,
-      "foiministryrequestid":requestid
+      "foiministryrequestid":requestid,
+      "redactionlayerid": redactionLayer
     }
-  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+  }
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
+        if (redactionLayer) {
+          store.dispatch(incrementLayerCount(redactionLayer) as any);
+        }
         callback(res.data);
       } else {
-        throw new Error(`Error while saving an annotation for (doc# ${documentid})`);
+        throw new Error(`Error while saving an annotation`);
       }
     })
     .catch((error:any) => {
@@ -103,48 +150,46 @@ export const saveAnnotation = (
 
 export const deleteAnnotation = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
-  annotationname: string = "",
+  redactionlayerid: number,
+  annotations: any,
   callback: any,
   errorCallback: any,
-  page?: number
 ) => {
-  let apiUrlDelete: string = page?`${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`:
-  `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${documentid}/${documentversion}/${annotationname}`;
-  httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
+
+let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${requestid}/${redactionlayerid}`;
+const data = {annotations: annotations};
+httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while deleting an annotation for (doc# ${documentid}, annotationname ${annotationname})`);            
+        throw new Error(`Error while deleting annotations for (requestid# ${requestid}, redactionlayerid ${redactionlayerid})`);            
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in deleting an annotation");
+      errorCallback("Error in deleting annotations");
     });
 };
 
 export const deleteRedaction = (
   requestid: string,
-  documentid: number,
-  documentversion: number = 1,
-  annotationname: string = "",
+  redactionlayerid: number,
+  redactions: any,
   callback: any,
   errorCallback: any,
-  page: number
 ) => {
-  let apiUrlDelete: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${documentid}/${documentversion}/${annotationname}/${page}`;
-  httpDELETERequest({url: apiUrlDelete, data: "", token: UserService.getToken() || '', isBearer: true})
+  let apiUrlPost: string = `${API.DOCREVIEWER_REDACTION}/${requestid}/${redactionlayerid}`;
+  const data = {annotations: redactions}
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while deleting a redaction for (doc# ${documentid}, annotationname ${annotationname})`);            
+        throw new Error(`Error while deleting redactions for (requestid# ${requestid}, redactionlayerid ${redactionlayerid})`);            
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in deleting a redaction");
+      errorCallback("Error in deleting redactions");
     });
 };
 
@@ -159,7 +204,6 @@ export const fetchSections = (
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setSections(res.data) as any);
-        //callback(res.data);
       } else {
         throw new Error();
       }
@@ -195,29 +239,22 @@ export const fetchPageFlagsMasterData = (
 
 export const savePageFlag = (
   foiministryrquestid: string,
-  documentid: number,
-  documentversion: number = 1,
-  pagenumber: number,
   flagid: number,
   callback: any,
   errorCallback: any,
   data?: any
 ) => {
-  let apiUrlPost: string = replaceUrl(replaceUrl(replaceUrl(
+  let apiUrlPost: string = replaceUrl(
     API.DOCREVIEWER_POST_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ), "<documentid>", documentid), "<documentversion>",documentversion);
-  let requestJSON = data || {
-    "page": pagenumber,
-    "flagid": flagid,
-    }
-  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() || '', isBearer: true})
+  )
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while saving page flag for (doc# ${documentid}, requestid ${foiministryrquestid})`);            
+        throw new Error(`Error while saving page flag for requestid ${foiministryrquestid}`);
       }
     })
     .catch((error:any) => {
@@ -227,6 +264,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
+  redactionlayerid: number,
   //callback: any,
   errorCallback: any
 ) => {
@@ -234,7 +272,7 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  );
+  ) + "/" +  redactionlayerid;
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -245,7 +283,6 @@ export const fetchPageFlag = (
           return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-        //callback(res.data);
       } else {
         throw new Error();
       }
@@ -260,7 +297,6 @@ export const fetchKeywordsMasterData = (
   callback: any,
   errorCallback: any
 ) => {
-  //let apiUrlGet: string = API.DOCREVIEWER_GET_ALL_PAGEFLAGS;
   httpGETRequest(API.DOCREVIEWER_GET_ALL_KEYWORDS, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
@@ -274,6 +310,84 @@ export const fetchKeywordsMasterData = (
     });
 };
 
+export const fetchRedactionLayerMasterData = (
+  mininstryrequestid: number,
+  callback: any,
+  errorCallback: any
+) => {
+  httpGETRequest(API.DOCREVIEWER_GET_REDACTION_LAYERS + "/" + mininstryrequestid, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        store.dispatch(setRedactionLayers(res.data));
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching layers master data:",error);
+    });
+};
+
 const replaceUrl = (URL: string, key: string, value: any) => {
   return URL.replace(key, value);
+};
+
+
+export const triggerDownloadRedlines = (
+  requestJSON: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_REDLINE}`;
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download redline");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download redline:",error);
+  });
+};
+
+export const triggerDownloadFinalPackage = (
+  requestJSON: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_FINALPACKAGE}`;
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error while triggering download final package");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in triggering download final package:",error);
+  });
+};
+
+export const fetchPDFTronLicense = (
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_LICENSE}`;
+  let response = httpGETRequest(apiUrlPost, {}, UserService.getToken() ?? '')
+  response
+  .then((res:any) => {
+    if (res.data) {
+      callback(res.data);
+    } else {
+      throw new Error("Error in fetching PDFTronLicense");
+    }
+  })
+  .catch((error:any) => {
+    errorCallback("Error in fetching PDFTronLicense:",error);
+  });
+  return response;
 };

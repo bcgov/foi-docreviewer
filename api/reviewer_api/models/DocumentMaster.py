@@ -47,13 +47,15 @@ class DocumentMaster(db.Model):
 					and da.isactive = true
                     and dm.documentmasterid not in (select distinct d.documentmasterid
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
-                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)"""
+                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)
+                    order by da.attributes->>'lastmodified' DESC"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 # if row["documentmasterid"] not in deleted:
                 documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"], "attachmentof": row["attachmentof"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -78,6 +80,7 @@ class DocumentMaster(db.Model):
                 documentmasters.append(row["documentmasterid"])
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -100,6 +103,7 @@ class DocumentMaster(db.Model):
                 documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "parentid": row["parentid"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()
@@ -109,7 +113,7 @@ class DocumentMaster(db.Model):
     def getdocumentproperty(cls, ministryrequestid, deleted):
         documentmasters = []
         try:
-            sql = """select dm.documentmasterid,  dm.processingparentid, d.documentid, 
+            sql = """select dm.documentmasterid,  dm.processingparentid, d.documentid, d.version,
                         dhc.rank1hash, d.filename, d.pagecount, dm.parentid from "DocumentMaster" dm, 
                         "Documents" d, "DocumentHashCodes" dhc  
                         where dm.ministryrequestid = :ministryrequestid and dm.ministryrequestid  = d.foiministryrequestid   
@@ -118,9 +122,10 @@ class DocumentMaster(db.Model):
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
-                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "pagecount": row["pagecount"], "parentid": row["parentid"]})
+                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"]})
         except Exception as ex:
             logging.error(ex)
+            db.session.close()
             raise ex
         finally:
             db.session.close()

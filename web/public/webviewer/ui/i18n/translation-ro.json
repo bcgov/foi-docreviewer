@@ -16,6 +16,9 @@
     "comment": "cometariu",
     "reply": "Adăugați răspuns",
     "copy": "Copie",
+    "cut": "A tăia",
+    "paste": "Pastă",
+    "pasteWithoutFormatting": "Lipiți fără formatare",
     "delete": "Șterge",
     "group": "grup",
     "ungroup": "Degrupați",
@@ -78,6 +81,7 @@
     "showLess": "arata mai putin",
     "showMore": "...Mai mult",
     "chooseFile": "Alegeți un fișier",
+    "changeDate": "Schimba data",
     "browse": "Cauta fisiere",
     "selectYourOption": "Selectați opțiunea dvs",
     "open": "Deschis",
@@ -85,6 +89,7 @@
     "select": "Selectați",
     "moveToTop": "Mutați sus",
     "moveToBottom": "Mutați în jos",
+    "backToMenu": "Inapoi la meniu",
     "redactPages": "Redact pagini",
     "playAudio": "Redați audio",
     "pauseAudio": "Întrerupeți sunetul",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "Răspundeți la adnotările selectate ({{count}})",
     "comparePages": "Comparați paginile",
     "startComparison": "Începeți comparația",
-    "back": "Înapoi"
+    "showComparison": "Arată comparația",
+    "back": "Înapoi",
+    "clearSignature": "Semnătură clară",
+    "newDocument": "Document nou"
   },
   "annotation": {
     "areaMeasurement": "Zonă",
@@ -109,6 +117,8 @@
     "formFillCheckmark": "Bifă",
     "formFillCross": "Cruce",
     "distanceMeasurement": "Distanţă",
+    "rectangularAreaMeasurement": "Zona dreptunghiulară",
+    "ellipseMeasurement": "Zona elipsei",
     "countMeasurement": "Măsurarea numărului",
     "ellipse": "Elipsă",
     "eraser": "Radieră",
@@ -129,6 +139,7 @@
     "redact": "Redacta",
     "formFillDot": "Punct",
     "signature": "Semnătură",
+    "snipping": "Instrument de Tăiere",
     "squiggly": "Squiggly",
     "stamp": "Timbru",
     "stickyNote": "Notă",
@@ -250,6 +261,7 @@
     "errorEnterMeasurement": "Numărul pe care l-ați introdus este nevalid, puteți introduce valori precum 7,5 sau 7 1/2",
     "linkURLorPage": "Link URL sau o pagină",
     "warning": "Avertizare",
+    "svgMalicious": "Scriptul SVG a fost ignorat pentru securitate",
     "enterContentEditingMode": "Sunteți pe cale să intrați în modul de editare a conținutului.",
     "existingAnnotationWarning": "Este posibil ca adnotările existente să nu se potrivească cu textul după ce acesta a fost editat.",
     "changesCannotBeUndone": "Orice modificare efectuată nu poate fi anulată.",
@@ -379,7 +391,8 @@
       "qualityHigh": "Înalt",
       "includeAnnotations": "Includeți adnotări",
       "includeComments": "Includeți comentarii",
-      "printSettings": "Setări de imprimare"
+      "printSettings": "Setări de imprimare",
+      "printGrayscale": "Imprimare în tonuri de gri"
     },
     "printInfo": {
       "author": "Autor",
@@ -425,12 +438,10 @@
       "drawSignature": "Semnătura extragerii*",
       "drawInitial": "Desenați inițiale*",
       "pickInitialsFile": "Alegeți Inițiale",
-      "noSignatures": "În prezent, nu există semnături salvate."
+      "noSignatures": "În prezent, nu există semnături salvate.",
+      "fontStyle": "stilul fontului"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Trageți și plasați fișierul aici",
-      "selectFile": "Selectați fișierul dvs. aici",
-      "or": "Sau",
       "yourFiles": "Fișierele dvs",
       "chooseFile": "Alegeți un fișier",
       "localFile": "Fișier local",
@@ -447,7 +458,9 @@
       "filters": "Filtre",
       "user": "Utilizator",
       "type": "Tip",
-      "status": "stare"
+      "status": "stare",
+      "filterSettings": "Setări filtru",
+      "filterDocument": "Filtrați documentul și panoul de comentarii"
     },
     "state": {
       "accepted": "Admis",
@@ -512,6 +525,12 @@
         "ifToContinue": "Sunteți sigur că doriți să continuați?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Șterge conținut",
+        "message": "Sigur doriți să ștergeți conținutul selectat? Acest lucru nu poate fi anulat."
+      }
+    },
     "stylePopup": {
       "textStyle": "Stil text",
       "colors": "Culori",
@@ -557,7 +576,8 @@
     "thumbnailPanel": {
       "delete": "Șterge",
       "rotateClockwise": "În sensul acelor de ceasornic",
-      "rotateCounterClockwise": "În sens invers acelor de ceasornic"
+      "rotateCounterClockwise": "În sens invers acelor de ceasornic",
+      "moreOptions": "Mai multe opțiuni"
     },
     "thumbnailsControlOverlay": {
       "move": "Mutați paginile"
@@ -607,13 +627,13 @@
     },
     "settings": {
       "settings": "Setări",
+      "searchSettings": "Setări de căutare",
       "general": "General",
-      "keyboardShortcut": "Comanda rapidă de la tastatură",
-      "advancedSetting": "Setări avansate",
       "language": "Limba",
       "theme": "Temă",
       "darkMode": "Modul întunecat",
       "lightMode": "Modul de lumină",
+      "advancedSetting": "Setări avansate",
       "viewing": "Vizionare",
       "disableFadePageNavigationComponent": "Dezactivați Componenta de navigare a paginii Fade",
       "disableFadePageNavigationComponentDesc": "Păstrați întotdeauna Componenta de navigare a paginii pe ecran. Comportamentul implicit este de a-l estompa după o anumită perioadă de inactivitate.",
@@ -638,7 +658,52 @@
       "disablePageDeletionConfirmationModal": "Dezactivați modal de confirmare a ștergerii paginii",
       "disablePageDeletionConfirmationModalDesc": "Dezactivați modalul de confirmare când ștergeți o pagină din vizualizarea miniatură",
       "disableMultiselect": "Dezactivați selecția multiplă",
-      "disableMultiselectDesc": "Dezactivați selecția multiplă în panoul de miniaturi din stânga"
+      "disableMultiselectDesc": "Dezactivați selecția multiplă în panoul de miniaturi din stânga",
+      "miscellaneous": "Diverse",
+      "keyboardShortcut": "Comanda rapidă de la tastatură",
+      "command": "Comanda",
+      "description": "Descriere",
+      "action": "Acțiune",
+      "rotateDocumentClockwise": "Rotiți documentul în sensul acelor de ceasornic",
+      "rotateDocumentCounterclockwise": "Rotiți documentul în sens invers acelor de ceasornic",
+      "copyText": "Copiați textul sau adnotările selectate",
+      "pasteText": "Lipiți text sau adnotări",
+      "undoChange": "Anulați o modificare de adnotare",
+      "redoChange": "Refaceți o modificare de adnotare",
+      "openFile": "Deschideți selectorul de fișiere",
+      "openSearch": "Deschideți suprapunerea de căutare",
+      "zoomIn": "A mari",
+      "zoomOut": "A micsora",
+      "fitScreenWidth": "Potriviți documentul la lățimea ecranului într-un ecran mic (< 640 px), altfel potriviți-l la dimensiunea inițială",
+      "print": "Imprimare",
+      "bookmarkOpenPanel": "Marcați rapid o pagină și deschideți panoul de marcaje",
+      "goToPreviousPage": "Accesați pagina anterioară",
+      "goToNextPage": "Accesați pagina următoare",
+      "goToPreviousPageArrowUp": "Accesați pagina anterioară în modul aspect unic (ArrowUp)",
+      "goToNextPageArrowDown": "Accesați pagina următoare în modul de aspect unic (Săgeată în jos)",
+      "holdSwitchPan": "Țineți apăsat pentru a comuta în modul Pan și eliberați pentru a reveni la instrumentul anterior",
+      "selectAnnotationEdit": "Selectați instrumentul AnnotationEdit",
+      "selectPan": "Selectați instrumentul Pan",
+      "selectCreateArrowTool": "Selectați instrumentul AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Selectați instrumentul AnnotationCreateCallout",
+      "selectEraserTool": "Selectați instrumentul Annotation Eraser",
+      "selectCreateFreeHandTool": "Selectați instrumentul AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Selectați instrumentul AnnotationCreateStamp",
+      "selectCreateLineTool": "Selectați instrumentul AnnotationCreateLine",
+      "selectCreateStickyTool": "Selectați instrumentul AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Selectați instrumentul AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Selectați instrumentul AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Selectați instrumentul AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Selectați instrumentul AnnotationCreateFreeText",
+      "openSignatureModal": "Deschideți modalul de semnătură sau suprapunerea",
+      "selectCreateTextSquigglyTool": "Selectați instrumentul AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Selectați instrumentul AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Selectați instrumentul AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Selectați instrumentul AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Editați comanda rapidă de la tastatură",
+      "setShorcut": "Setează Shortcut",
+      "pressKeyToSet": "Apăsați tasta sau tastele pentru a seta o nouă comandă rapidă.",
+      "shortcutAlreadyExists": "Comanda rapidă de la tastatură de mai sus există deja."
     }
   },
   "warning": {
@@ -681,6 +746,10 @@
       "title": "Închideți fără descărcare?",
       "message": "Au fost aduse modificări acestui document, sunteți sigur că doriți să-l închideți fără să vă descărcați lucrarea? Nu puteți anula această acțiune.",
       "rejectDownloadButton": "Închideți fără descărcare"
+    },
+    "connectToURL": {
+      "title": "Avertizare de securitate",
+      "message": "Acest document încearcă să se conecteze la:\n\n{{- uri}}\n\n Dacă aveți încredere în acest document, faceți clic pe Confirmare pentru a-l deschide."
     }
   },
   "shortcut": {
@@ -973,6 +1042,18 @@
       "cancelMessage": "Sigur doriți să anulați decuparea tuturor paginilor selectate?"
     }
   },
+  "snippingPopUp": {
+  "title": "Instrument de Tăiere",
+  "clipboard": "Copiați în Clipboard",
+  "download": "Descărcare",
+  "cropAndRemove": "Decupați și Eliminați",
+    "snippingModal": {
+      "applyTitle": "Aplicați tăierea?",
+      "applyMessage": "Această acțiune va tăia în mod permanent zona specificată și va elimina alte pagini. Nu poate fi anulată.",
+      "cancelTitle": "Anulați tăierea?",
+      "cancelMessage": "Sunteți sigur că doriți să opriți tăierea?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Paragraf",
     "text": "Text"
@@ -1015,8 +1096,44 @@
     "watermarkOptions": "Opțiuni filigran",
     "watermarks": "Filigrane"
   },
+  "portfolio": {
+    "createPDFPortfolio": "Creați portofoliu PDF",
+    "uploadFiles": "Încărca fișiere",
+    "uploadFolder": "Încărcați dosarul",
+    "addFiles": "Adăugați fișiere",
+    "addFile": "Adauga fisier",
+    "addFolder": "Adaugă folder",
+    "createFolder": "Creeaza dosar",
+    "portfolioPanelTitle": "Portofoliu PDF",
+    "portfolioNewFolder": "Dosar nou",
+    "portfolioFolderPlaceholder": "Numele fisierului",
+    "portfolioFilePlaceholder": "Nume de fișier",
+    "folderNameAlreadyExists": "Numele dosarului există deja",
+    "fileNameAlreadyExists": "Numele fișierului există deja",
+    "openFile": "Deschideți în filă nouă",
+    "fileAlreadyExists": "Fisierul există deja",
+    "fileAlreadyExistsMessage": "Fișierul „{{fileName}}” există deja în portofoliu.",
+    "deletePortfolio": "Sigur doriți să ștergeți „{{fileName}}”?",
+    "reselect": "Reselectați"
+  },
   "languageModal": {
     "selectLanguage": "Selecteaza limba"
+  },
+  "officeEditor": {
+    "bold": "Îndrăzneţ",
+    "italic": "Cursiv",
+    "underline": "Subliniați",
+    "textColor": "Culoarea textului",
+    "leftAlign": "Aliniere la stânga",
+    "centerAlign": "Alinierea la centru",
+    "rightAlign": "Aliniați la dreapta",
+    "justify": "Justifica",
+    "lineSpacing": "Spațiere între rânduri și paragrafe",
+    "bulletList": "Listă cu puncte",
+    "numberList": "Lista numerotata",
+    "insertLink": "Introduceți linkul",
+    "insertImage": "Inserați imaginea",
+    "notSupportedOnMobile": "Editarea Office nu este acceptată pe dispozitivele mobile."
   },
   "insertPageModal": {
     "title": "Adăugați o pagină nouă",
@@ -1100,6 +1217,12 @@
     "watermark": "Filigran",
     "addWatermark": "Adăugați filigran",
     "save": "Salvează fișierul",
-    "pageError": "Pagina nevalidă. Intervalele de pagini valide sunt cuprinse între 1 -"
+    "pageError": "Pagina nevalidă. Intervalele de pagini valide sunt cuprinse între 1 -",
+    "fileNameCannotBeEmpty": "Numele fișierului nu poate fi gol"
+  },
+  "filePicker": {
+    "dragAndDrop": "Trageți și plasați fișierul aici",
+    "selectFile": "Selectați fișierul dvs. aici",
+    "or": "Sau"
   }
 }
