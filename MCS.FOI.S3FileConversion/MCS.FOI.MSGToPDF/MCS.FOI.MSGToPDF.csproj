@@ -16,7 +16,7 @@
 		<PackageReference Include="Syncfusion.DocIO.Net.Core" Version="22.1.37" />
 		<PackageReference Include="Syncfusion.DocIORenderer.Net.Core" Version="22.1.37" />
 		<PackageReference Include="Syncfusion.HtmlToPdfConverter.QtWebKit.Net.Core" Version="20.3.0.56" />		
-		<PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+		<PackageReference Include="System.Text.Encoding.CodePages" Version="7.0.0" />
 	</ItemGroup>
 
 </Project>

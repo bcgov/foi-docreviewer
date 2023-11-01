@@ -12,7 +12,8 @@ from .pdfstitchjob import recordjobstart, recordjobend, savefinaldocumentpath, i
 from datetime import datetime
 import logging
 import fitz
-
+from utils.basicutils import to_json
+from .zipperproducerservice import zipperproducerservice as zipperservice
 
 class pdfstitchservice(basestitchservice):
 
@@ -45,19 +46,9 @@ class pdfstitchservice(basestitchservice):
                 results.append(result)
                 # results = [pool.apply_async(self.pdfstitchbasedondivision, (requestnumber, s3credentials, bcgovcode, category, division)).get() for division in attributes]
             finalmessage = self.__getfinalmessage(_message, results)
-            print("<<< Start Zipping >>>>> ")
-            result = self.createfinaldocument(finalmessage, s3credentials)
-            print("<<< End Zipping >>>>> ")
-            if result.get("success"):
-                logging.info("final document path = %s", result.get("documentpath"))
-                savefinaldocumentpath(result, _message.ministryrequestid, _message.category, _message.createdby)
-                recordjobend(_message, False, finalmessage=finalmessage)
-                print(f"<<<< recordjobend complete: {datetime.now()} >>>>")
-            else:
-                errormessage = "Error in uploading the final document %s", result.get("filename")
-                logging.error(errormessage)
-                recordjobend(_message, True, finalmessage=finalmessage, message=errormessage)
-                print(f"<<<< recordjobend ERROR: {datetime.now()} >>>>")
+            print("<<< Starting  Zipping >>>>> ")            
+            zipperservice().producezipevent(finalmessage)
+            print("<<< Zipping event produced!!! over to Zipper Services >>>>> ")            
         except (Exception) as error:
             print("trace >>>>>>>>>>>>>>>>>>>>> ", traceback.format_exc())
             print(error)
@@ -155,7 +146,7 @@ class pdfstitchservice(basestitchservice):
                 return convertimagetopdf(raw_bytes_data)
             return raw_bytes_data
         except Exception as e:
-            logging.error(f"Error merging {file.filename}:", e)
+            logging.error(f"Error merging {file.filename}: " + str(e))
             raise ValueError(file.filename, e)
         
         

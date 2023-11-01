@@ -16,6 +16,9 @@
     "comment": "Komentarz",
     "reply": "Odpowiedz",
     "copy": "Kopiuj",
+    "cut": "Cięcie",
+    "paste": "Pasta",
+    "pasteWithoutFormatting": "Wklej bez formatowania",
     "delete": "Usuń",
     "group": "Grupuj",
     "ungroup": "Rozgrupuj",
@@ -78,6 +81,7 @@
     "showLess": "Pokaż mniej",
     "showMore": "Pokaż więcej",
     "chooseFile": "Wybierz plik",
+    "changeDate": "Zmień datę",
     "browse": "Przeglądaj pliki",
     "selectYourOption": "Wybierz swoją opcję",
     "open": "Otwóz",
@@ -85,6 +89,7 @@
     "select": "Wybierz",
     "moveToTop": "Przejdź na górę",
     "moveToBottom": "Przejdź na dół",
+    "backToMenu": "Powrót do menu",
     "redactPages": "Redaguj strony",
     "playAudio": "Odtwórz dźwięk",
     "pauseAudio": "Wstrzymaj dźwięk",
@@ -95,7 +100,10 @@
     "multiReplyAnnotations": "Odpowiedz na wybrane adnotacje ({{count}})",
     "comparePages": "Porównaj strony",
     "startComparison": "Rozpocznij porównanie",
-    "back": "Z powrotem"
+    "showComparison": "Pokaż porównanie",
+    "back": "Z powrotem",
+    "clearSignature": "Wyraźny podpis",
+    "newDocument": "Nowy dokument"
   },
   "annotation": {
     "areaMeasurement": "Pomiar powierzchni",
@@ -109,6 +117,8 @@
     "formFillCheckmark": "Znacznik",
     "formFillCross": "Krzyżyk",
     "distanceMeasurement": "Dystans",
+    "rectangularAreaMeasurement": "Obszar prostokątny",
+    "ellipseMeasurement": "Obszar elipsy",
     "countMeasurement": "Pomiar",
     "ellipse": "Elipsa",
     "eraser": "Gumka",
@@ -129,6 +139,7 @@
     "redact": "Redaguj",
     "formFillDot": "Kropka",
     "signature": "Podpis",
+    "snipping": "Narzędzie Wycinania",
     "squiggly": "Falista linia",
     "stamp": "Stempel",
     "stickyNote": "Notatka",
@@ -250,6 +261,7 @@
     "errorEnterMeasurement": "Wprowadzony numer jest nieprawidłowy, możesz wprowadzić wartości takie jak 7,5 lub 7 1/2",
     "linkURLorPage": "Adres URL linku lub strony",
     "warning": "Ostrzeżenie",
+    "svgMalicious": "Skrypt SVG został zignorowany ze względów bezpieczeństwa",
     "enterContentEditingMode": "Masz zamiar wejść w tryb edycji treści.",
     "existingAnnotationWarning": "Istniejące adnotacje mogą nie pasować do tekstu po jego edycji.",
     "changesCannotBeUndone": "Wprowadzonych zmian nie można cofnąć.",
@@ -379,7 +391,8 @@
       "qualityHigh": "Wysoki",
       "includeAnnotations": "Dołącz adnotacje",
       "includeComments": "Dołącz komentarze",
-      "printSettings": "Ustawienia drukowania"
+      "printSettings": "Ustawienia drukowania",
+      "printGrayscale": "Drukuj w skali szarości"
     },
     "printInfo": {
       "author": "Autor",
@@ -425,12 +438,10 @@
       "drawSignature": "Narysuj podpis*",
       "drawInitial": "Narysuj inicjały*",
       "pickInitialsFile": "Wybierz inicjały",
-      "noSignatures": "Obecnie nie ma zapisanych podpisów."
+      "noSignatures": "Obecnie nie ma zapisanych podpisów.",
+      "fontStyle": "styl czcionki"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Przeciągnij i upuść plik tutaj",
-      "selectFile": "Wybierz swój plik tutaj",
-      "or": "Lub",
       "yourFiles": "Twoje pliki",
       "chooseFile": "Wybierz plik",
       "localFile": "Plik lokalny",
@@ -447,7 +458,9 @@
       "filters": "Filtry",
       "user": "Użytkownik",
       "type": "Rodzaj",
-      "status": "Status"
+      "status": "Status",
+      "filterSettings": "Ustawienia filtra",
+      "filterDocument": "Filtruj dokumenty i panel komentarzy"
     },
     "state": {
       "accepted": "Zaakceptowany",
@@ -512,6 +525,12 @@
         "ifToContinue": "Czy na pewno chcesz kontynuować?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Usuń zawartość",
+        "message": "Czy na pewno chcesz usunąć wybraną zawartość? Tego nie można cofnąć."
+      }
+    },
     "stylePopup": {
       "textStyle": "Styl tekstu",
       "colors": "Kolory",
@@ -557,7 +576,8 @@
     "thumbnailPanel": {
       "delete": "Usuń",
       "rotateClockwise": "Zgodnie ze wskazówkami zegara",
-      "rotateCounterClockwise": "Przeciwnie do ruchu wskazówek zegara"
+      "rotateCounterClockwise": "Przeciwnie do ruchu wskazówek zegara",
+      "moreOptions": "Więcej opcji"
     },
     "thumbnailsControlOverlay": {
       "move": "Przenieś strony"
@@ -607,13 +627,13 @@
     },
     "settings": {
       "settings": "Ustawienia",
+      "searchSettings": "Ustawienia wyszukiwania",
       "general": "Ogólny",
-      "keyboardShortcut": "Skrót klawiszowy",
-      "advancedSetting": "Ustawienia zaawansowane",
       "language": "Język",
       "theme": "Motyw",
       "darkMode": "Tryb ciemny",
       "lightMode": "Tryb jasny",
+      "advancedSetting": "Ustawienia zaawansowane",
       "viewing": "Przeglądanie",
       "disableFadePageNavigationComponent": "Wyłącz komponent nawigacji po zanikaniu stron",
       "disableFadePageNavigationComponentDesc": "Zawsze utrzymuj komponent nawigacji strony na ekranie. Domyślnym zachowaniem jest zanikanie go po pewnym okresie bezczynności.",
@@ -638,7 +658,52 @@
       "disablePageDeletionConfirmationModal": "Wyłącz tryb potwierdzenia usunięcia strony",
       "disablePageDeletionConfirmationModalDesc": "Wyłącz tryb potwierdzenia podczas usuwania strony z widoku miniatur",
       "disableMultiselect": "Wyłącz wybór wielokrotny",
-      "disableMultiselectDesc": "Wyłącz wybór wielokrotny w lewym panelu miniatur"
+      "disableMultiselectDesc": "Wyłącz wybór wielokrotny w lewym panelu miniatur",
+      "miscellaneous": "Różnorodny",
+      "keyboardShortcut": "Skrót klawiszowy",
+      "command": "Komenda",
+      "description": "Opis",
+      "action": "Akcja",
+      "rotateDocumentClockwise": "Obróć dokument zgodnie z ruchem wskazówek zegara",
+      "rotateDocumentCounterclockwise": "Obróć dokument w kierunku przeciwnym do ruchu wskazówek zegara",
+      "copyText": "Skopiuj wybrany tekst lub adnotacje",
+      "pasteText": "Wklej tekst lub adnotacje",
+      "undoChange": "Cofnij zmianę adnotacji",
+      "redoChange": "Ponów zmianę adnotacji",
+      "openFile": "Otwórz selektor plików",
+      "openSearch": "Otwórz nakładkę wyszukiwania",
+      "zoomIn": "Zbliżenie",
+      "zoomOut": "Pomniejsz",
+      "fitScreenWidth": "Dopasuj dokument do szerokości ekranu na małym ekranie (< 640px), w przeciwnym razie dopasuj go do oryginalnego rozmiaru",
+      "print": "Wydrukować",
+      "bookmarkOpenPanel": "Szybko dodaj stronę do zakładek i otwórz panel zakładek",
+      "goToPreviousPage": "Przejdź do poprzedniej strony",
+      "goToNextPage": "Przejdź do następnej strony",
+      "goToPreviousPageArrowUp": "Przejdź do poprzedniej strony w trybie pojedynczego układu (strzałka w górę)",
+      "goToNextPageArrowDown": "Przejdź do następnej strony w trybie pojedynczego układu (strzałka w dół)",
+      "holdSwitchPan": "Przytrzymaj, aby przejść do trybu Pan i zwolnij, aby powrócić do poprzedniego narzędzia",
+      "selectAnnotationEdit": "Wybierz narzędzie Edycja adnotacji",
+      "selectPan": "Wybierz narzędzie Panorama",
+      "selectCreateArrowTool": "Wybierz narzędzie AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Wybierz narzędzie AnnotationCreateCallout",
+      "selectEraserTool": "Wybierz narzędzie AnnotationEraser",
+      "selectCreateFreeHandTool": "Wybierz narzędzie AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Wybierz narzędzie AnnotationCreateStamp",
+      "selectCreateLineTool": "Wybierz narzędzie AnnotationCreateLine",
+      "selectCreateStickyTool": "Wybierz narzędzie AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Wybierz narzędzie AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Wybierz narzędzie AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Wybierz narzędzie AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Wybierz narzędzie AnnotationCreateFreeText",
+      "openSignatureModal": "Otwórz modal podpisu lub nakładkę",
+      "selectCreateTextSquigglyTool": "Wybierz narzędzie AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Wybierz narzędzie AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Wybierz narzędzie AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Wybierz narzędzie AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Edytuj skrót klawiaturowy",
+      "setShorcut": "Ustaw skrót",
+      "pressKeyToSet": "Naciśnij klawisz lub klawisze, aby ustawić nowy skrót.",
+      "shortcutAlreadyExists": "Powyższy skrót klawiaturowy już istnieje."
     }
   },
   "warning": {
@@ -681,6 +746,10 @@
       "title": "Zamknąć bez pobierania?",
       "message": "W tym dokumencie zostały wprowadzone zmiany. Czy na pewno chcesz go zamknąć bez pobierania swojej pracy? Tej czynności nie można cofnąć.",
       "rejectDownloadButton": "Zamknij bez pobierania"
+    },
+    "connectToURL": {
+      "title": "Ostrzeżenie bezpieczeństwa",
+      "message": "Ten dokument próbuje połączyć się z:\n\n{{- uri}}\n\n Jeśli ufasz temu dokumentowi, kliknij Potwierdź, aby go otworzyć."
     }
   },
   "shortcut": {
@@ -973,6 +1042,18 @@
       "cancelMessage": "Czy na pewno chcesz anulować przycinanie wszystkich wybranych stron?"
     }
   },
+  "snippingPopUp": {
+    "title": "Narzędzie Wycinania",
+    "clipboard": "Kopiuj do Schowka",
+    "download": "Pobierz",
+    "cropAndRemove": "Przytnij i Usuń",
+    "snippingModal": {
+      "applyTitle": "Zastosować wycinanie?",
+      "applyMessage": "Ta operacja trwale wycina określony obszar i usuwa inne strony. Nie można jej cofnąć.",
+      "cancelTitle": "Anulować wycinanie?",
+      "cancelMessage": "Czy na pewno chcesz przerwać wycinanie?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Ustęp",
     "text": "Tekst"
@@ -1015,8 +1096,44 @@
     "watermarkOptions": "Opcje znaku wodnego",
     "watermarks": "Znaki wodne"
   },
+  "portfolio": {
+    "createPDFPortfolio": "Utwórz portfolio PDF",
+    "uploadFiles": "Prześlij pliki",
+    "uploadFolder": "Prześlij folder",
+    "addFiles": "Dodaj pliki",
+    "addFile": "Dodaj plik",
+    "addFolder": "Dodaj folder",
+    "createFolder": "Utwórz folder",
+    "portfolioPanelTitle": "Portfolio PDF",
+    "portfolioNewFolder": "Nowy folder",
+    "portfolioFolderPlaceholder": "Nazwa folderu",
+    "portfolioFilePlaceholder": "Nazwa pliku",
+    "folderNameAlreadyExists": "Nazwa folderu już istnieje",
+    "fileNameAlreadyExists": "Nazwa pliku już istnieje",
+    "openFile": "Otwórz w nowej karcie",
+    "fileAlreadyExists": "Plik już istnieje",
+    "fileAlreadyExistsMessage": "Plik „{{fileName}}” już istnieje w portfolio.",
+    "deletePortfolio": "Czy na pewno chcesz usunąć „{{fileName}}”?",
+    "reselect": "Wybierz ponownie"
+  },
   "languageModal": {
     "selectLanguage": "Wybierz język"
+  },
+  "officeEditor": {
+    "bold": "Pogrubiony",
+    "italic": "italski",
+    "underline": "Podkreślać",
+    "textColor": "Kolor tekstu",
+    "leftAlign": "Wyrównaj do lewej",
+    "centerAlign": "Wyrównaj do środka",
+    "rightAlign": "Wyrównaj do prawej",
+    "justify": "Uzasadniać",
+    "lineSpacing": "Odstępy między wierszami i akapitami",
+    "bulletList": "Lista wypunktowana",
+    "numberList": "Lista numerowana",
+    "insertLink": "Wstaw łącze",
+    "insertImage": "Umieść obraz",
+    "notSupportedOnMobile": "Edycja pakietu Office nie jest obsługiwana na urządzeniach mobilnych."
   },
   "insertPageModal": {
     "title": "Dodaj nową stronę",
@@ -1100,6 +1217,12 @@
     "watermark": "znak wodny",
     "addWatermark": "Dodaj znak wodny",
     "save": "Zapisz plik",
-    "pageError": "Nieprawidłowa strona. Prawidłowe zakresy stron mieszczą się w przedziale od 1 do"
+    "pageError": "Nieprawidłowa strona. Prawidłowe zakresy stron mieszczą się w przedziale od 1 do",
+    "fileNameCannotBeEmpty": "Nazwa pliku nie może być pusta"
+  },
+  "filePicker": {
+    "dragAndDrop": "Przeciągnij i upuść swój plik tutaj",
+    "selectFile": "Wybierz swój plik tutaj",
+    "or": "Lub"
   }
 }

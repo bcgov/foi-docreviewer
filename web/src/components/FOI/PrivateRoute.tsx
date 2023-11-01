@@ -9,6 +9,8 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { redirect, Route, Routes } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
 
 function PrivateRoute(props: any) {
   const dispatch = useAppDispatch();
@@ -26,6 +28,7 @@ function PrivateRoute(props: any) {
     <>
       {isAuth ?
         <><Header />
+            <ToastContainer theme="colored"/>
             <Routes>
               <Route path="/foi/:foiministryrequestid" element={<Home />}/>
             </Routes>

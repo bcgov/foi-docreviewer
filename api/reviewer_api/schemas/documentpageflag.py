@@ -10,7 +10,7 @@ __author__      = "sumathi.thirumani@aot-technologies.com"
 
 """
 
-class DocumentPageflagSchema(Schema):
+class PageflagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         """Exclude unknown fields in the deserialized output."""
         unknown = EXCLUDE
@@ -20,10 +20,21 @@ class DocumentPageflagSchema(Schema):
     other = fields.List(fields.Str(allow_none=True), data_key="other",allow_none=True)
     publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)
 
+class DocumentPageflagSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE    
+    documentid = fields.Int(data_key="documentid",allow_none=False) 
+    version = fields.Int(data_key="version",allow_none=False) 
+    pageflags = fields.Nested(PageflagSchema, many=True, validate=validate.Length(min=1), required=True,allow_none=False)
+    redactionlayerid = fields.Int(data_key="redactionlayerid",allow_none=True)
+
 class BulkDocumentPageflagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         """Exclude unknown fields in the deserialized output."""
 
         unknown = EXCLUDE    
-    pageflags = fields.Nested(DocumentPageflagSchema, many=True, validate=validate.Length(min=1), required=True,allow_none=False)
+    documentpageflags = fields.Nested(DocumentPageflagSchema, many=True, validate=validate.Length(min=1), required=True,allow_none=False)
+
 

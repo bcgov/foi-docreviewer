@@ -42,4 +42,46 @@ export const setKeywords = (data: any) => (dispatch:any) =>{
         type:ACTION_CONSTANTS.SET_KEYWORDS,
         payload:data
     })
-} 
+}
+
+export const setRequestInfo = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REQUEST_INFO,
+        payload:data
+    })
+}
+
+export const setRequestStatus = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REQUEST_STATUS,
+        payload:data
+    })
+}
+
+export const setRequestNumber = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REQUEST_NUMBER,
+        payload:data
+    })
+}
+
+export const setRedactionLayers = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_REDACTION_LAYERS,
+        payload:data
+    })
+}
+
+export const setCurrentLayer = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_CURRENT_LAYER,
+        payload:data
+    })
+}
+
+export const incrementLayerCount = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.INC_REDACTION_LAYER,
+        payload:data
+    })
+}

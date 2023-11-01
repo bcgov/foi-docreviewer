@@ -21,6 +21,7 @@ from os import getenv
 FORMAT_CONTACT_ADDRESS='JSON'
 BLANK_EXCEPTION_MESSAGE = 'Field cannot be blank'
 MAX_EXCEPTION_MESSAGE = 'Field exceeds the size limit'
+REDLINE_SINGLE_PKG_MINISTRIES = getenv('REDLINE_SINGLE_PKG_MINISTRIES','NA')
 try:
     response = requests.request(
         method='GET',
