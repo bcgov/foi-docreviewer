@@ -124,7 +124,6 @@ const Redlining = React.forwardRef(
     const [modalSortAsc, setModalSortAsc] = useState(true);
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
-    //const [searchKeywords, setSearchKeywords] = useState("");
     const [iframeDocument, setIframeDocument] = useState(null);
     const [modalFor, setModalFor] = useState("");
     const [modalTitle, setModalTitle] = useState("");
@@ -378,21 +377,24 @@ const Redlining = React.forwardRef(
             }));
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
-            //Commenting the preset search code now- might need in later release
-            // fetchKeywordsMasterData(
-            //   (data) => {
-            //     if (data) {
-            //       let keywordArray = data.map((elmnt) => elmnt.keyword);
-            //       var regexFromMyArray = new String(keywordArray.join("|"));
-            //       setSearchKeywords(regexFromMyArray);
-            //       instance.UI.searchTextFull(regexFromMyArray, {
-            //         wholeWord: true,
-            //         regex: true,
-            //       });
-            //     }
-            //   },
-            //   (error) => console.log(error)
-            // );
+            
+            //Search Document Logic (for multi-keyword search and etc)
+            const originalSearch = instance.UI.searchTextFull;
+            //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
+            instance.UI.overrideSearchExecution((searchPattern, options) => {
+              options.ambientString=true;
+              if (searchPattern.includes("|")) {
+                options.regex = true;
+                //Conditional that ensures that there is no blank string after | and inbetween (). When regex is on, a character MUST follow | and must be inbetween () or else the regex search breaks as it is not a valid regex expression
+                if (!searchPattern.split("|").includes("") && !searchPattern.split("()").includes("")) {
+                  originalSearch.apply(this, [searchPattern, options]);
+                }
+              } else {
+                options.regex = false;
+                originalSearch.apply(this, [searchPattern, options]);
+              }
+            });
+
             //update user info
             let newusername = user?.name || user?.preferred_username || "";
             let username = annotationManager.getCurrentUser();
