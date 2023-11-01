@@ -93,6 +93,8 @@ const Redlining = React.forwardRef(
       (state) => state.documents?.requestnumber
     );
 
+    document.title = requestnumber + " - FOI Document Reviewer"
+
     const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
@@ -1282,7 +1284,7 @@ const Redlining = React.forwardRef(
         childAnnotation.X = _redact.X;
         childAnnotation.Y = _redact.Y;
         childAnnotation.FontSize =
-          Math.min(parseInt(_redact.FontSize), 12) + "pt";
+          Math.min(parseInt(_redact.FontSize), 9) + "pt";
         const fullpageredaction = _redact.getCustomData("trn-redaction-type");
         const displayedDoc =
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1651,7 +1653,7 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       _annot.X = X || _redaction.X;
       _annot.Y = _redaction.Y;
-      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 12) + "pt";
+      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 9) + "pt";
       return _annot;
     };
 
@@ -2114,7 +2116,7 @@ const Redlining = React.forwardRef(
       for (let divObj of redlineAPIResponse.divdocumentList) {
         divCounter++;
         let incompatableObj = {};
-        incompatableObj["incompatableFiles"] = [];
+        incompatableObj["incompatibleFiles"] = [];
         if (divObj.incompatableList.length > 0) {
           const divIncompatableFiles = divObj.incompatableList
             .filter((record) =>
@@ -2128,7 +2130,7 @@ const Redlining = React.forwardRef(
                 s3uripath: record.filepath,
               };
             });
-          incompatibleFiles.concat(divIncompatableFiles);
+            incompatibleFiles = incompatibleFiles.concat(divIncompatableFiles);
         }
         if (redlineAPIResponse.issingleredlinepackage == "Y") {
           if (divCounter == redlineAPIResponse.divdocumentList.length) {
@@ -2663,7 +2665,7 @@ const Redlining = React.forwardRef(
               if (sectionStamps[annot.Id]) {
                 annotationManager.setAnnotationStyles(annot, {
                   OverlayText: sectionStamps[annot.Id],
-                  FontSize: Math.min(parseInt(annot.FontSize), 12) + "pt",
+                  FontSize: Math.min(parseInt(annot.FontSize), 9) + "pt",
                 });
               }
             }
