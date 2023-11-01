@@ -2070,6 +2070,7 @@ const Redlining = React.forwardRef(
           pageMappings[doc.documentid] = {};
             //gather pages that need to be removed
             doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+            if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
             for (const flagInfo of doc.pageFlag) {
               if (
                 flagInfo.flagid == pageFlagTypes["Duplicate"] ||
@@ -2086,6 +2087,7 @@ const Redlining = React.forwardRef(
                   pagesToRemoveEachDoc.length;
               }
             }
+          }
             //End of pageMappingsByDivisions
           totalPageCount += Object.keys(
               pageMappings[doc.documentid]
@@ -2166,7 +2168,7 @@ const Redlining = React.forwardRef(
         }    
     }
 
-    const isIgnoredDocument = (doc, docObj, divisionDocuments) => {
+    const isIgnoredDocument = (doc, pagecount, divisionDocuments) => {
       const divdocumentlist = JSON.parse(JSON.stringify(divisionDocuments));
       let removepagesCount = 0;
       for (let divsionentry of divdocumentlist) {
@@ -2182,8 +2184,7 @@ const Redlining = React.forwardRef(
             }
           }
         }
-        
-      return docObj.getPageCount() == removepagesCount;
+      return  pagecount == removepagesCount;
     }
 
     const stitchForRedlineExport = async (_instance, divisionDocuments, stitchlist, redlineSinglePkg) => {  
@@ -2214,7 +2215,7 @@ const Redlining = React.forwardRef(
             loadAsPDF: true,
           }).then(async (docObj) => {
            docCount++;
-           if (isIgnoredDocument(doc, docObj, divisionDocuments) == false) {
+           if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               if (docCount == 1) {
                 stitchedDocObj = docObj;
               } else {
