@@ -1,2 +1,4 @@
 /** Notice * This file contains works from many authors under various (but compatible) licenses. Please see core.txt for more information. **/
-(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[2],{522:function(wa,ta,n){n.r(ta);wa=n(51);n=n(438);var pa=function(){function oa(na){this.buffer=na;this.fileSize=null===na||void 0===na?void 0:na.byteLength}oa.prototype.getFileData=function(na){na(new Uint8Array(this.buffer))};oa.prototype.getFile=function(){return Promise.resolve(null)};return oa}();Object(wa.a)(pa);Object(n.a)(pa);Object(n.b)(pa);ta["default"]=pa}}]);}).call(this || window)
+(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[2],{523:function(wa,ta,n){n.r(ta);wa=n(51);n=n(439);var pa=function(){function na(oa){this.buffer=oa;this.fileSize=null===oa||void 0===oa?void 0:oa.byteLength}na.prototype.getFileData=function(oa){oa(new Uint8Array(this.buffer))};na.prototype.getFile=function(){return Promise.resolve(null)};return na}();Object(wa.a)(pa);Object(n.a)(pa);Object(n.b)(pa);ta["default"]=pa}}]);}).call(this || window)
+
+//# sourceMappingURL=ArrayBufferPdfPartRetriever.chunk.js.map
