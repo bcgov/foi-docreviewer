@@ -3,7 +3,7 @@ import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
-  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 
@@ -23,6 +23,7 @@ export const fetchDocuments = (
         store.dispatch(setDocumentList(__files) as any);
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
+        store.dispatch(setRequestInfo(res.data.requestinfo) as any);
         callback(res.data.documents);
       } else {
         throw new Error();
@@ -58,6 +59,27 @@ export const fetchAnnotationsByPagination = (
     });
 };
 
+export const fetchDocumentAnnotations = (
+  ministryrequestid: number,
+  redactionlayer: string = "redline",
+  documentid: number,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching annotations for a document");
+    });
+};
 export const fetchAnnotationsInfo = (
   ministryrequestid: number,
   //callback: any,
