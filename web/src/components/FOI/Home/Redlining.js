@@ -2087,12 +2087,13 @@ const Redlining = React.forwardRef(
                   pagesToRemoveEachDoc.length;
               }
             }
-          }
-            //End of pageMappingsByDivisions
+              //End of pageMappingsByDivisions
           totalPageCount += Object.keys(
-              pageMappings[doc.documentid]
-            ).length;
-          totalPageCountIncludeRemoved += doc.pagecount;
+            pageMappings[doc.documentid]
+          ).length;
+        totalPageCountIncludeRemoved += doc.pagecount;
+          }
+          
         }
         if (redlineSinglePkg == "Y") {
           if (divisionCount == divisionDocuments.length) {
@@ -2213,9 +2214,9 @@ const Redlining = React.forwardRef(
         for (let doc of documentlist) { 
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
-          }).then(async (docObj) => {
-           docCount++;
+          }).then(async (docObj) => {           
            if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
+              docCount++;
               if (docCount == 1) {
                 stitchedDocObj = docObj;
               } else {
@@ -2235,14 +2236,14 @@ const Redlining = React.forwardRef(
               }
           }
           });           
-          if (docCount == documentlist.length && redlineSinglePkg == "N" && stitchedDocObj != null) { 
+          if (redlineSinglePkg == "N" && stitchedDocObj != null) { 
             requestStitchObject[division] = stitchedDocObj;
           }
          }
          if (redlineSinglePkg == "Y" && stitchedDocObj != null) { 
           requestStitchObject['0'] = stitchedDocObj;
         }
-         if (divCount == noofdivision) {          
+         if (divCount == noofdivision ) {          
           setRedlineStitchObject(requestStitchObject);          
         }  
         if (redlineSinglePkg == "N") {
