@@ -1,3 +1,5 @@
 /** Notice * This file contains works from many authors under various (but compatible) licenses. Please see core.txt for more information. **/
-(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[12],{529:function(wa,ta,n){n.r(ta);var pa=n(0),oa=n(1);n.n(oa);wa=n(112);n=n(438);wa=function(na){function ja(ka,fa,y){fa=na.call(this,ka,fa,y)||this;fa.db=ka;return fa}Object(pa.c)(ja,na);ja.prototype.request=function(ka){var fa=this;Object(oa.each)(ka,function(y){fa.db.get(y,function(x,f,e){return x?fa.trigger("partReady.partRetriever",{yb:y,error:x}):fa.trigger("partReady.partRetriever",{yb:y,data:f,Qj:!1,dh:!1,error:null,Nd:e})})})};
-ja.prototype.bw=function(ka){ka()};return ja}(wa.a);Object(n.a)(wa);Object(n.b)(wa);ta["default"]=wa}}]);}).call(this || window)
+(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[12],{530:function(wa,ta,n){n.r(ta);var pa=n(0),na=n(1);n.n(na);wa=n(113);n=n(439);wa=function(oa){function ia(ka,ea,z){ea=oa.call(this,ka,ea,z)||this;ea.db=ka;return ea}Object(pa.c)(ia,oa);ia.prototype.request=function(ka){var ea=this;Object(na.each)(ka,function(z){ea.db.get(z,function(x,f,e){return x?ea.trigger("partReady.partRetriever",{zb:z,error:x}):ea.trigger("partReady.partRetriever",{zb:z,data:f,Wj:!1,kh:!1,error:null,Qd:e})})})};
+ia.prototype.nw=function(ka){ka()};return ia}(wa.a);Object(n.a)(wa);Object(n.b)(wa);ta["default"]=wa}}]);}).call(this || window)
+
+//# sourceMappingURL=WebDBPartRetriever.chunk.js.map
