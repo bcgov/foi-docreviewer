@@ -223,6 +223,27 @@ const Redlining = React.forwardRef(
       return isvalid;
     };
 
+    const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
+      let isvalid = false;
+      for (let divObj of divisionDocuments) {    
+      if (divObj.divisionid == divisionid)  {
+      for (let doc of divObj.documentlist) {
+      for (const flagInfo of doc.pageFlag) {
+            if (
+              flagInfo.flagid != pageFlagTypes["Duplicate"] &&
+              flagInfo.flagid != pageFlagTypes["Not Responsive"]
+            ) {
+              if(isvalid == false) {
+                isvalid = true; 
+              } 
+            }
+          }
+        }
+      }
+      }
+        return isvalid;
+    };
+
     const [enableSavingRedline, setEnableSavingRedline] = useState(      
       isReadyForSignOff() && isValidRedlineDownload() &&
         [
