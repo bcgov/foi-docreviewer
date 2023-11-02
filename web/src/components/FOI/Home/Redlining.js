@@ -455,7 +455,8 @@ const Redlining = React.forwardRef(
               doclistCopy.length,
               true
             );
-            doclistCopy?.shift();
+            if(doclistCopy.length > 1)
+              doclistCopy?.shift();
             let setCount = slicerdetails.setcount;
             let slicer = slicerdetails.slicer;
             console.log(`slicer = ${slicer}, setCount = ${setCount}`);
@@ -1259,12 +1260,21 @@ const Redlining = React.forwardRef(
         docViewer
       ) {
         let doclistCopy = [...docsForStitcing];
-        doclistCopy?.shift(); //remove first document from the list
-        let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
+        if(doclistCopy.length > 1){
+          doclistCopy?.shift(); //remove first document from the list
+          let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
 
-        const _doc = docViewer.getDocument();
-        if (_doc && _pdftronDocObjects.length > 0) {
-          stitchPages(_doc, _pdftronDocObjects);
+          const _doc = docViewer.getDocument();
+          if (_doc && _pdftronDocObjects.length > 0) {
+            stitchPages(_doc, _pdftronDocObjects);
+          }
+        }
+        else if (doclistCopy.length === 1){
+          console.log(`Download completed for single file.... ${new Date()}`);
+          applyAnnotationsFunc();
+          setIsStitchingLoaded(true);
+          setpdftronDocObjects([]);
+          setstichedfiles([]);
         }
       }
     }, [
