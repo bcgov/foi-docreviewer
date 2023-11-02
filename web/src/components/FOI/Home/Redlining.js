@@ -201,7 +201,7 @@ const Redlining = React.forwardRef(
       return !stopLoop;
     };
 
-    const isValidDownload = () => {
+    const isValidRedlineDownload = () => {
       let isvalid = false;
       let pageFlagArray = [];
       if (pageFlags?.length > 0) {
@@ -224,7 +224,7 @@ const Redlining = React.forwardRef(
     };
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(      
-      isReadyForSignOff() && isValidDownload() &&
+      isReadyForSignOff() && isValidRedlineDownload() &&
         [
           RequestStates["Records Review"],
           RequestStates["Ministry Sign Off"],
@@ -1042,7 +1042,7 @@ const Redlining = React.forwardRef(
     }));
 
     const checkSavingRedlineButton = (_instance) => {
-      let _enableSavingRedline = isReadyForSignOff() && isValidDownload();
+      let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
 
       setEnableSavingRedline(
         _enableSavingRedline &&
@@ -2068,16 +2068,26 @@ const Redlining = React.forwardRef(
           pageMappings[doc.documentid] = {};
             //gather pages that need to be removed
             doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-            if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
+            //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
             for (const flagInfo of doc.pageFlag) {
               if (
                 flagInfo.flagid == pageFlagTypes["Duplicate"] ||
                 flagInfo.flagid == pageFlagTypes["Not Responsive"]
               ) {
                 pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(
-                  flagInfo.page + totalPageCountIncludeRemoved
-                );
+                if (redlineSinglePkg == "Y") {
+                  pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    )
+                  );
+                  } else {
+                      pagesToRemove.push(                  
+                        flagInfo.page + totalPageCountIncludeRemoved
+                      );
+                  }
               } else {
                 pageMappings[doc.documentid][flagInfo.page] =
                   flagInfo.page +
@@ -2090,7 +2100,7 @@ const Redlining = React.forwardRef(
             pageMappings[doc.documentid]
           ).length;
         totalPageCountIncludeRemoved += doc.pagecount;
-          }
+          //}
           
         }
         if (redlineSinglePkg == "Y") {
@@ -2222,7 +2232,7 @@ const Redlining = React.forwardRef(
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
           }).then(async (docObj) => {            
-            if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
+            //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
               if (docCount == 1) {
                 stitchedDocObj = docObj;
@@ -2239,9 +2249,9 @@ const Redlining = React.forwardRef(
                   pageIndexToInsert
                 );
               }
-            }
+            //}
           });
-          if (redlineSinglePkg == "N" && stitchedDocObj != null ) {
+          if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
             requestStitchObject[division] = stitchedDocObj;
           }
         }
@@ -2482,9 +2492,11 @@ const Redlining = React.forwardRef(
           let documentsObjArr = [];
           let divisionstitchpages = [];
           let divCount = 0;
+          
           for (let div of res.divdocumentList) {
             divCount++;
             let docCount = 0;
+            if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
             for (let doc of div.documentlist) {
               docCount++;
               documentsObjArr.push(doc);
@@ -2514,6 +2526,7 @@ const Redlining = React.forwardRef(
                 }
               }
             }
+          }
             if (
               res.issingleredlinepackage == "Y" &&
               divCount == res.divdocumentList.length
@@ -2544,6 +2557,9 @@ const Redlining = React.forwardRef(
               documentsObjArr = [];
             }
           }
+          
+          
+          if (Object.keys(stitchDoc).length >0)  {
           setRedlineStitchInfo(stitchDoc);
           stitchForRedlineExport(
             _instance,
@@ -2551,6 +2567,7 @@ const Redlining = React.forwardRef(
             stitchDocuments,
             res.issingleredlinepackage
           );
+          }
         },
         (error) => {
           console.log("Error fetching document:", error);
