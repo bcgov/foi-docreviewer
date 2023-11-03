@@ -409,6 +409,21 @@ const Redlining = React.forwardRef(
             .setStyles(() => ({
               FillColor: new Annotations.Color(255, 255, 255),
             }));
+          documentViewer
+            .getTool(instance.Core.Tools.ToolNames.REDACTION2)
+            .setStyles(() => ({
+              FillColor: new Annotations.Color(255, 255, 255),
+            }));
+          documentViewer
+            .getTool(instance.Core.Tools.ToolNames.REDACTION3)
+            .setStyles(() => ({
+              FillColor: new Annotations.Color(255, 255, 255),
+            }));
+          documentViewer
+            .getTool(instance.Core.Tools.ToolNames.REDACTION4)
+            .setStyles(() => ({
+              FillColor: new Annotations.Color(255, 255, 255),
+            }));
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
 
