@@ -188,6 +188,14 @@
     color: #808080;
 }
 
+.MuiTreeItem-content.Mui-selected {
+    background-color: rgba(25, 118, 210, 0.4) !important;
+}
+
+.MuiTreeItem-content:hover {
+    background-color: rgba(25, 118, 210, 0.2) !important
+}
+
 .filterIcons {
     color: #808080;
     margin-right: 10px;
@@ -201,6 +209,39 @@
     &:focus{
         color: #003366;
     }
+}
+
+.filterConsultIcon{
+    color: #808080;
+    vertical-align: middle;
+    font-size: 20px;
+    cursor: pointer;
+
+    &:active{
+        color: #003366;
+    }
+    &:focus{
+        color: #003366;
+    }
+}
+
+.filterDropDownIcon{
+    color: #808080;
+    vertical-align: bottom;
+    font-size: 13px;
+    cursor: pointer;
+    margin: 5px;
+
+    &:active{
+        color: #003366;
+    }
+    &:focus{
+        color: #003366;
+    }
+}
+
+.consulteeItem {
+    margin: 10px;
 }
 
 .filterText{
@@ -225,3 +266,12 @@
     font-size: 14px !important;
 }
 
+.consultDropDown{
+    width: 150px;
+    margin: 16px 0px;
+    font-size: 14px;
+
+    .heading {
+        margin-bottom:12px;
+    }
+}

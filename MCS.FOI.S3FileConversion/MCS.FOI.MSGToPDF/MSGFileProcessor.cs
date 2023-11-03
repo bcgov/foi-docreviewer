@@ -11,7 +11,7 @@ using Syncfusion.DocIO;
 
 namespace MCS.FOI.MSGToPDF
 {
-    public class MSGFileProcessor : IMSGFileProcessor , IDisposable
+    public class MSGFileProcessor : IMSGFileProcessor, IDisposable
     {
         public Stream SourceStream { get; set; }
         public bool IsSinglePDFOutput { get; set; }
@@ -40,7 +40,7 @@ namespace MCS.FOI.MSGToPDF
             output = new();
             attachmentsObj = new();
             try
-            {               
+            {
                 if (SourceStream != null && SourceStream.Length > 0)
                 {
                     for (int attempt = 1; attempt <= FailureAttemptCount; attempt++)
@@ -138,7 +138,8 @@ namespace MCS.FOI.MSGToPDF
 
                                     }
                                 }
-                            } else
+                            }
+                            else
                             {
                                 WordDocument doc = GetEmailMetatdata(msg);
                                 doc.LastParagraph.AppendText("This email does not have a message body.");
@@ -154,7 +155,7 @@ namespace MCS.FOI.MSGToPDF
                                 }
                             }
 
-                            
+
 
                             //string htmlString = GenerateHtmlfromMsg(msg);
                             //bool isConverted;
@@ -163,7 +164,7 @@ namespace MCS.FOI.MSGToPDF
 
                             foreach (Object attachment in msg.Attachments)
                             {
-                                 attachmentStream = new();
+                                attachmentStream = new();
                                 if (attachment.GetType().FullName.ToLower().Contains("message"))
                                 {
                                     var _attachment = (Storage.Message)attachment;
@@ -345,7 +346,7 @@ namespace MCS.FOI.MSGToPDF
 
                 //Message body
                 string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
-              
+
                 message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
                 htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
                                     <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
@@ -382,7 +383,7 @@ namespace MCS.FOI.MSGToPDF
                 document.Save(output);
                 document.Close(true);
                 isConverted = true;
-                
+
             }
             catch (Exception ex)
             {

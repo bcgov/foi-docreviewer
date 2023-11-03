@@ -16,12 +16,17 @@
     "comment": "Comment",
     "reply": "Add reply",
     "copy": "Copy",
+    "cut": "Cut",
+    "paste": "Paste",
+    "pasteWithoutFormatting": "Paste without formatting",
     "delete": "Delete",
+    "deleted": "Deleted",
     "group": "Group",
     "ungroup": "Ungroup",
     "download": "Download",
     "edit": "Edit",
     "extract": "Extract",
+    "extractPage": "Extract Page",
     "enterFullscreen": "Enter Full Screen",
     "exitFullscreen": "Exit Full Screen",
     "fit": "Fit",
@@ -29,6 +34,7 @@
     "fitToWidth": "Fit to width",
     "more": "More",
     "openFile": "Open file",
+    "page":"Page",
     "pagePrev": "Previous page",
     "pageNext": "Next page",
     "pageSet": "Set page",
@@ -41,6 +47,12 @@
     "rotate3D": "Rotate",
     "rotateClockwise": "Rotate Clockwise",
     "rotateCounterClockwise": "Rotate Counterclockwise",
+    "rotatedClockwise": "rotated clockwise",
+    "rotatedCounterClockwise": "rotated counterclockwise",
+    "rotationIs": "current page rotation is ",
+    "movedToBottomOfDocument": "moved to bottom of document",
+    "movedToTopofDocument": "moved to top of document",
+    "extracted": "extracted",
     "save": "Save",
     "post": "Post",
     "create": "Create",
@@ -53,6 +65,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "zoomSet": "Set zoom",
+    "zoomChanged": "Current zoom is",
     "zoomControls": "Zoom Controls",
     "draw": "Draw",
     "type": "Type",
@@ -70,21 +83,29 @@
     "formFieldEdit": "Edit Form Field",
     "viewShortCutKeysFor3D": "View Shortcut Keys",
     "markAllRead": "Mark all as read",
-    "insertPage": "Page Insertion",
+    "pageInsertion": "Page Insertion",
+    "insertPage": "Insert Page",
     "insert": "Insert",
     "pageManipulation": "Page Manipulation",
     "replace": "Replace",
+    "replacePage": "Replace Page",
+    "modal": "modal",
+    "isOpen": "is open",
     "setDestination": "Set Destination",
     "showLess": "show less",
     "showMore": "...more",
     "chooseFile": "Choose a file",
+    "changeDate": "Change Date",
     "browse": "Browse Files",
     "selectYourOption": "Select your option",
     "open": "Open",
     "deselectAll": "Deselect All",
     "select": "Select",
-    "moveToTop": "Move to top",
-    "moveToBottom": "Move to bottom",
+    "moveToTop": "Move to Top",
+    "moveToBottom": "Move to Bottom",
+    "movePageToTop": "Move Page to Top",
+    "movePageToBottom": "Move Page to Bottom",
+    "backToMenu": "Back to Menu",
     "redactPages": "Redact pages",
     "playAudio": "Play audio",
     "pauseAudio": "Pause audio",
@@ -95,7 +116,11 @@
     "multiReplyAnnotations": "Reply to selected annotations ({{count}})",
     "comparePages": "Compare pages",
     "startComparison": "Start Comparison",
-    "back": "Back"
+    "showComparison": "Show Comparison",
+    "back": "Back",
+    "clearSignature": "Clear signature",
+    "newDocument": "New Document",
+    "sideBySideView": "Side By Side View"
   },
   "annotation": {
     "areaMeasurement": "Area",
@@ -109,6 +134,8 @@
     "formFillCheckmark": "Tick",
     "formFillCross": "Cross",
     "distanceMeasurement": "Distance",
+    "rectangularAreaMeasurement": "Rectangular Area",
+    "ellipseMeasurement": "Ellipse Area",
     "countMeasurement": "Count measurement",
     "ellipse": "Ellipse",
     "eraser": "Eraser",
@@ -129,6 +156,7 @@
     "redact": "Redact",
     "formFillDot": "Dot",
     "signature": "Signature",
+    "snipping": "Snipping Tool",
     "squiggly": "Squiggly",
     "stamp": "Stamp",
     "stickyNote": "Note",
@@ -250,6 +278,7 @@
     "errorEnterMeasurement": "The number you have entered is invalid, you can enter values like 7.5 or 7 1/2",
     "linkURLorPage": "Link URL or a Page",
     "warning": "Warning",
+    "svgMalicious": "SVG script ignored for security",
     "enterContentEditingMode": "You are about to enter content editing mode.",
     "existingAnnotationWarning": "Existing annotations may not match up with the text after it has been edited.",
     "changesCannotBeUndone": "Any changes made cannot be undone.",
@@ -379,7 +408,8 @@
       "qualityHigh": "High",
       "includeAnnotations": "Include annotations",
       "includeComments": "Include comments",
-      "printSettings": "Print Settings"
+      "printSettings": "Print Settings",
+      "printGrayscale": "Print Grayscale"
     },
     "printInfo": {
       "author": "Author",
@@ -425,12 +455,10 @@
       "drawSignature": "Draw Signature*",
       "drawInitial": "Draw Initials*",
       "pickInitialsFile": "Choose Initials",
-      "noSignatures": "There are currently no saved signatures."
+      "noSignatures": "There are currently no saved signatures.",
+      "fontStyle": "Font style"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Drag & Drop your file here",
-      "selectFile": "Select your file here",
-      "or": "Or",
       "yourFiles": "Your Files",
       "chooseFile": "Choose a file",
       "localFile": "Upload",
@@ -447,7 +475,9 @@
       "filters": "Filters",
       "user": "User",
       "type": "Type",
-      "status": "Status"
+      "status": "Status",
+      "filterSettings": "Filter Settings",
+      "filterDocument": "Filter document and comments panel"
     },
     "state": {
       "accepted": "Accepted",
@@ -512,10 +542,16 @@
         "ifToContinue": "Are you sure you'd like to continue?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Delete Content",
+        "message": "Are you sure you want to delete the selected content? This can't be undone."
+      }
+    },
     "stylePopup": {
       "textStyle": "Text Style",
       "colors": "Colors",
-      "invalidFontSize": "Font size must be less than ",
+      "invalidFontSize": "Font size must be in the following range",
       "labelText": "Label Text",
       "labelTextPlaceholder": "Add label text"
     },
@@ -555,9 +591,14 @@
       }
     },
     "thumbnailPanel": {
-      "delete": "Delete",
-      "rotateClockwise": "Clockwise",
-      "rotateCounterClockwise": "Counterclockwise"
+      "delete": "Delete Page",
+      "rotateClockwise": "Rotate Clockwise",
+      "rotateCounterClockwise": "Rotate Counterclockwise",
+      "rotatePageClockwise": "Rotate Page Clockwise",
+      "rotatePageCounterClockwise": "Rotate Page Counterclockwise",
+      "moreOptions": "More Options",
+      "moreOptionsMenu": "More Thumbnails Options Menu",
+      "enterPageNumbers": "Enter page numbers to select"
     },
     "thumbnailsControlOverlay": {
       "move": "Move pages"
@@ -607,6 +648,7 @@
     },
     "settings": {
       "settings": "Settings",
+      "searchSettings": "Search Settings",
       "general": "General",
       "language": "Language",
       "theme": "Theme",
@@ -725,6 +767,10 @@
       "title": "Close without downloading?",
       "message": "There are changes made to this document, are you sure you want to close it without downloading your work? You can't undo this action.",
       "rejectDownloadButton": "Close without download"
+    },
+    "connectToURL": {
+      "title": "Security Warning",
+      "message": "This document is trying to connect to: \n\n{{- uri}}\n\n If you trust this document, click Confirm to open it."
     }
   },
   "shortcut": {
@@ -1017,6 +1063,18 @@
       "cancelMessage": "Are you sure you want to cancel cropping all selected pages?"
     }
   },
+  "snippingPopUp": {
+    "title": "Snipping Tool",
+    "clipboard": "Copy to Clipboard",
+    "download": "Download",
+    "cropAndRemove": "Crop and Remove",
+    "snippingModal": {
+      "applyTitle": "Apply snipping?",
+      "applyMessage": "This action will permanently cut out the specified area and remove other pages. It cannot be undone.",
+      "cancelTitle": "Cancel snipping?",
+      "cancelMessage": "Are you sure you want to stop snipping?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Paragraph",
     "text": "Text"
@@ -1059,8 +1117,46 @@
     "watermarkOptions": "Watermark Options",
     "watermarks": "Watermarks"
   },
+  "portfolio": {
+    "createPDFPortfolio": "Create PDF Portfolio",
+    "uploadFiles": "Upload Files",
+    "uploadFolder": "Upload Folder",
+    "addFiles": "Add Files",
+    "addFile": "Add File",
+    "addFolder": "Add Folder",
+    "createFolder": "Create Folder",
+    "portfolioPanelTitle": "PDF Portfolio",
+    "portfolioNewFolder": "New Folder",
+    "portfolioFolderPlaceholder": "Folder Name",
+    "portfolioFilePlaceholder": "File Name",
+    "folderNameAlreadyExists": "Folder name already exists",
+    "fileNameAlreadyExists": "File name already exists",
+    "openFile": "Open in New Tab",
+    "fileAlreadyExists": "File Already Exists",
+    "fileAlreadyExistsMessage": "The file \"{{fileName}}\" already exists in the portfolio.",
+    "deletePortfolio": "Are you sure you want to delete \"{{fileName}}\"?",
+    "reselect": "Reselect"
+  },
   "languageModal": {
     "selectLanguage": "Select language"
+  },
+  "officeEditor": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "textColor": "Text color",
+    "leftAlign": "Left align",
+    "centerAlign": "Center align",
+    "rightAlign": "Right align",
+    "justify": "Justify",
+    "lineSpacing": "Line & paragraph spacing",
+    "bulletList": "Bulleted list",
+    "numberList": "Numbered list",
+    "decreaseIndent": "Decrease indent",
+    "increaseIndent": "Increase indent",
+    "insertLink": "Insert link",
+    "insertImage": "Insert image",
+    "notSupportedOnMobile": "Office editing is not supported on mobile devices."
   },
   "insertPageModal": {
     "title": "Add New Page",
@@ -1119,10 +1215,10 @@
       "old": "Old",
       "new": "New",
       "page": "Page",
-			"textContent": "Text Content",
-			"delete": "delete",
-			"insert": "insert",
-			"edit": "edit"
+      "textContent": "Text Content",
+      "delete": "delete",
+      "insert": "insert",
+      "edit": "edit"
     }
   },
   "saveModal": {
@@ -1144,6 +1240,12 @@
     "watermark": "Watermark",
     "addWatermark": "Add Watermark",
     "save": "Save File",
-    "pageError": "Invalid page. Valid page ranges are between  1 - "
+    "pageError": "Invalid page. Valid page ranges are between  1 - ",
+    "fileNameCannotBeEmpty": "File Name cannot be empty"
+  },
+  "filePicker": {
+    "dragAndDrop": "Drag & Drop your file here",
+    "selectFile": "Select your file here",
+    "or": "Or"
   }
 }

@@ -16,12 +16,17 @@
     "comment": "Komen",
     "reply": "Tambah balasan",
     "copy": "Salinan",
+    "cut": "potong",
+    "paste": "tampal",
+    "pasteWithoutFormatting": "Tampal tanpa memformat",
     "delete": "Padam",
+    "deleted": "Dipadamkan",
     "group": "Kumpulan",
     "ungroup": "Nyahkumpulan",
     "download": "Muat turun",
     "edit": "Sunting",
     "extract": "Ekstrak",
+    "extractPage": "Ekstrak Halaman",
     "enterFullscreen": "Skrin penuh",
     "exitFullscreen": "Keluar dari skrin penuh",
     "fit": "Sesuai",
@@ -29,6 +34,7 @@
     "fitToWidth": "Sesuai dengan lebar",
     "more": "Lagi",
     "openFile": "Buka fail",
+    "page": "Halaman",
     "pagePrev": "Halaman sebelumnya",
     "pageNext": "Muka surat seterusnya",
     "pageSet": "Tetapkan halaman",
@@ -41,6 +47,12 @@
     "rotate3D": "Putar",
     "rotateClockwise": "Putar mengikut arah jam",
     "rotateCounterClockwise": "Putar lawan jam",
+    "rotatedClockwise": "diputar mengikut arah jam",
+    "rotatedCounterClockwise": "diputar lawan jam",
+    "rotationIs": "putaran halaman semasa ialah",
+    "movedToBottomOfDocument": "dialihkan ke bahagian bawah dokumen",
+    "movedToTopofDocument": "dialihkan ke bahagian atas dokumen",
+    "extracted": "diekstrak",
     "save": "Jimat",
     "post": "Pos",
     "create": "Buat",
@@ -53,6 +65,7 @@
     "zoomIn": "Mengezum masuk",
     "zoomOut": "Zum keluar",
     "zoomSet": "Tetapkan zum",
+    "zoomChanged": "Zum semasa ialah",
     "zoomControls": "Kawalan Zum",
     "draw": "Lukis",
     "type": "taip",
@@ -70,14 +83,19 @@
     "formFieldEdit": "Edit Medan Borang",
     "viewShortCutKeysFor3D": "Lihat Kekunci Pintasan",
     "markAllRead": "Tandai semua sebagai dibaca",
+    "pageInsertion": "Sisipan Halaman",
     "insertPage": "Sisipan Halaman",
     "insert": "Sisipkan",
     "pageManipulation": "Manipulasi Halaman",
     "replace": "Gantikan",
+    "replacePage": "Gantikan Halaman",
+    "modal": "modal",
+    "isOpen": "ia terbuka",
     "setDestination": "Tetapkan Destinasi",
     "showLess": "kurang menunjukkan",
     "showMore": "... lagi",
     "chooseFile": "Pilih fail",
+    "changeDate": "Tukar tarikh",
     "browse": "Semak imbas Fail",
     "selectYourOption": "Pilih pilihan anda",
     "open": "Buka",
@@ -85,6 +103,9 @@
     "select": "Pilih",
     "moveToTop": "Bergerak ke atas",
     "moveToBottom": "Bergerak ke bawah",
+    "movePageToTop": "Alihkan Halaman ke Atas",
+    "movePageToBottom": "Alihkan Halaman ke Bawah",
+    "backToMenu": "Kembali ke Menu",
     "redactPages": "Sunting halaman",
     "playAudio": "Mainkan audio",
     "pauseAudio": "jeda audio",
@@ -95,7 +116,11 @@
     "multiReplyAnnotations": "Balas kepada anotasi yang dipilih ({{count}})",
     "comparePages": "Bandingkan halaman",
     "startComparison": "Mulakan Perbandingan",
-    "back": "belakang"
+    "showComparison": "Tunjukkan Perbandingan",
+    "back": "belakang",
+    "clearSignature": "Tandatangan yang jelas",
+    "newDocument": "Dokumen Baharu",
+    "sideBySideView": "Pandangan Sebelah"
   },
   "annotation": {
     "areaMeasurement": "kawasan",
@@ -109,6 +134,8 @@
     "formFillCheckmark": "Tandakan",
     "formFillCross": "Menyeberang",
     "distanceMeasurement": "Jarak",
+    "rectangularAreaMeasurement": "Kawasan Segiempat",
+    "ellipseMeasurement": "Kawasan Ellipse",
     "countMeasurement": "Kira ukuran",
     "ellipse": "Ellipse",
     "eraser": "Pemadam",
@@ -129,6 +156,7 @@
     "redact": "sunting",
     "formFillDot": "titik",
     "signature": "Tandatangan",
+    "snipping": "Alat Pemotongan",
     "squiggly": "Dengan berlekuk-lekuk",
     "stamp": "setem",
     "stickyNote": "Catatan",
@@ -250,6 +278,7 @@
     "errorEnterMeasurement": "Nombor yang anda masukkan tidak sah, anda boleh memasukkan nilai seperti 7.5 atau 7 1/2",
     "linkURLorPage": "Pautan URL atau Halaman",
     "warning": "Amaran",
+    "svgMalicious": "Skrip SVG diabaikan untuk keselamatan",
     "enterContentEditingMode": "Anda akan memasuki mod penyuntingan kandungan.",
     "existingAnnotationWarning": "Anotasi sedia ada mungkin tidak sepadan dengan teks selepas ia diedit.",
     "changesCannotBeUndone": "Sebarang perubahan yang dibuat tidak boleh dibuat asal.",
@@ -379,7 +408,8 @@
       "qualityHigh": "tinggi",
       "includeAnnotations": "Sertakan anotasi",
       "includeComments": "Sertakan ulasan",
-      "printSettings": "Tetapan Cetak"
+      "printSettings": "Tetapan Cetak",
+      "printGrayscale": "Cetak Skala Kelabu"
     },
     "printInfo": {
       "author": "Pengarang",
@@ -425,12 +455,10 @@
       "drawSignature": "Lukis Tandatangan*",
       "drawInitial": "Lukis Huruf Awal*",
       "pickInitialsFile": "Pilih Inisial",
-      "noSignatures": "Pada masa ini tiada tandatangan yang disimpan."
+      "noSignatures": "Pada masa ini tiada tandatangan yang disimpan.",
+      "fontStyle": "gaya fon"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Seret & Lepaskan fail anda di sini",
-      "selectFile": "Pilih fail anda di sini",
-      "or": "Ataupun",
       "yourFiles": "Fail Anda",
       "chooseFile": "Pilih fail",
       "localFile": "Fail Tempatan",
@@ -447,7 +475,9 @@
       "filters": "Penapis",
       "user": "pengguna",
       "type": "taip",
-      "status": "Status"
+      "status": "Status",
+      "filterSettings": "Tetapan Penapis",
+      "filterDocument": "Tapis dokumen dan panel ulasan"
     },
     "state": {
       "accepted": "Diterima",
@@ -512,10 +542,16 @@
         "ifToContinue": "Adakah anda pasti mahu meneruskan?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Padamkan Kandungan",
+        "message": "Adakah anda pasti mahu memadamkan kandungan yang dipilih? Ini tidak boleh dibuat asal."
+      }
+    },
     "stylePopup": {
       "textStyle": "Gaya Teks",
       "colors": "Warna",
-      "invalidFontSize": "Saiz fon mestilah kurang daripada",
+      "invalidFontSize": "Saiz fon mestilah dalam julat berikut",
       "labelText": "Teks Label",
       "labelTextPlaceholder": "Tambahkan teks label"
     },
@@ -557,7 +593,12 @@
     "thumbnailPanel": {
       "delete": "Padam",
       "rotateClockwise": "ikut arah jam",
-      "rotateCounterClockwise": "lawan jam"
+      "rotateCounterClockwise": "lawan jam",
+      "rotatePageClockwise": "Putar Halaman Mengikut Jam",
+      "rotatePageCounterClockwise": "Putar Halaman lawan jam",
+      "moreOptions": "Lebih banyak pilihan",
+      "moreOptionsMenu": "Lagi Menu Pilihan Imej Kecil",
+      "enterPageNumbers": "Masukkan nombor halaman untuk dipilih"
     },
     "thumbnailsControlOverlay": {
       "move": "Pindahkan halaman"
@@ -607,13 +648,13 @@
     },
     "settings": {
       "settings": "tetapan",
+      "searchSettings": "Tetapan Carian",
       "general": "Umum",
-      "keyboardShortcut": "Pintasan papan kekunci",
-      "advancedSetting": "Tetapan Lanjutan",
       "language": "Bahasa",
       "theme": "Tema",
       "darkMode": "Mod gelap",
       "lightMode": "Mod cahaya",
+      "advancedSetting": "Tetapan Lanjutan",
       "viewing": "Melihat",
       "disableFadePageNavigationComponent": "Lumpuhkan Komponen Navigasi Halaman Pudar",
       "disableFadePageNavigationComponentDesc": "Sentiasa pastikan Komponen Navigasi Halaman pada skrin. Tingkah laku lalai adalah untuk memudarkannya selepas tempoh tertentu tidak aktif.",
@@ -638,7 +679,52 @@
       "disablePageDeletionConfirmationModal": "Lumpuhkan Modal Pengesahan Pemadaman Halaman",
       "disablePageDeletionConfirmationModalDesc": "Lumpuhkan modal pengesahan apabila memadam halaman daripada paparan lakaran kecil",
       "disableMultiselect": "Lumpuhkan Multiselect",
-      "disableMultiselectDesc": "Lumpuhkan berbilang pilihan dalam panel lakaran kecil kiri"
+      "disableMultiselectDesc": "Lumpuhkan berbilang pilihan dalam panel lakaran kecil kiri",
+      "miscellaneous": "Macam-macam",
+      "keyboardShortcut": "Pintasan papan kekunci",
+      "command": "Perintah",
+      "description": "Penerangan",
+      "action": "Tindakan",
+      "rotateDocumentClockwise": "Putar dokumen mengikut arah jam",
+      "rotateDocumentCounterclockwise": "Putar dokumen mengikut lawan jam",
+      "copyText": "Salin teks atau anotasi yang dipilih",
+      "pasteText": "Tampal teks atau anotasi",
+      "undoChange": "Buat asal perubahan anotasi",
+      "redoChange": "Buat semula perubahan anotasi",
+      "openFile": "Buka pemilih fail",
+      "openSearch": "Buka tindanan carian",
+      "zoomIn": "Mengezum masuk",
+      "zoomOut": "Zum keluar",
+      "fitScreenWidth": "Muatkan dokumen dengan lebar skrin dalam skrin kecil (< 640px), jika tidak muatkannya dengan saiz asalnya",
+      "print": "Cetak",
+      "bookmarkOpenPanel": "Tandai halaman dengan cepat dan buka panel penanda halaman",
+      "goToPreviousPage": "Pergi ke halaman sebelumnya",
+      "goToNextPage": "Pergi ke halaman seterusnya",
+      "goToPreviousPageArrowUp": "Pergi ke halaman sebelumnya dalam mod susun atur tunggal (ArrowUp)",
+      "goToNextPageArrowDown": "Pergi ke halaman seterusnya dalam mod susun atur tunggal (ArrowDown)",
+      "holdSwitchPan": "Tahan untuk beralih ke mod Pan dan lepaskan untuk kembali ke alat sebelumnya",
+      "selectAnnotationEdit": "Pilih alat AnnotationEdit",
+      "selectPan": "Pilih alat Pan",
+      "selectCreateArrowTool": "Pilih alat AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Pilih alat AnnotationCreateCallout",
+      "selectEraserTool": "Pilih alat AnnotationEraser",
+      "selectCreateFreeHandTool": "Pilih alat AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Pilih alat AnnotationCreateStamp",
+      "selectCreateLineTool": "Pilih alat AnnotationCreateLine",
+      "selectCreateStickyTool": "Pilih alat AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Pilih alat AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Pilih alat AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Pilih alat AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Pilih alat AnnotationCreateFreeText",
+      "openSignatureModal": "Buka modal tandatangan atau tindanan",
+      "selectCreateTextSquigglyTool": "Pilih alat AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Pilih alat AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Pilih alat AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Pilih alat AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Edit Pintasan Papan Kekunci",
+      "setShorcut": "Tetapkan Shortcut",
+      "pressKeyToSet": "Tekan kekunci atau kekunci untuk menetapkan pintasan baharu.",
+      "shortcutAlreadyExists": "Pintasan papan kekunci di atas sudah wujud."
     }
   },
   "warning": {
@@ -681,6 +767,10 @@
       "title": "Tutup tanpa memuat turun?",
       "message": "Terdapat perubahan yang dibuat pada dokumen ini, adakah anda pasti mahu menutupnya tanpa memuat turun kerja anda? Anda tidak boleh membuat asal tindakan ini.",
       "rejectDownloadButton": "Tutup tanpa muat turun"
+    },
+    "connectToURL": {
+      "title": "Amaran keselamatan",
+      "message": "Dokumen ini cuba disambungkan ke:\n\n{{- uri}}\n\n Jika anda mempercayai dokumen ini, klik Sahkan untuk membukanya."
     }
   },
   "shortcut": {
@@ -973,6 +1063,18 @@
       "cancelMessage": "Adakah anda pasti mahu membatalkan pemangkasan semua halaman yang dipilih?"
     }
   },
+  "snippingPopUp": {
+    "title": "Alat Pemotongan",
+    "clipboard": "Salin ke Papan Keratan",
+    "download": "Muat turun",
+    "cropAndRemove": "Potong dan Buang",
+    "snippingModal": {
+      "applyTitle": "Terapkan pemotongan?",
+      "applyMessage": "Tindakan ini akan memotong kawasan yang ditentukan secara kekal dan mengeluarkan halaman lain. Ia tidak boleh dikembalikan.",
+      "cancelTitle": "Batal pemotongan?",
+      "cancelMessage": "Adakah anda pasti mahu menghentikan pemotongan?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Perenggan",
     "text": "Teks"
@@ -1015,8 +1117,46 @@
     "watermarkOptions": "Pilihan Tera Air",
     "watermarks": "Tera air"
   },
+  "portfolio": {
+    "createPDFPortfolio": "Cipta Portfolio PDF",
+    "uploadFiles": "Memuat naik fail",
+    "uploadFolder": "Muat naik Folder",
+    "addFiles": "Menambah fail",
+    "addFile": "Tambah fail",
+    "addFolder": "Tambah folder",
+    "createFolder": "Buat Folder",
+    "portfolioPanelTitle": "Portfolio PDF",
+    "portfolioNewFolder": "Fail baharu",
+    "portfolioFolderPlaceholder": "Nama folder",
+    "portfolioFilePlaceholder": "Nama fail",
+    "folderNameAlreadyExists": "Nama folder sudah wujud",
+    "fileNameAlreadyExists": "Nama fail sudah wujud",
+    "openFile": "Buka dalam Tab Baharu",
+    "fileAlreadyExists": "Fail Sudah Wujud",
+    "fileAlreadyExistsMessage": "Fail \"{{fileName}}\" sudah wujud dalam portfolio.",
+    "deletePortfolio": "Adakah anda pasti mahu memadamkan \"{{fileName}}\"?",
+    "reselect": "Pilih semula"
+  },
   "languageModal": {
     "selectLanguage": "Pilih Bahasa"
+  },
+  "officeEditor": {
+    "bold": "berani",
+    "italic": "Italic",
+    "underline": "Garis bawah",
+    "textColor": "Warna teks",
+    "leftAlign": "Jajar ke kiri",
+    "centerAlign": "Jajaran tengah",
+    "rightAlign": "Jajar ke kanan",
+    "justify": "Mewajarkan",
+    "lineSpacing": "Jarak baris & perenggan",
+    "bulletList": "Senarai berbulet",
+    "numberList": "Senarai bernombor",
+    "decreaseIndent": "Kurangkan inden",
+    "increaseIndent": "Tingkatkan inden",
+    "insertLink": "Sisipkan pautan",
+    "insertImage": "Sisipkan imej",
+    "notSupportedOnMobile": "Penyuntingan pejabat tidak disokong pada peranti mudah alih."
   },
   "insertPageModal": {
     "title": "Tambah Halaman Baharu",
@@ -1100,6 +1240,12 @@
     "watermark": "Tera air",
     "addWatermark": "Tambah Tera Air",
     "save": "Simpan fail",
-    "pageError": "Halaman tidak sah. Julat halaman yang sah adalah antara 1 -"
+    "pageError": "Halaman tidak sah. Julat halaman yang sah adalah antara 1 -",
+    "fileNameCannotBeEmpty": "Nama Fail tidak boleh kosong"
+  },
+  "filePicker": {
+    "dragAndDrop": "Seret & Lepaskan fail anda di sini",
+    "selectFile": "Pilih fail anda di sini",
+    "or": "Ataupun"
   }
 }
