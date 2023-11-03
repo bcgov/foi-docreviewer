@@ -2075,7 +2075,63 @@ const Redlining = React.forwardRef(
       return normalizedDocumentlist;
     };
 
-    const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg) => {
+    const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg) => {      
+    if (redlineSinglePkg == "Y") {
+      let reqdocuments = [];
+      for (let divObj of divisionDocuments) {    
+        for (let doc of divObj.documentlist) {
+          reqdocuments.push(doc);
+        }
+      }
+      prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
+    } else {
+      prepareRedlinePageMappingByDivision(divisionDocuments);
+    }
+  }
+    const prepareRedlinePageMappingByRequest = (divisionDocuments) => {
+      let removepages = {};
+      let pageMappings = {};
+      let pagesToRemove = []; 
+      let totalPageCount = 0;
+      let totalPageCountIncludeRemoved = 0;
+      for (let doc of divisionDocuments) {
+          let pagesToRemoveEachDoc = [];
+          pageMappings[doc.documentid] = {};
+            //gather pages that need to be removed
+            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+            for (const flagInfo of doc.pageFlag) {
+              if (
+                flagInfo.flagid == pageFlagTypes["Duplicate"] ||
+                flagInfo.flagid == pageFlagTypes["Not Responsive"]
+              ) {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+                pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    )
+                  );
+                  
+              } else {
+                pageMappings[doc.documentid][flagInfo.page] =
+                  flagInfo.page +
+                  totalPageCount -
+                  pagesToRemoveEachDoc.length;
+              }
+            }
+              //End of pageMappingsByDivisions
+          totalPageCount += Object.keys(
+            pageMappings[doc.documentid]
+          ).length;
+        totalPageCountIncludeRemoved += doc.pagecount;
+          
+          
+        }
+      removepages['0'] = pagesToRemove;  
+      setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
+    }
+    const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
       let pagesToRemove = []; 
@@ -2084,7 +2140,7 @@ const Redlining = React.forwardRef(
       let divisionCount = 0; 
       for (let divObj of divisionDocuments) {    
         divisionCount++;  
-        for (let doc of divObj.documentlist) {
+        for (let doc of sortByLastModified(divObj.documentlist)) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
             //gather pages that need to be removed
@@ -2096,19 +2152,11 @@ const Redlining = React.forwardRef(
                 flagInfo.flagid == pageFlagTypes["Not Responsive"]
               ) {
                 pagesToRemoveEachDoc.push(flagInfo.page);
-                if (redlineSinglePkg == "Y") {
-                  pagesToRemove.push(
-                    getStitchedPageNoFromOriginal(
-                      doc.documentid,
-                      flagInfo.page,
-                      pageMappedDocs
-                    )
-                  );
-                  } else {
+                
                       pagesToRemove.push(                  
                         flagInfo.page + totalPageCountIncludeRemoved
                       );
-                  }
+                 
               } else {
                 pageMappings[doc.documentid][flagInfo.page] =
                   flagInfo.page +
@@ -2124,16 +2172,12 @@ const Redlining = React.forwardRef(
           //}
           
         }
-        if (redlineSinglePkg == "Y") {
-          if (divisionCount == divisionDocuments.length) {
-            removepages['0'] = pagesToRemove;
-          }
-        } else {
+        
           removepages[divObj.divisionid] = pagesToRemove;
           pagesToRemove = [];
           totalPageCount = 0;
           totalPageCountIncludeRemoved = 0;
-        }     
+            
         
       }
       setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
@@ -2156,10 +2200,11 @@ const Redlining = React.forwardRef(
               )
             )
             .map((record) => {
-              return {
-                filename: divObj.divisionname + "/" + record.filename,
-                s3uripath: record.filepath,
-              };
+            let fname = redlineAPIResponse.issingleredlinepackage == "N" ? divObj.divisionname + "/" + record.filename : record.filename;  
+            return {
+              filename: fname,
+              s3uripath: record.filepath,
+            };
             });
             incompatibleFiles = incompatibleFiles.concat(divIncompatableFiles);
         }
@@ -2178,8 +2223,8 @@ const Redlining = React.forwardRef(
           incompatibleFiles = [];
         }
       }
-
       setRedlineIncompatabileMappings(divIncompatableMapping);
+      return divIncompatableMapping
     };
 
     const fetchDocumentRedlineAnnotations = async (requestid, documentids) => {
@@ -2224,7 +2269,8 @@ const Redlining = React.forwardRef(
       _instance,
       divisionDocuments,
       stitchlist,
-      redlineSinglePkg
+      redlineSinglePkg,
+      incompatableList
     ) => {
       let requestStitchObject = {};
       let divCount = 0;
@@ -2248,7 +2294,7 @@ const Redlining = React.forwardRef(
             isLoading: true,
           });
         }
-
+        if(documentlist.length > 0) {
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
@@ -2276,6 +2322,11 @@ const Redlining = React.forwardRef(
             requestStitchObject[division] = stitchedDocObj;
           }
         }
+      } else {
+        if (incompatableList[division]["incompatibleFiles"].length > 0) {
+            requestStitchObject[division] = null
+        } 
+      }
         if (redlineSinglePkg == "Y" && stitchedDocObj != null) {
           requestStitchObject["0"] = stitchedDocObj;
         }
@@ -2382,6 +2433,14 @@ const Redlining = React.forwardRef(
 
           let divisionid = key;
           let stitchObject = redlineStitchObject[key];
+          if (stitchObject == null) {
+            triggerRedlineZipper(
+              redlineIncompatabileMappings[divisionid],
+              redlineStitchInfo[divisionid]["s3path"],
+              divisionCountForToast,
+              redlineSinglePackage
+            );
+          } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
             redlinepageMappings["pagemapping"],
@@ -2461,6 +2520,7 @@ const Redlining = React.forwardRef(
                 }
               );
             });
+          }
         }
       };
 
@@ -2496,11 +2556,12 @@ const Redlining = React.forwardRef(
           setRedlineSinglePackage(res.issingleredlinepackage);
 
           let stitchDoc = {};
+          
           prepareRedlinePageMapping(
             divisionDocuments,
             res.issingleredlinepackage
           );
-          prepareRedlineIncompatibleMapping(res);
+          let incompatableList = prepareRedlineIncompatibleMapping(res);
           fetchDocumentRedlineAnnotations(requestid, documentids);
           setRedlineZipperMessage({
             ministryrequestid: requestid,
@@ -2552,9 +2613,14 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage == "Y" &&
               divCount == res.divdocumentList.length
             ) {
-              stitchDocuments["0"] = sortByLastModified(documentsObjArr);
+              let sorteddocIds = [];
+              let sorteddocuments =  sortByLastModified(documentsObjArr);
+              stitchDocuments["0"] = sorteddocuments;
+              for(const element of sorteddocuments) {
+                sorteddocIds.push(element['documentid']);
+              }
               stitchDoc["0"] = {
-                documentids: documentids,
+                documentids: sorteddocIds,
                 s3path: res.s3path_save,
                 stitchpages: divisionstitchpages,
                 bcgovcode: res.bcgovcode,
@@ -2564,10 +2630,14 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage != "Y" &&
               docCount == div.documentlist.length
             ) {
-              let divdocumentids = documentsObjArr.map((obj) => obj.documentid);
-              stitchDocuments[div.divisionid] = sortByLastModified(
-                div.documentlist
-              );
+              //let divdocumentids = documentsObjArr.map((obj) => obj.documentid);
+              
+              let divdocumentids = [];
+              let sorteddocuments =  sortByLastModified(div.documentlist);
+              stitchDocuments[div.divisionid] = sorteddocuments;
+              for(const element of sorteddocuments) {
+                divdocumentids.push(element['documentid']);
+              }
               stitchDoc[div.divisionid] = {
                 documentids: divdocumentids,
                 s3path: div.s3path_save,
@@ -2580,15 +2650,16 @@ const Redlining = React.forwardRef(
           }
           
           
-          if (Object.keys(stitchDoc).length >0)  {
+          //if (Object.keys(stitchDoc).length >0)  {
           setRedlineStitchInfo(stitchDoc);
           stitchForRedlineExport(
             _instance,
             divisionDocuments,
             stitchDocuments,
-            res.issingleredlinepackage
+            res.issingleredlinepackage,
+            incompatableList
           );
-          }
+          //}
         },
         (error) => {
           console.log("Error fetching document:", error);
