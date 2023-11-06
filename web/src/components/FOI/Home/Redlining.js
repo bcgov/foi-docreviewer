@@ -261,12 +261,12 @@ const Redlining = React.forwardRef(
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
         fetchSections(requestid, (error) => console.log(error));
-        let response = await fetchPDFTronLicense(null, (error) =>
+        let license = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
         WebViewer(
           {
-            licenseKey: response.data.license,
+            licenseKey: license,
             path: "/webviewer",
             preloadWorker: "pdf",
             // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
