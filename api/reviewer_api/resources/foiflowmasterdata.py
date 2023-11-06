@@ -290,7 +290,7 @@ class FOIFlowS3PresignedRedline(Resource):
                 if len(div["documentlist"]) > 0:
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                     if is_single_redline_package(_bcgovcode) == False:
-                        division_name = div["documentlist"][0]["divisions"][0]["name"]
+                        division_name = div["divisionname"]
                         # generate save url for stitched file
                         filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
                             filepathlist[0], division_name
