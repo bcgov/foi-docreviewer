@@ -16,12 +16,17 @@
     "comment": "Opmerking",
     "reply": "Antwoorden",
     "copy": "Kopieer",
+    "cut": "Snee",
+    "paste": "Plakken",
+    "pasteWithoutFormatting": "Plakken zonder opmaak",
     "delete": "Verwijder",
+    "deleted": "Verwijderd",
     "group": "Groep",
     "ungroup": "Ungroup",
     "download": "Download bestand",
     "edit": "Titel aanpassen",
     "extract": "Extract",
+    "extractPage": "Pagina uitpakken",
     "enterFullscreen": "Document in volledig scherm",
     "exitFullscreen": "Document normaal weergeven",
     "fit": "Zoomen",
@@ -29,6 +34,7 @@
     "fitToWidth": "Vensterbreedte",
     "more": "Meer",
     "openFile": "Open bestand",
+    "page": "Bladzijde",
     "pagePrev": "Vorige pagina",
     "pageNext": "Volgende bladzijde",
     "pageSet": "Kies pagina",
@@ -41,6 +47,12 @@
     "rotate3D": "Draaien",
     "rotateClockwise": "Met de klok mee",
     "rotateCounterClockwise": "Tegen de klok in",
+    "rotatedClockwise": "met de klok mee gedraaid",
+    "rotatedCounterClockwise": "tegen de klok in gedraaid",
+    "rotationIs": "huidige paginarotatie is",
+    "movedToBottomOfDocument": "verplaatst naar de onderkant van het document",
+    "movedToTopofDocument": "verplaatst naar de bovenkant van het document",
+    "extracted": "geëxtraheerd",
     "save": "Bewaren",
     "post": "Plaats",
     "create": "creëren",
@@ -53,6 +65,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom uit",
     "zoomSet": "Zoom instellen",
+    "zoomChanged": "Huidige zoom is",
     "zoomControls": "Zoomregelaars",
     "draw": "Teken",
     "type": "Type",
@@ -70,14 +83,19 @@
     "formFieldEdit": "Formulierveld bewerken",
     "viewShortCutKeysFor3D": "Bekijk sneltoetsen",
     "markAllRead": "Markeer alles als gelezen",
+    "pageInsertion": "Pagina-invoeging",
     "insertPage": "Pagina invoegen",
     "insert": "Invoegen",
     "pageManipulation": "Paginamanipulatie",
     "replace": "Vervangen",
+    "replacePage": "Pagina vervangen",
+    "modal": "modaal",
+    "isOpen": "is geopend",
     "setDestination": "Bestemming instellen",
     "showLess": "laat minder zien",
     "showMore": "...meer",
     "chooseFile": "Kies een bestand",
+    "changeDate": "Verander de datum",
     "browse": "Bestanden doorbladeren",
     "selectYourOption": "Selecteer uw optie",
     "open": "Open",
@@ -85,6 +103,9 @@
     "select": "Selecteer",
     "moveToTop": "Ga naar boven",
     "moveToBottom": "Naar beneden verplaatsen",
+    "movePageToTop": "Pagina naar boven verplaatsen",
+    "movePageToBottom": "Pagina naar beneden verplaatsen",
+    "backToMenu": "Terug naar menu",
     "redactPages": "Pagina's redigeren",
     "playAudio": "Audio afspelen",
     "pauseAudio": "audio pauze",
@@ -95,7 +116,11 @@
     "multiReplyAnnotations": "Reageren op geselecteerde annotaties ({{count}})",
     "comparePages": "Vergelijk pagina's",
     "startComparison": "Vergelijking starten",
-    "back": "Rug"
+    "showComparison": "Toon vergelijking",
+    "back": "Rug",
+    "clearSignature": "Duidelijke handtekening",
+    "newDocument": "Nieuw document",
+    "sideBySideView": "Zij aan zij weergave"
   },
   "annotation": {
     "areaMeasurement": "Oppervlaktemeting",
@@ -109,6 +134,8 @@
     "formFillCheckmark": "Kruis aan",
     "formFillCross": "Kruis",
     "distanceMeasurement": "Afstandsmeting",
+    "rectangularAreaMeasurement": "rechthoekig gebied",
+    "ellipseMeasurement": "Ellips gebied",
     "countMeasurement": "Tel meting",
     "ellipse": "Ellips",
     "eraser": "Gum",
@@ -129,6 +156,7 @@
     "redact": "Redigeren",
     "formFillDot": "Punt",
     "signature": "Handtekening",
+    "snipping": "Uitsnijden gereedschap",
     "squiggly": "Squiggly",
     "stamp": "Stempel",
     "stickyNote": "Commentaar",
@@ -250,6 +278,7 @@
     "errorEnterMeasurement": "Het getal dat je hebt ingevoerd is ongeldig, je kunt waarden invoeren zoals 7,5 of 7 1/2",
     "linkURLorPage": "Link-URL of een pagina",
     "warning": "Waarschuwing",
+    "svgMalicious": "SVG-script genegeerd om veiligheidsredenen",
     "enterContentEditingMode": "U staat op het punt om naar de tekstbewerkingsmodus te gaan.",
     "existingAnnotationWarning": "Bestaande annotaties komen mogelijk niet overeen met de tekst nadat deze is bewerkt.",
     "changesCannotBeUndone": "Aangebrachte wijzigingen kunnen niet ongedaan worden gemaakt.",
@@ -379,7 +408,8 @@
       "qualityHigh": "Hoog",
       "includeAnnotations": "Voeg annotaties toe",
       "includeComments": "Inclusief commentaar",
-      "printSettings": "Afdrukinstellingen"
+      "printSettings": "Afdrukinstellingen",
+      "printGrayscale": "Grijstinten afdrukken"
     },
     "printInfo": {
       "author": "Schrijver",
@@ -425,12 +455,10 @@
       "drawSignature": "Handtekening tekenen*",
       "drawInitial": "Initialen tekenen*",
       "pickInitialsFile": "Kies initialen",
-      "noSignatures": "Er zijn momenteel geen opgeslagen handtekeningen."
+      "noSignatures": "Er zijn momenteel geen opgeslagen handtekeningen.",
+      "fontStyle": "lettertype"
     },
     "pageReplacementModal": {
-      "dragAndDrop": "Sleep en zet uw bestand hier neer",
-      "selectFile": "Selecteer hier uw bestand",
-      "or": "Of",
       "yourFiles": "Uw bestanden",
       "chooseFile": "Kies een bestand",
       "localFile": "Lokaal bestand",
@@ -447,7 +475,9 @@
       "filters": "Filters",
       "user": "Gebruiker",
       "type": "Type",
-      "status": "Toestand"
+      "status": "Toestand",
+      "filterSettings": "Filterinstellingen",
+      "filterDocument": "Filter document en opmerkingenpaneel"
     },
     "state": {
       "accepted": "Geaccepteerd",
@@ -512,10 +542,16 @@
         "ifToContinue": "Weet je zeker dat je wilt doorgaan?"
       }
     },
+    "contentEdit": {
+      "deletionModal": {
+        "title": "Inhoud verwijderen",
+        "message": "Weet u zeker dat u de geselecteerde inhoud wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
+      }
+    },
     "stylePopup": {
       "textStyle": "Tekststijl",
       "colors": "Kleuren",
-      "invalidFontSize": "Lettergrootte moet kleiner zijn dan",
+      "invalidFontSize": "De lettergrootte moet binnen het volgende bereik liggen",
       "labelText": "Labeltekst",
       "labelTextPlaceholder": "Labeltekst toevoegen"
     },
@@ -557,7 +593,12 @@
     "thumbnailPanel": {
       "delete": "Verwijderen",
       "rotateClockwise": "Met de klok mee",
-      "rotateCounterClockwise": "Tegen de klok in"
+      "rotateCounterClockwise": "Tegen de klok in",
+      "rotatePageClockwise": "Pagina met de klok mee draaien",
+      "rotatePageCounterClockwise": "Pagina tegen de klok in draaien",
+      "moreOptions": "Meer opties",
+      "moreOptionsMenu": "Meer miniaturen Optiemenu",
+      "enterPageNumbers": "Voer paginanummers in om te selecteren"
     },
     "thumbnailsControlOverlay": {
       "move": "Pagina's verplaatsen"
@@ -607,13 +648,13 @@
     },
     "settings": {
       "settings": "Instellingen",
+      "searchSettings": "Zoek instellingen",
       "general": "Algemeen",
-      "keyboardShortcut": "Toetsenbord sneltoets",
-      "advancedSetting": "Geavanceerde instelling",
       "language": "Taal",
       "theme": "Thema",
       "darkMode": "Donkere modus",
       "lightMode": "Lichtmodus",
+      "advancedSetting": "Geavanceerde instelling",
       "viewing": "Bekijken",
       "disableFadePageNavigationComponent": "Fade Pagina-navigatiecomponent uitschakelen",
       "disableFadePageNavigationComponentDesc": "Houd de paginanavigatiecomponent altijd op het scherm. Het standaardgedrag is om het te vervagen na een bepaalde periode van inactiviteit.",
@@ -638,7 +679,52 @@
       "disablePageDeletionConfirmationModal": "Modaal voor verwijderen van pagina uitschakelen",
       "disablePageDeletionConfirmationModalDesc": "Schakel de bevestigingsmodaliteit uit bij het verwijderen van een pagina uit de miniatuurweergave",
       "disableMultiselect": "Multiselect uitschakelen",
-      "disableMultiselectDesc": "Schakel multi-select uit in het linkerminiatuurpaneel"
+      "disableMultiselectDesc": "Schakel multi-select uit in het linkerminiatuurpaneel",
+      "miscellaneous": "Diversen",
+      "keyboardShortcut": "Toetsenbord sneltoets",
+      "command": "Opdracht",
+      "description": "Beschrijving",
+      "action": "Actie",
+      "rotateDocumentClockwise": "Draai het document rechtsom",
+      "rotateDocumentCounterclockwise": "Draai het document tegen de klok in",
+      "copyText": "Kopieer geselecteerde tekst of annotaties",
+      "pasteText": "Plak tekst of annotaties",
+      "undoChange": "Een annotatiewijziging ongedaan maken",
+      "redoChange": "Voer een annotatiewijziging opnieuw uit",
+      "openFile": "Open de bestandskiezer",
+      "openSearch": "Open de zoekoverlay",
+      "zoomIn": "In zoomen",
+      "zoomOut": "Uitzoomen",
+      "fitScreenWidth": "Pas het document aan de schermbreedte aan in een klein scherm (< 640px), pas het anders aan aan de oorspronkelijke grootte",
+      "print": "Afdrukken",
+      "bookmarkOpenPanel": "Maak snel een bladwijzer voor een pagina en open het bladwijzerpaneel",
+      "goToPreviousPage": "Ga naar de vorige pagina",
+      "goToNextPage": "Ga naar de volgende pagina",
+      "goToPreviousPageArrowUp": "Ga naar de vorige pagina in enkele lay-outmodus (ArrowUp)",
+      "goToNextPageArrowDown": "Naar de volgende pagina gaan in enkele lay-outmodus (pijl omlaag)",
+      "holdSwitchPan": "Houd ingedrukt om over te schakelen naar de Pan-modus en laat los om terug te keren naar het vorige gereedschap",
+      "selectAnnotationEdit": "Selecteer de AnnotationEdit-tool",
+      "selectPan": "Selecteer het gereedschap Pannen",
+      "selectCreateArrowTool": "Selecteer het hulpmiddel AnnotationCreateArrow",
+      "selectCreateCalloutTool": "Selecteer de tool AnnotationCreateCallout",
+      "selectEraserTool": "Selecteer het hulpmiddel AnnotationEraser",
+      "selectCreateFreeHandTool": "Selecteer de tool AnnotationCreateFreeHand",
+      "selectCreateStampTool": "Selecteer de tool AnnotationCreateStamp",
+      "selectCreateLineTool": "Selecteer de tool AnnotationCreateLine",
+      "selectCreateStickyTool": "Selecteer de tool AnnotationCreateSticky",
+      "selectCreateEllipseTool": "Selecteer het hulpmiddel AnnotationCreateEllipse",
+      "selectCreateRectangleTool": "Selecteer het hulpmiddel AnnotationCreateRectangle",
+      "selectCreateRubberStampTool": "Selecteer de tool AnnotationCreateRubberStamp",
+      "selectCreateFreeTextTool": "Selecteer de tool AnnotationCreateFreeText",
+      "openSignatureModal": "Open het handtekeningmodel of de overlay",
+      "selectCreateTextSquigglyTool": "Selecteer de tool AnnotationCreateTextSquiggly",
+      "selectCreateTextHighlightTool": "Selecteer het hulpmiddel AnnotationCreateTextHighlight",
+      "selectCreateTextStrikeoutTool": "Selecteer de tool AnnotationCreateTextStrikeout",
+      "selectCreateTextUnderlineTool": "Selecteer het hulpmiddel AnnotationCreateTextUnderline",
+      "editKeyboardShorcut": "Sneltoets bewerken",
+      "setShorcut": "Snelkoppeling instellen",
+      "pressKeyToSet": "Druk op de toets of toetsen om een nieuwe snelkoppeling in te stellen.",
+      "shortcutAlreadyExists": "De sneltoets hierboven bestaat al."
     }
   },
   "warning": {
@@ -681,6 +767,10 @@
       "title": "Sluiten zonder te downloaden?",
       "message": "Er zijn wijzigingen aangebracht in dit document. Weet u zeker dat u het wilt sluiten zonder uw werk te downloaden? Je kunt deze actie niet ongedaan maken.",
       "rejectDownloadButton": "Sluiten zonder downloaden"
+    },
+    "connectToURL": {
+      "title": "Veiligheidswaarschuwing",
+      "message": "Dit document probeert verbinding te maken met:\n\n{{- uri}}\n\n Als u dit document vertrouwt, klikt u op Bevestigen om het te openen."
     }
   },
   "shortcut": {
@@ -973,6 +1063,18 @@
       "cancelMessage": "Weet u zeker dat u het bijsnijden van alle geselecteerde pagina's wilt annuleren?"
     }
   },
+  "snippingPopUp": {
+    "title": "Uitsnijden gereedschap",
+    "clipboard": "Kopiëren naar Klembord",
+    "download": "Downloaden",
+    "cropAndRemove": "Bijsnijden en Verwijderen",
+    "snippingModal": {
+      "applyTitle": "Uitsnijden toepassen?",
+      "applyMessage": "Deze actie zal het opgegeven gebied permanent uitsnijden en andere pagina's verwijderen. Dit kan niet ongedaan worden gemaakt.",
+      "cancelTitle": "Uitsnijden annuleren?",
+      "cancelMessage": "Weet u zeker dat u het uitsnijden wilt stoppen?"
+    }
+  },
   "textEditingPanel": {
     "paragraph": "Paragraaf",
     "text": "Tekst"
@@ -1015,8 +1117,46 @@
     "watermarkOptions": "Watermerkopties",
     "watermarks": "Watermerken"
   },
+  "portfolio": {
+    "createPDFPortfolio": "PDF-portfolio maken",
+    "uploadFiles": "Upload bestanden",
+    "uploadFolder": "Map uploaden",
+    "addFiles": "Bestanden toevoegen",
+    "addFile": "Bestand toevoegen",
+    "addFolder": "Map toevoegen",
+    "createFolder": "Map aanmaken",
+    "portfolioPanelTitle": "PDF-portfolio",
+    "portfolioNewFolder": "Nieuwe map",
+    "portfolioFolderPlaceholder": "Naam van de map",
+    "portfolioFilePlaceholder": "Bestandsnaam",
+    "folderNameAlreadyExists": "Mapnaam bestaat al",
+    "fileNameAlreadyExists": "Bestandsnaam bestaat al",
+    "openFile": "Openen in nieuw tabblad",
+    "fileAlreadyExists": "Bestand bestaat al",
+    "fileAlreadyExistsMessage": "Het bestand \"{{fileName}}\" bestaat al in het portfolio.",
+    "deletePortfolio": "Weet u zeker dat u \"{{fileName}}\" wilt verwijderen?",
+    "reselect": "Opnieuw selecteren"
+  },
   "languageModal": {
     "selectLanguage": "Selecteer taal"
+  },
+  "officeEditor": {
+    "bold": "Vetgedrukt",
+    "italic": "Cursief",
+    "underline": "Onderstrepen",
+    "textColor": "Tekst kleur",
+    "leftAlign": "Links uitlijnen",
+    "centerAlign": "Midden uitlijnen",
+    "rightAlign": "Rechts uitlijnen",
+    "justify": "Verantwoorden",
+    "lineSpacing": "Regel- en alinea-afstand",
+    "bulletList": "Lijst met opsommingstekens",
+    "numberList": "Genummerde lijst",
+    "decreaseIndent": "Inspringing verkleinen",
+    "increaseIndent": "Inspringing vergroten",
+    "insertLink": "Koppeling invoegen",
+    "insertImage": "Voeg afbeelding in",
+    "notSupportedOnMobile": "Office-bewerking wordt niet ondersteund op mobiele apparaten."
   },
   "insertPageModal": {
     "title": "Nieuwe pagina toevoegen",
@@ -1100,6 +1240,12 @@
     "watermark": "Watermerk",
     "addWatermark": "Voeg een watermerk toe",
     "save": "Sla bestand op",
-    "pageError": "Ongeldige pagina. Geldige paginabereiken liggen tussen 1 -"
+    "pageError": "Ongeldige pagina. Geldige paginabereiken liggen tussen 1 -",
+    "fileNameCannotBeEmpty": "Bestandsnaam mag niet leeg zijn"
+  },
+  "filePicker": {
+    "dragAndDrop": "Sleep uw bestand hierheen",
+    "selectFile": "Selecteer hier uw bestand",
+    "or": "Of"
   }
 }

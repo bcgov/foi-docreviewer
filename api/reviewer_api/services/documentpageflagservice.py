@@ -3,85 +3,210 @@ import json
 import copy
 import logging
 from reviewer_api.models.DocumentPageflags import DocumentPageflag
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
+from datetime import datetime
+
 
 class documentpageflagservice:
+    def getpageflags(self, requestid, redactionlayerid):
+        layerids = redactionlayerservice().getmappedredactionlayers(
+            {"redactionlayerid": redactionlayerid}
+        )
+        return DocumentPageflag.getpageflag_by_request(requestid, layerids)
 
-    
-    def getpageflags(self, requestid):
-        return DocumentPageflag.getpageflag_by_request(requestid)
-    
     def getpublicbody(self, requestid):
         return DocumentPageflag.getpublicbody_by_request(requestid)
-    
-    def getdocumentpageflags(self, requestid, documentid=None, version=None):
-        pageflag  = DocumentPageflag.getpageflag(requestid, documentid, version)
+
+    def getdocumentpageflags(
+        self, requestid, redactionlayerid, documentid=None, version=None
+    ):
+        layerids = redactionlayerservice().getmappedredactionlayers(
+            {"redactionlayerid": redactionlayerid}
+        )
+        pageflag = DocumentPageflag.getpageflag(
+            requestid, documentid, version, layerids
+        )
         if pageflag not in (None, {}):
-            if pageflag["pageflag"] is not None:
-                return pageflag["pageflag"]
-            else:
-                return []
-        return None
+            return pageflag["pageflag"], pageflag["attributes"]
+        return [], None
 
-    def removebookmark(self,requestid, userinfo):
-        pageflags = self.getpageflags(requestid)
+    def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
+        layerids = redactionlayerservice().getmappedredactionlayers(
+            {"redactionlayerid": redactionlayerid}
+        )
+        return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
+
+    def removebookmark(self, requestid, redactionlayerid, userinfo):
+        pageflags = self.getpageflags(requestid, redactionlayerid)
         for entry in pageflags:
-            new_pageflag = list(filter(lambda x: x['flagid'] != 8 , entry['pageflag']))
-            DocumentPageflag.updatepageflag(requestid, entry['documentid'],  entry['documentversion'], json.dumps(new_pageflag), json.dumps(userinfo))
-    
-    def savepageflag(self, requestid, documentid, version, data, userinfo):
+            new_pageflag = list(filter(lambda x: x["flagid"] != 8, entry["pageflag"]))
+            DocumentPageflag.savepageflag(
+                requestid,
+                entry["documentid"],
+                entry["documentversion"],
+                json.dumps(new_pageflag),
+                json.dumps(userinfo),
+                redactionlayerid,
+            )
 
-        if self.__isbookmark(data) == True: 
-            self.removebookmark(requestid, userinfo)
-        pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        formattted_data = self.__formatpageflag(data)
-        if pageflag is not None:
-            isnew = True
-            for entry in pageflag:
-                if entry["page"] == data["page"]:
-                    isnew = False
-                    pageflag.remove(entry)
-                    pageflag.append(formattted_data)
-            if isnew == True:
-                pageflag.append(formattted_data)
-            result = DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-        else:
-            pageflag = []
-            pageflag.append(formattted_data)
-            result = DocumentPageflag.createpageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-        self.handlepublicbody(requestid, documentid, version, data, userinfo)
-        return result
-    
+    def bulksavedocumentpageflag(
+        self, requestid, documentid, version, pageflags, redactionlayerid, userinfo
+    ):
+        docpageflags, docpgattributes = self.getdocumentpageflags(
+            requestid, redactionlayerid, documentid, version
+        )
+        for pageflag in pageflags:
+            if self.__isbookmark(pageflag) == True:
+                self.removebookmark(requestid, redactionlayerid, userinfo)
+            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+            docpageflags = self.__createnewpageflag(docpageflags, pageflag)
+        __docpgattributes = (
+            json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+        )
+        __docpageflags = (
+            json.dumps(docpageflags) if docpageflags not in (None, "") else None
+        )
+        return DocumentPageflag.savepageflag(
+            requestid,
+            documentid,
+            version,
+            __docpageflags,
+            json.dumps(userinfo),
+            redactionlayerid,
+            __docpgattributes,
+        )
 
-    def bulksavepageflags(self, requestid, documentid, version, pageflaglist, userinfo):
-        pageflag = self.getdocumentpageflags(requestid, documentid, version)
-        existingdocument = True
-        if(pageflag is None):
-            existingdocument = False
-            pageflag = []
-        for data in pageflaglist:
-            # if self.__isbookmark(data) == True: 
-            #     self.removebookmark(requestid, userinfo)
-            self.__createnewpageflag(pageflag, data)
-        if existingdocument == True:
-            result = DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
+    def bulksavepageflag(self, requestid, data, userinfo):
+        results = []
+        for entry in data["documentpageflags"]:
+            try:
+                result = self.bulksavedocumentpageflag(
+                    requestid,
+                    entry["documentid"],
+                    entry["version"],
+                    entry["pageflags"],
+                    entry["redactionlayerid"],
+                    userinfo,
+                )
+                results.append(
+                    {
+                        "documentid": entry["documentid"],
+                        "version": entry["version"],
+                        "redactionlayerid": entry["redactionlayerid"],
+                        "message": result.message,
+                    }
+                )
+            except Exception as ex:
+                logging.error(ex)
+                results.append(
+                    {
+                        "documentid": entry["documentid"],
+                        "version": entry["version"],
+                        "redactionlayerid": entry["redactionlayerid"],
+                        "message": "Page flag is not saved",
+                    }
+                )
+        return results
+
+    def handlepublicbody(self, docpgattributes, data):
+        if "publicbodyaction" in data and data["publicbodyaction"] == "add":
+            attributes = docpgattributes if docpgattributes not in (None, {}) else None
+            publicbody = (
+                attributes["publicbody"]
+                if attributes not in (None, {}) and "publicbody" in attributes
+                else []
+            )
+            publicbody = set(map(lambda x: x["name"], publicbody))
+            publicbody.update(data["other"])
+            return {"publicbody": list(map(lambda x: {"name": x}, publicbody))}
         else:
-            result = DocumentPageflag.createpageflag(requestid, documentid, version, json.dumps(pageflag), json.dumps(userinfo))
-            #self.handlepublicbody(requestid, documentid, version, data, userinfo)
-        return result
-        
-    
-    def removepageflag(self,requestid, documentid, version, page, userinfo):
-        pageflags = self.getdocumentpageflags(requestid, documentid, version)
-        withheldinfullobj= next((obj for obj in pageflags if (obj["page"] == page and obj["flagid"] in [1, 3, 7]) ),None)
+            return docpgattributes
+
+    def removepageflag(
+        self, requestid, documentid, version, page, redactionlayerid, userinfo
+    ):
+        pageflags, _ = self.getdocumentpageflags(
+            requestid, redactionlayerid, documentid, version
+        )
+        withheldinfullobj = next(
+            (
+                obj
+                for obj in pageflags
+                if (obj["page"] == page and obj["flagid"] in [1, 3, 7])
+            ),
+            None,
+        )
         if withheldinfullobj is not None:
             pageflags.remove(withheldinfullobj)
-            DocumentPageflag.updatepageflag(requestid, documentid, version, json.dumps(pageflags), json.dumps(userinfo))
+            DocumentPageflag.savepageflag(
+                requestid,
+                documentid,
+                version,
+                json.dumps(pageflags),
+                json.dumps(userinfo),
+                redactionlayerid,
+            )
+
+    # method to update pageflags by removing the necessary pageflags for a document
+    def updatepageflags(
+        self, requestid, deldocpagesmapping, redactionlayerid, userinfo
+    ):
+        documentids = [
+            item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
+        ]
+        # get the pageflag details(all columns from table) for the pages with no redactions
+        pageflags = self.getdocumentpageflagsbydocids(
+            requestid, redactionlayerid, documentids
+        )
+        self.__filterandsavepageflags(
+            pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
+        )
+
+    def __filterandsavepageflags(
+        self,
+        pageflags,
+        deldocpagesmapping,
+        requestid,
+        userinfo,
+        redactionlayerid,
+    ):
+        for page_data in deldocpagesmapping:
+            if len(page_data["pages"]) > 0:
+                pages_to_remove = page_data["pages"]
+                for pageflag in pageflags:
+                    if pageflag["documentid"] == page_data["docid"]:
+                        updatedpageflags = self.__getupdatedpageflag(
+                            pageflag, pages_to_remove
+                        )
+                        pageflag["pageflag"] = (
+                            json.dumps(updatedpageflags)
+                            if updatedpageflags not in (None, "")
+                            else None
+                        )
+                        break
+                DocumentPageflag.savepageflag(
+                    requestid,
+                    pageflag["documentid"],
+                    pageflag["documentversion"],
+                    pageflag["pageflag"],
+                    json.dumps(userinfo),
+                    redactionlayerid,
+                )
+
+    def __getupdatedpageflag(self, pageflag, pages_to_remove):
+        # returns the updated pageflag after removing the pages with pageflags [1, 3, 7]
+        # conditions to check: if the page is part of pages_to_remove
+        # or flagid in [1(Partial Disclosure), 3 (Withheld in Full), 7(In Progress)]
+        return [
+            entry
+            for entry in pageflag["pageflag"]
+            if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 3, 7]
+        ]
 
     def __createnewpageflag(self, pageflag, data):
         formattted_data = self.__formatpageflag(data)
-        existingdocument = False
-        if pageflag is not None:
+        if pageflag is not None and len(pageflag) > 0:
             isnew = True
             for entry in pageflag:
                 if entry["page"] == data["page"]:
@@ -92,38 +217,16 @@ class documentpageflagservice:
                 pageflag.append(formattted_data)
         else:
             pageflag = []
-            pageflag.append(formattted_data)  
-    
+            pageflag.append(formattted_data)
+        return pageflag
+
     def __formatpageflag(self, data):
-        _normalised = copy.deepcopy(data)
+        _normalised = data
         if "publicbodyaction" in _normalised:
             del _normalised["publicbodyaction"]
-        return _normalised    
+        return _normalised
 
     def __isbookmark(self, data):
         if data["flagid"] == 8:
             return True
-        return False    
-
-    def handlepublicbody(self, requestid, documentid, version, data, userinfo):
-        if "publicbodyaction" in data and data["publicbodyaction"] =="add":
-            pageflag = DocumentPageflag.getpageflag(requestid, documentid, version)
-            attributes = pageflag["attributes"] if pageflag["attributes"] not in (None,{}) else None
-            publicbody = attributes["publicbody"] if attributes not in(None, {}) and "publicbody" in attributes else []
-            publicbody = set(map(lambda x : x['name'], publicbody))
-            publicbody.update(data["other"])
-            publicbody = list(map(lambda x : {"name": x}, publicbody))
-            DocumentPageflag.savepublicbody(requestid, documentid, version, json.dumps({"publicbody": publicbody}), json.dumps(userinfo))        
-        else:
-            return
-        
-
-        
-            
-
-
-                    
-
-
-
-
+        return False

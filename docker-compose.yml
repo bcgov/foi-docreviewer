@@ -13,6 +13,9 @@ services:
         - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}
         - FOI_DOCREVIEWER_BASE_API_URL=${FOI_DOCREVIEWER_BASE_API_URL}
         - REACT_APP_PDFVIEWERDISABLED=${REACT_APP_PDFVIEWERDISABLED}
+        - REACT_APP_ANNOTATION_PAGE_SIZE=${REACT_APP_ANNOTATION_PAGE_SIZE}
+        - REACT_APP_PAGE_SELECT_LIMIT=${PAGE_SELECT_LIMIT}
+        - REACT_APP_REDACTION_SELECT_LIMIT=${REDACTION_SELECT_LIMIT}
     volumes:
       - ".:/web"
       - "/web/node_modules"
@@ -62,10 +65,17 @@ services:
       - OSS_S3_HOST=${OSS_S3_HOST}
       - OSS_S3_REGION=${OSS_S3_REGION}
       - OSS_S3_SERVICE=${OSS_S3_SERVICE}
+      - PDFTRON_WEBVIEWER_LICENSE=${PDFTRON_WEBVIEWER_LICENSE}
       - DEDUPE_S3_ENV=${DEDUPE_S3_ENV}
       - DEDUPE_STREAM_KEY=${DEDUPE_STREAM_KEY}
       - FILE_CONVERSION_STREAM_KEY=${FILE_CONVERSION_STREAM_KEY}
       - FOI_RECORD_FORMATS=${FOI_RECORD_FORMATS}
+      - ZIPPER_REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - ZIPPER_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - ZIPPER_REDIS_PORT=${DEDUPE_REDIS_PORT}
+      - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
+      - BATCH_CONFIG=${BATCH_CONFIG}
+      - REDLINE_SINGLE_PKG_MINISTRIES=${REDLINE_SINGLE_PKG_MINISTRIES}
 
   foi-docreviewer-db:
     image: postgres
@@ -140,7 +150,43 @@ services:
       - DEDUPE_S3_HOST=${DEDUPE_S3_HOST}
       - DEDUPE_S3_REGION=${DEDUPE_S3_REGION}
       - DEDUPE_S3_SERVICE=${DEDUPE_S3_SERVICE}
+      - DEDUPE_REQUEST_MANAGEMENT_API=${DEDUPE_REQUEST_MANAGEMENT_API}
+      - DEDUPE_RECORD_FORMATS=${DEDUPE_RECORD_FORMATS}
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+
+  foi-docreviewer-zippingservice:
+    container_name: foi-docreviewer-zippingservice
+    depends_on:
+      - foi-docreviewer-db
+      - foi-docreviewer-redis
+    build:
+      context: ./computingservices/ZippingServices
+      dockerfile: Dockerfile.local
+    image: docreviewerzipperimage
+    stdin_open: true
+    tty: true
+    networks:
+      services-network:
+        aliases:
+          - docreviewerzipper 
+    environment:
+      - REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - REDIS_PORT=${DEDUPE_REDIS_PORT}
+      - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
+      - S3_ENV=${DEDUPE_S3_ENV}
+      - DB_HOST=${DEDUPE_DB_HOST}
+      - DB_NAME=${DEDUPE_DB_NAME}
+      - DB_PORT=${DEDUPE_DB_PORT}
+      - DB_USER=${DEDUPE_DB_USER}
+      - DB_PASSWORD=${DEDUPE_DB_PASSWORD}
+      - S3_HOST=${DEDUPE_S3_HOST}
+      - S3_REGION=${DEDUPE_S3_REGION}
+      - S3_SERVICE=${DEDUPE_S3_SERVICE}
+      - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+      - NOTIFICATION_REDIS_HOST=${DEDUPE_REDIS_HOST}
+      - NOTIFICATION_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+      - NOTIFICATION_REDIS_PORT=${DEDUPE_REDIS_PORT}
 
   foi-docreviewer-pdfstitch:
       container_name: foi-docreviewer-pdfstitch
@@ -182,6 +228,10 @@ services:
         - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
         - NUMBERING_ENABLED=${NUMBERING_ENABLED}
         - NOTIFICATION_ENABLED=${NOTIFICATION_ENABLED}
+        - ZIPPER_REDIS_HOST=${DEDUPE_REDIS_HOST}
+        - ZIPPER_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
+        - ZIPPER_REDIS_PORT=${DEDUPE_REDIS_PORT}
+        - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
 
 volumes:
   dbdata:

@@ -1,6 +1,6 @@
 # base image
 # FROM node:14.17.0-alpine as build-stage
-FROM node:14.17.0-alpine as build-stage
+FROM node:20.8.0-alpine as build-stage
 
 # set working directory
 WORKDIR /web
@@ -12,6 +12,9 @@ ARG REACT_APP_KEYCLOAK_CLIENT
 ARG REACT_APP_KEYCLOAK_URL_REALM
 ARG REACT_APP_KEYCLOAK_URL
 ARG FOI_DOCREVIEWER_BASE_API_URL
+ARG REACT_APP_ANNOTATION_PAGE_SIZE
+ARG REACT_APP_PAGE_SELECT_LIMIT
+ARG REACT_APP_REDACTION_SELECT_LIMIT
 
 ENV NODE_ENV ${NODE_ENV}
 ENV GENERATE_SOURCEMAP ${GENERATE_SOURCEMAP}
@@ -19,6 +22,9 @@ ENV REACT_APP_KEYCLOAK_CLIENT ${REACT_APP_KEYCLOAK_CLIENT}
 ENV REACT_APP_KEYCLOAK_URL_REALM ${REACT_APP_KEYCLOAK_URL_REALM}
 ENV REACT_APP_KEYCLOAK_URL ${REACT_APP_KEYCLOAK_URL}
 ENV FOI_DOCREVIEWER_BASE_API_URL ${FOI_DOCREVIEWER_BASE_API_URL}
+ENV REACT_APP_ANNOTATION_PAGE_SIZE ${REACT_APP_ANNOTATION_PAGE_SIZE}
+ENV REACT_APP_PAGE_SELECT_LIMIT ${REACT_APP_PAGE_SELECT_LIMIT}
+ENV REACT_APP_REDACTION_SELECT_LIMIT ${REACT_APP_REDACTION_SELECT_LIMIT}
 
 # add `/app/node_modules/.bin` to $PATH
 ENV PATH /web/node_modules/.bin:$PATH
@@ -33,12 +39,12 @@ COPY package-lock.json /web/package-lock.json
 COPY package.json /web/package.json
 
 
-RUN npm install --unsafe-perm
+RUN npm install --unsafe-perm --force
 #RUN npm install react-scripts@3.0.1 -g --silent
 COPY . /web
 RUN npm run build
 
-FROM nginx:1.17 as production-stage
+FROM nginx:1.25.2 as production-stage
 RUN mkdir /app
 COPY --from=build-stage /web/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf

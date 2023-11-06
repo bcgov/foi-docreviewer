@@ -31,6 +31,7 @@ from reviewer_api.services.documentservice import documentservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 requestapitimeout = getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
@@ -50,8 +51,8 @@ class DeleteDocuments(Resource):
             payload = FOIRequestDeleteRecordsSchema().load(payload)
             result = documentservice().deletedocument(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
@@ -71,8 +72,8 @@ class UpdateDocumentAttributes(Resource):
             payload = FOIRequestUpdateRecordsSchema().load(payload)
             result = documentservice().updatedocumentattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
@@ -95,10 +96,16 @@ class GetDocuments(Resource):
                 timeout=float(requestapitimeout)
             )
             response.raise_for_status()
-            result = documentservice().getdocuments(requestid)
-            return json.dumps(result), 200
-        except KeyError as err:
-            return {'status': False, 'message':err.messages}, 400
+            # get request status
+            jsonobj = response.json()
+            requestinfo = {
+                "bcgovcode": jsonobj["bcgovcode"],
+                "requesttype": jsonobj["requestType"]
+            }
+            result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+            return json.dumps({"requeststatusid": jsonobj["requeststatusid"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
         except requests.exceptions.HTTPError as err:

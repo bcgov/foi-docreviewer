@@ -1,3 +1,5 @@
 /** Notice * This file contains works from many authors under various (but compatible) licenses. Please see core.txt for more information. **/
-(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[3],{462:function(Ba,wa,r){r.r(wa);var oa=r(0),na=r(157);Ba=r(456);r=r(394);Ba=function(ma){function fa(ea,aa,w,x){return ma.call(this,ea,aa,w,x)||this}Object(oa.c)(fa,ma);fa.prototype.CV=function(){return{start:this.LU-na.a,stop:this.LU}};fa.prototype.Xt=function(ea){var aa=this;this.Eo(this.url,{start:0,stop:1},function(w,x,h){if(w)return ea(w);w=h.request.getResponseHeader("Content-Range");aa.LU=w.split("/")[1];ma.prototype.Xt.call(aa,
-ea)})};return fa}(Ba["default"]);Object(r.a)(Ba);Object(r.b)(Ba);wa["default"]=Ba}}]);}).call(this || window)
+(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[3],{524:function(wa,ta,n){n.r(ta);var pa=n(0),na=n(177);wa=n(518);n=n(439);wa=function(oa){function ia(ka,ea,z,x){return oa.call(this,ka,ea,z,x)||this}Object(pa.c)(ia,oa);ia.prototype.Q0=function(){return{start:this.J_-na.a,stop:this.J_}};ia.prototype.nw=function(ka){var ea=this;this.yq(this.url,{start:0,stop:1},function(z,x,f){if(z)return ka(z);z=f.request.getResponseHeader("Content-Range");ea.J_=z.split("/")[1];oa.prototype.nw.call(ea,
+ka)})};return ia}(wa["default"]);Object(n.a)(wa);Object(n.b)(wa);ta["default"]=wa}}]);}).call(this || window)
+
+//# sourceMappingURL=AzurePartRetriever.chunk.js.map
