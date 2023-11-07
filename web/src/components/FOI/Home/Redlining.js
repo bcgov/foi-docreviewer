@@ -1960,7 +1960,8 @@ const Redlining = React.forwardRef(
     const stampPageNumberRedline = async (
       _docViwer,
       PDFNet,
-      divisionsdocpages
+      divisionsdocpages,
+      redlineSinglePackage
     ) => {
       for (
         let pagecount = 1;
@@ -1998,7 +1999,7 @@ const Redlining = React.forwardRef(
           await s.stampText(
             doc,
             `${requestnumber} , Page ${
-              divisionsdocpages[pagecount - 1]?.stitchedPageNo
+              redlineSinglePackage == "Y" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
             } of ${docViewer.getPageCount()}`,
             pgSet
           );
@@ -2493,7 +2494,8 @@ const Redlining = React.forwardRef(
           await stampPageNumberRedline(
             stitchObject,
             PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"]
+            redlineStitchInfo[divisionid]["stitchpages"],
+            redlineSinglePackage
           );
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
