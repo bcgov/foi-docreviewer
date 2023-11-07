@@ -2171,7 +2171,7 @@ const Redlining = React.forwardRef(
         }
       divPageMappings['0'] = pageMappings;
       removepages['0'] = pagesToRemove;  
-      setRedlinepageMappings({'divpagemappings': pageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
+      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
     }
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
