@@ -374,6 +374,14 @@ class FOIFlowS3PresignedRedline(Resource):
                                 filepaths.append(doc["filepath"])
                             else:
                                 div["documentlist"].remove(doc)
+                    if len(div["incompatableList"]) > 0:
+                        incompatiblelist_copy = div["incompatableList"][:]
+                        for incompatible in incompatiblelist_copy:
+                            if incompatible["filepath"] not in filepaths:
+                                filepaths.append(incompatible["filepath"])
+                            else:
+                                div["incompatableList"].remove(incompatible)
+                    
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
             data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"
