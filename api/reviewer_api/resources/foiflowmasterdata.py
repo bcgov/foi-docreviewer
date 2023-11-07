@@ -368,13 +368,12 @@ class FOIFlowS3PresignedRedline(Resource):
             if is_single_redline_package(_bcgovcode):
                 for div in data["divdocumentList"]:
                     if len(div["documentlist"]) > 0:
-                        for doc in div["documentlist"]:
+                        documentlist_copy = div["documentlist"][:]
+                        for doc in documentlist_copy:
                             if doc["filepath"] not in filepaths:
-                                filepaths.append(doc["filepath"]);    
+                                filepaths.append(doc["filepath"])
                             else:
-                                div["documentlist"].remove(doc) 
-                       
-
+                                div["documentlist"].remove(doc)
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
             data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"

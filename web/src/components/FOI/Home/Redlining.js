@@ -2134,6 +2134,7 @@ const Redlining = React.forwardRef(
       let pagesToRemove = []; 
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
+      let divPageMappings = {};
       for (let doc of divisionDocuments) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
@@ -2168,12 +2169,14 @@ const Redlining = React.forwardRef(
           
           
         }
+      divPageMappings['0'] = pageMappings;
       removepages['0'] = pagesToRemove;  
-      setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
+      setRedlinepageMappings({'divpagemappings': pageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
     }
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
+      let divPageMappings = {};
       let pagesToRemove = []; 
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
@@ -2212,15 +2215,16 @@ const Redlining = React.forwardRef(
           //}
           
         }
-        
+          divPageMappings[divObj.divisionid] = pageMappings;
           removepages[divObj.divisionid] = pagesToRemove;
           pagesToRemove = [];
           totalPageCount = 0;
           totalPageCountIncludeRemoved = 0;
+          pageMappings = {}
             
         
       }
-      setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
+      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
     }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
@@ -2483,7 +2487,7 @@ const Redlining = React.forwardRef(
           } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
-            redlinepageMappings["pagemapping"],
+            redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
           await stampPageNumberRedline(
