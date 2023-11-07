@@ -2328,9 +2328,7 @@ const Redlining = React.forwardRef(
         let documentlist = stitchlist[key];
         if (redlineSinglePkg == "N") {
           toast.update(toastId.current, {
-            render: `Generating redline PDF for ${
-              divCount + 1
-            } of ${noofdivision} divisions...`,
+            render: `Generating redline PDF for ${noofdivision} divisions...`,
             isLoading: true,
           });
         } else {
@@ -2470,7 +2468,7 @@ const Redlining = React.forwardRef(
           toast.update(toastId.current, {
             render:
               redlineSinglePackage == "N"
-                ? `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} document to Object Storage...`
+                ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
                 : `Saving redline PDF to Object Storage...`,
             isLoading: true,
             autoClose: 5000,
@@ -2528,10 +2526,7 @@ const Redlining = React.forwardRef(
                 (_res) => {
                   // ######### call another process for zipping and generate download here ##########
                   toast.update(toastId.current, {
-                    render:
-                      redlineSinglePackage == "N"
-                        ? `${currentDivisionCount} of ${divisionCountForToast} document is saved to Object Storage`
-                        : `Redline PDF saved to Object Storage`,
+                    render: `Redline PDF saved to Object Storage`,
                     type: "success",
                     className: "file-upload-toast",
                     isLoading: false,
