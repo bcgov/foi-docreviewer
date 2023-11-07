@@ -286,6 +286,7 @@ class FOIFlowS3PresignedRedline(Resource):
             _bcgovcode = formsbucket.split("-")[0]
             singlepkgpath = None;
             #New Logic - Begin
+            filepaths = []
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
@@ -363,6 +364,17 @@ class FOIFlowS3PresignedRedline(Resource):
                         )
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
+                    
+            if is_single_redline_package(_bcgovcode):
+                for div in data["divdocumentList"]:
+                    if len(div["documentlist"]) > 0:
+                        for doc in div["documentlist"]:
+                            if doc["filepath"] not in filepaths:
+                                filepaths.append(doc["filepath"]);    
+                            else:
+                                div["documentlist"].remove(doc) 
+                       
+
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
             data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"
