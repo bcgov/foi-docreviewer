@@ -381,13 +381,14 @@ export const fetchPDFTronLicense = (
   response
   .then((res:any) => {
     if (res.data) {
-      return res.data?.license;
+      callback(res.data);
     } else {
-      return "";
+      throw new Error("Error in fetching PDFTronLicense");
     }
   })
   .catch((error:any) => {
     errorCallback("Error in fetching PDFTronLicense:",error);
     return "";
   });
+  return response;
 };
