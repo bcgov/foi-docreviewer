@@ -388,6 +388,7 @@ export const fetchPDFTronLicense = (
   })
   .catch((error:any) => {
     errorCallback("Error in fetching PDFTronLicense:",error);
+    return "";
   });
   return response;
 };

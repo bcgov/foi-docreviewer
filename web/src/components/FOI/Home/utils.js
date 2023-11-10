@@ -70,7 +70,11 @@ export const getProgramAreas = (pageFlagList) => {
 };
 
 // Helper function to sort files by lastmodified date
-export const sortByLastModified = (files) => files.sort(docSorting);
+export const sortByLastModified = (files) => {
+  if(files.length> 1) {
+    return files.sort(docSorting)
+  } 
+  return files };
 
 export const getValidSections = (sections, redactionSectionsIds) => {
   return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);

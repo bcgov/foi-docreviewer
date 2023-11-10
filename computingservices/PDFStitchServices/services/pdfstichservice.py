@@ -70,8 +70,8 @@ class pdfstitchservice(basestitchservice):
                 logging.info("filename = %s", file.filename)
                 print(f"filename = {file.filename}")
                 _, extension = path.splitext(file.s3uripath)
-                # stitch only ['.pdf','.png','.jpg']
-                if extension.lower() in ['.pdf','.png','.jpg']:
+                # stitch only ['.pdf','.png','.jpg', '.jpeg']
+                if extension.lower() in ['.pdf','.png','.jpg', '.jpeg']:
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
                         pdf_doc_in = fitz.open(stream=_bytes) #input PDF
@@ -142,7 +142,7 @@ class pdfstitchservice(basestitchservice):
         raw_bytes_data = None        
         try:
             raw_bytes_data = basestitchservice().getdocumentbytearray(file, s3credentials)
-            if extension in ['.png', '.jpg']:
+            if extension in ['.png', '.jpg', '.jpeg']:
                 return convertimagetopdf(raw_bytes_data)
             return raw_bytes_data
         except Exception as e:
