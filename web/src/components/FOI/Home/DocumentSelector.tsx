@@ -99,6 +99,7 @@ const DocumentSelector = ({
         fetchPageFlag(
             requestid,
             currentLayer.redactionlayerid,
+            documents.map((d: any) => d.documentid),
             (error: any) => console.log(error)
         )
     }

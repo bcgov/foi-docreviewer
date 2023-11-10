@@ -552,6 +552,33 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
+    def deletedocumentannotations(
+        cls, documentids, userinfo
+    ) -> DefaultMethodResult:
+        try:
+            sql = """with annotationames as (update "Annotations" a set isactive = false, updatedby = :userinfo, updated_at=now()
+                    where a.documentid in :documentids
+                    and a.isactive = True returning annotationname)
+                    update public."AnnotationSections" as1 set isactive = false, updatedby = :userinfo, updated_at=now()
+                    where annotationname in (select * from annotationames)
+                    and as1.isactive = True"""
+            db.session.execute(
+                text(sql),
+                {
+                    "userinfo": json.dumps(userinfo),
+                    "documentids": tuple(documentids),
+                },
+            )
+            db.session.commit()
+            return DefaultMethodResult(
+                True, "Annotations for documentids" + ",".join(str(documentids)) + "are deleted", ",".join(str(documentids))
+            )
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
     def getredactionsbydocumentpages(cls, _documentid, _pages, redactionlayerid):
         try:
             annotation_schema = AnnotationSchema(many=True)
