@@ -85,6 +85,26 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
+    
+
+    @classmethod
+    def getprocessingchilddocumentids(cls, documentmasterids):
+        documentmasters = []
+        try:
+            sql = """select d.documentid
+                    from public."DocumentMaster" dm
+                    left join public."Documents" d on d.documentmasterid = dm.documentmasterid
+                    where processingparentid = :documentmasterids"""
+            rs = db.session.execute(text(sql), {'documentmasterids': documentmasterids})
+            for row in rs:
+                documentmasters.append(row["documentid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
 
     
     
