@@ -106,11 +106,6 @@ function Home() {
         let oipc = data.find((l) => l.name === "OIPC");
         let currentLayer = oipc.count > 0 ? oipc : redline;
         store.dispatch(setCurrentLayer(currentLayer));
-        fetchPageFlag(
-          parseInt(foiministryrequestid),
-          currentLayer.redactionlayerid,
-          (error) => console.log(error)
-        );
       },
       (error) => console.log(error)
     );
