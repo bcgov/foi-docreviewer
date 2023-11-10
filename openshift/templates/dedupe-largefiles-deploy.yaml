@@ -123,6 +123,26 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: DEDUPE_S3_SERVICE
+            - name: DEDUPE_REQUEST_MANAGEMENT_API
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DEDUPE_REQUEST_MANAGEMENT_API
+            - name: DEDUPE_ROOK_REQUEST_MANAGEMENT_API
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DEDUPE_ROOK_REQUEST_MANAGEMENT_API
+            - name: DEDUPE_STREAM_KEY_LARGEFILES
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DEDUPE_STREAM_KEY_LARGEFILES
+            - name: DEDUPE_RECORD_FORMATS
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: DEDUPE_RECORD_FORMATS
           resources:
             requests:
               cpu: "50m"
@@ -146,7 +166,7 @@ parameters:
   description: The name assigned to all of the OpenShift resources associated to the
     server instance.
   required: true
-  value: reviewer-dedupe-largefiles
+  value: reviewer-dedupe-largefiles-rook
 - name: APP_GROUP
   displayName: App Group
   description: The name assigned to all of the deployments in this project.
@@ -157,20 +177,25 @@ parameters:
   required: true
   description: The namespace of the OpenShift project containing the imagestream for
     the application.
+  value: d106d6-tools
 - name: IMAGE_NAME
   displayName: Name
   description: The name assigned to all of the OpenShift resources associated to the
     server instance.
   required: true
+  value: reviewer-dedupe
 - name: TAG_NAME
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
+  value: test-rook
 - name: DB_SECRETS
   displayName: Patroni DB Secrets
   description: Name of secrets for all db values
   required: true
+  value: patroni-docreviewer-rook
 - name: SECRETS
   displayName: Dedupe Secrets
   description: Name of secrets for all dedupe values
   required: true
+  value: dedupe-rook-secret
