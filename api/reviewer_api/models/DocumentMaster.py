@@ -148,6 +148,23 @@ class DocumentMaster(db.Model):
             db.session.close()
         return documentmasters
     
+
+    @classmethod
+    def getfilepathbydocumentid(cls, documentid):
+        try:
+            sql = """select dm.filepath
+                    from public."DocumentMaster" dm
+                    join public."Documents" d on d.documentmasterid = dm.documentmasterid
+                    where d.documentid = :documentid"""
+            rs = db.session.execute(text(sql), {'documentid': documentid}).first()
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return rs[0]
+    
     @classmethod 
     def getredactionready(cls, ministryrequestid):
         documentmasters = []
