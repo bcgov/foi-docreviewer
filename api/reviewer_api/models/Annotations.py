@@ -106,6 +106,8 @@ class Annotation(db.Model):
         cls, ministryrequestid, mappedlayerids, page, size
     ):
         _deleted = DocumentMaster.getdeleted(ministryrequestid)
+        _replacedimages = DocumentMaster.filterreplacedimagefiles(ministryrequestid)
+        _replacedotherfiles = DocumentMaster.filterreplacedfiles(ministryrequestid)
         _session = db.session
         _subquery_annotation = (
             _session.query(
@@ -116,6 +118,8 @@ class Annotation(db.Model):
                 and_(
                     Annotation.documentid == Document.documentid,
                     Document.documentmasterid.notin_(_deleted),
+                    Document.documentmasterid.notin_(_replacedimages),
+                    Document.documentmasterid.in_(_replacedotherfiles),
                     Document.foiministryrequestid == ministryrequestid,
                 ),
             )

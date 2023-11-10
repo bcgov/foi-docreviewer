@@ -85,8 +85,47 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
-
     
+    @classmethod 
+    def filterreplacedimagefiles(cls, ministryrequestid):
+        documentmasters = []
+        try:
+            sql = """select processingparentid
+						from "DocumentMaster"
+						where processingparentid is not Null and ministryrequestid =:ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                documentmasters.append(row["processingparentid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
+
+    @classmethod 
+    def filterreplacedfiles(cls, ministryrequestid):
+        documentmasters = []
+        try:
+            sql = """select MAX(documentmasterid) as documentmasterid
+						from public."DocumentMaster"
+						where processingparentid is not null and ministryrequestid =:ministryrequestid
+						group by processingparentid
+						union
+						select documentmasterid
+						from public."DocumentMaster"
+						where processingparentid is null and ministryrequestid =:ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                documentmasters.append(row["documentmasterid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
     
     @classmethod 
     def getredactionready(cls, ministryrequestid):
