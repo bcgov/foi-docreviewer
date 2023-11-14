@@ -46,7 +46,7 @@ const Header: React.FunctionComponent<IHeaderProps> = (props) => {
           <span className="navbar-text foiNavItem">  {user?.name || user?.preferred_username || ""} </span>
           <div className="navicons">
             <div className="help-icon">
-              <a href={"https://help.foirequests.gov.bc.ca/"} target="_blank" aria-label="foi-help link">
+              <a href={"https://help.foirequests.gov.bc.ca/help-articles"} target="_blank" aria-label="foi-help link">
                 <HelpOutlineIcon style={{fontSize: "21px", color: "white", textDecoration: "none", cursor: "pointer"}}></HelpOutlineIcon>
               </a>
             </div>
