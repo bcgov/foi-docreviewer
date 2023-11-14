@@ -111,6 +111,7 @@ class DocumentMaster(db.Model):
     def filterreplacedimagefiles(cls, ministryrequestid):
         documentmasters = []
         try:
+            # filter out replaced jpg, png & pdf files - files do not need conversion
             sql = """select processingparentid
 						from "DocumentMaster"
 						where processingparentid is not Null and ministryrequestid =:ministryrequestid"""
@@ -129,6 +130,7 @@ class DocumentMaster(db.Model):
     def filterreplacedfiles(cls, ministryrequestid):
         documentmasters = []
         try:
+            # all original/replaced other type of files + all original/replaced (jpg, png & pdf) files
             sql = """select MAX(documentmasterid) as documentmasterid
 						from public."DocumentMaster"
 						where processingparentid is not null and ministryrequestid =:ministryrequestid
