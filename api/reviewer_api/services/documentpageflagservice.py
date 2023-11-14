@@ -9,11 +9,11 @@ from datetime import datetime
 
 
 class documentpageflagservice:
-    def getpageflags(self, requestid, redactionlayerid):
+    def getpageflags(self, requestid, redactionlayerid, documentids):
         layerids = redactionlayerservice().getmappedredactionlayers(
             {"redactionlayerid": redactionlayerid}
         )
-        return DocumentPageflag.getpageflag_by_request(requestid, layerids)
+        return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
 
     def getpublicbody(self, requestid):
         return DocumentPageflag.getpublicbody_by_request(requestid)
@@ -75,6 +75,15 @@ class documentpageflagservice:
             json.dumps(userinfo),
             redactionlayerid,
             __docpgattributes,
+        )
+
+    async def bulkarchivedocumentpageflag(
+        self, requestid, documentid, userinfo
+    ):
+        return DocumentPageflag.bulkarchivepageflag(
+            requestid,
+            documentid,
+            userinfo
         )
 
     def bulksavepageflag(self, requestid, data, userinfo):

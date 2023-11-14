@@ -663,8 +663,11 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name
             );
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           }
         }
@@ -773,6 +776,7 @@ const Redlining = React.forwardRef(
                     fetchPageFlag(
                       requestid,
                       currentLayer.redactionlayerid,
+                      docsForStitcing.map(d => d.file.documentid),
                       (error) => console.log(error)
                     );
                   },
@@ -943,6 +947,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
+                        docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -976,6 +981,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
+                        docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1404,8 +1410,11 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           },
           (error) => {
@@ -1542,6 +1551,7 @@ const Redlining = React.forwardRef(
                   fetchPageFlag(
                     requestid,
                     currentLayer.redactionlayerid,
+                    docsForStitcing.map(d => d.file.documentid),
                     (error) => console.log(error)
                   );
                 },
@@ -1689,8 +1699,11 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           },
           (error) => {

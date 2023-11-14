@@ -85,8 +85,85 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
+    
+
+    @classmethod
+    def getprocessingchilddocumentids(cls, documentmasterids):
+        documentmasters = []
+        try:
+            sql = """select d.documentid
+                    from public."DocumentMaster" dm
+                    left join public."Documents" d on d.documentmasterid = dm.documentmasterid
+                    where processingparentid = :documentmasterids"""
+            rs = db.session.execute(text(sql), {'documentmasterids': documentmasterids})
+            for row in rs:
+                documentmasters.append(row["documentid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
 
     
+    @classmethod 
+    def filterreplacedimagefiles(cls, ministryrequestid):
+        documentmasters = []
+        try:
+            sql = """select processingparentid
+						from "DocumentMaster"
+						where processingparentid is not Null and ministryrequestid =:ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                documentmasters.append(row["processingparentid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
+
+    @classmethod 
+    def filterreplacedfiles(cls, ministryrequestid):
+        documentmasters = []
+        try:
+            sql = """select MAX(documentmasterid) as documentmasterid
+						from public."DocumentMaster"
+						where processingparentid is not null and ministryrequestid =:ministryrequestid
+						group by processingparentid
+						union
+						select documentmasterid
+						from public."DocumentMaster"
+						where processingparentid is null and ministryrequestid =:ministryrequestid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                documentmasters.append(row["documentmasterid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
+    
+
+    @classmethod
+    def getfilepathbydocumentid(cls, documentid):
+        try:
+            sql = """select dm.filepath
+                    from public."DocumentMaster" dm
+                    join public."Documents" d on d.documentmasterid = dm.documentmasterid
+                    where d.documentid = :documentid"""
+            rs = db.session.execute(text(sql), {'documentid': documentid}).first()
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return rs[0]
     
     @classmethod 
     def getredactionready(cls, ministryrequestid):
