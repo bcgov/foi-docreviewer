@@ -94,7 +94,7 @@ class DocumentMaster(db.Model):
             sql = """select d.documentid
                     from public."DocumentMaster" dm
                     left join public."Documents" d on d.documentmasterid = dm.documentmasterid
-                    where processingparentid = :documentmasterids"""
+                    where processingparentid = :documentmasterids or dm.documentmasterid = :documentmasterids"""
             rs = db.session.execute(text(sql), {'documentmasterids': documentmasterids})
             for row in rs:
                 documentmasters.append(row["documentid"])
