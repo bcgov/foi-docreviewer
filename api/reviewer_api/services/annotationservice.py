@@ -15,7 +15,6 @@ import maya
 import json
 import pytz
 from xml.dom.minidom import parseString
-import datetime
 
 
 class annotationservice:
@@ -46,11 +45,9 @@ class annotationservice:
     def getrequestannotationspagination(
         self, ministryrequestid, mappedlayerids, page, size
     ):
-        print('model call start - getrequestannotationspagination', datetime.datetime.timestamp(datetime.datetime.now()))
         result = Annotation.get_request_annotations_pagination(
             ministryrequestid, mappedlayerids, page, size
         )
-        print('model call end - getrequestannotationspagination', datetime.datetime.timestamp(datetime.datetime.now()))
         meta = {
             "page": result.page,
             "pages": result.pages,
