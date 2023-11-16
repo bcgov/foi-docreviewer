@@ -108,7 +108,7 @@ class DocumentMaster(db.Model):
 
     
     @classmethod 
-    def filterreplacedimagefiles(cls, ministryrequestid):
+    def filterreplacednoconversionfiles(cls, ministryrequestid):
         documentmasters = []
         try:
             # filter out replaced jpg, png & pdf files - files do not need conversion
@@ -134,9 +134,24 @@ class DocumentMaster(db.Model):
             sql = """select MAX(documentmasterid) as documentmasterid
 						from public."DocumentMaster"
 						where processingparentid is not null and ministryrequestid =:ministryrequestid
-						group by processingparentid
-						union
-						select documentmasterid
+						group by processingparentid"""
+            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            for row in rs:
+                documentmasters.append(row["documentmasterid"])
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return documentmasters
+
+    @classmethod 
+    def filteroriginalnoconversionfiles(cls, ministryrequestid):
+        documentmasters = []
+        try:
+            # all original/replaced other type of files + all original/replaced (jpg, png & pdf) files
+            sql = """select documentmasterid
 						from public."DocumentMaster"
 						where processingparentid is null and ministryrequestid =:ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
