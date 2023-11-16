@@ -39,6 +39,7 @@ from reviewer_api.schemas.annotationrequest import (
 )
 from reviewer_api.schemas.redline import RedlineSchema
 from reviewer_api.schemas.finalpackage import FinalPackageSchema
+import datetime
 
 API = Namespace(
     "Document and annotations",
@@ -65,9 +66,11 @@ class Annotations(Resource):
                 redactionlayer, ministryrequestid
             )
             if isvalid == True:
+                print('service call start - getannotationsbyrequest - Annotations', datetime.datetime.timestamp(datetime.datetime.now()))
                 result = redactionservice().getannotationsbyrequest(
                     ministryrequestid, _redactionlayer
                 )
+                print('service call end - getannotationsbyrequest - Annotations', datetime.datetime.timestamp(datetime.datetime.now()))
                 return json.dumps(result), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
@@ -94,9 +97,11 @@ class AnnotationPagination(Resource):
                 redactionlayer, ministryrequestid
             )
             if isvalid == True:
+                print('service call start - getannotationsbyrequest - AnnotationPagination', datetime.datetime.timestamp(datetime.datetime.now()))
                 result = redactionservice().getannotationsbyrequest(
                     ministryrequestid, _redactionlayer, page, size
                 )
+                print('service call end - getannotationsbyrequest - AnnotationPagination', datetime.datetime.timestamp(datetime.datetime.now()))
                 return result, 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
