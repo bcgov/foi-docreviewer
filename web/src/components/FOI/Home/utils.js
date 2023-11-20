@@ -203,3 +203,32 @@ export const sortDocObjects = (_pdftronDocObjs, doclist) => {
 
   return returnObjs;
 };
+
+export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
+  let __refinedpdftronDocObjs = _pdftronDocObjs.sort(
+    (a, b) => a.sortorder - b.sortorder
+  );
+  let returnObjs = [];
+  for (
+    let _soCtr = 0, _dlCtr = 0;
+    _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
+    _dlCtr++, _soCtr++
+  ) {
+    console.log("I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    if (
+      __refinedpdftronDocObjs[_soCtr] != null &&
+      __refinedpdftronDocObjs[_soCtr] != undefined
+    ) {
+      if (
+        __refinedpdftronDocObjs[_soCtr].file.documentid ===
+        doclist[_dlCtr].documentid
+      ) {
+        returnObjs.push(__refinedpdftronDocObjs[_soCtr]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return returnObjs;
+};
