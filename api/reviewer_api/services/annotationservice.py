@@ -15,7 +15,6 @@ import maya
 import json
 import pytz
 from xml.dom.minidom import parseString
-import datetime
 
 
 class annotationservice:

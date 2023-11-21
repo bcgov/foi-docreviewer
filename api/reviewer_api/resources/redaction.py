@@ -39,7 +39,6 @@ from reviewer_api.schemas.annotationrequest import (
 )
 from reviewer_api.schemas.redline import RedlineSchema
 from reviewer_api.schemas.finalpackage import FinalPackageSchema
-import datetime
 
 API = Namespace(
     "Document and annotations",
