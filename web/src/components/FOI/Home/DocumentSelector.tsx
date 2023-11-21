@@ -746,14 +746,14 @@ const DocumentSelector = ({
                                     label="Division"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("division")}
+                                    onClick={() => {setOrganizeBy("division");setExpanded([])}}
                                     clicked={organizeBy === "division"}
                                 />
                                 <ClickableChip
                                     label="Modified Date"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("lastmodified")}
+                                    onClick={() => {setOrganizeBy("lastmodified");setExpanded([])}}
                                     clicked={organizeBy === "lastmodified"}
                                 />
                             </Stack>
