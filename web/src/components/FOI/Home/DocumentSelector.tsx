@@ -249,10 +249,11 @@ const DocumentSelector = ({
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
 
     let expandall: any[] = [];
+    let expandallorganizebydivision: any[] = [];
     divisions.forEach((division:any) => {
-        expandall.push(`{"division": ${division.divisionid}}`);
+        expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
         files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
-            expandall.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+            expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
             expandall.push(`{"docid": ${file.documentid}}`);
         })
     });
@@ -665,7 +666,7 @@ const DocumentSelector = ({
 
     const handleExpandClick = () => {
         setExpanded((oldExpanded:any) =>
-            oldExpanded.length === 0 ? expandall : [],
+            oldExpanded.length === 0 ? (organizeBy == "lastmodified" ? expandall : expandallorganizebydivision) : [],
         );
     };
 
