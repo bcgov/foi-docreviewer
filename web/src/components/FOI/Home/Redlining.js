@@ -156,7 +156,10 @@ const Redlining = React.forwardRef(
     const [pdftronDocObjectsForRedline, setPdftronDocObjectsForRedline]= useState([]);
     const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
     const [firstDocForRedlineStitch, setfirstDocForRedlineStitch]= useState(false);
-    const [sliceDoclist1, setsliceDoclist]= useState([]);
+    const [divisionDocList, setDivisionDocList]= useState([]);
+    const [alreadyStitchedList, setAlreadyStitchedList]= useState([]);
+    const [totalStitchList, settotalStitchList]= useState([]);
+
     
     //xml parser
     const parser = new XMLParser();
@@ -1157,27 +1160,30 @@ const Redlining = React.forwardRef(
     };
 
     
-    const stitchPagesForRedline = async (stitchedDocObj, pdftronDocObjs, stitchedRedline) => {
-      console.log("\nstichedfilesForRedline!!!:", stichedfilesForRedline);
-      if(stitchedDocObj == null && stichedfilesForRedline != null){
-        stitchedDocObj=stichedfilesForRedline
-      }
-      if(stitchedDocObj != null ){
-        setstichedfilesForRedline(stitchedDocObj)
-      }
-      console.log("\n\nStitched Obj:",stitchedDocObj)
+
+    
+    const stitchPagesForRedline = (stitchedDocObj, pdftronDocObjs) => {
+      //console.log("\nstichedfilesForRedline!!!:", stichedfilesForRedline);
+      // if(stitchedDocObj == null && stichedfilesForRedline != null){
+      //   stitchedDocObj=stichedfilesForRedline
+      // }
+      // if(stitchedDocObj != null ){
+      //   setstichedfilesForRedline(stitchedDocObj)
+      // }
+      //console.log("\n\nstichedfilesForRedline:",stichedfilesForRedline.getPageCount())
 
         for (let filerow of pdftronDocObjs) {
-          
-          let _exists = stitchedRedline.filter(
+          let _exists = alreadyStitchedList.filter(
             (_file) => _file.file.documentid === filerow.file.documentid
           );
           if (_exists?.length === 0) {
             let index = filerow.stitchIndex;
-            stitchedRedline.push(filerow)
+            //stitchedRedline.push(filerow)
             try {
-              await stitchedDocObj?.insertPages(filerow.pdftronobject, filerow.pages, index);
-              setstichedfilesForRedline(stitchedDocObj)
+              stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
+              console.log("Inserted:",filerow)
+              setAlreadyStitchedList((_arr) => [..._arr, filerow]);
+              setstichedfilesForRedline(stichedfilesForRedline)
               console.log("Stitching complete for", filerow);
             } catch (error) {
               console.error("An error occurred during page insertion:", error);
@@ -1186,12 +1192,17 @@ const Redlining = React.forwardRef(
             //setstichedfilesForRedline((_arr) => [..._arr, filerow]);
           }
         }
+        // console.log("alreadyStitchedList:",alreadyStitchedList?.length)
+        // console.log(`divisionDocList = ${divisionDocList?.length}`);
+        // console.log("requestStitchObject:",requestStitchObject)
+
+
       //}
     };
 
-    useEffect(() => {
-      console.log("\nstichedfilesForRedline!!!!!!!!:", stichedfilesForRedline);
-    }, [stichedfilesForRedline]);
+    // useEffect(() => {
+    //   console.log("\nstichedfilesForRedline!!!!!!!!:", stichedfilesForRedline);
+    // }, [stichedfilesForRedline]);
 
     const applyAnnotationsFunc = () => {
       let domParser = new DOMParser();
@@ -2278,6 +2289,7 @@ const Redlining = React.forwardRef(
       return docObj.getPageCount() == removepagesCount;
     };
 
+
     const mergeObjectsPreparationForRedline = async (
       createDocument,
       sliceDoclist,
@@ -2285,156 +2297,206 @@ const Redlining = React.forwardRef(
       divisionDocuments,
       docCount,
       stitchedDocObj,
-      redlinePdftronDocObjects,
-      redlineSinglePkg,
-      requestStitchObject,
-      documentlist,
-      division,
-      noofdivision,
-      divCount,
-      stitchedRedline,
-      setCount,
     ) => {
-      return new Promise(async (resolve, reject) => {
+      //return new Promise(async (resolve, reject) => {
         try {
-          console.log("*sliceDoclist:", sliceDoclist.length);
+          console.log("****sliceDoclist:", sliceDoclist.length);
           //console.log(`slicecount = ${slicecount}, setCount!!! = ${setCount}`);
           for (const filerow of sliceDoclist) {
-            const newDoc = await createDocument(filerow.s3path_load, {
-              loadAsPDF: true,
+            await createDocument(filerow.s3path_load).then(async (newDoc) => {
+              docCount++;
+              setredlineDocCount(docCount);
+              if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
+                if (filerow.sortorder === 1) {
+                  stitchedDocObj = newDoc;
+                  setstichedfilesForRedline(stitchedDocObj)
+                  //console.log("DocCount is 1!!:", stitchedDocObj);
+                } else {
+                  // redlinePdftronDocObjects.push({
+                  //   file: filerow,
+                  //   sortorder: filerow.sortorder,
+                  //   pages: filerow.pages,
+                  //   pdftronobject: newDoc,
+                  //   stitchIndex: filerow.stitchIndex,
+                  //   set: slicecount,
+                  //   totalsetcount: sliceDoclist.length,
+                  // });
+                  setPdftronDocObjectsForRedline((_arr) => [
+                  ..._arr,
+                    {
+                      file: filerow,
+                      sortorder: filerow.sortorder,
+                      pages: filerow.pages,
+                      pdftronobject: newDoc,
+                      stitchIndex: filerow.stitchIndex,
+                      set: slicecount,
+                      totalsetcount: sliceDoclist.length,
+                    }
+                  ])
+                }
+              }
             });
-            docCount++;
-            if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
-              if (filerow.sortorder === 1) {
-                stitchedDocObj = newDoc;
-                console.log("DocCount is 1!!:", stitchedDocObj);
-              } else {
-                redlinePdftronDocObjects.push({
-                  file: filerow,
-                  sortorder: filerow.sortorder,
-                  pages: filerow.pages,
-                  pdftronobject: newDoc,
-                  stitchIndex: filerow.stitchIndex,
-                  set: slicecount,
-                  totalsetcount: sliceDoclist.length,
-                });
-                // setPdftronDocObjectsForRedline((_arr) => [
-                // ..._arr,
-                //   {
-                //     file: filerow,
-                //     sortorder: filerow.sortorder,
-                //     pages: filerow.pages,
-                //     pdftronobject: newDoc,
-                //     stitchIndex: filerow.stitchIndex,
-                //     set: slicecount,
-                //     totalsetcount: sliceDoclist.length,
-                //   }
-                // ])
-              }
-            }
           }
-    
-          resolve(); // Resolve after the loop has completed
-          if (redlinePdftronDocObjects.length > 0) {
-            //console.log("redlinePdftronDocObjects", redlinePdftronDocObjects);
-            let sliceDoclistCopy = [...documentlist];
-            if(sliceDoclistCopy.length > 1){
-              sliceDoclistCopy?.shift();
-              let _pdftronDocObjects = sortDocObjectsForRedline(
-                redlinePdftronDocObjects,
-                sliceDoclistCopy
-              );
-              console.log("_pdftronDocObjects", _pdftronDocObjects);
-              if (_pdftronDocObjects.length > 0) {
-                  const resp= await stitchPagesForRedline(stitchedDocObj, _pdftronDocObjects, stitchedRedline);
-                  console.log("\nstichedfilesForRedline:", stichedfilesForRedline.getPageCount());
-                  console.log("resp",resp)
-              }
-            }
-          }
-          //console.log("\nstichedfilesForRedline:", stichedfilesForRedline.getPageCount());
-
-          if (
-            docCount == sliceDoclist.length &&
-            redlineSinglePkg == "N" &&
-            stichedfilesForRedline != null && setCount === slicecount
-          ) {
-            requestStitchObject[division] = stichedfilesForRedline;
-          }
-          if (redlineSinglePkg == "Y" && stichedfilesForRedline != null && setCount === slicecount) {
-            requestStitchObject["0"] = stichedfilesForRedline;
-          }
-          if (divCount == noofdivision && setCount === slicecount) {
-            setRedlineStitchObject(requestStitchObject);
-          }
-          // if (redlineSinglePkg == "N" && setCount === slicecount) {
-          //   stitchedDocObj = null;
-          // }
         } catch (error) {
           // Handle any errors that occurred during the asynchronous operations
-          reject(error);
+          //reject(error);
         }
-      });
-    };
-    
+      };
 
-    // useEffect(() => {
-    //   if (
-    //     pdftronDocObjectsForRedline?.length > 0 &&
-    //     sliceDoclist.length > 0 
-    //   ) {
-    //       console.log("pdftronDocObjectsForRedline", pdftronDocObjectsForRedline);
-    //       let sliceDoclistCopy = [...sliceDoclist];
-    //       if(sliceDoclistCopy.length > 1){
-    //         sliceDoclistCopy?.shift();
-    //         let _pdftronDocObjects = sortDocObjectsForRedline(
-    //           pdftronDocObjectsForRedline,
-    //           sliceDoclistCopy
-    //         );
-    //         console.log("_pdftronDocObjects", _pdftronDocObjects);
-    //         if (_pdftronDocObjects.length > 0) {
-    //             stitchPagesForRedline(stitchedDocObj, _pdftronDocObjects, stitchedRedline);
-    //         }
-    //       }
-
-    //     else if (doclistCopy.length === 1){
-    //       console.log(`Download completed for single file.... ${new Date()}`);
-    //       applyAnnotationsFunc();
-    //       setIsStitchingLoaded(true);
-    //       setpdftronDocObjects([]);
-    //       setstichedfiles([]);
-    //     }
-    //   }
-    // }, [
-    //   pdftronDocObjectsForRedline,
-    //   sliceDoclist
-    // ]);
+      // const mergeObjectsPreparationForRedlineTest = async (
+      //   createDocument,
+      //   sliceDoclist,
+      //   slicecount,
+      //   divisionDocuments,
+      //   docCount,
+      //   stitchedDocObj,
+      //   redlinePdftronDocObjects,
+      //   redlineSinglePkg,
+      //   documentlist,
+      //   division,
+      //   noofdivision,
+      //   divCount,
+      //   stitchedRedline,
+      //   setCount,
+      // ) => {
+      //   //return new Promise(async (resolve, reject) => {
+      //     try {
+      //       console.log("****sliceDoclist:", sliceDoclist.length);
+      //       //console.log(`slicecount = ${slicecount}, setCount!!! = ${setCount}`);
+      //       for (const filerow of sliceDoclist) {
+      //         await createDocument(filerow.s3path_load).then(async (newDoc) => {
+      //           docCount++;
+      //           setredlineDocCount(docCount);
+      //           if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
+      //             if (filerow.sortorder === 1) {
+      //               stitchedDocObj = newDoc;
+      //               setstichedfilesForRedline(stitchedDocObj)
+      //               console.log("DocCount is 1!!:", stitchedDocObj);
+      //             } else {
+      //               setPdftronDocObjectsForRedline((_arr) => [
+      //               ..._arr,
+      //                 {
+      //                   file: filerow,
+      //                   sortorder: filerow.sortorder,
+      //                   pages: filerow.pages,
+      //                   pdftronobject: newDoc,
+      //                   stitchIndex: filerow.stitchIndex,
+      //                   set: slicecount,
+      //                   totalsetcount: sliceDoclist.length,
+      //                 }
+      //               ], () => {
+      //                 if (pdftronDocObjectsForRedline.length > 0) {
+      //                   //console.log("divisionDocList:", totalStitchList[redlineStitchDivisionDetails.division]);
+      //                   let divisionDocListCopy = [...documentlist];
+      //                   if(divisionDocListCopy.length > 1){
+      //                     divisionDocListCopy?.shift();
+      //                     let _pdftronDocObjects = sortDocObjectsForRedline(
+      //                       pdftronDocObjectsForRedline,
+      //                       divisionDocListCopy
+      //                     );
+      //                     console.log("\nAFTER SORT- _pdftronDocObjects:", _pdftronDocObjects);
+      //                     if (_pdftronDocObjects.length > 0) {
+      //                       stitchPagesForRedline(stichedfilesForRedline, _pdftronDocObjects);
+      //                       //console.log("resp",resp)
+      //                     }
+      //                   }
+      //                 }
+      //               })
+      //             }
+      //           }
+      //         });
+      //       }
+      //     } catch (error) {
+      //       // Handle any errors that occurred during the asynchronous operations
+      //       //reject(error);
+      //     }
+      //   };
+ 
 
     const [redlineDocCount, setredlineDocCount] = useState(0);
+    
 
+    useEffect(() => {
+      if (
+        pdftronDocObjectsForRedline?.length > 0 &&
+        totalStitchList[redlineStitchDivisionDetails.division]?.length > 0 &&
+        stichedfilesForRedline != null
+      ) {
+        //console.log("\npdftronDocObjectsForRedline::", pdftronDocObjectsForRedline);
+        //if (pdftronDocObjectsForRedline.length > 0) {
+          //console.log("divisionDocList:", totalStitchList[redlineStitchDivisionDetails.division]);
+          let divisionDocListCopy = [...totalStitchList[redlineStitchDivisionDetails.division]];
+          if(divisionDocListCopy.length > 1){
+            divisionDocListCopy?.shift();
+            let _pdftronDocObjects = sortDocObjectsForRedline(
+              pdftronDocObjectsForRedline,
+              divisionDocListCopy
+            );
+            //console.log("\nAFTER SORT- _pdftronDocObjects:", _pdftronDocObjects);
+            if (_pdftronDocObjects.length > 0) {
+              stitchPagesForRedline(stichedfilesForRedline, _pdftronDocObjects);
+            }
+          }
+        //}
+        }
+        // console.log("alreadyStitchedList:",alreadyStitchedList?.length)
+        // console.log(`divisionDocList = ${totalStitchList[redlineStitchDivisionDetails.division]?.length}`);
+        //console.log("requestStitchObject:",requestStitchObject)
+        if (
+         //redlineDocCount == divisionDocList.length &&
+          issingleredlinepackage == "N" &&
+          stichedfilesForRedline != null &&
+          (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
+        ) {
+          //console.log("\nInside 1st condition!")
+          requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
+          setPdftronDocObjectsForRedline([]);
+          setstichedfilesForRedline(null)
+        }
+        if (issingleredlinepackage == "Y" && stichedfilesForRedline != null &&
+        (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length) {
+          requestStitchObject["0"] = stichedfilesForRedline;
+        }
+        if (redlineStitchDivisionDetails.divCount == redlineStitchDivisionDetails.noofdivision && requestStitchObject != null &&
+           requestStitchObject[redlineStitchDivisionDetails.division] != null) {
+          //console.log("\nInside 3rd condition:",requestStitchObject)
+          setRedlineStitchObject(requestStitchObject);
+        }
+        // if (issingleredlinepackage == "N" && ) {
+        //   //stitchedDocObj = null;
+        
+        //   setPdftronDocObjectsForRedline([]);
+        // }
+        
+    }, [
+      pdftronDocObjectsForRedline,
+      stichedfilesForRedline,
+      alreadyStitchedList,
+      //divisionDocList,
+      //redlineDocCount
+    ]);
 
-    const stitchForRedlineExport = async (
+    const [redlineStitchDivisionDetails, setRedlineStitchDivisionDetails] = useState({});
+    const [requestStitchObject, setRequestStitchObject] = useState({});
+
+    const stitchForSingleRedlineExport = async (
       _instance,
       divisionDocuments,
       stitchlist,
       redlineSinglePkg
     ) => {
-      let requestStitchObject = {};
+      setRequestStitchObject({});
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      // const arrayLengths = {};
-      // for (const key in stitchlist) {
-      //   if (Array.isArray(stitchlist[key])) {
-      //     arrayLengths[key] = object[key].length;
-      //   }
-      // }
-      
+      settotalStitchList(stitchlist);
+      const promises = [];
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
         let division = key;
         let documentlist = stitchlist[key];
+        setDivisionDocList(documentlist);
         if (redlineSinglePkg == "N") {
           toast.update(toastId.current, {
             render: `Generating redline PDF for ${
@@ -2457,11 +2519,10 @@ const Redlining = React.forwardRef(
         let slicer = slicerdetails.slicer;
         console.log(`slicerRedline = ${slicer}, setCountRedline = ${setCount}`);
         let objpreptasks = new Array(setCount);
-        let stitchedRedline = [];
-        let redlinePdftronDocObjects=[];
+        let divisionDetails= {'divCount':divCount, 'noofdivision':noofdivision, 'division':division}
+        setRedlineStitchDivisionDetails(divisionDetails);
         for (let slicecount = 1; slicecount <= setCount; slicecount++) {
           const sliceDoclist = documentlistCopy.splice(0, slicer);
-          setsliceDoclist(sliceDoclist);
           objpreptasks.push(
             mergeObjectsPreparationForRedline(
               _instance.Core.createDocument,
@@ -2470,20 +2531,11 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               docCount,
               stitchedDocObj,
-              redlinePdftronDocObjects,
-              redlineSinglePkg,
-              requestStitchObject,
-              documentlist,
-              division,
-              noofdivision,
-              divCount,
-              stitchedRedline,
-              setCount,
             )
           );
-        await Promise.all(objpreptasks);
           
         }
+        await Promise.all(objpreptasks);
       }
     };
 
@@ -2669,9 +2721,12 @@ const Redlining = React.forwardRef(
         redlineStitchInfo &&
         redlinepageMappings
       ) {
+        console.log("StitchAndUploadDocument!!")
         StitchAndUploadDocument();
       }
     }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
+
+    const [issingleredlinepackage, setIssingleredlinepackage] = useState(null);
 
     const saveRedlineDocument = (_instance) => {
       toastId.current = toast(`Start saving redline...`, {
@@ -2750,7 +2805,7 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage == "Y" &&
               divCount == res.divdocumentList.length
             ) {
-              stitchDocuments["0"] = sortByLastModified(documentsObjArr);
+              stitchDocuments["0"] = setStitchDetails(sortByLastModified(documentsObjArr));
               stitchDoc["0"] = {
                 documentids: documentids,
                 s3path: res.s3path_save,
@@ -2777,19 +2832,102 @@ const Redlining = React.forwardRef(
             }
           }
           setRedlineStitchInfo(stitchDoc);
+          setIssingleredlinepackage(res.issingleredlinepackage);
           //setTotalPageCount(totalPageCountVal);
-          stitchForRedlineExport(
-            _instance,
-            divisionDocuments,
-            stitchDocuments,
-            res.issingleredlinepackage
-          );
+          if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+            stitchForSingleRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage
+            );
+          }
+          else {
+            stitchForRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage
+            );
+          }
           
         },
         (error) => {
           console.log("Error fetching document:", error);
         }
       );
+    };
+
+    const stitchForRedlineExport = async (
+      _instance,
+      divisionDocuments,
+      stitchlist,
+      redlineSinglePkg
+    ) => {
+      let requestStitchObject = {};
+      let divCount = 0;
+      const noofdivision = Object.keys(stitchlist).length;
+      let stitchedDocObj = null;
+      for (const [key, value] of Object.entries(stitchlist)) {
+        divCount++;
+        let docCount = 0;
+        let division = key;
+        let documentlist = stitchlist[key];
+        if (redlineSinglePkg == "N") {
+          toast.update(toastId.current, {
+            render: `Generating redline PDF for ${
+              divCount + 1
+            } of ${noofdivision} divisions...`,
+            isLoading: true,
+          });
+        } else {
+          toast.update(toastId.current, {
+            render: `Generating redline PDF...`,
+            isLoading: true,
+          });
+        }
+
+        for (let doc of documentlist) {
+          await _instance.Core.createDocument(doc.s3path_load, {
+            loadAsPDF: true,
+          }).then(async (docObj) => {
+            docCount++;
+            if (isIgnoredDocument(doc, docObj, divisionDocuments) == false) {
+              if (docCount == 1) {
+                stitchedDocObj = docObj;
+              } else {
+                // create an array containing 1…N
+                let pages = Array.from(
+                  { length: doc.pagecount },
+                  (v, k) => k + 1
+                );
+                let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                await stitchedDocObj.insertPages(
+                  docObj,
+                  pages,
+                  pageIndexToInsert
+                );
+              }
+            }
+          });
+          if (
+            docCount == documentlist.length &&
+            redlineSinglePkg == "N" &&
+            stitchedDocObj != null
+          ) {
+            requestStitchObject[division] = stitchedDocObj;
+          }
+        }
+        if (redlineSinglePkg == "Y" && stitchedDocObj != null) {
+          requestStitchObject["0"] = stitchedDocObj;
+        }
+        if (divCount == noofdivision) {
+          setRedlineStitchObject(requestStitchObject);
+        }
+        if (redlineSinglePkg == "N") {
+          stitchedDocObj = null;
+        }
+      }
     };
 
     const setStitchDetails = (sortedList) => {
