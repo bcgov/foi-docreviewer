@@ -81,6 +81,7 @@ const Redlining = React.forwardRef(
       isStitchingLoaded,
       licenseKey,
       setWarningModalOpen,
+      scrollLeftPanel
     },
     ref
   ) => {
@@ -486,6 +487,10 @@ const Redlining = React.forwardRef(
             setAnnotManager(annotationManager);
             setAnnots(Annotations);
             setDocViewerMath(Math);
+          });
+          
+          documentViewer.addEventListener("click", async () => {
+            scrollLeftPanel(documentViewer.getCurrentPage());
           });
 
           let root = null;
