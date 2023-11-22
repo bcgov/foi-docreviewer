@@ -12,11 +12,14 @@ import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark, faAngleDown, faCircleExclamation
+    faCircleStop, faCircleXmark, faBookmark, faAngleDown, faCircleExclamation,
+    faAnglesDown, faAnglesUp
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -66,6 +69,7 @@ const DocumentSelector = ({
     const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
     const [selectAllConsultee, setSelectAllConsultee] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [expanded, setExpanded] = useState<string[]>([]);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
@@ -243,6 +247,16 @@ const DocumentSelector = ({
 
     let arr: any[] = [];
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
+
+    let expandall: any[] = [];
+    let expandallorganizebydivision: any[] = [];
+    divisions.forEach((division:any) => {
+        expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
+        files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+            expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+            expandall.push(`{"docid": ${file.documentid}}`);
+        })
+    });
 
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
@@ -650,6 +664,16 @@ const DocumentSelector = ({
         )
     }
 
+    const handleExpandClick = () => {
+        setExpanded((oldExpanded:any) =>
+            oldExpanded.length === 0 ? (organizeBy == "lastmodified" ? expandall : expandallorganizebydivision) : [],
+        );
+    };
+
+    const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => {
+        setExpanded(nodeIds);
+    };
+
     return (
         <>
             <div className='leftPanel'>
@@ -723,14 +747,14 @@ const DocumentSelector = ({
                                     label="Division"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("division")}
+                                    onClick={() => {setOrganizeBy("division");setExpanded([])}}
                                     clicked={organizeBy === "division"}
                                 />
                                 <ClickableChip
                                     label="Modified Date"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("lastmodified")}
+                                    onClick={() => {setOrganizeBy("lastmodified");setExpanded([])}}
                                     clicked={organizeBy === "lastmodified"}
                                 />
                             </Stack>
@@ -816,12 +840,31 @@ const DocumentSelector = ({
                         </div>
                     </div>
                     <hr className='hrStyle' />
+                    <Box sx={{ mb: 1 }}>
+                        <Tooltip
+                            sx={{
+                                backgroundColor: 'white',
+                                color: 'rgba(0, 0, 0, 0.87)',
+                                fontSize: 11
+                            }}
+                            title={expanded.length === 0 ? "Expand All" : "Collapse All"}
+                            placement="right"
+                            arrow
+                            disableHoverListener={disableHover}
+                        >
+                            <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
+                            {expanded.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
+                            </Button>
+                        </Tooltip>
+                    </Box>
                     <TreeView
                         aria-label="file system navigator"
                         defaultCollapseIcon={<ExpandMoreIcon />}
                         defaultExpandIcon={<ChevronRightIcon />}
+                        expanded={expanded}
                         multiSelect
                         selected={selected}
+                        onNodeToggle={handleToggle}
                         onNodeSelect={handleSelect}
                         sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
                     >
