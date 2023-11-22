@@ -99,6 +99,7 @@ const DocumentSelector = ({
         fetchPageFlag(
             requestid,
             currentLayer.redactionlayerid,
+            documents.map((d: any) => d.documentid),
             (error: any) => console.log(error)
         )
     }
@@ -126,7 +127,7 @@ const DocumentSelector = ({
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-            let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
+            let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([pageFlagTypes["Consult"], pageFlagTypes["In Progress"], pageFlagTypes["Page Left Off"]].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
         /* We need to Math.floor the result because the result can be a float value and we want to take the lower value

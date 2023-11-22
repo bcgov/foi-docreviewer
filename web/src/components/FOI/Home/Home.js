@@ -7,7 +7,6 @@ import Redlining from "./Redlining";
 import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
-  fetchPageFlag,
   fetchRedactionLayerMasterData,
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
