@@ -111,7 +111,7 @@ function Home() {
   }, []);
 
   const prepareMapperObj = (doclistwithSortOrder) => {
-    let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
+    let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
     let index = 0;
@@ -139,6 +139,16 @@ function Home() {
         docId: sortedDoc.file.documentid,
         version: sortedDoc.file.version,
         division: sortedDoc.file.divisions[0].divisionid,
+        pageMappings: mappedDoc.pageMappings,
+      };
+      let fileDivisons = [];
+      for (let div of sortedDoc.file.divisions) {
+        fileDivisons.push(div.divisionid)
+      }
+      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
+        docId: sortedDoc.file.documentid,
+        version: sortedDoc.file.version,
+        division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 

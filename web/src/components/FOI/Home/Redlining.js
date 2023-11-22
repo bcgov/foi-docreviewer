@@ -1222,10 +1222,10 @@ const Redlining = React.forwardRef(
             //stitchedRedline.push(filerow)
             try {
               stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
-              console.log("Inserted:",filerow)
+              //console.log("Inserted:",filerow)
               setAlreadyStitchedList((_arr) => [..._arr, filerow]);
               setstichedfilesForRedline(stichedfilesForRedline)
-              console.log("Stitching complete for", filerow);
+              //console.log("Stitching complete for", filerow);
             } catch (error) {
               console.error("An error occurred during page insertion:", error);
             }
@@ -2558,6 +2558,7 @@ const Redlining = React.forwardRef(
           (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
         ) {
           //console.log("\nInside 1st condition!")
+          console.log(`Download and Stitching completed.... ${new Date()}`);
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
           setPdftronDocObjectsForRedline([]);
           setstichedfilesForRedline(null)
@@ -2619,6 +2620,7 @@ const Redlining = React.forwardRef(
           });
         }
         let documentlistCopy = [...documentlist];
+        console.log(`Download and Stitching Redline started.... ${new Date()}`);
         let slicerdetails = await getSliceSetDetails(
           documentlist.length,
           true
@@ -3019,6 +3021,7 @@ const Redlining = React.forwardRef(
             isLoading: true,
           });
         }
+        console.log(`Redline started.... ${new Date()}`);
 
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
@@ -3048,6 +3051,7 @@ const Redlining = React.forwardRef(
             redlineSinglePkg == "N" &&
             stitchedDocObj != null
           ) {
+            console.log(`Redline completed.... ${new Date()}`);
             requestStitchObject[division] = stitchedDocObj;
           }
         }
