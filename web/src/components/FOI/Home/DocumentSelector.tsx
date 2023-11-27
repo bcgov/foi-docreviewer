@@ -83,14 +83,14 @@ const DocumentSelector = React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(pageNumber: number) {
+            setExpanded(organizeBy == "lastmodified" ? expandall : expandallorganizebydivision);
+            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
             let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
             if (pageRef) {
-                setExpanded(organizeBy == "lastmodified" ? expandall : expandallorganizebydivision);
-                await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
                 pageRef.scrollIntoView();
                 let nodeId = pageRef.children[0].id;
                 nodeId = nodeId.substring(nodeId.indexOf('{'));
-                setSelected(nodeId)
+                setSelected([nodeId])
             }
         },
     }), [pageRefs, organizeBy]);
