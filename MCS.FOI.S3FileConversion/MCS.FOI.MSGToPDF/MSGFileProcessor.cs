@@ -137,7 +137,7 @@ namespace MCS.FOI.MSGToPDF
                                 {
                                     if (htmlInline)
                                     {
-                                        bodyreplaced = Regex.Replace(bodyreplaced, "<img((?!>).)*cid:" + inlineAttachment.ContentId + ".*?>", "<img style=\"max-width: 700px\" src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
+                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data));
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                         {
                                             if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == inlineAttachment.ContentId)
