@@ -114,7 +114,7 @@ namespace MCS.FOI.MSGToPDF
                             bool rtfInline = bodyreplaced.Contains(rtfInlineObject);
                             if (htmlInline || rtfInline)
                             {
-                                var inlineAttachments = new List<Storage.Attachment>();
+                                var inlineAttachments = new List<object>();
                                 foreach (Object attachment in msg.Attachments)
                                 {
                                     if (!attachment.GetType().FullName.ToLower().Contains("message"))
@@ -132,36 +132,51 @@ namespace MCS.FOI.MSGToPDF
                                             inlineAttachments.Add(_attachment);
                                         }
                                     }
-                                }
-                                foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.RenderingPosition))
-                                {
-                                    if (htmlInline)
+                                    else
                                     {
-                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(inlineAttachment.Data));
-                                        foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
-                                        {
-                                            if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == inlineAttachment.ContentId)
-                                            {
-                                                attachmentsObj.Remove(attachment.Key);
-                                            }
-                                        }
+                                        var _attachment = (Storage.Message)attachment;
+                                        inlineAttachments.Add(_attachment);
                                     }
-                                    else if (rtfInline)
+                                }
+                                foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
+                                {
+                                    if (rtfInline)
                                     {
-                                        if (inlineAttachment.OleAttachment)
+                                        if (!inlineAttachment.GetType().FullName.ToLower().Contains("message"))
                                         {
-                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img style=\"max-width: 700px\" src=\"data:image/" + Path.GetExtension(inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(inlineAttachment.Data) + "\"/>");
-                                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                            var _inlineAttachment = (Storage.Attachment)inlineAttachment;
+                                            if (_inlineAttachment.OleAttachment)
                                             {
-                                                if (attachment.Value["filename"] == inlineAttachment.FileName)
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img style=\"max-width: 700px\" src=\"data:image/" + Path.GetExtension(_inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>");
+                                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                                 {
-                                                    attachmentsObj.Remove(attachment.Key);
+                                                    if (attachment.Value["filename"] == _inlineAttachment.FileName)
+                                                    {
+                                                        attachmentsObj.Remove(attachment.Key);
+                                                    }
                                                 }
+                                            }
+                                            else
+                                            {
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + _inlineAttachment.FileName + "**]</b>");
                                             }
                                         }
                                         else
                                         {
-                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + inlineAttachment.FileName + "**]</b>");
+                                            var _inlineAttachment = (Storage.Message)inlineAttachment;
+                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + _inlineAttachment.FileName + "**]</b>");
+                                        }
+                                    }
+                                    else if (htmlInline)
+                                    {
+                                        var _inlineAttachment = (Storage.Attachment)inlineAttachment;
+                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + _inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data));
+                                        foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                        {
+                                            if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
+                                            {
+                                                attachmentsObj.Remove(attachment.Key);
+                                            }
                                         }
                                     }
                                 }
