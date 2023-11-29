@@ -45,6 +45,7 @@ namespace MCS.FOI.MSGToPDF
                         try
                         {
                             using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
+                            string htmlString = GenerateHtmlfromMsg(msg);
                             Dictionary<string, Boolean> fileNameHash = new();
                             foreach (Object attachment in msg.Attachments)
                             {
@@ -184,10 +185,10 @@ namespace MCS.FOI.MSGToPDF
 
                             if (bodyreplaced.Substring(0, 4) == "<div")
                             {
-                                bodyreplaced = GenerateHtmlfromMsg(msg) + bodyreplaced;
+                                bodyreplaced = htmlString + bodyreplaced;
                             } else
                             {
-                                bodyreplaced = bodyreplaced.Insert(bodyreplaced.IndexOf("<div class=WordSection1"), GenerateHtmlfromMsg(msg));
+                                bodyreplaced = bodyreplaced.Insert(bodyreplaced.IndexOf("<div class=WordSection1"), htmlString);
                             }
 
                             bool isConverted;
