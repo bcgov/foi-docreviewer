@@ -103,7 +103,7 @@ namespace MCS.FOI.MSGToPDF
                             ////WordDocument doc = GetEmailMetatdata(msg);
 
                             var msgReader = new Reader();
-                            string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", true);
+                            string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", false);
                             var options = RegexOptions.None;
                             var timeout = TimeSpan.FromSeconds(10);
                             var bodyreplaced = Regex.Replace(body, "page:WordSection1;", "", options, timeout);
@@ -132,7 +132,7 @@ namespace MCS.FOI.MSGToPDF
                                             inlineAttachments.Add(_attachment);
                                         }
                                     }
-                                    else
+                                    else if (rtfInline)
                                     {
                                         var _attachment = (Storage.Message)attachment;
                                         inlineAttachments.Add(_attachment);
@@ -180,6 +180,14 @@ namespace MCS.FOI.MSGToPDF
                                         }
                                     }
                                 }
+                            }
+
+                            if (bodyreplaced.Substring(0, 4) == "<div")
+                            {
+                                bodyreplaced = GenerateHtmlfromMsg(msg) + bodyreplaced;
+                            } else
+                            {
+                                bodyreplaced = bodyreplaced.Insert(bodyreplaced.IndexOf("<div class=WordSection1"), GenerateHtmlfromMsg(msg));
                             }
 
                             bool isConverted;
@@ -359,14 +367,14 @@ namespace MCS.FOI.MSGToPDF
             {
                 var sb = new StringBuilder();
                 StringBuilder htmlString = new();
-                htmlString.Append(@"
-                            <html>
-                                <head>
-                                </head>
-                                <body style='border: 50px solid white;'>
-                                    ");
+                //htmlString.Append(@"
+                //            <html>
+                //                <head>
+                //                </head>
+                //                <body style='border: 50px solid white;'>
+                //                    ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:35px;'>");
+                htmlString.Append(@"<table style=""font-family: Times New Roman; font-size: 12pt;"">");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -448,16 +456,18 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
                 }
 
-                //Message body
-                string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
+                htmlString.Append(@"</table><br/>");
 
-                message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
-                htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
-                                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
-                htmlString.Append(@"
-                                    </table>
-                                </div>");
-                htmlString.Append(@"</body></html>");
+                //Message body
+                //string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
+
+                //message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
+                //htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
+                //                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
+                //htmlString.Append(@"
+                //                    </table>
+                //                </div>");
+                //htmlString.Append(@"</body></html>");
                 return htmlString.ToString();
             }
             catch (Exception ex)
