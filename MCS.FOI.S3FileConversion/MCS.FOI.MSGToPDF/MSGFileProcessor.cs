@@ -188,7 +188,8 @@ namespace MCS.FOI.MSGToPDF
                                 bodyreplaced = htmlString + bodyreplaced;
                             } else
                             {
-                                bodyreplaced = bodyreplaced.Insert(bodyreplaced.IndexOf("<div class=WordSection1"), htmlString);
+                                var bodyStart = Regex.Match(bodyreplaced, "<body.*?>");
+                                bodyreplaced = bodyreplaced.Insert(bodyStart.Index + bodyStart.Length, htmlString);
                             }
 
                             bool isConverted;
