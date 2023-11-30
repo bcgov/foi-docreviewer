@@ -4,8 +4,8 @@ import pytz
 
 def convert_to_pst(datetime_str):
     # Extract date and time parts from the string
-    date_str = datetime_str[2:9]
-    time_str = datetime_str[10:15]
+    date_str = datetime_str[2:10]
+    time_str = datetime_str[10:16]
 
     # Parse the date and time strings
     parsed_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y%m%d %H%M%S")

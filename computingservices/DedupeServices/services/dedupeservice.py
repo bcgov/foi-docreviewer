@@ -1,14 +1,14 @@
 
 from .s3documentservice import gets3documenthashcode
-from .dedupedbservice import savedocumentdetails, recordjobstart, recordjobend, updateredactionstatus
+from .dedupedbservice import savedocumentdetails, recordjobstart, recordjobend, updateredactionstatus, saveprocessedpdfdetails
 import traceback
 
 
 def processmessage(message):
     recordjobstart(message)
     try:
-        hashcode, _pagecount = gets3documenthashcode(message)
-        savedocumentdetails(message, hashcode, _pagecount)
+        hashcode, _pagecount, _processedpagecount, _processedfilepath = gets3documenthashcode(message)
+        savedocumentdetails(message, hashcode, _pagecount, _processedfilepath, _processedpagecount)
         recordjobend(message, False)
         updateredactionstatus(message)
     except(Exception) as error:
