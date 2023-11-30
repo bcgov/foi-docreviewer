@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useImperativeHandle, useRef, createRef, LegacyRef } from 'react'
 import Chip from "@mui/material/Chip";
 import {TreeView, TreeItem} from '@mui/x-tree-view';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -36,7 +36,7 @@ import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 
 
-const DocumentSelector = ({
+const DocumentSelector = React.forwardRef(({
     openFOIPPAModal,
     requestid,
     documents,
@@ -45,7 +45,7 @@ const DocumentSelector = ({
     setIndividualDoc,
     pageMappedDocs,
     setWarningModalOpen
-}: any) => {
+}: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -70,6 +70,7 @@ const DocumentSelector = ({
     const [selectAllConsultee, setSelectAllConsultee] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [expanded, setExpanded] = useState<string[]>([]);
+    const pageRefs = useRef([]);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
@@ -79,6 +80,26 @@ const DocumentSelector = ({
             padding: '0 16px'
         }
     }));
+
+    useImperativeHandle(ref, () => ({
+        async scrollToPage(pageNumber: number) {
+            setExpanded(organizeBy == "lastmodified" ? expandall : expandallorganizebydivision);
+            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
+            let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
+            if (pageRef) {
+                pageRef.scrollIntoView();
+                let nodeId = pageRef.children[0].id;
+                nodeId = nodeId.substring(nodeId.indexOf('{'));
+                setSelected([nodeId])
+            }
+        },
+    }), [pageRefs, organizeBy]);
+
+
+    useEffect(() => {
+        let refLength = documents.reduce((acc: any, file: any) => acc + file.pagecount, 0);
+        pageRefs.current = Array(refLength).fill(0).map((_, i) => pageRefs.current[i] || createRef());
+    }, [documents])
 
     useEffect(() => {
         fetchPageFlagsMasterData(
@@ -509,11 +530,11 @@ const DocumentSelector = ({
                     (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
                     (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                 &&
-                <>
+                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                     <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </>
+                </div>
             ) :
             viewWithoutConsulteeFilter(file, p)
         )
@@ -523,12 +544,16 @@ const DocumentSelector = ({
     const noFilterView = (file: any, p: number, division?: any) => {
         return (
             (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
+            <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+            </div>
                 :
+                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                </div>
             )
         )
     }
@@ -540,19 +565,19 @@ const DocumentSelector = ({
     const viewWithoutConsulteeFilter = (file: any, p:number) => {
         return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
         (
-        <>
+        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </>
+        </div>
         )
         :
         (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
         (
-        <>                                                 
+        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </>
+        </div>
         )
     }
 
@@ -880,6 +905,7 @@ const DocumentSelector = ({
         </>
     )
 }
+)
 
 const ClickableChip = ({ clicked, ...rest }: any) => {
     return (
