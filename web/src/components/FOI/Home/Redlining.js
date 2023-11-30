@@ -165,7 +165,7 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                if (docInfo.pagecount > pageFlagInfo.pageflag.length) {
+                if (docInfo.processedpagecount > pageFlagInfo.pageflag.length) {
                   // not all page has flag set
                   stopLoop = true;
                   return false; //stop loop
@@ -1128,7 +1128,7 @@ const Redlining = React.forwardRef(
       let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
       let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
-      for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
+      for (let i = 0; i < removedFirstElement.file.processedpagecount; i++) {
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
           docid: removedFirstElement.file.documentid,
@@ -1203,15 +1203,13 @@ const Redlining = React.forwardRef(
         // Insert (merge) pages
         await doc.insertPages(newDoc, pages);
       }
-
-      
-
       const pageCount = docInstance.Core.documentViewer
         .getDocument()
         .getPageCount();
       if (pageCount > 800) {
         docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
       }
+      // await removeExisitngAnnotations();
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
@@ -1231,6 +1229,28 @@ const Redlining = React.forwardRef(
         }
       }
     };
+
+    const removeExisitngAnnotations = async () => {
+      const annotations = annotManager.getAnnotationsList();
+      if (annotations?.length > 0) {
+        await annotManager.deleteAnnotations(annotations,{
+          force: true,
+        });
+        docViewer.getDocument()
+        .getFileData({
+          xfdfString: {},
+          // downloadType: "pdf",
+          // flatten: true,
+        }).then(data => {
+          const arr = new Uint8Array(data);
+          const blob = new Blob([arr], { type: 'application/pdf' });
+          const modifiedDocURL = URL.createObjectURL(blob);
+
+          // Load the modified PDF
+          docInstance.loadDocument(modifiedDocURL);
+        });
+      }
+    }
 
     const fetchandApplyAnnotations = async (
       mappedDocs,
@@ -2184,7 +2204,7 @@ const Redlining = React.forwardRef(
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
+        totalPageCountIncludeRemoved += doc.processedpagecount;
           
           
         }
@@ -2230,7 +2250,7 @@ const Redlining = React.forwardRef(
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
+        totalPageCountIncludeRemoved += doc.processedpagecount;
           //}
           
         }
@@ -2367,7 +2387,7 @@ const Redlining = React.forwardRef(
               } else {
                 // create an array containing 1…N
                 let pages = Array.from(
-                  { length: doc.pagecount },
+                  { length: doc.processedpagecount },
                   (v, k) => k + 1
                 );
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;

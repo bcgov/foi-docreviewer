@@ -36,6 +36,7 @@ from botocore.config import Config
 
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
+from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES
 
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
@@ -128,11 +129,21 @@ class FOIFlowS3PresignedList(Resource):
             )
 
             documentobjs = []
-            documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
-            documents = documentservice().getdocumentbyids(documentids)
+            # documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
+            # documents = documentservice().getdocumentbyids(documentids)
+            # print("<<<<<<<<<<< documents >>>>>>>>>>>>>>>>")
+            # print(documents)
             for documentinfo in data["documentobjs"]:
-                filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                # filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                # print("filepath ==== ", filepath)
+                # filename, file_extension = os.path.splitext(filepath)
+                filepath = "/".join(documentinfo["file"]["filepath"].split("/")[4:])
+                if documentinfo["file"]["processedfilepath"]:
+                    filepath = "/".join(documentinfo["file"]["processedfilepath"].split("/")[4:])                
                 filename, file_extension = os.path.splitext(filepath)
+                if file_extension in FILE_CONVERSION_FILE_TYPES:
+                    filepath = filename + ".pdf"
+                
                 documentinfo["s3url"] = s3client.generate_presigned_url(
                     ClientMethod="get_object",
                     Params={
