@@ -1,6 +1,6 @@
 
 from .s3documentservice import gets3documenthashcode
-from .dedupedbservice import savedocumentdetails, recordjobstart, recordjobend, updateredactionstatus, saveprocessedpdfdetails
+from .dedupedbservice import savedocumentdetails, recordjobstart, recordjobend, updateredactionstatus
 import traceback
 
 
