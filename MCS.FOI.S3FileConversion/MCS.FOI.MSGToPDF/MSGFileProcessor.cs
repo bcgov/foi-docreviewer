@@ -5,6 +5,7 @@ using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -182,6 +183,22 @@ namespace MCS.FOI.MSGToPDF
                                     }
                                 }
                             }
+
+                            //Message Attachments
+                            string attachmentsList = "";
+                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                            {
+                                attachmentsList += (attachment.Value["filename"] + ", ");
+                            }
+                            if (!string.IsNullOrEmpty(attachmentsList))
+                            {
+
+                            htmlString += (@"<tr>
+                            <td><b>Attachments: </b></td>
+                            <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
+                            }
+
+                            htmlString += (@"</table><br/>");
 
                             if (bodyreplaced.Substring(0, 4) == "<div")
                             {
@@ -434,31 +451,7 @@ namespace MCS.FOI.MSGToPDF
                             <td><b>Sent: </b></td>
                             <td>" + msg.SentOn + "</td></tr>");
 
-                //Message Attachments
-                string attachmentsList = "";
-                foreach (Object attachment in msg.Attachments)
-                {
-                    if (attachment.GetType().FullName.ToLower().Contains("message"))
-                    {
-                        var _attachment = (Storage.Message)attachment;
-                        attachmentsList += (_attachment.FileName + ", ");
-                    }
-                    else
-                    {
-                        var _attachment = (Storage.Attachment)attachment;
-                        attachmentsList += _attachment.FileName + ", ";
-                    }
-
-                }
-                if (!string.IsNullOrEmpty(attachmentsList))
-                {
-
-                    htmlString.Append(@"<tr>
-                            <td><b>Attachments: </b></td>
-                            <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
-                }
-
-                htmlString.Append(@"</table><br/>");
+                
 
                 //Message body
                 //string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
