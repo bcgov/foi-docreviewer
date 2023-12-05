@@ -324,11 +324,18 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
-                        realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
-                        # filepathlist = doc["filepath"].split("/")[4:]
-                        filepathlist = realfilepath.split("/")[4:]
+                        # realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
+                        # filepathlist = realfilepath.split("/")[4:]
+                        # print("filepathlist s3path_load === ", filepathlist)
+                        # filepath_get = "/".join(filepathlist)
+                        # print("filepath_get === ", filepath_get)
+                        filepathlist = doc["filepath"].split("/")[4:]
+                        if doc["processedfilepath"]:
+                            filepathlist = doc["processedfilepath"].split("/")[4:]
+                        
                         # for load/get
                         filepath_get = "/".join(filepathlist)
+                        
                         filename_get, file_extension_get = os.path.splitext(
                                         filepath_get
                             )
@@ -337,6 +344,7 @@ class FOIFlowS3PresignedRedline(Resource):
                                         if file_extension_get.lower() in imageextensions
                                         else "pdf"
                                 )
+                        print(f'filename_get = ${filename_get}, file_extension_get = ${file_extension_get}')
 
                         doc["s3path_load"] = s3client.generate_presigned_url(
                                         ClientMethod="get_object",
