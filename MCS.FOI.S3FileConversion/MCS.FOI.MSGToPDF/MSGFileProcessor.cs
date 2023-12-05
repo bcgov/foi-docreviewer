@@ -1,13 +1,11 @@
 ﻿using MsgReader.Outlook;
+using MsgReader;
 using Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
-using Syncfusion.DocIO.DLS;
-using Syncfusion.DocIORenderer;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Syncfusion.DocIO;
+using System.Linq;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -48,120 +46,8 @@ namespace MCS.FOI.MSGToPDF
                         try
                         {
                             using var msg = new MsgReader.Outlook.Storage.Message(SourceStream);
-                            if (msg.BodyRtf != null)
-                            {
-                                byte[] byteArray = Encoding.ASCII.GetBytes(System.Net.WebUtility.HtmlDecode(msg.BodyRtf));
-                                using (MemoryStream messageStream = new MemoryStream(byteArray))
-                                {
-                                    using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Rtf))
-                                    {
-                                        // Replace leading tabs, issue with syncfusion
-                                        rtfDoc.ReplaceFirst = true;
-                                        var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
-                                        var occurences = rtfDoc.Replace(regex, "\r\n");
-
-                                        //Gets all the hyperlink fields in the document
-
-                                        List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
-
-                                        if (fields != null)
-                                        {
-                                            for (int i = 0; i < fields.Count; i++)
-
-                                            {
-
-                                                //Creates hyperlink instance from field to manipulate the hyperlink.
-
-                                                Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
-
-                                                //Gets the text to display from hyperlink
-
-                                                string existingHyperlinkText = hyperlink.TextToDisplay;
-
-                                                //Removes the content between tags
-
-                                                if (!string.IsNullOrEmpty(existingHyperlinkText))
-                                                {
-                                                    string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
-
-                                                    //Sets the modified text to display to hyperlink
-
-                                                    hyperlink.TextToDisplay = modifiedTextToDisplay;
-                                                }
-
-                                            }
-                                        }
-
-
-                                        WordDocument doc = GetEmailMetatdata(msg);
-
-
-                                        //Sets the break-code of First section of source document as NoBreak to avoid imported from a new page
-
-                                        rtfDoc.Sections[0].BreakCode = SectionBreakCode.NoBreak;
-
-                                        //Gets the destination document page properties.
-
-                                        WPageSetup destSecPageSetup = doc.LastSection.PageSetup;
-
-                                        //Processes each section in the source Word document.
-
-                                        for (int i = 0; i < rtfDoc.Sections.Count; i++)
-
-                                        {
-
-                                            WSection sourceSection = rtfDoc.Sections[i];
-
-                                            //Sets the destination document page setup properties to the source document sections.
-
-                                            sourceSection.PageSetup.DifferentFirstPage = destSecPageSetup.DifferentFirstPage;
-
-                                            sourceSection.PageSetup.Margins = destSecPageSetup.Margins;
-
-                                            sourceSection.PageSetup.Orientation = destSecPageSetup.Orientation;
-
-                                            sourceSection.PageSetup.PageSize = destSecPageSetup.PageSize;
-
-                                        }
-
-                                        doc.ImportContent(rtfDoc, ImportOptions.UseDestinationStyles);
-
-                                        using (DocIORenderer renderer = new DocIORenderer())
-                                        {
-                                            using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
-                                            //Save the PDF file
-                                            //Close the instance of document objects
-                                            pdfDocument.Save(output);
-                                            pdfDocument.Close(true);
-
-                                        }
-
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                WordDocument doc = GetEmailMetatdata(msg);
-                                doc.LastParagraph.AppendText("This email does not have a message body.");
-
-                                using (DocIORenderer renderer = new DocIORenderer())
-                                {
-                                    using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
-                                    //Save the PDF file
-                                    //Close the instance of document objects
-                                    pdfDocument.Save(output);
-                                    pdfDocument.Close(true);
-
-                                }
-                            }
-
-
-
-                            //string htmlString = GenerateHtmlfromMsg(msg);
-                            //bool isConverted;
-                            //(output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
+                            string htmlString = GenerateHtmlfromMsg(msg);
                             Dictionary<string, Boolean> fileNameHash = new();
-
                             foreach (Object attachment in msg.Attachments)
                             {
                                 attachmentStream = new();
@@ -208,6 +94,7 @@ namespace MCS.FOI.MSGToPDF
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
+                                        attachmentInfo.Add("cid", _attachment.ContentId);
                                         attachmentInfo.Add("size", _attachment.Data.Length.ToString());
                                         attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
@@ -215,6 +102,250 @@ namespace MCS.FOI.MSGToPDF
                                     }
                                 }
                             }
+                            ////WordDocument doc = GetEmailMetatdata(msg);
+
+                            var msgReader = new Reader();
+                            string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", false);
+                            var options = RegexOptions.None;
+                            var timeout = TimeSpan.FromSeconds(10);
+                            var bodyreplaced = Regex.Replace(body, "page:WordSection1;", "", options, timeout);
+                            //var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(body, "<br.*?>", "<br/>", options, timeout), "<hr.*?>", "<hr/>", options, timeout), "href=\"[^\"]*=[^\"]\"", "", options, timeout).Replace(";=\"\"", "").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout), "<img src=\"(?!cid).*?>", "", options, timeout);
+                            const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
+                            const string imgString = "<img(.|\\n)*src=\"cid(.|\\n)*?>";
+                            bool htmlInline = Regex.Match(bodyreplaced, imgString).Success;
+                            bool rtfInline = bodyreplaced.Contains(rtfInlineObject);
+                            if (htmlInline || rtfInline)
+                            {
+                                var inlineAttachments = new List<object>();
+                                foreach (Object attachment in msg.Attachments)
+                                {
+                                    if (!attachment.GetType().FullName.ToLower().Contains("message"))
+                                    {
+                                        var _attachment = (Storage.Attachment)attachment;
+                                        if (htmlInline)
+                                        {
+                                            if (!String.IsNullOrEmpty(_attachment.ContentId) && bodyreplaced.Contains(_attachment.ContentId))
+                                            {
+                                                inlineAttachments.Add(_attachment);
+                                            }
+                                        }
+                                        else if (rtfInline)
+                                        {
+                                            inlineAttachments.Add(_attachment);
+                                        }
+                                    }
+                                    else if (rtfInline)
+                                    {
+                                        var _attachment = (Storage.Message)attachment;
+                                        inlineAttachments.Add(_attachment);
+                                    }
+                                }
+                                foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
+                                {
+                                    if (rtfInline)
+                                    {
+                                        if (!inlineAttachment.GetType().FullName.ToLower().Contains("message"))
+                                        {
+                                            var _inlineAttachment = (Storage.Attachment)inlineAttachment;
+                                            if (_inlineAttachment.OleAttachment)
+                                            {
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img style=\"max-width: 700px\" src=\"data:image/" + Path.GetExtension(_inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>");
+                                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                                {
+                                                    if (attachment.Value["filename"] == _inlineAttachment.FileName)
+                                                    {
+                                                        attachmentsObj.Remove(attachment.Key);
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + _inlineAttachment.FileName + "**]</b>");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            var _inlineAttachment = (Storage.Message)inlineAttachment;
+                                            bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, " <b>[**Inline Attachment - " + _inlineAttachment.FileName + "**]</b>");
+                                        }
+                                    }
+                                    else if (htmlInline)
+                                    {
+                                        var _inlineAttachment = (Storage.Attachment)inlineAttachment;
+                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + _inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data));
+                                        foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                        {
+                                            if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
+                                            {
+                                                attachmentsObj.Remove(attachment.Key);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            //Message Attachments
+                            string attachmentsList = "";
+                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                            {
+                                attachmentsList += (attachment.Value["filename"] + ", ");
+                            }
+                            if (!string.IsNullOrEmpty(attachmentsList))
+                            {
+
+                            htmlString += (@"<tr>
+                            <td><b>Attachments: </b></td>
+                            <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
+                            }
+
+                            htmlString += (@"</table><br/>");
+
+                            if (bodyreplaced.Substring(0, 4) == "<div")
+                            {
+                                bodyreplaced = htmlString + bodyreplaced;
+                            } else
+                            {
+                                var bodyStart = Regex.Match(bodyreplaced, "<body.*?>");
+                                bodyreplaced = bodyreplaced.Insert(bodyStart.Index + bodyStart.Length, htmlString);
+                            }
+
+                            bool isConverted;
+                            (output, isConverted) = ConvertHTMLtoPDF(bodyreplaced, output);
+
+                            //    //byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
+                            //    //using (MemoryStream messageStream = new MemoryStream(byteArray))
+                            //    //{                                    
+                            //        //using (WordDocument rtfDoc = new WordDocument(messageStream, Syncfusion.DocIO.FormatType.Html))
+                            //        //{
+                            //        //    // Replace leading tabs, issue with syncfusion
+                            //        //    rtfDoc.ReplaceFirst = true;
+                            //        //    var regex = new Regex(@"(\r)*(\n)*(\t)+", RegexOptions.Multiline);
+                            //        //    var occurences = rtfDoc.Replace(regex, "\r\n");
+
+                            //        //    List<Entity> pictures = rtfDoc.FindAllItemsByProperty(EntityType.Picture, "", "");
+
+                            //        //    if (pictures != null)
+                            //        //    {
+                            //        //        foreach (WPicture picture in pictures.OfType<WPicture>())
+                            //        //        {
+                            //        //            picture.LockAspectRatio = true;
+                            //        //            const float maxSize = 500;
+                            //        //            if (picture.Height > maxSize && picture.Height >= picture.Width)
+                            //        //            {
+                            //        //                var scale = (maxSize / picture.Height) * 100;
+                            //        //                picture.HeightScale = scale;
+                            //        //                picture.WidthScale = scale;
+                            //        //            }
+                            //        //            if (picture.Width > maxSize)
+                            //        //            {
+                            //        //                var scale = (maxSize / picture.Width) * 100;
+                            //        //                picture.HeightScale = scale;
+                            //        //                picture.WidthScale = scale;
+                            //        //            }
+                            //        //        }
+                            //        //    }
+
+                            //        //    //Gets all the hyperlink fields in the document
+
+                            //        //    List<Entity> fields = rtfDoc.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldHyperlink.ToString());
+
+                            //        //    if (fields != null)
+                            //        //    {
+                            //        //        for (int i = 0; i < fields.Count; i++)
+
+                            //        //        {
+
+                            //        //            //Creates hyperlink instance from field to manipulate the hyperlink.
+
+                            //        //            Hyperlink hyperlink = new Hyperlink(fields[i] as WField);
+
+                            //        //            //Gets the text to display from hyperlink
+
+                            //        //            string existingHyperlinkText = hyperlink.TextToDisplay;
+
+                            //        //            //Removes the content between tags
+
+                            //        //            if (!string.IsNullOrEmpty(existingHyperlinkText))
+                            //        //            {
+                            //        //                string modifiedTextToDisplay = RemoveContentBetweenTags(existingHyperlinkText);
+
+                            //        //                //Sets the modified text to display to hyperlink
+
+                            //        //                hyperlink.TextToDisplay = modifiedTextToDisplay;
+                            //        //            }
+
+                            //        //        }
+                            //        //    }
+
+
+
+
+                            //        //    //Sets the break-code of First section of source document as NoBreak to avoid imported from a new page
+
+                            //        //    rtfDoc.Sections[0].BreakCode = SectionBreakCode.NoBreak;
+
+                            //        //    //Gets the destination document page properties.
+
+                            //        //    WPageSetup destSecPageSetup = doc.LastSection.PageSetup;
+
+                            //        //    //Processes each section in the source Word document.
+
+                            //        //    for (int i = 0; i < rtfDoc.Sections.Count; i++)
+
+                            //        //    {
+
+                            //        //        WSection sourceSection = rtfDoc.Sections[i];
+
+                            //        //        //Sets the destination document page setup properties to the source document sections.
+
+                            //        //        sourceSection.PageSetup.DifferentFirstPage = destSecPageSetup.DifferentFirstPage;
+
+                            //        //        sourceSection.PageSetup.Margins = destSecPageSetup.Margins;
+
+                            //        //        sourceSection.PageSetup.Orientation = destSecPageSetup.Orientation;
+
+                            //        //        sourceSection.PageSetup.PageSize = destSecPageSetup.PageSize;
+
+                            //        //    }
+
+                            //        //    doc.ImportContent(rtfDoc, ImportOptions.UseDestinationStyles);
+
+                            //        //    using (DocIORenderer renderer = new DocIORenderer())
+                            //        //    {
+                            //        //        using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
+                            //        //        //Save the PDF file
+                            //        //        //Close the instance of document objects
+                            //        //        pdfDocument.Save(output);
+                            //        //        pdfDocument.Close(true);
+
+                            //        //    }
+
+                            //        //}
+                            //    //}
+                            //}
+                            ////else
+                            //{
+                            //    doc.LastParagraph.AppendText("This email does not have a message body.");
+
+                            //    using (DocIORenderer renderer = new DocIORenderer())
+                            //    {
+                            //        using PdfDocument pdfDocument = renderer.ConvertToPDF(doc);
+                            //        //Save the PDF file
+                            //        //Close the instance of document objects
+                            //        pdfDocument.Save(output);
+                            //        pdfDocument.Close(true);
+
+                            //    }
+
+
+
+                            //string htmlString = GenerateHtmlfromMsg(msg);
+                            //bool isConverted;
+                            //(output, isConverted) = ConvertHTMLtoPDF("<h3>Welcome to the real-time HTML editor!</h3>\r\n<p>Type HTML in the textarea above, and it will magically appear in the frame below.</p>", output);
+
+
+
+
                             break;
                         }
                         catch (Exception e)
@@ -255,14 +386,14 @@ namespace MCS.FOI.MSGToPDF
             {
                 var sb = new StringBuilder();
                 StringBuilder htmlString = new();
-                htmlString.Append(@"
-                            <html>
-                                <head>
-                                </head>
-                                <body style='border: 50px solid white;'>
-                                    ");
+                //htmlString.Append(@"
+                //            <html>
+                //                <head>
+                //                </head>
+                //                <body style='border: 50px solid white;'>
+                //                    ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:35px;'>");
+                htmlString.Append(@"<table style=""font-family: Times New Roman; font-size: 12pt;"">");
                 //Sender Name and Email
                 string sender = string.Empty;
                 if (msg.Sender != null && msg.Sender.DisplayName != null)
@@ -320,40 +451,18 @@ namespace MCS.FOI.MSGToPDF
                             <td><b>Sent: </b></td>
                             <td>" + msg.SentOn + "</td></tr>");
 
-                //Message Attachments
-                string attachmentsList = "";
-                foreach (Object attachment in msg.Attachments)
-                {
-                    if (attachment.GetType().FullName.ToLower().Contains("message"))
-                    {
-                        var _attachment = (Storage.Message)attachment;
-                        attachmentsList += (_attachment.FileName + ", ");
-                    }
-                    else
-                    {
-                        var _attachment = (Storage.Attachment)attachment;
-                        attachmentsList += _attachment.FileName + ", ";
-                    }
-
-                }
-                if (!string.IsNullOrEmpty(attachmentsList))
-                {
-
-                    htmlString.Append(@"<tr>
-                            <td><b>Attachments: </b></td>
-                            <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
-                }
+                
 
                 //Message body
-                string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
+                //string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");
 
-                message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
-                htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
-                                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
-                htmlString.Append(@"
-                                    </table>
-                                </div>");
-                htmlString.Append(@"</body></html>");
+                //message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
+                //htmlString.Append(@"<tr><td><b>Message Body: </b></td></tr>
+                //                    <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>") + "</td></tr>");
+                //htmlString.Append(@"
+                //                    </table>
+                //                </div>");
+                //htmlString.Append(@"</body></html>");
                 return htmlString.ToString();
             }
             catch (Exception ex)
@@ -372,10 +481,10 @@ namespace MCS.FOI.MSGToPDF
                 //Initialize HTML to PDF converter with Blink rendering engine
                 HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
                 BlinkConverterSettings settings = new BlinkConverterSettings();
-                settings.EnableHyperLink = false;
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                settings.Scale = 1.0F;
                 htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
                 PdfDocument document = htmlConverter.Convert(strHTML, "");
@@ -402,92 +511,13 @@ namespace MCS.FOI.MSGToPDF
             GC.SuppressFinalize(this);
         }
 
-        protected WordDocument GetEmailMetatdata(MsgReader.Outlook.Storage.Message msg)
+        private static string ReplaceFirstOccurrence(string text, string search, string replace)
         {
-            WordDocument doc = new WordDocument();
-            IWSection section = doc.AddSection();
-            IWParagraph paragraph = section.AddParagraph();
-            paragraph.AppendText("From: ").CharacterFormat.Bold = true;
-            var sender = "";
-            if (msg.Sender != null && msg.Sender.DisplayName != null)
-            {
-                sender = (msg.Sender.Email != null && msg.Sender.Email != "") ? msg.Sender.DisplayName + " (" + msg.Sender.Email + ")" : msg.Sender.DisplayName;
-            }
-            paragraph.AppendText(sender).CharacterFormat.Bold = false;
-            paragraph.AppendBreak(BreakType.LineBreak);
-            string recipientName = "";
-            foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
-            {
-                recipientName += recipient;
-            }
+            var index = text.IndexOf(search, StringComparison.Ordinal);
+            if (index < 0)
+                return text;
 
-            if (!string.IsNullOrEmpty(recipientName))
-            {
-                paragraph.AppendText("To: ").CharacterFormat.Bold = true;
-                paragraph.AppendText(recipientName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                paragraph.AppendBreak(BreakType.LineBreak);
-            }
-            string recipientCCName = "";
-            foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
-            {
-                recipientCCName += recipient;
-            }
-            if (!string.IsNullOrEmpty(recipientCCName))
-            {
-                paragraph.AppendText("Cc: ").CharacterFormat.Bold = true;
-                paragraph.AppendText(recipientCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                paragraph.AppendBreak(BreakType.LineBreak);
-            }
-            string recipientBCCName = "";
-            foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
-            {
-                recipientBCCName += recipient;
-            }
-            if (!string.IsNullOrEmpty(recipientBCCName))
-            {
-                paragraph.AppendText("Bcc: ").CharacterFormat.Bold = true;
-                paragraph.AppendText(recipientBCCName.Replace("<", "(").Replace(">", ")")).CharacterFormat.Bold = false;
-                paragraph.AppendBreak(BreakType.LineBreak);
-            }
-
-            paragraph.AppendText("Subject: ").CharacterFormat.Bold = true;
-            paragraph.AppendText(msg.Subject).CharacterFormat.Bold = false;
-            paragraph.AppendBreak(BreakType.LineBreak);
-
-            paragraph.AppendText("Sent: ").CharacterFormat.Bold = true;
-            paragraph.AppendText("" + msg.SentOn).CharacterFormat.Bold = false;
-            paragraph.AppendBreak(BreakType.LineBreak);
-
-
-            string attachmentsList = "";
-            foreach (Object attachment in msg.Attachments)
-            {
-                if (attachment.GetType().FullName.ToLower().Contains("message"))
-                {
-                    var _attachment = (Storage.Message)attachment;
-                    attachmentsList += (_attachment.FileName + ", ");
-                }
-                else
-                {
-                    var _attachment = (Storage.Attachment)attachment;
-                    attachmentsList += _attachment.FileName + ", ";
-                }
-
-            }
-
-
-            if (!string.IsNullOrEmpty(attachmentsList))
-            {
-                paragraph.AppendText("Attachments: ").CharacterFormat.Bold = true;
-                paragraph.AppendText(attachmentsList.Remove(attachmentsList.Length - 2, 2)).CharacterFormat.Bold = false;
-                paragraph.AppendBreak(BreakType.LineBreak);
-            }
-
-
-            paragraph.AppendText("Message Body: ").CharacterFormat.Bold = true;
-            paragraph.AppendBreak(BreakType.LineBreak);
-
-            return doc;
+            return text.Substring(0, index) + replace + text.Substring(index + search.Length);
         }
 
         protected virtual void Dispose(bool disposing)
