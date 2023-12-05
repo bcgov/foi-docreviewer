@@ -161,7 +161,7 @@ namespace MCS.FOI.S3FileConversion
             catch (Exception exception)
             {
                 Console.WriteLine($"Error encountered on server. Message:'{exception.Message}' getting list of objects.");
-                throw exception;
+                throw;
             }
             finally
             {
