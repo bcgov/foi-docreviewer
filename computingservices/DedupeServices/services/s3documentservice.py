@@ -58,6 +58,7 @@ def savedocumenttos3(pdfwithannotations, s3uripath, auth):
     uploadresponse = requests.put(s3uripath, data=pdfwithannotations, auth=auth)
     uploadresponse.raise_for_status()
 
+# this method is part of add_annotations_as_text_to_end_of_pdf()
 def extract_annotations_from_pdf(pdf_document):
     all_annotations = []
 
@@ -75,7 +76,8 @@ def extract_annotations_from_pdf(pdf_document):
                 'Subject': annot.info.get('subject', ''),
                 'ID': annot.info.get('id', ''),
                 'AssociatedText': '',
-                'PageNumber': page_num
+                'PageNumber': page_num,
+                'Type': annot.type[1]
             }
             if annot.type[0] in (5, 8) :  # Check if annotation is a highlight(8), text markup(5) (e.g., underline, strikeout)
                 text = page.get_text("text", clip=annot.rect)
@@ -83,29 +85,62 @@ def extract_annotations_from_pdf(pdf_document):
             all_annotations.append(annot_dict)
     return all_annotations
 
+# this method is part of add_annotations_as_text_to_end_of_pdf()
 def __constructannotationtext(annot):
     # Construct annotation text
     creationdate = convert_to_pst(annot['CreationDate']) if annot['CreationDate'] else ''
     moddate = convert_to_pst(annot['ModDate']) if annot['ModDate'] else ''
-    annot_text = f"Name: {annot['Name']}\nContent: {annot['Content']}\nTitle: {annot['Title']}\nAssociated Text: {annot['AssociatedText']}"            
-    annot_text += f"Creation Date: {creationdate}\nMod Date: {moddate}\n"
-    annot_text += f"Subject: {annot['Subject']}\nPage Number: {annot['PageNumber']}\nID: {annot['ID']}\n\n"
+    annot_text = __append_if_exists(annot_text, 'Annotation Type', annot["Type"])
+    annot_text = __append_if_exists(annot_text, 'Name', annot["Name"])    
+    annot_text = __append_if_exists(annot_text, 'Content', annot["Content"])
+    annot_text = __append_if_exists(annot_text, 'Title', annot["Title"])
+    annot_text = __append_if_exists(annot_text, 'Subject', annot["Subject"])
+    annot_text = __append_if_exists(annot_text, 'Creation Date', creationdate)
+    annot_text = __append_if_exists(annot_text, 'Modified Date', moddate)
+    annot_text = __append_if_exists(annot_text, 'Associated Text', annot["AssociatedText"])
+    annot_text += "\n"
+    
+    # annot_text = f"Name: {annot['Name']}\nContent: {annot['Content']}\nTitle: {annot['Title']}\nAssociated Text: {annot['AssociatedText']}"            
+    # annot_text += f"Creation Date: {creationdate}\nMod Date: {moddate}\n"
+    # annot_text += f"Subject: {annot['Subject']}\nPage Number: {annot['PageNumber']}\nID: {annot['ID']}\n\n"
     return annot_text
 
-def __constructannotationtext_new(annot, page, page_num):
-    associatedtext = ""
-    if annot.type[0] in (5, 8) :  # Check if annotation is a highlight(8), text markup(5) (e.g., underline, strikeout)
-        text = page.get_text("text", clip=annot.rect)
-        associatedtext = text
+def __append_if_exists(text, key, value):
+    if value:
+        text += f"{key}: {value}\n"
+    return text
 
+def __construct_annotation_text(annot, page):
+    annot_text = ""
+
+    # Extract required fields
+    name = annot.info.get('name')
+    content = annot.info.get('content')
+    title = annot.info.get('title')
+    subject = annot.info.get('subject')
     creationdate = annot.info.get('creationDate', '')
     creationdate = convert_to_pst(creationdate) if creationdate else ''
     moddate = annot.info.get('modDate', '')
     moddate = convert_to_pst(moddate) if moddate else ''
-    annot_text = f"Name: {annot.info.get('name', '')}\nContent: {annot.info.get('content', '')}\nTitle: {annot.info.get('title', '')}\nAssociated Text: {associatedtext}"            
-    annot_text += f"Creation Date: {creationdate}\nMod Date: {moddate}\n"
-    annot_text += f"Subject: {annot.info.get('subject', '')}\nPage Number: {page_num}\nID: {annot.info.get('id', '')}\n\n"
+
+    associatedtext = ""
+    # Check if annotation is a square(4), circle(5), polygon(6),  highlight(8), 
+    # underline(9), strikeOut(11), caret(14), ink/pencil draw(15)
+    if annot.type[0] in (4, 5, 6, 8, 9, 11, 14, 15) :  
+        text = page.get_text("text", clip=annot.rect)
+        associatedtext = text
+
+    annot_text = __append_if_exists(annot_text, 'Annotation Type', annot.type[1])
+    annot_text = __append_if_exists(annot_text, 'Name', name)    
+    annot_text = __append_if_exists(annot_text, 'Content', content)
+    annot_text = __append_if_exists(annot_text, 'Title', title)
+    annot_text = __append_if_exists(annot_text, 'Subject', subject)
+    annot_text = __append_if_exists(annot_text, 'Creation Date', creationdate)
+    annot_text = __append_if_exists(annot_text, 'Modified Date', moddate)
+    annot_text = __append_if_exists(annot_text, 'Associated Text', associatedtext)
+    annot_text += "\n"
     return annot_text
+
 
 def add_annotations_as_text_to_end_of_pdf(input_pdf, bytes_stream):
     pdf_document = fitz.open(stream=input_pdf)
@@ -153,60 +188,71 @@ def add_annotations_as_text_to_end_of_pdf(input_pdf, bytes_stream):
             output_pdf.save(bytes_stream)
         return processedpagecount
 
-def add_annotations_as_text_to_pdf(input_pdf, bytes_stream):
-    pdf_document = fitz.open(stream=input_pdf)
-    new_pdf_document = fitz.open()
-    text_line_spacing = 15  # Adjust line spacing as needed
-    text_start_position = 50
-    # page_height = 792
-    hasannotation = False
-    for page_index in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_index)        
-        all_annotations = page.annots()        
-        if all_annotations:
-            pdf_document.insert_page(page_index)
-            annot_index = page_index + 1
-            print(f'top page_index = {page_index}, annot_index = {annot_index}')
-            annot_page = pdf_document.load_page(annot_index)
-            print("load_page 1")
-            for annot in all_annotations:
-                hasannotation = True
-                page.delete_annot(annot) #getting error here
-                print("delete_annot")
-                annot_text = __constructannotationtext_new(annot, page, page_index)
-                print(f'annot_text = {annot_text}')
-                lines_needed = len(annot_text.split('\n'))
-                print("if condition ==== ", text_start_position + lines_needed * text_line_spacing)
-                if text_start_position + lines_needed * text_line_spacing > page.rect.height - 50:
-                    # annot_page = new_pdf_document.new_page(width=page.rect.width, height=page.rect.height)
-                    print(f'inside if page_index = {page_index}, annot_index = {annot_index}')
-                    pdf_document.insert_page(annot_index)
-                    annot_index += 1
-                    print(f'after increment page_index = {page_index}, annot_index = {annot_index}')
-                    annot_page = pdf_document.load_page(annot_index)
-                    print("load_page 2")
-                    text_start_position = 50
-                try:
-                    annot_page.insert_text((50, text_start_position), annot_text, fontsize=10)
-                except Exception as e:
-                    print(f"Error occurred while inserting text: {e}")
-        
-                text_start_position += lines_needed * text_line_spacing
+def add_annotations_as_text_to_pdf(source_document, bytes_stream):
     processedpagecount = 1
-    if new_pdf_document and hasannotation:
-        processedpagecount = new_pdf_document.page_count
-        new_pdf_document.save(bytes_stream)
-    return processedpagecount
+    destination_document = fitz.open()
+    text_line_spacing = 15
+    new_page_index = 0
+    for page_index in range(source_document.page_count):
+        if new_page_index == 0:
+            new_page_index = page_index
+        text_start_position = 50
+        source_page = source_document.load_page(page_index)        
+        page_rotation = source_page.rotation
+        source_page.set_rotation(0)
+        source_width = source_page.rect.width
+        source_height = source_page.rect.height
+        new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
+        new_page.show_pdf_page(new_page.rect, source_document, page_index)
+        new_page.set_rotation(page_rotation)
+        annotations = source_page.annots()
+            
+        for annot in annotations:
+            annot_text = __construct_annotation_text(annot, source_page)
+            lines_needed = len(annot_text.split('\n'))
+                
+            if text_start_position == 50:
+                new_page_index += 1
+                new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
+
+            if text_start_position + lines_needed * text_line_spacing > source_height - 50:
+                new_page_index += 1
+                new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
+                text_start_position = 50
+            try:
+                new_page.insert_text((50, text_start_position), annot_text, fontsize=10)
+            except Exception as e:
+                print(f"Error occurred while inserting text: {e}")
+            text_start_position += lines_needed * text_line_spacing
+        new_page_index += 1    
     
+    processedpagecount = destination_document.page_count
+    destination_document.save(bytes_stream)
+
+    if destination_document:
+        destination_document.close()
+        del destination_document
+    return processedpagecount
+
 def handleannotationsinpdf(_bytes, filepath, extension, auth):
     try:
         bytes_stream = BytesIO()
-        processedpagecount = add_annotations_as_text_to_end_of_pdf(_bytes, bytes_stream)
-        # processedpagecount = add_annotations_as_text_to_pdf(_bytes, bytes_stream)
+        s3uripath = ""
+        # processedpagecount = add_annotations_as_text_to_end_of_pdf(_bytes, bytes_stream)
+        source_document = fitz.open(stream=_bytes)
+        processedpagecount = 1
+        has_annots = source_document.has_annots()
+        if has_annots:
+            processedpagecount = add_annotations_as_text_to_pdf(source_document, bytes_stream)
         _updatedbytes = bytes_stream.getvalue()
+        if source_document:
+            source_document.close()
         if len(_updatedbytes) > 0:
             s3uripath = path.splitext(filepath)[0] + "_updated" + extension
             savedocumenttos3(_updatedbytes, s3uripath, auth)
+        if bytes_stream:
+            bytes_stream.close()
+            del bytes_stream
         return processedpagecount, s3uripath
     except Exception as e:
         print(f"Error occurred while processing pdf with annotations: {e}")
