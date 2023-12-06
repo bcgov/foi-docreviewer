@@ -51,6 +51,15 @@
   top:0;
   cursor:move;
 }
+.flexible-modal-drag-area-bottom{
+  display:none;
+}
+.flexible-modal-drag-area-right{
+  display:none;
+}
+.flexible-modal-drag-area-left{
+  display:none;
+}
 
 #state-change-dialog-title {
   font-family: "BCSans-Bold", sans-serif!important;
@@ -198,4 +207,8 @@
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.expandallicon {
+  color: grey !important;
 }
