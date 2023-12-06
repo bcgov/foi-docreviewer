@@ -274,9 +274,9 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ) + "/" +  redactionlayerid + "/" + documentids.join(",");
+  ) + "/" +  redactionlayerid;
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setPageFlags(res.data) as any);
