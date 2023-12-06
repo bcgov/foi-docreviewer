@@ -6,6 +6,7 @@ import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
+import { number } from "yargs";
 
 
 export const fetchDocuments = (
@@ -265,6 +266,7 @@ export const savePageFlag = (
 export const fetchPageFlag = (
   foiministryrquestid: string,
   redactionlayerid: number,
+  documentids: Array<any>,
   //callback: any,
   errorCallback: any
 ) => {
@@ -274,7 +276,7 @@ export const fetchPageFlag = (
     foiministryrquestid
   ) + "/" +  redactionlayerid;
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setPageFlags(res.data) as any);
@@ -388,6 +390,7 @@ export const fetchPDFTronLicense = (
   })
   .catch((error:any) => {
     errorCallback("Error in fetching PDFTronLicense:",error);
+    return "";
   });
   return response;
 };

@@ -2,6 +2,7 @@ from os import stat
 from re import VERBOSE
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
+from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
 from reviewer_api.models.default_method_result import DefaultMethodResult
@@ -174,6 +175,9 @@ class annotationservice:
 
     def deactivateannotation(self, annotationnames, redactionlayerid, userinfo):
         return self.__deleteannotations(annotationnames, redactionlayerid, userinfo)
+    
+    async def deactivatedocumentannotations(self, documentids, userinfo):
+        return Annotation.deletedocumentannotations(documentids, userinfo)
 
     def __deleteannotations(self, annotationnames, redactionlayerid, userinfo):
         if annotationnames not in (None, []) and len(annotationnames) > 0:

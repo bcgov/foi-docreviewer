@@ -3,9 +3,13 @@ from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from reviewer_api.models.PDFStitchJob import PDFStitchJob
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
+from reviewer_api.services.annotationservice import annotationservice
+from reviewer_api.services.documentpageflagservice import documentpageflagservice
+from reviewer_api.auth import auth, AuthHelper
 from datetime import datetime as datetime2
 from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES, DEDUPE_FILE_TYPES
 import json, os
+import asyncio
 from reviewer_api.utils.util import pstformat
 
 class jobrecordservice:
@@ -70,6 +74,12 @@ class jobrecordservice:
                 jobids[record['s3uripath']] = {'masterid': masterid, 'jobid': job.identifier}
             elif extension in DEDUPE_FILE_TYPES:
                 if batchinfo['trigger'] in ['recordupload', 'recordreplace']:
+                    if batchinfo['trigger'] == 'recordreplace':
+                        userinfo = AuthHelper.getuserinfo()
+                        userinfo['trigger'] = batchinfo['trigger']
+                        documentids = DocumentMaster.getprocessingchilddocumentids(record.get('documentmasterid'))
+                        asyncio.ensure_future(annotationservice().deactivatedocumentannotations(documentids, userinfo))
+                        # asyncio.ensure_future(documentpageflagservice().bulkarchivedocumentpageflag(batchinfo['ministryrequestid'], documentids, userinfo))
                     master = DocumentMaster.create(
                         DocumentMaster(
                             filepath=record['s3uripath'],
