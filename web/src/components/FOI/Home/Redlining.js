@@ -1209,7 +1209,6 @@ const Redlining = React.forwardRef(
       if (pageCount > 800) {
         docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
       }
-      // await removeExisitngAnnotations();
       setPageMappedDocs(mappedDocs);
       setIsStitchingLoaded(true);
       if (fetchAnnotResponse) {
@@ -1229,28 +1228,6 @@ const Redlining = React.forwardRef(
         }
       }
     };
-
-    const removeExisitngAnnotations = async () => {
-      const annotations = annotManager.getAnnotationsList();
-      if (annotations?.length > 0) {
-        await annotManager.deleteAnnotations(annotations,{
-          force: true,
-        });
-        docViewer.getDocument()
-        .getFileData({
-          xfdfString: {},
-          // downloadType: "pdf",
-          // flatten: true,
-        }).then(data => {
-          const arr = new Uint8Array(data);
-          const blob = new Blob([arr], { type: 'application/pdf' });
-          const modifiedDocURL = URL.createObjectURL(blob);
-
-          // Load the modified PDF
-          docInstance.loadDocument(modifiedDocURL);
-        });
-      }
-    }
 
     const fetchandApplyAnnotations = async (
       mappedDocs,

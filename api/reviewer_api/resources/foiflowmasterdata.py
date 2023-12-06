@@ -129,14 +129,7 @@ class FOIFlowS3PresignedList(Resource):
             )
 
             documentobjs = []
-            # documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
-            # documents = documentservice().getdocumentbyids(documentids)
-            # print("<<<<<<<<<<< documents >>>>>>>>>>>>>>>>")
-            # print(documents)
             for documentinfo in data["documentobjs"]:
-                # filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
-                # print("filepath ==== ", filepath)
-                # filename, file_extension = os.path.splitext(filepath)
                 filepath = "/".join(documentinfo["file"]["filepath"].split("/")[4:])
                 if documentinfo["file"]["processedfilepath"]:
                     filepath = "/".join(documentinfo["file"]["processedfilepath"].split("/")[4:])                
@@ -308,8 +301,6 @@ class FOIFlowS3PresignedRedline(Resource):
                             filepathlist[0], division_name
                         )
 
-                            # filename_put, file_extension_put = os.path.splitext(filepath_put)
-                            # filepath_put = filename_put+'.pdf'
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -324,11 +315,6 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
-                        # realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
-                        # filepathlist = realfilepath.split("/")[4:]
-                        # print("filepathlist s3path_load === ", filepathlist)
-                        # filepath_get = "/".join(filepathlist)
-                        # print("filepath_get === ", filepath_get)
                         filepathlist = doc["filepath"].split("/")[4:]
                         if doc["processedfilepath"]:
                             filepathlist = doc["processedfilepath"].split("/")[4:]
@@ -344,7 +330,6 @@ class FOIFlowS3PresignedRedline(Resource):
                                         if file_extension_get.lower() in imageextensions
                                         else "pdf"
                                 )
-                        print(f'filename_get = ${filename_get}, file_extension_get = ${file_extension_get}')
 
                         doc["s3path_load"] = s3client.generate_presigned_url(
                                         ClientMethod="get_object",
