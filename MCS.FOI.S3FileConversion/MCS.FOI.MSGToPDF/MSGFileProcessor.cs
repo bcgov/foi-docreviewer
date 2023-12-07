@@ -175,8 +175,12 @@ namespace MCS.FOI.MSGToPDF
                                         var _inlineAttachment = (Storage.Attachment)inlineAttachment;
                                         Regex regex = new Regex("<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
                                         Match match = regex.Match(bodyreplaced, startAt);
-                                        bodyreplaced = regex.Replace(bodyreplaced, "<img style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>", 1, startAt);
-                                        startAt = match.Index + match.Length;
+                                        if (match.Success)
+                                        {
+                                            string imgReplacementString = "<img style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
+                                            startAt = match.Index + imgReplacementString.Length;
+                                        }
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                         {
                                             if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
