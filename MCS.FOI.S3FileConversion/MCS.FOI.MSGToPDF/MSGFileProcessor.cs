@@ -142,6 +142,7 @@ namespace MCS.FOI.MSGToPDF
                                 }
                                 foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
                                 {
+                                    var startAt = 0;
                                     if (rtfInline)
                                     {
                                         if (!inlineAttachment.GetType().FullName.ToLower().Contains("message"))
@@ -172,7 +173,10 @@ namespace MCS.FOI.MSGToPDF
                                     else if (htmlInline)
                                     {
                                         var _inlineAttachment = (Storage.Attachment)inlineAttachment;
-                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + _inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data));
+                                        Regex regex = new Regex("<img((?!>).)*cid:" + _inlineAttachment.ContentId + ".*?>");
+                                        Match match = regex.Match(bodyreplaced, startAt);
+                                        bodyreplaced = regex.Replace(bodyreplaced, "<img style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>", 1, startAt);
+                                        startAt = match.Index + match.Length;
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                         {
                                             if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
