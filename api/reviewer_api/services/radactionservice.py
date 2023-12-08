@@ -57,6 +57,14 @@ class redactionservice:
     def getannotationinfobyrequest(self, requestid):
         return annotationservice().getrequestannotationinfo(requestid)
 
+    def copyannotation(self, ministryrequestid, targetlayer):
+        sourcelayers = []
+        sourcelayers.append(redactionlayerservice().getdefaultredactionlayerid())
+        print(ministryrequestid)
+        print(sourcelayers)
+        print(targetlayer)
+        return annotationservice().copyannotation(ministryrequestid, sourcelayers, targetlayer)
+
     def saveannotation(self, annotationschema, userinfo):
         result = annotationservice().saveannotation(annotationschema, userinfo)
         if (
