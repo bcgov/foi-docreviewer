@@ -1,5 +1,6 @@
 from os import stat
 from re import VERBOSE
+from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
 from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
@@ -140,6 +141,18 @@ class annotationservice:
     def getannotationsections(self, ministryid):
         annotationsections = AnnotationSection.get_by_ministryid(ministryid)
         return annotationsections
+
+    def copyannotation(self, ministryrequestid, sourcelayers, targetlayer):
+        documentids = Document.getdocumentidsbyrequest(ministryrequestid)
+        print(ministryrequestid)
+        print(sourcelayers)
+        print(targetlayer)
+        print(documentids)
+        annotresponse = Annotation.copyannotations(documentids, sourcelayers, targetlayer)
+        if annotresponse.success == True:
+            AnnotationSection.copyannotationsections(ministryrequestid, sourcelayers, targetlayer)
+        return DefaultMethodResult(True, "Copied Annotations", ministryrequestid)
+
 
     def saveannotation(self, annotationschema, userinfo):
         annots = self.__extractannotfromxml(annotationschema["xml"])

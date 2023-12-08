@@ -52,14 +52,14 @@ class RedactionLayer(db.Model):
     @classmethod
     def getredlineredactionlayer(cls):
         try:
-            pageflag_schema = RedactionLayerSchema(many=False)
+            layer_schema = RedactionLayerSchema(many=False)
             query = (
                 db.session.query(RedactionLayer)
                 .filter_by(isactive=True, name="Redline")
                 .order_by(RedactionLayer.sortorder.desc())
                 .first()
             )
-            return pageflag_schema.dump(query)
+            return layer_schema.dump(query)
         except Exception as ex:
             logging.error(ex)
         finally:

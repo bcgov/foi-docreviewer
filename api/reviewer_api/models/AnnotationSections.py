@@ -11,6 +11,7 @@ import logging
 from sqlalchemy import text
 from reviewer_api.utils.util import split, getbatchconfig
 import json
+from sqlalchemy.orm import relationship, backref, aliased
 
 
 class AnnotationSection(db.Model):
@@ -26,6 +27,9 @@ class AnnotationSection(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     annotationname = db.Column(db.Integer, ForeignKey("Annotations.annotationname"))
+
+    redactionlayerid = db.Column(db.Integer, db.ForeignKey("RedactionLayers.redactionlayerid")
+    )
 
     @classmethod
     def __getsectionkey(cls, _annotationname):
@@ -62,6 +66,29 @@ class AnnotationSection(db.Model):
             db.session.close()
         return apks
 
+    @classmethod
+    def copyannotationsections(cls, ministryrequestid, sourcelayers, targetlayer) -> DefaultMethodResult:
+        try:
+            sql = """
+                insert into "AnnotationSections" (annotationname, foiministryrequestid, "section", created_at, 
+                    createdby, updated_at, updatedby, redactionlayerid, "version", isactive)                     
+                select annotationname, foiministryrequestid, "section", created_at, 
+                    createdby, updated_at, updatedby, :targetlayer, 1, isactive from "AnnotationSections" a 
+                where annotationname not in (select annotationname  from "AnnotationSections"
+                    where foiministryrequestid= :ministryrequestid and isactive = true and a.redactionlayerid = :targetlayer)
+                    and foiministryrequestid = :ministryrequestid and isactive =true and redactionlayerid in :sourcelayers;
+                """
+            db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid, "sourcelayers": tuple(sourcelayers), "targetlayer": targetlayer},
+            )  
+            db.session.commit()
+            return DefaultMethodResult(True, "Annotation sections are copied to layer", targetlayer)           
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()  
+    
     @classmethod
     def savesections(
         cls, annots, _foiministryrequestid, userinfo
