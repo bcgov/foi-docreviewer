@@ -15,7 +15,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from "@mui/material/IconButton";
 
 const LayerDropdown = ({
-    ministryrequestid
+    ministryrequestid,
+    isoipcreviewlayer,
 }: any) => {
 
     const layers = useAppSelector((state: any) => state.documents?.redactionLayers);
@@ -48,6 +49,8 @@ const LayerDropdown = ({
         setLayer(currentLayer.redactionlayerid)
     }
 
+    console.log(layers)
+
     return (
         <>
             <TextField
@@ -61,7 +64,7 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} style={{color: "#808080"}}>
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.redactionlayerid === 3 && !isoipcreviewlayer} style={{color: "#808080"}}>
                     {
                     option.redactionlayerid > 2
                         && option.count === 0

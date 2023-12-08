@@ -98,9 +98,15 @@ class GetDocuments(Resource):
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
+            #OIPC Layer Validation
+            if (jsonobj['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in jsonobj['oipcdetails'])):
+                isoipcreviewlayer = True
+            else:
+                isoipcreviewlayer = False
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
-                "requesttype": jsonobj["requestType"]
+                "requesttype": jsonobj["requestType"],
+                "isoipcreviewlayer": isoipcreviewlayer,
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatusid": jsonobj["requeststatusid"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
