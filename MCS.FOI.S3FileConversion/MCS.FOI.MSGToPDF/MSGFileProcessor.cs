@@ -149,7 +149,7 @@ namespace MCS.FOI.MSGToPDF
                                         {
                                             var _inlineAttachment = (Storage.Attachment)inlineAttachment;
                                             if (_inlineAttachment.OleAttachment)
-                                            { 
+                                            {
                                                 bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img style=\"max-width: 700px\" src=\"data:image/" + Path.GetExtension(_inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>");
                                                 foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                                 {
@@ -194,7 +194,7 @@ namespace MCS.FOI.MSGToPDF
                                                 width = (int) (width * scale);
                                                 height = (int) (height * scale);
                                             }
-                                            string imgReplacementString = "<img width=\"" + width + "\" height=\"" + height + "\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            string imgReplacementString = "<img width=\"" + width + "\" height=\"" + height + "\" style=\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
                                             bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
                                             startAt = match.Index + imgReplacementString.Length;
                                         }
