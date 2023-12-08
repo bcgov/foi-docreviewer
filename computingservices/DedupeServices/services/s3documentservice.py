@@ -62,67 +62,88 @@ def __append_if_exists(text, key, value):
         text += f"{key}: {value}\n"
     return text
 
-def __construct_annotation_text(annot, page):
+def extract_annotations_from_pdf(pdf_document, output_bytestream):
+    all_annotations = []
+    output_pdf = fitz.open()
+    for page_num in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_num)
+        index = 1
+        annotations = page.annots()
+        for annot in annotations:
+
+            content = annot.info.get('content', '')
+            if content:
+                legend_text = f"Legend [{page_num}:{str(index)}]"
+                new_content = legend_text + ":The comment text of the annotation is added as part of the pdf."
+                index += 1
+                author = annot.info.get('title', '')
+                if author:
+                    new_author = "Original Document Comment"
+                annot.set_info(content=new_content,title=new_author)
+                annot.update()
+                annot_dict = {
+                'Legend': legend_text,
+                'OriginalContent': content,
+                'Author': author,                
+                'Subject': annot.info.get('subject', ''),
+                'PageNumber': page_num,
+                # 'CreationDate': annot.info.get('creationDate', ''),
+                # 'ModDate': annot.info.get('modDate', ''),
+                # 'Type': annot.type[1]
+                }
+                all_annotations.append(annot_dict)
+            else:
+                page.delete_annot(annot)            
+    output_pdf.insert_pdf(pdf_document)
+    if output_pdf:
+        output_pdf.save(output_bytestream)
+    return all_annotations
+
+
+def __constructannotationtext(annot):
+    # Construct annotation text
     annot_text = ""
-
-    # Extract required fields
-    name = annot.info.get('name')
-    content = annot.info.get('content')
-    title = annot.info.get('title')
-    subject = annot.info.get('subject')
-    creationdate = annot.info.get('creationDate', '')
-    creationdate = convert_to_pst(creationdate) if creationdate else ''
-    moddate = annot.info.get('modDate', '')
-    moddate = convert_to_pst(moddate) if moddate else ''
-
-    associatedtext = ""
-    # Check if annotation is a square(4), circle(5), polygon(6),  highlight(8), 
-    # underline(9), strikeOut(11), caret(14), ink/pencil draw(15)
-    if annot.type[0] in (4, 5, 6, 8, 9, 11, 14, 15) :  
-        text = page.get_text("text", clip=annot.rect)
-        associatedtext = text
-
-    annot_text = __append_if_exists(annot_text, 'Annotation Type', annot.type[1])
-    annot_text = __append_if_exists(annot_text, 'Name', name)    
-    annot_text = __append_if_exists(annot_text, 'Content', content)
-    annot_text = __append_if_exists(annot_text, 'Title', title)
-    annot_text = __append_if_exists(annot_text, 'Subject', subject)
-    annot_text = __append_if_exists(annot_text, 'Creation Date', creationdate)
-    annot_text = __append_if_exists(annot_text, 'Modified Date', moddate)
-    annot_text = __append_if_exists(annot_text, 'Associated Text', associatedtext)
+   
+    annot_text = __append_if_exists(annot_text, 'Legend', annot["Legend"])
+    annot_text = __append_if_exists(annot_text, 'Subject', annot["Subject"])
+    annot_text = __append_if_exists(annot_text, 'Author', annot["Author"])
+    annot_text = __append_if_exists(annot_text, 'Original Content', annot["OriginalContent"])
+    # creationdate = convert_to_pst(annot['CreationDate']) if annot['CreationDate'] else ''
+    # moddate = convert_to_pst(annot['ModDate']) if annot['ModDate'] else ''
+    # annot_text = __append_if_exists(annot_text, 'Annotation Type', annot["Type"])
+    # annot_text = __append_if_exists(annot_text, 'ModifiedContent', annot["ModifiedContent"])
+    # annot_text = __append_if_exists(annot_text, 'Creation Date', creationdate)
+    # annot_text = __append_if_exists(annot_text, 'Modified Date', moddate)
     annot_text += "\n"
     return annot_text
 
 def add_annotations_as_text_to_pdf(source_document, bytes_stream):
+    output_bytestream = BytesIO()
+    annotations = extract_annotations_from_pdf(source_document, output_bytestream)
+    updated_stream = output_bytestream.getvalue()
+    updated_document = fitz.open(stream=updated_stream)
     processedpagecount = 1
     destination_document = fitz.open()
     text_line_spacing = 15
+    page_height = 792
     new_page_index = 0
-    for page_index in range(source_document.page_count):
+    for page_index in range(updated_document.page_count):
         if new_page_index == 0:
             new_page_index = page_index
         text_start_position = 50
-        source_page = source_document.load_page(page_index)        
-        page_rotation = source_page.rotation
-        source_page.set_rotation(0)
-        source_width = source_page.rect.width
-        source_height = source_page.rect.height
-        new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
-        new_page.show_pdf_page(new_page.rect, source_document, page_index)
-        new_page.set_rotation(page_rotation)
-        annotations = source_page.annots()
-            
-        for annot in annotations:
-            annot_text = __construct_annotation_text(annot, source_page)
+        annotations_on_page = [annot for annot in annotations if annot.get('PageNumber') == page_index]
+        for annot in annotations_on_page:
+            annot_text = __constructannotationtext(annot)
             lines_needed = len(annot_text.split('\n'))
-                
+            print(f'annot_text = {annot_text}')
             if text_start_position == 50:
                 new_page_index += 1
-                new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
-
-            if text_start_position + lines_needed * text_line_spacing > source_height - 50:
+                updated_document.insert_page(new_page_index)
+                new_page = updated_document.load_page(new_page_index)
+            if text_start_position + lines_needed * text_line_spacing > page_height - 50:
                 new_page_index += 1
-                new_page = destination_document.new_page(new_page_index,width=source_width, height=source_height)
+                updated_document.insert_page(new_page_index)
+                new_page = updated_document.load_page(new_page_index)
                 text_start_position = 50
             try:
                 new_page.insert_text((50, text_start_position), annot_text, fontsize=10)
@@ -131,10 +152,11 @@ def add_annotations_as_text_to_pdf(source_document, bytes_stream):
             text_start_position += lines_needed * text_line_spacing
         new_page_index += 1    
     
-    processedpagecount = destination_document.page_count
-    destination_document.save(bytes_stream)
+    destination_document.insert_pdf(updated_document)    
 
     if destination_document:
+        processedpagecount = destination_document.page_count
+        destination_document.save(bytes_stream)
         destination_document.close()
         del destination_document
     return processedpagecount
