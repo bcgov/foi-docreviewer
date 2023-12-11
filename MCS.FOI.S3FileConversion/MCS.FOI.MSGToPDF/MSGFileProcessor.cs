@@ -140,6 +140,7 @@ namespace MCS.FOI.MSGToPDF
                                         inlineAttachments.Add(_attachment);
                                     }
                                 }
+                                var startAt = 0;
                                 foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
                                 {
                                     if (rtfInline)
@@ -172,7 +173,14 @@ namespace MCS.FOI.MSGToPDF
                                     else if (htmlInline)
                                     {
                                         var _inlineAttachment = (Storage.Attachment)inlineAttachment;
-                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + _inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data));
+                                        Regex regex = new Regex("<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
+                                        Match match = regex.Match(bodyreplaced, startAt);
+                                        if (match.Success)
+                                        {
+                                            string imgReplacementString = "<img style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
+                                            startAt = match.Index + imgReplacementString.Length;
+                                        }
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                         {
                                             if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
