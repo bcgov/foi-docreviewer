@@ -77,8 +77,8 @@ def extract_annotations_from_pdf(pdf_document, output_bytestream):
                 new_content = legend_text + ":The comment text of the annotation is added as part of the pdf."
                 index += 1
                 author = annot.info.get('title', '')
-                if author:
-                    new_author = "Original Document Comment"
+                # if author:
+                new_author = "Original Document Comment"
                 annot.set_info(content=new_content,title=new_author)
                 annot.update()
                 annot_dict = {
