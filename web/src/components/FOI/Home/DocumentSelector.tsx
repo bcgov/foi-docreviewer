@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useImperativeHandle, useRef, createRef, LegacyRef } from 'react'
 import Chip from "@mui/material/Chip";
 import {TreeView, TreeItem} from '@mui/x-tree-view';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -12,11 +12,14 @@ import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import { fetchPageFlagsMasterData, fetchPageFlag } from '../../../apiManager/services/docReviewerService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark, faAngleDown, faCircleExclamation
+    faCircleStop, faCircleXmark, faBookmark, faAngleDown, faCircleExclamation,
+    faAnglesDown, faAnglesUp
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -33,7 +36,7 @@ import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 
 
-const DocumentSelector = ({
+const DocumentSelector = React.forwardRef(({
     openFOIPPAModal,
     requestid,
     documents,
@@ -42,7 +45,7 @@ const DocumentSelector = ({
     setIndividualDoc,
     pageMappedDocs,
     setWarningModalOpen
-}: any) => {
+}: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
     const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
@@ -66,6 +69,8 @@ const DocumentSelector = ({
     const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
     const [selectAllConsultee, setSelectAllConsultee] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [expanded, setExpanded] = useState<string[]>([]);
+    const pageRefs = useRef([]);
 
     const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
@@ -75,6 +80,26 @@ const DocumentSelector = ({
             padding: '0 16px'
         }
     }));
+
+    useImperativeHandle(ref, () => ({
+        async scrollToPage(pageNumber: number) {
+            setExpanded(organizeBy == "lastmodified" ? expandall : expandallorganizebydivision);
+            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
+            let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
+            if (pageRef) {
+                pageRef.scrollIntoView();
+                let nodeId = pageRef.children[0].id;
+                nodeId = nodeId.substring(nodeId.indexOf('{'));
+                setSelected([nodeId])
+            }
+        },
+    }), [pageRefs, organizeBy]);
+
+
+    useEffect(() => {
+        let refLength = documents.reduce((acc: any, file: any) => acc + file.pagecount, 0);
+        pageRefs.current = Array(refLength).fill(0).map((_, i) => pageRefs.current[i] || createRef());
+    }, [documents])
 
     useEffect(() => {
         fetchPageFlagsMasterData(
@@ -99,6 +124,7 @@ const DocumentSelector = ({
         fetchPageFlag(
             requestid,
             currentLayer.redactionlayerid,
+            documents.map((d: any) => d.documentid),
             (error: any) => console.log(error)
         )
     }
@@ -126,7 +152,7 @@ const DocumentSelector = ({
             /**Page Flags to be avoided while 
              * calculating % on left panel-  
              * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-            let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([4, 7, 8].includes(obj.flagid))))?.length;
+            let documentSpecificCount = element?.pageflag?.filter((obj: any) => (!([pageFlagTypes["Consult"], pageFlagTypes["In Progress"], pageFlagTypes["Page Left Off"]].includes(obj.flagid))))?.length;
             totalPagesWithFlags += documentSpecificCount;
         });
         /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
@@ -242,6 +268,16 @@ const DocumentSelector = ({
 
     let arr: any[] = [];
     const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
+
+    let expandall: any[] = [];
+    let expandallorganizebydivision: any[] = [];
+    divisions.forEach((division:any) => {
+        expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
+        files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+            expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+            expandall.push(`{"docid": ${file.documentid}}`);
+        })
+    });
 
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
@@ -494,11 +530,11 @@ const DocumentSelector = ({
                     (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
                     (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                 &&
-                <>
+                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                     <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </>
+                </div>
             ) :
             viewWithoutConsulteeFilter(file, p)
         )
@@ -508,12 +544,16 @@ const DocumentSelector = ({
     const noFilterView = (file: any, p: number, division?: any) => {
         return (
             (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
+            <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+            </div>
                 :
+                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                </div>
             )
         )
     }
@@ -525,19 +565,19 @@ const DocumentSelector = ({
     const viewWithoutConsulteeFilter = (file: any, p:number) => {
         return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
         (
-        <>
+        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </>
+        </div>
         )
         :
         (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
         (
-        <>                                                 
+        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
         <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </>
+        </div>
         )
     }
 
@@ -649,6 +689,16 @@ const DocumentSelector = ({
         )
     }
 
+    const handleExpandClick = () => {
+        setExpanded((oldExpanded:any) =>
+            oldExpanded.length === 0 ? (organizeBy == "lastmodified" ? expandall : expandallorganizebydivision) : [],
+        );
+    };
+
+    const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => {
+        setExpanded(nodeIds);
+    };
+
     return (
         <>
             <div className='leftPanel'>
@@ -722,14 +772,14 @@ const DocumentSelector = ({
                                     label="Division"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("division")}
+                                    onClick={() => {setOrganizeBy("division");setExpanded([])}}
                                     clicked={organizeBy === "division"}
                                 />
                                 <ClickableChip
                                     label="Modified Date"
                                     color="primary"
                                     size="small"
-                                    onClick={() => setOrganizeBy("lastmodified")}
+                                    onClick={() => {setOrganizeBy("lastmodified");setExpanded([])}}
                                     clicked={organizeBy === "lastmodified"}
                                 />
                             </Stack>
@@ -815,12 +865,31 @@ const DocumentSelector = ({
                         </div>
                     </div>
                     <hr className='hrStyle' />
+                    <Box sx={{ mb: 1 }}>
+                        <Tooltip
+                            sx={{
+                                backgroundColor: 'white',
+                                color: 'rgba(0, 0, 0, 0.87)',
+                                fontSize: 11
+                            }}
+                            title={expanded.length === 0 ? "Expand All" : "Collapse All"}
+                            placement="right"
+                            arrow
+                            disableHoverListener={disableHover}
+                        >
+                            <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
+                            {expanded.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
+                            </Button>
+                        </Tooltip>
+                    </Box>
                     <TreeView
                         aria-label="file system navigator"
                         defaultCollapseIcon={<ExpandMoreIcon />}
                         defaultExpandIcon={<ChevronRightIcon />}
+                        expanded={expanded}
                         multiSelect
                         selected={selected}
+                        onNodeToggle={handleToggle}
                         onNodeSelect={handleSelect}
                         sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
                     >
@@ -836,6 +905,7 @@ const DocumentSelector = ({
         </>
     )
 }
+)
 
 const ClickableChip = ({ clicked, ...rest }: any) => {
     return (

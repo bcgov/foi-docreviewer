@@ -286,6 +286,7 @@ class FOIFlowS3PresignedRedline(Resource):
             _bcgovcode = formsbucket.split("-")[0]
             singlepkgpath = None;
             #New Logic - Begin
+            filepaths = []
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
@@ -312,7 +313,9 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
-                        filepathlist = doc["filepath"].split("/")[4:]
+                        realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
+                        # filepathlist = doc["filepath"].split("/")[4:]
+                        filepathlist = realfilepath.split("/")[4:]
                         # for load/get
                         filepath_get = "/".join(filepathlist)
                         filename_get, file_extension_get = os.path.splitext(
@@ -363,6 +366,24 @@ class FOIFlowS3PresignedRedline(Resource):
                         )
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
+                    
+            if is_single_redline_package(_bcgovcode):
+                for div in data["divdocumentList"]:
+                    if len(div["documentlist"]) > 0:
+                        documentlist_copy = div["documentlist"][:]
+                        for doc in documentlist_copy:
+                            if doc["filepath"] not in filepaths:
+                                filepaths.append(doc["filepath"])
+                            else:
+                                div["documentlist"].remove(doc)
+                    if len(div["incompatableList"]) > 0:
+                        incompatiblelist_copy = div["incompatableList"][:]
+                        for incompatible in incompatiblelist_copy:
+                            if incompatible["filepath"] not in filepaths:
+                                filepaths.append(incompatible["filepath"])
+                            else:
+                                div["incompatableList"].remove(incompatible)
+                    
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
             data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"

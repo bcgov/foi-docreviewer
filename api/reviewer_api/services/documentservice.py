@@ -473,3 +473,6 @@ class documentservice:
 
     def deleterequestdocument(self, documentid, documentversion):
         return
+    
+    def getfilepathbydocumentid(self, documentid):
+        return DocumentMaster.getfilepathbydocumentid(documentid)

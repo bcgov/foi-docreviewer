@@ -81,6 +81,7 @@ const Redlining = React.forwardRef(
       isStitchingLoaded,
       licenseKey,
       setWarningModalOpen,
+      scrollLeftPanel
     },
     ref
   ) => {
@@ -261,12 +262,12 @@ const Redlining = React.forwardRef(
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
         fetchSections(requestid, (error) => console.log(error));
-        let license = await fetchPDFTronLicense(null, (error) =>
+        let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
         WebViewer(
           {
-            licenseKey: license,
+            licenseKey: response.data.license,
             path: "/webviewer",
             preloadWorker: "pdf",
             // initialDoc: currentPageInfo.file['filepath'] + currentPageInfo.file['filename'],
@@ -487,6 +488,10 @@ const Redlining = React.forwardRef(
             setAnnots(Annotations);
             setDocViewerMath(Math);
           });
+          
+          documentViewer.addEventListener("click", async () => {
+            scrollLeftPanel(documentViewer.getCurrentPage());
+          });
 
           let root = null;
 
@@ -663,8 +668,11 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name
             );
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           }
         }
@@ -773,6 +781,7 @@ const Redlining = React.forwardRef(
                     fetchPageFlag(
                       requestid,
                       currentLayer.redactionlayerid,
+                      docsForStitcing.map(d => d.file.documentid),
                       (error) => console.log(error)
                     );
                   },
@@ -943,6 +952,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
+                        docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -976,6 +986,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.redactionlayerid,
+                        docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1114,7 +1125,7 @@ const Redlining = React.forwardRef(
     const stitchDocumentsFunc = async (doc) => {
       let docCopy = [...docsForStitcing];
       let removedFirstElement = docCopy?.shift();
-      let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {} };
+      let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
       let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
       for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
@@ -1130,6 +1141,16 @@ const Redlining = React.forwardRef(
         docId: removedFirstElement.file.documentid,
         version: removedFirstElement.file.version,
         division: removedFirstElement.file.divisions[0].divisionid,
+        pageMappings: mappedDoc.pageMappings,
+      };
+      let fileDivisons = [];
+        for (let div of removedFirstElement.file.divisions) {
+          fileDivisons.push(div.divisionid)
+      }
+      mappedDocs["redlineDocIdLookup"][removedFirstElement.file.documentid] = {
+        docId: removedFirstElement.file.documentid,
+        version: removedFirstElement.file.version,
+        division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 
@@ -1169,9 +1190,22 @@ const Redlining = React.forwardRef(
           division: file.file.divisions[0].divisionid,
           pageMappings: mappedDoc.pageMappings,
         };
+        fileDivisons = [];
+        for (let div of file.file.divisions) {
+          fileDivisons.push(div.divisionid)
+        }
+        mappedDocs["redlineDocIdLookup"][file.file.documentid] = {
+          docId: file.file.documentid,
+          version: file.file.version,
+          division: fileDivisons,
+          pageMappings: mappedDoc.pageMappings,
+        }
         // Insert (merge) pages
         await doc.insertPages(newDoc, pages);
       }
+
+      
+
       const pageCount = docInstance.Core.documentViewer
         .getDocument()
         .getPageCount();
@@ -1381,8 +1415,11 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           },
           (error) => {
@@ -1519,6 +1556,7 @@ const Redlining = React.forwardRef(
                   fetchPageFlag(
                     requestid,
                     currentLayer.redactionlayerid,
+                    docsForStitcing.map(d => d.file.documentid),
                     (error) => console.log(error)
                   );
                 },
@@ -1666,8 +1704,11 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
-              console.log(error)
+            fetchPageFlag(
+              requestid,
+              currentLayer.redactionlayerid,
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
             );
           },
           (error) => {
@@ -1937,7 +1978,8 @@ const Redlining = React.forwardRef(
     const stampPageNumberRedline = async (
       _docViwer,
       PDFNet,
-      divisionsdocpages
+      divisionsdocpages,
+      redlineSinglePackage
     ) => {
       for (
         let pagecount = 1;
@@ -1975,7 +2017,7 @@ const Redlining = React.forwardRef(
           await s.stampText(
             doc,
             `${requestnumber} , Page ${
-              divisionsdocpages[pagecount - 1]?.stitchedPageNo
+              redlineSinglePackage == "Y" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
             } of ${docViewer.getPageCount()}`,
             pgSet
           );
@@ -2111,6 +2153,7 @@ const Redlining = React.forwardRef(
       let pagesToRemove = []; 
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
+      let divPageMappings = {};
       for (let doc of divisionDocuments) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
@@ -2145,12 +2188,14 @@ const Redlining = React.forwardRef(
           
           
         }
+      divPageMappings['0'] = pageMappings;
       removepages['0'] = pagesToRemove;  
-      setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
+      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
     }
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
+      let divPageMappings = {};
       let pagesToRemove = []; 
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
@@ -2189,15 +2234,16 @@ const Redlining = React.forwardRef(
           //}
           
         }
-        
+          divPageMappings[divObj.divisionid] = pageMappings;
           removepages[divObj.divisionid] = pagesToRemove;
           pagesToRemove = [];
           totalPageCount = 0;
           totalPageCountIncludeRemoved = 0;
+          pageMappings = {}
             
         
       }
-      setRedlinepageMappings({'pagemapping': pageMappings, 'pagestoremove': removepages})
+      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
     }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
@@ -2300,9 +2346,7 @@ const Redlining = React.forwardRef(
         let documentlist = stitchlist[key];
         if (redlineSinglePkg == "N") {
           toast.update(toastId.current, {
-            render: `Generating redline PDF for ${
-              divCount + 1
-            } of ${noofdivision} divisions...`,
+            render: `Generating redline PDF for ${noofdivision} divisions...`,
             isLoading: true,
           });
         } else {
@@ -2442,7 +2486,7 @@ const Redlining = React.forwardRef(
           toast.update(toastId.current, {
             render:
               redlineSinglePackage == "N"
-                ? `Saving redline PDF for ${currentDivisionCount} of ${divisionCountForToast} document to Object Storage...`
+                ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
                 : `Saving redline PDF to Object Storage...`,
             isLoading: true,
             autoClose: 5000,
@@ -2460,13 +2504,14 @@ const Redlining = React.forwardRef(
           } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
-            redlinepageMappings["pagemapping"],
+            redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
           await stampPageNumberRedline(
             stitchObject,
             PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"]
+            redlineStitchInfo[divisionid]["stitchpages"],
+            redlineSinglePackage
           );
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
@@ -2499,10 +2544,7 @@ const Redlining = React.forwardRef(
                 (_res) => {
                   // ######### call another process for zipping and generate download here ##########
                   toast.update(toastId.current, {
-                    render:
-                      redlineSinglePackage == "N"
-                        ? `${currentDivisionCount} of ${divisionCountForToast} document is saved to Object Storage`
-                        : `Redline PDF saved to Object Storage`,
+                    render: `Redline PDF saved to Object Storage`,
                     type: "success",
                     className: "file-upload-toast",
                     isLoading: false,
@@ -2564,7 +2606,8 @@ const Redlining = React.forwardRef(
       const documentids = documentList.map((obj) => obj.documentid);
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
-        normalizeforPdfStitchingReq(divisionDocuments),
+        //normalizeforPdfStitchingReq(divisionDocuments),
+        divisionDocuments,
         async (res) => {
           toast.update(toastId.current, {
             render: `Start saving redline...`,
@@ -2575,7 +2618,7 @@ const Redlining = React.forwardRef(
           let stitchDoc = {};
           
           prepareRedlinePageMapping(
-            divisionDocuments,
+            res['divdocumentList'],
             res.issingleredlinepackage
           );
           let incompatableList = prepareRedlineIncompatibleMapping(res);
@@ -2602,10 +2645,10 @@ const Redlining = React.forwardRef(
               if (docCount == div.documentlist.length) {
                 if (pageMappedDocs != undefined) {
                   let divisionsdocpages = Object.values(
-                    pageMappedDocs.docIdLookup
+                    pageMappedDocs.redlineDocIdLookup
                   )
                     .filter((obj) => {
-                      return obj.division === div.divisionid;
+                      return obj.division.includes(div.divisionid);
                     })
                     .map((obj) => {
                       return obj.pageMappings;
