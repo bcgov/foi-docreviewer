@@ -1,4 +1,4 @@
-﻿using MsgReader.Outlook;
+using MsgReader.Outlook;
 using MsgReader;
 using Serilog;
 using Syncfusion.HtmlConverter;
@@ -140,6 +140,7 @@ namespace MCS.FOI.MSGToPDF
                                         inlineAttachments.Add(_attachment);
                                     }
                                 }
+                                var startAt = 0;
                                 foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
                                 {
                                     if (rtfInline)
@@ -172,7 +173,31 @@ namespace MCS.FOI.MSGToPDF
                                     else if (htmlInline)
                                     {
                                         var _inlineAttachment = (Storage.Attachment)inlineAttachment;
-                                        bodyreplaced = Regex.Replace(bodyreplaced, "src=\"cid:" + _inlineAttachment.ContentId, "style=\"max-width: 700px\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data));
+                                        Regex regex = new Regex("<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
+                                        Match match = regex.Match(bodyreplaced, startAt);
+                                        if (match.Success)
+                                        {
+                                            const float maxSize = 700;
+                                            Regex.Match(match.Value, "width=(\"|\')?(?<width>\\d+)(\"|\')?").Groups.TryGetValue("width", out var w);
+                                            float width = float.Parse(w.Value);
+                                            Regex.Match(match.Value, "height=(\"|\')?(?<height>\\d+)(\"|\')?").Groups.TryGetValue("height", out var h);
+                                            float height = float.Parse(h.Value);
+                                            if (width > maxSize && width >= height)
+                                            {
+                                                float scale = maxSize / width;
+                                                width = (int) (width * scale);
+                                                height = (int) (height * scale);
+                                            }
+                                            if (height > maxSize)
+                                            {
+                                                float scale = maxSize / height;
+                                                width = (int) (width * scale);
+                                                height = (int) (height * scale);
+                                            }
+                                            string imgReplacementString = "<img width=\"" + width + "\" height=\"" + height + "\" style=\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
+                                            startAt = match.Index + imgReplacementString.Length;
+                                        }
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
                                         {
                                             if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
