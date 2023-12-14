@@ -42,6 +42,7 @@ function Home() {
   const [warningModalOpen, setWarningModalOpen] = useState(false);
 
   const redliningRef = useRef();
+  const selectorRef = useRef();
 
   useEffect(() => {
     setS3UrlReady(false);
@@ -169,6 +170,10 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos);
   };
 
+  const scrollLeftPanel = (pageNo) => {
+    selectorRef?.current?.scrollToPage(pageNo);
+  };
+
   const closeWarningMessage = () => {
     setWarningModalOpen(false);
   };
@@ -180,6 +185,7 @@ function Home() {
           {
             files.length > 0 && (
               <DocumentSelector
+                ref={selectorRef}
                 openFOIPPAModal={openFOIPPAModal}
                 requestid={foiministryrequestid}
                 documents={files}
@@ -214,6 +220,7 @@ function Home() {
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
+                  scrollLeftPanel={scrollLeftPanel}
                 />
               )
             // : <div>Loading</div>

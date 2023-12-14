@@ -84,6 +84,7 @@ const Redlining = React.forwardRef(
       isStitchingLoaded,
       licenseKey,
       setWarningModalOpen,
+      scrollLeftPanel
     },
     ref
   ) => {
@@ -495,8 +496,7 @@ const Redlining = React.forwardRef(
 
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
-              individualDoc = localDocumentInfo;
-            console.log(`Download and Stitching started.... ${new Date()}`);
+              individualDoc = localDocumentInfo;            
             let doclistCopy = [...docsForStitcing];
             let slicerdetails = await getSliceSetDetails(
               doclistCopy.length,
@@ -505,8 +505,7 @@ const Redlining = React.forwardRef(
             if(doclistCopy.length > 1)
               doclistCopy?.shift();
             let setCount = slicerdetails.setcount;
-            let slicer = slicerdetails.slicer;
-            console.log(`slicer = ${slicer}, setCount = ${setCount}`);
+            let slicer = slicerdetails.slicer;            
             let objpreptasks = new Array(setCount);
             for (let slicecount = 1; slicecount <= setCount; slicecount++) {
               let sliceDoclist = doclistCopy.splice(0, slicer);
@@ -524,6 +523,10 @@ const Redlining = React.forwardRef(
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
+          });
+          
+          documentViewer.addEventListener("click", async () => {
+            scrollLeftPanel(documentViewer.getCurrentPage());
           });
 
           let root = null;
@@ -1324,7 +1327,7 @@ const Redlining = React.forwardRef(
           }
         }
         else if (doclistCopy.length === 1){
-          console.log(`Download completed for single file.... ${new Date()}`);
+          
           applyAnnotationsFunc();
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
@@ -2686,7 +2689,7 @@ const Redlining = React.forwardRef(
           });
         }
         let documentlistCopy = [...documentlist];
-        console.log(`Download and Stitching Redline started.... ${new Date()}`);
+        
         let slicerdetails = await getSliceSetDetails(
           documentlist.length,
           true
@@ -2697,7 +2700,7 @@ const Redlining = React.forwardRef(
         let divisionDetails= {'divCount':divCount, 'noofdivision':noofdivision, 'division':division}
         setRedlineStitchDivisionDetails(divisionDetails);
         for (let slicecount = 1; slicecount <= setCount; slicecount++) {
-          console.log(`slicerRedline = ${slicer}, setCountRedline = ${setCount}`);
+          
           const sliceDoclist = documentlistCopy.splice(0, slicer);
           objpreptasks.push(
             mergeObjectsPreparationForRedline(
@@ -2777,7 +2780,7 @@ const Redlining = React.forwardRef(
           stichedfilesForRedline != null &&
           (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
         ) {
-          console.log(`Download and Stitching completed.... ${new Date()}`);
+          
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
           setPdftronDocObjectsForRedline([]);
           setstichedfilesForRedline(null)
