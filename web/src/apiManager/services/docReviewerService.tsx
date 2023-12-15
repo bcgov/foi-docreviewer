@@ -182,8 +182,7 @@ export const createOipcLayer= (
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
-        const redactionlayerid = 3 // oipc layer id
-        store.dispatch(incrementLayerCount(3) as any);
+        store.dispatch(incrementLayerCount(oipcLayerId) as any);
         if (callback) callback(res.data);
       } else {
         throw new Error(`Error while copying annotations to OIPC layer`);
