@@ -2,15 +2,17 @@ from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
-from datetime import datetime as datetime2
+from datetime import datetime as datetime2, timezone
 from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
+from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
 import requests
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
+from reviewer_api.utils.enums import StateName
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 
@@ -473,3 +475,17 @@ class documentservice:
 
     def deleterequestdocument(self, documentid, documentversion):
         return
+    
+    def validate_oipcreviewlayer(self, request_json, requestid):
+        validoipcreviewlayer = False
+        latest_response_package = pdfstitchpackageservice().getpdfstitchpackage(requestid, 'responsepackage')    
+        if (request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']) and request_json['currentState'] == StateName.closed.value and any(state['status'] == StateName.response.value for state in request_json['stateTransition']) and latest_response_package not in ({}, None)):
+            for state in request_json['stateTransition']:
+                if (state['status'] == StateName.response.value):
+                    latest_response_state = state
+                    break
+            latest_response_package_created_at = datetime2.fromisoformat(latest_response_package['createdat'])
+            latest_response_state_created_at = datetime2.strptime(latest_response_state['created_at'], "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=timezone.utc)
+            if (latest_response_package_created_at > latest_response_state_created_at):
+                validoipcreviewlayer = True
+        return validoipcreviewlayer
