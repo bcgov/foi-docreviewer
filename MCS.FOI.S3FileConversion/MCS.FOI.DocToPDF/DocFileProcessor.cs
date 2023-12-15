@@ -43,42 +43,22 @@ namespace MCS.FOI.DocToPDF
                     {
                         using (WordDocument wordDocument = new WordDocument(SourceStream, Syncfusion.DocIO.FormatType.Automatic))
                         {
+                           
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
 
-                            foreach(var entity in wordDocument.ChildEntities)
+                       
+                            using (DocIORenderer renderer = new DocIORenderer())
                             {
-                               if(entity.GetType().FullName == "Syncfusion.DocIO.DLS.WSection")
-                               {
-                                    Syncfusion.DocIO.DLS.WSection _wsection = (Syncfusion.DocIO.DLS.WSection)entity;
-                                    
-                                    foreach (IWTable table in _wsection.Tables)
-                                    {                                       
-                                        table.TableFormat.IsAutoResized = false;                                        
-                                        table.TableFormat.WrapTextAround = true;
-                                    }
-
-                                }
+                                using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
+                                //Save the PDF file
+                                //Close the instance of document objects
+                                pdfDocument.Save(output);
+                                pdfDocument.Close(true);
+                                converted = true;
 
                             }
 
-                            using (Stream wordstream = new MemoryStream())
-                            {
-                                wordDocument.Save(wordstream, wordDocument.ActualFormatType);
-
-                                //Creates an instance of DocIORenderer.
-                                using (DocIORenderer renderer = new DocIORenderer())
-                                {
-
-                                    using PdfDocument pdfDocument = renderer.ConvertToPDF(wordstream);
-                                    //Save the PDF file
-                                    //Close the instance of document objects
-                                    pdfDocument.Save(output);
-                                    pdfDocument.Close(true);
-                                    converted = true;
-
-                                }
-                            }
                         }
                     }
                     catch (Exception e)
