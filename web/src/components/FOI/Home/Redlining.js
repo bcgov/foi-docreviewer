@@ -252,6 +252,9 @@ const Redlining = React.forwardRef(
           RequestStates["Peer Review"],
         ].includes(requestStatus)
     );
+    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(
+      redactionLayers.find((l) => l.redactionlayerid === 3)?.count > 0
+    )
     const [enableSavingFinal, setEnableSavingFinal] = useState(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
@@ -312,8 +315,7 @@ const Redlining = React.forwardRef(
             redlineForOipcBtn.style.padding = "8px 8px 8px 10px";
             redlineForOipcBtn.style.cursor = "pointer";
             redlineForOipcBtn.style.alignItems = "left";
-            //TODO - adjust this
-            redlineForOipcBtn.disabled = false;
+            redlineForOipcBtn.disabled = !enableSavingOipcRedline;
 
             redlineForOipcBtn.onclick = () => {  
               // Save to s3
@@ -1125,6 +1127,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
+      const _enableSavingOipcRedline = redactionLayers.find((l) => l.redactionlayerid === 3).count > 0;
 
       setEnableSavingRedline(
         _enableSavingRedline &&
@@ -1134,6 +1137,7 @@ const Redlining = React.forwardRef(
             RequestStates["Peer Review"],
           ].includes(requestStatus)
       );
+      setEnableSavingOipcRedline(_enableSavingOipcRedline);
       setEnableSavingFinal(
         _enableSavingRedline && requestStatus == RequestStates["Response"]
       );
@@ -1145,7 +1149,9 @@ const Redlining = React.forwardRef(
           RequestStates["Records Review"],
           RequestStates["Ministry Sign Off"],
           RequestStates["Peer Review"],
-        ].includes(requestStatus);;
+        ].includes(requestStatus) ||
+        _enableSavingOipcRedline;
+        document.getElementById("redline_for_oipc").disabled = !_enableSavingOipcRedline
         document.getElementById("final_package").disabled =
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
       }
@@ -1153,7 +1159,7 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       checkSavingRedlineButton(docInstance);
-    }, [pageFlags, isStitchingLoaded]);
+    }, [pageFlags, isStitchingLoaded, currentLayer]);
 
     const stitchDocumentsFunc = async (doc) => {
       let docCopy = [...docsForStitcing];

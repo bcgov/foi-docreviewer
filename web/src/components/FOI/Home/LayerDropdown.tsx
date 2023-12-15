@@ -41,9 +41,11 @@ const LayerDropdown = ({
 
     const handleModalContinue = (e: any) => {
         setOpenModal(false);
-        store.dispatch(setCurrentLayer(layers.find((l: any) => l.redactionlayerid === layer)));
+        const successCallback = () => {
+            store.dispatch(setCurrentLayer(layers.find((l: any) => l.redactionlayerid === layer)));
+        }
         if (layers.find((l: any) => l.redactionlayerid === layer).redactionlayerid === 3) {
-            createOipcLayer(ministryrequestid);
+            createOipcLayer(ministryrequestid, successCallback);
         }
     }
 
