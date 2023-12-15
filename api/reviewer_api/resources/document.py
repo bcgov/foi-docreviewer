@@ -23,6 +23,7 @@ from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
 from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema
+from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
 import json
 import requests
 import logging
@@ -98,15 +99,31 @@ class GetDocuments(Resource):
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
+
+            print(jsonobj)
             #OIPC Layer Validation
-            if (jsonobj['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in jsonobj['oipcdetails'])):
-                isoipcreviewlayer = True
+            if (jsonobj['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in jsonobj['oipcdetails']) and jsonobj['currentState'] == "Closed" and any(state['status'] == "Response" for state in jsonobj['stateTransition'])):
+                #look at state transisont array and verify if respone exists and get latest response created_at AND check if response package exists in the pdfstitchpackge table
+                #latest package created_at > latest response created_at (USE THE MODEL ATTRIBUTE THAT GIVES LATEST STATES AND ADD A NEW COLM FOR CREATED_AT) (found in state transiiton)
+                #logic -> you cant only create rresponse package when state is in respones. First change state to response (created at) after that they create a redline and dl the response package at a later date. this logic bakes in the fact that response and response packages can occur throughout and change states at many times
+                latest_response_package = pdfstitchpackageservice().getpdfstitchpackage(requestid, 'responsepackage')
+                for state in jsonobj['stateTransition']:
+                    if (state['status'] == "Response"):
+                        latest_response_state = state
+                        break
+                print(latest_response_state)
+                print(latest_response_package)
+                if (bool(latest_response_package) == True and latest_response_package['createdat'] > latest_response_state['created_at']):
+                    validoipcreviewlayer = True
+                else:
+                    validoipcreviewlayer = False    
             else:
-                isoipcreviewlayer = False
+                validoipcreviewlayer = False
+
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
                 "requesttype": jsonobj["requestType"],
-                "isoipcreviewlayer": isoipcreviewlayer,
+                "validoipcreviewlayer": validoipcreviewlayer,
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatusid": jsonobj["requeststatusid"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
