@@ -101,6 +101,7 @@ const Redlining = React.forwardRef(
     );
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
+    const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
     const viewer = useRef(null);
 
     const documentList = useAppSelector(
@@ -301,6 +302,37 @@ const Redlining = React.forwardRef(
             menu.classList.add("Overlay");
             menu.classList.add("FlyoutMenu");
             menu.id = "saving_menu";
+
+            const redlineForOipcBtn = document.createElement("button");
+            redlineForOipcBtn.textContent = "Redline for OIPC";
+            redlineForOipcBtn.id = "redline_for_oipc";
+            redlineForOipcBtn.className = "redline_for_oipc";
+            redlineForOipcBtn.style.backgroundColor = "transparent";
+            redlineForOipcBtn.style.border = "none";
+            redlineForOipcBtn.style.padding = "8px 8px 8px 10px";
+            redlineForOipcBtn.style.cursor = "pointer";
+            redlineForOipcBtn.style.alignItems = "left";
+            //TODO - adjust this
+            redlineForOipcBtn.disabled = false;
+
+            redlineForOipcBtn.onclick = () => {  
+              // Save to s3
+              setModalFor("oipc");
+              setModalTitle("Redline for OIPC");
+              setModalMessage([
+                "Are you sure want to create the redline PDF for OIPC review?",
+                <br key="lineBreak1" />,
+                <br key="lineBreak2" />,
+                <span key="modalDescription1">
+                  When you create the redline PDF, your web browser page will
+                  automatically refresh
+                </span>,
+              ]);
+              setModalButtonLabel("Create OIPC Redline PDF");
+              setRedlineModalOpen(true);
+            };
+
+            menu.appendChild(redlineForOipcBtn);
 
             const redlineForSignOffBtn = document.createElement("button");
             redlineForSignOffBtn.textContent = "Redline for Sign Off";
@@ -634,7 +666,13 @@ const Redlining = React.forwardRef(
                   setMerge(true);
                   setFetchAnnotResponse(data);
                 } else {
-                  annotManager.disableReadOnlyMode();
+                  const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
+                  //Set to read only if oipc layer exists
+                  if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() !== "oipc") {
+                    annotManager.enableReadOnlyMode();
+                  } else {
+                    annotManager.disableReadOnlyMode();
+                  }
                   docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
                   const existingAnnotations = annotManager.getAnnotationsList();
                   await annotManager.deleteAnnotations(existingAnnotations, {
@@ -700,6 +738,12 @@ const Redlining = React.forwardRef(
         // If the event is triggered by importing then it can be ignored
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
+
+        // Disable creating annotations in redline layer if OIPC layer is present
+        const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
+        if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() === "redline") {
+          return;
+        }
       
         if (info.source !== "redactionApplied" && info.source !== "cancelRedaction") {
           //ignore annots/redact changes made by applyRedaction
@@ -2291,6 +2335,25 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const fetchDocumentOipcRedlineAnnotations = async (requestid, documentids) => {
+      let documentOipcRedlineAnnotations = {};
+      let docCounter = 0;
+      for (let documentid of documentids) {
+        fetchDocumentAnnotations(
+          requestid,
+          "oipc",
+          documentid,
+          async (data) => {
+            docCounter++;
+            documentOipcRedlineAnnotations[documentid] = data[documentid];
+            if (docCounter == documentids.length) {
+              setRedlineDocumentAnnotations(documentOipcRedlineAnnotations);
+            }
+          }
+        );
+      }
+    };
+
     const isIgnoredDocument = (doc, pagecount, divisionDocuments) => {
       const divdocumentlist = JSON.parse(JSON.stringify(divisionDocuments));
       let removepagesCount = 0;
@@ -2507,6 +2570,15 @@ const Redlining = React.forwardRef(
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
             "</annots></xfdf>";
+          
+          //Notes:
+          // You can apply redactions on the current doc but not on the stitchObject used for redlining
+          let doc = await docViewer.getDocument();
+
+          console.log('doc is object of Document: ' , doc instanceof docInstance.Core.Document)
+          console.log('stichObject is object of Document: ' , stitchObject instanceof docInstance.Core.Document)
+
+          // This stitchObject is an instand of Document, but doesn't seem to have the applyRedactions function
           stitchObject
             .getFileData({
               // saves the document with annotations in it
@@ -2575,7 +2647,7 @@ const Redlining = React.forwardRef(
       }
     }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
 
-    const saveRedlineDocument = (_instance) => {
+    const saveRedlineDocument = async (docViewer, annotationManager, _instance) => {
       toastId.current = toast(`Start saving redline...`, {
         autoClose: false,
         closeButton: false,
@@ -2586,6 +2658,8 @@ const Redlining = React.forwardRef(
       const divisions = getDivisionsForSaveRedline(divisionFilesList);
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
+      let redlinetype = "redline";
+      if (currentLayer.name.toLowerCase() == "oipc") redlinetype = "oipc";
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
         //normalizeforPdfStitchingReq(divisionDocuments),
@@ -2604,7 +2678,11 @@ const Redlining = React.forwardRef(
             res.issingleredlinepackage
           );
           let incompatableList = prepareRedlineIncompatibleMapping(res);
-          fetchDocumentRedlineAnnotations(requestid, documentids);
+          if (currentLayer.name.toLowerCase() == "oipc") {
+            fetchDocumentOipcRedlineAnnotations(requestid, documentids);
+          } else {
+            fetchDocumentRedlineAnnotations(requestid, documentids);
+          }
           setRedlineZipperMessage({
             ministryrequestid: requestid,
             category: "redline",
@@ -2690,6 +2768,18 @@ const Redlining = React.forwardRef(
               documentsObjArr = [];
             }
           }
+          let annotList = annotationManager.getAnnotationsList();
+          let s14AnnotIds = [];
+          for (let annot of annotList) {
+            if (annot.hR?.toLowerCase() === "s. 14") {
+              s14AnnotIds.push(annot.Aj?.parentRedaction);
+              // await annotManager.applyRedactions(annot);
+            }
+          }
+          for (let annotId of s14AnnotIds) {
+            let redactionAnnotation = annotList.find((annot) => annot.Zk === annotId)
+            const res = await annotationManager.applyRedactions(redactionAnnotation);
+          }
           
           
           //if (Object.keys(stitchDoc).length >0)  {
@@ -2705,7 +2795,8 @@ const Redlining = React.forwardRef(
         },
         (error) => {
           console.log("Error fetching document:", error);
-        }
+        },
+        redlinetype
       );
     };
 
@@ -2713,8 +2804,11 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       switch (modalFor) {
+        case "oipc":
+          saveRedlineDocument(docViewer, annotManager, docInstance);
+          break;
         case "redline":
-          saveRedlineDocument(docInstance);
+          saveRedlineDocument(docViewer, annotManager, docInstance);
           break;
         case "responsepackage":
           saveResponsePackage(docViewer, annotManager, docInstance);

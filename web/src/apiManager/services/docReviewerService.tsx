@@ -171,6 +171,33 @@ httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '
     });
 };
 
+export const createOipcLayer= (
+  requestid: string,
+  callback?: any,
+  errorCallback?: any,
+) => {
+  const oipcLayerId = 3;
+  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${requestid}/copy/${oipcLayerId}`;
+  let requestJSON = {};
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        const redactionlayerid = 3 // oipc layer id
+        store.dispatch(incrementLayerCount(3) as any);
+        if (callback) callback(res.data);
+      } else {
+        throw new Error(`Error while copying annotations to OIPC layer`);
+      }
+    })
+    .catch((error:any) => {
+      if (errorCallback) {
+        errorCallback("Error while copying annotations to OIPC layer");
+      } else {
+        throw new Error(`Error while copying annotations to OIPC layer`);
+      }
+    });
+}
+
 export const deleteRedaction = (
   requestid: string,
   redactionlayerid: number,
