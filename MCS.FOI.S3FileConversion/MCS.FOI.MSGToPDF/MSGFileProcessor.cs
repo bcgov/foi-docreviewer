@@ -124,7 +124,7 @@ namespace MCS.FOI.MSGToPDF
                                         var _attachment = (Storage.Attachment)attachment;
                                         if (htmlInline)
                                         {
-                                            if (!String.IsNullOrEmpty(_attachment.ContentId) && bodyreplaced.Contains(_attachment.ContentId))
+                                            if (!String.IsNullOrEmpty(_attachment.ContentId) && (bodyreplaced.Contains(_attachment.ContentId) || _attachment.Hidden))
                                             {
                                                 inlineAttachments.Add(_attachment);
                                             }
@@ -179,9 +179,10 @@ namespace MCS.FOI.MSGToPDF
                                         {
                                             const float maxSize = 700;
                                             Regex.Match(match.Value, "width=(\"|\')?(?<width>\\d+)(\"|\')?").Groups.TryGetValue("width", out var w);
-                                            float width = float.Parse(w.Value);
+                                            float width = float.TryParse(w?.Value, out float tempWidth) ? tempWidth : 0;
                                             Regex.Match(match.Value, "height=(\"|\')?(?<height>\\d+)(\"|\')?").Groups.TryGetValue("height", out var h);
-                                            float height = float.Parse(h.Value);
+                                            float height = float.TryParse(h?.Value, out float tempHeight) ? tempHeight : 0;
+
                                             if (width > maxSize && width >= height)
                                             {
                                                 float scale = maxSize / width;
@@ -194,7 +195,17 @@ namespace MCS.FOI.MSGToPDF
                                                 width = (int) (width * scale);
                                                 height = (int) (height * scale);
                                             }
-                                            string imgReplacementString = "<img width=\"" + width + "\" height=\"" + height + "\" style=\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            string widthString = string.Empty;
+                                            string heightString = string.Empty;
+                                            if (width > 0)
+                                            {
+                                                widthString = " width =\"" + width +"\"";
+                                            }
+                                            if (height > 0)
+                                            {
+                                                heightString = " height =\"" + height + "\"";
+                                            }
+                                            string imgReplacementString = "<img "+ widthString + heightString + " style =\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
                                             bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
                                             startAt = match.Index + imgReplacementString.Length;
                                         }
