@@ -132,6 +132,7 @@ const Redlining = React.forwardRef(
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
     const [redlineSaving, setRedlineSaving] = useState(false);
+    const [redlineCategory, setRedlineCategory] = useState(false);
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
@@ -2471,6 +2472,34 @@ const Redlining = React.forwardRef(
       return stitchAnnotation.join();
     };
 
+    const getAnnotationSections  = (annot) => {
+      let customSectionsData = annot.getCustomData("sections");
+      let stampJson = JSON.parse(
+                  customSectionsData
+                    .replace(/&quot;\[/g, "[")
+                    .replace(/\]&quot;/g, "]")
+                    .replace(/&quot;/g, '"')
+                    .replace(/\\/g, "")
+      );
+      return stampJson;        
+    }
+
+    const annotationSectionsMapping  = async (xfdfString) => {
+      let annotationManager = docInstance?.Core.annotationManager;
+      let annotList = await annotationManager.importAnnotations(xfdfString);
+      let sectionStamps = {};
+      for (const annot of annotList) {
+        let parentRedaction = annot.getCustomData("parentRedaction");
+        if (parentRedaction) {
+          if (annot.Subject == "Free Text") {
+            let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
+            sectionStamps[parentRedactionId] = getAnnotationSections(annot);
+          }
+        }
+      }
+      return sectionStamps; 
+    }
+
     const formatAnnotationsForDocument = (
       domParser,
       data,
@@ -2577,14 +2606,47 @@ const Redlining = React.forwardRef(
             formattedAnnotationXML +
             "</annots></xfdf>";
           
-          //Notes:
-          // You can apply redactions on the current doc but not on the stitchObject used for redlining
-          let doc = await docViewer.getDocument();
-
-          console.log('doc is object of Document: ' , doc instanceof docInstance.Core.Document)
-          console.log('stichObject is object of Document: ' , stitchObject instanceof docInstance.Core.Document)
-
-          // This stitchObject is an instand of Document, but doesn't seem to have the applyRedactions function
+          //OIPC - Special Block (Redact S.14) : Begin
+          if(redlineCategory == "oipc") {
+            const rarr = []; 
+            let annotationManager = docInstance?.Core.annotationManager;
+            let sectionStamps = await annotationSectionsMapping(xfdfString);
+            let rects = [];
+            for (const [key, value] of Object.entries(sectionStamps)) {
+              let s14check_annotationid = key;
+              let s14check_sections = sectionStamps[key];            
+              for (const [s14key, s14value]  in s14check_sections) {
+                if (s14check_sections[s14key]["section"] === "s. 14") {      
+                  let s14annoation = annotationManager.getAnnotationById(s14check_annotationid);
+                  if ( s14annoation.Subject === "Redact") {
+                        rects = rects.concat( 
+                          s14annoation.getQuads().map((q) => {
+                              return {
+                                page: s14annoation.getPageNumber(),
+                                recto: q.toRect()
+                              };
+                            })
+                          );
+                      }
+                }
+              }
+            }
+            for (const rect of rects) {
+              let height = docViewer.getPageHeight(rect.page);
+              rarr.push(await PDFNet.Redactor.redactionCreate(rect.page, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+              
+            }
+            if (rarr.length > 0) {
+              const app = {};
+              app.redaction_overlay = true;
+              app.border = false;
+              app.show_redacted_content_regions = false;
+              const doc = await stitchObject.getPDFDoc();
+              await PDFNet.Redactor.redact(doc, rarr, app);
+            }
+            
+        }
+          //OIPC - Special Block : End
           stitchObject
             .getFileData({
               // saves the document with annotations in it
@@ -2809,6 +2871,7 @@ const Redlining = React.forwardRef(
     const saveDoc = () => {
       setRedlineModalOpen(false);
       setRedlineSaving(true);
+      setRedlineCategory(modalFor);
       switch (modalFor) {
         case "oipc":
           saveRedlineDocument(docViewer, annotManager, docInstance);
