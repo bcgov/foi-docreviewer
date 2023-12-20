@@ -26,8 +26,6 @@ from utils import (
     convert_to_pst
 )
 
-# font_path = '../utils/common/BCSans-Regular_2f.ttf'
-
 def __getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
     s3cred = None
@@ -135,7 +133,6 @@ def add_annotations_as_text_to_pdf(source_document, bytes_stream):
         for annot in annotations_on_page:
             annot_text = __constructannotationtext(annot)
             lines_needed = len(annot_text.split('\n'))
-            print(f'annot_text = {annot_text}')
             if text_start_position == 50:
                 new_page_index += 1
                 updated_document.insert_page(new_page_index)
