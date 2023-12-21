@@ -50,7 +50,6 @@ namespace MCS.FOI.DocToPDF
 
                             using (DocIORenderer renderer = new DocIORenderer())
                             {
-                                renderer.Settings.EmbedFonts = true;
                                 using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
                                 //Save the PDF file
                                 //Close the instance of document objects
