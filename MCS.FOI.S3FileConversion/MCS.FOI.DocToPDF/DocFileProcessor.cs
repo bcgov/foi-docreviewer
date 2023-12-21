@@ -46,8 +46,8 @@ namespace MCS.FOI.DocToPDF
                            
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
+                            wordDocument.RevisionOptions.ShowMarkup = RevisionType.Deletions | RevisionType.Insertions;
 
-                       
                             using (DocIORenderer renderer = new DocIORenderer())
                             {
                                 using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
