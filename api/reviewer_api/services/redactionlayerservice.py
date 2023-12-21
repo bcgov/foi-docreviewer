@@ -15,7 +15,7 @@ class redactionlayerservice:
     def getmappedredactionlayers(self, redactionlayer):     
         mpxlayers = []  
         defaultlayerid = self.getdefaultredactionlayerid()
-        if redactionlayer["redactionlayerid"] != defaultlayerid:
+        if redactionlayer["redactionlayerid"] != defaultlayerid and redactionlayer["redactionlayerid"] != 3:
             mpxlayers.append(defaultlayerid)      
         mpxlayers.append(redactionlayer["redactionlayerid"])
         return mpxlayers
