@@ -46,10 +46,11 @@ namespace MCS.FOI.DocToPDF
                            
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
+                            wordDocument.RevisionOptions.ShowMarkup = RevisionType.Deletions | RevisionType.Insertions;
 
-                       
                             using (DocIORenderer renderer = new DocIORenderer())
                             {
+                                renderer.Settings.EmbedFonts = true;
                                 using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
                                 //Save the PDF file
                                 //Close the instance of document objects
