@@ -708,7 +708,7 @@ const DocumentSelector = ({
                             Redaction Layer:
                         </div>
                         <div className='col-lg-7' style={{paddingLeft: '0px', display: "flex", justifyContent: "flex-end"}}>
-                            <LayerDropdown ministryrequestid={requestid}/>
+                            <LayerDropdown ministryrequestid={requestid} validoipcreviewlayer={requestInfo.validoipcreviewlayer}/>
                         </div>
                     </div>
                     <hr className='hrStyle' />
