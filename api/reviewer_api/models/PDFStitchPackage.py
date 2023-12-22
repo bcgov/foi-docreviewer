@@ -1,6 +1,7 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
+from sqlalchemy import func
 import logging
 
 class PDFStitchPackage(db.Model):
@@ -31,6 +32,17 @@ class PDFStitchPackage(db.Model):
             pdfstitchpackageschema = PDFStitchPackageSchema(many=False)
             query = db.session.query(PDFStitchPackage).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == category).order_by(PDFStitchPackage.pdfstitchpackageid.desc()).first()
             return pdfstitchpackageschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def isresponsepackagecreated(cls, requestid, generatedat):
+        try:
+            query = db.session.query(func.count(PDFStitchPackage.pdfstitchpackageid)).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == "responsepackage", PDFStitchPackage.createdat <= generatedat)
+            packagecount = query.scalar()
+            return True if packagecount > 0 else False
         except Exception as ex:
             logging.error(ex)
         finally:

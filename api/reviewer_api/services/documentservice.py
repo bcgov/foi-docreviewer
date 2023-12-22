@@ -477,15 +477,24 @@ class documentservice:
         return
     
     def validate_oipcreviewlayer(self, request_json, requestid):
-        validoipcreviewlayer = False
-        latest_response_package = pdfstitchpackageservice().getpdfstitchpackage(requestid, 'responsepackage')    
-        if (request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']) and request_json['currentState'] == StateName.closed.value and any(state['status'] == StateName.response.value for state in request_json['stateTransition']) and latest_response_package not in ({}, None)):
-            for state in request_json['stateTransition']:
-                if (state['status'] == StateName.response.value):
-                    latest_response_state = state
-                    break
-            latest_response_package_created_at = datetime2.fromisoformat(latest_response_package['createdat'])
-            latest_response_state_created_at = datetime2.strptime(latest_response_state['created_at'], "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=timezone.utc)
-            if (latest_response_package_created_at > latest_response_state_created_at):
-                validoipcreviewlayer = True
-        return validoipcreviewlayer
+        #check for OIPC & Reason 
+        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']):
+            #Check for Reopen
+            if 'isreopened' in request_json and request_json['isreopened'] == True:
+                #Check is Response Package generated before closure.
+                generatedbefore = self.__get_close_datetime(request_json)
+                if generatedbefore is not None:
+                    is_responsepackage_generated = pdfstitchpackageservice().isresponsepackagecreated(requestid, generatedbefore)
+                    return is_responsepackage_generated
+        return False  
+    
+    def __get_close_datetime(self, request_json):
+        generatedbefore = None
+        isresponsephasecompleted = False
+        for state in request_json['stateTransition']:
+            if state['status'] == StateName.closed.value and generatedbefore is None:     
+                generatedbefore =  state['created_at']
+            if state['status'] == StateName.response.value and isresponsephasecompleted == False:    
+                isresponsephasecompleted = True    
+        return generatedbefore if isresponsephasecompleted == True else None
+        
