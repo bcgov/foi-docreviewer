@@ -2727,7 +2727,7 @@ const Redlining = React.forwardRef(
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
       let redlinetype = "redline";
-      if (currentLayer.name.toLowerCase() == "oipc") redlinetype = "oipc";
+      if (currentLayer.name.toLowerCase() == "oipc") redlinetype = "oipcreviewredline";
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
         //normalizeforPdfStitchingReq(divisionDocuments),
