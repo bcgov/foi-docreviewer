@@ -68,7 +68,7 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} style={{color: "#808080"}}>
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.redactionlayerid === 3 && !validoipcreviewlayer} style={{color: "#808080"}}>
                     {
                     option.redactionlayerid > 2
                         && option.count === 0
