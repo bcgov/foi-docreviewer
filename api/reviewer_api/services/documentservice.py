@@ -74,7 +74,6 @@ class documentservice:
             _att_in_properties = []
             (
                 record["pagecount"],
-                record["processedpagecount"],
                 record["filename"],
                 record["documentid"],
                 record["version"],
@@ -121,7 +120,6 @@ class documentservice:
 
                     (
                         attachment["pagecount"],
-                        attachment["processedpagecount"],
                         attachment["filename"],
                         attachment["documentid"],
                         attachment["version"],
@@ -140,15 +138,9 @@ class documentservice:
             if record["recordid"] is None:
                 attchments.append(record)
         return parentrecords, parentswithattachments, attchments
-    
-    def __getprocessedpagecount(self, property, pagecount):
-        if property["documentattribute"]:
-            return property["documentattribute"].get("processedpagecount", pagecount)
-        return pagecount
-    
+      
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
-        processedpagecount = 0
         filename = record["filename"] if "filename" in record else None
         documentid = None
         version = 0
@@ -158,11 +150,10 @@ class documentservice:
                 and record["documentmasterid"] == property["documentmasterid"]
             ):
                 pagecount = property["pagecount"]
-                processedpagecount = self.__getprocessedpagecount(property, pagecount)
                 filename = property["filename"]
                 documentid = property["documentid"]
                 version = property["version"]
-        return pagecount, processedpagecount, filename, documentid, version
+        return pagecount, filename, documentid, version
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
@@ -411,9 +402,7 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, oldRows)
     
-    def __getprocessedfilepath(self, attributes):
-            return attributes.get("processedfilepath", None)
-
+    
     def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
                 method='GET',
@@ -464,8 +453,6 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
-            documentattributes = document["attributes"]
-            document["processedfilepath"] = self.__getprocessedfilepath(documentattributes)
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
             )
