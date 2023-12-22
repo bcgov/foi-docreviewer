@@ -702,7 +702,7 @@ const Redlining = React.forwardRef(
               (error) => {
                 console.log("Error:", error);
               },
-              currentLayer.name
+              currentLayer.name.toLowerCase()
             );
             fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
               console.log(error)
@@ -1292,7 +1292,7 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name
+          currentLayer.name.toLowerCase()
         );
       }
     };
@@ -2727,7 +2727,7 @@ const Redlining = React.forwardRef(
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
       let redlinetype = "redline";
-      if (currentLayer.name.toLowerCase() == "oipc") redlinetype = "oipc";
+      if (currentLayer.name.toLowerCase() == "oipc") redlinetype = "oipcreviewredline";
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
         //normalizeforPdfStitchingReq(divisionDocuments),
@@ -2753,7 +2753,7 @@ const Redlining = React.forwardRef(
           }
           setRedlineZipperMessage({
             ministryrequestid: requestid,
-            category: "redline",
+            category: currentLayer.name.toLowerCase() === "oipc" ? "oipcreviewredline" : "redline",
             attributes: [],
             requestnumber: res.requestnumber,
             bcgovcode: res.bcgovcode,
