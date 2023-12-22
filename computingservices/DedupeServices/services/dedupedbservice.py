@@ -3,31 +3,27 @@ from models import dedupeproducermessage
 from datetime import datetime
 import json
 
-def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, processedfilepath="", processedpagecount = 1):
+def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
-               
+
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
-        attributes = {"processedpagecount": processedpagecount} if processedpagecount > 1 else None
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible,pagecount,attributes) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible,pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount, json.dumps(attributes)))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
-        documentattribute = dedupeproducermessage.attributes
-        if processedfilepath:
-            documentattribute["processedfilepath"] = processedfilepath
         if (dedupeproducermessage.attributes.get('isattachment', False) and dedupeproducermessage.trigger == 'recordreplace'):
             documentmasterid = dedupeproducermessage.originaldocumentmasterid or dedupeproducermessage.documentmasterid
         else:
             documentmasterid = dedupeproducermessage.documentmasterid
 
         cursor.execute('''UPDATE public."DocumentAttributes" SET attributes = %s WHERE documentmasterid = %s''',
-          (json.dumps(documentattribute), documentmasterid))
+          (json.dumps(dedupeproducermessage.attributes), documentmasterid))
         conn.commit()
 
         cursor.execute('INSERT INTO public."DocumentHashCodes" (documentid, \

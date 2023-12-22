@@ -7,8 +7,8 @@ import traceback
 def processmessage(message):
     recordjobstart(message)
     try:
-        hashcode, _pagecount, _processedpagecount, _processedfilepath = gets3documenthashcode(message)
-        savedocumentdetails(message, hashcode, _pagecount, _processedfilepath, _processedpagecount)
+        hashcode, _pagecount = gets3documenthashcode(message)
+        savedocumentdetails(message, hashcode, _pagecount)
         recordjobend(message, False)
         updateredactionstatus(message)
     except(Exception) as error:
