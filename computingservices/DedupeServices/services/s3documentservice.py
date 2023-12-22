@@ -74,6 +74,7 @@ def gets3documenthashcode(producermessage):
     reader = None
     if extension.lower() in [".pdf"]:
         reader = PdfReader(BytesIO(response.content))
+        
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
         attachments = []
