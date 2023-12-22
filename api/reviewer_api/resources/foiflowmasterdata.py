@@ -257,14 +257,14 @@ class FOIFlowS3PresignedRedline(Resource):
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
-@API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>/<string:redlinetype>")
+@API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>/<string:redlinetype>/<string:layer>")
 class FOIFlowS3PresignedRedline(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid, redlinetype="redline"):
+    def post(ministryrequestid, redlinetype="redline", layer="redline"):
         try:            
             data = request.get_json()
             documentmapper = redactionservice().getdocumentmapper(
@@ -288,14 +288,24 @@ class FOIFlowS3PresignedRedline(Resource):
             singlepkgpath = None;
             #New Logic - Begin
             filepaths = []
+
+            # set type of package based off redline and layer
+            packagetype = "redline"
+            if redlinetype == "oipc":
+                packagetype = "oipcreview"
+            elif redlinetype == "redline" and layer == "redline":
+                packagetype = "redline"
+            elif redlinetype == "redline" and layer == "oipc":
+                packagetype = "oipcredline"
+
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                    if is_single_redline_package(_bcgovcode) == False:
+                    if is_single_redline_package(_bcgovcode, redlinetype) == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
-                            filepathlist[0], division_name, redlinetype
+                            filepathlist[0], division_name, packagetype
                         )
 
                             # filename_put, file_extension_put = os.path.splitext(filepath_put)
@@ -345,13 +355,13 @@ class FOIFlowS3PresignedRedline(Resource):
                                     )
                 elif len(div["incompatableList"]) > 0:
                     filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
-                if is_single_redline_package(_bcgovcode) and singlepkgpath is None :                        
+                if is_single_redline_package(_bcgovcode, redlinetype) and singlepkgpath is None :
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
                         filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                         filename = filepathlist[0]
-                        filepath_put = "{0}/redline/{1}-Redline.pdf".format(
-                            filepathlist[0],filename
+                        filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
+                            filepathlist[0],filename, packagetype
                         )
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
@@ -366,7 +376,7 @@ class FOIFlowS3PresignedRedline(Resource):
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
                     
-            if is_single_redline_package(_bcgovcode):
+            if is_single_redline_package(_bcgovcode, redlinetype):
                 for div in data["divdocumentList"]:
                     if len(div["documentlist"]) > 0:
                         documentlist_copy = div["documentlist"][:]
@@ -385,7 +395,7 @@ class FOIFlowS3PresignedRedline(Resource):
                     
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
-            data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode) else "N"
+            data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode, redlinetype) else "N"
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
