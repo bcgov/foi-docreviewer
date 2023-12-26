@@ -165,7 +165,7 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                if (docInfo.processedpagecount > pageFlagInfo.pageflag.length) {
+                if (docInfo.pagecount > pageFlagInfo.pageflag.length) {
                   // not all page has flag set
                   stopLoop = true;
                   return false; //stop loop
@@ -1128,7 +1128,7 @@ const Redlining = React.forwardRef(
       let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
       let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
       let domParser = new DOMParser();
-      for (let i = 0; i < removedFirstElement.file.processedpagecount; i++) {
+      for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
         let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
         mappedDocs["stitchedPageLookup"][i + 1] = {
           docid: removedFirstElement.file.documentid,
@@ -2181,7 +2181,7 @@ const Redlining = React.forwardRef(
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.processedpagecount;
+        totalPageCountIncludeRemoved += doc.pagecount;
           
           
         }
@@ -2227,7 +2227,7 @@ const Redlining = React.forwardRef(
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.processedpagecount;
+        totalPageCountIncludeRemoved += doc.pagecount;
           //}
           
         }
@@ -2364,7 +2364,7 @@ const Redlining = React.forwardRef(
               } else {
                 // create an array containing 1…N
                 let pages = Array.from(
-                  { length: doc.processedpagecount },
+                  { length: doc.pagecount },
                   (v, k) => k + 1
                 );
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;

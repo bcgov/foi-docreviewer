@@ -66,7 +66,7 @@ function Home() {
           let urlPromises = [];
           _files.forEach((file, index) => {
             documentObjs.push({ file: file, s3url: "" });
-            let filePageCount = file?.processedpagecount;
+            let filePageCount = file?.pagecount;
             totalPageCountVal += filePageCount;
           });
 

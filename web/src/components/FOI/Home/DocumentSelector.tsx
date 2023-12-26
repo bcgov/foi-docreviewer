@@ -97,7 +97,7 @@ const DocumentSelector = React.forwardRef(({
 
 
     useEffect(() => {
-        let refLength = documents.reduce((acc: any, file: any) => acc + file.processedpagecount, 0);
+        let refLength = documents.reduce((acc: any, file: any) => acc + file.pagecount, 0);
         pageRefs.current = Array(refLength).fill(0).map((_, i) => pageRefs.current[i] || createRef());
     }, [documents])
 
@@ -192,7 +192,7 @@ const DocumentSelector = React.forwardRef(({
         if (filterFlags.length > 0 && filterFlags.includes(0)) {
             filesForDisplay?.forEach((file: any) => {
                 let flagedpages = file.pageFlag ? file.pageFlag.length : 0;
-                unflagged += file.processedpagecount - flagedpages;
+                unflagged += file.pagecount - flagedpages;
             });
 
         }
@@ -387,7 +387,7 @@ const DocumentSelector = React.forwardRef(({
 
             }
             else
-                 setFilesForDisplay(filteredFiles.filter((file: any) =>  ((filters.includes(0) && (typeof file.pageFlag === "undefined" || file.pageFlag?.length == 0 || file.processedpagecount != file.pageFlag?.length))
+                 setFilesForDisplay(filteredFiles.filter((file: any) =>  ((filters.includes(0) && (typeof file.pageFlag === "undefined" || file.pageFlag?.length == 0 || file.pagecount != file.pageFlag?.length))
                               || (file.pageFlag?.find((obj: any) => ((obj.flagid != 4 && filters.includes(obj.flagid))))))
                     ));
         }
@@ -602,7 +602,7 @@ const DocumentSelector = React.forwardRef(({
                 disableHoverListener={disableHover}
             >
                 <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                    {[...Array(file.processedpagecount)].map((_x, p) =>
+                    {[...Array(file.pagecount)].map((_x, p) =>
                     (filterFlags.length > 0 ?
                         consulteeFilterView(file,p)
                         :
@@ -650,7 +650,7 @@ const DocumentSelector = React.forwardRef(({
                     >
 
                         <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
-                            {[...Array(file.processedpagecount)].map((_x, p) =>
+                            {[...Array(file.pagecount)].map((_x, p) =>
                             (filterFlags.length > 0 ?
                                 consulteeFilterView(file,p,division)
                                 :
