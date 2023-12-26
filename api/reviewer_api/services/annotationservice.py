@@ -3,6 +3,8 @@ from re import VERBOSE
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
+from reviewer_api.models.DocumentPageflags import DocumentPageflag
+
 from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
 from reviewer_api.models.default_method_result import DefaultMethodResult
@@ -144,14 +146,15 @@ class annotationservice:
 
     def copyannotation(self, ministryrequestid, sourcelayers, targetlayer):
         documentids = Document.getdocumentidsbyrequest(ministryrequestid)
-        print(ministryrequestid)
-        print(sourcelayers)
-        print(targetlayer)
-        print(documentids)
-        annotresponse = Annotation.copyannotations(documentids, sourcelayers, targetlayer)
-        if annotresponse.success == True:
-            AnnotationSection.copyannotationsections(ministryrequestid, sourcelayers, targetlayer)
-        return DefaultMethodResult(True, "Copied Annotations", ministryrequestid)
+        #Additional Check to ensure double copy do not happen
+        iscopied = Annotation.isannotationscopied(documentids, targetlayer)
+        if iscopied == False:
+            annotresponse = Annotation.copyannotations(documentids, sourcelayers, targetlayer)
+            if annotresponse.success == True:
+                AnnotationSection.copyannotationsections(ministryrequestid, sourcelayers, targetlayer)
+                DocumentPageflag.copydocumentpageflags(ministryrequestid, sourcelayers, targetlayer)  
+            return DefaultMethodResult(True, "Copied Annotations", ministryrequestid)
+        return DefaultMethodResult(False, "Annotations already exist", targetlayer)
 
 
     def saveannotation(self, annotationschema, userinfo):

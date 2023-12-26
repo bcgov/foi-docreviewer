@@ -9,6 +9,7 @@ import json
 from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
+from sqlalchemy import func
 
 
 class Annotation(db.Model):
@@ -308,6 +309,17 @@ class Annotation(db.Model):
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
             return DefaultMethodResult(False, "Invalid Annotation Request", -1)
+
+    @classmethod
+    def isannotationscopied(cls, documentids, targetlayer):
+        try:
+            query = db.session.query(func.count(Annotation.annotationid)).filter(Annotation.documentid.in_(documentids), Annotation.redactionlayerid == targetlayer)
+            annotationcount = query.scalar()
+            return True if annotationcount > 0 else False
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
     @classmethod
     def copyannotations(cls, documentids, sourceredactionlayers, targetlayer) -> DefaultMethodResult:
