@@ -257,13 +257,14 @@ class FOIFlowS3PresignedRedline(Resource):
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>")
+@API.route("/foiflow/oss/presigned/redline/<int:ministryrequestid>/<string:redlinetype>")
 class FOIFlowS3PresignedRedline(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid):
+    def post(ministryrequestid, redlinetype="redline"):
         try:            
             data = request.get_json()
             documentmapper = redactionservice().getdocumentmapper(
@@ -293,8 +294,8 @@ class FOIFlowS3PresignedRedline(Resource):
                     if is_single_redline_package(_bcgovcode) == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
-                        filepath_put = "{0}/redline/{1}/{0} - Redline - {1}.pdf".format(
-                            filepathlist[0], division_name
+                        filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
+                            filepathlist[0], division_name, redlinetype
                         )
 
                             # filename_put, file_extension_put = os.path.splitext(filepath_put)

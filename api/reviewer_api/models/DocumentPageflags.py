@@ -249,6 +249,27 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def copydocumentpageflags(cls, ministryrequestid, sourcelayers, targetlayer) -> DefaultMethodResult:
+        try:
+            sql = """
+                insert into "DocumentPageflags"  (foiministryrequestid, documentid, documentversion, "pageflag", "attributes", 
+                    created_at, createdby, updated_at, updatedby, redactionlayerid)  
+               select foiministryrequestid, documentid, documentversion, "pageflag", "attributes", created_at, 
+                    createdby, updated_at, updatedby, :targetlayer from "DocumentPageflags" a 
+                where foiministryrequestid = :ministryrequestid and redactionlayerid in :sourcelayers;
+                """
+            db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid, "sourcelayers": tuple(sourcelayers), "targetlayer": targetlayer},
+            )  
+            db.session.commit()
+            return DefaultMethodResult(True, "Document pageflags are copied to layer", targetlayer)           
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
 
 class DocumentPageflagSchema(ma.Schema):
     class Meta:
