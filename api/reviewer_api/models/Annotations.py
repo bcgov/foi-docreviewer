@@ -9,6 +9,7 @@ import json
 from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
+from sqlalchemy import func
 
 
 class Annotation(db.Model):
@@ -308,6 +309,41 @@ class Annotation(db.Model):
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
             return DefaultMethodResult(False, "Invalid Annotation Request", -1)
+
+    @classmethod
+    def isannotationscopied(cls, documentids, targetlayer):
+        try:
+            query = db.session.query(func.count(Annotation.annotationid)).filter(Annotation.documentid.in_(documentids), Annotation.redactionlayerid == targetlayer)
+            annotationcount = query.scalar()
+            return True if annotationcount > 0 else False
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def copyannotations(cls, documentids, sourceredactionlayers, targetlayer) -> DefaultMethodResult:
+        try:
+            sql = """
+                    insert into "Annotations" (annotationname, documentid , documentversion, 
+                    annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
+                    redactionlayerid, "version")                     
+                    select annotationname, documentid , documentversion, 
+                    annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
+                    :targetlayer, 1 from "Annotations" a 
+                    where redactionlayerid in :sourceredactionlayers and isactive = true and documentid in :documentids;
+       
+                """
+            db.session.execute(
+                text(sql),
+                {"documentids": tuple(documentids), "sourceredactionlayers": tuple(sourceredactionlayers), "targetlayer": targetlayer},
+            )  
+            db.session.commit()
+            return DefaultMethodResult(True, "Annotations are copied to layer", targetlayer)         
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()     
 
     @classmethod
     def __chunksaveannotations(

@@ -2,15 +2,17 @@ from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
-from datetime import datetime as datetime2
+from datetime import datetime as datetime2, timezone
 from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
 import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
+from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
 import requests
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
+from reviewer_api.utils.enums import StateName
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 
@@ -473,3 +475,26 @@ class documentservice:
 
     def deleterequestdocument(self, documentid, documentversion):
         return
+    
+    def validate_oipcreviewlayer(self, request_json, requestid):
+        #check for OIPC & Reason 
+        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']):
+            #Check for Reopen
+            if 'isreopened' in request_json and request_json['isreopened'] == True:
+                #Check is Response Package generated before closure.
+                generatedbefore = self.__get_close_datetime(request_json)
+                if generatedbefore is not None:
+                    is_responsepackage_generated = pdfstitchpackageservice().isresponsepackagecreated(requestid, generatedbefore)
+                    return is_responsepackage_generated
+        return False  
+    
+    def __get_close_datetime(self, request_json):
+        generatedbefore = None
+        isresponsephasecompleted = False
+        for state in request_json['stateTransition']:
+            if state['status'] == StateName.closed.value and generatedbefore is None:     
+                generatedbefore =  state['created_at']
+            if state['status'] == StateName.response.value and isresponsephasecompleted == False:    
+                isresponsephasecompleted = True    
+        return generatedbefore if isresponsephasecompleted == True else None
+        
