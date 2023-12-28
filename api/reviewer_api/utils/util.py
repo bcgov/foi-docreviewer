@@ -136,7 +136,9 @@ def getbatchconfig():
     _limit = _batchconfig["limit"] if "limit" in _batchconfig else 250    
     return _begin, _size, _limit
 
-def is_single_redline_package(bcgovcode):
+def is_single_redline_package(bcgovcode, packagetype):
+    if (packagetype == "oipcreview"):
+        return True
     if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
         _pkg_ministries = REDLINE_SINGLE_PKG_MINISTRIES.replace(" ", "").split(',')
         if bcgovcode.upper() in _pkg_ministries:
