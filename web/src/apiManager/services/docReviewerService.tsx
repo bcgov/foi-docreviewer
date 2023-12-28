@@ -61,7 +61,7 @@ export const fetchAnnotationsByPagination = (
 
 export const fetchDocumentAnnotations = (
   ministryrequestid: number,
-  redactionlayer: string = "redline",
+  redactionlayer: string,
   documentid: number,
   callback: any,
   errorCallback: any
