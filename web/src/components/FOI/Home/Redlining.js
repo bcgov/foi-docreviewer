@@ -2602,7 +2602,7 @@ const Redlining = React.forwardRef(
             "</annots></xfdf>";
           
           //OIPC - Special Block (Redact S.14) : Begin
-          if(redlineCategory == "oipcreview") {
+          if(redlineCategory === "oipcreview") {
             const rarr = []; 
             let annotationManager = docInstance?.Core.annotationManager;
             let sectionStamps = await annotationSectionsMapping(xfdfString);
@@ -2710,6 +2710,14 @@ const Redlining = React.forwardRef(
       }
     }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
 
+    const getzipredlinecategory = (layertype) => {
+        if (currentLayer.name.toLowerCase() === "oipc") {
+          return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
+        }  
+        
+        return "redline";
+    }
+
     const saveRedlineDocument = async (docViewer, annotationManager, _instance, layertype) => {
       toastId.current = toast(`Start saving redline...`, {
         autoClose: false,
@@ -2742,7 +2750,7 @@ const Redlining = React.forwardRef(
           fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
           setRedlineZipperMessage({
             ministryrequestid: requestid,
-            category: currentLayer.name.toLowerCase() === "oipc" ? "oipcreviewredline" : "redline",
+            category: getzipredlinecategory(layertype),
             attributes: [],
             requestnumber: res.requestnumber,
             bcgovcode: res.bcgovcode,
