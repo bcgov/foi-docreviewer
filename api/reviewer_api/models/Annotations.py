@@ -109,6 +109,7 @@ class Annotation(db.Model):
         )
         result = _subquery_annotation.paginate(page=page, per_page=size)
         return result
+    
     @classmethod
     def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
         try:
@@ -137,45 +138,7 @@ class Annotation(db.Model):
         finally:
             db.session.close()
 
-    @classmethod
-    def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
-        sql = """
-                select a.*
-                from "Annotations" a
-                join (
-                    select distinct on (docs.documentid) docs.*
-					from  "Documents" docs
-                    where docs.foiministryrequestid = :ministryrequestid
-					order by docs.documentid, docs.version desc
-                ) as d on (d.documentid = a.documentid and d.version = a.documentversion)
-				inner join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid or dm.processingparentid = d.documentmasterid
-                inner join "DocumentAttributes" da
-                    on (da.documentmasterid = dm.documentmasterid or da.documentmasterid = dm.processingparentid)
-					and da.isactive = true
-					and (da.attributes ->> 'divisions')::jsonb @> '[{"divisionid": :divisionid}]'
-					and a.isactive = true
-            """
-        rs = db.session.execute(
-            text(sql),
-            {"ministryrequestid": ministryrequestid, "divisionid": divisionid},
-        )
-        db.session.close()
-        return [
-            {
-                "annotationid": row["annotationid"],
-                "annotationname": row["annotationname"],
-                "documentid": row["documentid"],
-                "documentversion": row["documentversion"],
-                "annotation": row["annotation"],
-                "pagenumber": row["pagenumber"],
-                "isactive": row["isactive"],
-                "createdby": row["createdby"],
-                "created_at": row["created_at"],
-                "updatedby": row["updatedby"],
-                "updated_at": row["updated_at"],
-            }
-            for row in rs
-        ]
+    
 
     @classmethod
     def getredactionsbypage(
@@ -205,25 +168,6 @@ class Annotation(db.Model):
             db.session.close()
 
 
-
-    @classmethod
-    def getannotationid(cls, _annotationname):
-        try:
-            return (
-                db.session.query(Annotation.annotationid)
-                .filter(
-                    and_(
-                        Annotation.annotationname == _annotationname,
-                        Annotation.isactive == True,
-                    )
-                )
-                .first()[0]
-            )
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
     @classmethod
     def __getannotationkey(cls, _annotationname, _redactionlayerid):
         try:
@@ -239,14 +183,14 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def __getbulkannotationkey(cls, _annotationnames):
+    def __getbulkannotationkey(cls, _annotationnames, _redactionlayerid):
         apks = {}
         try:
             sql = """select distinct on (annotationname)  "annotationname", "version", annotationid  
-               from "Annotations"  where annotationname IN :annotationnames
+               from "Annotations"  where annotationname IN :annotationnames and redactionlayerid = :redactionlayerid
                order by annotationname, version desc;"""
             rs = db.session.execute(
-                text(sql), {"annotationnames": tuple(_annotationnames)}
+                text(sql), {"annotationnames": tuple(_annotationnames), "redactionlayerid": _redactionlayerid}
             )
             for row in rs:
                 apks[row["annotationname"]] = {
@@ -337,7 +281,7 @@ class Annotation(db.Model):
             wkannots = split(annots, size)
             for wkannot in wkannots:
                 annotnames = [d["name"] for d in wkannot]
-                _pkvannots = cls.__getbulkannotationkey(annotnames)
+                _pkvannots = cls.__getbulkannotationkey(annotnames, redactionlayerid)
                 cls.__bulknewannotations(
                     wkannot, _pkvannots, redactionlayerid, userinfo
                 )
