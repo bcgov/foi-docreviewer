@@ -138,7 +138,7 @@ class documentservice:
             if record["recordid"] is None:
                 attchments.append(record)
         return parentrecords, parentswithattachments, attchments
-
+      
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
@@ -401,7 +401,8 @@ class documentservice:
             )
 
         return DocumentAttributes.update(newRows, oldRows)
-
+    
+    
     def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
                 method='GET',
