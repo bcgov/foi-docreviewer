@@ -2474,8 +2474,7 @@ const Redlining = React.forwardRef(
             res['divdocumentList'],
             res.issingleredlinepackage
           );
-          let IncompatableList = prepareRedlineIncompatibleMapping(res);
-          setIncompatableList(IncompatableList);
+          let incompatableList = prepareRedlineIncompatibleMapping(res);
           fetchDocumentRedlineAnnotations(requestid, documentids);
           setRedlineZipperMessage({
             ministryrequestid: requestid,
@@ -2529,7 +2528,7 @@ const Redlining = React.forwardRef(
             ) {
               let sorteddocIds = [];
               let sorteddocuments =  sortByLastModified(documentsObjArr);
-              stitchDocuments["0"] = setStitchDetails(sorteddocuments);
+              stitchDocuments["0"] = sorteddocuments;
               for(const element of sorteddocuments) {
                 sorteddocIds.push(element['documentid']);
               }
@@ -2548,7 +2547,7 @@ const Redlining = React.forwardRef(
               
               let divdocumentids = [];
               let sorteddocuments =  sortByLastModified(div.documentlist);
-              stitchDocuments[div.divisionid] = setStitchDetails(sorteddocuments);
+              stitchDocuments[div.divisionid] = sorteddocuments;
               for(const element of sorteddocuments) {
                 divdocumentids.push(element['documentid']);
               }
@@ -2562,8 +2561,10 @@ const Redlining = React.forwardRef(
               documentsObjArr = [];
             }
           }
+          
+          
+          //if (Object.keys(stitchDoc).length >0)  {
           setRedlineStitchInfo(stitchDoc);
-          setIssingleredlinepackage(res.issingleredlinepackage);
           stitchForRedlineExport(
             _instance,
             divisionDocuments,
@@ -2571,23 +2572,7 @@ const Redlining = React.forwardRef(
             res.issingleredlinepackage,
             incompatableList
           );
-          // if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
-          //   stitchSingleDivisionRedlineExport(
-          //     _instance,
-          //     divisionDocuments,
-          //     stitchDocuments,
-          //     res.issingleredlinepackage
-          //   );
-          // }
-          // else {
-          //   stitchForRedlineExport(
-          //     _instance,
-          //     divisionDocuments,
-          //     stitchDocuments,
-          //     res.issingleredlinepackage,
-          //     incompatableList
-          //   );
-          // }
+          //}
         },
         (error) => {
           console.log("Error fetching document:", error);
