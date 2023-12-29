@@ -2563,7 +2563,7 @@ const Redlining = React.forwardRef(
             }
           }
           setRedlineStitchInfo(stitchDoc);
-          setIssingleredlinepackage(res.issingleredlinepackage);
+          //setIssingleredlinepackage(res.issingleredlinepackage);
           stitchForRedlineExport(
             _instance,
             divisionDocuments,
