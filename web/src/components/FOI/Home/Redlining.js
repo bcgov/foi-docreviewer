@@ -1203,9 +1203,6 @@ const Redlining = React.forwardRef(
         // Insert (merge) pages
         await doc.insertPages(newDoc, pages);
       }
-
-      
-
       const pageCount = docInstance.Core.documentViewer
         .getDocument()
         .getPageCount();
