@@ -514,7 +514,7 @@ const Redlining = React.forwardRef(
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
 
-            fetchAnnotationsInfo(requestid, (error) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => { //problem
               console.log("Error:", error);
             });
 

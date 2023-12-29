@@ -21,14 +21,7 @@ from xml.dom.minidom import parseString
 
 class annotationservice:
     """FOI Annotation management service"""
-
-    def getannotations(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotations(documentid, documentversion)
-        annotationlist = []
-        for entry in annotations:
-            annotationlist.append(entry["annotation"])
-        return self.__generateannotationsxml(annotationlist)
-
+    
     def getrequestannotations(self, ministryrequestid, mappedlayerids):
         annotations = Annotation.getrequestannotations(
             ministryrequestid, mappedlayerids
@@ -91,28 +84,11 @@ class annotationservice:
             # annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
         return annotationobj
 
-    def getannotationinfo(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotationinfo(documentid, documentversion)
-        annotationsections = AnnotationSection.getsectionmapping(
-            documentid, documentversion
-        )
-        annotationlist = []
-        for entry in annotations:
-            section = self.__getsection(annotationsections, entry["annotationname"])
-            if self.__issection(annotationsections, entry["annotationname"]) == False:
-                if section is not None:
-                    entry["sections"] = {
-                        "annotationname": section["sectionannotationname"],
-                        "ids": list(
-                            map(lambda id: id["id"], json.loads(section["ids"]))
-                        ),
-                    }
-                annotationlist.append(entry)
-        return annotationlist
 
-    def getrequestannotationinfo(self, ministryrequestid):
+    def getrequestannotationinfo(self, ministryrequestid, redactionlayer):
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
         annotationsections = AnnotationSection.getsectionmappingbyrequestid(
-            ministryrequestid
+            ministryrequestid, redactionlayerid
         )
         for entry in annotationsections:
             entry["sections"] = {
@@ -167,6 +143,7 @@ class annotationservice:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(
                     annots,
+                    _redactionlayerid,
                     annotationschema["sections"]["foiministryrequestid"],
                     userinfo,
                 )

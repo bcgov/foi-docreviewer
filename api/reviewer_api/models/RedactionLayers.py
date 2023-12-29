@@ -5,6 +5,7 @@ from sqlalchemy import or_, and_, text
 import logging
 
 
+
 class RedactionLayer(db.Model):
     __tablename__ = "RedactionLayers"
     # Defining the columns
@@ -58,6 +59,21 @@ class RedactionLayer(db.Model):
                 .filter_by(isactive=True, name="Redline")
                 .order_by(RedactionLayer.sortorder.desc())
                 .first()
+            )
+            return layer_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getlayers(cls):
+        try:
+            layer_schema = RedactionLayerSchema(many=True)
+            query = (
+                db.session.query(RedactionLayer)
+                .filter_by(isactive=True)
+                .all()
             )
             return layer_schema.dump(query)
         except Exception as ex:

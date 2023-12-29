@@ -39,28 +39,7 @@ class Annotation(db.Model):
         "RedactionLayer", backref=backref("RedactionLayers"), uselist=False
     )
 
-    @classmethod
-    def getannotations(cls, _documentid, _documentversion):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = (
-                db.session.query(Annotation)
-                .filter(
-                    and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.documentversion == _documentversion,
-                        Annotation.isactive == True,
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
-                .all()
-            )
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
+    
     @classmethod
     def getrequestannotations(cls, ministryrequestid, mappedlayerids):
         sql = """select a.*
@@ -225,27 +204,7 @@ class Annotation(db.Model):
         finally:
             db.session.close()
 
-    @classmethod
-    def getannotationinfo(cls, _documentid, _documentversion):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = (
-                db.session.query(Annotation.annotationname)
-                .filter(
-                    and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.documentversion == _documentversion,
-                        Annotation.isactive == True,
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
-                .all()
-            )
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
+
 
     @classmethod
     def getannotationid(cls, _annotationname):
@@ -266,11 +225,11 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def __getannotationkey(cls, _annotationname):
+    def __getannotationkey(cls, _annotationname, _redactionlayerid):
         try:
             return (
                 db.session.query(Annotation.annotationid, Annotation.version)
-                .filter(and_(Annotation.annotationname == _annotationname))
+                .filter(and_(Annotation.annotationname == _annotationname, Annotation.redactionlayerid == _redactionlayerid))
                 .order_by(Annotation.version.desc())
                 .first()
             )
@@ -390,7 +349,7 @@ class Annotation(db.Model):
 
     @classmethod
     def __saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
-        annotkey = cls.__getannotationkey(annot["name"])
+        annotkey = cls.__getannotationkey(annot["name"], redactionlayerid)
         if annotkey is None:
             return cls.__newannotation(annot, redactionlayerid, userinfo)
         else:
