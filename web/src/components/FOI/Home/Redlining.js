@@ -265,7 +265,7 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-        fetchSections(requestid, (error) => console.log(error));
+        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
@@ -705,7 +705,7 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name.toLowerCase()
             );
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           }
@@ -820,7 +820,7 @@ const Redlining = React.forwardRef(
                   (data) => {
                     fetchPageFlag(
                       requestid,
-                      currentLayer.redactionlayerid,
+                      currentLayer.name.toLowerCase(),
                       (error) => console.log(error)
                     );
                   },
@@ -990,7 +990,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.redactionlayerid,
+                        currentLayer.name.toLowerCase(),
                         (error) => console.log(error)
                       );
                     },
@@ -1023,7 +1023,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.redactionlayerid,
+                        currentLayer.name.toLowerCase(),
                         (error) => console.log(error)
                       );
                     },
@@ -1469,7 +1469,7 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           },
@@ -1606,7 +1606,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
-                    currentLayer.redactionlayerid,
+                    currentLayer.name.toLowerCase(),
                     (error) => console.log(error)
                   );
                 },
@@ -1754,7 +1754,7 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           },

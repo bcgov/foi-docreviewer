@@ -47,7 +47,7 @@ class GetSections(Resource):
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/sections/ministryrequest/<int:ministryrequestid>')
+@API.route('/sections/ministryrequest/<int:ministryrequestid>/<string:redactionlayer>')
 class GetSections(Resource):
     """Add document to deleted list.
     """
@@ -55,9 +55,9 @@ class GetSections(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def get(ministryrequestid):
+    def get(ministryrequestid, redactionlayer):
         try:
-            data = sectionservice().getsections_by_ministryid(ministryrequestid)
+            data = sectionservice().getsections_by_ministryid(ministryrequestid, redactionlayer)
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500

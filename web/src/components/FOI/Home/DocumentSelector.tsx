@@ -79,6 +79,7 @@ const DocumentSelector = ({
     useEffect(() => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
@@ -93,12 +94,13 @@ const DocumentSelector = ({
     const updatePageFlags = () => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
         fetchPageFlag(
             requestid,
-            currentLayer.redactionlayerid,
+            currentLayer.name.toLowerCase(),
             (error: any) => console.log(error)
         )
     }

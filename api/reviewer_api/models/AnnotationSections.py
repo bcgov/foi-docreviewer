@@ -136,11 +136,11 @@ class AnnotationSection(db.Model):
             wkannots = split(annots, size)
             for wkannot in wkannots:
                 annotnames = [d["name"] for d in wkannot]
-                _pkvsections = cls.__getbulksectionkey(annotnames)
+                _pkvsections = cls.__getbulksectionkey(annotnames, redactionlayerid)
                 cls.__bulknewsections(
-                    wkannot, _pkvsections, _foiministryrequestid, userinfo
+                    wkannot, _pkvsections, redactionlayerid, _foiministryrequestid, userinfo
                 )
-                cls.__bulkarchivesections(annotnames, userinfo)
+                cls.__bulkarchivesections(annotnames, redactionlayerid, userinfo)
                 idxannots.extend(annotnames)
             return DefaultMethodResult(True, "Annotations added", ",".join(idxannots))
         except Exception as ex:
@@ -155,7 +155,7 @@ class AnnotationSection(db.Model):
             return cls.__newsection(annot, redactionlayerid, _foiministryrequestid, userinfo)
         else:
             return cls.__updatesection(
-                annot, _foiministryrequestid, userinfo, sectkey[0], sectkey[1]
+                annot, redactionlayerid, _foiministryrequestid, userinfo, sectkey[0], sectkey[1]
             )
 
     @classmethod
@@ -199,6 +199,7 @@ class AnnotationSection(db.Model):
                 if idxsect["isactive"] == False:
                     return cls.__updatesection(
                         annot,
+                        redactionlayerid,
                         _foiministryrequestid,
                         userinfo,
                         idxsect["id"],
@@ -213,7 +214,7 @@ class AnnotationSection(db.Model):
             db.session.close()
 
     @classmethod
-    def __bulknewsections(cls, annots, _pkvannots, _foiministryrequestid, userinfo):
+    def __bulknewsections(cls, annots, _pkvannots, redactionlayerid, _foiministryrequestid, userinfo):
         datalist = []
         idxannots = []
         try:
@@ -228,7 +229,8 @@ class AnnotationSection(db.Model):
                         "section": annot["sectionsschema"],
                         "createdby": userinfo,
                         "isactive": True,
-                        "version": pkkey["version"] + 1
+                        "version": pkkey["version"] + 1,
+                        "redactionlayerid": redactionlayerid
                         if pkkey is not None and "version" in pkkey
                         else 1,
                         "id": pkkey["id"]
@@ -308,14 +310,14 @@ class AnnotationSection(db.Model):
             db.session.close()
 
     @classmethod
-    def bulkdeletesections(cls, idxannots, userinfo) -> DefaultMethodResult:
+    def bulkdeletesections(cls, idxannots, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
             sql = """update "AnnotationSections" a set isactive  = false, updatedby = :userinfo, updated_at=now()
-                    where a.annotationname in :idxannots
+                    where a.annotationname in :idxannots and redactionlayerid = :redactionlayerid
                     and a.isactive = true;"""
             db.session.execute(
                 text(sql),
-                {"idxannots": tuple(idxannots), "userinfo": json.dumps(userinfo)},
+                {"idxannots": tuple(idxannots), "redactionlayerid": redactionlayerid, "userinfo": json.dumps(userinfo)},
             )
             db.session.commit()
             return DefaultMethodResult(
@@ -325,35 +327,6 @@ class AnnotationSection(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
-
-    @classmethod
-    def getsectionmapping(cls, documentid, documentversion):
-        mapping = []
-        try:
-            sql = """select as2.annotationname  as "sectionannotationname",
-                        cast("section"  AS json) ->> 'redactannotation' as redactannotation,
-                        cast("section"  AS json) ->> 'ids' as ids
-                        from "AnnotationSections" as2, "Annotations" a  where  as2.annotationname  = a.annotationname and as2.isactive = true 
-                           and a.isactive = true and a.documentid = :documentid and a.documentversion = :documentversion;
-                    """
-            rs = db.session.execute(
-                text(sql),
-                {"documentid": documentid, "documentversion": documentversion},
-            )
-
-            for row in rs:
-                mapping.append(
-                    {
-                        "sectionannotationname": row["sectionannotationname"],
-                        "redactannotation": row["redactannotation"],
-                        "ids": row["ids"],
-                    }
-                )
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-        return mapping
 
     @classmethod
     def getsectionmappingbyrequestid(cls, ministryrequestid, redactionlayerid):
@@ -388,28 +361,10 @@ class AnnotationSection(db.Model):
             db.session.close()
         return mapping
 
-    @classmethod
-    def get_by_annotationame(cls, _annotationname):
-        try:
-            annotation_section_schema = AnnotationSectionSchema(many=False)
-            query = (
-                db.session.query(AnnotationSection)
-                .filter(
-                    and_(
-                        AnnotationSection.annotationname == _annotationname,
-                        AnnotationSection.isactive == True,
-                    )
-                )
-                .first()
-            )
-            return annotation_section_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
+    
 
     @classmethod
-    def get_by_ministryid(cls, ministryrequestid):
+    def get_by_ministryid(cls, ministryrequestid, redactionlayerid):
         try:
             annotation_section_schema = AnnotationSectionSchema(many=True)
             redaction = aliased(Annotation)
@@ -417,18 +372,21 @@ class AnnotationSection(db.Model):
                 db.session.query(AnnotationSection)
                 .join(
                     Annotation,
-                    Annotation.annotationname == AnnotationSection.annotationname,
+                    Annotation.annotationname == AnnotationSection.annotationname
                 )
                 .join(
                     redaction,
                     redaction.annotationname
-                    == cast(AnnotationSection.section, JSON)["redactannotation"].astext,
+                    == cast(AnnotationSection.section, JSON)["redactannotation"].astext
                 )
                 .filter(
                     and_(
                         AnnotationSection.foiministryrequestid == ministryrequestid,
                         AnnotationSection.isactive == True,
                         Annotation.isactive == True,
+                        Annotation.redactionlayerid == AnnotationSection.redactionlayerid,
+                        Annotation.redactionlayerid == redaction.redactionlayerid,
+                        Annotation.redactionlayerid == redactionlayerid,
                         redaction.isactive == True,
                     )
                 )

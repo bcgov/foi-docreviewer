@@ -92,20 +92,8 @@ class annotationservice:
             )
         }
 
-    def __issection(self, annotationsections, annotationname):
-        for entry in annotationsections:
-            if entry["sectionannotationname"] == annotationname:
-                return True
-        return False
-
-    def __getsection(self, annotationsections, annotationname):
-        for entry in annotationsections:
-            if entry["redactannotation"] == annotationname:
-                return entry
-        return None
-
-    def getannotationsections(self, ministryid):
-        annotationsections = AnnotationSection.get_by_ministryid(ministryid)
+    def getannotationsections(self, ministryid, redactionlayerid):
+        annotationsections = AnnotationSection.get_by_ministryid(ministryid, redactionlayerid)
         return annotationsections
 
     def copyannotation(self, ministryrequestid, sourcelayers, targetlayer):
@@ -162,7 +150,7 @@ class annotationservice:
                 annotationnames, redactionlayerid, userinfo
             )
             if resp.success == True:
-                AnnotationSection.bulkdeletesections(annotationnames, userinfo)
+                AnnotationSection.bulkdeletesections(annotationnames, redactionlayerid, userinfo)
             return resp
         return DefaultMethodResult(True, "No Annotations marked for delete", -1)
 
