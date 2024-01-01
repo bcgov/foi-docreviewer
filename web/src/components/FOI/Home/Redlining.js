@@ -2563,31 +2563,24 @@ const Redlining = React.forwardRef(
             }
           }
           setRedlineStitchInfo(stitchDoc);
-          //setIssingleredlinepackage(res.issingleredlinepackage);
-          stitchForRedlineExport(
-            _instance,
-            divisionDocuments,
-            stitchDocuments,
-            res.issingleredlinepackage,
-            incompatableList
-          );
-          // if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
-          //   stitchSingleDivisionRedlineExport(
-          //     _instance,
-          //     divisionDocuments,
-          //     stitchDocuments,
-          //     res.issingleredlinepackage
-          //   );
-          // }
-          // else {
-          //   stitchForRedlineExport(
-          //     _instance,
-          //     divisionDocuments,
-          //     stitchDocuments,
-          //     res.issingleredlinepackage,
-          //     incompatableList
-          //   );
-          // }
+          setIssingleredlinepackage(res.issingleredlinepackage);
+          if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+            stitchSingleDivisionRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage
+            );
+          }
+          else {
+            stitchForRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage,
+              incompatableList
+            );
+          }
         },
         (error) => {
           console.log("Error fetching document:", error);
