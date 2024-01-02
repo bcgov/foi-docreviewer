@@ -60,6 +60,9 @@ import {
   getSections,
   getValidSections,
   updatePageFlags,
+  getSliceSetDetails,
+  sortDocObjects,
+  sortDocObjectsForRedline,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -137,7 +140,7 @@ const Redlining = React.forwardRef(
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
-    
+
     const [redlinepageMappings, setRedlinepageMappings] = useState(null);
     const [redlineIncompatabileMappings, setRedlineIncompatabileMappings] =
       useState(null);
@@ -150,6 +153,20 @@ const Redlining = React.forwardRef(
 
     const toastId = React.useRef(null);
 
+    const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
+    const [stichedfiles, setstichedfiles] = useState([]);
+    const [stitchPageCount, setStitchPageCount] = useState(0);
+    const [pdftronDocObjectsForRedline, setPdftronDocObjectsForRedline]= useState([]);
+    const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
+    const [divisionDocList, setDivisionDocList]= useState([]);
+    const [alreadyStitchedList, setAlreadyStitchedList]= useState([]);
+    const [totalStitchList, settotalStitchList]= useState([]);
+    const [redlineDocCount, setredlineDocCount] = useState(0);
+    const [redlineStitchDivisionDetails, setRedlineStitchDivisionDetails] = useState({});
+    const [requestStitchObject, setRequestStitchObject] = useState({});
+    const [issingleredlinepackage, setIssingleredlinepackage] = useState(null);
+    const [incompatableList, setIncompatableList]= useState({});
+    
     //xml parser
     const parser = new XMLParser();
 
@@ -205,20 +222,20 @@ const Redlining = React.forwardRef(
       let isvalid = false;
       let pageFlagArray = [];
       if (pageFlags?.length > 0) {
-          for(let pageFlagInfo of pageFlags)  {
-              pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
-                    [
-                      pageFlagTypes["Partial Disclosure"],
-                      pageFlagTypes["Full Disclosure"],
-                      pageFlagTypes["Withheld in Full"]
-                    ].includes(flag.flagid)
-                  );
-                  if (pageFlagArray.length > 0) {
-                    if(isvalid == false) {
-                      isvalid = true; 
-                    }                                        
-                  }            
-          } 
+        for (let pageFlagInfo of pageFlags) {
+          pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
+            [
+              pageFlagTypes["Partial Disclosure"],
+              pageFlagTypes["Full Disclosure"],
+              pageFlagTypes["Withheld in Full"],
+            ].includes(flag.flagid)
+          );
+          if (pageFlagArray.length > 0) {
+            if (isvalid == false) {
+              isvalid = true;
+            }
+          }
+        }
       }
       return isvalid;
     };
@@ -256,7 +273,6 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
-    // const [storedannotations, setstoreannotations] = useState(localStorage.getItem("storedannotations") || [])
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -314,7 +330,7 @@ const Redlining = React.forwardRef(
             redlineForSignOffBtn.style.alignItems = "left";
             redlineForSignOffBtn.disabled = !enableSavingRedline;
 
-            redlineForSignOffBtn.onclick = () => {  
+            redlineForSignOffBtn.onclick = () => {
               // Save to s3
               setModalFor("redline");
               setModalTitle("Redline for Sign Off");
@@ -407,7 +423,6 @@ const Redlining = React.forwardRef(
               render: renderCustomMenu,
             };
 
-            // header.push(newCustomElement);
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -448,7 +463,6 @@ const Redlining = React.forwardRef(
             }));
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
-
             //Search Document Logic (for multi-keyword search and etc)
             const originalSearch = instance.UI.searchTextFull;
             //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
@@ -472,21 +486,43 @@ const Redlining = React.forwardRef(
             if (newusername && newusername !== username)
               annotationManager.setCurrentUser(newusername);
 
+            setDocViewer(documentViewer);
+            setAnnotManager(annotationManager);
+            setAnnots(Annotations);
+            setDocViewerMath(Math);
+
             //update isloaded flag
             //localStorage.setItem("isDocumentLoaded", "true");
 
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
-              individualDoc = localDocumentInfo;
+              individualDoc = localDocumentInfo;            
+            let doclistCopy = [...docsForStitcing];
+            let slicerdetails = await getSliceSetDetails(
+              doclistCopy.length,
+              true
+            );
+            if(doclistCopy.length > 1)
+              doclistCopy?.shift();
+            let setCount = slicerdetails.setcount;
+            let slicer = slicerdetails.slicer;            
+            let objpreptasks = new Array(setCount);
+            for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+              let sliceDoclist = doclistCopy.splice(0, slicer);
+              objpreptasks.push(
+                mergeObjectsPreparation(
+                  instance.Core.createDocument,
+                  sliceDoclist,
+                  slicecount
+                )
+              );
+            }
+
+            Promise.all(objpreptasks);
 
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
-
-            setDocViewer(documentViewer);
-            setAnnotManager(annotationManager);
-            setAnnots(Annotations);
-            setDocViewerMath(Math);
           });
           
           documentViewer.addEventListener("click", async () => {
@@ -586,6 +622,29 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    const mergeObjectsPreparation = async (
+      createDocument,
+      slicedsetofdoclist,
+      set
+    ) => {
+      slicedsetofdoclist.forEach(async (filerow) => {
+        await createDocument(filerow.s3url).then(async (newDoc) => {
+          setpdftronDocObjects((_arr) => [
+            ..._arr,
+            {
+              file: filerow,
+              sortorder: filerow.sortorder,
+              pages: filerow.pages,
+              pdftronobject: newDoc,
+              stitchIndex: filerow.stitchIndex,
+              set: set,
+              totalsetcount: slicedsetofdoclist.length,
+            },
+          ]);
+        });
+      });
+    };
 
     useEffect(() => {
       const changeLayer = async () => {
@@ -696,9 +755,9 @@ const Redlining = React.forwardRef(
     const removeRedactAnnotationDocContent = async (annotations) => {
       annotations.forEach((_redactionannot) => {
         if (_redactionannot.Subject === "Redact") {
-          let redactcontent = _redactionannot.getContents();          
-            _redactionannot?.setContents("");
-            _redactionannot?.setCustomData("trn-annot-preview", "");          
+          let redactcontent = _redactionannot.getContents();
+          _redactionannot?.setContents("");
+          _redactionannot?.setCustomData("trn-annot-preview", "");
         }
       });
     };
@@ -708,8 +767,11 @@ const Redlining = React.forwardRef(
         // If the event is triggered by importing then it can be ignored
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
-      
-        if (info.source !== "redactionApplied" && info.source !== "cancelRedaction") {
+
+        if (
+          info.source !== "redactionApplied" &&
+          info.source !== "cancelRedaction"
+        ) {
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving
@@ -1010,12 +1072,11 @@ const Redlining = React.forwardRef(
         newRedaction,
         pageSelections,
         redlineSaving,
+        isStitchingLoaded,
       ]
     );
 
     useEffect(() => {
-      
-
       annotManager?.addEventListener(
         "annotationSelected",
         (annotations, action) => {
@@ -1060,7 +1121,8 @@ const Redlining = React.forwardRef(
       pageSelections,
       redlineSaving,
       multiSelectFooter,
-      enableMultiSelect,      
+      enableMultiSelect,
+      isStitchingLoaded,
     ]);
 
     useImperativeHandle(ref, () => ({
@@ -1106,13 +1168,13 @@ const Redlining = React.forwardRef(
       );
       if (_instance) {
         const document = _instance.UI.iframeWindow.document;
-        document.getElementById("redline_for_sign_off").disabled = 
-        !_enableSavingRedline ||
-        ![
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"],
-          RequestStates["Peer Review"],
-        ].includes(requestStatus);;
+        document.getElementById("redline_for_sign_off").disabled =
+          !_enableSavingRedline ||
+          ![
+            RequestStates["Records Review"],
+            RequestStates["Ministry Sign Off"],
+            RequestStates["Peer Review"],
+          ].includes(requestStatus);
         document.getElementById("final_package").disabled =
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
       }
@@ -1122,105 +1184,42 @@ const Redlining = React.forwardRef(
       checkSavingRedlineButton(docInstance);
     }, [pageFlags, isStitchingLoaded]);
 
-    const stitchDocumentsFunc = async (doc) => {
-      let docCopy = [...docsForStitcing];
-      let removedFirstElement = docCopy?.shift();
-      let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
-      let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-      let domParser = new DOMParser();
-      for (let i = 0; i < removedFirstElement.file.pagecount; i++) {
-        let firstDocMappings = { pageNo: i + 1, stitchedPageNo: i + 1 };
-        mappedDocs["stitchedPageLookup"][i + 1] = {
-          docid: removedFirstElement.file.documentid,
-          docversion: removedFirstElement.file.version,
-          page: i + 1,
-        };
-        mappedDoc.pageMappings.push(firstDocMappings);
-      }
-      mappedDocs["docIdLookup"][removedFirstElement.file.documentid] = {
-        docId: removedFirstElement.file.documentid,
-        version: removedFirstElement.file.version,
-        division: removedFirstElement.file.divisions[0].divisionid,
-        pageMappings: mappedDoc.pageMappings,
-      };
-      let fileDivisons = [];
-        for (let div of removedFirstElement.file.divisions) {
-          fileDivisons.push(div.divisionid)
-      }
-      mappedDocs["redlineDocIdLookup"][removedFirstElement.file.documentid] = {
-        docId: removedFirstElement.file.documentid,
-        version: removedFirstElement.file.version,
-        division: fileDivisons,
-        pageMappings: mappedDoc.pageMappings,
-      };
 
-      for (let file of docCopy) {
-        mappedDoc = {
-          docId: 0,
-          version: 0,
-          division: "",
-          pageMappings: [{ pageNo: 0, stitchedPageNo: 0 }],
-        };
-
-        let newDoc = await docInstance.Core.createDocument(
-          file.s3url,
-          { loadAsPDF: true } /* , license key here */
+    const stitchPages = (_doc, pdftronDocObjs) => {
+      for (let filerow of pdftronDocObjs) {
+        let _exists = stichedfiles.filter(
+          (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
-        const pages = [];
-        mappedDoc = { pageMappings: [] };
-        let stitchedPageNo = 0;
-        for (let i = 0; i < newDoc.getPageCount(); i++) {
-          pages.push(i + 1);
-          let pageNo = i + 1;
-          stitchedPageNo = doc.getPageCount() + (i + 1);
-          let pageMappings = {
-            pageNo: pageNo,
-            stitchedPageNo: stitchedPageNo,
-          };
-          mappedDoc.pageMappings.push(pageMappings);
-          mappedDocs["stitchedPageLookup"][stitchedPageNo] = {
-            docid: file.file.documentid,
-            docversion: file.file.version,
-            page: pageNo,
-          };
+        if (_exists?.length === 0) {
+          let index = filerow.stitchIndex;
+          _doc
+            .insertPages(filerow.pdftronobject, filerow.pages, index)
+            .then(() => {
+              const pageCount = docViewer.getPageCount();
+              if (pageCount === docsForStitcing.totalPageCount) {
+                setStitchPageCount(pageCount);
+              }
+            })
+            .catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            });
+          setstichedfiles((_arr) => [..._arr, filerow]);
         }
-        mappedDocs["docIdLookup"][file.file.documentid] = {
-          docId: file.file.documentid,
-          version: file.file.version,
-          division: file.file.divisions[0].divisionid,
-          pageMappings: mappedDoc.pageMappings,
-        };
-        fileDivisons = [];
-        for (let div of file.file.divisions) {
-          fileDivisons.push(div.divisionid)
-        }
-        mappedDocs["redlineDocIdLookup"][file.file.documentid] = {
-          docId: file.file.documentid,
-          version: file.file.version,
-          division: fileDivisons,
-          pageMappings: mappedDoc.pageMappings,
-        }
-        // Insert (merge) pages
-        await doc.insertPages(newDoc, pages);
       }
-      const pageCount = docInstance.Core.documentViewer
-        .getDocument()
-        .getPageCount();
-      if (pageCount > 800) {
-        docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
-      }
-      setPageMappedDocs(mappedDocs);
-      setIsStitchingLoaded(true);
+    };
+
+    const applyAnnotationsFunc = () => {
+      let domParser = new DOMParser();
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
-          mappedDocs,
+          pageMappedDocs,
           fetchAnnotResponse["data"],
           domParser
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
           fetchandApplyAnnotations(
-            mappedDocs,
+            pageMappedDocs,
             domParser,
             meta["next_num"],
             meta["pages"]
@@ -1296,6 +1295,7 @@ const Redlining = React.forwardRef(
             }
           }
           annotManager.redrawAnnotation(_annotation);
+
           annotManager.setPermissionCheckCallback((author, _annotation) => {
             if (_annotation.Subject !== "Redact" && author !== username) {
               _annotation.NoResize = true;
@@ -1310,11 +1310,51 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      if (docsForStitcing.length > 0 && merge && docViewer) {
-        const doc = docViewer.getDocument();
-        stitchDocumentsFunc(doc);
+      if (
+        pdftronDocObjects?.length > 0 &&
+        docsForStitcing.length > 0 &&
+        merge &&
+        docViewer
+      ) {
+        let doclistCopy = [...docsForStitcing];
+        if(doclistCopy.length > 1){
+          doclistCopy?.shift(); //remove first document from the list
+          let _pdftronDocObjects = sortDocObjects(pdftronDocObjects, doclistCopy);
+
+          const _doc = docViewer.getDocument();
+          if (_doc && _pdftronDocObjects.length > 0) {
+            stitchPages(_doc, _pdftronDocObjects);
+          }
+        }
+        else if (doclistCopy.length === 1){
+          
+          applyAnnotationsFunc();
+          setIsStitchingLoaded(true);
+          setpdftronDocObjects([]);
+          setstichedfiles([]);
+        }
       }
-    }, [docsForStitcing, fetchAnnotResponse, docViewer]);
+    }, [
+      pdftronDocObjects,
+      docsForStitcing,
+      stichedfiles,
+      fetchAnnotResponse,
+      docViewer,
+    ]);
+
+    useEffect(() => {
+      if (stitchPageCount === docsForStitcing.totalPageCount) {
+        console.log(`Download and Stitching completed.... ${new Date()}`);
+
+        if (stitchPageCount > 800) {
+          docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
+        }
+        applyAnnotationsFunc();
+        setIsStitchingLoaded(true);
+        setpdftronDocObjects([]);
+        setstichedfiles([]);
+      }
+    }, [stitchPageCount]);
 
     useEffect(() => {
       //update user name
@@ -1809,7 +1849,6 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
-            
       setModalOpen(false);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -1817,7 +1856,8 @@ const Redlining = React.forwardRef(
         let astr = parser.parseFromString(newRedaction.astr, "text/xml");
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           annotManager.deleteAnnotation(
-            annotManager.getAnnotationById(node.attributes.name), {
+            annotManager.getAnnotationById(node.attributes.name),
+            {
               imported: true,
               force: true,
               source: "cancelRedaction",
@@ -2325,6 +2365,229 @@ const Redlining = React.forwardRef(
       return  pagecount == removepagesCount;
     };
 
+
+    const formatAnnotationsForRedline = (
+      redlineDocumentAnnotations,
+      redlinepageMappings,
+      documentids
+    ) => {
+      let domParser = new DOMParser();
+      let stitchAnnotation = [];
+      for (let docid of documentids) {
+        stitchAnnotation.push(
+          formatAnnotationsForDocument(
+            domParser,
+            redlineDocumentAnnotations[docid],
+            redlinepageMappings,
+            docid
+          )
+        );
+      }
+      return stitchAnnotation.join();
+    };
+
+    const formatAnnotationsForDocument = (
+      domParser,
+      data,
+      redlinepageMappings,
+      documentid
+    ) => {
+      let updatedXML = [];
+      for (let annotxml of data) {
+        let xmlObj = parser.parseFromString(annotxml);
+        if (xmlObj.name === "redact" || xmlObj.name === "freetext") {
+          let customfield = xmlObj.children.find(
+            (xmlfield) => xmlfield.name == "trn-custom-data"
+          );
+          let txt = domParser.parseFromString(
+            customfield.attributes.bytes,
+            "text/html"
+          );
+          let customData = JSON.parse(txt.documentElement.textContent);
+          let originalPageNo = parseInt(customData.originalPageNo);
+          if (redlinepageMappings[documentid][originalPageNo + 1]) {
+            //skip pages that need to be removed
+            // page num from annot xml
+            let y = annotxml.split('page="');
+            let z = y[1].split('"');
+            let oldPageNum = 'page="' + z[0] + '"';
+            let newPage =
+              'page="' +
+              (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
+              '"';
+            annotxml = annotxml.replace(oldPageNum, newPage);
+
+            if (xmlObj.name === "redact" || customData["parentRedaction"]) {
+              updatedXML.push(annotxml);
+            }
+          }
+        }
+      }
+      return updatedXML.join();
+    };
+
+    const cancelSaveRedlineDoc = () => {
+      setRedlineModalOpen(false);
+    };
+
+    const saveDoc = () => {
+      setRedlineModalOpen(false);
+      setRedlineSaving(true);
+      switch (modalFor) {
+        case "redline":
+          saveRedlineDocument(docInstance);
+          break;
+        case "responsepackage":
+          saveResponsePackage(docViewer, annotManager, docInstance);
+          break;
+        default:
+      }
+    };
+
+    /*Redline download & stitching code starts */
+    
+    const saveRedlineDocument = (_instance) => {
+      toastId.current = toast(`Start saving redline...`, {
+        autoClose: false,
+        closeButton: false,
+        isLoading: true,
+      });
+
+      const divisionFilesList = [...documentList, ...incompatibleFiles];
+      const divisions = getDivisionsForSaveRedline(divisionFilesList);
+      const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
+      const documentids = documentList.map((obj) => obj.documentid);
+      getFOIS3DocumentRedlinePreSignedUrl(
+        requestid,
+        //normalizeforPdfStitchingReq(divisionDocuments),
+        divisionDocuments,
+        async (res) => {
+          toast.update(toastId.current, {
+            render: `Start saving redline...`,
+            isLoading: true,
+          });
+          setRedlineSinglePackage(res.issingleredlinepackage);
+
+          let stitchDoc = {};
+          
+          prepareRedlinePageMapping(
+            res['divdocumentList'],
+            res.issingleredlinepackage
+          );
+          let IncompatableList = prepareRedlineIncompatibleMapping(res);
+          setIncompatableList(IncompatableList);
+          fetchDocumentRedlineAnnotations(requestid, documentids);
+          setRedlineZipperMessage({
+            ministryrequestid: requestid,
+            category: "redline",
+            attributes: [],
+            requestnumber: res.requestnumber,
+            bcgovcode: res.bcgovcode,
+          });
+          let stitchDocuments = {};
+          let documentsObjArr = [];
+          let divisionstitchpages = [];
+          let divCount = 0;
+          
+          for (let div of res.divdocumentList) {
+            divCount++;
+            let docCount = 0;
+            if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
+            for (let doc of div.documentlist) {
+              docCount++;
+              documentsObjArr.push(doc);
+              if (docCount == div.documentlist.length) {
+                if (pageMappedDocs != undefined) {
+                  let divisionsdocpages = Object.values(
+                    pageMappedDocs.redlineDocIdLookup
+                  )
+                    .filter((obj) => {
+                      return obj.division.includes(div.divisionid);
+                    })
+                    .map((obj) => {
+                      return obj.pageMappings;
+                    });
+                  divisionsdocpages.forEach(function (_arr) {
+                    _arr.forEach(function (value) {
+                      divisionstitchpages.push(value);
+                    });
+                  });
+                  divisionstitchpages.sort((a, b) =>
+                    a.stitchedPageNo > b.stitchedPageNo
+                      ? 1
+                      : b.stitchedPageNo > a.stitchedPageNo
+                      ? -1
+                      : 0
+                  );
+                }
+              }
+            }
+          }
+            if (
+              res.issingleredlinepackage == "Y" &&
+              divCount == res.divdocumentList.length
+            ) {
+              let sorteddocIds = [];
+              let sorteddocuments =  sortByLastModified(documentsObjArr);
+              stitchDocuments["0"] = setStitchDetails(sorteddocuments);
+              for(const element of sorteddocuments) {
+                sorteddocIds.push(element['documentid']);
+              }
+              stitchDoc["0"] = {
+                documentids: sorteddocIds,
+                s3path: res.s3path_save,
+                stitchpages: divisionstitchpages,
+                bcgovcode: res.bcgovcode,
+              };
+            }
+            if (
+              res.issingleredlinepackage != "Y" &&
+              docCount == div.documentlist.length
+            ) {
+              //let divdocumentids = documentsObjArr.map((obj) => obj.documentid);
+              
+              let divdocumentids = [];
+              let sorteddocuments =  sortByLastModified(div.documentlist);
+              stitchDocuments[div.divisionid] = setStitchDetails(sorteddocuments);
+              for(const element of sorteddocuments) {
+                divdocumentids.push(element['documentid']);
+              }
+              stitchDoc[div.divisionid] = {
+                documentids: divdocumentids,
+                s3path: div.s3path_save,
+                stitchpages: divisionstitchpages,
+                bcgovcode: res.bcgovcode,
+              };
+              divisionstitchpages = [];
+              documentsObjArr = [];
+            }
+          }
+          setRedlineStitchInfo(stitchDoc);
+          setIssingleredlinepackage(res.issingleredlinepackage);
+          if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+            stitchSingleDivisionRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage
+            );
+          }
+          else {
+            stitchForRedlineExport(
+              _instance,
+              divisionDocuments,
+              stitchDocuments,
+              res.issingleredlinepackage,
+              incompatableList
+            );
+          }
+        },
+        (error) => {
+          console.log("Error fetching document:", error);
+        }
+      );
+    };
+
     const stitchForRedlineExport = async (
       _instance,
       divisionDocuments,
@@ -2397,79 +2660,165 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const formatAnnotationsForRedline = (
-      redlineDocumentAnnotations,
-      redlinepageMappings,
-      documentids
+    const stitchSingleDivisionRedlineExport = async (
+      _instance,
+      divisionDocuments,
+      stitchlist,
+      redlineSinglePkg,
     ) => {
-      let domParser = new DOMParser();
-      let stitchAnnotation = [];
-      for (let docid of documentids) {
-        stitchAnnotation.push(
-          formatAnnotationsForDocument(
-            domParser,
-            redlineDocumentAnnotations[docid],
-            redlinepageMappings,
-            docid
-          )
+      setRequestStitchObject({});
+      let divCount = 0;
+      const noofdivision = Object.keys(stitchlist).length;
+      let stitchedDocObj = null;
+      settotalStitchList(stitchlist);
+      for (const [key, value] of Object.entries(stitchlist)) {
+        divCount++;
+        let docCount = 0;
+        let division = key;
+        let documentlist = stitchlist[key];
+        setDivisionDocList(documentlist);
+        if (redlineSinglePkg == "N") {
+          toast.update(toastId.current, {
+            render: `Generating redline PDF for ${noofdivision} divisions...`,
+            isLoading: true,
+          });
+        } else {
+          toast.update(toastId.current, {
+            render: `Generating redline PDF...`,
+            isLoading: true,
+          });
+        }
+        let documentlistCopy = [...documentlist];
+        
+        let slicerdetails = await getSliceSetDetails(
+          documentlist.length,
+          true
         );
+        let setCount = slicerdetails.setcount;
+        let slicer = slicerdetails.slicer;
+        let objpreptasks = new Array(setCount);
+        let divisionDetails= {'divCount':divCount, 'noofdivision':noofdivision, 'division':division}
+        setRedlineStitchDivisionDetails(divisionDetails);
+        for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+          
+          const sliceDoclist = documentlistCopy.splice(0, slicer);
+          objpreptasks.push(
+            mergeObjectsPreparationForRedline(
+              _instance.Core.createDocument,
+              sliceDoclist,
+              slicecount,
+              divisionDocuments,
+              docCount,
+              stitchedDocObj,
+            )
+          );
+        }
+        await Promise.all(objpreptasks);
       }
-      return stitchAnnotation.join();
     };
 
-    const formatAnnotationsForDocument = (
-      domParser,
-      data,
-      redlinepageMappings,
-      documentid
+    const mergeObjectsPreparationForRedline = async (
+      createDocument,
+      sliceDoclist,
+      slicecount,
+      divisionDocuments,
+      docCount,
+      stitchedDocObj,
     ) => {
-      let updatedXML = [];
-      for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);
-        if (xmlObj.name === "redact" || xmlObj.name === "freetext") {
-          let customfield = xmlObj.children.find(
-            (xmlfield) => xmlfield.name == "trn-custom-data"
-          );
-          let txt = domParser.parseFromString(
-            customfield.attributes.bytes,
-            "text/html"
-          );
-          let customData = JSON.parse(txt.documentElement.textContent);
-          let originalPageNo = parseInt(customData.originalPageNo);
-          if (redlinepageMappings[documentid][originalPageNo + 1]) {
-            //skip pages that need to be removed
-            // page num from annot xml
-            let y = annotxml.split('page="');
-            let z = y[1].split('"');
-            let oldPageNum = 'page="' + z[0] + '"';
-            let newPage =
-              'page="' +
-              (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
-              '"';
-            annotxml = annotxml.replace(oldPageNum, newPage);
+        try {
+          //console.log("\nsliceDoclist:", sliceDoclist.length);
+          for (const filerow of sliceDoclist) {
+            await createDocument(filerow.s3path_load).then(async (newDoc) => {
+              docCount++;
+              setredlineDocCount(docCount);
+              if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
+                if (filerow.sortorder === 1) {
+                  stitchedDocObj = newDoc;
+                  setstichedfilesForRedline(stitchedDocObj)
+                } else {
+                  setPdftronDocObjectsForRedline((_arr) => [
+                  ..._arr,
+                    {
+                      file: filerow,
+                      sortorder: filerow.sortorder,
+                      pages: filerow.pages,
+                      pdftronobject: newDoc,
+                      stitchIndex: filerow.stitchIndex,
+                      set: slicecount,
+                      totalsetcount: sliceDoclist.length,
+                    }
+                  ])
+                }
+              }
+            });
+          }
+        } catch (error) {
+          // Handle any errors that occurred during the asynchronous operations
+        }
+      };
 
-            if (xmlObj.name === "redact" || customData["parentRedaction"]) {
-              updatedXML.push(annotxml);
+    useEffect(() => {
+      if (
+        pdftronDocObjectsForRedline?.length > 0 &&
+        totalStitchList[redlineStitchDivisionDetails.division]?.length > 0 &&
+        stichedfilesForRedline != null
+      ) {
+          let divisionDocListCopy = [...totalStitchList[redlineStitchDivisionDetails.division]];
+          if(divisionDocListCopy.length > 1){
+            divisionDocListCopy?.shift();
+            let _pdftronDocObjects = sortDocObjectsForRedline(
+              pdftronDocObjectsForRedline,
+              divisionDocListCopy
+            );
+            if (_pdftronDocObjects.length > 0) {
+              stitchPagesForRedline(_pdftronDocObjects);
             }
           }
         }
-      }
-      return updatedXML.join();
-    };
+        if (
+          issingleredlinepackage == "N" &&
+          stichedfilesForRedline != null &&
+          (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
+        ) {
+          
+          requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
+          setPdftronDocObjectsForRedline([]);
+          setstichedfilesForRedline(null)
+        } else {
+          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+              requestStitchObject[redlineStitchDivisionDetails.division] = null
+          }
+        }
+        if (issingleredlinepackage == "Y" && stichedfilesForRedline != null &&
+        (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length) {
+          requestStitchObject["0"] = stichedfilesForRedline;
+        }
+        if (redlineStitchDivisionDetails.divCount == redlineStitchDivisionDetails.noofdivision && requestStitchObject != null &&
+            requestStitchObject[redlineStitchDivisionDetails.division] != null) {
+          setRedlineStitchObject(requestStitchObject);
+        }
+    }, [
+      pdftronDocObjectsForRedline,
+      stichedfilesForRedline,
+      alreadyStitchedList,
+    ]);
 
-    const triggerRedlineZipper = (
-      divObj,
-      stitchedDocPath,
-      divisionCountForToast,
-      redlineSinglePackage
-    ) => {
-      prepareMessageForRedlineZipping(
-        divObj,
-        divisionCountForToast,
-        redlineZipperMessage,
-        redlineSinglePackage,
-        stitchedDocPath
-      );
+    const stitchPagesForRedline = (pdftronDocObjs) => {
+      for (let filerow of pdftronDocObjs) {
+        let _exists = alreadyStitchedList.filter(
+          (_file) => _file.file.documentid === filerow.file.documentid
+        );
+        if (_exists?.length === 0) {
+          let index = filerow.stitchIndex;
+          try {
+            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
+            setAlreadyStitchedList((_arr) => [..._arr, filerow]);
+            setstichedfilesForRedline(stichedfilesForRedline)
+          } catch (error) {
+            console.error("An error occurred during page insertion:", error);
+          }
+        }
+      }
     };
 
     useEffect(() => {
@@ -2590,157 +2939,24 @@ const Redlining = React.forwardRef(
       }
     }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
 
-    const saveRedlineDocument = (_instance) => {
-      toastId.current = toast(`Start saving redline...`, {
-        autoClose: false,
-        closeButton: false,
-        isLoading: true,
-      });
 
-      const divisionFilesList = [...documentList, ...incompatibleFiles];
-      const divisions = getDivisionsForSaveRedline(divisionFilesList);
-      const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
-      const documentids = documentList.map((obj) => obj.documentid);
-      getFOIS3DocumentRedlinePreSignedUrl(
-        requestid,
-        //normalizeforPdfStitchingReq(divisionDocuments),
-        divisionDocuments,
-        async (res) => {
-          toast.update(toastId.current, {
-            render: `Start saving redline...`,
-            isLoading: true,
-          });
-          setRedlineSinglePackage(res.issingleredlinepackage);
-
-          let stitchDoc = {};
-          
-          prepareRedlinePageMapping(
-            res['divdocumentList'],
-            res.issingleredlinepackage
-          );
-          let incompatableList = prepareRedlineIncompatibleMapping(res);
-          fetchDocumentRedlineAnnotations(requestid, documentids);
-          setRedlineZipperMessage({
-            ministryrequestid: requestid,
-            category: "redline",
-            attributes: [],
-            requestnumber: res.requestnumber,
-            bcgovcode: res.bcgovcode,
-          });
-          let stitchDocuments = {};
-          let documentsObjArr = [];
-          let divisionstitchpages = [];
-          let divCount = 0;
-          
-          for (let div of res.divdocumentList) {
-            divCount++;
-            let docCount = 0;
-            if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
-            for (let doc of div.documentlist) {
-              docCount++;
-              documentsObjArr.push(doc);
-              if (docCount == div.documentlist.length) {
-                if (pageMappedDocs != undefined) {
-                  let divisionsdocpages = Object.values(
-                    pageMappedDocs.redlineDocIdLookup
-                  )
-                    .filter((obj) => {
-                      return obj.division.includes(div.divisionid);
-                    })
-                    .map((obj) => {
-                      return obj.pageMappings;
-                    });
-                  divisionsdocpages.forEach(function (_arr) {
-                    _arr.forEach(function (value) {
-                      divisionstitchpages.push(value);
-                    });
-                  });
-                  divisionstitchpages.sort((a, b) =>
-                    a.stitchedPageNo > b.stitchedPageNo
-                      ? 1
-                      : b.stitchedPageNo > a.stitchedPageNo
-                      ? -1
-                      : 0
-                  );
-                }
-              }
-            }
-          }
-            if (
-              res.issingleredlinepackage == "Y" &&
-              divCount == res.divdocumentList.length
-            ) {
-              let sorteddocIds = [];
-              let sorteddocuments =  sortByLastModified(documentsObjArr);
-              stitchDocuments["0"] = sorteddocuments;
-              for(const element of sorteddocuments) {
-                sorteddocIds.push(element['documentid']);
-              }
-              stitchDoc["0"] = {
-                documentids: sorteddocIds,
-                s3path: res.s3path_save,
-                stitchpages: divisionstitchpages,
-                bcgovcode: res.bcgovcode,
-              };
-            }
-            if (
-              res.issingleredlinepackage != "Y" &&
-              docCount == div.documentlist.length
-            ) {
-              //let divdocumentids = documentsObjArr.map((obj) => obj.documentid);
-              
-              let divdocumentids = [];
-              let sorteddocuments =  sortByLastModified(div.documentlist);
-              stitchDocuments[div.divisionid] = sorteddocuments;
-              for(const element of sorteddocuments) {
-                divdocumentids.push(element['documentid']);
-              }
-              stitchDoc[div.divisionid] = {
-                documentids: divdocumentids,
-                s3path: div.s3path_save,
-                stitchpages: divisionstitchpages,
-                bcgovcode: res.bcgovcode,
-              };
-              divisionstitchpages = [];
-              documentsObjArr = [];
-            }
-          }
-          
-          
-          //if (Object.keys(stitchDoc).length >0)  {
-          setRedlineStitchInfo(stitchDoc);
-          stitchForRedlineExport(
-            _instance,
-            divisionDocuments,
-            stitchDocuments,
-            res.issingleredlinepackage,
-            incompatableList
-          );
-          //}
-        },
-        (error) => {
-          console.log("Error fetching document:", error);
+    const setStitchDetails = (sortedList) => {
+      let index = 0;
+      let stitchIndex = 1;
+      
+      sortedList.forEach((sortedItem, _index) => {
+        const pages = [];
+        for (let i = 0; i < sortedItem.pagecount; i++) {
+          pages.push(i + 1);
         }
-      );
-    };
-
-    const saveDoc = () => {
-      setRedlineModalOpen(false);
-      setRedlineSaving(true);
-      switch (modalFor) {
-        case "redline":
-          saveRedlineDocument(docInstance);
-          break;
-        case "responsepackage":
-          saveResponsePackage(docViewer, annotManager, docInstance);
-          break;
-        default:
-      }
-    };
-
-    const cancelSaveRedlineDoc = () => {
-      setRedlineModalOpen(false);
-    };
+        index = index + sortedItem.pagecount;
+        sortedItem.sortorder = _index + 1;
+        sortedItem.stitchIndex = stitchIndex;
+        sortedItem.pages = pages;
+        stitchIndex += sortedItem.pagecount;
+      });
+      return sortedList;
+    }
 
     const prepareMessageForResponseZipping = (
       stitchedfilepath,
@@ -2766,6 +2982,23 @@ const Redlining = React.forwardRef(
         console.log(error);
       });
     };
+
+    const triggerRedlineZipper = (
+      divObj,
+      stitchedDocPath,
+      divisionCountForToast,
+      redlineSinglePackage
+    ) => {
+      prepareMessageForRedlineZipping(
+        divObj,
+        divisionCountForToast,
+        redlineZipperMessage,
+        redlineSinglePackage,
+        stitchedDocPath
+      );
+    };
+
+    /*Redline download & stitching code ends */
 
     const saveResponsePackage = async (
       documentViewer,
