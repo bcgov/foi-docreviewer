@@ -75,6 +75,9 @@ function Home() {
             documentObjs,
             (newDocumentObjs) => {
               doclist = newDocumentObjs?.sort(docSorting);
+              //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
+              //and prepare the PageMappedDocs object
+              prepareMapperObj(doclist);
               setCurrentDocument({
                 file: doclist[0]?.file || {},
                 page: 1,
@@ -107,6 +110,61 @@ function Home() {
       (error) => console.log(error)
     );
   }, []);
+
+  const prepareMapperObj = (doclistwithSortOrder) => {
+    let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
+    let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
+
+    let index = 0;
+    let stitchIndex = 1;
+    let totalPageCount = 0;
+    doclistwithSortOrder.forEach((sortedDoc, _index) => {
+      mappedDoc = { pageMappings: [] };
+      let j = 0;
+      const pages = [];
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
+        j++;
+        let pageMapping = {
+          pageNo: j,
+          stitchedPageNo: i,
+        };
+        mappedDoc.pageMappings.push(pageMapping);
+        mappedDocs["stitchedPageLookup"][i] = {
+          docid: sortedDoc.file.documentid,
+          docversion: sortedDoc.file.version,
+          page: j,
+        };
+        totalPageCount = i;
+      }
+      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
+        docId: sortedDoc.file.documentid,
+        version: sortedDoc.file.version,
+        division: sortedDoc.file.divisions[0].divisionid,
+        pageMappings: mappedDoc.pageMappings,
+      };
+      let fileDivisons = [];
+      for (let div of sortedDoc.file.divisions) {
+        fileDivisons.push(div.divisionid)
+      }
+      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
+        docId: sortedDoc.file.documentid,
+        version: sortedDoc.file.version,
+        division: fileDivisons,
+        pageMappings: mappedDoc.pageMappings,
+      };
+
+      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
+        pages.push(i + 1);
+      }
+      index = index + sortedDoc.file.pagecount;
+      sortedDoc.sortorder = _index + 1;
+      sortedDoc.stitchIndex = stitchIndex;
+      sortedDoc.pages = pages;
+      stitchIndex += sortedDoc.file.pagecount;
+    });
+    doclistwithSortOrder.totalPageCount = totalPageCount;
+    setPageMappedDocs(mappedDocs);
+  };
 
   const openFOIPPAModal = (pageNos) => {
     redliningRef?.current?.addFullPageRedaction(pageNos);
@@ -177,31 +235,31 @@ function Home() {
         </Grid>
       </Grid>
       <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog"}
-          isOpen={warningModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
+        initWidth={800}
+        initHeight={300}
+        minWidth={600}
+        minHeight={250}
+        className={"state-change-dialog"}
+        isOpen={warningModalOpen}
+      >
+        <DialogTitle disableTypography id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
-            <IconButton className="title-col3" onClick={closeWarningMessage}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span className="confirmation-message">
-                Selected pages or redactions reached the limit. <br></br>
-              </span>
-            </DialogContentText>
-          </DialogContent>
-        </ReactModal>
+          <IconButton className="title-col3" onClick={closeWarningMessage}>
+            <i className="dialog-close-button">Close</i>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent className={"dialog-content-nomargin"}>
+          <DialogContentText
+            id="state-change-dialog-description"
+            component={"span"}
+          >
+            <span className="confirmation-message">
+              Selected pages or redactions reached the limit. <br></br>
+            </span>
+          </DialogContentText>
+        </DialogContent>
+      </ReactModal>
     </div>
   );
 }
