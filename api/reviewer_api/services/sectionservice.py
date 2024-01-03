@@ -1,5 +1,6 @@
 from reviewer_api.models.Sections import Section
 from reviewer_api.services.annotationservice import annotationservice
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
 import json
 
 class sectionservice:
@@ -8,9 +9,10 @@ class sectionservice:
     def getsections(self):
         return Section.getall()
     
-    def getsections_by_ministryid(self, ministryid):
+    def getsections_by_ministryid(self, ministryid, redactionlayer):
         globalsections = self.getsections()
-        annotationsections = annotationservice().getannotationsections(ministryid)        
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
+        annotationsections = annotationservice().getannotationsections(ministryid, redactionlayerid)        
         requestsections = []
         for annotationsection in annotationsections:
             _annotationsection = json.loads(json.dumps(annotationsection["section"])) 

@@ -105,7 +105,7 @@ function Home() {
         store.dispatch(setCurrentLayer(currentLayer));
         fetchPageFlag(
           parseInt(foiministryrequestid),
-          currentLayer.redactionlayerid,
+          currentLayer.name.toLowerCase(),
           (error) => console.log(error)
         );
       },

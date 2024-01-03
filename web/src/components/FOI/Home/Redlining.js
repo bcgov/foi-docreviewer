@@ -265,7 +265,7 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-        fetchSections(requestid, (error) => console.log(error));
+        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
@@ -514,7 +514,7 @@ const Redlining = React.forwardRef(
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;
 
-            fetchAnnotationsInfo(requestid, (error) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => { //problem
               console.log("Error:", error);
             });
 
@@ -705,7 +705,7 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name.toLowerCase()
             );
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           }
@@ -820,7 +820,7 @@ const Redlining = React.forwardRef(
                   (data) => {
                     fetchPageFlag(
                       requestid,
-                      currentLayer.redactionlayerid,
+                      currentLayer.name.toLowerCase(),
                       (error) => console.log(error)
                     );
                   },
@@ -990,7 +990,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.redactionlayerid,
+                        currentLayer.name.toLowerCase(),
                         (error) => console.log(error)
                       );
                     },
@@ -1023,7 +1023,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.redactionlayerid,
+                        currentLayer.name.toLowerCase(),
                         (error) => console.log(error)
                       );
                     },
@@ -1469,7 +1469,7 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           },
@@ -1606,7 +1606,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
-                    currentLayer.redactionlayerid,
+                    currentLayer.name.toLowerCase(),
                     (error) => console.log(error)
                   );
                 },
@@ -1754,7 +1754,7 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(requestid, currentLayer.redactionlayerid, (error) =>
+            fetchPageFlag(requestid, currentLayer.name.toLowerCase(), (error) =>
               console.log(error)
             );
           },
@@ -2479,20 +2479,41 @@ const Redlining = React.forwardRef(
       return stampJson;        
     }
 
-    const annotationSectionsMapping  = async (xfdfString) => {
+    const annotationSectionsMapping  = async (xfdfString, formattedAnnotationXML) => {
       let annotationManager = docInstance?.Core.annotationManager;
       let annotList = await annotationManager.importAnnotations(xfdfString);
       let sectionStamps = {};
-      for (const annot of annotList) {
-        let parentRedaction = annot.getCustomData("parentRedaction");
-        if (parentRedaction) {
-          if (annot.Subject == "Free Text") {
-            let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
-            sectionStamps[parentRedactionId] = getAnnotationSections(annot);
-          }
+    let  annotationpagenumbers = annotationpagemapping(formattedAnnotationXML);
+    for (const annot of annotList) {
+      let parentRedaction = annot.getCustomData("parentRedaction");
+      if (parentRedaction) {
+        if (annot.Subject == "Free Text") {
+          let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
+            let sections = getAnnotationSections(annot);
+            if (sections.some(item => item.section === 's. 14')) {
+                sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
+            }
         }
       }
-      return sectionStamps; 
+    }
+    return sectionStamps; 
+    }
+
+    const annotationpagemapping = (formattedAnnotationXML) => {
+      let xmlstring =
+            '<annots>' +
+            formattedAnnotationXML +
+            "</annots>";
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlstring,"text/xml");
+      let annotnodes = xmlDoc.documentElement.childNodes;
+      let annotationpages = {};
+      for (let i = 0; i < annotnodes.length ; i++) {
+      if(annotnodes[i].nodeName === "redact") { 
+          annotationpages[annotnodes[i].getAttribute("name")] = parseInt(annotnodes[i].getAttribute("page"))+1;
+      }
+      }
+      return annotationpages;
     }
 
     const formatAnnotationsForDocument = (
@@ -2605,31 +2626,27 @@ const Redlining = React.forwardRef(
           if(redlineCategory === "oipcreview") {
             const rarr = []; 
             let annotationManager = docInstance?.Core.annotationManager;
-            let sectionStamps = await annotationSectionsMapping(xfdfString);
+            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
             let rects = [];
-            for (const [key, value] of Object.entries(sectionStamps)) {
-              let s14check_annotationid = key;
-              let s14check_sections = sectionStamps[key];            
-              for (const [s14key, s14value]  in s14check_sections) {
-                if (s14check_sections[s14key]["section"] === "s. 14") {      
-                  let s14annoation = annotationManager.getAnnotationById(s14check_annotationid);
-                  if ( s14annoation.Subject === "Redact") {
-                        rects = rects.concat( 
+            for (const [key, value] of Object.entries(s14_sectionStamps)) {
+              let s14annoation = annotationManager.getAnnotationById(key);
+                  if ( s14annoation.Subject === "Redact") { 
+                          rects = rects.concat( 
                           s14annoation.getQuads().map((q) => {
-                              return {
-                                page: s14annoation.getPageNumber(),
-                                recto: q.toRect()
+                            return {
+                                pageno: s14_sectionStamps[key],
+                                recto: q.toRect(),
+                                vpageno: s14annoation.getPageNumber()
                               };
                             })
                           );
                       }
-                }
-              }
+                
+              
             }
             for (const rect of rects) {
-              let height = docViewer.getPageHeight(rect.page);
-              rarr.push(await PDFNet.Redactor.redactionCreate(rect.page, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-              
+              let height = docViewer.getPageHeight(rect.vpageno);
+              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
             }
             if (rarr.length > 0) {
               const app = {};
@@ -2641,6 +2658,7 @@ const Redlining = React.forwardRef(
             }
             
         }
+        
           //OIPC - Special Block : End
           stitchObject
             .getFileData({
@@ -2940,7 +2958,7 @@ const Redlining = React.forwardRef(
           annotationManager.exportAnnotations().then(async (xfdfString) => {
             //parse annotation xml
             let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
-            let annots = jObj.getElementsByTagName("annots");
+            let annots = xfdfString.getElementsByTagName("annots");
 
             let sectionStamps = {};
             let stampJson = {};

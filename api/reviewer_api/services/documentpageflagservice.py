@@ -9,14 +9,14 @@ from datetime import datetime
 
 
 class documentpageflagservice:
-    def getpageflags(self, requestid, redactionlayerid):
-        layerids = redactionlayerservice().getmappedredactionlayers(
-            {"redactionlayerid": redactionlayerid}
-        )
+    def getpageflags(self, requestid, redactionlayer):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
         return DocumentPageflag.getpageflag_by_request(requestid, layerids)
 
-    def getpublicbody(self, requestid):
-        return DocumentPageflag.getpublicbody_by_request(requestid)
+    def getpublicbody(self, requestid, redactionlayer):
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
+        return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
     def getdocumentpageflags(
         self, requestid, redactionlayerid, documentid=None, version=None

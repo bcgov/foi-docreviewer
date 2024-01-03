@@ -19,11 +19,7 @@ class redactionservice:
 
     zipperstreamkey = getenv("ZIPPER_STREAM_KEY")
 
-    def getannotations(self, documentid, documentversion, pagenumber):
-        return annotationservice().getannotations(
-            documentid, documentversion, pagenumber
-        )
-
+    
     def getannotationsbyrequest(
         self, ministryrequestid, _redactionlayer, page=None, size=None
     ):
@@ -44,18 +40,9 @@ class redactionservice:
         )
         return annotationservice().getdocumentannotations(ministryrequestid, mappedlayerids, documentid)
 
-    def getannotationsbyrequestdivision(self, ministryrequestid, divisionid):
-        return annotationservice().getrequestdivisionannotations(
-            ministryrequestid, divisionid
-        )
-
-    def getannotationinfo(self, documentid, documentversion, pagenumber):
-        return annotationservice().getannotationinfo(
-            documentid, documentversion, pagenumber
-        )
-
-    def getannotationinfobyrequest(self, requestid):
-        return annotationservice().getrequestannotationinfo(requestid)
+   
+    def getannotationinfobyrequest(self, requestid, redactionlayer):
+        return annotationservice().getrequestannotationinfo(requestid, redactionlayer)
 
     def copyannotation(self, ministryrequestid, targetlayer):
         sourcelayers = []

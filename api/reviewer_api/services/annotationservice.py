@@ -21,14 +21,7 @@ from xml.dom.minidom import parseString
 
 class annotationservice:
     """FOI Annotation management service"""
-
-    def getannotations(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotations(documentid, documentversion)
-        annotationlist = []
-        for entry in annotations:
-            annotationlist.append(entry["annotation"])
-        return self.__generateannotationsxml(annotationlist)
-
+    
     def getrequestannotations(self, ministryrequestid, mappedlayerids):
         annotations = Annotation.getrequestannotations(
             ministryrequestid, mappedlayerids
@@ -77,42 +70,13 @@ class annotationservice:
             )
         return annotationobj
 
-    def getrequestdivisionannotations(self, ministryrequestid, divisionid):
-        annotations = Annotation.getrequestdivisionannotations(
-            ministryrequestid, divisionid
-        )
-        annotationobj = {}
-        for annot in annotations:
-            if annot["documentid"] not in annotationobj:
-                annotationobj[annot["documentid"]] = []
-            annotationobj[annot["documentid"]].append(annot["annotation"])
-        for documentid in annotationobj:
-            annotationobj[documentid] = annotationobj[documentid]
-            # annotationobj[documentid] = self.__generateannotationsxml(annotationobj[documentid])
-        return annotationobj
+    
 
-    def getannotationinfo(self, documentid, documentversion, pagenumber):
-        annotations = Annotation.getannotationinfo(documentid, documentversion)
-        annotationsections = AnnotationSection.getsectionmapping(
-            documentid, documentversion
-        )
-        annotationlist = []
-        for entry in annotations:
-            section = self.__getsection(annotationsections, entry["annotationname"])
-            if self.__issection(annotationsections, entry["annotationname"]) == False:
-                if section is not None:
-                    entry["sections"] = {
-                        "annotationname": section["sectionannotationname"],
-                        "ids": list(
-                            map(lambda id: id["id"], json.loads(section["ids"]))
-                        ),
-                    }
-                annotationlist.append(entry)
-        return annotationlist
 
-    def getrequestannotationinfo(self, ministryrequestid):
+    def getrequestannotationinfo(self, ministryrequestid, redactionlayer):
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
         annotationsections = AnnotationSection.getsectionmappingbyrequestid(
-            ministryrequestid
+            ministryrequestid, redactionlayerid
         )
         for entry in annotationsections:
             entry["sections"] = {
@@ -128,20 +92,8 @@ class annotationservice:
             )
         }
 
-    def __issection(self, annotationsections, annotationname):
-        for entry in annotationsections:
-            if entry["sectionannotationname"] == annotationname:
-                return True
-        return False
-
-    def __getsection(self, annotationsections, annotationname):
-        for entry in annotationsections:
-            if entry["redactannotation"] == annotationname:
-                return entry
-        return None
-
-    def getannotationsections(self, ministryid):
-        annotationsections = AnnotationSection.get_by_ministryid(ministryid)
+    def getannotationsections(self, ministryid, redactionlayerid):
+        annotationsections = AnnotationSection.get_by_ministryid(ministryid, redactionlayerid)
         return annotationsections
 
     def copyannotation(self, ministryrequestid, sourcelayers, targetlayer):
@@ -167,6 +119,7 @@ class annotationservice:
             if "sections" in annotationschema:
                 sectionresponse = AnnotationSection.savesections(
                     annots,
+                    _redactionlayerid,
                     annotationschema["sections"]["foiministryrequestid"],
                     userinfo,
                 )
@@ -197,7 +150,7 @@ class annotationservice:
                 annotationnames, redactionlayerid, userinfo
             )
             if resp.success == True:
-                AnnotationSection.bulkdeletesections(annotationnames, userinfo)
+                AnnotationSection.bulkdeletesections(annotationnames, redactionlayerid, userinfo)
             return resp
         return DefaultMethodResult(True, "No Annotations marked for delete", -1)
 

@@ -199,14 +199,14 @@ class DocumentPageflag(db.Model):
         return pageflags
 
     @classmethod
-    def getpublicbody_by_request(cls, _foiministryrequestid):
+    def getpublicbody_by_request(cls, _foiministryrequestid, _redactionlayerid):
         pageflags = []
         try:
             sql = """select distinct on (documentid) documentid, attributes from "DocumentPageflags" dp  
-                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
+                    where foiministryrequestid = :foiministryrequestid and redactionlayerid = :redactionlayerid order by documentid, documentversion desc;
                     """
             rs = db.session.execute(
-                text(sql), {"foiministryrequestid": _foiministryrequestid}
+                text(sql), {"foiministryrequestid": _foiministryrequestid, "redactionlayerid": _redactionlayerid}
             )
 
             for row in rs:
