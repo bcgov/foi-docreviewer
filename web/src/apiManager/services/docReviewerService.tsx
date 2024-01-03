@@ -82,10 +82,11 @@ export const fetchDocumentAnnotations = (
 };
 export const fetchAnnotationsInfo = (
   ministryrequestid: number,
+  redactionlayer: string,
   //callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/info`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/info`
 
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -221,12 +222,13 @@ export const deleteRedaction = (
 
 export const fetchSections = (
   foiministryrquestid: number,
+  currentlayername: string,
   callback: any,
   errorCallback: any
 ) => {
   let apiUrl: string  = replaceUrl(API.DOCREVIEWER_SECTIONS, '<ministryrequestid>', foiministryrquestid);
-
-  httpGETRequest(apiUrl, {}, UserService.getToken())
+  
+  httpGETRequest(apiUrl+"/"+currentlayername, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setSections(res.data) as any);
@@ -241,11 +243,12 @@ export const fetchSections = (
 
 export const fetchPageFlagsMasterData = (
   foiministryrquestid:string,
+  redactionlayer:string,
   callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = replaceUrl(
-    API.DOCREVIEWER_GET_ALL_PAGEFLAGS,
+    API.DOCREVIEWER_GET_ALL_PAGEFLAGS+ "/"+redactionlayer,
     "<requestid>",
     foiministryrquestid
   );
@@ -290,7 +293,7 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
-  redactionlayerid: number,
+  redactionlayer: string,
   //callback: any,
   errorCallback: any
 ) => {
@@ -298,7 +301,7 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ) + "/" +  redactionlayerid;
+  ) + "/" +  redactionlayer;
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
