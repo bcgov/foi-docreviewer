@@ -2508,9 +2508,9 @@ const Redlining = React.forwardRef(
       const xmlDoc = parser.parseFromString(xmlstring,"text/xml");
       let annotnodes = xmlDoc.documentElement.childNodes;
       let annotationpages = {};
-      for (let i = 0; i < annotnodes.length ; i++) {
-      if(annotnodes[i].nodeName === "redact") { 
-          annotationpages[annotnodes[i].getAttribute("name")] = parseInt(annotnodes[i].getAttribute("page"))+1;
+      for (const element of annotnodes) {
+        if(element.nodeName === "redact") { 
+          annotationpages[element.getAttribute("name")] = parseInt(element.getAttribute("page"))+1;
       }
       }
       return annotationpages;
@@ -2958,7 +2958,7 @@ const Redlining = React.forwardRef(
           annotationManager.exportAnnotations().then(async (xfdfString) => {
             //parse annotation xml
             let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
-            let annots = xfdfString.getElementsByTagName("annots");
+            let annots = jObj.getElementsByTagName("annots");
 
             let sectionStamps = {};
             let stampJson = {};
