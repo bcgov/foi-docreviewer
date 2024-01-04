@@ -399,7 +399,7 @@ class AnnotationSection(db.Model):
             db.session.close()
 
     @classmethod
-    def getredactedsectionsbyrequest(cls, ministryrequestid):
+    def getredactedsectionsbyrequest(cls, ministryrequestid, redactionlayerid):
         try:
             sql = """select section from public."Sections" where sectionid in
                         (select distinct (json_array_elements((as1.section::json->>'ids')::json)->>'id')::integer
@@ -409,11 +409,13 @@ class AnnotationSection(db.Model):
                         join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
                         left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
                         where as1.foiministryrequestid = :ministryrequestid and as1.isactive  = true
+                        and as1.redactionlayerid = a.redactionlayerid 
+                        and as1.redactionlayerid = :redactionlayerid
                         and (dd.deleted is null or dd.deleted is false)
                         and a.isactive = true)
                      and sectionid != 25
                      order by sortorder"""
-            rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
+            rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid, "redactionlayerid": redactionlayerid})
             sectionstring = ""
             for row in rs:
                 sectionstring = sectionstring + row["section"] + ", "

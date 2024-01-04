@@ -6,6 +6,9 @@ class redactionlayerservice:
 
     def getredactionlayers(self, ministryrequestid):
         return RedactionLayer.getall(ministryrequestid)
+    
+    def getall(self):
+        return RedactionLayer.getlayers()
 
 
     def getdefaultredactionlayerid(self):
