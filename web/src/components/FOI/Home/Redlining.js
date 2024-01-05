@@ -672,7 +672,7 @@ const Redlining = React.forwardRef(
                   setFetchAnnotResponse(data);
                 } else {
                   //Set to read only if oipc layer exists
-                  if (validoipcreviewlayer && currentLayer.name.toLowerCase() !== "oipc") {
+                  if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
                     annotManager.enableReadOnlyMode();
                   } else {
                     annotManager.disableReadOnlyMode();
