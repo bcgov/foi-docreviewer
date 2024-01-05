@@ -25,7 +25,6 @@ import IconButton from "@mui/material/IconButton";
 
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
-  const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
@@ -102,7 +101,7 @@ function Home() {
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = oipc.count > 0 && validoipcreviewlayer ? oipc : redline;
+        let currentLayer = oipc.count > 0 ? oipc : redline;
         store.dispatch(setCurrentLayer(currentLayer));
         fetchPageFlag(
           parseInt(foiministryrequestid),
