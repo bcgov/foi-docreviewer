@@ -97,6 +97,9 @@ function Home() {
         console.log(error);
       }
     );
+  }, []);
+
+  useEffect(() => {
     fetchRedactionLayerMasterData(
       foiministryrequestid,
       (data) => {
@@ -112,7 +115,7 @@ function Home() {
       },
       (error) => console.log(error)
     );
-  }, []);
+  }, [validoipcreviewlayer])
 
   const openFOIPPAModal = (pageNos) => {
     redliningRef?.current?.addFullPageRedaction(pageNos);
