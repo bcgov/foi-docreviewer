@@ -102,7 +102,7 @@ function Home() {
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = oipc.count > 0 && validoipcreviewlayer ? oipc : redline;
+        let currentLayer = validoipcreviewlayer ? oipc : redline;
         store.dispatch(setCurrentLayer(currentLayer));
         fetchPageFlag(
           parseInt(foiministryrequestid),
