@@ -29,7 +29,7 @@ const ContextMenu = ({
     const [openConsultPopup, setOpenConsultPopup] = useState(false)
     const [flagId, setFlagId] = React.useState(0);
     const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
-    const redactionLayers = useAppSelector((state: any) => state.documents?.redactionLayers);
+    const validoipcreviewlayer = useAppSelector((state: any) => state.documents?.requestinfo?.validoipcreviewlayer);
 
 
     const popoverEnter = (e: any) => {
@@ -97,8 +97,7 @@ const ContextMenu = ({
     // }
 
     const showPageFlagList = () => {
-        const oipcLayer = redactionLayers.find((l: any) => l.redactionlayerid === 3)
-        if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() === "redline") {
+        if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
             return (
                 <MenuList key={'disabledpageflagsmenu'}>
                     <MenuItem disabled={true}>
