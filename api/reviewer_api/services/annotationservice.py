@@ -86,11 +86,14 @@ class annotationservice:
         return annotationsections
 
     def getredactedsectionsbyrequest(self, ministryrequestid):
-        return {
-            "sections": AnnotationSection.getredactedsectionsbyrequest(
-                ministryrequestid
-            )
-        }
+        sections = {}
+        layers = redactionlayerservice().getall()
+        for layer in layers:
+            if layer["name"] in ["Redline", "OIPC"]:
+                redactedsections = AnnotationSection.getredactedsectionsbyrequest(ministryrequestid, layer["redactionlayerid"])
+                if redactedsections not in (None, ""):
+                    sections[layer["name"]] = redactedsections
+        return sections
 
     def getannotationsections(self, ministryid, redactionlayerid):
         annotationsections = AnnotationSection.get_by_ministryid(ministryid, redactionlayerid)

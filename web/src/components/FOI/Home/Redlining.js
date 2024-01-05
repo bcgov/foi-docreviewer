@@ -107,6 +107,7 @@ const Redlining = React.forwardRef(
     const documentList = useAppSelector(
       (state) => state.documents?.documentList
     );
+    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
 
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
@@ -670,9 +671,8 @@ const Redlining = React.forwardRef(
                   setMerge(true);
                   setFetchAnnotResponse(data);
                 } else {
-                  const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
                   //Set to read only if oipc layer exists
-                  if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() !== "oipc") {
+                  if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
                     annotManager.enableReadOnlyMode();
                   } else {
                     annotManager.disableReadOnlyMode();
@@ -744,8 +744,7 @@ const Redlining = React.forwardRef(
         // from the server or individual changes from other users
 
         // Disable creating annotations in redline layer if OIPC layer is present
-        const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
-        if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() === "redline") {
+        if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
           return;
         }
       
