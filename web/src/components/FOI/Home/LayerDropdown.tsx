@@ -13,9 +13,11 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from "@mui/material/IconButton";
+import { createOipcLayer } from "../../../apiManager/services/docReviewerService";
 
 const LayerDropdown = ({
-    ministryrequestid
+    ministryrequestid,
+    validoipcreviewlayer,
 }: any) => {
 
     const layers = useAppSelector((state: any) => state.documents?.redactionLayers);
@@ -40,7 +42,12 @@ const LayerDropdown = ({
 
     const handleModalContinue = (e: any) => {
         setOpenModal(false);
-        store.dispatch(setCurrentLayer(layers.find((l: any) => l.redactionlayerid === layer)));
+        const successCallback = () => {
+            store.dispatch(setCurrentLayer(layers.find((l: any) => l.redactionlayerid === layer)));
+        }
+        if (layers.find((l: any) => l.redactionlayerid === layer).redactionlayerid === 3) {
+            createOipcLayer(ministryrequestid, successCallback);
+        }
     }
 
     const handleModalCancel = (e: any) => {
@@ -61,7 +68,7 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} style={{color: "#808080"}}>
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.redactionlayerid === 3 && !validoipcreviewlayer} style={{color: "#000000"}}>
                     {
                     option.redactionlayerid > 2
                         && option.count === 0
