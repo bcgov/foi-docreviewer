@@ -111,7 +111,8 @@ const Redlining = React.forwardRef(
     const documentList = useAppSelector(
       (state) => state.documents?.documentList
     );
-
+    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+    
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
     const [annots, setAnnots] = useState(null);
@@ -282,7 +283,7 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-        fetchSections(requestid, (error) => console.log(error));
+        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
@@ -556,7 +557,7 @@ const Redlining = React.forwardRef(
 
             Promise.all(objpreptasks);
 
-            fetchAnnotationsInfo(requestid, (error) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
               console.log("Error:", error);
             });
           });
@@ -735,9 +736,8 @@ const Redlining = React.forwardRef(
                   setFetchAnnotResponse(data);
                 } else {
                   //oipc changes - begin
-                  const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
                   //Set to read only if oipc layer exists
-                  if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() !== "oipc") {
+                  if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
                     annotManager.enableReadOnlyMode();
                   } else {
                     annotManager.disableReadOnlyMode();
@@ -769,7 +769,7 @@ const Redlining = React.forwardRef(
               (error) => {
                 console.log("Error:", error);
               },
-              currentLayer.name
+              currentLayer.name.toLowerCase()
             );
             fetchPageFlag(
               requestid,
@@ -813,8 +813,7 @@ const Redlining = React.forwardRef(
         // from the server or individual changes from other users
 
         //oipc changes - begin
-        const oipcLayer = redactionLayers.find((l) => l.redactionlayerid === 3)
-        if (oipcLayer && oipcLayer.count > 0 && currentLayer.name.toLowerCase() === "redline") {
+        if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
           return;
         }
         //oipc changes - end
@@ -1321,7 +1320,7 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name
+          currentLayer.name.toLowerCase()
         );
       }
     };
@@ -2400,13 +2399,13 @@ const Redlining = React.forwardRef(
       return divIncompatableMapping
     };
 
-    const fetchDocumentRedlineAnnotations = async (requestid, documentids) => {
+    const fetchDocumentRedlineAnnotations = async (requestid, documentids, layer) => {
       let documentRedlineAnnotations = {};
       let docCounter = 0;
       for (let documentid of documentids) {
         fetchDocumentAnnotations(
           requestid,
-          "Redline",
+          layer,
           documentid,
           async (data) => {
             docCounter++;
@@ -2610,7 +2609,7 @@ const Redlining = React.forwardRef(
           );
           let IncompatableList = prepareRedlineIncompatibleMapping(res);
           setIncompatableList(IncompatableList);
-          fetchDocumentRedlineAnnotations(requestid, documentids);
+          fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
           setRedlineZipperMessage({
             ministryrequestid: requestid,
             category: getzipredlinecategory(layertype),
