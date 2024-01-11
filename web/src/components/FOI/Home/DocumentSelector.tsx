@@ -108,7 +108,7 @@ const DocumentSelector = React.forwardRef(({
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
-    }, []);
+    }, [currentLayer]);
 
     useEffect(() => {
         if(requestInfo.requesttype == "personal" && ["MSD", "MCF"].includes(requestInfo.bcgovcode)) {
