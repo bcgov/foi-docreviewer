@@ -273,6 +273,8 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
+    const [filteredComments, setFilteredComments] = useState({});
+
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -308,6 +310,7 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
+          const UIEvents = instance.UI.Events;
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -523,6 +526,22 @@ const Redlining = React.forwardRef(
             fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
+          });
+
+          instance.UI.addEventListener(UIEvents.ANNOTATION_FILTER_CHANGED, e => {
+          e.detail.types = e.detail.types.map(type => {
+            switch (type) {
+              case "stickyNote":
+                return "text";
+              case "rectangle":
+                return "square";
+              case "freehand":
+                return "ink";
+              default:
+                return type;
+            }
+          });
+          setFilteredComments(e.detail);
           });
           
           documentViewer.addEventListener("click", async () => {
