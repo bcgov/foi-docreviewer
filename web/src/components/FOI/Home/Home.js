@@ -108,7 +108,7 @@ function Home() {
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = validoipcreviewlayer ? oipc : redline;
+        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline; 
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
