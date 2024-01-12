@@ -8,7 +8,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     try:        
         cursor = conn.cursor()
 
-        _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
+        _incompatible = dedupeproducermessage.attributes["incompatible"]
 
         cursor.execute('INSERT INTO public."Documents" (version, \
         filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible,pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer) RETURNING documentid;',
