@@ -483,7 +483,7 @@ class documentservice:
     
     def validate_oipcreviewlayer(self, request_json, requestid):
         #check for OIPC & Reason 
-        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']):
+        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any((oipc['reasonid'] == 2 and oipc['outcomeid'] is None)for oipc in request_json['oipcdetails']):
             #Check for Reopen
             if 'isreopened' in request_json and request_json['isreopened'] == True:
                 #Check is Response Package generated before closure.
