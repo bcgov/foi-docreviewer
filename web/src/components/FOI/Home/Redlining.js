@@ -2423,8 +2423,12 @@ const Redlining = React.forwardRef(
         //if (xmlObj.name === "redact" || xmlObj.name === "freetext" || xmlObj.name === "text") {
           if(xmlObj.name === "freetext")
             _freeTextIds.push(xmlObj.attributes.name);
-          else if(xmlObj.name != "redact" && xmlObj.name != "freetext")
-            _annoteIds.push(xmlObj.attributes.name)
+          else if(xmlObj.name != "redact" && xmlObj.name != "freetext"){
+            let xmlObjAnnotId = xmlObj.attributes.name;
+            _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
+
+          }
+            
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
@@ -2468,13 +2472,56 @@ const Redlining = React.forwardRef(
 
     const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
       console.log("Color:",xmlObj.attributes.color+'ff');
-      if(filteredComments['types'].length >0 || filteredComments["colors"].length >0 || filteredComments["authors"].length >0){
-        return (filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto))|| 
-        _annoteIds.includes(xmlObj.attributes.inreplyto)||
-        filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff')|| 
-          filteredComments["authors"].includes(xmlObj.attributes.title);
+      let isType = filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
+      let isColor = filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff');
+      let isAuthor = filteredComments["authors"].includes(xmlObj.attributes.title);
+      
+      let parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
+      filteredComments['types'].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
+        !_freeTextIds.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.inreplyto);
+      let parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
+        filteredComments["colors"].length >0 && 
+        filteredComments["colors"].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
+      let parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        filteredComments["authors"].length >0 && 
+        filteredComments["authors"].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
+
+      // if(filteredComments['types'].length >0 || filteredComments["colors"].length >0 || filteredComments["authors"].length >0){
+      //   return (filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto)) 
+      //   && filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff') && 
+      //   filteredComments["authors"].includes(xmlObj.attributes.title) ||
+      //   (_annoteIds.find(xmlObj.attributes.inreplyto) && _annoteIds.includes(xmlObj.attributes.inreplyto));
+      // }
+      let inreplytoBool = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+      (parentIsType || parentIsColor || parentIsAuthor);
+
+      if(!(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType || parentIsColor || parentIsAuthor))){
+        return false;
       }
-      return false;
+      else{
+      if (filteredComments['types'].length > 0 && filteredComments['colors'].length > 0 && filteredComments['authors'].length > 0) {
+        return isType && isColor && isAuthor
+      }
+      else if (filteredComments['types'].length > 0 && filteredComments['colors'].length > 0) {
+        return isType && isColor
+      }
+      else if (filteredComments['types'].length > 0 && filteredComments['authors'].length > 0) {
+        return isType  && isAuthor
+      }
+      else if (filteredComments['colors'].length > 0 && filteredComments['authors'].length > 0) {          
+        return  isColor && isAuthor
+      }
+      else if (filteredComments['types'].length > 0 ) {
+        return isType
+      }
+      else if (filteredComments['colors'].length > 0 ) {
+        return isColor
+      }
+      else {
+        return isAuthor
+      }
+    }
     }
 
     const cancelSaveRedlineDoc = () => {
