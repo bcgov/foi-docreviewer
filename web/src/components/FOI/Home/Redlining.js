@@ -2414,6 +2414,7 @@ const Redlining = React.forwardRef(
     ) => {
       let updatedXML = [];
       let _freeTextIds=[];
+      let _annoteIds=[];
       for (let annotxml of data) {
         let xmlObj = parser.parseFromString(annotxml);
         //console.log("xmlObj:", xmlObj);
@@ -2422,6 +2423,8 @@ const Redlining = React.forwardRef(
         //if (xmlObj.name === "redact" || xmlObj.name === "freetext" || xmlObj.name === "text") {
           if(xmlObj.name === "freetext")
             _freeTextIds.push(xmlObj.attributes.name);
+          else if(xmlObj.name != "redact" && xmlObj.name != "freetext")
+            _annoteIds.push(xmlObj.attributes.name)
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
@@ -2455,7 +2458,7 @@ const Redlining = React.forwardRef(
 
             //if (xmlObj.name === "redact" || customData["parentRedaction"] || xmlObj.name === "text") {
               if (xmlObj.name === "redact" || customData["parentRedaction"] || 
-                (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds)))
+                (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
                 updatedXML.push(annotxml);
             //}
         }
@@ -2463,10 +2466,11 @@ const Redlining = React.forwardRef(
       return updatedXML.join();
     };
 
-    const checkFilter = (xmlObj,_freeTextIds) => {
+    const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
       console.log("Color:",xmlObj.attributes.color+'ff');
       if(filteredComments['types'].length >0 || filteredComments["colors"].length >0 || filteredComments["authors"].length >0){
-        return (filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.InReplyTo))|| 
+        return (filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto))|| 
+        _annoteIds.includes(xmlObj.attributes.inreplyto)||
         filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff')|| 
           filteredComments["authors"].includes(xmlObj.attributes.title);
       }
