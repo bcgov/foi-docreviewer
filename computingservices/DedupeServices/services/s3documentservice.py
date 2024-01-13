@@ -62,7 +62,8 @@ def gets3documenthashcode(producermessage):
     )
 
     pagecount = 1
-    _filepathwithoutext, extension = path.splitext(producermessage.s3filepath)
+    _filename, extension = path.splitext(producermessage.filename)
+    s3filepath, s3extension = path.splitext(producermessage.s3filepath)
     filepath = producermessage.s3filepath
     producermessage.attributes = json.loads(producermessage.attributes)
     if extension.lower() not in [".pdf"] and not (
@@ -72,6 +73,12 @@ def gets3documenthashcode(producermessage):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
     reader = None
+    # Get pagecount for replaced attachments of incompatible files
+    if s3extension.lower() in [".pdf"] and extension.lower() not in (file_conversion_types or [".pdf"]):
+        pdffilepath = path.splitext(filepath)[0] + s3extension.lower()
+        pdfresponse = requests.get("{0}".format(pdffilepath), auth=auth, stream=True)
+        reader = PdfReader(BytesIO(pdfresponse.content))
+        pagecount = len(reader.pages)
     if extension.lower() in [".pdf"]:
         reader = PdfReader(BytesIO(response.content))
         
