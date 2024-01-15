@@ -63,7 +63,6 @@ def gets3documenthashcode(producermessage):
 
     pagecount = 1
     _filename, extension = path.splitext(producermessage.filename)
-    s3filepath, s3extension = path.splitext(producermessage.s3filepath)
     filepath = producermessage.s3filepath
     producermessage.attributes = json.loads(producermessage.attributes)
     if extension.lower() not in [".pdf"] and not (
