@@ -2471,57 +2471,94 @@ const Redlining = React.forwardRef(
     };
 
     const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
-      console.log("Color:",xmlObj.attributes.color+'ff');
-      let isType = filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
-      let isColor = filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff');
-      let isAuthor = filteredComments["authors"].includes(xmlObj.attributes.title);
+      let filtered = false;
+
+      const isType = filteredComments.types.includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
+      const isColor = filteredComments.colors.includes(xmlObj.attributes.color.toLowerCase() + 'ff');
+      const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
       
-      let parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
-      filteredComments['types'].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
+      const parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
+      filteredComments.types?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
         !_freeTextIds.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.inreplyto);
-      let parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
-        filteredComments["colors"].length >0 && 
-        filteredComments["colors"].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
-      let parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        filteredComments["authors"].length >0 && 
-        filteredComments["authors"].includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
+      
+      const parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&        
+        filteredComments.colors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
 
-      // if(filteredComments['types'].length >0 || filteredComments["colors"].length >0 || filteredComments["authors"].length >0){
-      //   return (filteredComments['types'].includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto)) 
-      //   && filteredComments["colors"].includes(xmlObj.attributes.color.toLowerCase()+'ff') && 
-      //   filteredComments["authors"].includes(xmlObj.attributes.title) ||
-      //   (_annoteIds.find(xmlObj.attributes.inreplyto) && _annoteIds.includes(xmlObj.attributes.inreplyto));
-      // }
-      let inreplytoBool = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-      (parentIsType || parentIsColor || parentIsAuthor);
+      const parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        filteredComments.authors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
 
-      if(!(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType || parentIsColor || parentIsAuthor))){
-        return false;
+      if (filteredComments.types.length > 0 && filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsColor && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
+          return parentIsType && parentIsColor && parentIsAuthor
+        }
+        filtered = isType && (isColor || parentIsColor) && isAuthor
       }
-      else{
-      if (filteredComments['types'].length > 0 && filteredComments['colors'].length > 0 && filteredComments['authors'].length > 0) {
-        return isType && isColor && isAuthor
+      else if (filteredComments.types.length > 0 && filteredComments.colors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsColor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined') {
+          return parentIsType && parentIsColor
+        }
+        filtered = isType && (isColor || parentIsColor)
       }
-      else if (filteredComments['types'].length > 0 && filteredComments['colors'].length > 0) {
-        return isType && isColor
+      else if (filteredComments.types.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  &&  typeof parentIsAuthor !== 'undefined') {
+          return parentIsType && parentIsAuthor
+        }
+        filtered = isType  && isAuthor
       }
-      else if (filteredComments['types'].length > 0 && filteredComments['authors'].length > 0) {
-        return isType  && isAuthor
+      else if (filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsColor && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
+          return parentIsColor && parentIsAuthor
+        }         
+        filtered =  (isColor || parentIsColor) && isAuthor
       }
-      else if (filteredComments['colors'].length > 0 && filteredComments['authors'].length > 0) {          
-        return  isColor && isAuthor
-      }
-      else if (filteredComments['types'].length > 0 ) {
+
+      else if (filteredComments.types.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType ))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined') {
+          return parentIsType
+        }
         return isType
       }
-      else if (filteredComments['colors'].length > 0 ) {
+      else if (filteredComments.colors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsColor ))){
+          return true;
+        }
+        else if (typeof parentIsColor !== 'undefined') {
+          return parentIsColor
+        }
         return isColor
       }
-      else {
+      else if (filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsAuthor ))){
+          return true;
+        }
+        else if (typeof parentIsAuthor !== 'undefined') {
+          return parentIsAuthor
+        }
         return isAuthor
       }
-    }
+      return filtered;
     }
 
     const cancelSaveRedlineDoc = () => {
