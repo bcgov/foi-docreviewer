@@ -18,10 +18,20 @@ export const fetchDocuments = (
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
+      const getFileExt = (filepath: any) => {
+        const parts = filepath.split(".")
+        const fileExt = parts.pop()
+        return fileExt
+      }
       if (res.data) {
         // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
         const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
-        store.dispatch(setDocumentList(__files) as any);
+        const _files = res.data.documents.filter((d: any) => {
+          const isPdfFile = getFileExt(d.filepath) === "pdf"
+          const isCompatible = !d.attributes.incompatible || isPdfFile
+          return isCompatible
+        });
+        store.dispatch(setDocumentList(_files) as any);
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
