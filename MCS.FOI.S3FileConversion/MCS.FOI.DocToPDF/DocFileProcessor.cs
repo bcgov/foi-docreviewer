@@ -43,10 +43,11 @@ namespace MCS.FOI.DocToPDF
                     {
                         using (WordDocument wordDocument = new WordDocument(SourceStream, Syncfusion.DocIO.FormatType.Automatic))
                         {
+                           
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
+                            wordDocument.RevisionOptions.ShowMarkup = RevisionType.Deletions | RevisionType.Insertions;
 
-                            //Creates an instance of DocIORenderer.
                             using (DocIORenderer renderer = new DocIORenderer())
                             {
                                 using PdfDocument pdfDocument = renderer.ConvertToPDF(wordDocument);
@@ -57,6 +58,7 @@ namespace MCS.FOI.DocToPDF
                                 converted = true;
 
                             }
+
                         }
                     }
                     catch (Exception e)

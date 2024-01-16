@@ -134,6 +134,61 @@ class DocumentPageflag(db.Model):
             db.session.close()
 
     @classmethod
+    def bulkarchivepageflag(
+        cls,
+        _foiministryrequestid,
+        _documentids,
+        userinfo,
+    ) -> DefaultMethodResult:
+        try:
+            dbquery = db.session.query(DocumentPageflag)
+            pageflags = dbquery.filter(
+                and_(
+                    DocumentPageflag.foiministryrequestid == _foiministryrequestid,
+                    DocumentPageflag.documentid.in_(_documentids),
+                )
+            )
+            for pageflagobj in pageflags:
+                DocumentPageflagHistory.createpageflag(
+                    DocumentPageflagHistory(
+                        documentpageflagid=pageflagobj.id,
+                        foiministryrequestid=pageflagobj.foiministryrequestid,
+                        documentid=pageflagobj.documentid,
+                        documentversion=pageflagobj.documentversion,
+                        pageflag=json.dumps(pageflagobj.pageflag),
+                        attributes=json.dumps(pageflagobj.attributes),
+                        createdby=json.dumps(pageflagobj.createdby),
+                        created_at=pageflagobj.created_at,
+                        updatedby=json.dumps(pageflagobj.updatedby),
+                        updated_at=pageflagobj.updated_at,
+                        redactionlayerid=pageflagobj.redactionlayerid,
+                    )
+                )
+                DocumentPageflagHistory.createpageflag(
+                    DocumentPageflagHistory(
+                        documentpageflagid=pageflagobj.id,
+                        foiministryrequestid=pageflagobj.foiministryrequestid,
+                        documentid=pageflagobj.documentid,
+                        documentversion=pageflagobj.documentversion,
+                        pageflag=json.dumps(pageflagobj.pageflag),
+                        attributes=json.dumps(pageflagobj.attributes),
+                        createdby=json.dumps(pageflagobj.createdby),
+                        created_at=pageflagobj.created_at,
+                        updatedby=json.dumps(userinfo),
+                        updated_at=pageflagobj.updated_at,
+                        redactionlayerid=pageflagobj.redactionlayerid,
+                    )
+                )
+            pageflags.delete(synchronize_session='fetch')
+            db.session.commit()
+            return DefaultMethodResult(True, "Page Flag is saved", _documentids)
+        except Exception as ex:
+            logging.error(ex)
+            return DefaultMethodResult(True, "Page Flag is not saved", _documentids)
+        finally:
+            db.session.close()
+
+    @classmethod
     def getpageflag(
         cls, _foiministryrequestid, _documentid, _documentversion, _redactionlayerid
     ):
@@ -162,16 +217,17 @@ class DocumentPageflag(db.Model):
             db.session.close()
 
     @classmethod
-    def getpageflag_by_request(cls, _foiministryrequestid, redactionlayerid):
+    def getpageflag_by_request(cls, _foiministryrequestid, redactionlayerid, documentids):
         pageflags = []
         try:
             sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
                      from "DocumentPageflags" dp
                      join "Documents" d on dp.documentid = d.documentid and d.foiministryrequestid = :foiministryrequestid
-                     join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :foiministryrequestid
-                     left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :foiministryrequestid
-                     where dp.foiministryrequestid = :foiministryrequestid and (dd.deleted is false or dd.deleted is null)
+                     --join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :foiministryrequestid
+                     --left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :foiministryrequestid
+                     where dp.foiministryrequestid = :foiministryrequestid --and (dd.deleted is false or dd.deleted is null)
                      and redactionlayerid in :redactionlayerid
+                     and dp.documentid in :documentids
                      order by dp.documentid, dp.documentversion desc, dp.id desc;
                     """
             rs = db.session.execute(
@@ -179,6 +235,7 @@ class DocumentPageflag(db.Model):
                 {
                     "foiministryrequestid": _foiministryrequestid,
                     "redactionlayerid": tuple(redactionlayerid),
+                    "documentids": tuple(documentids),
                 },
             )
 

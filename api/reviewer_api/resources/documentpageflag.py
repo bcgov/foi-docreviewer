@@ -86,7 +86,8 @@ class GetDocumentPageflag(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid, redactionlayer):
         try:
-            result = documentpageflagservice().getpageflags(requestid, redactionlayer)
+            documentids = request.args.getlist('documentids[]')
+            result = documentpageflagservice().getpageflags(requestid, redactionlayer, documentids)
             return json.dumps(result), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
