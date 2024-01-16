@@ -2358,7 +2358,6 @@ const Redlining = React.forwardRef(
             docCounter++;
             documentRedlineAnnotations[documentid] = data[documentid];
             if (docCounter == documentids.length) {
-              console.log("documentRedlineAnnotations:",documentRedlineAnnotations)
               setRedlineDocumentAnnotations(documentRedlineAnnotations);
             }
           }
@@ -2417,23 +2416,16 @@ const Redlining = React.forwardRef(
       let _annoteIds=[];
       for (let annotxml of data) {
         let xmlObj = parser.parseFromString(annotxml);
-        //console.log("xmlObj:", xmlObj);
-        let filterComments = {"types":["note","rectangle"],"authors":["dviswana@idir"],
-        "colors":["#ffcd45ff","#4e7de9ff","#007a3bff"],"statuses":[],"checkRepliesForAuthorFilter":true};
-        //if (xmlObj.name === "redact" || xmlObj.name === "freetext" || xmlObj.name === "text") {
           if(xmlObj.name === "freetext")
             _freeTextIds.push(xmlObj.attributes.name);
           else if(xmlObj.name != "redact" && xmlObj.name != "freetext"){
             let xmlObjAnnotId = xmlObj.attributes.name;
             _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
-
-          }
-            
+          }            
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
           let flags = xmlObj.attributes.flags;
-          //console.log("flags:",flags)
           let txt = domParser.parseFromString(
             customfield.attributes.bytes,
             "text/html"
@@ -2450,21 +2442,14 @@ const Redlining = React.forwardRef(
               'page="' +
               (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
               '"';
-              // let updatedBytes= customfield.attributes.bytes.slice(0, 1) +"&quot;trn-annot-locked&quot;:&quot;true&quot;,&quot;trn-annot-no-move&quot;:&quot;true&quot;,"+
-              //   customfield.attributes.bytes.slice(1);
-              
-              let updatedFlags = xmlObj.attributes.flags+',locked';
+            let updatedFlags = xmlObj.attributes.flags+',locked';
               
             annotxml = annotxml.replace(flags, updatedFlags);
-            //console.log("annotxml AFTER:",annotxml)
             annotxml = annotxml.replace(oldPageNum, newPage);
             console.log("filteredComments:",filteredComments);
-
-            //if (xmlObj.name === "redact" || customData["parentRedaction"] || xmlObj.name === "text") {
               if (xmlObj.name === "redact" || customData["parentRedaction"] || 
                 (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
                 updatedXML.push(annotxml);
-            //}
         }
       }
       return updatedXML.join();
@@ -3002,8 +2987,6 @@ const Redlining = React.forwardRef(
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          // const annotManager1= docViewer.getAnnotationManager();
-          // let abcannot= annotManager1.flattenAnnotations(formattedAnnotationXML)
           let xfdfString =
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
@@ -3013,7 +2996,7 @@ const Redlining = React.forwardRef(
               // saves the document with annotations in it
               xfdfString: xfdfString,
               downloadType: downloadType,
-              //flatten: true,
+              //flatten: true, //commented this as part of #4862
             })
             .then(async (_data) => {
               const _arr = new Uint8Array(_data);

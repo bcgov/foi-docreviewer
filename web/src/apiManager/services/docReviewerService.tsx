@@ -23,7 +23,7 @@ export const fetchDocuments = (
         const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
         store.dispatch(setDocumentList(__files) as any);
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
-        store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
+        store.dispatch(setRequestStatus(res.data.requeststatusid) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
         callback(res.data.documents);
       } else {
