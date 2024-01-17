@@ -1696,7 +1696,7 @@ const Redlining = React.forwardRef(
         }
       } else {
         let pageFlagSelections = pageSelections;
-        if (
+        /*if (
           (defaultSections.length > 0 && defaultSections[0] === 25) ||
           selectedSections[0] === 25
         ) {
@@ -1704,7 +1704,7 @@ const Redlining = React.forwardRef(
             flag.flagid = pageFlagTypes["In Progress"];
             return flag;
           });
-        }
+        }*/
         // add section annotation
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
