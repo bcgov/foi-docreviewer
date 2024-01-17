@@ -72,7 +72,10 @@ def gets3documenthashcode(producermessage):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
     reader = None
-    if extension.lower() in [".pdf"]:
+
+    if extension.lower() in [".pdf"] or (
+        producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
+        ):
         reader = PdfReader(BytesIO(response.content))
         
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
