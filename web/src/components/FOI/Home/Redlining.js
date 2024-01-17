@@ -2456,6 +2456,7 @@ const Redlining = React.forwardRef(
     };
 
     const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
+      //This method handles filtering of annotations in redline
       let filtered = false;
 
       const isType = filteredComments.types.includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
