@@ -536,7 +536,10 @@ const Redlining = React.forwardRef(
               case "rectangle":
                 return "square";
               case "freehand":
+              case "other":
                 return "ink";
+              case "ellipse":
+                return "circle";
               default:
                 return type;
             }
@@ -2405,13 +2408,7 @@ const Redlining = React.forwardRef(
       return stitchAnnotation.join();
     };
 
-    const formatAnnotationsForDocument = (
-      domParser,
-      data,
-      redlinepageMappings,
-      documentid
-    ) => {
-      let updatedXML = [];
+    const constructFreeTextAndannoteIds = (data) => {
       let _freeTextIds=[];
       let _annoteIds=[];
       for (let annotxml of data) {
@@ -2422,6 +2419,20 @@ const Redlining = React.forwardRef(
             let xmlObjAnnotId = xmlObj.attributes.name;
             _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
           }            
+      }
+      return {_freeTextIds, _annoteIds}
+    }
+    const formatAnnotationsForDocument = (
+      domParser,
+      data,
+      redlinepageMappings,
+      documentid
+    ) => {
+      let updatedXML = [];
+      const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(data);
+
+      for (let annotxml of data) {
+        let xmlObj = parser.parseFromString(annotxml);           
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
@@ -2446,7 +2457,7 @@ const Redlining = React.forwardRef(
               
             annotxml = annotxml.replace(flags, updatedFlags);
             annotxml = annotxml.replace(oldPageNum, newPage);
-            console.log("filteredComments:",filteredComments);
+
               if (xmlObj.name === "redact" || customData["parentRedaction"] || 
                 (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
                 updatedXML.push(annotxml);
