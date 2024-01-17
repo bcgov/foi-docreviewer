@@ -3278,6 +3278,7 @@ const Redlining = React.forwardRef(
               .getFileData({
                 // saves the document with annotations in it
                 downloadType: downloadType,
+                flatten: true
               })
               .then(async (_data) => {
                 const _arr = new Uint8Array(_data);
