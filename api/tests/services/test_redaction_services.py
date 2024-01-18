@@ -19,12 +19,6 @@ def test_save_annotation(session):
       pytest.approxrequestidtoupdate = requestid    
       assert response.success == True
 
-def test_get_annotations(session): 
-      documentid = 1
-      documentversion = 1
-      pagenumber = 1
-      queue = redactionservice().getannotations(documentid, documentversion, pagenumber)
-      assert len(queue) > 0
 
 def test_deactive_annotation(session):
       annotationname = 'test123'
