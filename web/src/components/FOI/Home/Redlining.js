@@ -273,7 +273,7 @@ const Redlining = React.forwardRef(
         ].includes(requestStatus)
     );
     const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(
-      redactionLayers.find((l) => l.redactionlayerid === 3)?.count > 0
+      validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc"
     )
     const [enableSavingFinal, setEnableSavingFinal] = useState(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
@@ -1206,7 +1206,7 @@ const Redlining = React.forwardRef(
       let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
       //oipc changes - begin
       const _enableSavingOipcRedline = 
-        redactionLayers.find((l) => l.redactionlayerid === 3).count > 0 &&
+        (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") &&
         isReadyForSignOff();
       //oipc changes - end
       setEnableSavingRedline(
