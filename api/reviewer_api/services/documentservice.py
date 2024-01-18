@@ -140,7 +140,7 @@ class documentservice:
             if record["recordid"] is None:
                 attchments.append(record)
         return parentrecords, parentswithattachments, attchments
-
+      
     def __getpagecountandfilename(self, record, properties):
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
@@ -403,7 +403,8 @@ class documentservice:
             )
 
         return DocumentAttributes.update(newRows, oldRows)
-
+    
+    
     def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
                 method='GET',
@@ -476,9 +477,13 @@ class documentservice:
     def deleterequestdocument(self, documentid, documentversion):
         return
     
+    def getfilepathbydocumentid(self, documentid):
+        return DocumentMaster.getfilepathbydocumentid(documentid)
+    
+    
     def validate_oipcreviewlayer(self, request_json, requestid):
         #check for OIPC & Reason 
-        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any(oipc['reasonid'] == 2 for oipc in request_json['oipcdetails']):
+        if 'isoipcreview' in request_json and request_json['isoipcreview'] == True and any((oipc['reasonid'] == 2 and oipc['outcomeid'] is None)for oipc in request_json['oipcdetails']):
             #Check for Reopen
             if 'isreopened' in request_json and request_json['isreopened'] == True:
                 #Check is Response Package generated before closure.

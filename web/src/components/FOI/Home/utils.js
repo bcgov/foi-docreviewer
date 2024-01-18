@@ -92,12 +92,12 @@ export const createRedactionSectionsString = (
   redactionSectionsIds
 ) => {
   const compareFn = (a, b) => {
-    let sectionA = parseFloat(a.section.split('s. ')[1])
-    let sectionB = parseFloat(b.section.split('s. ')[1])
-    if (sectionA == undefined) sectionA = 100
-    if (sectionB == undefined) sectionB = 100
-    return sectionA - sectionB
-  }
+    let sectionA = parseFloat(a.section.split("s. ")[1]);
+    let sectionB = parseFloat(b.section.split("s. ")[1]);
+    if (sectionA == undefined) sectionA = 100;
+    if (sectionB == undefined) sectionB = 100;
+    return sectionA - sectionB;
+  };
   let redactionSections = getValidSections(sections, redactionSectionsIds)
     .sort(compareFn)
     .map((s) => s.section)
@@ -139,4 +139,100 @@ export const updatePageFlags = (
       docid: displayedDoc?.docid,
     });
   }
+};
+
+export const getSliceSetDetails = async (
+  totaldocCount,
+  autoselectslicer = false
+) => {
+  let slicersetdetail = new Object();
+  slicersetdetail.slicer = 100; //default
+
+  if (totaldocCount > slicersetdetail.slicer) {
+    if (autoselectslicer) {
+      switch (true) {
+        case totaldocCount > 200 && totaldocCount <= 400:
+          slicersetdetail.slicer = 200;
+          break;
+        case totaldocCount > 400 && totaldocCount <= 600:
+          slicersetdetail.slicer = 200;
+          break;
+        case totaldocCount > 600 && totaldocCount <= 1000:
+          slicersetdetail.slicer = 200;
+          break;
+        case totaldocCount > 1000 && totaldocCount <= 3000:
+          slicersetdetail.slicer = 500;
+          break;
+        case totaldocCount > 3000:
+          slicersetdetail.slicer = 600;
+          break;
+        default:
+          slicersetdetail.slicer = 100;
+          break;
+      }
+    }
+  } else {
+    slicersetdetail.slicer = totaldocCount;
+  }
+
+  slicersetdetail.setcount = Math.ceil(totaldocCount / slicersetdetail.slicer);
+  return slicersetdetail;
+};
+
+export const sortDocObjects = (_pdftronDocObjs, doclist) => {
+  let __refinedpdftronDocObjs = _pdftronDocObjs.sort(
+    (a, b) => a.sortorder - b.sortorder
+  );
+  let returnObjs = [];
+  for (
+    let _soCtr = 0, _dlCtr = 0;
+    _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
+    _dlCtr++, _soCtr++
+  ) {
+    //console.log("I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    if (
+      __refinedpdftronDocObjs[_soCtr] != null &&
+      __refinedpdftronDocObjs[_soCtr] != undefined
+    ) {
+      if (
+        __refinedpdftronDocObjs[_soCtr].file.file.documentid ===
+        doclist[_dlCtr].file.documentid
+      ) {
+        returnObjs.push(__refinedpdftronDocObjs[_soCtr]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return returnObjs;
+};
+
+export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
+  let __refinedpdftronDocObjs = _pdftronDocObjs.sort(
+    (a, b) => a.sortorder - b.sortorder
+  );
+  let returnObjs = [];
+  for (
+    let _soCtr = 0, _dlCtr = 0;
+    _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
+    _dlCtr++, _soCtr++
+  ) {
+    //console.log("REDLINE I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    if (
+      __refinedpdftronDocObjs[_soCtr] != null &&
+      __refinedpdftronDocObjs[_soCtr] != undefined
+    ) {
+      if (
+        __refinedpdftronDocObjs[_soCtr].file.documentid ===
+        doclist[_dlCtr].documentid
+      ) {
+        returnObjs.push(__refinedpdftronDocObjs[_soCtr]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return returnObjs;
 };

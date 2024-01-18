@@ -21,9 +21,8 @@ from utils import (
     dedupe_s3_service,
     dedupe_s3_env,
     request_management_api,
-    file_conversion_types,
+    file_conversion_types
 )
-
 
 def __getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
@@ -50,13 +49,10 @@ def __getcredentialsbybcgovcode(bcgovcode):
 
     return s3cred
 
-
 def gets3documenthashcode(producermessage):
-    s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)
-    pagecount = 1
+    s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
     s3_access_key_id = s3credentials.s3accesskey
     s3_secret_access_key = s3credentials.s3secretkey
-
     auth = AWSRequestsAuth(
         aws_access_key=s3_access_key_id,
         aws_secret_access_key=s3_secret_access_key,
@@ -65,6 +61,7 @@ def gets3documenthashcode(producermessage):
         aws_service=dedupe_s3_service,
     )
 
+    pagecount = 1
     _filename, extension = path.splitext(producermessage.filename)
     filepath = producermessage.s3filepath
     producermessage.attributes = json.loads(producermessage.attributes)
@@ -77,6 +74,7 @@ def gets3documenthashcode(producermessage):
     reader = None
     if extension.lower() in [".pdf"]:
         reader = PdfReader(BytesIO(response.content))
+        
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
         attachments = []

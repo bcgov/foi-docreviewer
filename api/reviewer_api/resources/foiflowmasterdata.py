@@ -36,6 +36,7 @@ from botocore.config import Config
 
 from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
+from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES
 
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
@@ -202,8 +203,6 @@ class FOIFlowS3PresignedRedline(Resource):
                             filepathlist[0], division_name, packagetype
                         )
 
-                            # filename_put, file_extension_put = os.path.splitext(filepath_put)
-                            # filepath_put = filename_put+'.pdf'
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -218,9 +217,13 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
-                        filepathlist = doc["filepath"].split("/")[4:]
+                        realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
+                        # filepathlist = doc["filepath"].split("/")[4:]
+                        filepathlist = realfilepath.split("/")[4:]
+                        
                         # for load/get
                         filepath_get = "/".join(filepathlist)
+                        
                         filename_get, file_extension_get = os.path.splitext(
                                         filepath_get
                             )
