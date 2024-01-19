@@ -2126,7 +2126,7 @@ const Redlining = React.forwardRef(
           await s.stampText(
             doc,
             `${requestnumber} , Page ${
-              redlineSinglePackage == "Y" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+              redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
             } of ${docViewer.getPageCount()}`,
             pgSet
           );
@@ -2989,20 +2989,7 @@ const Redlining = React.forwardRef(
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            redlineSinglePackage
-          );
-          if (
-            redlinepageMappings["pagestoremove"][divisionid] &&
-            redlinepageMappings["pagestoremove"][divisionid].length > 0
-          ) {
-            await stitchObject.removePages(
-              redlinepageMappings["pagestoremove"][divisionid]
-            );
-          }
+          
           let xfdfString =
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
@@ -3044,8 +3031,23 @@ const Redlining = React.forwardRef(
             }
             
         }
+        //OIPC - Special Block : End
         
-          //OIPC - Special Block : End
+          await stampPageNumberRedline(
+            stitchObject,
+            PDFNet,
+            redlineStitchInfo[divisionid]["stitchpages"],
+            redlineSinglePackage
+          );
+          if (
+            redlinepageMappings["pagestoremove"][divisionid] &&
+            redlinepageMappings["pagestoremove"][divisionid].length > 0
+          ) {
+            await stitchObject.removePages(
+              redlinepageMappings["pagestoremove"][divisionid]
+            );
+          }
+
           stitchObject
             .getFileData({
               // saves the document with annotations in it
