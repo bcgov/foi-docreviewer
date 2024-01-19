@@ -254,6 +254,43 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
         return pageflags
+    
+    @classmethod
+    def getconsultpageflaghistory_by_request(cls, _foiministryrequestid, redactionlayerid, documentids):
+        consultpageflags = []
+        try:
+            sql = """SELECT documentid, documentversion, pageflag
+                    FROM public."DocumentPageflagHistory" 
+                    WHERE foiministryrequestid = :foiministryrequestid 
+                    AND documentid in :documentids 
+                    AND pageflag::jsonb @> '[{"flagid": 4}]'::jsonb 
+                    AND redactionlayerid in :redactionlayerid
+                    ORDER BY updated_at DESC;
+                    """
+            rs = db.session.execute(
+                text(sql),
+                {
+                    "foiministryrequestid": _foiministryrequestid,
+                    "redactionlayerid": tuple(redactionlayerid),
+                    "documentids": tuple(documentids),
+                },
+            )
+
+            for row in rs:
+                consultpageflags.append(
+                    {
+                        "documentid": row["documentid"],
+                        "documentversion": row["documentversion"],
+                        "pageflag": row["pageflag"],
+                    }
+                )
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return consultpageflags
 
     @classmethod
     def getpublicbody_by_request(cls, _foiministryrequestid):

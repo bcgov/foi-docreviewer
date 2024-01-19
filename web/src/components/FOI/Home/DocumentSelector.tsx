@@ -262,8 +262,16 @@ const DocumentSelector = React.forwardRef(({
     //Revisit this method & assign icons when fetching itself!!
     const assignPageIcon = (docId: number, page: number) => {
         let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObj = docs?.pageflag?.find((flag: any) => flag.page === page);
-        return assignIcon(pageFlagObj?.flagid);
+        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page);
+        // let pageFlagObj = docs?.pageflag?.find((flag: any) => flag.page === page);
+        let assignIconValue: any = [];
+        for (const pageFlag of pageFlagObjs) {
+            if (pageFlag.flagid !== undefined) {              
+                assignIconValue.push(assignIcon(pageFlag.flagid));
+            }
+          }
+        return assignIconValue;
+        
     }
 
     let arr: any[] = [];
@@ -336,6 +344,9 @@ const DocumentSelector = React.forwardRef(({
     const openContextMenu = (file: any, page: number, e: any) => {
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
+        if (nodeId === "") {
+            nodeId = e.currentTarget.id;
+        }
         nodeId = nodeId.substring(nodeId.indexOf('{'));
         let selectedNodes: any;
         if (!selected.includes(nodeId)) {
@@ -533,9 +544,39 @@ const DocumentSelector = React.forwardRef(({
                     (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                 &&
                 <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-                    <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                    {/* <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} /> */}
+                    <StyledTreeItem
+                    nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`}
+                    key={p + 1}
+		            title={getFlagName(file, p + 1)} 
+                    label={
+                        <div className="tree-item-label">
+                        {assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
+                            // <FontAwesomeIcon
+                            // key={index}
+                            // className='leftPanelIcons'
+                            // icon={icon as IconProp}
+                            // size='1x'
+                            // />
+                            <React.Fragment key={index}>
+                                <FontAwesomeIcon
+                                    className='leftPanelIcons'
+                                    icon={icon as IconProp}
+                                    size='1x'
+                                />
+                                {index < assignPageIcon(file.documentid, p + 1).length - 1 && '  '}
+                            </React.Fragment>
+                        ))}
+                        {' '}
+                        <span>
+                            {isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                        </span>
+                        </div>
+                    }
+                    onContextMenu={(e) => openContextMenu(file, p + 1, e)}
+                    />
                 </div>
             ) :
             viewWithoutConsulteeFilter(file, p)
@@ -547,9 +588,41 @@ const DocumentSelector = React.forwardRef(({
         return (
             (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
             <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-                <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                {/* <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} /> */}
+                <StyledTreeItem
+                nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`}
+                key={p + 1}
+		        title={getFlagName(file, p + 1)}
+                label={
+                    <div className="tree-item-label">
+                    {assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
+                        // <FontAwesomeIcon
+                        // key={index}
+                        // className='leftPanelIcons'
+                        // icon={icon as IconProp}
+                        // size='1x'
+                        // />
+                        <React.Fragment key={index}>
+                                <FontAwesomeIcon
+                                    className='leftPanelIcons'
+                                    icon={icon as IconProp}
+                                    size='1x'
+                                />
+                                {index < assignPageIcon(file.documentid, p + 1).length - 1 && '  '}
+                            </React.Fragment>
+                    ))}
+                    {' '}
+                    <span>
+                        {isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                    </span>
+                    </div>
+                }
+                onContextMenu={(e) => openContextMenu(file, p + 1, e)}
+                />
+
+
             </div>
                 :
                 <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
@@ -568,9 +641,39 @@ const DocumentSelector = React.forwardRef(({
         return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
         (
         <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+            {/* <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                onContextMenu={(e) => openContextMenu(file, p + 1, e)} /> */}
+            <StyledTreeItem
+            nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`}
+            key={p + 1}
+	        title={getFlagName(file, p + 1)} 
+            label={
+                <div className="tree-item-label">
+                {assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
+                    // <FontAwesomeIcon
+                    // key={index}
+                    // className='leftPanelIcons'
+                    // icon={icon as IconProp}
+                    // size='1x'
+                    // />
+                    <React.Fragment key={index}>
+                                <FontAwesomeIcon
+                                    className='leftPanelIcons'
+                                    icon={icon as IconProp}
+                                    size='1x'
+                                />
+                                {index < assignPageIcon(file.documentid, p + 1).length - 1 && '  '}
+                            </React.Fragment>
+                ))}
+                {' '}
+                <span>
+                    {isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                </span>
+                </div>
+            }
+            onContextMenu={(e) => openContextMenu(file, p + 1, e)}
+            />
         </div>
         )
         :

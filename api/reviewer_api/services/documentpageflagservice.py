@@ -13,8 +13,37 @@ class documentpageflagservice:
         layerids = redactionlayerservice().getmappedredactionlayers(
             {"redactionlayerid": redactionlayerid}
         )
-        return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
+        latestpageflag = DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
+        consultfromhistroy = DocumentPageflag.getconsultpageflaghistory_by_request(requestid, layerids, documentids)
+        finalresult = latestpageflag
+        print(f"latestpageflag = {latestpageflag}")
+        print(f"consultfromhistroy = {consultfromhistroy}")
+        if len(consultfromhistroy) > 0:
+            finalresult = self.__getfinalpageflag(latestpageflag, consultfromhistroy)
+        # print(f"finalresult == {finalresult}")
 
+        return finalresult
+    
+    def __getfinalpageflag(self, latestpageflag, consultfromhistroy):
+        consult_dict = {doc['documentid']: doc for doc in consultfromhistroy}
+        finalresult = []
+        for latest_doc in latestpageflag:
+            document_id = latest_doc['documentid']
+            consult_doc = consult_dict.get(document_id, None)
+            if consult_doc:
+                consult_flags = [flag for flag in consult_doc['pageflag'] if flag.get('flagid') == 4]
+                print(f"consult_flags = {consult_flags}")
+                print(f"latest_doc = {latest_doc}")
+                consult_doc['pageflag'] = consult_flags + latest_doc['pageflag']
+                # merged_pageflag = latest_doc['pageflag'] + [pf for pf in consult_doc['pageflag'] if pf not in latest_doc['pageflag']]
+                # consult_doc['pageflag'] = merged_pageflag
+                # finalresult.append(consult_doc)
+                # consult_doc['pageflag'] += latest_doc['pageflag']
+                finalresult.append(consult_doc)
+            else:
+                finalresult.append(latest_doc)
+        return finalresult
+    
     def getpublicbody(self, requestid):
         return DocumentPageflag.getpublicbody_by_request(requestid)
 
