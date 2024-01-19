@@ -75,7 +75,7 @@ class GetDocumentPageflag(Resource):
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/ministryrequest/<requestid>/pageflag/<redactionlayerid>')
+@API.route('/ministryrequest/<requestid>/pageflag/<redactionlayer>')
 class GetDocumentPageflag(Resource):
     """Get document page flag list.
     """
@@ -84,10 +84,10 @@ class GetDocumentPageflag(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid, redactionlayerid):
+    def get(requestid, redactionlayer):
         try:
             documentids = request.args.getlist('documentids[]')
-            result = documentpageflagservice().getpageflags(requestid, redactionlayerid, documentids)
+            result = documentpageflagservice().getpageflags(requestid, redactionlayer, documentids)
             return json.dumps(result), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
