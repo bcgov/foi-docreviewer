@@ -15,6 +15,7 @@ from .DeduplicationJob import DeduplicationJob
 from reviewer_api.utils.util import pstformat
 import json
 import logging
+from sqlalchemy import or_, and_, text
 
 class Document(db.Model):
     __tablename__ = 'Documents' 
@@ -120,6 +121,28 @@ class Document(db.Model):
         except Exception as ex:
             logging.error(ex)
             raise ex
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getdocumentidsbyrequest(cls, ministryrequestid):
+        docids = []
+        try:
+            sql = """
+                  select distinct on (docs.documentid) docs.documentid
+                        from  "Documents" docs
+                        where docs.foiministryrequestid = :ministryrequestid 
+                        order by docs.documentid, docs.version desc 
+                """
+            rs = db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid},
+            )  
+            for row in rs:
+                docids.append(row['documentid'])
+            return docids         
+        except Exception as ex:
+            logging.error(ex)
         finally:
             db.session.close()
 
