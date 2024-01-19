@@ -6,17 +6,26 @@ class redactionlayerservice:
 
     def getredactionlayers(self, ministryrequestid):
         return RedactionLayer.getall(ministryrequestid)
+    
+    def getall(self):
+        return RedactionLayer.getlayers()
 
 
     def getdefaultredactionlayerid(self):
         _redactionlayer =  RedactionLayer.getredlineredactionlayer()  
         return _redactionlayer["redactionlayerid"]
     
+    def getredactionlayerid(self, name):
+        _name = self.__normalise(name)
+        layers = RedactionLayer.getlayers()
+        for layer in layers:
+            if (self.__normalise(layer['name']) == _name):
+                return layer["redactionlayerid"]
+        return 0
+    
+
     def getmappedredactionlayers(self, redactionlayer):     
         mpxlayers = []  
-        defaultlayerid = self.getdefaultredactionlayerid()
-        if redactionlayer["redactionlayerid"] != defaultlayerid:
-            mpxlayers.append(defaultlayerid)      
         mpxlayers.append(redactionlayer["redactionlayerid"])
         return mpxlayers
 

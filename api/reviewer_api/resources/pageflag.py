@@ -44,7 +44,7 @@ class GetSections(Resource):
 
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/pageflags/ministryrequest/<requestid>')
+@API.route('/pageflags/ministryrequest/<requestid>/<string:redactionlayer>')
 class GetSections(Resource):
     """Get Pageflags list.
     """
@@ -52,9 +52,9 @@ class GetSections(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid):
+    def get(requestid, redactionlayer):
         try:
-            data = pageflagservice().getpageflag_by_request(requestid)
+            data = pageflagservice().getpageflag_by_request(requestid, redactionlayer)
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500

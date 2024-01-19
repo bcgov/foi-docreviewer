@@ -223,7 +223,7 @@ class DeactivateRedactions(Resource):
 
 
 @cors_preflight("GET,OPTIONS")
-@API.route("/annotation/<int:ministryrequestid>/info")
+@API.route("/annotation/<int:ministryrequestid>/<string:redactionlayer>/info")
 class AnnotationMetadata(Resource):
     """Retrieves annotations for a document"""
 
@@ -231,14 +231,32 @@ class AnnotationMetadata(Resource):
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def get(ministryrequestid):
+    def get(ministryrequestid, redactionlayer):
         try:
-            result = redactionservice().getannotationinfobyrequest(ministryrequestid)
+            result = redactionservice().getannotationinfobyrequest(ministryrequestid, redactionlayer)
             return json.dumps(result), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+
+@cors_preflight("POST,OPTIONS")
+@API.route("/annotation/<int:ministryrequestid>/copy/<string:targetlayer>")
+class DeactivateRedactions(Resource):
+
+    """save or update an annotation for a document"""
+
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post(ministryrequestid, targetlayer):
+        try:
+            result = redactionservice().copyannotation(ministryrequestid, targetlayer)
+            return {'status': result.success, 'message': result.message }, 200
+        except BusinessException as exception:
+            return {'status': False, 'message': exception.message }, 500
+
 
 
 @cors_preflight("GET,OPTIONS")

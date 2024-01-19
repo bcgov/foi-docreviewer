@@ -9,6 +9,11 @@
     cursor: not-allowed !important;
 }
 
+.redline_for_oipc:disabled {
+    color: #999999 !important;
+    cursor: not-allowed !important;
+}
+
 .final_package:disabled {
     color: #999999 !important;
     cursor: not-allowed !important;
