@@ -2144,12 +2144,11 @@ const Redlining = React.forwardRef(
           await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
           await s.setAsBackground(false);
           const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-
+          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
           await s.stampText(
             doc,
-            `${requestnumber} , Page ${
-              redlineSinglePackage == "Y" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-            } of ${docViewer.getPageCount()}`,
+            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
             pgSet
           );
         });
@@ -3121,12 +3120,14 @@ const Redlining = React.forwardRef(
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          await stampPageNumberRedline(
+          if(redlineCategory !== "oipcreview") {  
+            await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
-          );
+            );
+          }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0
@@ -3135,6 +3136,7 @@ const Redlining = React.forwardRef(
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
+          
           let xfdfString =
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
@@ -3174,10 +3176,17 @@ const Redlining = React.forwardRef(
               const doc = await stitchObject.getPDFDoc();
               await PDFNet.Redactor.redact(doc, rarr, app);
             }
-            
+            await stampPageNumberRedline(
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              redlineSinglePackage
+              );  
         }
+        //OIPC - Special Block : End
         
-          //OIPC - Special Block : End
+          
+
           stitchObject
             .getFileData({
               // saves the document with annotations in it
