@@ -104,10 +104,11 @@ const DocumentSelector = React.forwardRef(({
     useEffect(() => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
-    }, []);
+    }, [currentLayer]);
 
     useEffect(() => {
         if(requestInfo.requesttype == "personal" && ["MSD", "MCF"].includes(requestInfo.bcgovcode)) {
@@ -118,13 +119,14 @@ const DocumentSelector = React.forwardRef(({
     const updatePageFlags = () => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
         fetchPageFlag(
             requestid,
-            currentLayer.redactionlayerid,
-            documents.map((d: any) => d.documentid),
+            currentLayer.name.toLowerCase(),
+            documents.map((d: any) => d.documentid),            
             (error: any) => console.log(error)
         )
     }
@@ -863,7 +865,7 @@ const DocumentSelector = React.forwardRef(({
                             Redaction Layer:
                         </div>
                         <div className='col-lg-7' style={{paddingLeft: '0px', display: "flex", justifyContent: "flex-end"}}>
-                            <LayerDropdown ministryrequestid={requestid}/>
+                            <LayerDropdown ministryrequestid={requestid} validoipcreviewlayer={requestInfo.validoipcreviewlayer}/>
                         </div>
                     </div>
                     <hr className='hrStyle' />

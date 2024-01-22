@@ -9,10 +9,9 @@ from datetime import datetime
 
 
 class documentpageflagservice:
-    def getpageflags(self, requestid, redactionlayerid, documentids):
-        layerids = redactionlayerservice().getmappedredactionlayers(
-            {"redactionlayerid": redactionlayerid}
-        )
+    def getpageflags(self, requestid, redactionlayer, documentids):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
         latestpageflag = DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
         consultfromhistroy = DocumentPageflag.getconsultpageflaghistory_by_request(requestid, layerids, documentids)
         finalresult = latestpageflag
@@ -44,8 +43,14 @@ class documentpageflagservice:
                 finalresult.append(latest_doc)
         return finalresult
     
-    def getpublicbody(self, requestid):
-        return DocumentPageflag.getpublicbody_by_request(requestid)
+    def getpageflags(self, requestid, redactionlayer, documentids):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
+    
+    def getpublicbody(self, requestid, redactionlayer):
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
+        return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
     def getdocumentpageflags(
         self, requestid, redactionlayerid, documentid=None, version=None

@@ -189,7 +189,7 @@ export const sortDocObjects = (_pdftronDocObjs, doclist) => {
     _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
     _dlCtr++, _soCtr++
   ) {
-    console.log("I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    //console.log("I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
     if (
       __refinedpdftronDocObjs[_soCtr] != null &&
       __refinedpdftronDocObjs[_soCtr] != undefined
@@ -218,7 +218,7 @@ export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
     _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
     _dlCtr++, _soCtr++
   ) {
-    console.log("REDLINE I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    //console.log("REDLINE I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
     if (
       __refinedpdftronDocObjs[_soCtr] != null &&
       __refinedpdftronDocObjs[_soCtr] != undefined

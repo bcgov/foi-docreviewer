@@ -9,6 +9,7 @@ import json
 from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
+from sqlalchemy import func
 
 
 class Annotation(db.Model):
@@ -38,28 +39,7 @@ class Annotation(db.Model):
         "RedactionLayer", backref=backref("RedactionLayers"), uselist=False
     )
 
-    @classmethod
-    def getannotations(cls, _documentid, _documentversion):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = (
-                db.session.query(Annotation)
-                .filter(
-                    and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.documentversion == _documentversion,
-                        Annotation.isactive == True,
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
-                .all()
-            )
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
+    
     @classmethod
     def getrequestannotations(cls, ministryrequestid, mappedlayerids):
         sql = """select a.*
@@ -134,6 +114,7 @@ class Annotation(db.Model):
         )
         result = _subquery_annotation.paginate(page=page, per_page=size)
         return result
+    
     @classmethod
     def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
         try:
@@ -162,45 +143,7 @@ class Annotation(db.Model):
         finally:
             db.session.close()
 
-    @classmethod
-    def getrequestdivisionannotations(cls, ministryrequestid, divisionid):
-        sql = """
-                select a.*
-                from "Annotations" a
-                join (
-                    select distinct on (docs.documentid) docs.*
-					from  "Documents" docs
-                    where docs.foiministryrequestid = :ministryrequestid
-					order by docs.documentid, docs.version desc
-                ) as d on (d.documentid = a.documentid and d.version = a.documentversion)
-				inner join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid or dm.processingparentid = d.documentmasterid
-                inner join "DocumentAttributes" da
-                    on (da.documentmasterid = dm.documentmasterid or da.documentmasterid = dm.processingparentid)
-					and da.isactive = true
-					and (da.attributes ->> 'divisions')::jsonb @> '[{"divisionid": :divisionid}]'
-					and a.isactive = true
-            """
-        rs = db.session.execute(
-            text(sql),
-            {"ministryrequestid": ministryrequestid, "divisionid": divisionid},
-        )
-        db.session.close()
-        return [
-            {
-                "annotationid": row["annotationid"],
-                "annotationname": row["annotationname"],
-                "documentid": row["documentid"],
-                "documentversion": row["documentversion"],
-                "annotation": row["annotation"],
-                "pagenumber": row["pagenumber"],
-                "isactive": row["isactive"],
-                "createdby": row["createdby"],
-                "created_at": row["created_at"],
-                "updatedby": row["updatedby"],
-                "updated_at": row["updated_at"],
-            }
-            for row in rs
-        ]
+    
 
     @classmethod
     def getredactionsbypage(
@@ -229,52 +172,13 @@ class Annotation(db.Model):
         finally:
             db.session.close()
 
-    @classmethod
-    def getannotationinfo(cls, _documentid, _documentversion):
-        try:
-            annotation_schema = AnnotationSchema(many=True)
-            query = (
-                db.session.query(Annotation.annotationname)
-                .filter(
-                    and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.documentversion == _documentversion,
-                        Annotation.isactive == True,
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
-                .all()
-            )
-            return annotation_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
 
     @classmethod
-    def getannotationid(cls, _annotationname):
-        try:
-            return (
-                db.session.query(Annotation.annotationid)
-                .filter(
-                    and_(
-                        Annotation.annotationname == _annotationname,
-                        Annotation.isactive == True,
-                    )
-                )
-                .first()[0]
-            )
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
-
-    @classmethod
-    def __getannotationkey(cls, _annotationname):
+    def __getannotationkey(cls, _annotationname, _redactionlayerid):
         try:
             return (
                 db.session.query(Annotation.annotationid, Annotation.version)
-                .filter(and_(Annotation.annotationname == _annotationname))
+                .filter(and_(Annotation.annotationname == _annotationname, Annotation.redactionlayerid == _redactionlayerid))
                 .order_by(Annotation.version.desc())
                 .first()
             )
@@ -284,14 +188,14 @@ class Annotation(db.Model):
             db.session.close()
 
     @classmethod
-    def __getbulkannotationkey(cls, _annotationnames):
+    def __getbulkannotationkey(cls, _annotationnames, _redactionlayerid):
         apks = {}
         try:
             sql = """select distinct on (annotationname)  "annotationname", "version", annotationid  
-               from "Annotations"  where annotationname IN :annotationnames
+               from "Annotations"  where annotationname IN :annotationnames and redactionlayerid = :redactionlayerid
                order by annotationname, version desc;"""
             rs = db.session.execute(
-                text(sql), {"annotationnames": tuple(_annotationnames)}
+                text(sql), {"annotationnames": tuple(_annotationnames), "redactionlayerid": _redactionlayerid}
             )
             for row in rs:
                 apks[row["annotationname"]] = {
@@ -313,6 +217,41 @@ class Annotation(db.Model):
             return cls.__bulksaveannotations(annots, redactionlayerid, userinfo, size)
         else:
             return DefaultMethodResult(False, "Invalid Annotation Request", -1)
+
+    @classmethod
+    def isannotationscopied(cls, documentids, targetlayer):
+        try:
+            query = db.session.query(func.count(Annotation.annotationid)).filter(Annotation.documentid.in_(documentids), Annotation.redactionlayerid == targetlayer)
+            annotationcount = query.scalar()
+            return True if annotationcount > 0 else False
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def copyannotations(cls, documentids, sourceredactionlayers, targetlayer) -> DefaultMethodResult:
+        try:
+            sql = """
+                    insert into "Annotations" (annotationname, documentid , documentversion, 
+                    annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
+                    redactionlayerid, "version")                     
+                    select annotationname, documentid , documentversion, 
+                    annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
+                    :targetlayer, 1 from "Annotations" a 
+                    where redactionlayerid in :sourceredactionlayers and isactive = true and documentid in :documentids;
+       
+                """
+            db.session.execute(
+                text(sql),
+                {"documentids": tuple(documentids), "sourceredactionlayers": tuple(sourceredactionlayers), "targetlayer": targetlayer},
+            )  
+            db.session.commit()
+            return DefaultMethodResult(True, "Annotations are copied to layer", targetlayer)         
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()     
 
     @classmethod
     def __chunksaveannotations(
@@ -347,7 +286,7 @@ class Annotation(db.Model):
             wkannots = split(annots, size)
             for wkannot in wkannots:
                 annotnames = [d["name"] for d in wkannot]
-                _pkvannots = cls.__getbulkannotationkey(annotnames)
+                _pkvannots = cls.__getbulkannotationkey(annotnames, redactionlayerid)
                 cls.__bulknewannotations(
                     wkannot, _pkvannots, redactionlayerid, userinfo
                 )
@@ -359,7 +298,7 @@ class Annotation(db.Model):
 
     @classmethod
     def __saveannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
-        annotkey = cls.__getannotationkey(annot["name"])
+        annotkey = cls.__getannotationkey(annot["name"], redactionlayerid)
         if annotkey is None:
             return cls.__newannotation(annot, redactionlayerid, userinfo)
         else:

@@ -100,10 +100,11 @@ class GetDocuments(Resource):
             jsonobj = response.json()
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
-                "requesttype": jsonobj["requestType"]
+                "requesttype": jsonobj["requestType"],
+                "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
-            return json.dumps({"requeststatusid": jsonobj["requeststatusid"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
+            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
