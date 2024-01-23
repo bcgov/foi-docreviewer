@@ -264,7 +264,7 @@ const DocumentSelector = React.forwardRef(({
     //Revisit this method & assign icons when fetching itself!!
     const assignPageIcon = (docId: number, page: number) => {
         let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page);
+        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === 4 || false)) - (Number(a.flagid === 4 || false)));
         // let pageFlagObj = docs?.pageflag?.find((flag: any) => flag.page === page);
         let assignIconValue: any = [];
         for (const pageFlag of pageFlagObjs) {
@@ -465,9 +465,10 @@ const DocumentSelector = React.forwardRef(({
 
     const getFlagName = (file: any, pageNo: number) => {
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
-        if (flag.flagid === 4 && file.consult?.length > 0) {
-            let ministries = flag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
-            ministries.push(...flag.other);
+        let consultFlag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo && flg.flagid === 4);
+        if (consultFlag && file.consult?.length > 0) {
+            let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
+            ministries.push(...consultFlag.other);
             return `Consult - [` + ministries.join(`]\nConsult - [`) + ']';
         }
         return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];

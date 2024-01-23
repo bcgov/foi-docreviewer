@@ -185,7 +185,8 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                if (docInfo.pagecount > pageFlagInfo.pageflag.length) {
+                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== 4)
+                if (docInfo.pagecount > exceptConsult?.length) {
                   // not all page has flag set
                   stopLoop = true;
                   return false; //stop loop
@@ -200,7 +201,7 @@ const Redlining = React.forwardRef(
                       pageFlagTypes["Not Responsive"],
                     ].includes(flag.flagid)
                   );
-                  if (pageFlagArray.length != pageFlagInfo.pageflag.length) {
+                  if (pageFlagArray.length != exceptConsult?.length) {
                     stopLoop = true;
                     return false; //stop loop
                   }
