@@ -275,3 +275,9 @@
         margin-bottom:12px;
     }
 }
+.MuiTreeItem-content {
+    .MuiTreeItem-iconContainer {
+        justify-content: right !important;
+        gap: 2px !important;
+    }
+}
