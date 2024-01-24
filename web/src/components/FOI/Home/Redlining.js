@@ -185,7 +185,7 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== 4)
+                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== pageFlagTypes["Consult"])
                 if (docInfo.pagecount > exceptConsult?.length) {
                   // not all page has flag set
                   stopLoop = true;
