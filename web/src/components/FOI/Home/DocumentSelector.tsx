@@ -264,7 +264,7 @@ const DocumentSelector = React.forwardRef(({
     //Revisit this method & assign icons when fetching itself!!
     const assignPageIcon = (docId: number, page: number) => {
         let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === 4 || false)) - (Number(a.flagid === 4 || false)));
+        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
         let assignIconValue: any = [];
         for (const pageFlag of pageFlagObjs) {
             if (pageFlag.flagid !== undefined) {              
