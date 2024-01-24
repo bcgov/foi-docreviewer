@@ -254,7 +254,7 @@ class DocumentPageflag(db.Model):
         finally:
             db.session.close()
         return pageflags
- 
+
     @classmethod
     def getpublicbody_by_request(cls, _foiministryrequestid, _redactionlayerid):
         pageflags = []
