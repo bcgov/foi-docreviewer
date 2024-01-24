@@ -473,13 +473,14 @@ const DocumentSelector = React.forwardRef(({
         return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
     }
 
-    const codeById: Record<number, string> = {}
-    if (consultMinistries && consultMinistries?.length > 0) {
-        const codeById: Record<number, string> = consultMinistries?.reduce((acc: any, item: any) => {
-            acc[item.programareaid] = item.iaocode;
-            return acc;
-        }, {});
+   const codeById: Record<number, String> = {};
+   if (consultMinistries && consultMinistries?.length > 0) {
+        consultMinistries?.map((item: any) => {
+            codeById[item.programareaid] = item.iaocode;
+        });
     }
+    
+
 
     const openConsulteeList = (e: any) => {
         const consultFlagged = files.filter((file: any) => file.pageFlag?.find((obj: any) => (obj.flagid == 4)));
