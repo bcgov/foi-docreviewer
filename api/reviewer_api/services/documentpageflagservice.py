@@ -8,8 +8,7 @@ from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
 
 
-class documentpageflagservice:
-    
+class documentpageflagservice:    
     def getpageflags(self, requestid, redactionlayer, documentids):
         layerids = []
         layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
@@ -224,17 +223,6 @@ class documentpageflagservice:
         for index, entry in enumerate(pageflag):
             if entry["page"] == data["page"]:
                 isnew = False
-                # if data["flagid"] == 4 and not data["other"] and not data["programareaid"]:
-                #     if entry["flagid"] == data["flagid"]:
-                #         del pageflag[index]
-                #         updated = True
-                #         break
-                # elif data["flagid"] == 4:
-                #     if entry["flagid"] == data["flagid"]:
-                #         del pageflag[index]
-                #         pageflag.append(formatted_data)
-                #         updated = True
-                #         break
                 if data["flagid"] == 4:
                     pageflag, updated = self.__handleconsultflag(data, entry, index, pageflag, formatted_data)
                 # handle all other flags except consult

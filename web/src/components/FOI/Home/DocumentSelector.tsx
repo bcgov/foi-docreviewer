@@ -31,7 +31,7 @@ import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
 import { getStitchedPageNoFromOriginal, docSorting} from "./utils";
 import { pageFlagTypes } from '../../../constants/enum';
-import _, { result } from "lodash";
+import _ from "lodash";
 import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 
