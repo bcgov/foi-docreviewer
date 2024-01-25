@@ -2,6 +2,7 @@ import os
 from walrus import Database
 from reviewer_api.models.default_method_result import DefaultMethodResult
 import logging
+from os import getenv
 
 
 class zipperproducerservice:
@@ -13,12 +14,15 @@ class zipperproducerservice:
 
     db = Database(host=host, port=port, db=0, password=password)
 
-    def add(self, streamkey, payload):
+    def add(self, payload):
         try:
-            stream = self.db.Stream(streamkey)
+            stream = self.db.Stream(self.__streamkey())
             msgid = stream.add(payload, id="*")
             return DefaultMethodResult(True, "Added to stream", msgid.decode("utf-8"))
         except Exception as err:
             logging.error("Error in contacting Redis Stream")
             logging.error(err)
             return DefaultMethodResult(False, err, -1)
+
+    def __streamkey(self):
+        return getenv("ZIPPER_STREAM_KEY")  
