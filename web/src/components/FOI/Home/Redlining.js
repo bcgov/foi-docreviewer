@@ -185,7 +185,8 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                if (docInfo.pagecount > pageFlagInfo.pageflag.length) {
+                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== pageFlagTypes["Consult"])
+                if (docInfo.pagecount > exceptConsult?.length) {
                   // not all page has flag set
                   stopLoop = true;
                   return false; //stop loop
@@ -200,7 +201,7 @@ const Redlining = React.forwardRef(
                       pageFlagTypes["Not Responsive"],
                     ].includes(flag.flagid)
                   );
-                  if (pageFlagArray.length != pageFlagInfo.pageflag.length) {
+                  if (pageFlagArray.length != exceptConsult?.length) {
                     stopLoop = true;
                     return false; //stop loop
                   }
@@ -279,6 +280,8 @@ const Redlining = React.forwardRef(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
 
+    const [filteredComments, setFilteredComments] = useState({});
+
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -314,6 +317,7 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
+          const UIEvents = instance.UI.Events;
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -560,6 +564,25 @@ const Redlining = React.forwardRef(
             fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
               console.log("Error:", error);
             });
+          });
+
+          instance.UI.addEventListener(UIEvents.ANNOTATION_FILTER_CHANGED, e => {
+          e.detail.types = e.detail.types.map(type => {
+            switch (type) {
+              case "stickyNote":
+                return "text";
+              case "rectangle":
+                return "square";
+              case "freehand":
+              case "other":
+                return "ink";
+              case "ellipse":
+                return "circle";
+              default:
+                return type;
+            }
+          });
+          setFilteredComments(e.detail);
           });
           
           documentViewer.addEventListener("click", async () => {
@@ -2457,6 +2480,20 @@ const Redlining = React.forwardRef(
       return stitchAnnotation.join();
     };
 
+    const constructFreeTextAndannoteIds = (data) => {
+      let _freeTextIds=[];
+      let _annoteIds=[];
+      for (let annotxml of data) {
+        let xmlObj = parser.parseFromString(annotxml);
+          if(xmlObj.name === "freetext")
+            _freeTextIds.push(xmlObj.attributes.name);
+          else if(xmlObj.name != "redact" && xmlObj.name != "freetext"){
+            let xmlObjAnnotId = xmlObj.attributes.name;
+            _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
+          }            
+      }
+      return {_freeTextIds, _annoteIds}
+    }
     const getAnnotationSections  = (annot) => {
       let customSectionsData = annot.getCustomData("sections");
       let stampJson = JSON.parse(
@@ -2513,12 +2550,14 @@ const Redlining = React.forwardRef(
       documentid
     ) => {
       let updatedXML = [];
+      const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(data);
+
       for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);
-        if (xmlObj.name === "redact" || xmlObj.name === "freetext") {
+        let xmlObj = parser.parseFromString(annotxml);           
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
+          let flags = xmlObj.attributes.flags;
           let txt = domParser.parseFromString(
             customfield.attributes.bytes,
             "text/html"
@@ -2535,16 +2574,110 @@ const Redlining = React.forwardRef(
               'page="' +
               (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
               '"';
+            let updatedFlags = xmlObj.attributes.flags+',locked';
+              
+            annotxml = annotxml.replace(flags, updatedFlags);
             annotxml = annotxml.replace(oldPageNum, newPage);
 
-            if (xmlObj.name === "redact" || customData["parentRedaction"]) {
-              updatedXML.push(annotxml);
-            }
-          }
+              if (xmlObj.name === "redact" || customData["parentRedaction"] || 
+                (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
+                updatedXML.push(annotxml);
         }
       }
       return updatedXML.join();
     };
+
+    const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
+      //This method handles filtering of annotations in redline
+      let filtered = false;
+
+      const isType = filteredComments.types.includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
+      const isColor = filteredComments.colors.includes(xmlObj.attributes.color.toLowerCase() + 'ff');
+      const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
+      
+      const parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
+      filteredComments.types?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
+        !_freeTextIds.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.inreplyto);
+      
+      const parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&        
+        filteredComments.colors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
+
+      const parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        filteredComments.authors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
+
+      if (filteredComments.types.length > 0 && filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsColor && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
+          return parentIsType && parentIsColor && parentIsAuthor
+        }
+        filtered = isType && (isColor || parentIsColor) && isAuthor
+      }
+      else if (filteredComments.types.length > 0 && filteredComments.colors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsColor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined') {
+          return parentIsType && parentIsColor
+        }
+        filtered = isType && (isColor || parentIsColor)
+      }
+      else if (filteredComments.types.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined'  &&  typeof parentIsAuthor !== 'undefined') {
+          return parentIsType && parentIsAuthor
+        }
+        filtered = isType  && isAuthor
+      }
+      else if (filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsColor && parentIsAuthor))){
+          return true;
+        }
+        else if (typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
+          return parentIsColor && parentIsAuthor
+        }         
+        filtered =  (isColor || parentIsColor) && isAuthor
+      }
+
+      else if (filteredComments.types.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsType ))){
+          return true;
+        }
+        else if (typeof parentIsType !== 'undefined') {
+          return parentIsType
+        }
+        return isType
+      }
+      else if (filteredComments.colors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsColor ))){
+          return true;
+        }
+        else if (typeof parentIsColor !== 'undefined') {
+          return parentIsColor
+        }
+        return isColor
+      }
+      else if (filteredComments.authors.length > 0) {
+        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
+        (parentIsAuthor ))){
+          return true;
+        }
+        else if (typeof parentIsAuthor !== 'undefined') {
+          return parentIsAuthor
+        }
+        return isAuthor
+      }
+      return filtered;
+    }
 
     const cancelSaveRedlineDoc = () => {
       setRedlineModalOpen(false);
@@ -3060,7 +3193,7 @@ const Redlining = React.forwardRef(
               // saves the document with annotations in it
               xfdfString: xfdfString,
               downloadType: downloadType,
-              flatten: true,
+              //flatten: true, //commented this as part of #4862
             })
             .then(async (_data) => {
               const _arr = new Uint8Array(_data);
