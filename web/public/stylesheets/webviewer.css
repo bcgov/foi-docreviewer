@@ -47,3 +47,9 @@
 .freetext-editor{
     visibility: hidden;
 }
+
+/* disable white color from Fill and Stroke of color pallete */
+.cell-container[aria-label="Color 22"] {
+    pointer-events: none;
+    opacity: 0.5; 
+  }
