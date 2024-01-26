@@ -464,7 +464,7 @@ const DocumentSelector = React.forwardRef(({
 
     const getFlagName = (file: any, pageNo: number) => {
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
-        let consultFlag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo && flg.flagid === 4);
+        let consultFlag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
         if (consultFlag && file.consult?.length > 0) {
             let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
             ministries.push(...consultFlag.other);
