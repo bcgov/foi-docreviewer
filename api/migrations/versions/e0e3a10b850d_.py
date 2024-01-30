@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    #Add new section and make its sort order 15
+    #Add new section and make its sort order 26
     op.execute('INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES (\'NR\', \'Not Responsive\', 26, True, \'System\');commit;')
 
 def downgrade():
