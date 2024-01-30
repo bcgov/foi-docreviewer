@@ -418,7 +418,7 @@ class documentservice:
             for document in self.getdedupestatus(requestid)
         }
         attachments = []
-
+        print(f"documents === {documents}")
         for documentid in documents:
             _attachments = documents[documentid].pop("attachments", [])
             for attachment in _attachments:

@@ -26,6 +26,7 @@ computingservices/poc/env/*
 computingservices/DedupeServices/env/*
 computingservices/PDFStitchServices/env/*
 computingservices/ZippingServices/env/*
+computingservices/DocumentServices/env/*
 
 
 ################################################################################

@@ -11,6 +11,7 @@ redishost = os.getenv("REDIS_HOST")
 redisport = os.getenv("REDIS_PORT")
 redispassword = os.getenv("REDIS_PASSWORD")
 documentservice_stream_key = os.getenv("DOCUMENTSERVICE_STREAM_KEY")
+pagecalculator_stream_key = os.getenv("PAGECALCULATOR_STREAM_KEY")
 
 docservice_db_host = os.getenv("DOCUMENTSERVICE_DB_HOST")
 docservice_db_name = os.getenv("DOCUMENTSERVICE_DB_NAME")
