@@ -18,7 +18,15 @@ depends_on = None
 
 def upgrade():
     #Add new section and make its sort order 26
-    op.execute('INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES (\'NR\', \'Not Responsive\', 26, True, \'System\');commit;')
+    op.execute(
+        """
+        INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES ('NR', 'Not Responsive', 26, True, 'System');
+        """
+    )
 
 def downgrade():
-    op.execute('DELETE FROM public."Sections" WHERE section in (\'NR\');commit;')
+    op.execute(
+        """
+        DELETE FROM public."Sections" WHERE section in ('NR');
+        """
+    )
