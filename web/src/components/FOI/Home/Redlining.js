@@ -88,6 +88,7 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
+
     // to enable save final package button - request status needs to be 14 (Response)
     const requestStatus = useAppSelector(
       (state) => state.documents?.requeststatus
@@ -2844,7 +2845,7 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              incompatableList
+              IncompatableList
             );
           }
         },
