@@ -2844,7 +2844,7 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              incompatableList
+              IncompatableList
             );
           }
         },
