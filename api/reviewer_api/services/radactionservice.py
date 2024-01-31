@@ -12,7 +12,7 @@ from reviewer_api.services.external.documentserviceproducerservice import docume
 
 from reviewer_api.utils.util import to_json
 from datetime import datetime
-
+import json
 
 class redactionservice:
     """FOI Document management service"""
@@ -212,6 +212,8 @@ class redactionservice:
             ),
             "finaloutput": to_json({}),
             "attributes": to_json(messageschema["attributes"]),
+            "summarydocuments": json.dumps(messageschema["summarydocuments"]),
+            "redactionlayerid": json.dumps(messageschema["redactionlayerid"])
         }
         return _message
 

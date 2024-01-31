@@ -2050,7 +2050,7 @@ const Redlining = React.forwardRef(
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
-        files: [],
+        files: [], 
       };
       if (stitchedDocPath) {
         const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2075,6 +2075,7 @@ const Redlining = React.forwardRef(
         zipDocObj.divisionname = divObj["divisionname"];
       }
       zipServiceMessage.attributes.push(zipDocObj);
+      zipServiceMessage.summarydocuments = redlineStitchInfo[divObj["divisionid"]]["documentids"];
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
@@ -2615,6 +2616,8 @@ const Redlining = React.forwardRef(
             attributes: [],
             requestnumber: res.requestnumber,
             bcgovcode: res.bcgovcode,
+            summarydocuments: [],
+            redactionlayerid: currentLayer.redactionlayerid
           });
           let stitchDocuments = {};
           let documentsObjArr = [];
@@ -2711,7 +2714,7 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              incompatableList
+              IncompatableList
             );
           }
         },
@@ -2983,7 +2986,7 @@ const Redlining = React.forwardRef(
               redlineSinglePackage
             );
           } else {
-          let formattedAnnotationXML = formatAnnotationsForRedline(
+            let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
@@ -3167,7 +3170,7 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const triggerRedlineZipper = (
+    const triggerRedlineZipper = (      
       divObj,
       stitchedDocPath,
       divisionCountForToast,
