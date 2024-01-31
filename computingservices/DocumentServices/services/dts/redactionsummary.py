@@ -56,7 +56,7 @@ class redactionsummary():
                 range_sections.extend(nextpg["sections"])
                 range_end = nextpg["stitchedpageno"]
             else:
-                rangepg = range_start if range_end == 0 else str(range_start)+"-"+str(range_end)
+                rangepg = range_start if range_end == 0 else str(range_start)+" - "+str(range_end)
                 formatted.append({"range": rangepg, "section": self.__formatsections(pageflag, range_sections)}) 
                 range_start = 0
                 range_end = 0
@@ -68,7 +68,7 @@ class redactionsummary():
         if pageflag in ("Duplicate", "Not Responsive"):
             return pageflag
         distinct_sections = list(set(sections))
-        return pageflag+" under "+",".join(distinct_sections)
+        return pageflag+" under "+", ".join(distinct_sections)
 
 
 
