@@ -20,3 +20,5 @@ class RedlineSchema(Schema):
     attributes = fields.Nested(
         AttributeSchema, many=True, required=True, allow_none=False
     )
+    summarydocuments = fields.List(fields.Int())
+    redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
