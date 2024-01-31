@@ -23,6 +23,8 @@ docservice_s3_region = os.getenv("DOCUMENTSERVICE_S3_REGION")
 docservice_s3_service = os.getenv("DOCUMENTSERVICE_S3_SERVICE")
 docservice_s3_env = os.getenv("DOCUMENTSERVICE_S3_ENV")
 
+docservice_failureattempt = os.getenv('DOCUMENTSERVICE_FAILUREATTEMPT', 3)
+
 
 # Zipper stream config
 zipperredishost = os.getenv("ZIPPER_REDIS_HOST")
