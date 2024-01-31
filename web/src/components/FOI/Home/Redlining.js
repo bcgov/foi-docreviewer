@@ -2076,9 +2076,6 @@ const Redlining = React.forwardRef(
         files: [], 
       };
       if (stitchedDocPath) {
-        console.log(redlineStitchInfo);
-        console.log(redlineStitchInfo["documentids"]);
-
         const stitchedDocPathArray = stitchedDocPath?.split("/");
         let fileName =
           stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -2101,18 +2098,13 @@ const Redlining = React.forwardRef(
         zipDocObj.divisionname = divObj["divisionname"];
       }
       zipServiceMessage.attributes.push(zipDocObj);
-      console.log(redlineStitchInfo);
-      console.log(redlineStitchInfo[divObj["divisionid"]]);
-      console.log(redlineStitchInfo[divObj["divisionid"]]["documentids"]);
       zipServiceMessage.summarydocuments = redlineStitchInfo[divObj["divisionid"]]["documentids"];
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
-        console.log(zipServiceMessage);
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
-          //window.location.reload();
+          window.location.reload();
         });
       }
-      console.log(zipServiceMessage)
       return zipServiceMessage;
     };
 
@@ -3119,12 +3111,7 @@ const Redlining = React.forwardRef(
 
           let divisionid = key;
           let stitchObject = redlineStitchObject[key];
-          console.log('-----------------------');
-          console.log(key);
-          console.log(redlineStitchObject[key]);
-          console.log('-----------------------')
           if (stitchObject == null) {
-            console.log('if')
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
               redlineStitchInfo[divisionid]["s3path"],
@@ -3132,7 +3119,6 @@ const Redlining = React.forwardRef(
               redlineSinglePackage
             );
           } else {
-            console.log('else');
             let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
             redlinepageMappings["divpagemappings"][divisionid],
@@ -3468,7 +3454,7 @@ const Redlining = React.forwardRef(
                       zipServiceMessage
                     );
                     setTimeout(() => {
-                      //window.location.reload(true);
+                      window.location.reload(true);
                     }, 3000);
                   },
                   (_err) => {

@@ -16,6 +16,7 @@ class redactionsummaryservice():
             #Upload to S3
             #Invoke ZIP
             print(message)
+            print(formattedsummary)
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
     

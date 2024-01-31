@@ -34,7 +34,7 @@ class redactionsummary():
                     _data["pagecount"] = len(pageredactions)
                     _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageredactions)
                     summarydata.append(_data)
-            print(summarydata)
+            return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
 
