@@ -8,8 +8,8 @@ This class consolidates schemas of PageCount Calculation Service.
 """
 class DocumentsPageCountIncomingSchema(Schema):
 
-    s3filepath = fields.Str(data_key="s3filepath",allow_none=False)
     filename = fields.Str(data_key="filename",allow_none=False)
+    pagecount = fields.Int(data_key="pagecount",allow_none=False)
     ministryrequestid = fields.Str(data_key="ministryrequestid",allow_none=False)
     documentmasterid = fields.Str(data_key="documentmasterid",allow_none=False)
     trigger = fields.Str(data_key="trigger",allow_none=False)

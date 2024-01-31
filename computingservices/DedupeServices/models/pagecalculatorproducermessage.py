@@ -1,10 +1,8 @@
 class pagecalculatorproducermessage(object):
-    def __init__(self,s3filepath,filename,ministryrequestid,documentmasterid,trigger,outputdocumentmasterid=None,originaldocumentmasterid=None) -> None:
-        self.s3filepath = s3filepath        
-        self.filename=filename
-        self.ministryrequestid=ministryrequestid        
-        self.documentmasterid=documentmasterid
-        # self.outputdocumentmasterid=outputdocumentmasterid
-        # self.originaldocumentmasterid=originaldocumentmasterid
-        self.trigger=trigger
+    def __init__(self,filename,pagecount,ministryrequestid,documentmasterid,trigger) -> None:
+        self.filename = filename
+        self.pagecount = pagecount
+        self.ministryrequestid = ministryrequestid        
+        self.documentmasterid = documentmasterid
+        self.trigger = trigger
         

@@ -10,10 +10,11 @@ class documentspagecalculatorproducerservice:
         self.pagecalculatorredisdb = Database(host=str(pagecalculatorredishost), port=str(pagecalculatorredisport), db=0,password=str(pagecalculatorredispassword), retry_on_timeout=True, health_check_interval=int(health_check_interval), socket_keepalive=True)
         self.pagecalculatorredisstream = self.pagecalculatorredisdb.Stream(pagecalculatorstreamkey)
 
-    def producepagecalculatorevent(self,finalmessage):        
+    def producepagecalculatorevent(self,finalmessage, pagecount):        
         try:
-            _pagecalculatorrequest = pagecalculatorproducermessage(s3filepath=finalmessage.s3filepath,filename=finalmessage.filename,ministryrequestid=finalmessage.ministryrequestid,
-                                                           documentmasterid=finalmessage.documentmasterid,trigger=finalmessage.trigger)
+            _pagecalculatorrequest = pagecalculatorproducermessage(filename=finalmessage.filename, pagecount=pagecount, 
+                                    ministryrequestid=finalmessage.ministryrequestid, documentmasterid=finalmessage.documentmasterid,
+                                    trigger=finalmessage.trigger)
             _pagecalculatorredisstream = self.pagecalculatorredisstream                      
             if _pagecalculatorredisstream is not None:
                 return _pagecalculatorredisstream.add(_pagecalculatorrequest.__dict__,id="*")                    

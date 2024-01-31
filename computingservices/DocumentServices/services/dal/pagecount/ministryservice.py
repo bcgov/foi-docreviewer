@@ -1,0 +1,49 @@
+from utils import getfoidbconnection
+import logging
+import json
+
+
+class ministryervice:
+
+    @classmethod 
+    def getlatestrecordspagecount(cls, ministryrequestid):
+        conn = getfoidbconnection()
+        try:
+            cursor = conn.cursor()
+            query = '''
+                SELECT documentspagecount
+                FROM public."FOIMinistryRequests" 
+                WHERE foiministryrequestid = %s::integer AND isactive = true 
+                ORDER BY version DESC LIMIT 1;
+            '''
+            parameters = (ministryrequestid,)
+            cursor.execute(query, parameters)
+            recordspagecount = cursor.fetchone()[0]
+            return recordspagecount
+        except Exception as error:
+            logging.error("Error in getlatestrecordspagecount")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+    
+    @classmethod
+    def updaterecordspagecount(cls, ministryrequestid, pagecount):
+        conn = getfoidbconnection()
+        try:        
+            cursor = conn.cursor()
+            query = '''
+                    UPDATE public."FOIMinistryRequests" SET documentspagecount = %s:integer
+                    WHERE foiministryrequestid = %s::integer AND isactive = true;
+                '''
+            parameters = (pagecount, ministryrequestid,)
+            cursor.execute(query, parameters)
+            conn.commit()
+            cursor.close()
+        except(Exception) as error:
+            print("Exception while executing func updaterecordspagecount, Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()

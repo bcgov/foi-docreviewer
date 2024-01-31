@@ -1,3 +1,3 @@
 from .foiredisstreamdb import redisstreamdb
 from .foidocumentserviceconfig import *
-from .dbconnection import getdbconnection
+from .dbconnection import getdbconnection, getfoidbconnection
