@@ -20,15 +20,11 @@ class RedactionSummaryIncomingSchema(Schema):
     filestozip = fields.Str(data_key="filestozip",allow_none=False)
     finaloutput = fields.Str(data_key="finaloutput",allow_none=False)
     attributes =  fields.Str(data_key="attributes",allow_none=False)
+    summarydocuments = fields.Str(data_key="summarydocuments",allow_none=False)
+    redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
 
 def get_in_redactionsummary_msg(producer_json):    
-    print("inside get_in_redactionsummary_msg")
-    print(producer_json)
-    print('----------------1--------------')
-    print(__formatmsg(producer_json))
-    print('----------------2--------------')
     messageobject = RedactionSummaryIncomingSchema().load(__formatmsg(producer_json))
-    print(messageobject)
     return dict2obj(messageobject)
 
 def getzipperproducermessage(producer_json):

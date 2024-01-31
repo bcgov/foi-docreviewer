@@ -272,7 +272,7 @@ class FOIFlowS3PresignedRedline(Resource):
                         )
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
-                    
+                        
             if is_single_redline_package(_bcgovcode, packagetype):
                 for div in data["divdocumentList"]:
                     if len(div["documentlist"]) > 0:
