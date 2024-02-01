@@ -43,17 +43,17 @@ class redactionsummaryservice():
             #Method for calling the pdf generation method ends
             #Document
             #Upload to S3 starts
-            messagejson=json.loads(message.attributes)
-            s3uri = messagejson[0]['files'][0]['s3uripath']
+            messagejson=json.loads(message)
+            messageattributes= messagejson.attributes
+            s3uri = messageattributes[0]['files'][0]['s3uripath']
             # Find the last occurrence of '/'
             last_slash_index = s3uri.rfind('/')
             # Remove the filename and everything after it
             s3uri = s3uri[:last_slash_index + 1]
-            divisionname = messagejson[0]['divisionname']
-            category = "redline" #get it from message
+            divisionname = messageattributes[0]['divisionname']
+            category = messagejson.category #"redline" #get it from message
             requestnumber=formattedsummary["requestnumber"]
             filename = f"{requestnumber} - {category} - {divisionname} - summary"
-            #filename = "Summary.pdf"
             print("\nBefore calling uploadbytes", s3uri )
             uploadbytes(filename,redline_redaction_summary.content, s3uri)
             #Upload to S3 ends
