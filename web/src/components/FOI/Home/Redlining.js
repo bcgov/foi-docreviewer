@@ -1471,7 +1471,7 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-
+        console.log('pageSelectionList before update: ', pageSelectionList)
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1480,6 +1480,7 @@ const Redlining = React.forwardRef(
           displayedDoc,
           pageSelectionList
         );
+        console.log('pageSelectionList after update: ', pageSelectionList)
 
         if (redactionSectionsIds.length > 0) {
           let redactionSections = createRedactionSectionsString(
@@ -1705,6 +1706,29 @@ const Redlining = React.forwardRef(
             return flag;
           });
         }
+        
+        const updatePageFlagIdsForNotResponsive = (pageFlagSelections) => {
+          for (let selectedFlag of pageFlagSelections) { //the selected flag
+            let currentPageHasFlag = false;
+            for (let pageFlag of pageFlags) { //the existing flags
+              if (selectedFlag.docid == pageFlag.documentid) {
+                for (let flag of pageFlag.pageflag) { //go over the existing flags in the document
+                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"]) {
+                    currentPageHasFlag = true;
+                  }
+                }
+              }
+            }
+
+            if (!currentPageHasFlag && selectedSections.includes(26)) { //id 26 is Not Responsive
+              selectedFlag.flagid = pageFlagTypes["Full Disclosure"];
+            } else if (currentPageHasFlag && selectedSections.includes(26)) {
+              selectedFlag.flagid = pageFlagTypes["Partial Disclosure"];
+            }
+          }
+        }
+        updatePageFlagIdsForNotResponsive(pageFlagSelections)
+
         // add section annotation
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -3358,6 +3382,28 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const sectionIsDisabled = (sectionid) => {
+      let isDisabled = false;
+      // For sections
+      if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
+        console.log('first')
+        isDisabled = (sectionid === 25 || sectionid === 26)
+        return isDisabled
+      // For Blank Code
+      } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
+        console.log('second')
+        isDisabled = !(sectionid === 25)
+        return isDisabled
+      // For Not Responsive
+      } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
+        console.log('third')
+        isDisabled = !(sectionid === 26)
+        return isDisabled
+      } else {
+        console.log('final')
+      }
+    }
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -3425,12 +3471,7 @@ const Redlining = React.forwardRef(
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
-                        disabled={
-                          selectedSections.length > 0 &&
-                          (section.id === 25
-                            ? !selectedSections.includes(25)
-                            : selectedSections.includes(25))
-                        }
+                        disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
                       <label
