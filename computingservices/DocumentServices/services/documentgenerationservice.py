@@ -1,4 +1,6 @@
 #from reviewer_api.services.cdogs_api_service import cdogsapiservice
+from services.dal.documenttemplateservice import documenttemplateservice
+from services.dal.documenttypeservice import documenttypeservice
 from .cdogsapiservice import cdogsapiservice
 import json
 import logging
@@ -31,21 +33,33 @@ class documentgenerationservice:
     #         raise BusinessException(Error.DATA_NOT_FOUND)  
         
 
-    def generate_pdf(self, receipt_template, data, receipt_template_path='reviewer_api/templates/redline_redaction_summary.docx'):
+    def generate_pdf(self, documenttypename, data, receipt_template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
         template_cached = False
+        receipt_template= self.__gettemplate(documenttypename)
         print("\nreceipt_template:",receipt_template)
-        if receipt_template["cdogs_hash_code"]:
+        if receipt_template is not None and receipt_template["cdogs_hash_code"]:
             print('Checking if template %s is cached', receipt_template["cdogs_hash_code"])
             template_cached = cdogsapiservice().check_template_cached(receipt_template["cdogs_hash_code"], access_token)
             
-        if receipt_template["cdogs_hash_code"] is None or not template_cached:
+        if receipt_template is None or receipt_template["cdogs_hash_code"] is None or not template_cached:
             receipt_template["cdogs_hash_code"] = cdogsapiservice().upload_template(receipt_template_path, access_token)
             print('Uploading new template--->',receipt_template)
+            documenttemplateservice().updatecdogshashcode(receipt_template["document_type_id"], receipt_template["cdogs_hash_code"])
             # receipt_template.flush()
             # receipt_template.commit()
         print('Generating redaction summary')
         return cdogsapiservice().generate_pdf(receipt_template["cdogs_hash_code"], data,access_token)
+    
+    def __gettemplate(self,documenttypename='receipt'):
+        try:
+            receipt_document_type =documenttypeservice().getdocumenttypebyname(documenttypename)
+            receipt_template=None
+            if receipt_document_type is not None:                          
+                receipt_template=documenttemplateservice().gettemplatebytype(receipt_document_type.document_type_id)
+            return receipt_template
+        except (Exception) as error:
+            print('error occured in pagecount calculation service: ', error)
 
     # def upload_receipt(self, filename, filebytes, ministryrequestid, ministrycode, filenumber):
     #     try:

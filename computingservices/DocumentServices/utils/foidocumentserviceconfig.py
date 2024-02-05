@@ -18,6 +18,12 @@ docservice_db_port = os.getenv("DOCUMENTSERVICE_DB_PORT")
 docservice_db_user = os.getenv("DOCUMENTSERVICE_DB_USER")
 docservice_db_password = os.getenv("DOCUMENTSERVICE_DB_PASSWORD")
 
+foi_db_host = os.getenv("FOI_DB_HOST")
+foi_db_name = os.getenv("FOI_DB_NAME")
+foi_db_port = os.getenv("FOI_DB_PORT")
+foi_db_user = os.getenv("FOI_DB_USER")
+foi_db_password = os.getenv("FOI_DB_PASSWORD")
+
 docservice_s3_host = os.getenv("DOCUMENTSERVICE_S3_HOST")
 docservice_s3_region = os.getenv("DOCUMENTSERVICE_S3_REGION")
 docservice_s3_service = os.getenv("DOCUMENTSERVICE_S3_SERVICE")
