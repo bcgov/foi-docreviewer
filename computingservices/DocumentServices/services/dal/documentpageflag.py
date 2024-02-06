@@ -64,6 +64,40 @@ class documentpageflag:
                 conn.close()
 
     @classmethod
+    def get_documents_lastmodified(cls, ministryrequestid, documentids):
+        conn = getdbconnection()
+        docids = []
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select d.documentid from "Documents" d,
+                    "DocumentAttributes" da 
+                    where d.documentmasterid = da.documentmasterid 
+                    and da.isactive = true
+                    and d.foiministryrequestid = %s::integer
+                    and d.documentid  in %s                    
+                    order by da."attributes" ->> \'lastmodified\';""",
+                (ministryrequestid, tuple(documentids)),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    docids.append(entry[0])
+                return docids
+            return None
+
+        except Exception as error:
+            logging.error("Error in getting documentids for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+
+
+    @classmethod
     def getpagecount_by_documentid(cls, ministryrequestid, documentids):
         conn = getdbconnection()
         docpgs = {}
