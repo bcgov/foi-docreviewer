@@ -38,6 +38,13 @@ class redactionsummaryservice():
             category = messagejson.category
             documenttypename= category+"_redaction_summary"
             #receipt_template_path= r'templates/redline_redaction_summary.docx'
+            #Get Data ; Begin
+            divisiondocuments = json.loads(message.summarydocuments)
+            for entry in divisiondocuments:
+                divisionid = entry['divisionid']
+                documentids = entry['documentids']
+                formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
+            #Get Data : End
             #Get Template
             redline_redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,receipt_template_path)
             print("Finished generate_pdf!!")
