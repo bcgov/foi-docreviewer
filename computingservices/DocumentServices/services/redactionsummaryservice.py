@@ -18,6 +18,7 @@ class redactionsummaryservice():
                 divisionid = entry['divisionid']
                 documentids = entry['documentids']
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
+                print(formattedsummary)
             #Get Data : End
             #Get Template
             #Document
@@ -73,8 +74,9 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
             #Invoke ZIP
             
+            
             #print(message)
-                print(formattedsummary)
+            
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
 

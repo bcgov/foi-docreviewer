@@ -27,12 +27,6 @@ def get_in_redactionsummary_msg(producer_json):
     messageobject = RedactionSummaryIncomingSchema().load(__formatmsg(producer_json))
     return dict2obj(messageobject)
 
-def getzipperproducermessage(producer_json):
-    j = json.loads(producer_json)
-    messageobject = redactionsummary(**j)
-    return messageobject
-
-
 def __formatmsg(producer_json):
     j = json.loads(producer_json)
     return j  

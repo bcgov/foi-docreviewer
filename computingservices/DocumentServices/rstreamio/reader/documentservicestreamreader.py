@@ -8,6 +8,7 @@ from utils import redisstreamdb
 from utils.foidocumentserviceconfig import documentservice_stream_key
 from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg
 from services.redactionsummaryservice import redactionsummaryservice
+from rstreamio.writer.zipperstreamwriter import zipperstreamwriter
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -46,6 +47,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     _message = _message.replace("b'","'").replace("'",'')
                     try:
                         redactionsummaryservice().processmessage(get_in_redactionsummary_msg(_message))
+                        zipperstreamwriter().sendmessage(message)
                     except(Exception) as error: 
                         logging.exception(error)       
                     # simulate processing
