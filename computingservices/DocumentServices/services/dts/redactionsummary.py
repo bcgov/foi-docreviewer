@@ -9,12 +9,9 @@ class redactionsummary():
             ordereddocids = documentpageflag().get_documents_lastmodified(message.ministryrequestid, self.__get_documentids(message))
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
-            #Get all page flags
             if totalpagecount <=0:
                 return 
             pageflags = documentpageflag().get_all_pageflags()
-            # Get document page flags
-            #docsummary = []
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
                   
@@ -24,14 +21,9 @@ class redactionsummary():
                 _data = {}
                 _data["flagname"] = pageflag["description"].upper()
                 for docid in ordereddocids:
-                    
-                    #print(pagecount)
-                    #print('pagecount', pagecount)
                     if docid in documentids:
-                        #print('match')
                         docpageflag = docpageflags[docid]
                         filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], pagecount, pageflag["pageflagid"])
-                        
                         if len(filteredpages) > 0:
                             orginalpagenos = [pg['orginalpageno']for pg in filteredpages]
                             docpagesections = documentpageflag().getsections_by_documentid_pageno(message.ministryrequestid, redactionlayerid, docid, orginalpagenos)
@@ -41,8 +33,6 @@ class redactionsummary():
                     _data["pagecount"] = len(pageredactions)
                     _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageredactions)
                     summarydata.append(_data)
-                    #docsummary.append({"docid": docid, "summary": summarydata})
-            
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
