@@ -43,7 +43,7 @@ class redactionsummary():
                     summarydata.append(_data)
                     #docsummary.append({"docid": docid, "summary": summarydata})
             
-            return summarydata
+            return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
 
