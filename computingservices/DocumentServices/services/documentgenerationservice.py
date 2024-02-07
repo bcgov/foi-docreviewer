@@ -36,22 +36,24 @@ class documentgenerationservice:
     def generate_pdf(self, documenttypename, data, receipt_template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
         template_cached = False
-        receipt_template= self.__gettemplate(documenttypename)
-        print("\nreceipt_template:",receipt_template)
-        if receipt_template is not None and receipt_template["cdogs_hash_code"]:
-            print('Checking if template %s is cached', receipt_template["cdogs_hash_code"])
-            template_cached = cdogsapiservice().check_template_cached(receipt_template["cdogs_hash_code"], access_token)
+        templatefromdb= self.__gettemplate(documenttypename)
+        print("\n***templatefromdb:",templatefromdb)
+        if templatefromdb is not None and templatefromdb["cdogs_hash_code"]:
+            print('Checking if template %s is cached', templatefromdb["cdogs_hash_code"])
+            template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
+            templatecdogshashcode = templatefromdb["cdogs_hash_code"]
             
-        if receipt_template is None or receipt_template["cdogs_hash_code"] is None or not template_cached:
-            receipt_template["cdogs_hash_code"] = cdogsapiservice().upload_template(receipt_template_path, access_token)
-            print('Uploading new template--->',receipt_template)
-            documenttemplateservice().updatecdogshashcode(receipt_template["document_type_id"], receipt_template["cdogs_hash_code"])
+        if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
+            templatecdogshashcode = cdogsapiservice().upload_template(receipt_template_path, access_token)
+            print('Uploading new template--->',templatecdogshashcode)
+            if templatefromdb is not None:
+                documenttemplateservice().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
             # receipt_template.flush()
             # receipt_template.commit()
         print('Generating redaction summary')
-        return cdogsapiservice().generate_pdf(receipt_template["cdogs_hash_code"], data,access_token)
+        return cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
     
-    def __gettemplate(self,documenttypename='receipt'):
+    def __gettemplate(self,documenttypename='redline_redaction_summary'):
         try:
             receipt_document_type =documenttypeservice().getdocumenttypebyname(documenttypename)
             receipt_template=None
@@ -59,7 +61,7 @@ class documentgenerationservice:
                 receipt_template=documenttemplateservice().gettemplatebytype(receipt_document_type.document_type_id)
             return receipt_template
         except (Exception) as error:
-            print('error occured in pagecount calculation service: ', error)
+            print('error occured in document generation service - gettemplate method: ', error)
 
     # def upload_receipt(self, filename, filebytes, ministryrequestid, ministrycode, filenumber):
     #     try:
