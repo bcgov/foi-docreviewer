@@ -19,8 +19,6 @@ class redactionsummaryservice():
             #Get Template
             #Document
             #Upload to S3
-            #Invoke ZIP
-            
             
             #print(message)
             
