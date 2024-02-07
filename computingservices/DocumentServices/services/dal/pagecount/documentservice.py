@@ -1,10 +1,48 @@
 from utils import getdbconnection
 import logging
-import json
+from utils.basicutils import to_json
 
 
 class documentservice:
 
+    @classmethod
+    def pagecalculatorjobstart(cls, message):
+        conn = getdbconnection()
+        try:
+                    
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."PageCalculatorJob"
+                (pagecalculatorjobid, version, ministryrequestid, inputmessage, status, createdby)
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s) on conflict (pagecalculatorjobid, version) do nothing returning pagecalculatorjobid;''',
+                (message.jobid, 2, message.ministryrequestid, to_json(message), 'started', message.createdby))
+            conn.commit()
+            cursor.close()
+        except(Exception) as error:
+            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+
+    @classmethod
+    def pagecalculatorjobend(cls, jsonmessage, error, pagecount="", message=""):
+        conn = getdbconnection()
+        try: 
+            
+                cursor = conn.cursor()
+                cursor.execute('''INSERT INTO public."PageCalculatorJob"
+                (pagecalculatorjobid, version, ministryrequestid, inputmessage, pagecount, status, createdby, message)
+                VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s) on conflict (pagecalculatorjobid, version) do nothing returning pagecalculatorjobid;''',
+                (jsonmessage.jobid, 3, jsonmessage.ministryrequestid, to_json(jsonmessage), to_json(pagecount), 'error' if error else 'completed', jsonmessage.createdby, message if error else ""))
+                conn.commit()
+                cursor.close()
+            
+        except(Exception) as error:
+            print("Exception while executing func recordjobend (p7), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
     @classmethod 
     def getdeleteddocuments(cls, ministryrequestid):
         conn = getdbconnection()
@@ -34,7 +72,7 @@ class documentservice:
     
     @classmethod
     def getdocumentmaster(cls, ministryrequestid, deleteddocumentmasterids):
-
+      
         if len(deleteddocumentmasterids) == 0:
             deleteddocumentmasterids = [0]
         conn = getdbconnection()
@@ -52,6 +90,7 @@ class documentservice:
                     LEFT JOIN "Documents" d ON dm2.documentmasterid = d.documentmasterid
                     WHERE dm.ministryrequestid = %s::integer
                     AND da.isactive = true
+                    AND da.attributes->>'incompatible' = 'false'
                     AND dm.documentmasterid NOT IN %s
                     ORDER BY da.attributes->>'lastmodified' DESC
                 '''
@@ -116,6 +155,36 @@ class documentservice:
             return properties
         except Exception as error:
             logging.error("Error in getdocumentproperties")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+
+    @classmethod
+    def getdedupestatus(cls, ministryrequestid):
+        conn = getdbconnection()
+        try:
+            cursor = conn.cursor()           
+            query = '''
+                    SELECT DISTINCT ON (deduplicationjobid) deduplicationjobid, version, documentmasterid, filename  
+                    FROM "DeduplicationJob" fcj  WHERE ministryrequestid = %s::integer
+                    ORDER BY deduplicationjobid, "version" DESC
+                '''
+            parameters = (ministryrequestid,)
+            cursor.execute(query, parameters)
+            result = cursor.fetchall()
+            dedupe = []
+            for row in result:
+                document = {}
+                document["deduplicationjobid"] = row[0]
+                document["version"] = row[1]
+                document["documentmasterid"] = row[2]
+                document["filename"] = row[3]
+                dedupe.append(document)
+            return dedupe
+        except Exception as error:
+            logging.error("Error in getdedupestatus")
             logging.error(error)
             raise
         finally:

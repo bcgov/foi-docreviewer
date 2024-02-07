@@ -108,5 +108,26 @@ class GetPDFStitchJobStatus(Resource):
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/pagecalculatorjobstatus')
+class AddPageCalculatorJobStatus(Resource):
+    """Insert entries into job record table.
+    """
+    @staticmethod
+    # @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post():
+        try:
+            requestjson = request.get_json()
+            result = jobrecordservice().insertpagecalculatorjobstatus(requestjson, AuthHelper.getuserid())
+            respcode = 200 if result.success == True else 500
+            return {'status': result.success, 'message':result.message,'id':result.identifier}, respcode
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
         
     

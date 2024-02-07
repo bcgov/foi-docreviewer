@@ -1,5 +1,3 @@
-import traceback
-import json
 from services.dal.pagecount.documentservice import documentservice
 from services.dal.pagecount.ministryservice import ministryervice
 from utils.basicutils import pstformat
@@ -8,43 +6,42 @@ class pagecountservice():
 
     def calculatepagecount(self, message):
         try:
-            # current record: if main only recordupload, if attachment then attachment/recordreplace
-            # if recordupload: it can be a new/replace/duplicate
-            # if new, get the pagecount from DB, add the current record pagecount to it
-            # if replace then find out the deleted record, minus it from pagecount then add the new pagecount
-            # if attachment: it can be a new/duplicate
-            # if recordreplace only for attachment replace: same documentmasterid for old and new
-            # all of the above, easy way is to calculate the full page count always and replace the pagecount in ministrytable.
-            
             requestpagecount = ministryervice().getlatestrecordspagecount(message.ministryrequestid)
             print(f'requestpagecount == {requestpagecount}')
-            if requestpagecount in (None, 0):
+            if requestpagecount in (None, 0) and hasattr(message, "pagecount"):
                 calculatedpagecount = message.pagecount
             else:
                 calculatedpagecount = self.__calculatepagecount(message)
-                print(f'calculatedpagecount == {calculatedpagecount}')  # save this to ministry table
-            ministryervice().updaterecordspagecount(message.ministryrequestid, calculatedpagecount)
+            print(f'calculatedpagecount == {calculatedpagecount}')
+            if requestpagecount != calculatedpagecount:
+                ministryervice().updaterecordspagecount(message.ministryrequestid, calculatedpagecount)
+            return {'prevpagecount': requestpagecount, 'calculatedpagecount': calculatedpagecount}
         except (Exception) as error:
             print('error occured in pagecount calculation service: ', error)
     
     def __calculatepagecount(self, message):
         records = self.__getdocumentdetails(message)
-        print(f'records = {records}')
         pagecount = 0
         for record in records:
-            if not record["isduplicate"]:
-                pagecount += record["pagecount"]
+            if "isduplicate" not in record or not record["isduplicate"]:
+                pagecount += record.get("pagecount", 0)
+                if "attachments" in record and record["attachments"]:
+                    for attachment in record['attachments']:
+                        if "isduplicate" not in attachment or not attachment["isduplicate"]:
+                            pagecount += attachment.get("pagecount", 0)
         return pagecount    
 
     def __getdocumentdetails(self, message):
         deleted = documentservice().getdeleteddocuments(message.ministryrequestid)
-        records = documentservice().getdocumentmaster(message.ministryrequestid, deleted)
+        dedupes = documentservice().getdedupestatus(message.ministryrequestid)
+        records = documentservice().getdocumentmaster(message.ministryrequestid, deleted)        
         properties = documentservice().getdocumentproperties(message.ministryrequestid, deleted)
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
             record["ministryrequestid"] = message.ministryrequestid
             record["isattachment"] = True if record["parentid"] is not None else False
             record["created_at"] = pstformat(record["created_at"])
+            record = self.__updatededupestatus(dedupes, record)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(records, record["documentmasterid"], [])
 
@@ -69,6 +66,12 @@ class pagecountservice():
                 finalresults.append(finalresult)
 
         return finalresults
+    
+    def __updatededupestatus(self, dedupes, record):
+        for dedupe in dedupes:
+            if record["documentmasterid"] == dedupe["documentmasterid"]:
+                record["filename"] = dedupe["filename"]
+        return record
 
     def __getattachments(self, records, documentmasterid, result=None):
         if not result:
@@ -116,40 +119,27 @@ class pagecountservice():
     ):
         if record["recordid"] is not None:
             _att_in_properties = []
-            (
-                record["pagecount"],
-                record["filename"]
-            ) = self.__getpagecountandfilename(record, parentproperties)
+            (record["pagecount"], record["filename"]) = self.__getpagecountandfilename(record, parentproperties)
             record["isduplicate"], record["duplicatemasterid"] = self.__isduplicate(parentproperties, record)
             if "attachments" in record and len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
-                    duplicatemaster_attachments = self.__getduplicatemasterattachments(
-                        parentswithattachmentsrecords, record["duplicatemasterid"]
-                    )
+                    duplicatemaster_attachments = self.__getduplicatemasterattachments(parentswithattachmentsrecords, record["duplicatemasterid"])
                     if duplicatemaster_attachments is None:
-                        _att_in_properties = self.__getattachmentproperties(
-                            record["attachments"], properties
-                        )
+                        _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                     else:
-                        _att_in_properties = self.__getattachmentproperties(
-                            duplicatemaster_attachments + record["attachments"],
-                            properties,
-                        )
+                        _att_in_properties = self.__getattachmentproperties(duplicatemaster_attachments + record["attachments"],properties)
                 elif len(record["attachments"]) > 0:
-                    _att_in_properties = self.__getattachmentproperties(
-                        record["attachments"], properties
-                    )
+                    _att_in_properties = self.__getattachmentproperties(record["attachments"], properties)
                 for attachment in record["attachments"]:
                     if len(_att_in_properties) > 1:
-                        if attachment["filepath"].endswith(".msg"):                            
+                        if attachment["filepath"].endswith(".msg"):                          
                             attachment["isduplicate"], attachment["duplicatemasterid"] = self.__getduplicatemsgattachment(attachmentsrecords, _att_in_properties, attachment)
                         else:
                             attachment["isduplicate"], attachment["duplicatemasterid"] = self.__isduplicate(_att_in_properties, attachment)
-
-                    (
-                        attachment["pagecount"],
-                        attachment["filename"]
-                    ) = self.__getpagecountandfilename(attachment, _att_in_properties)
+                    else:
+                        attachment["isduplicate"] = False
+                        attachment["duplicatemasterid"] = attachment["documentmasterid"]
+                    (attachment["pagecount"], attachment["filename"]) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
 
     def __getpagecountandfilename(self, record, properties):
@@ -206,7 +196,7 @@ class pagecountservice():
                 attachment["isduplicate"] = True
                 attachment["duplicatemasterid"] = _firstupload
                 return attachment["isduplicate"], attachment["duplicatemasterid"]
-        return False
+        return False, attachment["documentmasterid"]
 
     def __isduplicate(self, properties, record):
         matchedhash = None

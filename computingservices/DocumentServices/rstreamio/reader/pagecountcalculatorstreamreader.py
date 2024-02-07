@@ -31,7 +31,6 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         print(f"PC Starting from {start_from.name}")
 
     while True:
-        print("PC Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
         if messages:
             for _messages in messages:
@@ -52,4 +51,4 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                 print(f"PC finished processing {message_id}")
         else:
-            print(f"PC No new messages after ID: {last_id}")
+            logging.info(f"PC No new messages after ID: {last_id}")
