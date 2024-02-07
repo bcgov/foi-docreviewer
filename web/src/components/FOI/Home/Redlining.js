@@ -2825,18 +2825,13 @@ const Redlining = React.forwardRef(
           
           setRedlineStitchInfo(stitchDoc);
           setIssingleredlinepackage(res.issingleredlinepackage);
-          console.log("-----------");
-          console.log(divisionDocuments);
-          console.log(stitchDocuments);
-          console.log();
-          console.log("-------------")
           setRedlineZipperMessage({
             ministryrequestid: requestid,
             category: getzipredlinecategory(layertype),
             attributes: [],
             requestnumber: res.requestnumber,
             bcgovcode: res.bcgovcode,
-            summarydocuments: preparesummarylist(stitchDocuments),
+            summarydocuments: prepareredlinesummarylist(stitchDocuments),
             redactionlayerid: currentLayer.redactionlayerid
           });
           if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
@@ -2865,7 +2860,7 @@ const Redlining = React.forwardRef(
       );
     };
 
-    const preparesummarylist = (stitchDocuments) => {
+    const prepareredlinesummarylist = (stitchDocuments) => {
       let summarylist = []
       for (const [key, value] of Object.entries(stitchDocuments)) {
         let summary_division = {};
@@ -2882,6 +2877,7 @@ const Redlining = React.forwardRef(
       }
       return summarylist
     }
+
 
     const stitchForRedlineExport = async (
       _instance,
@@ -3350,13 +3346,14 @@ const Redlining = React.forwardRef(
       _instance
     ) => {
       const downloadType = "pdf";
-
       let zipServiceMessage = {
         ministryrequestid: requestid,
         category: "responsepackage",
         attributes: [],
         requestnumber: "",
         bcgovcode: "",
+        summarydocuments : prepareresponseredlinesummarylist(documentList),
+        redactionlayerid: currentLayer.redactionlayerid
       };
 
       getResponsePackagePreSignedUrl(
@@ -3505,6 +3502,19 @@ const Redlining = React.forwardRef(
         }
       );
     };
+
+    const prepareresponseredlinesummarylist = (documentlist) => {
+      let summarylist = []
+      let summary_division = {};
+      let summary_divdocuments = [];
+      summary_division["divisionid"] = '0';
+      for (let doc of documentlist) {
+          summary_divdocuments.push(doc.documentid);
+      }
+      summary_division["documentids"] = summary_divdocuments;
+      summarylist.push(summary_division);      
+      return summarylist
+    }
 
     const compareValues = (a, b) => {
       if (modalSortNumbered) {
