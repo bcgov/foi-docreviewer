@@ -46,32 +46,8 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
                     _message = _message.replace("b'","'").replace("'",'')
                     try:
-                        
                         filestozip= redactionsummaryservice().processmessage(get_in_redactionsummary_msg(_message))
-                        msgjson= json.loads(_message)
-                        filestozip_list = msgjson['filestozip']
-                        filestozip_list = json.loads(filestozip_list)
-                        print("####TYPE of filestozip : ####",type(filestozip_list))
-                        filestozip_list=filestozip
-                        json_string = json.dumps(filestozip_list)
-                        bytes_data = json_string.encode('utf-8')
-                        msgjson['filestozip'] =bytes_data
-
-                        filesto_list1=json.loads(msgjson['attributes'])[0]['files']
-                        print("ddd",filesto_list1)
-                        filesto_list=filesto_list1
-                        filesto_list=filestozip
-                        #json_string_attr_files =json.dumps(filesto_list)
-                        #bytes_data1 = json_string_attr_files.encode('utf-8')
-                        attributes_list = json.loads(msgjson['attributes'])
-                        attributes_list[0]['files'] = filestozip #bytes_data1
-                        print("\n\nattributes_list: ",attributes_list)
-                        msgjson['attributes'] = json.dumps(attributes_list)
-                        # print("bytes_data",bytes_data1)
-                        # print("LLLLLLL:",json.loads(msgjson['attributes'])[0]['files'])
-                        # print("LLdsf:",msgjson['attributes'])
-                        #json.loads(msgjson['attributes'])[0]['files']=bytes_data1
-                        print("updated_message_bytes:",msgjson)
+                        msgjson= redactionsummaryservice().updatefilestozip(filestozip, _message)
                         zipperstreamwriter().sendmessage(msgjson)
                     except(Exception) as error: 
                         logging.exception(error)       

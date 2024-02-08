@@ -5,7 +5,7 @@ import os
 import re
 
 import requests
-#from reviewer_api.exceptions import BusinessException, Error
+from utils.foidocumentserviceconfig import cdogs_base_url,cdogs_token_url,cdogs_service_client,cdogs_service_client_secret
 
 
 class cdogsapiservice:
@@ -35,7 +35,7 @@ class cdogsapiservice:
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
         }
-        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}/render"
+        url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}/render"
         return self._post_generate_pdf(json_request_body, headers, url)
 
     def _post_generate_pdf(self, json_request_body, headers, url):
@@ -52,7 +52,7 @@ class cdogsapiservice:
         "Authorization": f'Bearer {access_token}'
         }
 
-        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template"
+        url = f"{cdogs_base_url}/api/v2/template"
                 
         if os.path.exists(receipt_template_path):
             print("@@@Exists!!")
@@ -89,16 +89,16 @@ class cdogsapiservice:
         headers = {
         "Authorization": f'Bearer {access_token}'
         }
-        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}"
+        url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}"
         response = requests.get(url, headers= headers)
         return response.status_code == 200
         
 
     def _get_access_token(self):
-        #print("\n\nCDOGS_TOKEN_URL:",os.getenv['CDOGS_TOKEN_URL'])
-        token_url = os.getenv['CDOGS_TOKEN_URL']
-        service_client = os.getenv['CDOGS_SERVICE_CLIENT']
-        service_client_secret = os.getenv['CDOGS_SERVICE_CLIENT_SECRET']
+        print("Inside _get_access_token!!")
+        token_url = cdogs_token_url
+        service_client = cdogs_service_client
+        service_client_secret = cdogs_service_client_secret
         basic_auth_encoded = base64.b64encode(
             bytes(service_client + ':' + service_client_secret, 'utf-8')).decode('utf-8')
         data = 'grant_type=client_credentials'

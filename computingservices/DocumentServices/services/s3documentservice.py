@@ -75,7 +75,7 @@ def uploadbytes(filename, filebytes, s3uri):
             print("\n*****docservice_s3_region:",docservice_s3_region)
             print("\n*****docservice_s3_service:",docservice_s3_service)
             #s3uri = 'https://{0}/{1}/{2}/{3}'.format(pdfstitch_s3_host,formsbucket, requestnumber, filename)   
-            s3uri= s3uri+filename+".pdf"     
+            s3uri= s3uri+filename    
             print("\n\ns3uri before frst PUT:",s3uri)
             response = requests.put(s3uri, data=None, auth=auth)
             print("\n***response for header:",response.request.headers)

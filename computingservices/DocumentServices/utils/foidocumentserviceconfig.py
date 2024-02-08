@@ -37,3 +37,9 @@ zipperredishost = os.getenv("ZIPPER_REDIS_HOST")
 zipperredisport = os.getenv("ZIPPER_REDIS_PORT")
 zipperredispassword = os.getenv("ZIPPER_REDIS_PASSWORD")
 zipper_stream_key = os.getenv("ZIPPER_STREAM_KEY")
+
+
+cdogs_base_url = os.getenv("CDOGS_BASE_URL")
+cdogs_token_url = os.getenv("CDOGS_TOKEN_URL")
+cdogs_service_client = os.getenv("CDOGS_SERVICE_CLIENT")
+cdogs_service_client_secret = os.getenv("CDOGS_SERVICE_CLIENT_SECRET")
