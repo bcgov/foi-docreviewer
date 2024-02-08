@@ -4,6 +4,17 @@ import json
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids):
+        redactionsummary = self.prepare_pkg_redactionsummary(message,documentids)
+        if message.category == "responsepackage":
+            consolidated_redactions = []
+            for entry in redactionsummary['data']:
+                consolidated_redactions += entry['sections']
+            sortedredactions = sorted(consolidated_redactions, key=lambda x: int(str(x["range"]).split('-')[0])) 
+            return {"requestnumber": message.requestnumber, "data": sortedredactions}
+        return redactionsummary
+
+    
+    def prepare_pkg_redactionsummary(self, message, documentids):
         try:
             redactionlayerid = message.redactionlayerid
             ordereddocids = documentpageflag().get_documents_lastmodified(message.ministryrequestid, self.__get_documentids(message))

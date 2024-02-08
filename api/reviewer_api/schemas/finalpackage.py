@@ -9,6 +9,9 @@ class FileSchema(Schema):
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
 
+class SummarySchema(Schema):
+    divisionid = fields.Int(data_key="divisionid", allow_none=True)
+    documentids = fields.List(fields.Int())
 
 class FinalPackageSchema(Schema):
     ministryrequestid = fields.Str(data_key="ministryrequestid", allow_none=False)
@@ -18,3 +21,7 @@ class FinalPackageSchema(Schema):
     attributes = fields.Nested(
         AttributeSchema, many=True, required=True, allow_none=False
     )
+    summarydocuments = fields.Nested(
+        SummarySchema, many=True, required=True, allow_none=False
+    )
+    redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
