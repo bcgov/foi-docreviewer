@@ -89,15 +89,15 @@ def uploadbytes(filename, filebytes, s3uri):
             print("\n\ns3uriNOW after:",s3uri)
             uploadresponse= requests.put(s3uri, data=filebytes, headers=header)
             print("***uploadresponse--->",uploadresponse)
-            attachmentobj = {"success": True, "filename": filename, "documentpath": s3uri}
+            uploadobj = {"uploadresponse": uploadresponse, "filename": filename, "documentpath": s3uri}
             #print("\n\nattachmentobjNOW:",attachmentobj)
-            return uploadresponse
+            return uploadobj
         except Exception as ex:
             if retry > int(docservice_failureattempt):
                 logging.error("Error in uploading document to S3")
                 logging.error(ex)
-                attachmentobj = {"success": False, "filename": filename, "documentpath": None}
-                raise ValueError(attachmentobj, ex)
+                uploadobj = {"success": False, "filename": filename, "documentpath": None}
+                raise ValueError(uploadobj, ex)
             logging.info(f"uploadbytes s3retry = {retry}")
             
             retry += 1
