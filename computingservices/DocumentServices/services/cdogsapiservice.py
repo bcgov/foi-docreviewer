@@ -35,8 +35,7 @@ class cdogsapiservice:
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
         }
-        #url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}/render"
-        url = f"https://cdogs-dev.api.gov.bc.ca/api/v2/template/{template_hash_code}/render"
+        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}/render"
         return self._post_generate_pdf(json_request_body, headers, url)
 
     def _post_generate_pdf(self, json_request_body, headers, url):
@@ -53,9 +52,8 @@ class cdogsapiservice:
         "Authorization": f'Bearer {access_token}'
         }
 
-        #url = f"{current_app.config['CDOGS_BASE_URL']}/api/v2/template"
-        url = "https://cdogs-dev.api.gov.bc.ca/api/v2/template"
-        
+        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template"
+                
         if os.path.exists(receipt_template_path):
             print("@@@Exists!!")
         template = {'template':('template', open(receipt_template_path, 'rb'), "multipart/form-data")}
@@ -91,21 +89,16 @@ class cdogsapiservice:
         headers = {
         "Authorization": f'Bearer {access_token}'
         }
-
-        #url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}"
-        url = f"https://cdogs-dev.api.gov.bc.ca/api/v2/template/{template_hash_code}"
-
+        url = f"{os.getenv['CDOGS_BASE_URL']}/api/v2/template/{template_hash_code}"
         response = requests.get(url, headers= headers)
         return response.status_code == 200
         
 
     def _get_access_token(self):
-        print("\n\n*********")
         #print("\n\nCDOGS_TOKEN_URL:",os.getenv['CDOGS_TOKEN_URL'])
-        token_url = "https://dev.loginproxy.gov.bc.ca/auth/realms/comsvcauth/protocol/openid-connect/token" #os.getenv['CDOGS_TOKEN_URL']
-        service_client = "906B4222-00D7D1A3339" #os.getenv['CDOGS_SERVICE_CLIENT']
-        service_client_secret = "c7c94a59-bed6-4fc3-85ed-acc43161753e" #os.getenv['CDOGS_SERVICE_CLIENT_SECRET']
-        print("token_url:",token_url)
+        token_url = os.getenv['CDOGS_TOKEN_URL']
+        service_client = os.getenv['CDOGS_SERVICE_CLIENT']
+        service_client_secret = os.getenv['CDOGS_SERVICE_CLIENT_SECRET']
         basic_auth_encoded = base64.b64encode(
             bytes(service_client + ':' + service_client_secret, 'utf-8')).decode('utf-8')
         data = 'grant_type=client_credentials'
