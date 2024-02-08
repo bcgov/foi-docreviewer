@@ -8,16 +8,15 @@ from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
 from reviewer_api.services.jobrecordservice import jobrecordservice
-from reviewer_api.services.external.zipperproducerservice import zipperproducerservice
+from reviewer_api.services.external.documentserviceproducerservice import documentserviceproducerservice
 
 from reviewer_api.utils.util import to_json
 from datetime import datetime
-
+import json
 
 class redactionservice:
     """FOI Document management service"""
 
-    zipperstreamkey = getenv("ZIPPER_STREAM_KEY")
 
     
     def getannotationsbyrequest(
@@ -193,13 +192,13 @@ class redactionservice:
             _jobmessage, userinfo["userid"]
         )
         if job.success:
-            _message = self.__preparemessageforzipservice(
+            _message = self.__preparemessageforsummaryservice(
                 finalpackageschema, userinfo, job
             )
-            return zipperproducerservice().add(self.zipperstreamkey, _message)
+            return documentserviceproducerservice().add(_message)
 
     # redline/final package download: prepare message for zipping service
-    def __preparemessageforzipservice(self, messageschema, userinfo, job):
+    def __preparemessageforsummaryservice(self, messageschema, userinfo, job):
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
@@ -213,6 +212,8 @@ class redactionservice:
             ),
             "finaloutput": to_json({}),
             "attributes": to_json(messageschema["attributes"]),
+            "summarydocuments": json.dumps(messageschema["summarydocuments"]),
+            "redactionlayerid": json.dumps(messageschema["redactionlayerid"])
         }
         return _message
 

@@ -2073,7 +2073,7 @@ const Redlining = React.forwardRef(
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
-        files: [],
+        files: [], 
       };
       if (stitchedDocPath) {
         const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2098,6 +2098,7 @@ const Redlining = React.forwardRef(
         zipDocObj.divisionname = divObj["divisionname"];
       }
       zipServiceMessage.attributes.push(zipDocObj);
+      //zipServiceMessage.summarydocuments = redlineStitchInfo[divObj["divisionid"]]["documentids"];
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
@@ -2742,13 +2743,7 @@ const Redlining = React.forwardRef(
           let IncompatableList = prepareRedlineIncompatibleMapping(res);
           setIncompatableList(IncompatableList);
           fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
-          setRedlineZipperMessage({
-            ministryrequestid: requestid,
-            category: getzipredlinecategory(layertype),
-            attributes: [],
-            requestnumber: res.requestnumber,
-            bcgovcode: res.bcgovcode,
-          });
+          
           let stitchDocuments = {};
           let documentsObjArr = [];
           let divisionstitchpages = [];
@@ -2830,6 +2825,15 @@ const Redlining = React.forwardRef(
           
           setRedlineStitchInfo(stitchDoc);
           setIssingleredlinepackage(res.issingleredlinepackage);
+          setRedlineZipperMessage({
+            ministryrequestid: requestid,
+            category: getzipredlinecategory(layertype),
+            attributes: [],
+            requestnumber: res.requestnumber,
+            bcgovcode: res.bcgovcode,
+            summarydocuments: prepareredlinesummarylist(stitchDocuments),
+            redactionlayerid: currentLayer.redactionlayerid
+          });
           if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
             stitchSingleDivisionRedlineExport(
               _instance,
@@ -2844,7 +2848,7 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              incompatableList
+              IncompatableList
             );
           }
         },
@@ -2855,6 +2859,25 @@ const Redlining = React.forwardRef(
         currentLayer.name.toLowerCase()
       );
     };
+
+    const prepareredlinesummarylist = (stitchDocuments) => {
+      let summarylist = []
+      for (const [key, value] of Object.entries(stitchDocuments)) {
+        let summary_division = {};
+        summary_division["divisionid"] = key
+        let documentlist = stitchDocuments[key];
+        if(documentlist.length > 0) {
+          let summary_divdocuments = []
+          for (let doc of documentlist) {
+            summary_divdocuments.push(doc.documentid);
+          }
+          summary_division["documentids"] = summary_divdocuments;
+        }
+        summarylist.push(summary_division);
+      }
+      return summarylist
+    }
+
 
     const stitchForRedlineExport = async (
       _instance,
@@ -3116,7 +3139,7 @@ const Redlining = React.forwardRef(
               redlineSinglePackage
             );
           } else {
-          let formattedAnnotationXML = formatAnnotationsForRedline(
+            let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
@@ -3300,7 +3323,7 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const triggerRedlineZipper = (
+    const triggerRedlineZipper = (      
       divObj,
       stitchedDocPath,
       divisionCountForToast,
@@ -3323,13 +3346,14 @@ const Redlining = React.forwardRef(
       _instance
     ) => {
       const downloadType = "pdf";
-
       let zipServiceMessage = {
         ministryrequestid: requestid,
         category: "responsepackage",
         attributes: [],
         requestnumber: "",
         bcgovcode: "",
+        summarydocuments : prepareresponseredlinesummarylist(documentList),
+        redactionlayerid: currentLayer.redactionlayerid
       };
 
       getResponsePackagePreSignedUrl(
@@ -3478,6 +3502,19 @@ const Redlining = React.forwardRef(
         }
       );
     };
+
+    const prepareresponseredlinesummarylist = (documentlist) => {
+      let summarylist = []
+      let summary_division = {};
+      let summary_divdocuments = [];
+      summary_division["divisionid"] = '0';
+      for (let doc of documentlist) {
+          summary_divdocuments.push(doc.documentid);
+      }
+      summary_division["documentids"] = summary_divdocuments;
+      summarylist.push(summary_division);      
+      return summarylist
+    }
 
     const compareValues = (a, b) => {
       if (modalSortNumbered) {
