@@ -48,20 +48,11 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     try:
                         
                         filestozip= redactionsummaryservice().processmessage(get_in_redactionsummary_msg(_message))
-                        # print("\n$$Before zipping- after summary- updatedmessage:", filestozip)
-                        # print("\n$$Before zipping- after summary- message:", message)
-                        #message_dict = {key.decode('utf-8'): value.decode('utf-8') for key, value in message.items()}
-                        #print("\n\n@@@@message_dict: ",message_dict)
-                        # Update the 'filestozip' field
-                        ####################################
                         msgjson= json.loads(_message)
                         filestozip_list = msgjson['filestozip']
-                        #filestozip_list= str(filestozip) # Add a new file
                         filestozip_list = json.loads(filestozip_list)
                         print("####TYPE of filestozip : ####",type(filestozip_list))
                         filestozip_list=filestozip
-                        # Convert the updated dictionary back to bytes
-                        #updated_message_bytes = {key.encode('utf-8'): value.encode('utf-8') for key, value in message_dict.items()}
                         json_string = json.dumps(filestozip_list)
                         bytes_data = json_string.encode('utf-8')
                         msgjson['filestozip'] =bytes_data
@@ -70,19 +61,17 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                         print("ddd",filesto_list1)
                         filesto_list=filesto_list1
                         filesto_list=filestozip
-                        json_string_attr_files =json.dumps(filesto_list)
-                        bytes_data1 = json_string_attr_files.encode('utf-8')
+                        #json_string_attr_files =json.dumps(filesto_list)
+                        #bytes_data1 = json_string_attr_files.encode('utf-8')
                         attributes_list = json.loads(msgjson['attributes'])
                         attributes_list[0]['files'] = filestozip #bytes_data1
                         print("\n\nattributes_list: ",attributes_list)
                         msgjson['attributes'] = json.dumps(attributes_list)
-
                         # print("bytes_data",bytes_data1)
                         # print("LLLLLLL:",json.loads(msgjson['attributes'])[0]['files'])
                         # print("LLdsf:",msgjson['attributes'])
                         #json.loads(msgjson['attributes'])[0]['files']=bytes_data1
                         print("updated_message_bytes:",msgjson)
-                        ############################################
                         zipperstreamwriter().sendmessage(msgjson)
                     except(Exception) as error: 
                         logging.exception(error)       

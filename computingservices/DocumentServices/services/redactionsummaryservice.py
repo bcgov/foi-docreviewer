@@ -78,40 +78,8 @@ class redactionsummaryservice():
                     summaryuploaderror= True
                     summaryuploaderrormsg = uploadobj.uploadresponse.text
                 pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
-            #Invoke ZIP
-            
-            
-            #print(message)
-            
-                
                 filestozip= json.loads(message.filestozip)
                 filestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
-            #     msgattributesjson= json.loads(message.attributes)
-            #     print("!!!!",msgattributesjson)
-            #     print("!!!!type: ",type(msgattributesjson))
-
-                
-            #     filtered_list = [item for item in msgattributesjson if item.get('divisionid') == divisionid]
-            #     filtered_list[0]['files']=filestozip
-            #     print("filtered_list:",filtered_list)
-            #     print("####TYPE of filtered_list : ####",type(filtered_list))
-            #     print("msgattributesjson:",msgattributesjson)
-
-            # # msgjson= json.loads(message)
-            # # print("1updated_message_bytes:",msgjson)
-            # print("$$$$$",type(message.filestozip))
-            # filestozip_list = json.loads(message.filestozip)
-            # print("####TYPE of filestozip : ####",type(filestozip_list))
-            # filestozip_list=filestozip
-            # print("$$$$$filestozip_list",filestozip_list)
-
-            # # # Convert the updated dictionary back to bytes
-            # # #updated_message_bytes = {key.encode('utf-8'): value.encode('utf-8') for key, value in message_dict.items()}
-            # json_string = json.dumps(filestozip_list)
-            # print("$$$$$json_string",json_string)
-            # bytes_data = json_string.encode('utf-8')
-            # message.filestozip =bytes_data
-            # print("updated_message_bytes:",message)
             return filestozip
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
