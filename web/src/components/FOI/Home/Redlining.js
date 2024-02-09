@@ -35,6 +35,7 @@ import {
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
+  savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -1450,6 +1451,8 @@ const Redlining = React.forwardRef(
       let redactionSectionsIds = selectedSections;
       let redactionIds = [];
       let pageSelectionList = [];
+      let existingAnnotationsMap = {}; //maps # of existing annotations to doc and page id
+      let editedAnnotationsMap = {}; //maps # of annotations being updated to doc and page id
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let _redact = annotManager
           .getAnnotationsList()
@@ -1511,6 +1514,38 @@ const Redlining = React.forwardRef(
         childAnnotation.setRect(rect);
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
+        
+        // map the annotations being edited to docid and page
+        // _annotation with docid and page
+        let _annotation = pageMappedDocs.stitchedPageLookup[childAnnotation.PageNumber]
+        if (editedAnnotationsMap[_annotation.docid]) {
+          if (editedAnnotationsMap[_annotation.docid][_annotation.page]) {
+            editedAnnotationsMap[_annotation.docid][_annotation.page] =
+              editedAnnotationsMap[_annotation.docid][_annotation.page] + 1;
+          } else {
+            editedAnnotationsMap[_annotation.docid][_annotation.page] = 1;
+          }
+        } else {
+          editedAnnotationsMap[_annotation.docid] = { [_annotation.page]: 1 };
+        }
+
+        // map the existing annotations to docid and page
+        if (Object.keys(existingAnnotationsMap).length === 0) {
+          for (let annot of redactionInfo) {
+            console.log('annot: ', annot)
+            let annotPageNumber = annot.pagenumber + 1
+            if (existingAnnotationsMap[annot.documentid]) {
+              if (existingAnnotationsMap[annot.documentid][annotPageNumber]) {
+                existingAnnotationsMap[annot.documentid][annotPageNumber] =
+                  existingAnnotationsMap[annot.documentid][annotPageNumber] + 1;
+              } else {
+                existingAnnotationsMap[annot.documentid][annotPageNumber] = 1;
+              }
+            } else {
+              existingAnnotationsMap[annot.documentid] = { [annotPageNumber]: 1 };
+            }
+          }
+        }
       }
       let _annotationtring = annotManager.exportAnnotations({
         annotationList: childAnnotations,
@@ -1553,6 +1588,13 @@ const Redlining = React.forwardRef(
         setEnableMultiSelect(false);
         setMultiSelectFooter(null);
         setEditRedacts(null);
+
+        // wait for saveAnnotations to complete before refetching annotations info from api
+        setTimeout(() => {
+          fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+            console.log("Error:", error);
+          });
+        }, 100)
       });
 
       setNewRedaction(null);
@@ -1860,6 +1902,48 @@ const Redlining = React.forwardRef(
         setNewRedaction(null);
       }
     };
+
+    const mapAnnotations = (annotations) => {
+      let annotationsMap = {};
+      for (let annot of annotations) { 
+        if (annotationsMap[annot.documentid]) {
+          if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
+            annotationsMap[annot.documentid][annot.pagenumber + 1]++;
+          } else {
+            annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
+          }
+        } else {
+          annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
+        }
+      }
+      return annotationsMap
+    }
+
+    const findPagesWithOnlyNRAnnotations = (allAnnotationsMap, NRAnnotationsMap) => {
+      let selectedPages = []
+      for (let doc in allAnnotationsMap) {
+        for (let page in allAnnotationsMap?.[doc]) {
+          if (allAnnotationsMap?.[doc]?.[page] == NRAnnotationsMap?.[doc]?.[page]) {
+            selectedPages.push({ docid: doc, page: page, flagid: 2 })
+          }
+        }
+      }
+      return selectedPages
+    }
+
+    useEffect(() => {
+      let allAnnotationsMap = mapAnnotations(redactionInfo)
+      let NRAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(26)))
+      
+      let selectedPages = findPagesWithOnlyNRAnnotations(allAnnotationsMap, NRAnnotationsMap)
+      savePageFlag(
+        requestid, 
+        0, 
+        (data) => console.log('data: ', data), 
+        (error) => console.log('error: ', error), 
+        createPageFlagPayload(selectedPages, currentLayer.redactionlayerid)
+      )
+    }, [redactionInfo])
 
     const getCoordinates = (_annot, _redaction, X) => {
       _annot.PageNumber = _redaction?.getPageNumber();
