@@ -118,7 +118,7 @@ export const updatePageFlags = (
 ) => {
   //page flag updates
   if (
-    (defaultSections.length > 0 && defaultSections[0] === 25) ||
+    //(defaultSections.length > 0 && defaultSections[0] === 25) ||
     (selectedSections && selectedSections[0] === 25)
   ) {
     pageSelectionList.push({

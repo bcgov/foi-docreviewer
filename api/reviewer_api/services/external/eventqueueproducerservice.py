@@ -4,7 +4,7 @@ from reviewer_api.models.default_method_result import DefaultMethodResult
 import logging
 
 
-class zipperproducerservice:
+class eventqueueproducerservice:
     """This class is reserved for integration with event queue (currently redis streams)."""
 
     host = os.getenv("ZIPPER_REDIS_HOST")

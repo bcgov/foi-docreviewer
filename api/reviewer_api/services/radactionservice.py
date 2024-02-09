@@ -8,7 +8,7 @@ from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
 from reviewer_api.services.jobrecordservice import jobrecordservice
-from reviewer_api.services.external.zipperproducerservice import zipperproducerservice
+from reviewer_api.services.external.eventqueueproducerservice import eventqueueproducerservice
 
 from reviewer_api.utils.util import to_json
 from datetime import datetime
@@ -196,7 +196,7 @@ class redactionservice:
             _message = self.__preparemessageforzipservice(
                 finalpackageschema, userinfo, job
             )
-            return zipperproducerservice().add(self.zipperstreamkey, _message)
+            return eventqueueproducerservice().add(self.zipperstreamkey, _message)
 
     # redline/final package download: prepare message for zipping service
     def __preparemessageforzipservice(self, messageschema, userinfo, job):
