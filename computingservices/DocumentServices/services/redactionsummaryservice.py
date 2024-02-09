@@ -20,20 +20,18 @@ class redactionsummaryservice():
                 divisionid = entry['divisionid']
                 documentids = entry['documentids']
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
-                redline_redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary)
+                template_path='templates/'+documenttypename+'.docx'
+                redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
                 messageattributes= json.loads(message.attributes)         
                 s3uri = (next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]['s3uripath']
-                #messageattributes[0]['files'][0]['s3uripath']
-                # Find the last occurrence of '/'
                 last_slash_index = s3uri.rfind('/')
-                # Remove the filename and everything after it
                 s3uri = s3uri[:last_slash_index]
                 last_slash_index = s3uri.rfind('/')
                 s3uri = s3uri[:last_slash_index + 1]
                 divisionname= (next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname']
                 requestnumber=formattedsummary["requestnumber"]
                 filename = f"{divisionname}/{requestnumber} - {category} - {divisionname} - summary.pdf"
-                uploadobj= uploadbytes(filename,redline_redaction_summary.content, s3uri)
+                uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                 upload_responses.append(uploadobj)
                 if uploadobj["uploadresponse"].status_code == 200:
                     summaryuploaderror= False    
