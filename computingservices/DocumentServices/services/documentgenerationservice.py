@@ -33,43 +33,34 @@ class documentgenerationservice:
     #         raise BusinessException(Error.DATA_NOT_FOUND)  
         
 
-    def generate_pdf(self, documenttypename, data, receipt_template_path='templates/redline_redaction_summary.docx'):
+    def generate_pdf(self, documenttypename, data, template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
         print("\n***templatefromdb:",templatefromdb)
-        if templatefromdb is not None and templatefromdb["cdogs_hash_code"]:
+        if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
             print('Checking if template %s is cached', templatefromdb["cdogs_hash_code"])
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
-            templatecdogshashcode = cdogsapiservice().upload_template(receipt_template_path, access_token)
+            templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
+            templatefromdb["cdogs_hash_code"] = templatecdogshashcode
             print('Uploading new template--->',templatecdogshashcode)
-            if templatefromdb is not None:
+            if templatefromdb is not None and templatefromdb["document_type_id"] is not None:
                 documenttemplateservice().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
-            # receipt_template.flush()
-            # receipt_template.commit()
         print('Generating redaction summary')
         return cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
     
     def __gettemplate(self,documenttypename='redline_redaction_summary'):
         try:
-            receipt_document_type =documenttypeservice().getdocumenttypebyname(documenttypename)
-            receipt_template=None
-            if receipt_document_type is not None:                          
-                receipt_template=documenttemplateservice().gettemplatebytype(receipt_document_type.document_type_id)
-            return receipt_template
+            templatefromdb=None
+            summary_cdogs_hash_code=None
+            summary_document_type_id =documenttypeservice().getdocumenttypebyname(documenttypename)
+            if summary_document_type_id is not None:             
+                summary_cdogs_hash_code=documenttemplateservice().gettemplatebytype(summary_document_type_id)
+                templatefromdb = {"document_type_id": summary_document_type_id, "cdogs_hash_code":summary_cdogs_hash_code}
+            return templatefromdb
         except (Exception) as error:
             print('error occured in document generation service - gettemplate method: ', error)
 
-    # def upload_receipt(self, filename, filebytes, ministryrequestid, ministrycode, filenumber):
-    #     try:
-    #         logging.info("Upload summary for ministry request id"+ str(ministryrequestid))
-    #         _response =  self.__uploadbytes(filename, filebytes, ministrycode, filenumber)
-    #         logging.info("Upload status for payload"+ json.dumps(_response))
-    #         if _response["success"] == True:
-    #             _documentschema = {"documents": [{"filename": _response["filename"], "documentpath": _response["documentpath"]}]}
-    #         return _response
-    #     except Exception as ex:
-    #         logging.exception(ex)
