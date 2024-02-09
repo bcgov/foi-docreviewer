@@ -14,7 +14,7 @@ class pagecountservice():
                 calculatedpagecount = self.__calculatepagecount(message)
             print(f'calculatedpagecount == {calculatedpagecount}')
             if requestpagecount != calculatedpagecount:
-                ministryervice().updaterecordspagecount(message.ministryrequestid, calculatedpagecount)
+                ministryervice().updaterecordspagecount(message.ministryrequestid, calculatedpagecount, message.createdby)
             return {'prevpagecount': requestpagecount, 'calculatedpagecount': calculatedpagecount}
         except (Exception) as error:
             print('error occured in pagecount calculation service: ', error)

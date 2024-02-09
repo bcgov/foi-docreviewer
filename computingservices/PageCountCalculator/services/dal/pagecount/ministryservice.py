@@ -1,7 +1,6 @@
 from utils import getfoidbconnection
 import logging
-import json
-
+from datetime import datetime
 
 class ministryervice:
 
@@ -29,15 +28,15 @@ class ministryervice:
                 conn.close()
     
     @classmethod
-    def updaterecordspagecount(cls, ministryrequestid, pagecount):
+    def updaterecordspagecount(cls, ministryrequestid, pagecount, userid):
         conn = getfoidbconnection()
         try:        
             cursor = conn.cursor()
             query = '''
-                    UPDATE public."FOIMinistryRequests" SET recordspagecount = %s::integer
+                    UPDATE public."FOIMinistryRequests" SET recordspagecount = %s::integer, updated_at = %s, updatedby = %s
                     WHERE foiministryrequestid = %s::integer AND isactive = true;
                 '''
-            parameters = (pagecount, ministryrequestid,)
+            parameters = (pagecount, datetime.now().isoformat(), userid, ministryrequestid,)
             cursor.execute(query, parameters)
             conn.commit()
             cursor.close()
