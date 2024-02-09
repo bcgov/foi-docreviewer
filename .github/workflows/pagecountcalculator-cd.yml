@@ -71,6 +71,7 @@ jobs:
           echo "TAG_NAME=dev-rook" >> $GITHUB_ENV
           echo "BRANCH_NAME=dev-rook" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
+          echo "ENV_TAG_NAME=rook" >> $GITHUB_ENV
 
       - name: Set ENV variables for test-rook branch
         if: ${{ github.ref_name == 'test-rook' }}
@@ -79,6 +80,7 @@ jobs:
           echo "TAG_NAME=test-rook" >> $GITHUB_ENV
           echo "BRANCH_NAME=test-rook" >> $GITHUB_ENV
           echo "ENV_NAME=test" >> $GITHUB_ENV
+          echo "ENV_TAG_NAME=rook" >> $GITHUB_ENV
 
       - name: Login Openshift
         shell: bash
@@ -108,4 +110,4 @@ jobs:
       - name: Watch new rollout (trigger by image change in Openshift)
         shell: bash
         run: |
-          oc rollout status dc/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
+          oc rollout status dc/${{ env.APP_NAME }}-{{ env.ENV_TAG_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
