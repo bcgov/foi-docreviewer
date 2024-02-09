@@ -1903,35 +1903,34 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const mapAnnotations = (annotations) => {
-      let annotationsMap = {};
-      for (let annot of annotations) { 
-        if (annotationsMap[annot.documentid]) {
-          if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
-            annotationsMap[annot.documentid][annot.pagenumber + 1]++;
-          } else {
-            annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
-          }
-        } else {
-          annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
-        }
-      }
-      return annotationsMap
-    }
-
-    const findPagesWithOnlyNRAnnotations = (allAnnotationsMap, NRAnnotationsMap) => {
-      let selectedPages = []
-      for (let doc in allAnnotationsMap) {
-        for (let page in allAnnotationsMap?.[doc]) {
-          if (allAnnotationsMap?.[doc]?.[page] == NRAnnotationsMap?.[doc]?.[page]) {
-            selectedPages.push({ docid: doc, page: page, flagid: 2 })
-          }
-        }
-      }
-      return selectedPages
-    }
-
     useEffect(() => {
+      const mapAnnotations = (annotations) => {
+        let annotationsMap = {};
+        for (let annot of annotations) { 
+          if (annotationsMap[annot.documentid]) {
+            if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
+              annotationsMap[annot.documentid][annot.pagenumber + 1]++;
+            } else {
+              annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
+            }
+          } else {
+            annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
+          }
+        }
+        return annotationsMap
+      }
+      const findPagesWithOnlyNRAnnotations = (allAnnotationsMap, NRAnnotationsMap) => {
+        let selectedPages = []
+        for (let doc in allAnnotationsMap) {
+          for (let page in allAnnotationsMap?.[doc]) {
+            if (allAnnotationsMap?.[doc]?.[page] == NRAnnotationsMap?.[doc]?.[page]) {
+              selectedPages.push({ docid: doc, page: page, flagid: 2 })
+            }
+          }
+        }
+        return selectedPages
+      }
+
       let allAnnotationsMap = mapAnnotations(redactionInfo)
       let NRAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(26)))
       
