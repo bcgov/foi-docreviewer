@@ -20,18 +20,22 @@ class redactionsummaryservice():
                 divisionid = entry['divisionid']
                 documentids = entry['documentids']
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
+                print("formattedsummary:",formattedsummary)
                 template_path='templates/'+documenttypename+'.docx'
                 print("template_path:",template_path)
                 redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
+                print("redaction_summary:",redaction_summary)
                 messageattributes= json.loads(message.attributes)         
                 s3uri = (next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]['s3uripath']
                 last_slash_index = s3uri.rfind('/')
                 s3uri = s3uri[:last_slash_index]
                 last_slash_index = s3uri.rfind('/')
                 s3uri = s3uri[:last_slash_index + 1]
+                print("s3uri:",s3uri)
                 divisionname= (next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname']
                 requestnumber=formattedsummary["requestnumber"]
                 filename = f"{divisionname}/{requestnumber} - {category} - {divisionname} - summary.pdf"
+                print("filename:",filename)
                 uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                 upload_responses.append(uploadobj)
                 if uploadobj["uploadresponse"].status_code == 200:
