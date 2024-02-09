@@ -10,7 +10,7 @@ import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
-from reviewer_api.services.external.eventqueueservice import eventqueueservice
+from reviewer_api.services.external.eventqueueproducerservice import eventqueueproducerservice
 import requests
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
@@ -379,11 +379,9 @@ class documentservice:
                     createdby='delete'
                 )
                 job = PageCalculatorJob.insert(row)
-                print(f'job == {job}')
                 streamobject["jobid"] = job.identifier
                 streamobject["createdby"] = 'delete'
-                print(f'streamobject == {streamobject}')
-                eventqueueservice().add(pagecalculatorstreamkey, streamobject)
+                eventqueueproducerservice().add(pagecalculatorstreamkey, streamobject)
         return result
 
     def updatedocumentattributes(self, payload, userid):

@@ -109,7 +109,7 @@ class GetPDFStitchJobStatus(Resource):
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
 
-
+# this is for inflight request pagecount calculation option 2
 @cors_preflight('POST,OPTIONS')
 @API.route('/pagecalculatorjobstatus')
 class AddPageCalculatorJobStatus(Resource):
