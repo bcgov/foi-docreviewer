@@ -72,6 +72,14 @@ const DocumentSelector = React.forwardRef(({
     const [expanded, setExpanded] = useState<string[]>([]);
     const pageRefs = useRef([]);
 
+    const redactionInfo = useAppSelector(
+        (state) => state.documents?.redactionInfo
+      );
+    // This will sync page flags in this component after automatic updates for 'Not Responsive'
+    useEffect(() => {
+        setTimeout(() => {updatePageFlags()}, 100)
+    }, [redactionInfo])
+
     const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
             fontSize: '14px'
