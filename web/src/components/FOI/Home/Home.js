@@ -53,14 +53,31 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
+
+        const getFileExt = (filepath) => {
+          const parts = filepath.split(".")
+          const fileExt = parts.pop()
+          return fileExt
+        }
         // New code added to get the incompatable files for download redline
         // data has all the files including incompatable ones
         // _files has all files except incompatable ones
         const _incompatableFiles = data.filter(
-          (d) => d.attributes.incompatible
+          (d) => {
+            const isPdfFile = getFileExt(d.filepath) === "pdf"
+            if (isPdfFile) {
+              return false
+            } else {
+              return d.attributes.incompatible
+            }
+          }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.filter((d) => !d.attributes.incompatible);
+        const _files = data.filter((d) => {
+          const isPdfFile = getFileExt(d.filepath) === "pdf"
+          const isCompatible = !d.attributes.incompatible || isPdfFile
+          return isCompatible
+        });
         setFiles(_files);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
