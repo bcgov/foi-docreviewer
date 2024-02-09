@@ -35,6 +35,7 @@ class documentgenerationservice:
 
     def generate_pdf(self, documenttypename, data, template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
+        print("created access token")
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
         print("\n***templatefromdb:",templatefromdb)
