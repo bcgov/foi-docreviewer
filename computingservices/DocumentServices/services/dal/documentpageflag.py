@@ -12,7 +12,7 @@ class documentpageflag:
             cursor = conn.cursor()
             cursor.execute(
                 """select pageflagid, name, description from "Pageflags" 
-                where isactive = true order by sortorder
+                where isactive = true and name not in ('Consult') order by sortorder
                 """
             )
 
@@ -32,6 +32,33 @@ class documentpageflag:
             if conn is not None:
                 conn.close()
 
+    @classmethod
+    def get_all_programareas(cls):
+        conn = getdbconnection()
+        programareas = {}
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select programareaid, bcgovcode, iaocode from "ProgramAreas" 
+                where isactive = true order by programareaid
+                """
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    programareas[entry[0]] = {"bcgovcode": entry[1], "iaocode": entry[2]}
+                return programareas
+            return None
+
+        except Exception as error:
+            logging.error("Error in getting program areas")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
 
     @classmethod
     def get_documentpageflag(cls, ministryrequestid, redactionlayerid, documentids):
@@ -127,23 +154,20 @@ class documentpageflag:
                 conn.close()
 
     @classmethod
-    def getsections_by_documentid_pageno(cls, ministryrequestid, redactionlayerid, documentid, pagenos):
+    def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos):
         conn = getdbconnection()
         sections = []
         try:
             cursor = conn.cursor()
             cursor.execute(
-                """select a.pagenumber, as2."section"  from "AnnotationSections" as2,
-                    "Annotations" a
-                    where as2.foiministryrequestid = %s::integer
-                    and as2.isactive = true
-                    and as2.annotationname  = a.annotationname 
-                    and as2.redactionlayerid = a.redactionlayerid 
-                    and a.redactionlayerid = %s::integer 
-                    and a.documentid =  %s::integer
-                    and a.pagenumber in %s
-                    order by a.pagenumber;""",
-                (ministryrequestid, redactionlayerid, documentid, tuple(pagenos)),
+                """select pagenumber , unnest(xpath('//contents/text()', annotation::xml))::text as sections 
+                   from "Annotations" a 
+                   where annotation like '%%freetext%%' and isactive = true 
+                   and redactionlayerid = %s::integer
+                   and documentid = %s::integer
+                   and pagenumber in %s
+                   order by pagenumber;""",
+                (redactionlayerid, documentid, tuple(pagenos)),
             )
 
             result = cursor.fetchall()
