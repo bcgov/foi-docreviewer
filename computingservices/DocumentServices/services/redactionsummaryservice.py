@@ -21,6 +21,7 @@ class redactionsummaryservice():
                 documentids = entry['documentids']
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
                 template_path='templates/'+documenttypename+'.docx'
+                print("template_path:",template_path)
                 redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
                 messageattributes= json.loads(message.attributes)         
                 s3uri = (next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]['s3uripath']
