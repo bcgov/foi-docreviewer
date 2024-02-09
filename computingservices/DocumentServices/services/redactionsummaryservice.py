@@ -25,9 +25,14 @@ class redactionsummaryservice():
                 print("template_path:",template_path)
                 redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
                 print("redaction_summary:",redaction_summary)
-                messageattributes= json.loads(message.attributes)         
+                messageattributes= json.loads(message.attributes)  
+                print("messageattributes:",messageattributes)
+                print("divisionwise:",(next(item for item in messageattributes if item['divisionid'] == divisionid)))
+                print("divisionwise-files:",(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'])
                 s3uri = (next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]['s3uripath']
+                print("s3uri1:",s3uri)
                 last_slash_index = s3uri.rfind('/')
+                print("last_slash_index:",last_slash_index)
                 s3uri = s3uri[:last_slash_index]
                 last_slash_index = s3uri.rfind('/')
                 s3uri = s3uri[:last_slash_index + 1]
