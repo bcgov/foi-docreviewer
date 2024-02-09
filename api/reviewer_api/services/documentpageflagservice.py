@@ -224,7 +224,7 @@ class documentpageflagservice:
             if entry["page"] == data["page"]:
                 isnew = False
                 if data["flagid"] == 4:
-                    pageflag, updated = self.__handleconsultflag(data, entry, index, pageflag, formatted_data)
+                    pageflag, updated = self.__handleconsultflag(data, entry, index, pageflag, formatted_data, updated)
                 # handle all other flags except consult
                 elif data["flagid"] != 4 and entry["flagid"] != 4:
                     del pageflag[index]
@@ -237,8 +237,7 @@ class documentpageflagservice:
 
         return pageflag
     
-    def __handleconsultflag(self, data, entry, index, pageflag, formatted_data):
-        updated = False
+    def __handleconsultflag(self, data, entry, index, pageflag, formatted_data, updated):
         # remove consult flag
         if data["flagid"] == 4 and not data["other"] and not data["programareaid"]:
             if entry["flagid"] == data["flagid"]:

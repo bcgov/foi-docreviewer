@@ -462,6 +462,10 @@ class documentservice:
                 map(lambda d: {"divisionid": d}, documentdivisions)
             )
             document["divisions"] = list(map(lambda d: divisions[d], documentdivisions))
+            # For replaced attachments, change filepath to .pdf instead of original extension
+            if "trigger" in document["attributes"] and document["attributes"]["trigger"] == "recordreplace":
+                base_path, current_extension = path.splitext(document["filepath"])
+                document["filepath"] = base_path + ".pdf"
 
         return [documents[documentid] for documentid in documents]
 

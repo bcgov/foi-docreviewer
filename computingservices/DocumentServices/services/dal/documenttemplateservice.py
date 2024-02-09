@@ -11,12 +11,11 @@ class documenttemplateservice:
         try:
             cursor = conn.cursor()
             query = '''
-                SELECT *
+                SELECT cdogs_hash_code
                 FROM public."DocumentTemplates" 
-                WHERE document_type_id = %s::integer 
-                ORDER BY version DESC LIMIT 1;
+                WHERE document_type_id = %s and extension = %s;
             '''
-            parameters = (documenttypeid)
+            parameters = (documenttypeid,extension,)
             cursor.execute(query, parameters)
             documenttemplate = cursor.fetchone()[0]
             return documenttemplate
@@ -25,6 +24,7 @@ class documenttemplateservice:
             logging.error(error)
             raise
         finally:
+            cursor.close()
             if conn is not None:
                 conn.close()
     
@@ -34,16 +34,16 @@ class documenttemplateservice:
         try:        
             cursor = conn.cursor()
             query = '''
-                    UPDATE public."DocumentTemplates" SET cdogs_hash_code = %s::str
-                    WHERE document_type_id = %s::integer;
+                    UPDATE public."DocumentTemplates" SET cdogs_hash_code = %s
+                    WHERE document_type_id = %s;
                 '''
             parameters = (cdogshashcode, documenttypeid,)
             cursor.execute(query, parameters)
             conn.commit()
-            cursor.close()
         except(Exception) as error:
             print("Exception while executing func updatecdogshashcode, Error : {0} ".format(error))
             raise
         finally:
+            cursor.close()
             if conn is not None:
                 conn.close()
