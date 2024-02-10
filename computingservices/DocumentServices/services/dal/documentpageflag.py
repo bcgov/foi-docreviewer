@@ -97,14 +97,13 @@ class documentpageflag:
         try:
             cursor = conn.cursor()
             cursor.execute(
-                """select d.documentid from "Documents" d,
-                    "DocumentAttributes" da 
-                    where d.documentmasterid = da.documentmasterid 
-                    and da.isactive = true
+                """select d.documentid  from "Documents" d join "DocumentMaster" dm on d.foiministryrequestid = dm.ministryrequestid and d.documentmasterid = dm.documentmasterid 
+                    join "DocumentAttributes" da on (da.documentmasterid = d.documentmasterid or da.documentmasterid = dm.processingparentid) 
+                    where documentid in %s
                     and d.foiministryrequestid = %s::integer
-                    and d.documentid  in %s                    
-                    order by da."attributes" ->> \'lastmodified\';""",
-                (ministryrequestid, tuple(documentids)),
+                    group by d.documentid, da."attributes" ->> 'lastmodified' ::text
+                    order by da."attributes" ->> 'lastmodified'""",
+                (tuple(documentids),ministryrequestid),
             )
 
             result = cursor.fetchall()

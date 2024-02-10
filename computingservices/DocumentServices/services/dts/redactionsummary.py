@@ -108,7 +108,7 @@ class redactionsummary():
         if pageflag in ("Duplicate", "Not Responsive"):
             return pageflag
         distinct_sections = list(set(sections))
-        return pageflag+" under "+", ".join(distinct_sections)
+        return pageflag+" under "+", ".join(distinct_sections) if len(distinct_sections) > 0 else pageflag
 
     def __get_pagesection_mapping(self, docpages, docpagesections, docpageconsults):
         for entry in docpages:
@@ -120,7 +120,7 @@ class redactionsummary():
         sections = []
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
         for dta in filtered:
-            sections +=dta['section'].split(",")
+            sections += [x.strip() for x in dta['section'].split(",")] 
         return sections
 
     def __get_pages_by_flagid(self, _docpageflags, totalpages, flagid):
