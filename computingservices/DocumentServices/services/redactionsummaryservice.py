@@ -25,6 +25,8 @@ class redactionsummaryservice():
                 print("template_path:",template_path)
                 redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
                 print("redaction_summary:",redaction_summary)
+                print("attr:",message.attributes)
+                print("attr-type:",type(message.attributes))
                 messageattributes= json.loads(message.attributes)  
                 print("messageattributes:",messageattributes)
                 print("divisionwise:",(next(item for item in messageattributes if item['divisionid'] == divisionid)))
