@@ -62,6 +62,7 @@ class documentservice:
                 )
                 finalresults.append(finalresult)
 
+        print(f'finalresults == {finalresults}')
         return finalresults
 
     def __updateproperties(
@@ -449,6 +450,7 @@ class documentservice:
         for attachment in attachments:
             documents[attachment["documentmasterid"]] = attachment
 
+        print(f'documents == {documents}')
         removeids = []
         for documentid in documents:
             document = documents[documentid]
@@ -460,12 +462,14 @@ class documentservice:
                 document["attributes"].get("isportfolio", False)
                 or not document["isredactionready"]
             ):
+                print(f'isportfolio = {document["attributes"].get("isportfolio", False)} || isredactionready == {document["isredactionready"]}')
                 removeids.append(document["documentmasterid"])
             elif document.get("isduplicate", False):
                 documents[document["duplicatemasterid"]]["attributes"][
                     "divisions"
                 ].extend(document["attributes"]["divisions"])
                 removeids.append(document["documentmasterid"])
+        print(f'removeids == {removeids}')
         for id in removeids:
             documents.pop(id)
 
