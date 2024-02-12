@@ -44,7 +44,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 print(f"processing {message_id}::{message}")
                 if message is not None:
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    _message = _message.replace("b'","'").replace("'",'')
+                    _message = _message.replace("b'","'")
                     try:
                         filestozip= redactionsummaryservice().processmessage(get_in_redactionsummary_msg(_message))
                         msgjson= redactionsummaryservice().updatefilestozip(filestozip, _message)
