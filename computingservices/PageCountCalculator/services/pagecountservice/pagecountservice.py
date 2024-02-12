@@ -22,15 +22,24 @@ class pagecountservice():
     def __calculatepagecount(self, message):
         records = self.__getdocumentdetails(message)
         print(f'records == {records}')
-        pagecount = 0
+        # pagecount = 0
+        # for record in records:
+        #     if "isduplicate" not in record or not record["isduplicate"]:
+        #         pagecount += record.get("pagecount", 0)
+        #         if "attachments" in record and record["attachments"]:
+        #             for attachment in record['attachments']:
+        #                 if "isduplicate" not in attachment or not attachment["isduplicate"]:
+        #                     pagecount += attachment.get("pagecount", 0)
+        # return pagecount    
+        page_count = 0
         for record in records:
-            if "isduplicate" not in record or not record["isduplicate"]:
-                pagecount += record.get("pagecount", 0)
-                if "attachments" in record and record["attachments"]:
-                    for attachment in record['attachments']:
-                        if "isduplicate" not in attachment or not attachment["isduplicate"]:
-                            pagecount += attachment.get("pagecount", 0)
-        return pagecount    
+            if not record.get("isduplicate", False) or not record["attributes"].get("isportfolio", False):
+                page_count += record.get("pagecount", 0)
+                attachments = record.get("attachments", [])
+                for attachment in attachments:
+                    if not attachment.get("isduplicate", False):
+                        page_count += attachment.get("pagecount", 0)
+        return page_count
 
     def __getdocumentdetails(self, message):
         deleted = documentservice().getdeleteddocuments(message.ministryrequestid)
