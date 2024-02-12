@@ -1451,8 +1451,6 @@ const Redlining = React.forwardRef(
       let redactionSectionsIds = selectedSections;
       let redactionIds = [];
       let pageSelectionList = [];
-      let existingAnnotationsMap = {}; //maps # of existing annotations to doc and page id
-      let editedAnnotationsMap = {}; //maps # of annotations being updated to doc and page id
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let _redact = annotManager
           .getAnnotationsList()
@@ -1512,37 +1510,6 @@ const Redlining = React.forwardRef(
         childAnnotation.setRect(rect);
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
-        
-        // map the annotations being edited to docid and page
-        // _annotation with docid and page
-        let _annotation = pageMappedDocs.stitchedPageLookup[childAnnotation.PageNumber]
-        if (editedAnnotationsMap[_annotation.docid]) {
-          if (editedAnnotationsMap[_annotation.docid][_annotation.page]) {
-            editedAnnotationsMap[_annotation.docid][_annotation.page] =
-              editedAnnotationsMap[_annotation.docid][_annotation.page] + 1;
-          } else {
-            editedAnnotationsMap[_annotation.docid][_annotation.page] = 1;
-          }
-        } else {
-          editedAnnotationsMap[_annotation.docid] = { [_annotation.page]: 1 };
-        }
-
-        // map the existing annotations to docid and page
-        if (Object.keys(existingAnnotationsMap).length === 0) {
-          for (let annot of redactionInfo) {
-            let annotPageNumber = annot.pagenumber + 1
-            if (existingAnnotationsMap[annot.documentid]) {
-              if (existingAnnotationsMap[annot.documentid][annotPageNumber]) {
-                existingAnnotationsMap[annot.documentid][annotPageNumber] =
-                  existingAnnotationsMap[annot.documentid][annotPageNumber] + 1;
-              } else {
-                existingAnnotationsMap[annot.documentid][annotPageNumber] = 1;
-              }
-            } else {
-              existingAnnotationsMap[annot.documentid] = { [annotPageNumber]: 1 };
-            }
-          }
-        }
       }
       let _annotationtring = annotManager.exportAnnotations({
         annotationList: childAnnotations,
