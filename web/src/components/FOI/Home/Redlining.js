@@ -1474,7 +1474,6 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-        console.log('pageSelectionList before update: ', pageSelectionList)
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1483,7 +1482,6 @@ const Redlining = React.forwardRef(
           displayedDoc,
           pageSelectionList
         );
-        console.log('pageSelectionList after update: ', pageSelectionList)
 
         if (redactionSectionsIds.length > 0) {
           let redactionSections = createRedactionSectionsString(
@@ -1532,7 +1530,6 @@ const Redlining = React.forwardRef(
         // map the existing annotations to docid and page
         if (Object.keys(existingAnnotationsMap).length === 0) {
           for (let annot of redactionInfo) {
-            console.log('annot: ', annot)
             let annotPageNumber = annot.pagenumber + 1
             if (existingAnnotationsMap[annot.documentid]) {
               if (existingAnnotationsMap[annot.documentid][annotPageNumber]) {
@@ -3469,21 +3466,17 @@ const Redlining = React.forwardRef(
       let isDisabled = false;
       // For sections
       if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
-        console.log('first')
         isDisabled = (sectionid === 25 || sectionid === 26)
         return isDisabled
       // For Blank Code
       } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
-        console.log('second')
         isDisabled = !(sectionid === 25)
         return isDisabled
       // For Not Responsive
       } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
-        console.log('third')
         isDisabled = !(sectionid === 26)
         return isDisabled
       } else {
-        console.log('final')
       }
     }
 
