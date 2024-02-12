@@ -1746,6 +1746,7 @@ const Redlining = React.forwardRef(
           });
         }
         
+        // This will set pageFlag to Full Disclosure if there are no other flags on page
         const updatePageFlagIdsForNotResponsive = (pageFlagSelections) => {
           for (let selectedFlag of pageFlagSelections) { //the selected flag
             let currentPageHasFlag = false;
@@ -1898,6 +1899,13 @@ const Redlining = React.forwardRef(
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
         setNewRedaction(null);
       }
+      // This is done to force the DocumentSelector component to re-render
+      console.log('updating annotations..')
+      setTimeout(() => {
+        fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+          console.log("Error:", error);
+        });
+      }, 100)
     };
 
     useEffect(() => {
