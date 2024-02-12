@@ -33,7 +33,7 @@ class pagecountservice():
         # return pagecount    
         page_count = 0
         for record in records:
-            if not record.get("isduplicate", False) or not record["attributes"].get("isportfolio", False):
+            if not record.get("isduplicate", False) and not record["attributes"].get("isportfolio", False):
                 page_count += record.get("pagecount", 0)
                 attachments = record.get("attachments", [])
                 for attachment in attachments:
