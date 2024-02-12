@@ -21,6 +21,7 @@ class pagecountservice():
     
     def __calculatepagecount(self, message):
         records = self.__getdocumentdetails(message)
+        print(f'records == {records}')
         pagecount = 0
         for record in records:
             if "isduplicate" not in record or not record["isduplicate"]:
