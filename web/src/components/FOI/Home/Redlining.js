@@ -3050,10 +3050,8 @@ const Redlining = React.forwardRef(
         ) {
           
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
-          setPdftronDocObjectsForRedline([]);
-          setstichedfilesForRedline(null)
         } else {
-          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
               requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
