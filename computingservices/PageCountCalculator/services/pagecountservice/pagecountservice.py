@@ -21,6 +21,7 @@ class pagecountservice():
     
     def __calculatepagecount(self, message):
         records = self.__getdocumentdetails(message)
+        print(f'records == {records}')
         page_count = 0
         for record in records:
             if not record.get("isduplicate", False) and not record["attributes"].get("isportfolio", False):
