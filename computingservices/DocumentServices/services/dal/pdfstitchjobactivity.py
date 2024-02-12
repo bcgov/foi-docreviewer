@@ -2,17 +2,18 @@ from utils import getdbconnection
 import logging
 import json
 
+def to_json(obj):
+    return json.dumps(obj, default=lambda obj: obj.__dict__)
 class pdfstitchjobactivity:
-
+    
     @classmethod
     def recordjobstatus(cls,message,version,status,error=None,errormessage=None):
         category = message.category.lower() + "-summary"
         conn = getdbconnection()
-        print("Inside %s recordjobstatus", category)
         try:
             cursor = conn.cursor()
             status = "error" if error else status
-
+            
             cursor.execute(
                 """INSERT INTO public."PDFStitchJob"
                 (pdfstitchjobid,version, ministryrequestid, category, inputfiles, status, message, createdby)
@@ -22,7 +23,8 @@ class pdfstitchjobactivity:
                     version,
                     message.ministryrequestid,
                     category,
-                    json.dumps(message.attributes),
+                    to_json(message.attributes),
+                    #json.dumps(message.attributes, default=obj_dict),
                     status,
                     errormessage if error else None,
                     message.createdby,
@@ -32,9 +34,10 @@ class pdfstitchjobactivity:
             conn.commit()
             cursor.close()
         except Exception as error:
-            logging.error("Error in recordjobend")
+            logging.error("Error in recordjobstatus")
             logging.error(error)
             raise
         finally:
             if conn is not None:
                 conn.close()
+

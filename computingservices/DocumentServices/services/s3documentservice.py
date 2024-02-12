@@ -28,39 +28,11 @@ def getcredentialsbybucketname(bucketname):
 
     return s3cred
 
-
-# def gets3documentbytearray(producermessage, s3credentials):
-#     retry = 0
-#     filepath = producermessage.s3uripath
-#     while True:
-#         try:
-#             s3_access_key_id= s3credentials.s3accesskey
-#             s3_secret_access_key= s3credentials.s3secretkey
-
-#             auth = AWSRequestsAuth(aws_access_key=s3_access_key_id,
-#                             aws_secret_access_key=s3_secret_access_key,
-#                             aws_host=pdfstitch_s3_host,
-#                             aws_region=pdfstitch_s3_region,
-#                             aws_service=pdfstitch_s3_service)
-#             response= requests.get(filepath, auth=auth,stream=True)
-#             return response.content
-#         except Exception as ex:
-#             if retry > int(pdfstitch_failureattempt):
-#                 logging.error("Error in connecting S3.")
-#                 logging.error(ex)
-#                 raise
-#             retry += 1
-#             continue
-
-
 def uploadbytes(filename, filebytes, s3uri):
     bucketname= s3uri.split("/")[3]
-    print("\n**bucketname:",bucketname)
     s3credentials= getcredentialsbybucketname(bucketname)
     s3_access_key_id= s3credentials.s3accesskey
     s3_secret_access_key= s3credentials.s3secretkey
-    print("\n\ns3_secret_access_key:",s3_secret_access_key)
-    #formsbucket = bcgovcode.lower()+'-'+pdfstitch_s3_env.lower()+'-e'
     retry = 0
     while True:
         try: 
@@ -69,16 +41,8 @@ def uploadbytes(filename, filebytes, s3uri):
             aws_host=docservice_s3_host,
             aws_region=docservice_s3_region,
             aws_service=docservice_s3_service) 
-            print("\n*****s3_access_key_id:",s3_access_key_id)
-            print("\n*****s3_secret_access_key:",s3_secret_access_key)
-            print("\n*****docservice_db_host:",docservice_s3_host)
-            print("\n*****docservice_s3_region:",docservice_s3_region)
-            print("\n*****docservice_s3_service:",docservice_s3_service)
-            #s3uri = 'https://{0}/{1}/{2}/{3}'.format(pdfstitch_s3_host,formsbucket, requestnumber, filename)   
             s3uri= s3uri+filename    
-            print("\n\ns3uri before frst PUT:",s3uri)
             response = requests.put(s3uri, data=None, auth=auth)
-            print("\n***response for header:",response.request.headers)
             header = {
                     'X-Amz-Date': response.request.headers['x-amz-date'],
                     'Authorization': response.request.headers['Authorization'],
@@ -86,11 +50,8 @@ def uploadbytes(filename, filebytes, s3uri):
             }
 
             #upload to S3
-            print("\n\ns3uriNOW after:",s3uri)
             uploadresponse= requests.put(s3uri, data=filebytes, headers=header)
-            print("***uploadresponse--->",uploadresponse)
             uploadobj = {"uploadresponse": uploadresponse, "filename": filename, "documentpath": s3uri}
-            #print("\n\nattachmentobjNOW:",attachmentobj)
             return uploadobj
         except Exception as ex:
             if retry > int(docservice_failureattempt):

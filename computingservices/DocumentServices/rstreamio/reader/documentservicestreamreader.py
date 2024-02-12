@@ -6,9 +6,10 @@ import logging
 from enum import Enum
 from utils import redisstreamdb
 from utils.foidocumentserviceconfig import documentservice_stream_key
-from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg
+from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg, decodesummarymsg
 from services.redactionsummaryservice import redactionsummaryservice
-from rstreamio.writer.zipperstreamwriter import zipperstreamwriter
+from services.zippingservice import zippingservice
+
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
@@ -44,15 +45,15 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 print(f"processing {message_id}::{message}")
                 if message is not None:
                     _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    _message = _message.replace("b'","'")
+                    _message = decodesummarymsg(_message)
                     try:
-                        filestozip= redactionsummaryservice().processmessage(get_in_redactionsummary_msg(_message))
-                        msgjson= redactionsummaryservice().updatefilestozip(filestozip, _message)
-                        zipperstreamwriter().sendmessage(msgjson)
+                        redactionsummary_message = get_in_redactionsummary_msg(_message)
+                        summaryfiles = redactionsummaryservice().processmessage(redactionsummary_message)
+                        zippingservice().sendtozipper(summaryfiles, _message)
                     except(Exception) as error: 
                         logging.exception(error)       
                     # simulate processing
-                time.sleep(random.randint(1, 3)) #TODO : todo: remove!
+                time.sleep(random.randint(1, 3))
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                 print(f"finished processing {message_id}")
