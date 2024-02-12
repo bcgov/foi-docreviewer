@@ -1,6 +1,5 @@
 #from reviewer_api.services.cdogs_api_service import cdogsapiservice
-from services.dal.documenttemplateservice import documenttemplateservice
-from services.dal.documenttypeservice import documenttypeservice
+from services.dal.documenttemplate import documenttemplate
 from .cdogsapiservice import cdogsapiservice
 import json
 import logging
@@ -35,31 +34,26 @@ class documentgenerationservice:
 
     def generate_pdf(self, documenttypename, data, template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
-        print("created access token")
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
-        print("\n***templatefromdb:",templatefromdb)
         if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
-            print('Checking if template %s is cached', templatefromdb["cdogs_hash_code"])
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
             templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
             templatefromdb["cdogs_hash_code"] = templatecdogshashcode
-            print('Uploading new template--->',templatecdogshashcode)
             if templatefromdb is not None and templatefromdb["document_type_id"] is not None:
-                documenttemplateservice().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
-        print('Generating redaction summary')
+                documenttemplate().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
         return cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
     
     def __gettemplate(self,documenttypename='redline_redaction_summary'):
         try:
             templatefromdb=None
             summary_cdogs_hash_code=None
-            summary_document_type_id =documenttypeservice().getdocumenttypebyname(documenttypename)
+            summary_document_type_id =documenttemplate().getdocumenttypebyname(documenttypename)
             if summary_document_type_id is not None:             
-                summary_cdogs_hash_code=documenttemplateservice().gettemplatebytype(summary_document_type_id)
+                summary_cdogs_hash_code=documenttemplate().gettemplatebytype(summary_document_type_id)
                 templatefromdb = {"document_type_id": summary_document_type_id, "cdogs_hash_code":summary_cdogs_hash_code}
             return templatefromdb
         except (Exception) as error:

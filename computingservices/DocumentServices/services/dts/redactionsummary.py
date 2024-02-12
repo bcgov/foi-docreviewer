@@ -1,5 +1,4 @@
 from services.dal.documentpageflag import documentpageflag
-import json
 
 class redactionsummary():
 
@@ -69,10 +68,10 @@ class redactionsummary():
         return ",".join(formatted)
     
     def __get_documentids(self, message):
-        summarydocuments = json.loads(message.summarydocuments)
+        summarydocuments = message.summarydocuments
         docids = []
         for entry in summarydocuments:
-            docids = docids + entry['documentids']
+            docids = docids + entry.documentids
         return docids
 
     def __format_redaction_summary(self, pageflag, pageredactions):
