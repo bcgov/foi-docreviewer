@@ -62,6 +62,7 @@ class documentservice:
                 )
                 finalresults.append(finalresult)
 
+        print(f'finalresults == {finalresults}')
         return finalresults
 
     def __updateproperties(
