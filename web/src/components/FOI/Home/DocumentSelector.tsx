@@ -102,12 +102,14 @@ const DocumentSelector = React.forwardRef(({
     }, [documents])
 
     useEffect(() => {
-        fetchPageFlagsMasterData(
-            requestid,
-            currentLayer.name.toLowerCase(),
-            (data: any) => setPageData(data),
-            (error: any) => console.log(error)
-        );
+        if (currentLayer) {
+            fetchPageFlagsMasterData(
+                requestid,
+                currentLayer.name.toLowerCase(),
+                (data: any) => setPageData(data),
+                (error: any) => console.log(error)
+            );
+        }
     }, [currentLayer]);
 
     useEffect(() => {
