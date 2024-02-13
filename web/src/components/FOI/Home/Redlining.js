@@ -2113,15 +2113,19 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
+      let doc = await _docViwer.getPDFDoc();
+      let docArr = [];
       for (
         let pagecount = 1;
         pagecount <= divisionsdocpages.length;
         pagecount++
       ) {
-        const doc = await _docViwer.getPDFDoc();
-
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
+          if (docArr.length > 0) {
+            //updated document after each page stamping
+            doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
+          }
           // lock the document before a write operation
           // runWithCleanup will auto unlock when complete
           doc.lock();
@@ -2152,8 +2156,15 @@ const Redlining = React.forwardRef(
             `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
             pgSet
           );
-        });
+          
+          // PDFTron might automatically handle marking the document as "dirty" during modifications.
+          // Make sure that you are saving the document correctly after any modifications.  
+          const docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);
+          docArr = new Uint8Array(docBuf.buffer);
+        });        
       }
+      const pageStampedDocument = await docInstance.Core.createDocument(docArr,{ extension: 'pdf' });
+      return pageStampedDocument;
     };
 
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
@@ -3105,7 +3116,7 @@ const Redlining = React.forwardRef(
             isLoading: true,
             autoClose: 5000,
           });
-
+          console.log("<<<<<<<< StitchAndUploadDocument >>>>>>>>>")
           let divisionid = key;
           let stitchObject = redlineStitchObject[key];
           if (stitchObject == null) {
@@ -3122,12 +3133,13 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["documentids"]
           );
           if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
             );
+            console.log("<<<<<<<<<<<<< stampPageNumberRedline completed! >>>>>>>>>>>>>")  
           }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
@@ -3177,17 +3189,18 @@ const Redlining = React.forwardRef(
               const doc = await stitchObject.getPDFDoc();
               await PDFNet.Redactor.redact(doc, rarr, app);
             }
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );  
+              );
+              
         }
         //OIPC - Special Block : End
         
           
-
+        console.log("<<<<<<<<<<<<< before  getFileData >>>>>>>>>>>>>") 
           stitchObject
             .getFileData({
               // saves the document with annotations in it
@@ -3196,6 +3209,7 @@ const Redlining = React.forwardRef(
               //flatten: true, //commented this as part of #4862
             })
             .then(async (_data) => {
+              console.log("<<<<<<<< getFileData >>>>>>>>>")
               const _arr = new Uint8Array(_data);
               const _blob = new Blob([_arr], {
                 type: "application/pdf",
@@ -3206,6 +3220,7 @@ const Redlining = React.forwardRef(
                 _blob,
                 (_res) => {
                   // ######### call another process for zipping and generate download here ##########
+                  console.log("<<<<<<<< saveFilesinS3 _res >>>>>>>>>")
                   toast.update(toastId.current, {
                     render: `Redline PDF saved to Object Storage`,
                     type: "success",
@@ -3226,6 +3241,7 @@ const Redlining = React.forwardRef(
                   );
                 },
                 (_err) => {
+                  console.log("<<<<<<<< saveFilesinS3 _err >>>>>>>>>")
                   console.log(_err);
                   toast.update(toastId.current, {
                     render: "Failed to save redline pdf to Object Storage",
