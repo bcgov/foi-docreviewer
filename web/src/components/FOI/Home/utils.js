@@ -63,7 +63,7 @@ export const docSorting = (a, b) => {
   return sort;
 };
 
-
+// sort by parent-attachment, then last modified date
 export const sortDocList = (fullDocList, currentDoc, sortedDocList) => {
   let parentid = null;
   if(currentDoc) {
