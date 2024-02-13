@@ -1443,6 +1443,7 @@ const Redlining = React.forwardRef(
 
     // This updates the page flags for pages where all the annotations have the same section
     const updatePageFlagsByPage = (redactionInfo, section, pageflagid) => {
+      let hasUpdated = false;
       const mapAnnotations = (annotations) => {
         let annotationsMap = {};
         for (let annot of annotations) { 
@@ -1479,22 +1480,19 @@ const Redlining = React.forwardRef(
           requestid, 
           0, 
           (data) => {
-            console.log('data: ', data)
-            console.log('pageFlags: ', pageFlags)
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
               docsForStitcing.map(d => d.file.documentid),
               (error) => console.log(error)
             );
-            // store.dispatch(setPageFlags({ ...pageFlags }))
           }, 
           (error) => console.log('error: ', error), 
           createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
         )
-        return true;
+        hasUpdated = true;
       }
-      return false;
+      return hasUpdated;
     }
 
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
@@ -1918,8 +1916,6 @@ const Redlining = React.forwardRef(
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
         setNewRedaction(null);
       }
-      // This is done to force the DocumentSelector component to re-render
-      console.log('updating annotations..')
     };
 
     const getCoordinates = (_annot, _redaction, X) => {
