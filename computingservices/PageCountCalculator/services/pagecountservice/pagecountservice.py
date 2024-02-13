@@ -24,13 +24,18 @@ class pagecountservice():
         print(f'records == {records}')
         page_count = 0
         for record in records:
-            if not record.get("isduplicate", False) and not record["attributes"].get("isportfolio", False):
+            if self.__pagecountcalculationneeded(record):
                 page_count += record.get("pagecount", 0)
                 attachments = record.get("attachments", [])
                 for attachment in attachments:
                     if not attachment.get("isduplicate", False):
                         page_count += attachment.get("pagecount", 0)
         return page_count
+
+    def __pagecountcalculationneeded(self, record):
+        if not record.get("isduplicate", False) and not record["attributes"].get("isportfolio", False) and not record['attributes'].get('incompatible', False):
+            return True
+        return False
 
     def __getdocumentdetails(self, message):
         deleted = documentservice().getdeleteddocuments(message.ministryrequestid)
