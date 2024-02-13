@@ -3444,18 +3444,14 @@ const Redlining = React.forwardRef(
       // For sections
       if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
         isDisabled = (sectionid === 25 || sectionid === 26)
-        return isDisabled
       // For Blank Code
       } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
         isDisabled = sectionid !== 25
-        return isDisabled
       // For Not Responsive
       } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
         isDisabled = sectionid !== 26
-        return isDisabled
-      } else {
-        return isDisabled
       }
+      return isDisabled
     }
 
     return (
