@@ -11,7 +11,7 @@ import {
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { docSorting } from "./utils";
+import { sortDocList } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -78,7 +78,9 @@ function Home() {
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        setFiles(_files);
+        let sortedFiles = []
+        sortDocList(_files, null, sortedFiles);
+        setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
           let urlPromises = [];
@@ -92,7 +94,7 @@ function Home() {
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              doclist = newDocumentObjs?.sort(docSorting);
+              sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
               prepareMapperObj(doclist);

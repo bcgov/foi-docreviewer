@@ -606,7 +606,7 @@ const DocumentSelector = React.forwardRef(({
         )
     }
 
-    const sortByModifiedDateView = filesForDisplay.sort(docSorting).map((file: any, index: number) => { 
+    const sortByModifiedDateView = filesForDisplay.map((file: any, index: number) => { 
         return (
             <Tooltip
                 sx={{
