@@ -2,6 +2,13 @@ import ACTION_CONSTANTS from "../actions/actionConstants";
 const initialState = {
   redactionInfo: [],
   redactionLayers: [],
+  currentLayer: {
+    "redactionlayerid": 1,
+    "name": "Redline",
+    "description": "Redline",
+    // "sortorder": 1,
+    // "count": 4
+  }
 }
 
 const documents = (state = initialState, action:any)=> {
