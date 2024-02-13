@@ -1441,6 +1441,62 @@ const Redlining = React.forwardRef(
       docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
     }, [individualDoc]);
 
+    // This updates the page flags for pages where all the annotations have the same section
+    const updatePageFlagsByPage = (redactionInfo, section, pageflagid) => {
+      const mapAnnotations = (annotations) => {
+        let annotationsMap = {};
+        for (let annot of annotations) { 
+          if (annotationsMap[annot.documentid]) {
+            if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
+              annotationsMap[annot.documentid][annot.pagenumber + 1]++;
+            } else {
+              annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
+            }
+          } else {
+            annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
+          }
+        }
+        return annotationsMap
+      }
+      const setFlagsForPagesWithAllAnnotationsInSection = (allAnnotationsMap, sectionAnnotationsMap, pageflagid) => {
+        let pagesToUpdate = []
+        for (let doc in allAnnotationsMap) {
+          for (let page in allAnnotationsMap?.[doc]) {
+            if (allAnnotationsMap?.[doc]?.[page] == sectionAnnotationsMap?.[doc]?.[page]) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageflagid })
+            }
+          }
+        }
+        return pagesToUpdate
+      }
+
+      let allAnnotationsMap = mapAnnotations(redactionInfo)
+      let sectionAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(section)))
+      
+      let pagesToUpdate = setFlagsForPagesWithAllAnnotationsInSection(allAnnotationsMap, sectionAnnotationsMap, pageflagid)
+      if (pagesToUpdate.length > 0) {
+        savePageFlag(
+          requestid, 
+          0, 
+          (data) => {
+            console.log('data: ', data)
+            console.log('pageFlags: ', pageFlags)
+            fetchPageFlag(
+              requestid,
+              currentLayer.name.toLowerCase(),
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
+            );
+            // store.dispatch(setPageFlags({ ...pageFlags }))
+          }, 
+          (error) => console.log('error: ', error), 
+          createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+        )
+        return true;
+      }
+      return false;
+    }
+
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
@@ -1524,12 +1580,15 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              docsForStitcing.map(d => d.file.documentid),
-              (error) => console.log(error)
-            );
+            const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
+            if (!hasUpdated) {
+              fetchPageFlag(
+                requestid,
+                currentLayer.name.toLowerCase(),
+                docsForStitcing.map(d => d.file.documentid),
+                (error) => console.log(error)
+              );
+            }
           },
           (error) => {
             console.log(error);
@@ -1552,13 +1611,6 @@ const Redlining = React.forwardRef(
         setEnableMultiSelect(false);
         setMultiSelectFooter(null);
         setEditRedacts(null);
-
-        // wait for saveAnnotations to complete before refetching annotations info from api
-        setTimeout(() => {
-          fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-            console.log("Error:", error);
-          });
-        }, 100)
       });
 
       setNewRedaction(null);
@@ -1868,53 +1920,7 @@ const Redlining = React.forwardRef(
       }
       // This is done to force the DocumentSelector component to re-render
       console.log('updating annotations..')
-      setTimeout(() => {
-        fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-          console.log("Error:", error);
-        });
-      }, 100)
     };
-
-    useEffect(() => {
-      const mapAnnotations = (annotations) => {
-        let annotationsMap = {};
-        for (let annot of annotations) { 
-          if (annotationsMap[annot.documentid]) {
-            if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
-              annotationsMap[annot.documentid][annot.pagenumber + 1]++;
-            } else {
-              annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
-            }
-          } else {
-            annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
-          }
-        }
-        return annotationsMap
-      }
-      const findPagesWithOnlyNRAnnotations = (allAnnotationsMap, NRAnnotationsMap) => {
-        let selectedPages = []
-        for (let doc in allAnnotationsMap) {
-          for (let page in allAnnotationsMap?.[doc]) {
-            if (allAnnotationsMap?.[doc]?.[page] == NRAnnotationsMap?.[doc]?.[page]) {
-              selectedPages.push({ docid: doc, page: page, flagid: 2 })
-            }
-          }
-        }
-        return selectedPages
-      }
-
-      let allAnnotationsMap = mapAnnotations(redactionInfo)
-      let NRAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(26)))
-      
-      let selectedPages = findPagesWithOnlyNRAnnotations(allAnnotationsMap, NRAnnotationsMap)
-      savePageFlag(
-        requestid, 
-        0, 
-        (data) => console.log('data: ', data), 
-        (error) => console.log('error: ', error), 
-        createPageFlagPayload(selectedPages, currentLayer.redactionlayerid)
-      )
-    }, [redactionInfo])
 
     const getCoordinates = (_annot, _redaction, X) => {
       _annot.PageNumber = _redaction?.getPageNumber();
