@@ -17,9 +17,15 @@ class FileSchema(Schema):
     filename = fields.Str(data_key="filename",allow_none=False)
     s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
 
-class SummarySchema(Schema):
+class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
     documentids = fields.List(fields.Int())
+
+class SummarySchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+    sorteddocuments = fields.List(fields.Int())
+    pkgdocuments = fields.List(fields.Nested(SummaryPkgSchema, allow_none=True))
     
 class AttributeSchema(Schema):
     class Meta:
@@ -41,7 +47,7 @@ class RedactionSummaryIncomingSchema(Schema):
     filestozip = fields.List(fields.Nested(FileSchema, allow_none=True))
     finaloutput = fields.Str(data_key="finaloutput",allow_none=False)
     attributes = fields.List(fields.Nested(AttributeSchema, allow_none=True))
-    summarydocuments = fields.List(fields.Nested(SummarySchema, allow_none=True))
+    summarydocuments = fields.Nested(SummarySchema, allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
 
 
@@ -57,4 +63,6 @@ def decodesummarymsg(_message):
     _message = _message.encode().decode('unicode-escape')
     _message = _message.replace("b'","'").replace('"\'','"').replace('\'"','"')
     _message = _message.replace('"[','[').replace(']"',"]").replace("\\","")
+    _message = _message.replace('"{','{').replace('}"',"}")
+    _message = _message.replace('""','"')
     return _message
