@@ -13,8 +13,9 @@ class redactionsummaryservice():
             summaryfilestozip = []
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")
             divisiondocuments = message.summarydocuments
-            category = message.category
-            documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
+            #Condition for handling oipcredline category
+            category = message.category if message.category == 'responsepackage' else "redline" 
+            documenttypename= category+"_redaction_summary"
             print('documenttypename', documenttypename)
             upload_responses=[]
             for entry in divisiondocuments:
@@ -23,20 +24,17 @@ class redactionsummaryservice():
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
                 print('formattedsummary', formattedsummary)
                 template_path='templates/'+documenttypename+'.docx'
-                redaction_summary= documentgenerationservice().generate_pdf(documenttypename,formattedsummary,template_path)
+                redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
                 if category == 'redline' :
                     filesobj=(next(item for item in messageattributes if item.divisionid == divisionid)).files[0]
                 else:
                     filesobj= messageattributes[0].files[0]
-                    
                 stitcheddocs3uri = filesobj.s3uripath
                 stitcheddocfilename = filesobj.filename
-                last_slash_index = stitcheddocs3uri.rfind('/')
-                stitcheddocs3uri = stitcheddocs3uri[:last_slash_index]
-                last_slash_index = stitcheddocs3uri.rfind('/')
-                s3uri = stitcheddocs3uri[:last_slash_index + 1]
+                s3uri = stitcheddocs3uri.split(category+"/")[0] + category+"/"
                 filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
+                print('s3uri:', s3uri)
                 uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                 upload_responses.append(uploadobj)
                 if uploadobj["uploadresponse"].status_code == 200:
