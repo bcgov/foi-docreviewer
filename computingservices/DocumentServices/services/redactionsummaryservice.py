@@ -16,8 +16,8 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")
             divisiondocuments = message.summarydocuments
             #Condition for handling oipcredline category
-            category = message.category if message.category == 'responsepackage' else "redline" 
-            documenttypename= category+"_redaction_summary"
+            category = message.category  
+            documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline"
             print('documenttypename', documenttypename)
             upload_responses=[]
             pageflags = documentpageflag().get_all_pageflags()
@@ -32,7 +32,7 @@ class redactionsummaryservice():
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
-                if message.category == 'redline' :
+                if category == 'redline' :
                     filesobj=(next(item for item in messageattributes if item.divisionid == divisionid)).files[0]
                 else:
                     filesobj= messageattributes[0].files[0]
