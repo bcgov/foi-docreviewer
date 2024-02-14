@@ -2156,7 +2156,7 @@ const Redlining = React.forwardRef(
             `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
             pgSet
           );
-          
+          doc.unlock();
           // PDFTron might automatically handle marking the document as "dirty" during modifications.
           // Make sure that you are saving the document correctly after any modifications.  
           const docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);
