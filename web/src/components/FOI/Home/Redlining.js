@@ -2113,15 +2113,19 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
+      let doc = await _docViwer.getPDFDoc();
+      let docArr = [];
       for (
         let pagecount = 1;
         pagecount <= divisionsdocpages.length;
         pagecount++
       ) {
-        const doc = await _docViwer.getPDFDoc();
-
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
+          if (docArr.length > 0) {
+            //updated document after each page stamping
+            doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
+          }
           // lock the document before a write operation
           // runWithCleanup will auto unlock when complete
           doc.lock();
@@ -2152,8 +2156,15 @@ const Redlining = React.forwardRef(
             `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
             pgSet
           );
-        });
+          
+          // PDFTron might automatically handle marking the document as "dirty" during modifications.
+          // Make sure that you are saving the document correctly after any modifications.  
+          const docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);
+          docArr = new Uint8Array(docBuf.buffer);
+        });        
       }
+      const pageStampedDocument = await docInstance.Core.createDocument(docArr,{ extension: 'pdf' });
+      return pageStampedDocument;
     };
 
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
@@ -3120,7 +3131,7 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["documentids"]
           );
           if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
@@ -3175,12 +3186,12 @@ const Redlining = React.forwardRef(
               const doc = await stitchObject.getPDFDoc();
               await PDFNet.Redactor.redact(doc, rarr, app);
             }
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );  
+              );
         }
         //OIPC - Special Block : End
         
