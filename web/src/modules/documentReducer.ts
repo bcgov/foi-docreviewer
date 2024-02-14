@@ -7,7 +7,7 @@ const initialState = {
     "name": "Redline",
     "description": "Redline",
     // "sortorder": 1,
-    // "count": 4
+    // "count": 0
   }
 }
 
