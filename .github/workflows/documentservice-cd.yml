@@ -12,7 +12,7 @@ on:
       - test-rook
     paths:
       - "computingservices/DocumentServices/**"
-      - ".github/workflows/DocumentServices-cd.yml"
+      - ".github/workflows/documentservice-cd.yml"
 
 defaults:
   run:
