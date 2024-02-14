@@ -17,7 +17,7 @@ class redactionsummaryservice():
             divisiondocuments = message.summarydocuments
             #Condition for handling oipcredline category
             category = message.category  
-            documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline"
+            documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
             print('documenttypename', documenttypename)
             upload_responses=[]
             pageflags = documentpageflag().get_all_pageflags()
