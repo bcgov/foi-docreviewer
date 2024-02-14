@@ -3129,7 +3129,7 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["documentids"]
           );
           if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
@@ -3184,7 +3184,7 @@ const Redlining = React.forwardRef(
               const doc = await stitchObject.getPDFDoc();
               await PDFNet.Redactor.redact(doc, rarr, app);
             }
-            await stampPageNumberRedline(
+            stitchObject = await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
