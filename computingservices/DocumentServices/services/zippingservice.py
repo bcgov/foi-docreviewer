@@ -6,7 +6,6 @@ class zippingservice():
 
     def sendtozipper(self, summaryfiles, message):
         updatedmessage = zippingservice().preparemessageforzipperservice(summaryfiles, message)
-        print('updatedmessage',updatedmessage)
         zipperstreamwriter().sendmessage(updatedmessage)
 
     def preparemessageforzipperservice(self,updatedfilestozip, message):

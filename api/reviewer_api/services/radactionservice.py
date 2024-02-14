@@ -210,7 +210,7 @@ class redactionservice:
             "filestozip": to_json(
                 self.__preparefilestozip(messageschema["attributes"])
             ),
-            "finaloutput": to_json({}),
+            "finaloutput": to_json(""),
             "attributes": to_json(messageschema["attributes"]),
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
             "redactionlayerid": json.dumps(messageschema["redactionlayerid"])

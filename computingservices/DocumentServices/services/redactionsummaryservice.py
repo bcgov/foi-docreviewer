@@ -6,6 +6,8 @@ from services.dts.redactionsummary import redactionsummary
 from .documentgenerationservice import documentgenerationservice
 from .s3documentservice import uploadbytes
 from services.dts.redactionsummary import redactionsummary
+from services.dal.documentpageflag import documentpageflag
+
 class redactionsummaryservice():
 
     def processmessage(self,message):
@@ -18,10 +20,14 @@ class redactionsummaryservice():
             documenttypename= category+"_redaction_summary"
             print('documenttypename', documenttypename)
             upload_responses=[]
+            pageflags = documentpageflag().get_all_pageflags()
+            programareas = documentpageflag().get_all_programareas()
+            summarymsg = message.summarydocuments
+            divisiondocuments = summarymsg.pkgdocuments
             for entry in divisiondocuments:
                 divisionid = entry.divisionid
                 documentids = entry.documentids
-                formattedsummary = redactionsummary().prepareredactionsummary(message, documentids)
+                formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
                 print('formattedsummary', formattedsummary)
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)

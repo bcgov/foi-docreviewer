@@ -2862,6 +2862,7 @@ const Redlining = React.forwardRef(
 
     const prepareredlinesummarylist = (stitchDocuments) => {
       let summarylist = []
+      let alldocuments = []
       for (const [key, value] of Object.entries(stitchDocuments)) {
         let summary_division = {};
         summary_division["divisionid"] = key
@@ -2870,12 +2871,19 @@ const Redlining = React.forwardRef(
           let summary_divdocuments = []
           for (let doc of documentlist) {
             summary_divdocuments.push(doc.documentid);
+            alldocuments.push(doc);
           }
           summary_division["documentids"] = summary_divdocuments;
         }
         summarylist.push(summary_division);
       }
-      return summarylist
+     let sorteddocids = []
+     let sorteddocs = sortByLastModified(alldocuments) 
+     for (const sorteddoc of sorteddocs) {
+        sorteddocids.push(sorteddoc['documentid']);
+     }
+     
+      return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}
     }
 
 
@@ -3508,13 +3516,21 @@ const Redlining = React.forwardRef(
       let summarylist = []
       let summary_division = {};
       let summary_divdocuments = [];
+      let alldocuments = [];
       summary_division["divisionid"] = '0';
       for (let doc of documentlist) {
           summary_divdocuments.push(doc.documentid);
+          alldocuments.push(doc);
       }
       summary_division["documentids"] = summary_divdocuments;
-      summarylist.push(summary_division);      
-      return summarylist
+      summarylist.push(summary_division);   
+      
+      let sorteddocids = []
+      let sorteddocs = sortByLastModified(alldocuments) 
+      for (const sorteddoc of sorteddocs) {
+        sorteddocids.push(sorteddoc['documentid']);
+      }
+      return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
     }
 
     const compareValues = (a, b) => {

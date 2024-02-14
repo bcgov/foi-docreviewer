@@ -2,8 +2,8 @@ from services.dal.documentpageflag import documentpageflag
 
 class redactionsummary():
 
-    def prepareredactionsummary(self, message, documentids):
-        redactionsummary = self.prepare_pkg_redactionsummary(message,documentids)
+    def prepareredactionsummary(self, message, documentids, pageflags, programareas):
+        redactionsummary = self.prepare_pkg_redactionsummary(message, documentids, pageflags, programareas)
         if message.category == "responsepackage":
             consolidated_redactions = []
             for entry in redactionsummary['data']:
@@ -17,42 +17,49 @@ class redactionsummary():
         rangestart = str(rangestart).split('(')[0]
         return int(rangestart)
 
-    def prepare_pkg_redactionsummary(self, message, documentids):
+    def prepare_pkg_redactionsummary(self, message, documentids, pageflags, programareas):
         try:
             redactionlayerid = message.redactionlayerid
-            ordereddocids = documentpageflag().get_documents_lastmodified(message.ministryrequestid, self.__get_documentids(message))
+            summarymsg = message.summarydocuments
+            ordereddocids = summarymsg.sorteddocuments
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
             if totalpagecount <=0:
                 return 
-            pageflags = documentpageflag().get_all_pageflags()
-            programareas = documentpageflag().get_all_programareas()
+            _pageflags = self.__transformpageflags(pageflags)
+            
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
-                  
-            for pageflag in pageflags: 
-                pagecount = 0             
-                pageredactions = []
-                _data = {}
-                _data["flagname"] = pageflag["description"].upper()
-                for docid in ordereddocids:
-                    if docid in documentids:
-                        docpageflag = docpageflags[docid]
+                        
+            pagecount = 0
+            for docid in ordereddocids:
+                if docid in documentids:
+                    docpageflag = docpageflags[docid]
+                    for pageflag in _pageflags:
                         filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], pagecount, pageflag["pageflagid"])
                         if len(filteredpages) > 0:
-                            originalpagenos = [pg['originalpageno']for pg in filteredpages]
+                            originalpagenos = [pg['originalpageno'] for pg in filteredpages]
                             docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
                             docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                            pageredactions.extend(self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults))
-                    pagecount = pagecount+stitchedpagedata[docid]["pagecount"]
-                if len(pageredactions) > 0:
-                    _data["pagecount"] = len(pageredactions)
-                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageredactions)
+                            pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                pagecount = pagecount+stitchedpagedata[docid]["pagecount"]
+                
+            for pageflag in _pageflags:
+                _data = {}
+                if len(pageflag['docpageflags']) > 0:
+                    _data = {}
+                    _data["flagname"] = pageflag["description"].upper()
+                    _data["pagecount"] = len(pageflag['docpageflags'])   
+                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'])
                     summarydata.append(_data)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
 
+    def __transformpageflags(self, pageflags):
+        for entry in pageflags:
+            entry['docpageflags']= []
+        return pageflags
     def __get_consults_by_pageno(self, programareas, docpageflag, pagenos):
         consults = {}
         for entry in docpageflag:
@@ -66,13 +73,6 @@ class redactionsummary():
         for cid in consultids:
             formatted.append(programareas[cid]['iaocode'])
         return ",".join(formatted)
-    
-    def __get_documentids(self, message):
-        summarydocuments = message.summarydocuments
-        docids = []
-        for entry in summarydocuments:
-            docids = docids + entry.documentids
-        return docids
 
     def __format_redaction_summary(self, pageflag, pageredactions):
         totalpages = len(pageredactions)                
