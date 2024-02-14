@@ -52,13 +52,7 @@ export const docSorting = (a, b) => {
       Date.parse(b.attributes.attachmentlastmodified || "0");
   }
   if (sort === 0) {
-    if (a.filename < b.filename) {
-      return -1;
-    }
-    if (a.filename > b.filename) {
-      return 1;
-    }
-    return 0;
+    return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
   }
   return sort;
 };
