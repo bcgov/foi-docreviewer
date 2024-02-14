@@ -20,7 +20,7 @@ defaults:
     working-directory: ./computingservices/DocumentServices
 
 env:
-  APP_NAME: "reviewer-documentservice-build"
+  APP_NAME: "reviewer-documentservice"
   TOOLS_NAME: "${{secrets.OPENSHIFT4_REPOSITORY}}"
 
 jobs:
