@@ -32,7 +32,7 @@ class documentgenerationservice:
     #         raise BusinessException(Error.DATA_NOT_FOUND)  
         
 
-    def generate_pdf(self, documenttypename, data, template_path='templates/redline_redaction_summary.docx'):
+    def generate_pdf(self, data, documenttypename='redline_redaction_summary', template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
