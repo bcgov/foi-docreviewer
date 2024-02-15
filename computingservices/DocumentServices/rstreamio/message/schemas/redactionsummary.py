@@ -18,6 +18,8 @@ class FileSchema(Schema):
     s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
 
 class SummaryPkgSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
     documentids = fields.List(fields.Int())
 

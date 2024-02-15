@@ -24,7 +24,6 @@ class pdfstitchjobactivity:
                     message.ministryrequestid,
                     category,
                     to_json(message.attributes),
-                    #json.dumps(message.attributes, default=obj_dict),
                     status,
                     errormessage if error else None,
                     message.createdby,

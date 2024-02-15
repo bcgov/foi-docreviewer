@@ -7,28 +7,28 @@ from .documentgenerationservice import documentgenerationservice
 from .s3documentservice import uploadbytes
 from services.dts.redactionsummary import redactionsummary
 from services.dal.documentpageflag import documentpageflag
-
+from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg
 class redactionsummaryservice():
 
-    def processmessage(self,message):
+    def processmessage(self,incomingmessage):
+        summaryfilestozip = []
+        message = get_in_redactionsummary_msg(incomingmessage)
         try:
-            summaryfilestozip = []
-            pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")
-            divisiondocuments = message.summarydocuments
+            pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
+            summarymsg = message.summarydocuments
             #Condition for handling oipcredline category
             category = message.category  
             documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
-            print('documenttypename', documenttypename)
+            #print('documenttypename', documenttypename)
             upload_responses=[]
             pageflags = documentpageflag().get_all_pageflags()
             programareas = documentpageflag().get_all_programareas()
-            summarymsg = message.summarydocuments
             divisiondocuments = summarymsg.pkgdocuments
             for entry in divisiondocuments:
                 divisionid = entry.divisionid
                 documentids = entry.documentids
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
-                print('formattedsummary', formattedsummary)
+                #print('formattedsummary', formattedsummary)
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
@@ -41,7 +41,7 @@ class redactionsummaryservice():
                 s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                 s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                 filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
-                print('s3uri:', s3uri)
+                #print('s3uri:', s3uri)
                 uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                 upload_responses.append(uploadobj)
                 if uploadobj["uploadresponse"].status_code == 200:
@@ -55,8 +55,8 @@ class redactionsummaryservice():
             return summaryfilestozip
         except (Exception) as error:
             print('error occured in redaction summary service: ', error)
-    
-    
+            pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
+            return summaryfilestozip
 
    
     

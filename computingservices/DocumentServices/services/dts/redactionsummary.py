@@ -120,7 +120,7 @@ class redactionsummary():
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
         for dta in filtered:
             sections += [x.strip() for x in dta['section'].split(",")] 
-        return sections
+        return list(filter(None, sections))
 
     def __get_pages_by_flagid(self, _docpageflags, totalpages, flagid):
         pagenos = []
