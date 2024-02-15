@@ -2113,8 +2113,8 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      // Linearize the StitchObject as it can contain different types for pages
-      // (ex: Normal pdf pages and scanned pages) which is causing setDirty() error while stamping the pagenumver
+      // Linearize the StitchObject as it can contain different types of pages
+      // (ex: Standard pdf and scanned pages) which is causing setDirty() error while stamping the pagenumber
       let doc = await linearizeStitchObject(_docViwer, PDFNet);
       for (
         let pagecount = 1;
@@ -2157,7 +2157,7 @@ const Redlining = React.forwardRef(
           pageIndex++;
         });
       }
-      // After stamping the stitchObj is in PDFDoc format. 
+      // The stitchObj is in PDFDoc format after the page number stamping. 
       // Below method will change it back to Document format
       const pageStampedDocument = convertToDocument(doc, PDFNet);
       return pageStampedDocument;
