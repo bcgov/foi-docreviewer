@@ -35,6 +35,7 @@ import {
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
+  savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -1463,6 +1464,60 @@ const Redlining = React.forwardRef(
       docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
     }, [individualDoc]);
 
+    // This updates the page flags for pages where all the annotations have the same section
+    const updatePageFlagsByPage = (redactionInfo, section, pageflagid) => {
+      let hasUpdated = false;
+      const mapAnnotations = (annotations) => {
+        let annotationsMap = {};
+        for (let annot of annotations) { 
+          if (annotationsMap[annot.documentid]) {
+            if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
+              annotationsMap[annot.documentid][annot.pagenumber + 1]++;
+            } else {
+              annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
+            }
+          } else {
+            annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
+          }
+        }
+        return annotationsMap
+      }
+      const setFlagsForPagesWithAllAnnotationsInSection = (allAnnotationsMap, sectionAnnotationsMap, pageflagid) => {
+        let pagesToUpdate = []
+        for (let doc in allAnnotationsMap) {
+          for (let page in allAnnotationsMap?.[doc]) {
+            if (allAnnotationsMap?.[doc]?.[page] == sectionAnnotationsMap?.[doc]?.[page]) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageflagid })
+            }
+          }
+        }
+        return pagesToUpdate
+      }
+
+      let allAnnotationsMap = mapAnnotations(redactionInfo)
+      let sectionAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(section)))
+      
+      let pagesToUpdate = setFlagsForPagesWithAllAnnotationsInSection(allAnnotationsMap, sectionAnnotationsMap, pageflagid)
+      if (pagesToUpdate.length > 0) {
+        savePageFlag(
+          requestid, 
+          0, 
+          (data) => {
+            fetchPageFlag(
+              requestid,
+              currentLayer.name.toLowerCase(),
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
+            );
+          }, 
+          (error) => console.log('error: ', error), 
+          createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+        )
+        hasUpdated = true;
+      }
+      return hasUpdated;
+    }
+
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
@@ -1494,7 +1549,6 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1547,12 +1601,15 @@ const Redlining = React.forwardRef(
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              docsForStitcing.map(d => d.file.documentid),
-              (error) => console.log(error)
-            );
+            const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
+            if (!hasUpdated) {
+              fetchPageFlag(
+                requestid,
+                currentLayer.name.toLowerCase(),
+                docsForStitcing.map(d => d.file.documentid),
+                (error) => console.log(error)
+              );
+            }
           },
           (error) => {
             console.log(error);
@@ -1728,6 +1785,30 @@ const Redlining = React.forwardRef(
             return flag;
           });
         }
+        
+        // This will set pageFlag to Full Disclosure if there are no other flags on page
+        const updatePageFlagIdsForNotResponsive = (pageFlagSelections) => {
+          for (let selectedFlag of pageFlagSelections) { //the selected flag
+            let currentPageHasFlag = false;
+            for (let pageFlag of pageFlags) { //the existing flags
+              if (selectedFlag.docid == pageFlag.documentid) {
+                for (let flag of pageFlag.pageflag) { //go over the existing flags in the document
+                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"]) {
+                    currentPageHasFlag = true;
+                  }
+                }
+              }
+            }
+
+            if (!currentPageHasFlag && selectedSections.includes(26)) { //id 26 is Not Responsive
+              selectedFlag.flagid = pageFlagTypes["Full Disclosure"];
+            } else if (currentPageHasFlag && selectedSections.includes(26)) {
+              selectedFlag.flagid = pageFlagTypes["Partial Disclosure"];
+            }
+          }
+        }
+        updatePageFlagIdsForNotResponsive(pageFlagSelections)
+
         // add section annotation
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -3492,6 +3573,21 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const sectionIsDisabled = (sectionid) => {
+      let isDisabled = false;
+      // For sections
+      if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
+        isDisabled = (sectionid === 25 || sectionid === 26)
+      // For Blank Code
+      } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
+        isDisabled = sectionid !== 25
+      // For Not Responsive
+      } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
+        isDisabled = sectionid !== 26
+      }
+      return isDisabled
+    }
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -3559,12 +3655,7 @@ const Redlining = React.forwardRef(
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
-                        disabled={
-                          selectedSections.length > 0 &&
-                          (section.id === 25
-                            ? !selectedSections.includes(25)
-                            : selectedSections.includes(25))
-                        }
+                        disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
                       <label
