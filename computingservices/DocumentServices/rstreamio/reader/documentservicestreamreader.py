@@ -6,7 +6,7 @@ import logging
 from enum import Enum
 from utils import redisstreamdb
 from utils.foidocumentserviceconfig import documentservice_stream_key
-from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg, decodesummarymsg
+from rstreamio.message.schemas.redactionsummary import decodesummarymsg
 from services.redactionsummaryservice import redactionsummaryservice
 from services.zippingservice import zippingservice
 
@@ -38,20 +38,20 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         print("*********** Messages ***********")
         print(messages)
         if messages:
-            for _messages in messages:          
+            for _message in messages:          
                 # message_id is the random id created to identify the message
                 # message is the actual data passed to the stream 
-                message_id, message = _messages 
+                message_id, message = _message 
                 print(f"processing {message_id}::{message}")
                 if message is not None:
-                    _message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    _message = decodesummarymsg(_message)
+                    message = json.dumps({str(key): str(value) for (key, value) in message.items()})
+                    message = decodesummarymsg(message)
+                    summaryfiles = []
                     try:
-                        redactionsummary_message = get_in_redactionsummary_msg(_message)
-                        summaryfiles = redactionsummaryservice().processmessage(redactionsummary_message)
-                        zippingservice().sendtozipper(summaryfiles, _message)
+                        summaryfiles = redactionsummaryservice().processmessage(message)
                     except(Exception) as error: 
-                        logging.exception(error)       
+                        logging.exception(error) 
+                    zippingservice().sendtozipper(summaryfiles, message)   
                     # simulate processing
                 time.sleep(random.randint(1, 3))
                 last_id = message_id
