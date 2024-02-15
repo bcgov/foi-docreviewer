@@ -65,13 +65,16 @@ class redactionsummary():
         for entry in docpageflag:
             for pg in pagenos:
                 if entry['flagid'] == 4 and entry['page']-1 == pg['originalpageno']:
-                    consults[pg['originalpageno']] = self.__format_consults(programareas,entry['programareaid'])
+                    additional_consults = entry["other"] if "other" in entry else []
+                    consults[pg['originalpageno']] = self.__format_consults(programareas,entry['programareaid'], additional_consults)
         return consults
     
-    def __format_consults(self, programareas, consultids):
+    def __format_consults(self, programareas, consultids, others):
         formatted = []
         for cid in consultids:
             formatted.append(programareas[cid]['iaocode'])
+        if len(others) > 0:
+            formatted = formatted+others
         return ",".join(formatted)
 
     def __format_redaction_summary(self, pageflag, pageredactions):
