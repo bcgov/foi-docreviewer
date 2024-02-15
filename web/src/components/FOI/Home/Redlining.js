@@ -2113,79 +2113,55 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      // Linearize the StitchObject as it can contain different types of pages
-      // (ex: Standard pdf and scanned pages) which is causing setDirty() error while stamping the pagenumber
-      let doc = await linearizeStitchObject(_docViwer, PDFNet);
-      for (
-        let pagecount = 1;
-        pagecount <= divisionsdocpages.length;
-        pagecount++
-      ) {
-        let pageIndex = 0;
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
+      try {
+        for (
+          let pagecount = 1;
+          pagecount <= divisionsdocpages.length;
+          pagecount++
+        ) {
+          
+          let doc = await _docViwer.getPDFDoc();
+          let pageIndex = 0;
+          // Run PDFNet methods with memory management
+          await PDFNet.runWithCleanup(async () => {
+            // lock the document before a write operation
+            // runWithCleanup will auto unlock when complete
+            doc.lock();
+            const s = await PDFNet.Stamper.create(
+              PDFNet.Stamper.SizeType.e_relative_scale,
+              0.3,
+              0.3
+            );
 
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-            pgSet
-          );
-          pageIndex++;
-        });
-      }
-      // The stitchObj is in PDFDoc format after the page number stamping. 
-      // Below method will change it back to Document format
-      const pageStampedDocument = convertToDocument(doc, PDFNet);
-      return pageStampedDocument;
+            await s.setAlignment(
+              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+            );
+            const font = await PDFNet.Font.create(
+              doc,
+              PDFNet.Font.StandardType1Font.e_courier
+            );
+            await s.setFont(font);
+            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+            await s.setFontColor(redColorPt);
+            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+            await s.setAsBackground(false);
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+            await s.stampText(
+              doc,
+              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+              pgSet
+            );
+            pageIndex++;
+          });
+        }
+      } catch (err) {
+          console.log(err);
+          throw err;
+        }
     };
-
-    const convertToDocument = async (doc, PDFNet) => {
-      let pageStampedBufArr = await getDocumentArray(doc, PDFNet);
-      const pageStampedDocument = await docInstance.Core.createDocument(pageStampedBufArr,{ extension: 'pdf' });
-      pageStampedBufArr = [];
-      return pageStampedDocument;
-    }    
-
-    const linearizeStitchObject = async (_docViwer, PDFNet) => {
-      let doc = await _docViwer.getPDFDoc();
-      let docArr = await getDocumentArray(doc, PDFNet);
-      if (docArr.length > 0) {
-        doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
-        docArr = []
-      }
-      return doc;
-    }
-
-    const getDocumentArray = async (doc, PDFNet) => {
-      let docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);            
-      let docArr = new Uint8Array(docBuf.buffer);
-      docBuf = null;
-      return docArr;
-    }
     
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
       for (
@@ -3151,7 +3127,7 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["documentids"]
           );
           if(redlineCategory !== "oipcreview") {  
-            stitchObject = await stampPageNumberRedline(
+            await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
@@ -3206,7 +3182,7 @@ const Redlining = React.forwardRef(
               const doc = await stitchObject.getPDFDoc();
               await PDFNet.Redactor.redact(doc, rarr, app);
             }
-            stitchObject = await stampPageNumberRedline(
+            await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
