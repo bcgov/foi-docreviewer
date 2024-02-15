@@ -2113,15 +2113,17 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      let doc = await _docViwer.getPDFDoc();
-      let docArr = [];
-      for ( let pagecount = 1; pagecount <= divisionsdocpages.length; pagecount++ ) {
+      // Linearize the StitchObject as it can contain different types of pages
+      // (ex: Standard pdf and scanned pages) which is causing setDirty() error while stamping the pagenumber
+      let doc = await linearizeStitchObject(_docViwer, PDFNet);
+      for (
+        let pagecount = 1;
+        pagecount <= divisionsdocpages.length;
+        pagecount++
+      ) {
+        let pageIndex = 0;
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
-          if (docArr.length > 0) {
-            //updated document after each page stamping
-            doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
-          }
           // lock the document before a write operation
           // runWithCleanup will auto unlock when complete
           doc.lock();
@@ -2152,16 +2154,38 @@ const Redlining = React.forwardRef(
             `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
             pgSet
           );
-          
-          // PDFTron might automatically handle marking the document as "dirty" during modifications.
-          // Make sure that you are saving the document correctly after any modifications.  
-          const docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);
-          docArr = new Uint8Array(docBuf.buffer);
-        });        
+          pageIndex++;
+        });
       }
-      const pageStampedDocument = await docInstance.Core.createDocument(docArr,{ extension: 'pdf' });
+      // The stitchObj is in PDFDoc format after the page number stamping. 
+      // Below method will change it back to Document format
+      const pageStampedDocument = convertToDocument(doc, PDFNet);
       return pageStampedDocument;
     };
+
+    const convertToDocument = async (doc, PDFNet) => {
+      let pageStampedBufArr = await getDocumentArray(doc, PDFNet);
+      const pageStampedDocument = await docInstance.Core.createDocument(pageStampedBufArr,{ extension: 'pdf' });
+      pageStampedBufArr = [];
+      return pageStampedDocument;
+    }    
+
+    const linearizeStitchObject = async (_docViwer, PDFNet) => {
+      let doc = await _docViwer.getPDFDoc();
+      let docArr = await getDocumentArray(doc, PDFNet);
+      if (docArr.length > 0) {
+        doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
+        docArr = []
+      }
+      return doc;
+    }
+
+    const getDocumentArray = async (doc, PDFNet) => {
+      let docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);            
+      let docArr = new Uint8Array(docBuf.buffer);
+      docBuf = null;
+      return docArr;
+    }
 
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
       for (
