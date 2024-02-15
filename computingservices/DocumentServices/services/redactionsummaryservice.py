@@ -32,13 +32,14 @@ class redactionsummaryservice():
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
-                if category == 'redline' :
+                if category == 'redline':
                     filesobj=(next(item for item in messageattributes if item.divisionid == divisionid)).files[0]
                 else:
                     filesobj= messageattributes[0].files[0]
                 stitcheddocs3uri = filesobj.s3uripath
                 stitcheddocfilename = filesobj.filename
-                s3uri = stitcheddocs3uri.split(category+"/")[0] + category+"/"
+                s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
+                s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                 filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
                 print('s3uri:', s3uri)
                 uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
