@@ -32,7 +32,8 @@ class redactionsummaryservice():
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
-                if category == 'redline':
+                print("attributes length:",len(messageattributes))
+                if len(messageattributes)>0:
                     filesobj=(next(item for item in messageattributes if item.divisionid == divisionid)).files[0]
                 else:
                     filesobj= messageattributes[0].files[0]
