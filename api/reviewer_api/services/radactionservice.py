@@ -12,6 +12,8 @@ from reviewer_api.services.external.zipperproducerservice import zipperproducers
 
 from reviewer_api.utils.util import to_json
 from datetime import datetime
+from xml.dom.minidom import parseString
+import json
 
 
 class redactionservice:
@@ -107,13 +109,31 @@ class redactionservice:
         inputdocpagesmapping = self.__getdocumentpagesmapping(
             annotationschema["annotations"]
         )
-        # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
-        skipdocpagesmapping = self.__getskipdocpagesmapping(
+        # find all active redactions for documents related to removed annotation. DB call to get the (document, pages, redaction) with redactions in it.
+        documentactiveredactions = self.__getskipdocpagesmapping(
             inputdocpagesmapping, redactionlayerid
         )
-        # pages not having redactions
+        # update page flags for pages with withheld in full redactions remaining
+        # loops through all active redactions for docuements related to the removed annotations and if redaction is a withheld in full do an updatepageflag call and assign pageflag to withheld in full
+        print(documentactiveredactions)
+        if(len(documentactiveredactions) > 0):
+            completed_combinations = set()
+            for item in documentactiveredactions:
+                if ([item['documentid'], item['pagenumber']] not in completed_combinations):
+                    redaction = item['annotation']
+                    xml = parseString(redaction)
+                    redactionannot = json.loads(xml.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
+                    if (redactionannot['trn-redaction-type'] is not None and redactionannot['trn-redaction-type'] == 'fullPage'):
+                        documentpageflagservice().updatepageflagswithheldinfull(
+                            requestid,
+                            item,
+                            redactionlayerid,
+                            userinfo,
+                        )
+                        completed_combinations.add([item['documentid'], item['pagenumber']])
+        # update page flags for pages not having any redactions remaining (skip all pages that have remaining redactions)
         deldocpagesmapping = self.__getdeldocpagesmapping(
-            inputdocpagesmapping, skipdocpagesmapping
+            inputdocpagesmapping, documentactiveredactions
         )
         if deldocpagesmapping:
             documentpageflagservice().updatepageflags(

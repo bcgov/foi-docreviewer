@@ -523,7 +523,7 @@ class Annotation(db.Model):
         try:
             annotation_schema = AnnotationSchema(many=True)
             query = (
-                db.session.query(Annotation.documentid, Annotation.pagenumber)
+                db.session.query(Annotation.documentid, Annotation.pagenumber, Annotation.annotation)
                 .filter(
                     and_(
                         Annotation.documentid == _documentid,

@@ -168,9 +168,13 @@ class documentpageflagservice:
         pageflags = self.getdocumentpageflagsbydocids(
             requestid, redactionlayerid, documentids
         )
+        print("FLAGS", pageflags)
         self.__filterandsavepageflags(
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
+
+    def updatepageflagswithheldinfull(self, requestid, docpagemapping, redactionlayerid, userinfo):
+        pass
 
     def __filterandsavepageflags(
         self,
