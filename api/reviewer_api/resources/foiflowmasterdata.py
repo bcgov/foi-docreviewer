@@ -129,10 +129,9 @@ class FOIFlowS3PresignedList(Resource):
             )
 
             documentobjs = []
-            # documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
-            # documents = documentservice().getdocumentbyids(documentids)
             for documentinfo in data["documentobjs"]:
                 filepath = "/".join(documentinfo["file"]["filepath"].split("/")[4:])
+                # get the Linearized document
                 if documentinfo["file"]["processedfilepath"]:
                     filepath = "/".join(documentinfo["file"]["processedfilepath"].split("/")[4:])                
                 filename, file_extension = os.path.splitext(filepath)
@@ -222,6 +221,7 @@ class FOIFlowS3PresignedRedline(Resource):
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
                         filepathlist = doc["filepath"].split("/")[4:]
+                        # get the Linearized document
                         if doc["processedfilepath"]:
                             filepathlist = doc["processedfilepath"].split("/")[4:]
                         # for load/get
