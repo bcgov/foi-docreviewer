@@ -129,11 +129,15 @@ class FOIFlowS3PresignedList(Resource):
             )
 
             documentobjs = []
-            documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
-            documents = documentservice().getdocumentbyids(documentids)
+            # documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
+            # documents = documentservice().getdocumentbyids(documentids)
             for documentinfo in data["documentobjs"]:
-                filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                filepath = "/".join(documentinfo["file"]["filepath"].split("/")[4:])
+                if documentinfo["file"]["processedfilepath"]:
+                    filepath = "/".join(documentinfo["file"]["processedfilepath"].split("/")[4:])                
                 filename, file_extension = os.path.splitext(filepath)
+                if file_extension in FILE_CONVERSION_FILE_TYPES:
+                    filepath = filename + ".pdf"
                 documentinfo["s3url"] = s3client.generate_presigned_url(
                     ClientMethod="get_object",
                     Params={
@@ -217,13 +221,12 @@ class FOIFlowS3PresignedRedline(Resource):
                             # for save/put - stitch by division
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
-                        realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
-                        # filepathlist = doc["filepath"].split("/")[4:]
-                        filepathlist = realfilepath.split("/")[4:]
-                        
+                        filepathlist = doc["filepath"].split("/")[4:]
+                        if doc["processedfilepath"]:
+                            filepathlist = doc["processedfilepath"].split("/")[4:]
                         # for load/get
                         filepath_get = "/".join(filepathlist)
-                        
+
                         filename_get, file_extension_get = os.path.splitext(
                                         filepath_get
                             )
