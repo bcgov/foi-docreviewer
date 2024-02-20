@@ -2120,8 +2120,7 @@ const Redlining = React.forwardRef(
           pagecount++
         ) {
           
-          let doc = await _docViwer.getPDFDoc();
-          let pageIndex = 0;
+          const doc = await _docViwer.getPDFDoc();
           // Run PDFNet methods with memory management
           await PDFNet.runWithCleanup(async () => {
             // lock the document before a write operation
@@ -2154,7 +2153,6 @@ const Redlining = React.forwardRef(
               `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
               pgSet
             );
-            pageIndex++;
           });
         }
       } catch (err) {
