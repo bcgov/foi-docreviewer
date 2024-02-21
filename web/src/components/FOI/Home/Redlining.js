@@ -2113,49 +2113,54 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      for (
-        let pagecount = 1;
-        pagecount <= divisionsdocpages.length;
-        pagecount++
-      ) {
-        const doc = await _docViwer.getPDFDoc();
+      try {
+        for (
+          let pagecount = 1;
+          pagecount <= divisionsdocpages.length;
+          pagecount++
+        ) {
+          
+          const doc = await _docViwer.getPDFDoc();
+          // Run PDFNet methods with memory management
+          await PDFNet.runWithCleanup(async () => {
+            // lock the document before a write operation
+            // runWithCleanup will auto unlock when complete
+            doc.lock();
+            const s = await PDFNet.Stamper.create(
+              PDFNet.Stamper.SizeType.e_relative_scale,
+              0.3,
+              0.3
+            );
 
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
-
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-            pgSet
-          );
-        });
-      }
+            await s.setAlignment(
+              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+            );
+            const font = await PDFNet.Font.create(
+              doc,
+              PDFNet.Font.StandardType1Font.e_courier
+            );
+            await s.setFont(font);
+            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+            await s.setFontColor(redColorPt);
+            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+            await s.setAsBackground(false);
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+            await s.stampText(
+              doc,
+              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+              pgSet
+            );
+          });
+        }
+      } catch (err) {
+          console.log(err);
+          throw err;
+        }
     };
-
+    
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
       for (
         let pagecount = 1;
@@ -3180,7 +3185,7 @@ const Redlining = React.forwardRef(
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );  
+              );
         }
         //OIPC - Special Block : End
         

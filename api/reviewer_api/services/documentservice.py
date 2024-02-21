@@ -404,6 +404,8 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, oldRows)
     
+    def __getprocessedfilepath(self, attributes):
+            return attributes.get("processedfilepath", None)
     
     def getdocuments(self, requestid,bcgovcode):
         divisions_data = requests.request(
@@ -455,6 +457,8 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
+            documentattributes = document["attributes"]
+            document["processedfilepath"] = self.__getprocessedfilepath(documentattributes)
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
             )
