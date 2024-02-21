@@ -104,6 +104,7 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
+    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
@@ -1477,6 +1478,12 @@ const Redlining = React.forwardRef(
 
     // This updates the page flag based on the annotations on the page
     useEffect(() => {
+      // only update page flags after initial load
+      if (!redactionInfo || redactionInfo.length == 0) return;
+      if (!redactionInfoIsLoaded) {
+        setRedactionInfoIsLoaded(true);
+        return;
+      }
       const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
       if (!hasUpdated) {
         fetchPageFlag(
@@ -1814,7 +1821,7 @@ const Redlining = React.forwardRef(
             for (let pageFlag of pageFlags) { //the existing flags
               if (selectedFlag.docid == pageFlag.documentid) {
                 for (let flag of pageFlag.pageflag) { //go over the existing flags in the document
-                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"]) {
+                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"] && flag.flagid != pageFlagTypes["Consult"]) {
                     currentPageHasFlag = true;
                   }
                 }
