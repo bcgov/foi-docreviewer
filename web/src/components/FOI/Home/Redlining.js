@@ -691,6 +691,7 @@ const Redlining = React.forwardRef(
       slicedsetofdoclist.forEach(async (filerow) => {
         console.log(`filename = ${filerow.file.filename}`)
         await createDocument(filerow.s3url).then(async (newDoc) => {
+          console.log(`createDocument filename = ${filerow.file.filename}`)
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
