@@ -689,6 +689,7 @@ const Redlining = React.forwardRef(
       set
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
+        console.log(`filename = ${filerow.file.filename}`)
         await createDocument(filerow.s3url).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
@@ -1287,10 +1288,12 @@ const Redlining = React.forwardRef(
         );
         if (_exists?.length === 0) {
           let index = filerow.stitchIndex;
+          console.log(`index = ${index}, filerow.pages = ${filerow.pages}`)
           _doc
             .insertPages(filerow.pdftronobject, filerow.pages, index)
             .then(() => {
               const pageCount = docViewer.getPageCount();
+              console.log(`pageCount = ${pageCount}, totalPageCount = ${docsForStitcing.totalPageCount}`)
               if (pageCount === docsForStitcing.totalPageCount) {
                 setStitchPageCount(pageCount);
               }
