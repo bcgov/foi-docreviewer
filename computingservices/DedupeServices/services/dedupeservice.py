@@ -1,7 +1,6 @@
 
 from .s3documentservice import gets3documenthashcode
 from .dedupedbservice import savedocumentdetails, recordjobstart, recordjobend, updateredactionstatus
-from .pdflinearizationservice import pdflinearizationservice
 import traceback
 
 
@@ -9,9 +8,6 @@ def processmessage(message):
     recordjobstart(message)
     try:
         hashcode, _pagecount = gets3documenthashcode(message)
-        # linearizedfilepath = pdflinearizationservice().linearizepdf(message)
-        # print(f'linearizedfilepath = {linearizedfilepath}')
-        # savedocumentdetails(message, hashcode, _pagecount, linearizedfilepath)     
         savedocumentdetails(message, hashcode, _pagecount)
         recordjobend(message, False)
         updateredactionstatus(message)
