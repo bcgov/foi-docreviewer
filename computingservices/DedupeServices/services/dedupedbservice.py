@@ -3,7 +3,7 @@ from models import dedupeproducermessage
 from datetime import datetime
 import json
 
-def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, processedfilepath = ""):
+def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
@@ -17,17 +17,13 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, processe
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
-        documentattribute = dedupeproducermessage.attributes
-        if processedfilepath:
-            documentattribute["processedfilepath"] = processedfilepath
-
         if (dedupeproducermessage.attributes.get('isattachment', False) and dedupeproducermessage.trigger == 'recordreplace'):
             documentmasterid = dedupeproducermessage.originaldocumentmasterid or dedupeproducermessage.documentmasterid
         else:
             documentmasterid = dedupeproducermessage.documentmasterid
 
         cursor.execute('''UPDATE public."DocumentAttributes" SET attributes = %s WHERE documentmasterid = %s''',
-          (json.dumps(documentattribute), documentmasterid))
+          (json.dumps(dedupeproducermessage.attributes), documentmasterid))
         conn.commit()
 
         cursor.execute('INSERT INTO public."DocumentHashCodes" (documentid, \
