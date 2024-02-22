@@ -104,6 +104,7 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
+    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
@@ -902,7 +903,11 @@ const Redlining = React.forwardRef(
                   requestid,
                   currentLayer.redactionlayerid,
                   annotObjs,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   }
@@ -1045,7 +1050,11 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   },
@@ -1085,6 +1094,9 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
+                      fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                        console.log("Error:", error);
+                      });
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
@@ -1464,6 +1476,25 @@ const Redlining = React.forwardRef(
       docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
     }, [individualDoc]);
 
+    // This updates the page flag based on the annotations on the page
+    useEffect(() => {
+      // only update page flags after initial load
+      if (!redactionInfo || redactionInfo.length == 0) return;
+      if (!redactionInfoIsLoaded) {
+        setRedactionInfoIsLoaded(true);
+        return;
+      }
+      const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
+      if (!hasUpdated) {
+        fetchPageFlag(
+          requestid,
+          currentLayer.name.toLowerCase(),
+          docsForStitcing.map(d => d.file.documentid),
+          (error) => console.log(error)
+        );
+      }
+    }, [redactionInfo])
+
     // This updates the page flags for pages where all the annotations have the same section
     const updatePageFlagsByPage = (redactionInfo, section, pageflagid) => {
       let hasUpdated = false;
@@ -1600,16 +1631,11 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
-            const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
-            if (!hasUpdated) {
-              fetchPageFlag(
-                requestid,
-                currentLayer.name.toLowerCase(),
-                docsForStitcing.map(d => d.file.documentid),
-                (error) => console.log(error)
-              );
-            }
+
           },
           (error) => {
             console.log(error);
@@ -1741,6 +1767,9 @@ const Redlining = React.forwardRef(
                 requestid,
                 astr,
                 (data) => {
+                  fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                    console.log("Error:", error);
+                  });
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
@@ -1793,7 +1822,7 @@ const Redlining = React.forwardRef(
             for (let pageFlag of pageFlags) { //the existing flags
               if (selectedFlag.docid == pageFlag.documentid) {
                 for (let flag of pageFlag.pageflag) { //go over the existing flags in the document
-                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"]) {
+                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"] && flag.flagid != pageFlagTypes["Consult"]) {
                     currentPageHasFlag = true;
                   }
                 }
@@ -1916,6 +1945,9 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
             fetchPageFlag(
               requestid,
