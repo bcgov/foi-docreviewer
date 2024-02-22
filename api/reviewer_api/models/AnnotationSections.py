@@ -239,7 +239,6 @@ class AnnotationSection(db.Model):
             db.session.commit()
             return idxannots
         except Exception as ex:
-            print(ex)
             logging.error(ex)
         finally:
             db.session.close()
