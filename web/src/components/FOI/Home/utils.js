@@ -47,11 +47,6 @@ export const docSorting = (a, b) => {
     Date.parse(a.attributes.lastmodified) -
     Date.parse(b.attributes.lastmodified);
   if (sort === 0) {
-    sort =
-      Date.parse(a.attributes.attachmentlastmodified || "0") -
-      Date.parse(b.attributes.attachmentlastmodified || "0");
-  }
-  if (sort === 0) {
     return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
   }
   return sort;
