@@ -689,7 +689,7 @@ const Redlining = React.forwardRef(
       set
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
-        await createDocument(filerow.s3url).then(async (newDoc) => {
+        await createDocument(filerow.s3url, { useDownloader: false }).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
@@ -2892,6 +2892,7 @@ const Redlining = React.forwardRef(
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
+            useDownloader: false,
           }).then(async (docObj) => {            
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
@@ -2998,10 +2999,9 @@ const Redlining = React.forwardRef(
       docCount,
       stitchedDocObj,
     ) => {
-        try {
-          //console.log("\nsliceDoclist:", sliceDoclist.length);
           for (const filerow of sliceDoclist) {
-            await createDocument(filerow.s3path_load).then(async (newDoc) => {
+            try {
+            await createDocument(filerow.s3path_load, { useDownloader: false }).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3024,10 +3024,12 @@ const Redlining = React.forwardRef(
                 }
               }
             });
+          } catch (error) {
+            console.error("An error occurred during create document:", error);
+            // Handle any errors that occurred during the asynchronous operations
           }
-        } catch (error) {
-          // Handle any errors that occurred during the asynchronous operations
-        }
+          }
+        
       };
 
     useEffect(() => {
@@ -3082,7 +3084,10 @@ const Redlining = React.forwardRef(
         if (_exists?.length === 0) {
           let index = filerow.stitchIndex;
           try {
-            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
+            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index).then(() => {
+            }).catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            }) ;
             setAlreadyStitchedList((_arr) => [..._arr, filerow]);
             setstichedfilesForRedline(stichedfilesForRedline)
           } catch (error) {
@@ -3196,6 +3201,7 @@ const Redlining = React.forwardRef(
               // saves the document with annotations in it
               xfdfString: xfdfString,
               downloadType: downloadType,
+              // flags: docInstance.Core.SaveOptions.LINEARIZED,
               //flatten: true, //commented this as part of #4862
             })
             .then(async (_data) => {
