@@ -397,7 +397,20 @@ class AnnotationSection(db.Model):
     @classmethod
     def getredactedsectionsbyrequest(cls, ministryrequestid, redactionlayerid):
         try:
-            sql = """select section from public."Sections" where sectionid in
+            sql = """
+                select unnest(xpath('//contents/text()', annotation::xml))::text as section 
+                   from "Annotations" a 
+                        join public."Documents" d on d.documentid = a.documentid and d.foiministryrequestid = :ministryrequestid
+                        join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
+                        left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
+                        where a.annotation like '%%freetext%%'
+                        and a.redactionlayerid = :redactionlayerid
+                        and (dd.deleted is null or dd.deleted is false)
+                        and a.isactive = true;
+
+            """
+            """
+            sql = select section from public."Sections" where sectionid in
                         (select distinct (json_array_elements((as1.section::json->>'ids')::json)->>'id')::integer
                         from public."AnnotationSections" as1
                         join public."Annotations" a on a.annotationname = as1.annotationname
@@ -410,13 +423,17 @@ class AnnotationSection(db.Model):
                         and (dd.deleted is null or dd.deleted is false)
                         and a.isactive = true)
                      and sectionid != 25
-                     order by sortorder"""
+                     order by sortorder
+            """
             rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid, "redactionlayerid": redactionlayerid})
-            sectionstring = ""
+            sections = []
             for row in rs:
-                sectionstring = sectionstring + row["section"] + ", "
-            sectionstring = sectionstring[:-2]
-            return sectionstring
+                sections += [x.strip() for x in row['section'].split(",")]
+            if len(sections) > 0:
+                distinctsections = list(set(sections))
+                distinctsections.sort()
+                return ", ".join(distinctsections)
+            return None
         except Exception as ex:
             logging.error(ex)
         finally:
