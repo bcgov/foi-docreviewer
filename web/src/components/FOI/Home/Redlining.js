@@ -1580,7 +1580,6 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1636,6 +1635,7 @@ const Redlining = React.forwardRef(
               console.log("Error:", error);
             });
             setPageSelections([]);
+
           },
           (error) => {
             console.log(error);
