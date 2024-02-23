@@ -113,24 +113,36 @@ class redactionservice:
         documentactiveredactions = self.__getskipdocpagesmapping(
             inputdocpagesmapping, redactionlayerid
         )
-        # update page flags for pages with withheld in full redactions remaining
-        # loops through all active redactions for docuements related to the removed annotations and if redaction is a withheld in full do an updatepageflag call and assign pageflag to withheld in full
-        print(documentactiveredactions)
+        # update page flags for pages with redactions remaining
+        print("DATA", documentactiveredactions)
         if(len(documentactiveredactions) > 0):
             completed_combinations = set()
+            print("SET", completed_combinations)
             for item in documentactiveredactions:
-                if ([item['documentid'], item['pagenumber']] not in completed_combinations):
+                if ((item['documentid'], item['pagenumber']) not in completed_combinations):
                     redaction = item['annotation']
                     xml = parseString(redaction)
                     redactionannot = json.loads(xml.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
-                    if (redactionannot['trn-redaction-type'] is not None and redactionannot['trn-redaction-type'] == 'fullPage'):
-                        documentpageflagservice().updatepageflagswithheldinfull(
+                    print("SNAKE", 'trn-redaction-type' in redactionannot)
+                    if ('trn-redaction-type' in redactionannot and redactionannot['trn-redaction-type'] == 'fullPage'):
+                        print("BANG")
+                        documentpageflagservice().updatepageflags_redactions_remaining(
                             requestid,
                             item,
                             redactionlayerid,
                             userinfo,
+                            "Withheld in Full"
                         )
-                        completed_combinations.add([item['documentid'], item['pagenumber']])
+                    else:
+                        print("BANG BANG")
+                        documentpageflagservice().updatepageflags_redactions_remaining(
+                            requestid,
+                            item,
+                            redactionlayerid,
+                            userinfo,
+                            "Partial Disclosure"
+                        )
+                    completed_combinations.add((item['documentid'], item['pagenumber']))
         # update page flags for pages not having any redactions remaining (skip all pages that have remaining redactions)
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, documentactiveredactions

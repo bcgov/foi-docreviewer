@@ -6,6 +6,7 @@ from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
+from reviewer_api.models.Pageflags import Pageflag
 
 
 class documentpageflagservice:    
@@ -168,13 +169,24 @@ class documentpageflagservice:
         pageflags = self.getdocumentpageflagsbydocids(
             requestid, redactionlayerid, documentids
         )
-        print("FLAGS", pageflags)
         self.__filterandsavepageflags(
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
 
-    def updatepageflagswithheldinfull(self, requestid, docpagemapping, redactionlayerid, userinfo):
-        pass
+    def updatepageflags_redactions_remaining(self, requestid, docpagemapping, redactionlayerid, userinfo, pageflagname):
+        previouspageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, [docpagemapping['documentid']])[0]
+        pageflag = Pageflag().getpageflagbyname(pageflagname)[0]
+        print("RUSTY", pageflag)
+        newpageflag = [{ 'flagid': pageflag['pageflagid'], 'page': docpagemapping['pagenumber'] + 1 }]
+        DocumentPageflag.savepageflag(
+            requestid,
+            previouspageflag["documentid"],
+            previouspageflag["documentversion"],
+            json.dumps(newpageflag),
+            json.dumps(userinfo),
+            redactionlayerid,
+            json.dumps(previouspageflag["attributes"]),
+        )
 
     def __filterandsavepageflags(
         self,
