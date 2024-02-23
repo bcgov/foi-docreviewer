@@ -499,4 +499,5 @@ class documentservice:
                 generatedbefore =  state['created_at']
             if state['status'] == StateName.response.value and isresponsephasecompleted == False:    
                 isresponsephasecompleted = True    
-        return generatedbefore if isresponsephasecompleted == True else None    
+        return generatedbefore if isresponsephasecompleted == True else None
+        
