@@ -689,7 +689,9 @@ const Redlining = React.forwardRef(
       set
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
-        await createDocument(filerow.s3url, { useDownloader: false }).then(async (newDoc) => {
+        await createDocument(filerow.s3url, 
+          { useDownloader: false } // Added to fix BLANK page issue
+          ).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
@@ -2892,7 +2894,7 @@ const Redlining = React.forwardRef(
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
-            useDownloader: false,
+            useDownloader: false, // Added to fix BLANK page issue
           }).then(async (docObj) => {            
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
@@ -3001,7 +3003,9 @@ const Redlining = React.forwardRef(
     ) => {
           for (const filerow of sliceDoclist) {
             try {
-            await createDocument(filerow.s3path_load, { useDownloader: false }).then(async (newDoc) => {
+            await createDocument(filerow.s3path_load, 
+              { useDownloader: false } // Added to fix BLANK page issue
+              ).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3201,7 +3205,6 @@ const Redlining = React.forwardRef(
               // saves the document with annotations in it
               xfdfString: xfdfString,
               downloadType: downloadType,
-              // flags: docInstance.Core.SaveOptions.LINEARIZED,
               //flatten: true, //commented this as part of #4862
             })
             .then(async (_data) => {
