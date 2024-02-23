@@ -115,34 +115,32 @@ class redactionservice:
         )
         # update page flags for pages with redactions remaining
         print("DATA", documentactiveredactions)
-        if(len(documentactiveredactions) > 0):
-            completed_combinations = set()
-            print("SET", completed_combinations)
-            for item in documentactiveredactions:
-                if ((item['documentid'], item['pagenumber']) not in completed_combinations):
-                    redaction = item['annotation']
-                    xml = parseString(redaction)
-                    redactionannot = json.loads(xml.getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))
-                    print("SNAKE", 'trn-redaction-type' in redactionannot)
-                    if ('trn-redaction-type' in redactionannot and redactionannot['trn-redaction-type'] == 'fullPage'):
-                        print("BANG")
-                        documentpageflagservice().updatepageflags_redactions_remaining(
-                            requestid,
-                            item,
-                            redactionlayerid,
-                            userinfo,
-                            "Withheld in Full"
-                        )
-                    else:
-                        print("BANG BANG")
-                        documentpageflagservice().updatepageflags_redactions_remaining(
-                            requestid,
-                            item,
-                            redactionlayerid,
-                            userinfo,
-                            "Partial Disclosure"
-                        )
-                    completed_combinations.add((item['documentid'], item['pagenumber']))
+        pageswithactiveredacitons = {
+            (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
+        }
+        print("UNIQUE", pageswithactiveredacitons)
+        for docid, page in pageswithactiveredacitons:
+            pageredcations = Annotation.getredactionannotationsbydocumentpages(docid, page, redactionlayerid)
+            if (any(
+                'trn-redaction-type' in json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
+                and json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
+                for redaction in pageredcations
+            )):
+                documentpageflagservice().updatepageflags_redactions_remaining(
+                    requestid,
+                    {"docid": docid, "page": page},
+                    redactionlayerid,
+                    userinfo,
+                    "Withheld in Full"
+                )
+            else:
+                documentpageflagservice().updatepageflags_redactions_remaining(
+                    requestid,
+                    {"docid": docid, "page": page},
+                    redactionlayerid,
+                    userinfo,
+                    "Partial Disclosure"
+                )
         # update page flags for pages not having any redactions remaining (skip all pages that have remaining redactions)
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, documentactiveredactions

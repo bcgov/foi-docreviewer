@@ -523,12 +523,36 @@ class Annotation(db.Model):
         try:
             annotation_schema = AnnotationSchema(many=True)
             query = (
-                db.session.query(Annotation.documentid, Annotation.pagenumber, Annotation.annotation)
+                db.session.query(Annotation.documentid, Annotation.pagenumber)
                 .filter(
                     and_(
                         Annotation.documentid == _documentid,
                         Annotation.isactive == True,
                         Annotation.pagenumber.in_(_pages),
+                        Annotation.redactionlayerid == redactionlayerid,
+                        Annotation.annotation.ilike("%<redact %"),
+                    )
+                )
+                .order_by(Annotation.annotationid.asc())
+                .all()
+            )
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+    
+    @classmethod
+    def getredactionannotationsbydocumentpages(cls, _documentid, _page, redactionlayerid):
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = (
+                db.session.query(Annotation.annotation)
+                .filter(
+                    and_(
+                        Annotation.documentid == _documentid,
+                        Annotation.isactive == True,
+                        Annotation.pagenumber == _page,
                         Annotation.redactionlayerid == redactionlayerid,
                         Annotation.annotation.ilike("%<redact %"),
                     )

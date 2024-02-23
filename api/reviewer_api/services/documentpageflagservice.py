@@ -174,10 +174,9 @@ class documentpageflagservice:
         )
 
     def updatepageflags_redactions_remaining(self, requestid, docpagemapping, redactionlayerid, userinfo, pageflagname):
-        previouspageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, [docpagemapping['documentid']])[0]
+        previouspageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, [docpagemapping['docid']])[0]
         pageflag = Pageflag().getpageflagbyname(pageflagname)[0]
-        print("RUSTY", pageflag)
-        newpageflag = [{ 'flagid': pageflag['pageflagid'], 'page': docpagemapping['pagenumber'] + 1 }]
+        newpageflag = [{ 'flagid': pageflag['pageflagid'], 'page': docpagemapping['page'] + 1 }]
         DocumentPageflag.savepageflag(
             requestid,
             previouspageflag["documentid"],
