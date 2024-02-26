@@ -115,7 +115,7 @@ def __zipfilesandupload(_message, s3credentials):
                     
             tp.seek(0)           
             zipped_bytes = tp.read()            
-            filepath = __getzipfilepath(_message.category, _message.requestnumber)
+            filepath = __getzipfilepath(_message.foldername, _message.requestnumber)
             logging.info("zipfilename = %s", filepath)
             docobj = uploadbytes(
                 filepath,
@@ -133,9 +133,9 @@ def __zipfilesandupload(_message, s3credentials):
         zipped_bytes = None
 
 
-def __getzipfilepath(category, filename):
+def __getzipfilepath(foldername, filename):
     return (
-        category.capitalize() + "/" + filename + ".zip"
-        if category is not None
+        foldername.capitalize() + "/" + filename + ".zip"
+        if foldername is not None
         else filename + ".zip"
     )
