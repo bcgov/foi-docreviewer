@@ -56,6 +56,8 @@ class redactionservice:
 
     def saveannotation(self, annotationschema, userinfo):
         result = annotationservice().saveannotation(annotationschema, userinfo)
+        print("HEY BUDDY", annotationschema)
+        #pageflag logic
         if (
             result.success == True
             and "pageflags" in annotationschema
@@ -69,11 +71,25 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                documentpageflagservice().bulksavepageflag(
-                    foiministryrequestid,
-                    annotationschema["pageflags"],
-                    userinfo,
-                )
+                #logic to apply withheld in full page flag precedence over partial disclosure and other page flags
+                docpagemapping = set()
+                for doc in annotationschema["pageflags"]['documentpageflags']:
+                    docid = doc['documentid']
+                    redactionlayerid = doc['redactionlayerid']
+                    version = doc['version']
+                    for pageflag in doc['pageflags']:
+                        docpagemapping.add((docid, pageflag['page'], redactionlayerid, version))
+                print("SNAKE", docpagemapping)
+                for docid, page, redactionlayerid, version in docpagemapping:
+                    previousflags = documentpageflagservice().getdocumentpageflags(foiministryrequestid, redactionlayerid, docid, version)[0]
+                    print("LIQUIDDD", previousflags)
+                    if ({"page": page, "flagid": 3} not in previousflags):
+                        documentpageflagservice().bulksavepageflag(
+                            foiministryrequestid,
+                            annotationschema["pageflags"],
+                            userinfo,
+                        )
+
         return result
 
     def deactivateannotation(
