@@ -56,7 +56,6 @@ class redactionservice:
 
     def saveannotation(self, annotationschema, userinfo):
         result = annotationservice().saveannotation(annotationschema, userinfo)
-        print("HEY BUDDY", annotationschema)
         #pageflag logic
         if (
             result.success == True
@@ -79,10 +78,8 @@ class redactionservice:
                     version = doc['version']
                     for pageflag in doc['pageflags']:
                         docpagemapping.add((docid, pageflag['page'], redactionlayerid, version))
-                print("SNAKE", docpagemapping)
                 for docid, page, redactionlayerid, version in docpagemapping:
                     previousflags = documentpageflagservice().getdocumentpageflags(foiministryrequestid, redactionlayerid, docid, version)[0]
-                    print("LIQUIDDD", previousflags)
                     if ({"page": page, "flagid": 3} not in previousflags):
                         documentpageflagservice().bulksavepageflag(
                             foiministryrequestid,
@@ -130,11 +127,9 @@ class redactionservice:
             inputdocpagesmapping, redactionlayerid
         )
         # update page flags for pages with redactions remaining
-        print("DATA", documentactiveredactions)
         pageswithactiveredacitons = {
             (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
         }
-        print("UNIQUE", pageswithactiveredacitons)
         for docid, page in pageswithactiveredacitons:
             pageredcations = Annotation.getredactionannotationsbydocumentpages(docid, page, redactionlayerid)
             if (any(
