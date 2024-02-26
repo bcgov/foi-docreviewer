@@ -689,7 +689,9 @@ const Redlining = React.forwardRef(
       set
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
-        await createDocument(filerow.s3url).then(async (newDoc) => {
+        await createDocument(filerow.s3url, 
+          { useDownloader: false } // Added to fix BLANK page issue
+          ).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
@@ -2114,49 +2116,54 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      for (
-        let pagecount = 1;
-        pagecount <= divisionsdocpages.length;
-        pagecount++
-      ) {
-        const doc = await _docViwer.getPDFDoc();
+      try {
+        for (
+          let pagecount = 1;
+          pagecount <= divisionsdocpages.length;
+          pagecount++
+        ) {
+          
+          const doc = await _docViwer.getPDFDoc();
+          // Run PDFNet methods with memory management
+          await PDFNet.runWithCleanup(async () => {
+            // lock the document before a write operation
+            // runWithCleanup will auto unlock when complete
+            doc.lock();
+            const s = await PDFNet.Stamper.create(
+              PDFNet.Stamper.SizeType.e_relative_scale,
+              0.3,
+              0.3
+            );
 
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
-
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-            pgSet
-          );
-        });
-      }
+            await s.setAlignment(
+              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+            );
+            const font = await PDFNet.Font.create(
+              doc,
+              PDFNet.Font.StandardType1Font.e_courier
+            );
+            await s.setFont(font);
+            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+            await s.setFontColor(redColorPt);
+            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+            await s.setAsBackground(false);
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+            await s.stampText(
+              doc,
+              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+              pgSet
+            );
+          });
+        }
+      } catch (err) {
+          console.log(err);
+          throw err;
+        }
     };
-
+    
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
       for (
         let pagecount = 1;
@@ -2918,6 +2925,7 @@ const Redlining = React.forwardRef(
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
+            useDownloader: false, // Added to fix BLANK page issue
           }).then(async (docObj) => {            
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
@@ -3024,10 +3032,11 @@ const Redlining = React.forwardRef(
       docCount,
       stitchedDocObj,
     ) => {
-        try {
-          //console.log("\nsliceDoclist:", sliceDoclist.length);
           for (const filerow of sliceDoclist) {
-            await createDocument(filerow.s3path_load).then(async (newDoc) => {
+            try {
+            await createDocument(filerow.s3path_load, 
+              { useDownloader: false } // Added to fix BLANK page issue
+              ).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3050,10 +3059,12 @@ const Redlining = React.forwardRef(
                 }
               }
             });
+          } catch (error) {
+            console.error("An error occurred during create document:", error);
+            // Handle any errors that occurred during the asynchronous operations
           }
-        } catch (error) {
-          // Handle any errors that occurred during the asynchronous operations
-        }
+          }
+        
       };
 
     useEffect(() => {
@@ -3081,10 +3092,8 @@ const Redlining = React.forwardRef(
         ) {
           
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
-          setPdftronDocObjectsForRedline([]);
-          setstichedfilesForRedline(null)
         } else {
-          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
               requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
@@ -3110,7 +3119,10 @@ const Redlining = React.forwardRef(
         if (_exists?.length === 0) {
           let index = filerow.stitchIndex;
           try {
-            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
+            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index).then(() => {
+            }).catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            }) ;
             setAlreadyStitchedList((_arr) => [..._arr, filerow]);
             setstichedfilesForRedline(stichedfilesForRedline)
           } catch (error) {
@@ -3213,7 +3225,7 @@ const Redlining = React.forwardRef(
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );  
+              );
         }
         //OIPC - Special Block : End
         
