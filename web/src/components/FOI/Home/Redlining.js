@@ -690,7 +690,7 @@ const Redlining = React.forwardRef(
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
         await createDocument(filerow.s3url, 
-          { useDownloader: false } // Added to fix BLANK page issue
+          { useDownloader: false, loadAsPDF: true } // Added to fix BLANK page issue - added loadAsPDF to fix jpeg stitiching issue #2941
           ).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
