@@ -15,6 +15,7 @@ class zippingservice():
                 filestozip_list = msgjson['filestozip']+summaryfiles
             else:
                 filestozip_list = msgjson['filestozip']
+            print('filestozip_list: ', filestozip_list)
             msgjson['filestozip'] = self.to_json(filestozip_list)
             msgjson['attributes'] = self.to_json(msgjson['attributes'])
             msgjson['summarydocuments'] = self.to_json(msgjson['summarydocuments'])
