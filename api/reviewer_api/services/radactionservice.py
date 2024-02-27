@@ -71,22 +71,25 @@ class redactionservice:
                 ]
             if foiministryrequestid:
                 #logic to apply withheld in full page flag precedence over partial disclosure and other page flags
-                docpagemapping = set()
-                for doc in annotationschema["pageflags"]['documentpageflags']:
+                print("SCHEMA", annotationschema)
+                bulkpageflagdata = annotationschema["pageflags"]
+                for i in range(len(bulkpageflagdata['documentpageflags'])):
+                    doc = bulkpageflagdata['documentpageflags'][i]
                     docid = doc['documentid']
                     redactionlayerid = doc['redactionlayerid']
                     version = doc['version']
-                    for pageflag in doc['pageflags']:
-                        docpagemapping.add((docid, pageflag['page'], redactionlayerid, version))
-                for docid, page, redactionlayerid, version in docpagemapping:
-                    previousflags = documentpageflagservice().getdocumentpageflags(foiministryrequestid, redactionlayerid, docid, version)[0]
-                    if ({"page": page, "flagid": 3} not in previousflags):
-                        documentpageflagservice().bulksavepageflag(
-                            foiministryrequestid,
-                            annotationschema["pageflags"],
-                            userinfo,
-                        )
-
+                    for j in range(len(doc['pageflags'])):
+                        pageflag = doc['pageflags'][j]
+                        previousflags = documentpageflagservice().getdocumentpageflags(foiministryrequestid, redactionlayerid, docid, version)[0]
+                        print("previousflags", previousflags)
+                        if ({"page": pageflag['page'], "flagid": 3} in previousflags):
+                            bulkpageflagdata['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}
+                print("bulkpageflagdata", bulkpageflagdata)
+                documentpageflagservice().bulksavepageflag(
+                    foiministryrequestid,
+                    bulkpageflagdata,
+                    userinfo,
+                )
         return result
 
     def deactivateannotation(
@@ -127,11 +130,14 @@ class redactionservice:
             inputdocpagesmapping, redactionlayerid
         )
         # update page flags for pages with redactions remaining
+        print("ACTIVE DATA", documentactiveredactions)
         pageswithactiveredacitons = {
             (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
         }
+        print("UNIQUE ACTIVE DATA", pageswithactiveredacitons)
         for docid, page in pageswithactiveredacitons:
             pageredcations = Annotation.getredactionannotationsbydocumentpages(docid, page, redactionlayerid)
+            print("redacts", pageredcations)
             if (any(
                 'trn-redaction-type' in json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
                 and json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
