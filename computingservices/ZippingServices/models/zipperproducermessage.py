@@ -1,5 +1,5 @@
 class zipperproducermessage(object):
-    def __init__(self,jobid,requestid,category,requestnumber,bcgovcode,createdby,ministryrequestid,filestozip,finaloutput,attributes,summarydocuments,redactionlayerid) -> None:
+    def __init__(self,jobid,requestid,category,requestnumber,bcgovcode,createdby,ministryrequestid,filestozip,finaloutput,attributes,summarydocuments=None,redactionlayerid=None) -> None:
         self.jobid = jobid
         self.requestid = requestid
         self.category=category
