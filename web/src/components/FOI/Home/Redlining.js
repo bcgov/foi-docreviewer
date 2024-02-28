@@ -1513,11 +1513,29 @@ const Redlining = React.forwardRef(
         }
         return annotationsMap
       }
+      const getsectionIdsMap = () => {
+        let sectionIdsMap = {}
+        for (let annot of redactionInfo) {
+          for (let id of annot.sections.ids) {
+            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
+            else {
+              sectionIdsMap[annot.documentid] = {}
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            }
+          }
+        }
+        return sectionIdsMap;
+      }
+
       const setFlagsForPagesWithAllAnnotationsInSection = (allAnnotationsMap, sectionAnnotationsMap, pageflagid) => {
         let pagesToUpdate = []
+        let sectionIdsMap = getsectionIdsMap()
         for (let doc in allAnnotationsMap) {
           for (let page in allAnnotationsMap?.[doc]) {
-            if (allAnnotationsMap?.[doc]?.[page] == sectionAnnotationsMap?.[doc]?.[page]) {
+            // If there is a blank code (25) and no section codes (< 25) then update pageflag to in progress
+            if (sectionIdsMap?.[doc]?.[page]?.every(id => id >= 25) && sectionIdsMap?.[doc]?.[page]?.includes(25)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["In Progress"]})
+            } else if (allAnnotationsMap?.[doc]?.[page] == sectionAnnotationsMap?.[doc]?.[page]) {
               pagesToUpdate.push({ docid: doc, page: page, flagid: pageflagid })
             }
           }
@@ -1814,29 +1832,6 @@ const Redlining = React.forwardRef(
             return flag;
           });
         }
-        
-        // This will set pageFlag to Full Disclosure if there are no other flags on page
-        const updatePageFlagIdsForNotResponsive = (pageFlagSelections) => {
-          for (let selectedFlag of pageFlagSelections) { //the selected flag
-            let currentPageHasFlag = false;
-            for (let pageFlag of pageFlags) { //the existing flags
-              if (selectedFlag.docid == pageFlag.documentid) {
-                for (let flag of pageFlag.pageflag) { //go over the existing flags in the document
-                  if (flag.page == selectedFlag.page && flag.flagid != pageFlagTypes["Full Disclosure"] && flag.flagid != pageFlagTypes["Consult"]) {
-                    currentPageHasFlag = true;
-                  }
-                }
-              }
-            }
-
-            if (!currentPageHasFlag && selectedSections.includes(26)) { //id 26 is Not Responsive
-              selectedFlag.flagid = pageFlagTypes["Full Disclosure"];
-            } else if (currentPageHasFlag && selectedSections.includes(26)) {
-              selectedFlag.flagid = pageFlagTypes["Partial Disclosure"];
-            }
-          }
-        }
-        updatePageFlagIdsForNotResponsive(pageFlagSelections)
 
         // add section annotation
         let sectionAnnotations = [];
