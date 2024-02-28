@@ -1,0 +1,7 @@
+IMAGE_NAMESPACE=
+IMAGE_APP_NAME=reviewer-documentservice
+TAG_NAME=
+DB_SECRETS=
+APP_NAME=reviewer-documentservice
+SECRETS=
+REDIS_SECRETS=

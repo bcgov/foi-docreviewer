@@ -106,9 +106,10 @@ def __zipfilesandupload(_message, s3credentials):
                 tp, "w", zipfile.ZIP_DEFLATED, compresslevel=9, allowZip64=True
             ) as zip:
                 _jsonfiles = json.loads(_message.filestozip)
+                print("\n_jsonfiles:",_jsonfiles)
                 for fileobj in _jsonfiles:
                     filename = fileobj["filename"]
-                  
+                    print("\nfilename:",filename)
                     zip.writestr(
                         filename, __getdocumentbytearray(fileobj, s3credentials)
                     )
@@ -116,7 +117,7 @@ def __zipfilesandupload(_message, s3credentials):
             tp.seek(0)           
             zipped_bytes = tp.read()            
             filepath = __getzipfilepath(_message.category, _message.requestnumber)
-            logging.info("zipfilename = %s", filepath)
+            print("zipfilename = %s", filepath)
             docobj = uploadbytes(
                 filepath,
                 zipped_bytes,
