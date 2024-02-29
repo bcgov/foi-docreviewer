@@ -1484,7 +1484,7 @@ const Redlining = React.forwardRef(
         setRedactionInfoIsLoaded(true);
         return;
       }
-      const hasUpdated = updatePageFlagsByPage(redactionInfo, 26, pageFlagTypes["Full Disclosure"]);
+      const hasUpdated = updatePageFlagsByPage(redactionInfo);
       if (!hasUpdated) {
         fetchPageFlag(
           requestid,
@@ -1496,29 +1496,17 @@ const Redlining = React.forwardRef(
     }, [redactionInfo])
 
     // This updates the page flags for pages where all the annotations have the same section
-    const updatePageFlagsByPage = (redactionInfo, section, pageflagid) => {
+    const updatePageFlagsByPage = (redactionInfo) => {
       let hasUpdated = false;
-      const mapAnnotations = (annotations) => {
-        let annotationsMap = {};
-        for (let annot of annotations) { 
-          if (annotationsMap[annot.documentid]) {
-            if (annotationsMap[annot.documentid][annot.pagenumber + 1]) {
-              annotationsMap[annot.documentid][annot.pagenumber + 1]++;
-            } else {
-              annotationsMap[annot.documentid][annot.pagenumber + 1] = 1;
-            }
-          } else {
-            annotationsMap[annot.documentid] = { [annot.pagenumber + 1]: 1 };
-          }
-        }
-        return annotationsMap
-      }
-      const getsectionIdsMap = () => {
+      const getSectionIdsMap = (redactionInfo) => {
         let sectionIdsMap = {}
         for (let annot of redactionInfo) {
           for (let id of annot.sections.ids) {
-            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
-            else {
+            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
+            } else if (sectionIdsMap?.[annot.documentid]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            } else {
               sectionIdsMap[annot.documentid] = {}
               sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
             }
@@ -1527,26 +1515,22 @@ const Redlining = React.forwardRef(
         return sectionIdsMap;
       }
 
-      const setFlagsForPagesWithAllAnnotationsInSection = (allAnnotationsMap, sectionAnnotationsMap, pageflagid) => {
+      const setFlagsForPagesToUpdate = (redactionInfo) => {
         let pagesToUpdate = []
-        let sectionIdsMap = getsectionIdsMap()
-        for (let doc in allAnnotationsMap) {
-          for (let page in allAnnotationsMap?.[doc]) {
-            // If there is a blank code (25) and no section codes (< 25) then update pageflag to in progress
-            if (sectionIdsMap?.[doc]?.[page]?.every(id => id >= 25) && sectionIdsMap?.[doc]?.[page]?.includes(25)) {
+        let sectionIdsMap = getSectionIdsMap(redactionInfo)
+        for (let doc in sectionIdsMap) {
+          for (let page in sectionIdsMap[doc]) {
+            if (sectionIdsMap[doc][page].every(id => id >= 25) && sectionIdsMap[doc][page].includes(25)) {
               pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["In Progress"]})
-            } else if (allAnnotationsMap?.[doc]?.[page] == sectionAnnotationsMap?.[doc]?.[page]) {
-              pagesToUpdate.push({ docid: doc, page: page, flagid: pageflagid })
+            } else if (sectionIdsMap[doc][page].every(id => id == 26)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["Full Disclosure"]})
             }
           }
         }
         return pagesToUpdate
       }
-
-      let allAnnotationsMap = mapAnnotations(redactionInfo)
-      let sectionAnnotationsMap = mapAnnotations(redactionInfo.filter(annot => annot.sections.ids?.includes(section)))
       
-      let pagesToUpdate = setFlagsForPagesWithAllAnnotationsInSection(allAnnotationsMap, sectionAnnotationsMap, pageflagid)
+      let pagesToUpdate = setFlagsForPagesToUpdate(redactionInfo)
       if (pagesToUpdate.length > 0) {
         savePageFlag(
           requestid, 
