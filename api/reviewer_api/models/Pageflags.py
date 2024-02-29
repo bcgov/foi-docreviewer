@@ -28,16 +28,6 @@ class Pageflag(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
-    
-    def getpageflagbyname(cls, pageflagname):
-        try:
-            pageflag_schema = PageflagSchema(many=True)
-            query = db.session.query(Pageflag).filter_by(isactive=True, name=pageflagname).order_by(Pageflag.sortorder.asc()).all()
-            return pageflag_schema.dump(query)
-        except Exception as ex:
-            logging.error(ex)
-        finally:
-            db.session.close()
 
 class PageflagSchema(ma.Schema):
     class Meta:

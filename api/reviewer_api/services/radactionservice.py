@@ -70,9 +70,7 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                print("SCHEMA", annotationschema)
                 bulkaddpageflagdata = self.__preparebulkpageflagdata(foiministryrequestid, annotationschema["pageflags"], annotationschema['redactionlayerid'])
-                print("bulkpageflagdata", bulkaddpageflagdata)
                 documentpageflagservice().bulksavepageflag(
                     foiministryrequestid,
                     bulkaddpageflagdata,
@@ -118,16 +116,12 @@ class redactionservice:
             inputdocpagesmapping, redactionlayerid
         )
         # update page flags for pages with redactions remaining
-        print("ACTIVE DATA", documentactiveredactions)
         pageswithactiveredacitons = {
             (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
         }
-        print("UNIQUE ACTIVE DATA", pageswithactiveredacitons)
-        # update docpageflags for pages with redactions remaining
         if (len(pageswithactiveredacitons) > 0):
             bulkupdateflagdata = []
             docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid) 
-            print("NEW DATA", docpageredcations)
             for docid, page in pageswithactiveredacitons:
                 for docobj in docpageredcations:
                     if (docid == docobj['documentid'] and page == docobj['pagenumber']):
@@ -137,17 +131,14 @@ class redactionservice:
                             and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
                             for redaction in redactions
                         )):
-                            print("LIQUIDDDDDD", docid, page)
                             bulkupdateflagdata.append({
                                 "docid": docid,
                                 #in DB, pages start at 1
                                 "pageflag": {"page": page + 1, "flagid": 3}
                             })
                         else:
-                            print("SOLIDDD", docid, page)
                             bulkupdateflagdata.append({
                                 "docid": docid,
-                                 #in DB, pages start at 1
                                 "pageflag": {"page": page + 1, "flagid": 1}
                             })
             documentpageflagservice().updatepageflags_redactions_remaining(

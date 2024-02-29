@@ -89,7 +89,6 @@ class documentpageflagservice:
 
     def bulksavepageflag(self, requestid, data, userinfo):
         results = []
-        print("DATA TO SAVE", data)
         for entry in data["documentpageflags"]:
             try:
                 result = self.bulksavedocumentpageflag(
@@ -163,7 +162,6 @@ class documentpageflagservice:
     def updatepageflags(
         self, requestid, deldocpagesmapping, redactionlayerid, userinfo
     ):
-        print("SKIP MAPPING", deldocpagesmapping)
         documentids = [
             item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
         ]
@@ -176,17 +174,14 @@ class documentpageflagservice:
         )
 
     def updatepageflags_redactions_remaining(self, requestid, data, redactionlayerid, userinfo):
-        print("DATA", data)
         docids = [docflagobj["docid"] for docflagobj in data]
         previousdocpageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
-        print("PREV FLAGS", previousdocpageflag)
         for docflagobj in data:
             for prevdocflagobj in previousdocpageflag:
                 if (docflagobj['docid'] == prevdocflagobj['documentid']):
                     docflagobj['version'] = prevdocflagobj['documentversion']
                     docflagobj["attributes"] = prevdocflagobj["attributes"]
                     docflagobj['pageflag'] = [docflagobj['pageflag'] if docflagobj['pageflag']['page'] == pageflag['page'] else pageflag for pageflag in prevdocflagobj['pageflag']]
-            print("SAVE", docflagobj)
             DocumentPageflag.savepageflag(
                 requestid,
                 docflagobj["docid"],
