@@ -163,6 +163,7 @@ class documentpageflagservice:
     def updatepageflags(
         self, requestid, deldocpagesmapping, redactionlayerid, userinfo
     ):
+        print("SKIP MAPPING", deldocpagesmapping)
         documentids = [
             item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
         ]
@@ -174,22 +175,27 @@ class documentpageflagservice:
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
 
-    def updatepageflags_redactions_remaining(self, requestid, docpagemapping, redactionlayerid, userinfo, pageflagname):
-        previousdocpageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, [docpagemapping['docid']])[0]
-        pageflag = Pageflag().getpageflagbyname(pageflagname)[0]
-        for flag in previousdocpageflag['pageflag']:
-            if flag['page'] == (docpagemapping['page'] + 1):
-                flag['flagid'] = pageflag['pageflagid']
-                break
-        DocumentPageflag.savepageflag(
-            requestid,
-            previousdocpageflag["documentid"],
-            previousdocpageflag["documentversion"],
-            json.dumps(previousdocpageflag['pageflag']),
-            json.dumps(userinfo),
-            redactionlayerid,
-            json.dumps(previousdocpageflag["attributes"]),
-        )
+    def updatepageflags_redactions_remaining(self, requestid, data, redactionlayerid, userinfo):
+        print("DATA", data)
+        docids = [docflagobj["docid"] for docflagobj in data]
+        previousdocpageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
+        print("PREV FLAGS", previousdocpageflag)
+        for docflagobj in data:
+            for prevdocflagobj in previousdocpageflag:
+                if (docflagobj['docid'] == prevdocflagobj['documentid']):
+                    docflagobj['version'] = prevdocflagobj['documentversion']
+                    docflagobj["attributes"] = prevdocflagobj["attributes"]
+                    docflagobj['pageflag'] = [docflagobj['pageflag'] if docflagobj['pageflag']['page'] == pageflag['page'] else pageflag for pageflag in prevdocflagobj['pageflag']]
+            print("SAVE", docflagobj)
+            DocumentPageflag.savepageflag(
+                requestid,
+                docflagobj["docid"],
+                docflagobj["version"],
+                json.dumps(docflagobj['pageflag']),
+                json.dumps(userinfo),
+                redactionlayerid,
+                json.dumps(docflagobj["attributes"]),
+            )
 
     def __filterandsavepageflags(
         self,

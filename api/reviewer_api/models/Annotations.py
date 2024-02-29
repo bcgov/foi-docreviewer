@@ -543,21 +543,22 @@ class Annotation(db.Model):
             db.session.close()
     
     @classmethod
-    def getredactionannotationsbydocumentpages(cls, _documentid, _page, redactionlayerid):
+    def getredactionannotationsbydocumentpages(cls, docpagemapping, redactionlayerid):
         try:
             annotation_schema = AnnotationSchema(many=True)
             query = (
-                db.session.query(Annotation.annotation)
+                db.session.query(Annotation.documentid, Annotation.pagenumber, func.array_agg(Annotation.annotation).label('annotations'))
                 .filter(
                     and_(
-                        Annotation.documentid == _documentid,
-                        Annotation.isactive == True,
-                        Annotation.pagenumber == _page,
-                        Annotation.redactionlayerid == redactionlayerid,
                         Annotation.annotation.ilike("%<redact %"),
-                    )
-                )
-                .order_by(Annotation.annotationid.asc())
+                        Annotation.redactionlayerid == redactionlayerid,
+                        Annotation.isactive == True
+                        ),
+                    or_(
+                        and_(Annotation.documentid == docid, Annotation.pagenumber == pagenumber)
+                        for docid, pagenumber in docpagemapping
+                    ))
+                .group_by(Annotation.documentid, Annotation.pagenumber)
                 .all()
             )
             return annotation_schema.dump(query)
@@ -575,6 +576,7 @@ class AnnotationSchema(ma.Schema):
             "documentid",
             "documentversion",
             "annotation",
+            "annotations",
             "pagenumber",
             "redactionlayerid",
             "redactionlayer.redactionlayerid",

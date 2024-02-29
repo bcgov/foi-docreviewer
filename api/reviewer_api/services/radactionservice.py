@@ -70,24 +70,12 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                #logic to apply withheld in full page flag precedence over partial disclosure and other page flags
                 print("SCHEMA", annotationschema)
-                bulkpageflagdata = annotationschema["pageflags"]
-                for i in range(len(bulkpageflagdata['documentpageflags'])):
-                    doc = bulkpageflagdata['documentpageflags'][i]
-                    docid = doc['documentid']
-                    redactionlayerid = doc['redactionlayerid']
-                    version = doc['version']
-                    for j in range(len(doc['pageflags'])):
-                        pageflag = doc['pageflags'][j]
-                        previousflags = documentpageflagservice().getdocumentpageflags(foiministryrequestid, redactionlayerid, docid, version)[0]
-                        print("previousflags", previousflags)
-                        if ({"page": pageflag['page'], "flagid": 3} in previousflags):
-                            bulkpageflagdata['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}
-                print("bulkpageflagdata", bulkpageflagdata)
+                bulkaddpageflagdata = self.__preparebulkpageflagdata(foiministryrequestid, annotationschema["pageflags"], annotationschema['redactionlayerid'])
+                print("bulkpageflagdata", bulkaddpageflagdata)
                 documentpageflagservice().bulksavepageflag(
                     foiministryrequestid,
-                    bulkpageflagdata,
+                    bulkaddpageflagdata,
                     userinfo,
                 )
         return result
@@ -135,29 +123,39 @@ class redactionservice:
             (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
         }
         print("UNIQUE ACTIVE DATA", pageswithactiveredacitons)
-        for docid, page in pageswithactiveredacitons:
-            pageredcations = Annotation.getredactionannotationsbydocumentpages(docid, page, redactionlayerid)
-            print("redacts", pageredcations)
-            if (any(
-                'trn-redaction-type' in json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
-                and json.loads(parseString(redaction['annotation']).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
-                for redaction in pageredcations
-            )):
-                documentpageflagservice().updatepageflags_redactions_remaining(
-                    requestid,
-                    {"docid": docid, "page": page},
-                    redactionlayerid,
-                    userinfo,
-                    "Withheld in Full"
-                )
-            else:
-                documentpageflagservice().updatepageflags_redactions_remaining(
-                    requestid,
-                    {"docid": docid, "page": page},
-                    redactionlayerid,
-                    userinfo,
-                    "Partial Disclosure"
-                )
+        # update docpageflags for pages with redactions remaining
+        if (len(pageswithactiveredacitons) > 0):
+            bulkupdateflagdata = []
+            docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid) 
+            print("NEW DATA", docpageredcations)
+            for docid, page in pageswithactiveredacitons:
+                for docobj in docpageredcations:
+                    if (docid == docobj['documentid'] and page == docobj['pagenumber']):
+                        redactions = docobj['annotations']
+                        if (any(
+                            'trn-redaction-type' in json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
+                            and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
+                            for redaction in redactions
+                        )):
+                            print("LIQUIDDDDDD", docid, page)
+                            bulkupdateflagdata.append({
+                                "docid": docid,
+                                #in DB, pages start at 1
+                                "pageflag": {"page": page + 1, "flagid": 3}
+                            })
+                        else:
+                            print("SOLIDDD", docid, page)
+                            bulkupdateflagdata.append({
+                                "docid": docid,
+                                 #in DB, pages start at 1
+                                "pageflag": {"page": page + 1, "flagid": 1}
+                            })
+            documentpageflagservice().updatepageflags_redactions_remaining(
+                requestid,
+                bulkupdateflagdata,
+                redactionlayerid,
+                userinfo
+            )
         # update page flags for pages not having any redactions remaining (skip all pages that have remaining redactions)
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, documentactiveredactions
@@ -283,3 +281,20 @@ class redactionservice:
             "inputfiles": messageschema["attributes"],
         }
         return __message
+
+    def __preparebulkpageflagdata(self, requestid, annot_pageflags, redactionlayerid):
+        docids = [doc['documentid'] for doc in annot_pageflags['documentpageflags']]
+        docpreviousflags = documentpageflagservice().getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
+        #loop through new annotations docs
+        for i in range(len(annot_pageflags['documentpageflags'])):
+            doc = annot_pageflags['documentpageflags'][i]
+            #loop through new annotations doc pageflags
+            for j in range(len(doc['pageflags'])):
+                pageflag = doc['pageflags'][j]
+                #loop through previous docplageflag data, find assoacited docpageflags using docid and see if withheld in full page flag (flagid 3) exists for the new annotations page
+                for docpageobj in docpreviousflags:
+                    if (doc['documentid'] == docpageobj['documentid'] and {"page": pageflag['page'], "flagid": 3} in docpageobj['pageflag']):
+                        annot_pageflags['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}
+                    
+        return annot_pageflags
+        
