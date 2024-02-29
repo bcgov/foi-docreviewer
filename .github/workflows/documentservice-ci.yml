@@ -1,0 +1,54 @@
+name: Document Services CI
+
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - dev-marshal
+      - test-marshal
+      - dev-rook
+      - test-rook
+    paths:
+      - "computingservices/DocumentServices/**"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./computingservices/DocumentServices
+
+jobs:
+  docker-build-check:
+    runs-on: ubuntu-20.04
+    name: Build dockerfile to ensure it works
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker build to check strictness
+        id: docker-build
+        run: |
+          docker build -f Dockerfile.local .
+
+  python-build-check:
+    runs-on: ubuntu-20.04
+    name: Build python to ensure it works
+
+    strategy:
+      matrix:
+        # python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+     

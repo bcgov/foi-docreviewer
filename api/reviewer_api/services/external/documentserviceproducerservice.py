@@ -4,13 +4,12 @@ from reviewer_api.models.default_method_result import DefaultMethodResult
 import logging
 from os import getenv
 
-
-class zipperproducerservice:
+class documentserviceproducerservice:
     """This class is reserved for integration with event queue (currently redis streams)."""
 
-    host = os.getenv("ZIPPER_REDIS_HOST")
-    port = os.getenv("ZIPPER_REDIS_PORT")
-    password = os.getenv("ZIPPER_REDIS_PASSWORD")
+    host = os.getenv("DOCUMENTSERVICE_REDIS_HOST")
+    port = os.getenv("DOCUMENTSERVICE_REDIS_PORT")
+    password = os.getenv("DOCUMENTSERVICE_REDIS_PASSWORD")
 
     db = Database(host=host, port=port, db=0, password=password)
 
@@ -25,4 +24,4 @@ class zipperproducerservice:
             return DefaultMethodResult(False, err, -1)
 
     def __streamkey(self):
-        return getenv("ZIPPER_STREAM_KEY")  
+        return getenv("DOCUMENTSERVICE_STREAM_KEY")    
