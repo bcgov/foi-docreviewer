@@ -176,6 +176,7 @@ class documentpageflagservice:
     def updatepageflags_redactions_remaining(self, requestid, data, redactionlayerid, userinfo):
         docids = [docflagobj["docid"] for docflagobj in data]
         previousdocpageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
+        # loop through data and adjust docobj in data (updated page flags to apply to page / doc id) with previous docpageflag data (data from DocumentPageFlag Table)
         for docflagobj in data:
             for prevdocflagobj in previousdocpageflag:
                 if (docflagobj['docid'] == prevdocflagobj['documentid']):

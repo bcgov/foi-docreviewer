@@ -70,7 +70,7 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                bulkaddpageflagdata = self.__preparebulkpageflagdata(foiministryrequestid, annotationschema["pageflags"], annotationschema['redactionlayerid'])
+                bulkaddpageflagdata = self.__preparebulkaddpageflagdata(foiministryrequestid, annotationschema["pageflags"], annotationschema['redactionlayerid'])
                 documentpageflagservice().bulksavepageflag(
                     foiministryrequestid,
                     bulkaddpageflagdata,
@@ -120,27 +120,8 @@ class redactionservice:
             (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
         }
         if (len(pageswithactiveredacitons) > 0):
-            bulkupdateflagdata = []
-            docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid) 
-            for docid, page in pageswithactiveredacitons:
-                for docobj in docpageredcations:
-                    if (docid == docobj['documentid'] and page == docobj['pagenumber']):
-                        redactions = docobj['annotations']
-                        if (any(
-                            'trn-redaction-type' in json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
-                            and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
-                            for redaction in redactions
-                        )):
-                            bulkupdateflagdata.append({
-                                "docid": docid,
-                                #in DB, pages start at 1
-                                "pageflag": {"page": page + 1, "flagid": 3}
-                            })
-                        else:
-                            bulkupdateflagdata.append({
-                                "docid": docid,
-                                "pageflag": {"page": page + 1, "flagid": 1}
-                            })
+            docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid)
+            bulkupdateflagdata = self.__preparebulkupdatepageflagdata(pageswithactiveredacitons, docpageredcations)
             documentpageflagservice().updatepageflags_redactions_remaining(
                 requestid,
                 bulkupdateflagdata,
@@ -273,7 +254,7 @@ class redactionservice:
         }
         return __message
 
-    def __preparebulkpageflagdata(self, requestid, annot_pageflags, redactionlayerid):
+    def __preparebulkaddpageflagdata(self, requestid, annot_pageflags, redactionlayerid):
         docids = [doc['documentid'] for doc in annot_pageflags['documentpageflags']]
         docpreviousflags = documentpageflagservice().getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
         #loop through new annotations docs
@@ -285,7 +266,33 @@ class redactionservice:
                 #loop through previous docplageflag data, find assoacited docpageflags using docid and see if withheld in full page flag (flagid 3) exists for the new annotations page
                 for docpageobj in docpreviousflags:
                     if (doc['documentid'] == docpageobj['documentid'] and {"page": pageflag['page'], "flagid": 3} in docpageobj['pageflag']):
-                        annot_pageflags['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}
-                    
+                        annot_pageflags['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}            
         return annot_pageflags
+    
+    def __preparebulkupdatepageflagdata(self, pageswithactiveredacitons, docpageredcations):
+        bulkupdatedata = []
+        # loop through set of pages with redaction remaining in them for deleted annoations
+        for docid, page in pageswithactiveredacitons:
+            # loop through docpage redactions, which is a list of {docid: num, annotations: [redactions applied to page], page: num} for deleted annots, to find docid and page match
+            for docobj in docpageredcations:
+                if (docid == docobj['documentid'] and page == docobj['pagenumber']):
+                    redactions = docobj['annotations']
+                    # conditional to check if fullpage xml data exists in a redaction for all remaining redactions assocaited with previously deleted annotations page
+                    # if true, updated page flag data should have flagid of 3 (fullpage flag), else updated page flag data should have id of 1 (partial flag)
+                    if (any(
+                        'trn-redaction-type' in json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
+                        and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
+                        for redaction in redactions
+                    )):
+                        bulkupdatedata.append({
+                            "docid": docid,
+                            #in DB, pages start at 1
+                            "pageflag": {"page": page + 1, "flagid": 3}
+                        })
+                    else:
+                        bulkupdatedata.append({
+                            "docid": docid,
+                            "pageflag": {"page": page + 1, "flagid": 1}
+                        })
+        return bulkupdatedata
         
