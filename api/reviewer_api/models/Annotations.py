@@ -375,12 +375,8 @@ class Annotation(db.Model):
                         "createdby": userinfo,
                         "isactive": True,
                         "redactionlayerid": redactionlayerid,
-                        "version": pkkey["version"] + 1
-                        if pkkey is not None and "version" in pkkey
-                        else 1,
-                        "annotationid": pkkey["annotationid"]
-                        if pkkey is not None and "annotationid" in pkkey
-                        else None,
+                        "version": pkkey["version"] + 1 if pkkey is not None and "version" in pkkey else 1,
+                        "annotationid": pkkey["annotationid"] if pkkey is not None and "annotationid" in pkkey else None
                     }
                 )
                 idxannots.append(annot["name"])
