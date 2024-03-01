@@ -33,10 +33,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         print(f"Starting from {start_from.name}")
 
     while True:
-        print("Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
-        print("*********** Messages ***********")
-        print(messages)
         if messages:
             for _message in messages:          
                 # message_id is the random id created to identify the message
@@ -58,4 +55,4 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
                 print(f"finished processing {message_id}")
         else:
-            print(f"No new messages after ID: {last_id}")
+            logging.info(f"No new messages after ID: {last_id}")
