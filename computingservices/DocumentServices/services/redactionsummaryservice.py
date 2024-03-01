@@ -28,7 +28,7 @@ class redactionsummaryservice():
                 divisionid = entry.divisionid
                 documentids = entry.documentids
                 formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
-                #print('formattedsummary', formattedsummary)
+                print('formattedsummary', formattedsummary)
                 template_path='templates/'+documenttypename+'.docx'
                 redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                 messageattributes= message.attributes  
@@ -42,7 +42,7 @@ class redactionsummaryservice():
                 s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                 s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                 filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
-                #print('s3uri:', s3uri)
+                print('s3uri:', s3uri)
                 uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                 upload_responses.append(uploadobj)
                 if uploadobj["uploadresponse"].status_code == 200:

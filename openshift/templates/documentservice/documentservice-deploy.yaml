@@ -173,7 +173,7 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: FOI_DB_USER
-             - name: FOI_DB_PASSWORD
+            - name: FOI_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
