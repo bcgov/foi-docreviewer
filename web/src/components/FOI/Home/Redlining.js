@@ -689,7 +689,10 @@ const Redlining = React.forwardRef(
       set
     ) => {
       slicedsetofdoclist.forEach(async (filerow) => {
-        await createDocument(filerow.s3url).then(async (newDoc) => {
+        await createDocument(filerow.s3url, {
+            useDownloader: false, // Added to fix BLANK page issue
+            loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
+        }).then(async (newDoc) => {
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
@@ -2073,7 +2076,7 @@ const Redlining = React.forwardRef(
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
-        files: [],
+        files: [], 
       };
       if (stitchedDocPath) {
         const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2098,6 +2101,7 @@ const Redlining = React.forwardRef(
         zipDocObj.divisionname = divObj["divisionname"];
       }
       zipServiceMessage.attributes.push(zipDocObj);
+      //zipServiceMessage.summarydocuments = redlineStitchInfo[divObj["divisionid"]]["documentids"];
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
@@ -2113,80 +2117,54 @@ const Redlining = React.forwardRef(
       divisionsdocpages,
       redlineSinglePackage
     ) => {
-      // Linearize the StitchObject as it can contain different types of pages
-      // (ex: Standard pdf and scanned pages) which is causing setDirty() error while stamping the pagenumber
-      let doc = await linearizeStitchObject(_docViwer, PDFNet);
-      for (
-        let pagecount = 1;
-        pagecount <= divisionsdocpages.length;
-        pagecount++
-      ) {
-        let pageIndex = 0;
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
+      try {
+        for (
+          let pagecount = 1;
+          pagecount <= divisionsdocpages.length;
+          pagecount++
+        ) {
+          
+          const doc = await _docViwer.getPDFDoc();
+          // Run PDFNet methods with memory management
+          await PDFNet.runWithCleanup(async () => {
+            // lock the document before a write operation
+            // runWithCleanup will auto unlock when complete
+            doc.lock();
+            const s = await PDFNet.Stamper.create(
+              PDFNet.Stamper.SizeType.e_relative_scale,
+              0.3,
+              0.3
+            );
 
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-            pgSet
-          );
-          pageIndex++;
-        });
-      }
-      // The stitchObj is in PDFDoc format after the page number stamping. 
-      // Below method will change it back to Document format
-      const pageStampedDocument = convertToDocument(doc, PDFNet);
-      return pageStampedDocument;
+            await s.setAlignment(
+              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+            );
+            const font = await PDFNet.Font.create(
+              doc,
+              PDFNet.Font.StandardType1Font.e_courier
+            );
+            await s.setFont(font);
+            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+            await s.setFontColor(redColorPt);
+            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+            await s.setAsBackground(false);
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+            await s.stampText(
+              doc,
+              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+              pgSet
+            );
+          });
+        }
+      } catch (err) {
+          console.log(err);
+          throw err;
+        }
     };
-
-    const convertToDocument = async (doc, PDFNet) => {
-      let pageStampedBufArr = await getDocumentArray(doc, PDFNet);
-      const pageStampedDocument = await docInstance.Core.createDocument(pageStampedBufArr,{ extension: 'pdf' });
-      pageStampedBufArr = [];
-      return pageStampedDocument;
-    }    
-
-    const linearizeStitchObject = async (_docViwer, PDFNet) => {
-      let doc = await _docViwer.getPDFDoc();
-      let docArr = await getDocumentArray(doc, PDFNet);
-      if (docArr.length > 0) {
-        doc = await PDFNet.PDFDoc.createFromBuffer(docArr);
-        docArr = []
-      }
-      return doc;
-    }
-
-    const getDocumentArray = async (doc, PDFNet) => {
-      let docBuf = await doc.saveMemoryBuffer(PDFNet.SDFDoc.SaveOptions.e_linearized);            
-      let docArr = new Uint8Array(docBuf.buffer);
-      docBuf = null;
-      return docArr;
-    }
-
+    
     const stampPageNumberResponse = async (_docViwer, PDFNet) => {
       for (
         let pagecount = 1;
@@ -2773,13 +2751,7 @@ const Redlining = React.forwardRef(
           let IncompatableList = prepareRedlineIncompatibleMapping(res);
           setIncompatableList(IncompatableList);
           fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
-          setRedlineZipperMessage({
-            ministryrequestid: requestid,
-            category: getzipredlinecategory(layertype),
-            attributes: [],
-            requestnumber: res.requestnumber,
-            bcgovcode: res.bcgovcode,
-          });
+          
           let stitchDocuments = {};
           let documentsObjArr = [];
           let divisionstitchpages = [];
@@ -2861,6 +2833,15 @@ const Redlining = React.forwardRef(
           
           setRedlineStitchInfo(stitchDoc);
           setIssingleredlinepackage(res.issingleredlinepackage);
+          setRedlineZipperMessage({
+            ministryrequestid: requestid,
+            category: getzipredlinecategory(layertype),
+            attributes: [],
+            requestnumber: res.requestnumber,
+            bcgovcode: res.bcgovcode,
+            summarydocuments: prepareredlinesummarylist(stitchDocuments),
+            redactionlayerid: currentLayer.redactionlayerid
+          });
           if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
             stitchSingleDivisionRedlineExport(
               _instance,
@@ -2886,6 +2867,33 @@ const Redlining = React.forwardRef(
         currentLayer.name.toLowerCase()
       );
     };
+
+    const prepareredlinesummarylist = (stitchDocuments) => {
+      let summarylist = []
+      let alldocuments = []
+      for (const [key, value] of Object.entries(stitchDocuments)) {
+        let summary_division = {};
+        summary_division["divisionid"] = key
+        let documentlist = stitchDocuments[key];
+        if(documentlist.length > 0) {
+          let summary_divdocuments = []
+          for (let doc of documentlist) {
+            summary_divdocuments.push(doc.documentid);
+            alldocuments.push(doc);
+          }
+          summary_division["documentids"] = summary_divdocuments;
+        }
+        summarylist.push(summary_division);
+      }
+     let sorteddocids = []
+     let sorteddocs = sortByLastModified(alldocuments) 
+     for (const sorteddoc of sorteddocs) {
+        sorteddocids.push(sorteddoc['documentid']);
+     }
+     
+      return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}
+    }
+
 
     const stitchForRedlineExport = async (
       _instance,
@@ -2918,6 +2926,7 @@ const Redlining = React.forwardRef(
         for (let doc of documentlist) {
           await _instance.Core.createDocument(doc.s3path_load, {
             loadAsPDF: true,
+            useDownloader: false, // Added to fix BLANK page issue
           }).then(async (docObj) => {            
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
@@ -3024,10 +3033,11 @@ const Redlining = React.forwardRef(
       docCount,
       stitchedDocObj,
     ) => {
-        try {
-          //console.log("\nsliceDoclist:", sliceDoclist.length);
           for (const filerow of sliceDoclist) {
-            await createDocument(filerow.s3path_load).then(async (newDoc) => {
+            try {
+            await createDocument(filerow.s3path_load, 
+              { useDownloader: false } // Added to fix BLANK page issue
+              ).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3050,10 +3060,12 @@ const Redlining = React.forwardRef(
                 }
               }
             });
+          } catch (error) {
+            console.error("An error occurred during create document:", error);
+            // Handle any errors that occurred during the asynchronous operations
           }
-        } catch (error) {
-          // Handle any errors that occurred during the asynchronous operations
-        }
+          }
+        
       };
 
     useEffect(() => {
@@ -3081,10 +3093,8 @@ const Redlining = React.forwardRef(
         ) {
           
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
-          setPdftronDocObjectsForRedline([]);
-          setstichedfilesForRedline(null)
         } else {
-          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
               requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
@@ -3110,7 +3120,10 @@ const Redlining = React.forwardRef(
         if (_exists?.length === 0) {
           let index = filerow.stitchIndex;
           try {
-            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index);
+            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index).then(() => {
+            }).catch((error) => {
+              console.error("An error occurred during page insertion:", error);
+            }) ;
             setAlreadyStitchedList((_arr) => [..._arr, filerow]);
             setstichedfilesForRedline(stichedfilesForRedline)
           } catch (error) {
@@ -3147,7 +3160,7 @@ const Redlining = React.forwardRef(
               redlineSinglePackage
             );
           } else {
-          let formattedAnnotationXML = formatAnnotationsForRedline(
+            let formattedAnnotationXML = formatAnnotationsForRedline(
             redlineDocumentAnnotations,
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
@@ -3213,7 +3226,7 @@ const Redlining = React.forwardRef(
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );  
+              );
         }
         //OIPC - Special Block : End
         
@@ -3331,7 +3344,7 @@ const Redlining = React.forwardRef(
       });
     };
 
-    const triggerRedlineZipper = (
+    const triggerRedlineZipper = (      
       divObj,
       stitchedDocPath,
       divisionCountForToast,
@@ -3354,13 +3367,14 @@ const Redlining = React.forwardRef(
       _instance
     ) => {
       const downloadType = "pdf";
-
       let zipServiceMessage = {
         ministryrequestid: requestid,
         category: "responsepackage",
         attributes: [],
         requestnumber: "",
         bcgovcode: "",
+        summarydocuments : prepareresponseredlinesummarylist(documentList),
+        redactionlayerid: currentLayer.redactionlayerid
       };
 
       getResponsePackagePreSignedUrl(
@@ -3510,6 +3524,27 @@ const Redlining = React.forwardRef(
         }
       );
     };
+
+    const prepareresponseredlinesummarylist = (documentlist) => {
+      let summarylist = []
+      let summary_division = {};
+      let summary_divdocuments = [];
+      let alldocuments = [];
+      summary_division["divisionid"] = '0';
+      for (let doc of documentlist) {
+          summary_divdocuments.push(doc.documentid);
+          alldocuments.push(doc);
+      }
+      summary_division["documentids"] = summary_divdocuments;
+      summarylist.push(summary_division);   
+      
+      let sorteddocids = []
+      let sorteddocs = sortByLastModified(alldocuments) 
+      for (const sorteddoc of sorteddocs) {
+        sorteddocids.push(sorteddoc['documentid']);
+      }
+      return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
+    }
 
     const compareValues = (a, b) => {
       if (modalSortNumbered) {

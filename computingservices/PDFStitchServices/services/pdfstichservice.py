@@ -14,6 +14,7 @@ import logging
 import fitz
 from utils.basicutils import to_json
 from .zipperproducerservice import zipperproducerservice as zipperservice
+from config import division_stitch_folder_path
 
 class pdfstitchservice(basestitchservice):
 
@@ -78,10 +79,13 @@ class pdfstitchservice(basestitchservice):
                         pdf_doc = fitz.open()  # output PDF
                         if pdf_doc_in.is_form_pdf is not False and pdf_doc_in.is_form_pdf > 0:  #check if form field exists, if so convert doc to series of page images & combine to 1 pdf
                             for page in pdf_doc_in:
-                                w, h = page.rect.br  # page width / height taken from bottom right point coords
-                                outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
-                                pix = page.get_pixmap(dpi=150)  # set desired resolution
-                                outpage.insert_image(page.rect, pixmap=pix)
+                                if len(list(page.widgets())) > 0:
+                                    w, h = page.rect.br  # page width / height taken from bottom right point coords
+                                    outpage = pdf_doc.new_page(width=w, height=h)  # out page has same dimensions
+                                    pix = page.get_pixmap(dpi=150)  # set desired resolution
+                                    outpage.insert_image(page.rect, pixmap=pix)
+                                else:
+                                    pdf_doc.insert_pdf(pdf_doc_in, page.number, page.number)
                             #pdf_doc.save("Output.pdf", garbage=3, deflate=True)
                         else:
                             pdf_doc= pdf_doc_in
@@ -111,7 +115,7 @@ class pdfstitchservice(basestitchservice):
                 fitz.TOOLS.store_shrink(100)
                 del writer
                 print(f"save stitched doc to the bytes_stream completed: {datetime.now()}")
-                filename = f"{requestnumber} - {category} - {division.divisionname}"
+                filename = f"{requestnumber} - {self.__getfolderfordivisionfiles()} - {division.divisionname}"
                     
                 if numbering_enabled == "True":
                     paginationtext = add_spacing_around_special_character("-",requestnumber) + " | page [x] of [totalpages]"
@@ -198,6 +202,10 @@ class pdfstitchservice(basestitchservice):
             "stitchedoutput": stitchedoutput,
             "filestozip": filestozip
         }
+        setattr(_message, "foldername", self.__getfolderfordivisionfiles())        
         setattr(_message, "finaloutput", finaloutput)
         setattr(_message, "outputdocumentpath", filestozip)
         return _message
+    
+    def __getfolderfordivisionfiles(self):
+        return division_stitch_folder_path.split("/")[0]
