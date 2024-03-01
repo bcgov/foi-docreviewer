@@ -48,7 +48,7 @@ class redactionsummary():
                 _data = {}
                 if len(pageflag['docpageflags']) > 0:
                     _data = {}
-                    _data["flagname"] = pageflag["description"].upper()
+                    _data["flagname"] = pageflag["header"].upper()
                     _data["pagecount"] = len(pageflag['docpageflags'])   
                     _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'])
                     summarydata.append(_data)
@@ -59,7 +59,17 @@ class redactionsummary():
     def __transformpageflags(self, pageflags):
         for entry in pageflags:
             entry['docpageflags']= []
+            entry['header'] = entry['description']
+            if entry['name'] == 'Full Disclosure':                
+                entry['header'] = 'DISCLOSED IN FULL'
+                entry['description'] = 'Disclosed in full'
+            elif entry['name'] == 'Partial Disclosure':
+                entry['header'] = 'DISCLOSED IN PART'  
+            elif entry['name'] == 'Not Responsive':
+                entry['description'] = 'Not Responsive to request'            
+                
         return pageflags
+    
     def __get_consults_by_pageno(self, programareas, docpageflag, pagenos):
         consults = {}
         for entry in docpageflag:
@@ -107,7 +117,7 @@ class redactionsummary():
     
 
     def __formatsections(self, pageflag, sections):
-        if pageflag in ("Duplicate", "Not Responsive"):
+        if pageflag in ("Duplicate", "Not Responsive to request"):
             return pageflag
         distinct_sections = list(set(sections))
         return pageflag+" under "+", ".join(distinct_sections) if len(distinct_sections) > 0 else pageflag
