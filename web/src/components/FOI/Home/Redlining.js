@@ -838,6 +838,21 @@ const Redlining = React.forwardRef(
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
 
+        //Fix for lengthy section cutoff issue with response pkg 
+        //download - changed overlaytext to annotations after 
+        //redaction applied
+        if (info['source'] === 'redactionApplied') {
+          annotations.forEach((annotation) => {
+            console.log("Subject:",annotation.Subject)
+            if(annotation.Subject == "Free Text"){
+              setTimeout(() => {
+                docInstance.Core.annotationManager.addAnnotation(annotation);
+                //console.log("Added - ", annotation)
+              }, 0);
+            }
+          });
+        }
+
         //oipc changes - begin
         if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
           return;
@@ -848,6 +863,8 @@ const Redlining = React.forwardRef(
           info.source !== "redactionApplied" &&
           info.source !== "cancelRedaction"
         ) {
+          
+
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving
@@ -3415,21 +3432,21 @@ const Redlining = React.forwardRef(
                 }
               }
             }
-
+            console.log("sectionStamps:",sectionStamps)
             // add section stamps to redactions as overlay text
             let annotList = annotationManager.getAnnotationsList();
             toast.update(toastID, {
-              render: "Saving section stamps...",
+              render: "Saving section stamps..."+sectionStamps,
               isLoading: true,
             });
-            for (const annot of annotList) {
-              if (sectionStamps[annot.Id]) {
-                annotationManager.setAnnotationStyles(annot, {
-                  OverlayText: sectionStamps[annot.Id],
-                  FontSize: Math.min(parseInt(annot.FontSize), 9) + "pt",
-                });
-              }
-            }
+            // for (const annot of annotList) {
+            //   if (sectionStamps[annot.Id]) {
+            //       annotationManager.setAnnotationStyles(annot, {
+            //       OverlayText:sectionStamps[annot.Id],
+            //       FontSize: Math.min(parseInt(annot.FontSize), 9) + "pt",
+            //     });
+            //   }
+            // }
             annotManager.ungroupAnnotations(annotList);
 
             // remove duplicate and not responsive pages
@@ -3451,18 +3468,22 @@ const Redlining = React.forwardRef(
                 }
               }
             }
-
             let doc = documentViewer.getDocument();
-            await annotationManager.applyRedactions(); // must apply redactions before removing pages
+            await annotationManager.applyRedactions();
+            //console.log("After Applying!!")
+             // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
 
             const { PDFNet } = _instance.Core;
             PDFNet.initialize();
             await stampPageNumberResponse(documentViewer, PDFNet);
-
             //apply redaction and save to s3
-            doc
+            //const annotstest = await annotationManager.getAnnotationsList()
+            //console.log("annotstest:",annotstest)
+            await annotationManager.exportAnnotations().then(async (xfdfString) => {
+              doc
               .getFileData({
+                xfdfString:xfdfString,
                 // saves the document with annotations in it
                 downloadType: downloadType,
                 flatten: true
@@ -3517,6 +3538,7 @@ const Redlining = React.forwardRef(
                   }
                 );
               });
+            })
           });
         },
         (error) => {
