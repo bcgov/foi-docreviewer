@@ -243,10 +243,8 @@ class redactionservice:
     def __preparebulkaddpageflagdata(self, requestid, annot_pageflags, redactionlayerid):
         docids = [doc['documentid'] for doc in annot_pageflags['documentpageflags']]
         docpreviousflags = documentpageflagservice().getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
-        #loop through new annotations docs
         for i in range(len(annot_pageflags['documentpageflags'])):
             doc = annot_pageflags['documentpageflags'][i]
-            #loop through new annotations doc pageflags
             for j in range(len(doc['pageflags'])):
                 pageflag = doc['pageflags'][j]
                 #loop through previous docplageflag data, find assoacited docpageflags using docid and see if withheld in full page flag (flagid 3) exists for the new annotations page
@@ -258,15 +256,14 @@ class redactionservice:
     def __preparebulkupdatepageflagdata(self, pageswithactiveredacitons, docpageredcations, deldocpagesmapping):
         # page + 1 because in DB pages start at 1
         bulkupdatedata = {}
-        # loop through set of docpagemappings to delete to remove page flag data entirely for a page
+        # loop through set of docpagemappings to delete/remove page flags
         for docid, page in deldocpagesmapping:
             newpageflag = {"page": page + 1, "flagid": None}
             if (docid not in bulkupdatedata):
                 bulkupdatedata[docid] = {"docid": docid, "pageflag": []}
             bulkupdatedata[docid]['pageflag'].append(newpageflag)
-        # loop through set of pages with redaction remaining in them for deleted annoations
+        # loop through set of pages with redaction remaining in them to update pageflags to partial or withehld in full
         for docid, page in pageswithactiveredacitons:
-            # loop through current docpage redactions, which is a list of {docid: num, annotations: [current redactions on docpage], page: num} for deleted annots, to find docid and page match
             for docobj in docpageredcations:
                 if (docid == docobj['documentid'] and page == docobj['pagenumber']):
                     redactions = docobj['annotations']
