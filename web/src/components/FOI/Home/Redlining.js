@@ -3405,40 +3405,39 @@ const Redlining = React.forwardRef(
           // go through annotations and get all section stamps
           annotationManager.exportAnnotations().then(async (xfdfString) => {
             //parse annotation xml
-            let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
-            let annots = jObj.getElementsByTagName("annots");
+            // let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
+            // let annots = jObj.getElementsByTagName("annots");
 
-            let sectionStamps = {};
-            let stampJson = {};
-            for (const annot of annots[0].children) {
-              // get section stamps from xml
-              if (annot.name == "freetext") {
-                let customData = annot.children.find(
-                  (element) => element.name == "trn-custom-data"
-                );
-                if (
-                  customData?.attributes?.bytes?.includes("parentRedaction")
-                ) {
-                  //parse section info to json
-                  stampJson = JSON.parse(
-                    customData.attributes.bytes
-                      .replace(/&quot;\[/g, "[")
-                      .replace(/\]&quot;/g, "]")
-                      .replace(/&quot;/g, '"')
-                      .replace(/\\/g, "")
-                  );
-                  sectionStamps[stampJson["parentRedaction"]] =
-                    stampJson["trn-wrapped-text-lines"][0];
-                }
-              }
-            }
-            console.log("sectionStamps:",sectionStamps)
+            // let sectionStamps = {};
+            // let stampJson = {};
+            // for (const annot of annots[0].children) {
+            //   // get section stamps from xml
+            //   if (annot.name == "freetext") {
+            //     let customData = annot.children.find(
+            //       (element) => element.name == "trn-custom-data"
+            //     );
+            //     if (
+            //       customData?.attributes?.bytes?.includes("parentRedaction")
+            //     ) {
+            //       //parse section info to json
+            //       stampJson = JSON.parse(
+            //         customData.attributes.bytes
+            //           .replace(/&quot;\[/g, "[")
+            //           .replace(/\]&quot;/g, "]")
+            //           .replace(/&quot;/g, '"')
+            //           .replace(/\\/g, "")
+            //       );
+            //       sectionStamps[stampJson["parentRedaction"]] =
+            //         stampJson["trn-wrapped-text-lines"][0];
+            //     }
+            //   }
+            // }
             // add section stamps to redactions as overlay text
             let annotList = annotationManager.getAnnotationsList();
-            toast.update(toastID, {
-              render: "Saving section stamps..."+sectionStamps,
-              isLoading: true,
-            });
+            // toast.update(toastID, {
+            //   render: "Saving section stamps..."+sectionStamps,
+            //   isLoading: true,
+            // });
             // for (const annot of annotList) {
             //   if (sectionStamps[annot.Id]) {
             //       annotationManager.setAnnotationStyles(annot, {
@@ -3470,7 +3469,10 @@ const Redlining = React.forwardRef(
             }
             let doc = documentViewer.getDocument();
             await annotationManager.applyRedactions();
-            //console.log("After Applying!!")
+            toast.update(toastID, {
+              render: "Saving section stamps...",
+              isLoading: true,
+            });
              // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
 
