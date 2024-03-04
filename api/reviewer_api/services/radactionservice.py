@@ -106,73 +106,58 @@ class redactionservice:
             annotationnames, redactionlayerid, userinfo
         )
         ### Remove/Update pageflags start here ###
-        # totaldocumentpagesmapping docid and pages mapping
+        # totaldocumentpagesmapping docid and pages mapping for annotations deleted
         inputdocpagesmapping = self.__getdocumentpagesmapping(
             annotationschema["annotations"]
         )
         # find all active redactions for documents related to removed annotation. DB call to get the (document, pages, redaction) with redactions in it.
-        documentactiveredactions = self.__getskipdocpagesmapping(
+        documentactiveredactions = self.__getactivedocpagesmapping(
             inputdocpagesmapping, redactionlayerid
         )
-        # update page flags for pages with redactions remaining
-        pageswithactiveredacitons = {
-            (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
-        }
-        if (len(pageswithactiveredacitons) > 0):
-            docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid)
-            bulkupdateflagdata = self.__preparebulkupdatepageflagdata(pageswithactiveredacitons, docpageredcations)
-            documentpageflagservice().updatepageflags_redactions_remaining(
-                requestid,
-                bulkupdateflagdata,
-                redactionlayerid,
-                userinfo
-            )
-        # update page flags for pages not having any redactions remaining (skip all pages that have remaining redactions)
+        # create docmappings for pages with no active redactions remaining (to delete all page flags for docpageflag)
         deldocpagesmapping = self.__getdeldocpagesmapping(
             inputdocpagesmapping, documentactiveredactions
         )
-        if deldocpagesmapping:
-            documentpageflagservice().updatepageflags(
-                requestid,
-                deldocpagesmapping,
-                redactionlayerid,
-                userinfo,
-            )
+        # create docmappings for pages with active redactions remaining (to update page flags for docpageflag)
+        pageswithactiveredacitons = {
+            (item["documentid"], item["pagenumber"]) for item in documentactiveredactions
+        }
+        docpageredcations = Annotation.getredactionannotationsbydocumentpages(pageswithactiveredacitons, redactionlayerid) if len(pageswithactiveredacitons) > 0 else []
+        # update page flags for pages with redactions remaining (pageswithactiveredacitons) + pages not having any redactions remaining (deldocpagemapping)
+        bulkupdateflagdata = self.__preparebulkupdatepageflagdata(pageswithactiveredacitons, docpageredcations, deldocpagesmapping)
+        documentpageflagservice().bulkupdatepageflags(
+            requestid,
+            bulkupdateflagdata,
+            redactionlayerid,
+            userinfo
+        )
         ### Remove/Update pageflags end here ###
         return result
 
-    def __getskipdocpagesmapping(self, _documentpagesmapping, _redactionlayerid):
-        skipdata = []
-        # gets the documentid and pages to skip based on documentid and pages
+    def __getactivedocpagesmapping(self, _documentpagesmapping, _redactionlayerid):
+        activedata = []
         for item in _documentpagesmapping:
             docid = item["docid"]
             pages = item["pages"]
-            skipdata.extend(
+            activedata.extend(
                 Annotation.getredactionsbydocumentpages(docid, pages, _redactionlayerid)
             )
-        return skipdata
+        return activedata
 
     def __getdeldocpagesmapping(self, inputdocpagesmapping, skipdocpagesmapping):
-        #  item["pagenumber"] + 1 is because the page in pageflags starts with 1
+        deldocpagesmapping = set()
         skip_combinations = {
             (item["documentid"], item["pagenumber"])
             for item in skipdocpagesmapping
             if len(skipdocpagesmapping) > 0
         }
-
         # Filter inputdocpagesmapping to obtain deletedocumentpagesmapping
-        deldocpagesmapping = [
-            {
-                "docid": item["docid"],
-                "pages": [
-                    page + 1
-                    for page in item["pages"]
-                    if (item["docid"], page) not in skip_combinations
-                ],
-            }
-            for item in inputdocpagesmapping
-            if len(item["pages"]) > 0
-        ]
+        for item in inputdocpagesmapping:
+            docid = item["docid"]
+            if (len(item['pages']) > 0):
+                for page in item['pages']:
+                    if ((docid, page) not in skip_combinations):
+                        deldocpagesmapping.add((docid, page))
         return deldocpagesmapping
 
     def __getdocumentpagesmapping(self, annotations):
@@ -270,30 +255,37 @@ class redactionservice:
                         annot_pageflags['documentpageflags'][i]['pageflags'][j] = {"page": pageflag['page'], "flagid": 3}            
         return annot_pageflags
     
-    def __preparebulkupdatepageflagdata(self, pageswithactiveredacitons, docpageredcations):
-        bulkupdatedata = []
+    def __preparebulkupdatepageflagdata(self, pageswithactiveredacitons, docpageredcations, deldocpagesmapping):
+        # page + 1 because in DB pages start at 1
+        bulkupdatedata = {}
+        # loop through set of docpagemappings to delete to remove page flag data entirely for a page
+        for docid, page in deldocpagesmapping:
+            newpageflag = {"page": page + 1, "flagid": None}
+            if (docid not in bulkupdatedata):
+                bulkupdatedata[docid] = {"docid": docid, "pageflag": []}
+            bulkupdatedata[docid]['pageflag'].append(newpageflag)
         # loop through set of pages with redaction remaining in them for deleted annoations
         for docid, page in pageswithactiveredacitons:
-            # loop through docpage redactions, which is a list of {docid: num, annotations: [redactions applied to page], page: num} for deleted annots, to find docid and page match
+            # loop through current docpage redactions, which is a list of {docid: num, annotations: [current redactions on docpage], page: num} for deleted annots, to find docid and page match
             for docobj in docpageredcations:
                 if (docid == docobj['documentid'] and page == docobj['pagenumber']):
                     redactions = docobj['annotations']
-                    # conditional to check if fullpage xml data exists in a redaction for all remaining redactions assocaited with previously deleted annotations page
-                    # if true, updated page flag data should have flagid of 3 (fullpage flag), else updated page flag data should have id of 1 (partial flag)
-                    if (any(
-                        'trn-redaction-type' in json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
-                        and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
-                        for redaction in redactions
-                    )):
-                        bulkupdatedata.append({
-                            "docid": docid,
-                            #in DB, pages start at 1
-                            "pageflag": {"page": page + 1, "flagid": 3}
-                        })
-                    else:
-                        bulkupdatedata.append({
-                            "docid": docid,
-                            "pageflag": {"page": page + 1, "flagid": 1}
-                        })
-        return bulkupdatedata
+                    flagid = self.__createflagidfromredactions(redactions)
+                    newpageflag = {"page": page + 1, "flagid": flagid}
+                    if (docid not in bulkupdatedata):
+                        bulkupdatedata[docid] = {"docid": docid, "pageflag": []}
+                    bulkupdatedata[docid]['pageflag'].append(newpageflag)
+        return list(bulkupdatedata.values())
+    
+    def __createflagidfromredactions(self, redactions):
+        # conditional to check if fullpage xml data exists in a pages redaction (if it does -> flagid of 3 is applied else flagid of)
+        if (any(
+            'trn-redaction-type' in json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes")) 
+            and json.loads(parseString(redaction).getElementsByTagName("trn-custom-data")[0].getAttribute("bytes"))['trn-redaction-type'] == 'fullPage'
+            for redaction in redactions
+        )):
+            flagid = 3
+        else:
+            flagid = 1
+        return flagid
         

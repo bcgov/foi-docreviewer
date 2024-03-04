@@ -173,16 +173,16 @@ class documentpageflagservice:
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
 
-    def updatepageflags_redactions_remaining(self, requestid, data, redactionlayerid, userinfo):
+    def bulkupdatepageflags(self, requestid, data, redactionlayerid, userinfo):
         docids = [docflagobj["docid"] for docflagobj in data]
-        previousdocpageflag = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
+        previousdocpageflags = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, docids)
         # loop through data and adjust docobj in data (updated page flags to apply to page / doc id) with previous docpageflag data (data from DocumentPageFlag Table)
         for docflagobj in data:
-            for prevdocflagobj in previousdocpageflag:
+            for prevdocflagobj in previousdocpageflags:
                 if (docflagobj['docid'] == prevdocflagobj['documentid']):
                     docflagobj['version'] = prevdocflagobj['documentversion']
                     docflagobj["attributes"] = prevdocflagobj["attributes"]
-                    docflagobj['pageflag'] = [docflagobj['pageflag'] if docflagobj['pageflag']['page'] == pageflag['page'] else pageflag for pageflag in prevdocflagobj['pageflag']]
+                    docflagobj['pageflag'] = self.__findandreplacepageflags(docflagobj['pageflag'], prevdocflagobj['pageflag'])
             DocumentPageflag.savepageflag(
                 requestid,
                 docflagobj["docid"],
@@ -283,3 +283,17 @@ class documentpageflagservice:
         if data["flagid"] == 8:
             return True
         return False
+
+    def __findandreplacepageflags(self, newpageflags, previouspageflags):
+        updatedpageflags = []
+        dictlookup =  {item["page"]: item["flagid"] for item in newpageflags}
+        for pageflag in previouspageflags:
+            page = pageflag['page']
+            if page in dictlookup:
+                updatedpageflags.append({
+                    "page": page,
+                    "flagid": dictlookup.get(page)
+                })
+            else:
+                updatedpageflags.append(pageflag)
+        return [pageflag for pageflag in updatedpageflags if pageflag['flagid'] is not None]
