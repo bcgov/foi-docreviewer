@@ -50,7 +50,7 @@ class redactionsummary():
                     _data = {}
                     _data["flagname"] = pageflag["header"].upper()
                     _data["pagecount"] = len(pageflag['docpageflags'])   
-                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'])
+                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
                     summarydata.append(_data)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
@@ -87,7 +87,7 @@ class redactionsummary():
             formatted = formatted+others
         return ",".join(formatted)
 
-    def __format_redaction_summary(self, pageflag, pageredactions):
+    def __format_redaction_summary(self, pageflag, pageredactions, category):
         totalpages = len(pageredactions)                
         _sorted_pageredactions = sorted(pageredactions, key=lambda x: x["stitchedpageno"])
         #prepare ranges: Begin
@@ -107,7 +107,7 @@ class redactionsummary():
                 range_end = nextpg["stitchedpageno"]
             else:
                 rangepg = str(range_start) if range_end == 0 else str(range_start)+" - "+str(range_end)
-                rangepg = rangepg if range_consults is None else rangepg+" ("+range_consults+")"
+                rangepg = rangepg if self.__skipconsult(range_consults, category) else rangepg+" ("+range_consults+")"
                 formatted.append({"range": rangepg, "section": self.__formatsections(pageflag, range_sections)}) 
                 range_start, range_end = 0, 0,
                 range_consults = None
@@ -115,6 +115,10 @@ class redactionsummary():
         #prepare ranges: End
         return formatted
     
+    def __skipconsult(self, range_consults, category):
+        if category in ('oipcreviewredline','responsepackage'):
+            return True
+        return False if range_consults is not None else True  
 
     def __formatsections(self, pageflag, sections):
         if pageflag in ("Duplicate", "Not Responsive to request"):
