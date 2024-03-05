@@ -78,7 +78,8 @@ class documentpageflag:
             cursor.close()
             if result is not None:
                 for entry in result:
-                    documentpageflags[entry[0]] = {"pageflag": entry[2], "attributes": entry[3]}
+                    sortedpageflags = sorted(entry[2], key=lambda x: x["page"]) 
+                    documentpageflags[entry[0]] = {"pageflag": sortedpageflags , "attributes": entry[3]}
                 return documentpageflags
             return None
 
