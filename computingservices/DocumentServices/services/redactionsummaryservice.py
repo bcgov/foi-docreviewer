@@ -21,7 +21,7 @@ class redactionsummaryservice():
             documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
             #print('documenttypename', documenttypename)
             upload_responses=[]
-            pageflags = documentpageflag().get_all_pageflags()
+            pageflags = self.__get_pageflags(category)
             programareas = documentpageflag().get_all_programareas()
             divisiondocuments = summarymsg.pkgdocuments
             for entry in divisiondocuments:
@@ -56,6 +56,13 @@ class redactionsummaryservice():
             print('error occured in redaction summary service: ', error)
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
+
+
+    def __get_pageflags(self, category):
+        if category == "responsepackage":            
+            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
+        return documentpageflag().get_all_pageflags(['Consult'])
+        
 
    
     
