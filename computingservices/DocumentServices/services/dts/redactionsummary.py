@@ -103,12 +103,12 @@ class redactionsummary():
             range_sections = currentpg["sections"] if range_start == 0 else range_sections
             range_start = currentpg["stitchedpageno"] if range_start == 0 else range_start   
             range_consults = currentpg["consults"]                      
-            if currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] and currentpg["consults"] == nextpg["consults"]:
+            if currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] and (self.__skipconsult(category) or currentpg["consults"] == nextpg["consults"]):
                 range_sections.extend(nextpg["sections"])
                 range_end = nextpg["stitchedpageno"]
             else:
                 rangepg = str(range_start) if range_end == 0 else str(range_start)+" - "+str(range_end)
-                rangepg = rangepg if self.__skipconsult(range_consults, category) else rangepg+" ("+range_consults+")"
+                rangepg = rangepg if self.__skipconsult(category,range_consults) else rangepg+" ("+range_consults+")"
                 formatted.append({"range": rangepg, "section": self.__formatsections(pageflag, range_sections)}) 
                 range_start, range_end = 0, 0,
                 range_consults = None
@@ -116,11 +116,11 @@ class redactionsummary():
         #prepare ranges: End
         return formatted
     
-    def __skipconsult(self, range_consults, category):
+    def __skipconsult(self, category, range_consults=None):
         if category in ('oipcreviewredline','responsepackage'):
             return True
         return False if range_consults is not None else True  
-
+    
     def __formatsections(self, pageflag, sections):
         if pageflag in ("Duplicate", "Not Responsive to request"):
             return pageflag
