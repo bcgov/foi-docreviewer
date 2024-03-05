@@ -30,7 +30,7 @@ class redactionsummary():
             
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
-                 
+            skippages= []     
             pagecount = 0
             for docid in ordereddocids:
                 if docid in documentids:
