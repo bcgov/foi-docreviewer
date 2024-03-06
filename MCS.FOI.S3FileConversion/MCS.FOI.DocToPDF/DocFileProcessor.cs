@@ -60,19 +60,22 @@ namespace MCS.FOI.DocToPDF
                                 }
 
                                 List<Entity> datefields = wordDocument.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldDate.ToString());
-                                foreach (var (datefield, i) in datefields.Select((datefield, i) => (datefield, i)))
+                                if (datefields != null)
                                 {
-                                    var dateField = datefield as WField;
-                                    //Takes the owner paragraph.
-                                    WParagraph ownerPara = dateField.OwnerParagraph;
-                                    int dateFieldIndex = ownerPara.ChildEntities.IndexOf(dateField);
-                                    //Removes the date field.
-                                    ownerPara.ChildEntities.Remove(dateField);
-                                    //Creating a new text range with required date.
-                                    WTextRange textRange = new WTextRange(ownerPara.Document);
-                                    textRange.Text = originalDates[i];//"February 12, 2023";
-                                                                      //Inserting the date field with the created text range.
-                                    ownerPara.ChildEntities.Insert(dateFieldIndex, textRange);
+                                    foreach (var (datefield, i) in datefields.Select((datefield, i) => (datefield, i)))
+                                    {
+                                        var dateField = datefield as WField;
+                                        //Takes the owner paragraph.
+                                        WParagraph ownerPara = dateField.OwnerParagraph;
+                                        int dateFieldIndex = ownerPara.ChildEntities.IndexOf(dateField);
+                                        //Removes the date field.
+                                        ownerPara.ChildEntities.Remove(dateField);
+                                        //Creating a new text range with required date.
+                                        WTextRange textRange = new WTextRange(ownerPara.Document);
+                                        textRange.Text = originalDates[i];//"February 12, 2023";
+                                                                          //Inserting the date field with the created text range.
+                                        ownerPara.ChildEntities.Insert(dateFieldIndex, textRange);
+                                    }
                                 }
                             }
 
