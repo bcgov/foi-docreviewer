@@ -39,11 +39,10 @@ class documentgenerationservice:
         if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
-            print("template_cached:",template_cached)
+            #print("template_cached:",template_cached)
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
             templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
-            print("templatecdogshashcode:",templatecdogshashcode)
             if templatefromdb is not None and templatefromdb["document_type_id"] is not None:
                 templatefromdb["cdogs_hash_code"] = templatecdogshashcode
                 documenttemplate().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
@@ -54,11 +53,10 @@ class documentgenerationservice:
             templatefromdb=None
             summary_cdogs_hash_code=None
             summary_document_type_id =documenttemplate().getdocumenttypebyname(documenttypename)
-            print("summary_document_type_id:",summary_document_type_id)
             if summary_document_type_id is not None:             
                 summary_cdogs_hash_code=documenttemplate().gettemplatebytype(summary_document_type_id)
                 templatefromdb = {"document_type_id": summary_document_type_id, "cdogs_hash_code":summary_cdogs_hash_code}
-                print("templatefromdb:",templatefromdb)
+                #print("templatefromdb:",templatefromdb)
             return templatefromdb
         except (Exception) as error:
             print('error occured in document generation service - gettemplate method: ', error)
