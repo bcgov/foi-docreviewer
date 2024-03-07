@@ -281,6 +281,7 @@ const Redlining = React.forwardRef(
     );
 
     const [filteredComments, setFilteredComments] = useState({});
+    const [pagesRemoved, setPagesRemoved] = useState([]);
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
@@ -318,6 +319,7 @@ const Redlining = React.forwardRef(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
           const UIEvents = instance.UI.Events;
+   
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -584,6 +586,12 @@ const Redlining = React.forwardRef(
           });
           setFilteredComments(e.detail);
           });
+          //Triggered when the layout has changed because pages have permanently been added, removed, moved or changed in some other way.
+          documentViewer.addEventListener("pagesUpdated", change => {
+            if (change.removed.length > 0) {
+              setPagesRemoved(change.removed)
+            }
+          })
           
           documentViewer.addEventListener("click", async () => {
             scrollLeftPanel(documentViewer.getCurrentPage());
@@ -682,6 +690,25 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    useEffect(() => {
+      if (pagesRemoved && pageMappedDocs) {
+        const results = [];   
+        for (const [docId, obj] of Object.entries(pageMappedDocs.docIdLookup)) {
+          const { pageMappings } = obj;                  
+          for (const mapping of pageMappings) {
+            if (pagesRemoved.includes(mapping.stitchedPageNo)) {
+                results.push({
+                  docId: parseInt(docId),
+                  pageNo: mapping.pageNo,
+                  stitchedPageNo: mapping.stitchedPageNo
+              });
+            }
+          }
+        }
+        console.log(results);
+      }
+    },[pagesRemoved, pageMappedDocs])
 
     const mergeObjectsPreparation = async (
       createDocument,
