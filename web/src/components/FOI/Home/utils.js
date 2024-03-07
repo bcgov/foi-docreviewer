@@ -52,15 +52,44 @@ export const docSorting = (a, b) => {
       Date.parse(b.attributes.attachmentlastmodified || "0");
   }
   if (sort === 0) {
-    if (a.filename < b.filename) {
-      return -1;
-    }
-    if (a.filename > b.filename) {
-      return 1;
-    }
-    return 0;
+    return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
   }
   return sort;
+};
+
+// sort by parent-attachment, then last modified date
+export const sortDocList = (fullDocList, currentDoc, sortedDocList) => {
+  let parentid = null;
+  if(currentDoc) {
+    sortedDocList.push(currentDoc);
+    if(currentDoc.file)
+      parentid = currentDoc.file.documentmasterid;
+    else
+      parentid = currentDoc.documentmasterid;
+  }
+
+  //get all children of currentDoc
+  let childDocList = fullDocList.filter((_doc) => {
+    if(_doc.file)
+      return _doc.file.parentid === parentid;
+    else
+      return _doc.parentid === parentid;
+  });
+
+  if(childDocList.length === 0) {
+    return;
+  } else {
+    let sortedChildDocList = [];
+    if(childDocList.length == 1) {
+      sortedChildDocList = childDocList;
+    } else {
+      sortedChildDocList = childDocList.sort(docSorting);
+    }
+
+    sortedChildDocList.forEach((_doc, _index) => {
+      sortDocList(fullDocList, _doc, sortedDocList);
+    });
+  }
 };
 
 export const getProgramAreas = (pageFlagList) => {
@@ -71,10 +100,10 @@ export const getProgramAreas = (pageFlagList) => {
 
 // Helper function to sort files by lastmodified date
 export const sortByLastModified = (files) => {
-  if(files.length> 1) {
-    return files.sort(docSorting)
-  } 
-  return files };
+  let sortedList = [];
+  sortDocList(files, null, sortedList);
+  return sortedList
+};
 
 export const getValidSections = (sections, redactionSectionsIds) => {
   return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);
@@ -118,7 +147,7 @@ export const updatePageFlags = (
 ) => {
   //page flag updates
   if (
-    (defaultSections.length > 0 && defaultSections[0] === 25) ||
+    //(defaultSections.length > 0 && defaultSections[0] === 25) ||
     (selectedSections && selectedSections[0] === 25)
   ) {
     pageSelectionList.push({
@@ -189,7 +218,7 @@ export const sortDocObjects = (_pdftronDocObjs, doclist) => {
     _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
     _dlCtr++, _soCtr++
   ) {
-    console.log("I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    //console.log("I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
     if (
       __refinedpdftronDocObjs[_soCtr] != null &&
       __refinedpdftronDocObjs[_soCtr] != undefined
@@ -218,7 +247,7 @@ export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
     _soCtr < __refinedpdftronDocObjs?.length, _dlCtr < doclist?.length;
     _dlCtr++, _soCtr++
   ) {
-    console.log("REDLINE I LOGGED"); //#IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
+    //console.log("REDLINE I LOGGED"); #IMPORTANT --  TOTAL TIMES THIS CONSOLE MESSAGE LOGGED SHOUDL BE EQUAL TO TOTAL DOCLIST LENTH !IMportant, else slow!!!
     if (
       __refinedpdftronDocObjs[_soCtr] != null &&
       __refinedpdftronDocObjs[_soCtr] != undefined

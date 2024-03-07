@@ -8,15 +8,15 @@ from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
 
 
-class documentpageflagservice:
-    def getpageflags(self, requestid, redactionlayerid, documentids):
-        layerids = redactionlayerservice().getmappedredactionlayers(
-            {"redactionlayerid": redactionlayerid}
-        )
+class documentpageflagservice:    
+    def getpageflags(self, requestid, redactionlayer, documentids):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
         return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
-
-    def getpublicbody(self, requestid):
-        return DocumentPageflag.getpublicbody_by_request(requestid)
+    
+    def getpublicbody(self, requestid, redactionlayer):
+        redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
+        return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
     def getdocumentpageflags(
         self, requestid, redactionlayerid, documentid=None, version=None
@@ -201,6 +201,7 @@ class documentpageflagservice:
                     pageflag["pageflag"],
                     json.dumps(userinfo),
                     redactionlayerid,
+                    json.dumps(pageflag["attributes"]),
                 )
 
     def __getupdatedpageflag(self, pageflag, pages_to_remove):
@@ -214,20 +215,42 @@ class documentpageflagservice:
         ]
 
     def __createnewpageflag(self, pageflag, data):
-        formattted_data = self.__formatpageflag(data)
-        if pageflag is not None and len(pageflag) > 0:
-            isnew = True
-            for entry in pageflag:
-                if entry["page"] == data["page"]:
-                    isnew = False
-                    pageflag.remove(entry)
-                    pageflag.append(formattted_data)
-            if isnew == True:
-                pageflag.append(formattted_data)
-        else:
+        formatted_data = self.__formatpageflag(data)        
+        if not pageflag:
             pageflag = []
-            pageflag.append(formattted_data)
+        isnew = True
+        updated = False
+        for index, entry in enumerate(pageflag):
+            if entry["page"] == data["page"]:
+                isnew = False
+                if data["flagid"] == 4:
+                    pageflag, updated = self.__handleconsultflag(data, entry, index, pageflag, formatted_data, updated)
+                # handle all other flags except consult
+                elif data["flagid"] != 4 and entry["flagid"] != 4:
+                    del pageflag[index]
+                    pageflag.append(formatted_data)
+                    updated = True
+                    break
+
+        if isnew or not updated:
+            pageflag.append(formatted_data)
+
         return pageflag
+    
+    def __handleconsultflag(self, data, entry, index, pageflag, formatted_data, updated):
+        # remove consult flag
+        if data["flagid"] == 4 and not data["other"] and not data["programareaid"]:
+            if entry["flagid"] == data["flagid"]:
+                del pageflag[index]
+                updated = True
+                return pageflag, updated
+        # update consult flag
+        elif data["flagid"] == 4 and entry["flagid"] == data["flagid"]:
+            del pageflag[index]
+            pageflag.append(formatted_data)
+            updated = True
+            return pageflag, updated
+        return pageflag, updated
 
     def __formatpageflag(self, data):
         _normalised = data

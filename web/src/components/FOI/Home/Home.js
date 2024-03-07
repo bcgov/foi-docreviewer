@@ -11,7 +11,7 @@ import {
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { docSorting } from "./utils";
+import { sortDocList } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -24,6 +24,7 @@ import IconButton from "@mui/material/IconButton";
 
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
+  const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
@@ -52,15 +53,34 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
+
+        const getFileExt = (filepath) => {
+          const parts = filepath.split(".")
+          const fileExt = parts.pop()
+          return fileExt
+        }
         // New code added to get the incompatable files for download redline
         // data has all the files including incompatable ones
         // _files has all files except incompatable ones
         const _incompatableFiles = data.filter(
-          (d) => d.attributes.incompatible
+          (d) => {
+            const isPdfFile = getFileExt(d.filepath) === "pdf"
+            if (isPdfFile) {
+              return false
+            } else {
+              return d.attributes.incompatible
+            }
+          }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.filter((d) => !d.attributes.incompatible);
-        setFiles(_files);
+        const _files = data.filter((d) => {
+          const isPdfFile = getFileExt(d.filepath) === "pdf"
+          const isCompatible = !d.attributes.incompatible || isPdfFile
+          return isCompatible
+        });
+        let sortedFiles = []
+        sortDocList(_files, null, sortedFiles);
+        setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
           let urlPromises = [];
@@ -74,7 +94,7 @@ function Home() {
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              doclist = newDocumentObjs?.sort(docSorting);
+              sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
               prepareMapperObj(doclist);
@@ -99,17 +119,20 @@ function Home() {
         console.log(error);
       }
     );
+  }, []);
+
+  useEffect(() => {
     fetchRedactionLayerMasterData(
       foiministryrequestid,
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = oipc.count > 0 ? oipc : redline;
+        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline; 
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
-  }, []);
+  }, [validoipcreviewlayer])
 
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };

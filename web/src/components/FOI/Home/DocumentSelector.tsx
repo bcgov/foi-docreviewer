@@ -104,10 +104,11 @@ const DocumentSelector = React.forwardRef(({
     useEffect(() => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
-    }, []);
+    }, [currentLayer]);
 
     useEffect(() => {
         if(requestInfo.requesttype == "personal" && ["MSD", "MCF"].includes(requestInfo.bcgovcode)) {
@@ -118,13 +119,14 @@ const DocumentSelector = React.forwardRef(({
     const updatePageFlags = () => {
         fetchPageFlagsMasterData(
             requestid,
+            currentLayer.name.toLowerCase(),
             (data: any) => setPageData(data),
             (error: any) => console.log(error)
         );
         fetchPageFlag(
             requestid,
-            currentLayer.redactionlayerid,
-            documents.map((d: any) => d.documentid),
+            currentLayer.name.toLowerCase(),
+            documents.map((d: any) => d.documentid),            
             (error: any) => console.log(error)
         )
     }
@@ -262,8 +264,15 @@ const DocumentSelector = React.forwardRef(({
     //Revisit this method & assign icons when fetching itself!!
     const assignPageIcon = (docId: number, page: number) => {
         let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObj = docs?.pageflag?.find((flag: any) => flag.page === page);
-        return assignIcon(pageFlagObj?.flagid);
+        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
+        let assignIconValue: any = [];
+        for (const pageFlag of pageFlagObjs) {
+            if (pageFlag.flagid !== undefined) {              
+                assignIconValue.push({icon: assignIcon(pageFlag.flagid), flagid: pageFlag.flagid});
+            }
+          }
+        return assignIconValue;
+        
     }
 
     let arr: any[] = [];
@@ -336,6 +345,9 @@ const DocumentSelector = React.forwardRef(({
     const openContextMenu = (file: any, page: number, e: any) => {
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
+        if (nodeId === "") {
+            nodeId = e.currentTarget.id;
+        }
         nodeId = nodeId.substring(nodeId.indexOf('{'));
         let selectedNodes: any;
         if (!selected.includes(nodeId)) {
@@ -452,21 +464,23 @@ const DocumentSelector = React.forwardRef(({
 
     const getFlagName = (file: any, pageNo: number) => {
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
-        if (flag.flagid === 4 && file.consult?.length > 0) {
-            let ministries = flag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
-            ministries.push(...flag.other);
+        let consultFlag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
+        if (consultFlag && file.consult?.length > 0) {
+            let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
+            ministries.push(...consultFlag.other);
             return `Consult - [` + ministries.join(`]\nConsult - [`) + ']';
         }
         return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
     }
 
-    const codeById: Record<number, string> = {}
-    if (consultMinistries && consultMinistries?.length > 0) {
-        const codeById: Record<number, string> = consultMinistries?.reduce((acc: any, item: any) => {
-            acc[item.programareaid] = item.iaocode;
-            return acc;
-        }, {});
+   const codeById: Record<number, String> = {};
+   if (consultMinistries && consultMinistries?.length > 0) {
+        consultMinistries?.map((item: any) => {
+            codeById[item.programareaid] = item.iaocode;
+        });
     }
+    
+
 
     const openConsulteeList = (e: any) => {
         const consultFlagged = files.filter((file: any) => file.pageFlag?.find((obj: any) => (obj.flagid == 4)));
@@ -486,8 +500,7 @@ const DocumentSelector = React.forwardRef(({
 
 
     const showConsultee = (assignedConsulteeList: any[]) => assignedConsulteeList?.map((consultee: any, index: number) => {
-        return (
-            <>
+        return (            
                 <div key={consultee.id} className="consulteeItem">
                     <span style={{ marginRight: '10px' }}>
                         <input
@@ -500,8 +513,7 @@ const DocumentSelector = React.forwardRef(({
                     <label htmlFor={`checkbox-${index}`}>
                         {consultee.code}
                     </label>
-                </div>
-            </>
+                </div>            
         )
     })
 
@@ -523,6 +535,17 @@ const DocumentSelector = React.forwardRef(({
         setOpenConsulteeModal(false)
     };
     
+    const addIcons = (file: any, p: any) => {
+        return assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
+                <FontAwesomeIcon
+                key={icon.flagid}
+                className='leftPanelIcons'
+                icon={icon.icon as IconProp}
+                size='1x'
+                title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+                />
+        ))
+    }
 
     const consulteeFilterView = (file: any, p: number, division?: any) => {
         return (
@@ -532,8 +555,8 @@ const DocumentSelector = React.forwardRef(({
                     (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
                     (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
                 &&
-                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-                    <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                    
+                    <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
                         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                 </div>
@@ -546,8 +569,8 @@ const DocumentSelector = React.forwardRef(({
     const noFilterView = (file: any, p: number, division?: any) => {
         return (
             (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-            <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-                <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+            <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                
+                <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
             </div>
@@ -568,7 +591,7 @@ const DocumentSelector = React.forwardRef(({
         return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
         (
         <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon={<FontAwesomeIcon className='leftPanelIcons' icon={assignPageIcon(file.documentid, p + 1) as IconProp} size='1x' />}
+            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
         </div>
@@ -583,8 +606,9 @@ const DocumentSelector = React.forwardRef(({
         )
     }
 
-    const sortByModifiedDateView = filesForDisplay.sort(docSorting).map((file: any, index: number) => { 
+    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
         return (
+            organizeBy === "lastmodified" ? (
             <Tooltip
                 sx={{
                     backgroundColor: 'white',
@@ -602,14 +626,19 @@ const DocumentSelector = React.forwardRef(({
                 disableHoverListener={disableHover}
             >
                 <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                    {[...Array(file.pagecount)].map((_x, p) =>
-                    (filterFlags.length > 0 ?
-                        consulteeFilterView(file,p)
-                        :
-                        noFilterView(file,p)                                               
-                    )
-                    )}
-                    {pageFlagList && pageFlagList?.length > 0 &&
+                    {
+                        expanded?.length > 0 ?
+                        (
+                                [...Array(file.pagecount)].map((_x, p) =>
+                                (filterFlags.length > 0 ?
+                                    consulteeFilterView(file,p)
+                                    :
+                                    noFilterView(file,p)                                               
+                                )
+                                )
+                        ) : (<></>)
+                    }
+                    {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
                         <ContextMenu
                             openFOIPPAModal={openFOIPPAModal}
                             requestId={requestid}
@@ -625,12 +654,13 @@ const DocumentSelector = React.forwardRef(({
                         />
                     }
                 </TreeItem>
-            </Tooltip>
+            </Tooltip>) : <></>
         )
     })
 
     const sortByDivisionFilterView = divisions.map((division: any, index) => {
         return(
+            organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
                 {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
                     <Tooltip
@@ -676,24 +706,35 @@ const DocumentSelector = React.forwardRef(({
                         </TreeItem>
                     </Tooltip>
                 )}
-            </TreeItem>
+            </TreeItem>) : (<></>)
         )
     })
-
+    
     const displayFiles = () => {
+       
         return (
-            (filesForDisplay.length > 0 &&
-                (organizeBy === "division" ?
-                    sortByDivisionFilterView :
-                    sortByModifiedDateView
+                filesForDisplay?.length > 0 ?
+                (
+                organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
                 )
-            )
-        )
+                :
+                    <></>                
+            )         
     }
 
     const handleExpandClick = () => {
-        setExpanded((oldExpanded:any) =>
-            oldExpanded.length === 0 ? (organizeBy == "lastmodified" ? expandall : expandallorganizebydivision) : [],
+        setExpanded((oldExpanded:any) => {
+                let result: any = [];
+                if (oldExpanded.length === 0 ) {
+                    if (organizeBy == "lastmodified" ) {
+                        result = expandall;
+                    }
+                    else {
+                        result = expandallorganizebydivision;
+                    }
+                }
+                return result;
+            }            
         );
     };
 
@@ -702,7 +743,6 @@ const DocumentSelector = React.forwardRef(({
     };
 
     return (
-        <>
             <div className='leftPanel'>
                 <Stack sx={{ maxHeight: "calc(100vh - 117px)" }}>
                     <Paper
@@ -760,7 +800,7 @@ const DocumentSelector = React.forwardRef(({
                             Redaction Layer:
                         </div>
                         <div className='col-lg-7' style={{paddingLeft: '0px', display: "flex", justifyContent: "flex-end"}}>
-                            <LayerDropdown ministryrequestid={requestid}/>
+                            <LayerDropdown ministryrequestid={requestid} validoipcreviewlayer={requestInfo.validoipcreviewlayer}/>
                         </div>
                     </div>
                     <hr className='hrStyle' />
@@ -813,12 +853,12 @@ const DocumentSelector = React.forwardRef(({
                                 </>
                             )}
 
-                            < >
+                            
                             <FontAwesomeIcon key='0' title='No Flag'
                                             className='filterIcons'
                                             onClick={(event) => applyFilter(0, null, event, [])} id='0'
                                             icon={faCircleExclamation as IconProp} size='1x' />
-                            </>
+                          
                         </span>
 
                         <Popover
@@ -904,7 +944,6 @@ const DocumentSelector = React.forwardRef(({
                 </Stack>
 
             </div>
-        </>
     )
 }
 )

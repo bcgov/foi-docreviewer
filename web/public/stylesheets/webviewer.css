@@ -9,6 +9,11 @@
     cursor: not-allowed !important;
 }
 
+.redline_for_oipc:disabled {
+    color: #999999 !important;
+    cursor: not-allowed !important;
+}
+
 .final_package:disabled {
     color: #999999 !important;
     cursor: not-allowed !important;
@@ -42,3 +47,9 @@
 .freetext-editor{
     visibility: hidden;
 }
+
+/* disable white color from Fill and Stroke of color pallete */
+.cell-container[aria-label="Color 22"] {
+    pointer-events: none;
+    opacity: 0.5; 
+  }
