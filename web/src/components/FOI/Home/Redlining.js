@@ -1463,7 +1463,7 @@ const Redlining = React.forwardRef(
     }, [user]);
 
     useEffect(() => {
-      docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
+      docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
 
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
