@@ -265,20 +265,9 @@ const Redlining = React.forwardRef(
         return isvalid;
     };
 
-    const [enableSavingRedline, setEnableSavingRedline] = useState(      
-      isReadyForSignOff() && isValidRedlineDownload() &&
-        [
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"],
-          RequestStates["Peer Review"],
-        ].includes(requestStatus)
-    );
-    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(
-      validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc"
-    )
-    const [enableSavingFinal, setEnableSavingFinal] = useState(
-      isReadyForSignOff() && requestStatus == RequestStates["Response"]
-    );
+    const [enableSavingRedline, setEnableSavingRedline] = useState(false);
+    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
+    const [enableSavingFinal, setEnableSavingFinal] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
 
