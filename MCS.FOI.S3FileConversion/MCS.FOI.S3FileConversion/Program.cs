@@ -118,14 +118,6 @@ namespace MCS.FOI.S3FileConversion
                                         {
                                             for (int i = 0; i < attachments.Count; i++)
                                             {
-                                                Dictionary<string, object> attributesDictionary = JsonSerializer.Deserialize<Dictionary<string, object>>(attachments[i]["attributes"]);
-                                                string _incompatible;
-                                                if (attributesDictionary.ContainsKey("incompatible"))
-                                                {
-                                                    _incompatible = attributesDictionary["incompatible"].ToString().ToLower();
-                                                } else {
-                                                    _incompatible = "false";
-                                                }
                                                 if (Array.IndexOf(ConversionSettings.ConversionFormats, attachments[i]["extension"].ToLower()) == -1)
                                                 {
                                                     db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
@@ -139,7 +131,6 @@ namespace MCS.FOI.S3FileConversion
                                                         new("batch", message["batch"]),
                                                         new("jobid", jobIDs[attachments[i]["filepath"]]["jobID"]),
                                                         new("documentmasterid", jobIDs[attachments[i]["filepath"]]["masterID"]),
-                                                        new("incompatible", _incompatible),
                                                         new("trigger", "attachment"),
                                                         new("createdby", message["createdby"]),
                                                         new("usertoken", message["usertoken"])

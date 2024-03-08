@@ -18,18 +18,9 @@ export const fetchDocuments = (
   
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
-      const getFileExt = (filepath: any) => {
-        const parts = filepath.split(".")
-        const fileExt = parts.pop()
-        return fileExt
-      }
       if (res.data) {
         // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
-        const __files = res.data.documents.filter((d: any) => {
-          const isPdfFile = getFileExt(d.filepath) === "pdf"
-          const isCompatible = !d.attributes.incompatible || isPdfFile
-          return isCompatible
-        });
+        const __files = res.data.documents.filter((d: any) => !d.attributes.incompatible);
         store.dispatch(setDocumentList(__files) as any);
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
@@ -71,7 +62,7 @@ export const fetchAnnotationsByPagination = (
 
 export const fetchDocumentAnnotations = (
   ministryrequestid: number,
-  redactionlayer: string,
+  redactionlayer: string = "redline",
   documentid: number,
   callback: any,
   errorCallback: any
@@ -92,11 +83,10 @@ export const fetchDocumentAnnotations = (
 };
 export const fetchAnnotationsInfo = (
   ministryrequestid: number,
-  redactionlayer: string,
   //callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/info`
+  let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/info`
 
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
@@ -182,32 +172,6 @@ httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '
     });
 };
 
-export const createOipcLayer= (
-  requestid: string,
-  callback?: any,
-  errorCallback?: any,
-) => {
-  const oipcLayerId = 3;
-  let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}/${requestid}/copy/${oipcLayerId}`;
-  let requestJSON = {};
-  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
-    .then((res:any) => {
-      if (res.data) {
-        store.dispatch(incrementLayerCount(oipcLayerId) as any);
-        if (callback) callback(res.data);
-      } else {
-        throw new Error(`Error while copying annotations to OIPC layer`);
-      }
-    })
-    .catch((error:any) => {
-      if (errorCallback) {
-        errorCallback("Error while copying annotations to OIPC layer");
-      } else {
-        throw new Error(`Error while copying annotations to OIPC layer`);
-      }
-    });
-}
-
 export const deleteRedaction = (
   requestid: string,
   redactionlayerid: number,
@@ -232,13 +196,12 @@ export const deleteRedaction = (
 
 export const fetchSections = (
   foiministryrquestid: number,
-  currentlayername: string,
   callback: any,
   errorCallback: any
 ) => {
   let apiUrl: string  = replaceUrl(API.DOCREVIEWER_SECTIONS, '<ministryrequestid>', foiministryrquestid);
-  
-  httpGETRequest(apiUrl+"/"+currentlayername, {}, UserService.getToken())
+
+  httpGETRequest(apiUrl, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data || res.data === "") {
         store.dispatch(setSections(res.data) as any);
@@ -253,12 +216,11 @@ export const fetchSections = (
 
 export const fetchPageFlagsMasterData = (
   foiministryrquestid:string,
-  redactionlayer:string,
   callback: any,
   errorCallback: any
 ) => {
   let apiUrlGet: string = replaceUrl(
-    API.DOCREVIEWER_GET_ALL_PAGEFLAGS+ "/"+redactionlayer,
+    API.DOCREVIEWER_GET_ALL_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
   );
@@ -303,8 +265,8 @@ export const savePageFlag = (
 
 export const fetchPageFlag = (
   foiministryrquestid: string,
-  redactionlayer: string,
-  documentids: Array<any>,  
+  redactionlayerid: number,
+  documentids: Array<any>,
   //callback: any,
   errorCallback: any
 ) => {
@@ -312,7 +274,7 @@ export const fetchPageFlag = (
     API.DOCREVIEWER_GET_PAGEFLAGS,
     "<requestid>",
     foiministryrquestid
-  ) + "/" +  redactionlayer;
+  ) + "/" +  redactionlayerid;
   
   httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
     .then((res:any) => {
