@@ -60,5 +60,20 @@ spec:
                   oc rollout latest reviewer-pdfstitch-largefiles
                   sleep 30s
                   oc patch dc/reviewer-pdfstitch-largefiles -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-zippingservice -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
+                  oc rollout latest reviewer-zippingservice
+                  sleep 30s
+                  oc patch dc/reviewer-zippingservice -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
+
+                  oc patch dc/reviewer-documentservice-test -p "{\"spec\":{\"replicas\": 0}}"
+                  sleep 30s
+                  oc rollout latest reviewer-documentservice-test
+                  sleep 30s
+                  oc patch dc/reviewer-documentservice-test -p "{\"spec\":{\"replicas\": 1}}"
+                  sleep 30s
 
           restartPolicy: OnFailure
