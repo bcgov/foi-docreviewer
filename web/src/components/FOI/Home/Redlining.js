@@ -838,6 +838,18 @@ const Redlining = React.forwardRef(
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
 
+
+        /**Fix for lengthy section cutoff issue with response pkg 
+         * download - changed overlaytext to freetext annotations after 
+         * redaction applied*/
+        if (info['source'] === 'redactionApplied') {
+          annotations.forEach((annotation) => {
+            if(annotation.Subject == "Free Text"){
+              docInstance?.Core?.annotationManager.addAnnotation(annotation);
+            }
+          });
+        }
+
         //oipc changes - begin
         if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
           return;
@@ -3384,86 +3396,63 @@ const Redlining = React.forwardRef(
           const toastID = toast.loading("Start generating final package...");
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
-
-          // go through annotations and get all section stamps
-          annotationManager.exportAnnotations().then(async (xfdfString) => {
-            //parse annotation xml
-            let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
-            let annots = jObj.getElementsByTagName("annots");
-
-            let sectionStamps = {};
-            let stampJson = {};
-            for (const annot of annots[0].children) {
-              // get section stamps from xml
-              if (annot.name == "freetext") {
-                let customData = annot.children.find(
-                  (element) => element.name == "trn-custom-data"
+          let annotList = annotationManager.getAnnotationsList();
+          annotManager.ungroupAnnotations(annotList);
+          /** remove duplicate and not responsive pages */
+          let pagesToRemove = [];
+          for (const infoForEachDoc of pageFlags) {
+            for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+              /** pageflag duplicate or not responsive */
+              if (
+                pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
+                pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
+              ) {
+                pagesToRemove.push(
+                  getStitchedPageNoFromOriginal(
+                    infoForEachDoc.documentid,
+                    pageFlagsForEachDoc.page,
+                    pageMappedDocs
+                  )
                 );
-                if (
-                  customData?.attributes?.bytes?.includes("parentRedaction")
-                ) {
-                  //parse section info to json
-                  stampJson = JSON.parse(
-                    customData.attributes.bytes
-                      .replace(/&quot;\[/g, "[")
-                      .replace(/\]&quot;/g, "]")
-                      .replace(/&quot;/g, '"')
-                      .replace(/\\/g, "")
-                  );
-                  sectionStamps[stampJson["parentRedaction"]] =
-                    stampJson["trn-wrapped-text-lines"][0];
-                }
               }
             }
+          }
 
-            // add section stamps to redactions as overlay text
-            let annotList = annotationManager.getAnnotationsList();
-            toast.update(toastID, {
-              render: "Saving section stamps...",
-              isLoading: true,
-            });
-            for (const annot of annotList) {
-              if (sectionStamps[annot.Id]) {
-                annotationManager.setAnnotationStyles(annot, {
-                  OverlayText: sectionStamps[annot.Id],
-                  FontSize: Math.min(parseInt(annot.FontSize), 9) + "pt",
-                });
-              }
+          let doc = documentViewer.getDocument();
+          await annotationManager.applyRedactions();
+          /** pageflag duplicate or not responsive */
+          await doc.removePages(pagesToRemove);
+
+          const { PDFNet } = _instance.Core;
+          PDFNet.initialize();
+          await stampPageNumberResponse(documentViewer, PDFNet);
+
+          /**Fixing section cutoff issue in response pkg-
+           * Get all annotations after redactions applied & 
+           * delete annotations that are not freetext.
+           * (freetext annotations are added once redactions  
+           * are applied in the annotationChangedHandler )
+           */
+          let annotsAfterRedaction = await annotationManager.getAnnotationsList();
+          /**Adding & deleting annotations other than freetext- starts*/
+          let annotsToDelete= [];
+          annotsAfterRedaction.forEach((annotation) => {
+            if(annotation.Subject !== 'Free Text'){
+              annotsToDelete.push(annotation);
             }
-            annotManager.ungroupAnnotations(annotList);
-
-            // remove duplicate and not responsive pages
-            let pagesToRemove = [];
-            for (const infoForEachDoc of pageFlags) {
-              for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-                // pageflag duplicate or not responsive
-                if (
-                  pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
-                  pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
-                ) {
-                  pagesToRemove.push(
-                    getStitchedPageNoFromOriginal(
-                      infoForEachDoc.documentid,
-                      pageFlagsForEachDoc.page,
-                      pageMappedDocs
-                    )
-                  );
-                }
-              }
-            }
-
-            let doc = documentViewer.getDocument();
-            await annotationManager.applyRedactions(); // must apply redactions before removing pages
-            await doc.removePages(pagesToRemove);
-
-            const { PDFNet } = _instance.Core;
-            PDFNet.initialize();
-            await stampPageNumberResponse(documentViewer, PDFNet);
-
-            //apply redaction and save to s3
+          });
+          await annotationManager.deleteAnnotation(annotsToDelete,{
+            force: true,
+          });
+          /**Adding & deleting annotations other than freetext- ends*/
+          await annotationManager.exportAnnotations().then(async (xfdfString) => {
+          /** apply redaction and save to s3 - xfdfString is needed to display 
+           * the freetext(section name) when
+           * file gets downloaded.*/
             doc
               .getFileData({
                 // saves the document with annotations in it
+                xfdfString:xfdfString,
                 downloadType: downloadType,
                 flatten: true
               })
@@ -3471,53 +3460,53 @@ const Redlining = React.forwardRef(
                 const _arr = new Uint8Array(_data);
                 const _blob = new Blob([_arr], { type: "application/pdf" });
 
-                toast.update(toastID, {
-                  render: "Saving final package to Object Storage...",
-                  isLoading: true,
-                });
-                saveFilesinS3(
-                  { filepath: res.s3path_save },
-                  _blob,
-                  (_res) => {
-                    toast.update(toastID, {
-                      render:
-                        "Final package is saved to Object Storage. Page will reload in 3 seconds..",
-                      type: "success",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                    prepareMessageForResponseZipping(
-                      res.s3path_save,
-                      zipServiceMessage
-                    );
-                    setTimeout(() => {
-                      window.location.reload(true);
-                    }, 3000);
-                  },
-                  (_err) => {
-                    console.log(_err);
-                    toast.update(toastID, {
-                      render: "Failed to save final package to Object Storage",
-                      type: "error",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                  }
-                );
+              toast.update(toastID, {
+                render: "Saving final package to Object Storage...",
+                isLoading: true,
               });
-          });
+              saveFilesinS3(
+                { filepath: res.s3path_save },
+                _blob,
+                (_res) => {
+                  toast.update(toastID, {
+                    render:
+                      "Final package is saved to Object Storage. Page will reload in 3 seconds..",
+                    type: "success",
+                    className: "file-upload-toast",
+                    isLoading: false,
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    closeButton: true,
+                  });
+                  prepareMessageForResponseZipping(
+                    res.s3path_save,
+                    zipServiceMessage
+                  );
+                  setTimeout(() => {
+                    window.location.reload(true);
+                  }, 3000);
+                },
+                (_err) => {
+                  console.log(_err);
+                  toast.update(toastID, {
+                    render: "Failed to save final package to Object Storage",
+                    type: "error",
+                    className: "file-upload-toast",
+                    isLoading: false,
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    closeButton: true,
+                  });
+                }
+              );
+            });
+          })
         },
         (error) => {
           console.log("Error fetching document:", error);
