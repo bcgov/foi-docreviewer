@@ -692,22 +692,23 @@ const Redlining = React.forwardRef(
     }, []);
 
     useEffect(() => {
-      if (pagesRemoved && pageMappedDocs) {
-        const results = [];   
+      if (pagesRemoved.length > 0 && pageMappedDocs?.docIdLookup) {
+        const results = {};     
         for (const [docId, obj] of Object.entries(pageMappedDocs.docIdLookup)) {
-          const { pageMappings } = obj;                  
-          for (const mapping of pageMappings) {
-            if (pagesRemoved.includes(mapping.stitchedPageNo)) {
-                results.push({
-                  docId: parseInt(docId),
-                  pageNo: mapping.pageNo,
-                  stitchedPageNo: mapping.stitchedPageNo
-              });
+            const { pageMappings } = obj;
+            for (const mapping of pageMappings) {
+                if (pagesRemoved.includes(mapping.stitchedPageNo)) {
+                    if (!results[docId]) {
+                        results[docId] = { docId: parseInt(docId), pages: [] };
+                    }
+                    results[docId].pages.push(mapping.pageNo);
+                }
             }
-          }
         }
-        console.log(results);
-      }
+        const finalResults = { documentpages: Object.values(results) };
+        console.log(finalResults);
+    }
+    
     },[pagesRemoved, pageMappedDocs])
 
     const mergeObjectsPreparation = async (
