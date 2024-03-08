@@ -960,6 +960,18 @@ const Redlining = React.forwardRef(
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
 
+
+        /**Fix for lengthy section cutoff issue with response pkg 
+         * download - changed overlaytext to freetext annotations after 
+         * redaction applied*/
+        if (info['source'] === 'redactionApplied') {
+          annotations.forEach((annotation) => {
+            if(annotation.Subject == "Free Text"){
+              docInstance?.Core?.annotationManager.addAnnotation(annotation);
+            }
+          });
+        }
+
         //oipc changes - begin
         if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
           return;
@@ -3785,6 +3797,7 @@ const Redlining = React.forwardRef(
           let pagesToRemove = [];
           for (const infoForEachDoc of pageFlags) {
             for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+              /** pageflag duplicate or not responsive */
               if (
                 pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
                 pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
