@@ -89,7 +89,6 @@ const RequestStates:RequestStatesType = {
   "Call For Records Overdue": "callforrecordsoverdue"
 };
 
-
 export {
   KCProcessingTeams,
   MINISTRYGROUPS,

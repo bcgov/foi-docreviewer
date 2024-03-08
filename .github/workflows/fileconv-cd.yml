@@ -8,8 +8,6 @@ on:
       - main
       - dev-marshal
       - test-marshal
-      - dev-rook
-      - test-rook
     paths:
       - "MCS.FOI.S3FileConversion/**"
       - ".github/workflows/fileconv-cd.yml"
@@ -62,22 +60,6 @@ jobs:
           echo "For ${{ github.ref_name }} branch"
           echo "TAG_NAME=test-marshal" >> $GITHUB_ENV
           echo "BRANCH_NAME=test-marshal" >> $GITHUB_ENV
-          echo "ENV_NAME=test" >> $GITHUB_ENV
-
-      - name: Set ENV variables for dev-rook branch
-        if: ${{ github.ref_name == 'dev-rook' }}
-        run: |
-          echo "For ${{ github.ref_name }} branch"
-          echo "TAG_NAME=dev-rook" >> $GITHUB_ENV
-          echo "BRANCH_NAME=dev-rook" >> $GITHUB_ENV
-          echo "ENV_NAME=dev" >> $GITHUB_ENV
-
-      - name: Set ENV variables for test-rook branch
-        if: ${{ github.ref_name == 'test-rook' }}
-        run: |
-          echo "For ${{ github.ref_name }} branch"
-          echo "TAG_NAME=test-rook" >> $GITHUB_ENV
-          echo "BRANCH_NAME=test-rook" >> $GITHUB_ENV
           echo "ENV_NAME=test" >> $GITHUB_ENV
 
       - name: Login Openshift

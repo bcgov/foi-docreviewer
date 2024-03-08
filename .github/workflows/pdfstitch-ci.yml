@@ -8,8 +8,6 @@ on:
       - dev
       - dev-marshal
       - test-marshal
-      - dev-rook
-      - test-rook
     paths:
       - "computingservices/PDFStitchServices/**"
 

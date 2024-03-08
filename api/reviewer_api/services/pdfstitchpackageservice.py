@@ -14,7 +14,3 @@ class pdfstitchpackageservice:
             jobid = job.get("pdfstitchjobid")
             return PDFStitchJob.getrecordschanged(requestid, category, jobid)
         return {"recordchanged": False}
-    
-    def isresponsepackagecreated(self, requestid, generatedat):
-        """Returns the active records"""
-        return PDFStitchPackage.isresponsepackagecreated(requestid, generatedat)

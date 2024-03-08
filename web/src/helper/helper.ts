@@ -97,7 +97,7 @@ const getSessionData = (key: any) => {
       return sessionObject.sessionData;
     } else {
       sessionStorage.removeItem(key);
-      //console.log(`${key} session expired`);
+      console.log(`${key} session expired`);
       return null;
     }
   } else {

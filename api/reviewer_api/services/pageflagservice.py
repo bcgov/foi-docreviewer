@@ -22,14 +22,14 @@ class pageflagservice:
         return pageflags
 
 
-    def getpageflag_by_request(self, requestid, redactionlayer):
+    def getpageflag_by_request(self, requestid):
         pageflags = Pageflag.getall()
         programareas = requests.request(
                 method='GET',
                 url=requestapiurl + "/api/foiflow/programareas",
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
-        data = documentpageflagservice().getpublicbody(requestid, redactionlayer)      
+        data = documentpageflagservice().getpublicbody(requestid)      
         for entry in pageflags:
             if entry["name"] == "Consult":
                 entry["programareas"] = programareas

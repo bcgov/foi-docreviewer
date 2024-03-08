@@ -256,14 +256,14 @@ class DocumentPageflag(db.Model):
         return pageflags
 
     @classmethod
-    def getpublicbody_by_request(cls, _foiministryrequestid, _redactionlayerid):
+    def getpublicbody_by_request(cls, _foiministryrequestid):
         pageflags = []
         try:
             sql = """select distinct on (documentid) documentid, attributes from "DocumentPageflags" dp  
-                    where foiministryrequestid = :foiministryrequestid and redactionlayerid = :redactionlayerid order by documentid, documentversion desc;
+                    where foiministryrequestid = :foiministryrequestid order by documentid, documentversion desc;
                     """
             rs = db.session.execute(
-                text(sql), {"foiministryrequestid": _foiministryrequestid, "redactionlayerid": _redactionlayerid}
+                text(sql), {"foiministryrequestid": _foiministryrequestid}
             )
 
             for row in rs:
@@ -303,27 +303,6 @@ class DocumentPageflag(db.Model):
         except Exception as ex:
             logging.error(ex)
             raise ex
-        finally:
-            db.session.close()
-
-    @classmethod
-    def copydocumentpageflags(cls, ministryrequestid, sourcelayers, targetlayer) -> DefaultMethodResult:
-        try:
-            sql = """
-                insert into "DocumentPageflags"  (foiministryrequestid, documentid, documentversion, "pageflag", "attributes", 
-                    created_at, createdby, updated_at, updatedby, redactionlayerid)  
-               select foiministryrequestid, documentid, documentversion, "pageflag", "attributes", created_at, 
-                    createdby, updated_at, updatedby, :targetlayer from "DocumentPageflags" a 
-                where foiministryrequestid = :ministryrequestid and redactionlayerid in :sourcelayers;
-                """
-            db.session.execute(
-                text(sql),
-                {"ministryrequestid": ministryrequestid, "sourcelayers": tuple(sourcelayers), "targetlayer": targetlayer},
-            )  
-            db.session.commit()
-            return DefaultMethodResult(True, "Document pageflags are copied to layer", targetlayer)           
-        except Exception as ex:
-            logging.error(ex)
         finally:
             db.session.close()
 

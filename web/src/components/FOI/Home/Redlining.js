@@ -105,14 +105,12 @@ const Redlining = React.forwardRef(
     );
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
-    const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
     const viewer = useRef(null);
 
     const documentList = useAppSelector(
       (state) => state.documents?.documentList
     );
-    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
-    
+
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
     const [annots, setAnnots] = useState(null);
@@ -137,7 +135,6 @@ const Redlining = React.forwardRef(
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
     const [redlineSaving, setRedlineSaving] = useState(false);
-    const [redlineCategory, setRedlineCategory] = useState(false);
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
@@ -185,8 +182,7 @@ const Redlining = React.forwardRef(
           if (pageFlags?.length > 0) {
             pageFlags.every((pageFlagInfo) => {
               if (docInfo.documentid == pageFlagInfo?.documentid) {
-                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== pageFlagTypes["Consult"])
-                if (docInfo.pagecount > exceptConsult?.length) {
+                if (docInfo.pagecount > pageFlagInfo.pageflag.length) {
                   // not all page has flag set
                   stopLoop = true;
                   return false; //stop loop
@@ -201,7 +197,7 @@ const Redlining = React.forwardRef(
                       pageFlagTypes["Not Responsive"],
                     ].includes(flag.flagid)
                   );
-                  if (pageFlagArray.length != exceptConsult?.length) {
+                  if (pageFlagArray.length != pageFlagInfo.pageflag.length) {
                     stopLoop = true;
                     return false; //stop loop
                   }
@@ -265,17 +261,23 @@ const Redlining = React.forwardRef(
         return isvalid;
     };
 
-    const [enableSavingRedline, setEnableSavingRedline] = useState(false);
-    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
-    const [enableSavingFinal, setEnableSavingFinal] = useState(false);
-
-    const [filteredComments, setFilteredComments] = useState({});
+    const [enableSavingRedline, setEnableSavingRedline] = useState(      
+      isReadyForSignOff() && isValidRedlineDownload() &&
+        [
+          RequestStates["Records Review"],
+          RequestStates["Ministry Sign Off"],
+          RequestStates["Peer Review"],
+        ].includes(requestStatus)
+    );
+    const [enableSavingFinal, setEnableSavingFinal] = useState(
+      isReadyForSignOff() && requestStatus == RequestStates["Response"]
+    );
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
+        fetchSections(requestid, (error) => console.log(error));
         let response = await fetchPDFTronLicense(null, (error) =>
           console.log(error)
         );
@@ -306,7 +308,6 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
-          const UIEvents = instance.UI.Events;
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -317,37 +318,6 @@ const Redlining = React.forwardRef(
             menu.classList.add("Overlay");
             menu.classList.add("FlyoutMenu");
             menu.id = "saving_menu";
-
-            const redlineForOipcBtn = document.createElement("button");
-            redlineForOipcBtn.textContent = "Redline for OIPC Review";
-            redlineForOipcBtn.id = "redline_for_oipc";
-            redlineForOipcBtn.className = "redline_for_oipc";
-            redlineForOipcBtn.style.backgroundColor = "transparent";
-            redlineForOipcBtn.style.border = "none";
-            redlineForOipcBtn.style.padding = "8px 8px 8px 10px";
-            redlineForOipcBtn.style.cursor = "pointer";
-            redlineForOipcBtn.style.alignItems = "left";
-            redlineForOipcBtn.disabled = !enableSavingOipcRedline;
-
-            redlineForOipcBtn.onclick = () => {  
-              // Save to s3
-              setModalFor("oipcreview");
-              setModalTitle("Redline for OIPC Review");
-              setModalMessage([
-                "Are you sure want to create the redline PDF for OIPC review?",
-                <br key="lineBreak1" />,
-                <br key="lineBreak2" />,
-                <span key="modalDescription1">
-                  This redline will be created from the active layer with s.14 annotations redacted. 
-                  When you create the redline PDF, your web browser page will
-                  automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create OIPC Redline PDF");
-              setRedlineModalOpen(true);
-            };
-
-            menu.appendChild(redlineForOipcBtn);
 
             const redlineForSignOffBtn = document.createElement("button");
             redlineForSignOffBtn.textContent = "Redline for Sign Off";
@@ -550,28 +520,9 @@ const Redlining = React.forwardRef(
 
             Promise.all(objpreptasks);
 
-            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+            fetchAnnotationsInfo(requestid, (error) => {
               console.log("Error:", error);
             });
-          });
-
-          instance.UI.addEventListener(UIEvents.ANNOTATION_FILTER_CHANGED, e => {
-          e.detail.types = e.detail.types.map(type => {
-            switch (type) {
-              case "stickyNote":
-                return "text";
-              case "rectangle":
-                return "square";
-              case "freehand":
-              case "other":
-                return "ink";
-              case "ellipse":
-                return "circle";
-              default:
-                return type;
-            }
-          });
-          setFilteredComments(e.detail);
           });
           
           documentViewer.addEventListener("click", async () => {
@@ -747,14 +698,7 @@ const Redlining = React.forwardRef(
                   setMerge(true);
                   setFetchAnnotResponse(data);
                 } else {
-                  //oipc changes - begin
-                  //Set to read only if oipc layer exists
-                  if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
-                    annotManager.enableReadOnlyMode();
-                  } else {
-                    annotManager.disableReadOnlyMode();
-                  }
-                  //oipc changes - end
+                  annotManager.disableReadOnlyMode();
                   docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
                   const existingAnnotations = annotManager.getAnnotationsList();
                   await annotManager.deleteAnnotations(existingAnnotations, {
@@ -781,11 +725,11 @@ const Redlining = React.forwardRef(
               (error) => {
                 console.log("Error:", error);
               },
-              currentLayer.name.toLowerCase()
+              currentLayer.name
             );
             fetchPageFlag(
               requestid,
-              currentLayer.name.toLowerCase(),
+              currentLayer.redactionlayerid,
               docsForStitcing.map(d => d.file.documentid),
               (error) => console.log(error)
             );
@@ -823,12 +767,6 @@ const Redlining = React.forwardRef(
         // If the event is triggered by importing then it can be ignored
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
-
-        //oipc changes - begin
-        if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
-          return;
-        }
-        //oipc changes - end
 
         if (
           info.source !== "redactionApplied" &&
@@ -904,7 +842,7 @@ const Redlining = React.forwardRef(
                   (data) => {
                     fetchPageFlag(
                       requestid,
-                      currentLayer.name.toLowerCase(),
+                      currentLayer.redactionlayerid,
                       docsForStitcing.map(d => d.file.documentid),
                       (error) => console.log(error)
                     );
@@ -1075,7 +1013,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.name.toLowerCase(),
+                        currentLayer.redactionlayerid,
                         docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
@@ -1109,7 +1047,7 @@ const Redlining = React.forwardRef(
                     (data) => {
                       fetchPageFlag(
                         requestid,
-                        currentLayer.name.toLowerCase(),
+                        currentLayer.redactionlayerid,
                         docsForStitcing.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
@@ -1216,11 +1154,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
-      //oipc changes - begin
-      const _enableSavingOipcRedline = 
-        (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") &&
-        isReadyForSignOff();
-      //oipc changes - end
+
       setEnableSavingRedline(
         _enableSavingRedline &&
           [
@@ -1229,38 +1163,20 @@ const Redlining = React.forwardRef(
             RequestStates["Peer Review"],
           ].includes(requestStatus)
       );
-      //oipc changes - begin
-      setEnableSavingOipcRedline(
-        _enableSavingOipcRedline &&
-        [
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"]
-        ].includes(requestStatus)
-      );
-      //oipc changes - end
       setEnableSavingFinal(
         _enableSavingRedline && requestStatus == RequestStates["Response"]
       );
       if (_instance) {
-        //oipc changes - begin
         const document = _instance.UI.iframeWindow.document;
-        document.getElementById("redline_for_sign_off").disabled = 
-        !_enableSavingRedline ||
-        ![
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"],
-          RequestStates["Peer Review"],
-        ].includes(requestStatus);
-        document.getElementById("redline_for_oipc").disabled = 
-          !_enableSavingOipcRedline || 
+        document.getElementById("redline_for_sign_off").disabled =
+          !_enableSavingRedline ||
           ![
             RequestStates["Records Review"],
             RequestStates["Ministry Sign Off"],
-          ].includes(requestStatus) ||
-          !isReadyForSignOff();
+            RequestStates["Peer Review"],
+          ].includes(requestStatus);
         document.getElementById("final_package").disabled =
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
-          //oipc changes - end
       }
     };
 
@@ -1332,7 +1248,7 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name.toLowerCase()
+          currentLayer.name
         );
       }
     };
@@ -1538,7 +1454,7 @@ const Redlining = React.forwardRef(
             setPageSelections([]);
             fetchPageFlag(
               requestid,
-              currentLayer.name.toLowerCase(),
+              currentLayer.redactionlayerid,
               docsForStitcing.map(d => d.file.documentid),
               (error) => console.log(error)
             );
@@ -1676,7 +1592,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
-                    currentLayer.name.toLowerCase(),
+                    currentLayer.redactionlayerid,
                     docsForStitcing.map(d => d.file.documentid),
                     (error) => console.log(error)
                   );
@@ -1827,7 +1743,7 @@ const Redlining = React.forwardRef(
             setPageSelections([]);
             fetchPageFlag(
               requestid,
-              currentLayer.name.toLowerCase(),
+              currentLayer.redactionlayerid,
               docsForStitcing.map(d => d.file.documentid),
               (error) => console.log(error)
             );
@@ -2134,11 +2050,12 @@ const Redlining = React.forwardRef(
           await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
           await s.setAsBackground(false);
           const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-          let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+
           await s.stampText(
             doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+            `${requestnumber} , Page ${
+              redlineSinglePackage == "Y" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            } of ${docViewer.getPageCount()}`,
             pgSet
           );
         });
@@ -2410,13 +2327,13 @@ const Redlining = React.forwardRef(
       return divIncompatableMapping
     };
 
-    const fetchDocumentRedlineAnnotations = async (requestid, documentids, layer) => {
+    const fetchDocumentRedlineAnnotations = async (requestid, documentids) => {
       let documentRedlineAnnotations = {};
       let docCounter = 0;
       for (let documentid of documentids) {
         fetchDocumentAnnotations(
           requestid,
-          layer,
+          "Redline",
           documentid,
           async (data) => {
             docCounter++;
@@ -2469,69 +2386,6 @@ const Redlining = React.forwardRef(
       return stitchAnnotation.join();
     };
 
-    const constructFreeTextAndannoteIds = (data) => {
-      let _freeTextIds=[];
-      let _annoteIds=[];
-      for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);
-          if(xmlObj.name === "freetext")
-            _freeTextIds.push(xmlObj.attributes.name);
-          else if(xmlObj.name != "redact" && xmlObj.name != "freetext"){
-            let xmlObjAnnotId = xmlObj.attributes.name;
-            _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
-          }            
-      }
-      return {_freeTextIds, _annoteIds}
-    }
-    const getAnnotationSections  = (annot) => {
-      let customSectionsData = annot.getCustomData("sections");
-      let stampJson = JSON.parse(
-                  customSectionsData
-                    .replace(/&quot;\[/g, "[")
-                    .replace(/\]&quot;/g, "]")
-                    .replace(/&quot;/g, '"')
-                    .replace(/\\/g, "")
-      );
-      return stampJson;        
-    }
-
-    const annotationSectionsMapping  = async (xfdfString, formattedAnnotationXML) => {
-      let annotationManager = docInstance?.Core.annotationManager;
-      let annotList = await annotationManager.importAnnotations(xfdfString);
-      let sectionStamps = {};
-    let  annotationpagenumbers = annotationpagemapping(formattedAnnotationXML);
-    for (const annot of annotList) {
-      let parentRedaction = annot.getCustomData("parentRedaction");
-      if (parentRedaction) {
-        if (annot.Subject == "Free Text") {
-          let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
-            let sections = getAnnotationSections(annot);
-            if (sections.some(item => item.section === 's. 14')) {
-                sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
-            }
-        }
-      }
-    }
-    return sectionStamps; 
-    }
-
-    const annotationpagemapping = (formattedAnnotationXML) => {
-      let xmlstring =
-            '<annots>' +
-            formattedAnnotationXML +
-            "</annots>";
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlstring,"text/xml");
-      let annotnodes = xmlDoc.documentElement.childNodes;
-      let annotationpages = {};
-      for (const element of annotnodes) {
-        if(element.nodeName === "redact") { 
-          annotationpages[element.getAttribute("name")] = parseInt(element.getAttribute("page"))+1;
-      }
-      }
-      return annotationpages;
-    }
-
     const formatAnnotationsForDocument = (
       domParser,
       data,
@@ -2539,14 +2393,12 @@ const Redlining = React.forwardRef(
       documentid
     ) => {
       let updatedXML = [];
-      const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(data);
-
       for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);           
+        let xmlObj = parser.parseFromString(annotxml);
+        if (xmlObj.name === "redact" || xmlObj.name === "freetext") {
           let customfield = xmlObj.children.find(
             (xmlfield) => xmlfield.name == "trn-custom-data"
           );
-          let flags = xmlObj.attributes.flags;
           let txt = domParser.parseFromString(
             customfield.attributes.bytes,
             "text/html"
@@ -2563,110 +2415,16 @@ const Redlining = React.forwardRef(
               'page="' +
               (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
               '"';
-            let updatedFlags = xmlObj.attributes.flags+',locked';
-              
-            annotxml = annotxml.replace(flags, updatedFlags);
             annotxml = annotxml.replace(oldPageNum, newPage);
 
-              if (xmlObj.name === "redact" || customData["parentRedaction"] || 
-                (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
-                updatedXML.push(annotxml);
+            if (xmlObj.name === "redact" || customData["parentRedaction"]) {
+              updatedXML.push(annotxml);
+            }
+          }
         }
       }
       return updatedXML.join();
     };
-
-    const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
-      //This method handles filtering of annotations in redline
-      let filtered = false;
-
-      const isType = filteredComments.types.includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
-      const isColor = filteredComments.colors.includes(xmlObj.attributes.color.toLowerCase() + 'ff');
-      const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
-      
-      const parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
-      filteredComments.types?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
-        !_freeTextIds.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.inreplyto);
-      
-      const parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&        
-        filteredComments.colors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
-
-      const parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        filteredComments.authors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
-
-      if (filteredComments.types.length > 0 && filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsColor && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
-          return parentIsType && parentIsColor && parentIsAuthor
-        }
-        filtered = isType && (isColor || parentIsColor) && isAuthor
-      }
-      else if (filteredComments.types.length > 0 && filteredComments.colors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsColor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined') {
-          return parentIsType && parentIsColor
-        }
-        filtered = isType && (isColor || parentIsColor)
-      }
-      else if (filteredComments.types.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  &&  typeof parentIsAuthor !== 'undefined') {
-          return parentIsType && parentIsAuthor
-        }
-        filtered = isType  && isAuthor
-      }
-      else if (filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsColor && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
-          return parentIsColor && parentIsAuthor
-        }         
-        filtered =  (isColor || parentIsColor) && isAuthor
-      }
-
-      else if (filteredComments.types.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType ))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined') {
-          return parentIsType
-        }
-        return isType
-      }
-      else if (filteredComments.colors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsColor ))){
-          return true;
-        }
-        else if (typeof parentIsColor !== 'undefined') {
-          return parentIsColor
-        }
-        return isColor
-      }
-      else if (filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsAuthor ))){
-          return true;
-        }
-        else if (typeof parentIsAuthor !== 'undefined') {
-          return parentIsAuthor
-        }
-        return isAuthor
-      }
-      return filtered;
-    }
 
     const cancelSaveRedlineDoc = () => {
       setRedlineModalOpen(false);
@@ -2675,13 +2433,9 @@ const Redlining = React.forwardRef(
     const saveDoc = () => {
       setRedlineModalOpen(false);
       setRedlineSaving(true);
-      setRedlineCategory(modalFor);
       switch (modalFor) {
-        case "oipcreview":
-          saveRedlineDocument(docInstance, modalFor);
-          break;
         case "redline":
-          saveRedlineDocument(docInstance, modalFor);
+          saveRedlineDocument(docInstance);
           break;
         case "responsepackage":
           saveResponsePackage(docViewer, annotManager, docInstance);
@@ -2690,17 +2444,9 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const getzipredlinecategory = (layertype) => {
-      if (currentLayer.name.toLowerCase() === "oipc") {
-        return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
-      }  
-      
-      return "redline";
-    }
-
     /*Redline download & stitching code starts */
     
-    const saveRedlineDocument = async (_instance, layertype) => {
+    const saveRedlineDocument = (_instance) => {
       toastId.current = toast(`Start saving redline...`, {
         autoClose: false,
         closeButton: false,
@@ -2730,10 +2476,10 @@ const Redlining = React.forwardRef(
           );
           let IncompatableList = prepareRedlineIncompatibleMapping(res);
           setIncompatableList(IncompatableList);
-          fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
+          fetchDocumentRedlineAnnotations(requestid, documentids);
           setRedlineZipperMessage({
             ministryrequestid: requestid,
-            category: getzipredlinecategory(layertype),
+            category: "redline",
             attributes: [],
             requestnumber: res.requestnumber,
             bcgovcode: res.bcgovcode,
@@ -2816,7 +2562,6 @@ const Redlining = React.forwardRef(
               documentsObjArr = [];
             }
           }
-          
           setRedlineStitchInfo(stitchDoc);
           setIssingleredlinepackage(res.issingleredlinepackage);
           if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
@@ -2833,15 +2578,13 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              IncompatableList
+              incompatableList
             );
           }
         },
         (error) => {
           console.log("Error fetching document:", error);
-        },
-        layertype,
-        currentLayer.name.toLowerCase()
+        }
       );
     };
 
@@ -3039,8 +2782,10 @@ const Redlining = React.forwardRef(
         ) {
           
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
+          setPdftronDocObjectsForRedline([]);
+          setstichedfilesForRedline(null)
         } else {
-          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
               requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
@@ -3108,14 +2853,12 @@ const Redlining = React.forwardRef(
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
+          await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
-            );
-          }
+          );
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0
@@ -3124,63 +2867,16 @@ const Redlining = React.forwardRef(
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          
           let xfdfString =
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
             "</annots></xfdf>";
-
-          //OIPC - Special Block (Redact S.14) : Begin
-          if(redlineCategory === "oipcreview") {
-            const rarr = []; 
-            let annotationManager = docInstance?.Core.annotationManager;
-            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            let rects = [];
-            for (const [key, value] of Object.entries(s14_sectionStamps)) {
-              let s14annoation = annotationManager.getAnnotationById(key);
-                  if ( s14annoation.Subject === "Redact") { 
-                          rects = rects.concat( 
-                          s14annoation.getQuads().map((q) => {
-                            return {
-                                pageno: s14_sectionStamps[key],
-                                recto: q.toRect(),
-                                vpageno: s14annoation.getPageNumber()
-                              };
-                            })
-                          );
-                      }
-                
-              
-            }
-            for (const rect of rects) {
-              let height = docViewer.getPageHeight(rect.vpageno);
-              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-            }
-            if (rarr.length > 0) {
-              const app = {};
-              app.redaction_overlay = true;
-              app.border = false;
-              app.show_redacted_content_regions = false;
-              const doc = await stitchObject.getPDFDoc();
-              await PDFNet.Redactor.redact(doc, rarr, app);
-            }
-            await stampPageNumberRedline(
-              stitchObject,
-              PDFNet,
-              redlineStitchInfo[divisionid]["stitchpages"],
-              redlineSinglePackage
-              );  
-        }
-        //OIPC - Special Block : End
-        
-          
-
           stitchObject
             .getFileData({
               // saves the document with annotations in it
               xfdfString: xfdfString,
               downloadType: downloadType,
-              //flatten: true, //commented this as part of #4862
+              flatten: true,
             })
             .then(async (_data) => {
               const _arr = new Uint8Array(_data);
@@ -3407,7 +3103,6 @@ const Redlining = React.forwardRef(
               .getFileData({
                 // saves the document with annotations in it
                 downloadType: downloadType,
-                flatten: true
               })
               .then(async (_data) => {
                 const _arr = new Uint8Array(_data);

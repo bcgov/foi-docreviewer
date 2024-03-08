@@ -100,8 +100,7 @@ class GetDocuments(Resource):
             jsonobj = response.json()
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
-                "requesttype": jsonobj["requestType"],
-                "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
+                "requesttype": jsonobj["requestType"]
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
