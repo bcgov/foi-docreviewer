@@ -126,6 +126,7 @@ const Redlining = React.forwardRef(
     const [deleteQueue, setDeleteQueue] = useState([]);
     const [selectedSections, setSelectedSections] = useState([]);
     const [defaultSections, setDefaultSections] = useState([]);
+    const [selectedPageFlagId, setSelectedPageFlagId] = useState(null);
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [pageSelections, setPageSelections] = useState([]);
@@ -1212,7 +1213,8 @@ const Redlining = React.forwardRef(
     ]);
 
     useImperativeHandle(ref, () => ({
-      addFullPageRedaction(pageNumbers) {
+      addFullPageRedaction(pageNumbers, flagId) {
+        if (flagId) setSelectedPageFlagId(flagId)
         let newAnnots = [];
         for (let pageNumber of pageNumbers) {
           let height = docViewer.getPageHeight(pageNumber);
@@ -1554,6 +1556,7 @@ const Redlining = React.forwardRef(
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = editRedacts;
       let astr = parser.parseFromString(redactionObj.astr);
@@ -1674,6 +1677,7 @@ const Redlining = React.forwardRef(
 
     const saveRedaction = async (_resizeAnnot = {}) => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
@@ -2037,6 +2041,7 @@ const Redlining = React.forwardRef(
 
     const cancelRedaction = () => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
       if (newRedaction != null) {
@@ -2070,10 +2075,21 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       if (newRedaction) {
+        let hasFullPageRedaction = false;
+        if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
         if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
           setWarningModalOpen(true);
           cancelRedaction();
-        } else if (defaultSections.length > 0) {
+        } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
+          saveRedaction();
+        } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
+          setModalOpen(true);
+        } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
+          setDefaultSections([]);
+        } else if (hasFullPageRedaction) {
+          if (defaultSections.length != 0) setDefaultSections([]);
+          setModalOpen(true)
+        } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
           saveRedaction();
         } else {
           setModalOpen(true);
@@ -3583,18 +3599,47 @@ const Redlining = React.forwardRef(
         return b.count - a.count;
       }
     };
+    const decodeAstr = (astr) => {
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(astr, "text/xml")
+      const trnCustomDataXml = xmlDoc.getElementsByTagName("trn-custom-data");
+      const trnCustomDataJsonString = trnCustomDataXml[0].attributes[0].value
+      const trnCustomData = JSON.parse(trnCustomDataJsonString)
+      return trnCustomData
+    }
 
     const sectionIsDisabled = (sectionid) => {
       let isDisabled = false;
+      let hasFullPageRedaction = false;
+      if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
       // For sections
       if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
         isDisabled = (sectionid === 25 || sectionid === 26)
       // For Blank Code
       } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
         isDisabled = sectionid !== 25
+      } else if (hasFullPageRedaction) {
+        isDisabled = sectionid == 26
       // For Not Responsive
       } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
         isDisabled = sectionid !== 26
+      } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && selectedSections?.length === 0) {
+        isDisabled = sectionid == 26
+      } else if (editAnnot) {
+        const trnCustomData = decodeAstr(editAnnot.astr)
+        const isFullPage = trnCustomData['trn-redaction-type'] === "fullPage"
+        isDisabled = isFullPage && sectionid == 26
+      } else if (editRedacts) {
+        let hasFullPageRedaction = false;
+        for (let annot of editRedacts.annots[0].children) {
+          const trnCustomDataJsonString = annot.children[0].attributes.bytes
+          const decodedJsonString = trnCustomDataJsonString.replace(/&quot;/g, '"');
+          const trnCustomData = JSON.parse(decodedJsonString)
+          if (trnCustomData['trn-redaction-type'] == 'fullPage') {
+            hasFullPageRedaction = true;
+          }
+        }
+        isDisabled = hasFullPageRedaction && sectionid == 26
       }
       return isDisabled
     }
