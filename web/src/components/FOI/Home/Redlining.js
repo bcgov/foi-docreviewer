@@ -3441,7 +3441,7 @@ const Redlining = React.forwardRef(
           /**Adding & deleting annotations other than freetext- starts*/
           let annotsToDelete= [];
           annotsAfterRedaction.forEach((annotation) => {
-            if(annotation.Subject !== 'Free Text'){
+            if(annotation.Subject !== 'Free Text' && annotation.Subject !== 'Widget'){
               annotsToDelete.push(annotation);
             }
           });
