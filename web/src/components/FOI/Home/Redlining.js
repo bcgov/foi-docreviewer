@@ -3420,7 +3420,11 @@ const Redlining = React.forwardRef(
 
           let doc = documentViewer.getDocument();
           await annotationManager.applyRedactions();
-          /** pageflag duplicate or not responsive */
+          toast.update(toastID, {
+            render: "Saving section stamps...",
+            isLoading: true,
+          });
+          /**must apply redactions before removing pages*/
           await doc.removePages(pagesToRemove);
 
           const { PDFNet } = _instance.Core;
