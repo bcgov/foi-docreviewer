@@ -35,6 +35,7 @@ import {
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
+  deleteDocumentPages,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -699,7 +700,7 @@ const Redlining = React.forwardRef(
             for (const mapping of pageMappings) {
                 if (pagesRemoved.includes(mapping.stitchedPageNo)) {
                     if (!results[docId]) {
-                        results[docId] = { docId: parseInt(docId), pages: [] };
+                        results[docId] = { docid: parseInt(docId), pages: [] };
                     }
                     results[docId].pages.push(mapping.pageNo);
                 }
@@ -707,6 +708,17 @@ const Redlining = React.forwardRef(
         }
         const finalResults = { documentpages: Object.values(results) };
         console.log(finalResults);
+        deleteDocumentPages(
+          requestid, 
+          currentLayer?.name, 
+          finalResults,
+          (data) => {
+            window.location.reload();
+          },
+          (error) => {
+            console.log(error);
+          },
+        );        
     }
     
     },[pagesRemoved, pageMappedDocs])

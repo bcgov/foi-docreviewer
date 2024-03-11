@@ -8,6 +8,7 @@ import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
+  fetchDeletedDocumentPages,
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
@@ -127,17 +128,21 @@ function Home() {
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline; 
+        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline;
+        fetchDeletedDocumentPages(foiministryrequestid, currentLayer.name, null, (error) =>
+        console.log(error));
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
   }, [validoipcreviewlayer])
 
+
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-    let deletedDocPages = {"2": [2, 3], "5": [3], "13": [2]} //13 = capx, 2 = refinement, 5 = fileB
+    // let deletedDocPages = {"2": [2, 3], "5": [3], "13": [2]} //13 = capx, 2 = refinement, 5 = fileB
+    let deletedDocPages = {};
     let index = 0;
     let stitchIndex = 1;
     let totalPageCount = 0;
