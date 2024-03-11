@@ -5,8 +5,8 @@ from reviewer_api.services.redactionlayerservice import redactionlayerservice
 
 class docdeletedpageservice:
 
-    def deletepages(self, ministryid, redactionlayer, docdeletedpage, userinfo):
-        layerid = self.__getredactionlayerid(redactionlayer)
+    def deletepages(self, ministryid, docdeletedpage, userinfo):
+        layerid = self.__getredactionlayerid(docdeletedpage["redactionlayer"])
         docs = Document.getdocumentpagedatabyrequest(ministryid)
         docpages = []
         docpagecounts= []
@@ -36,10 +36,11 @@ class docdeletedpageservice:
             if entry["documentid"] not in documentpages:
                 documentpages[entry["documentid"]] = entry["pagemetadata"]
             else:
-                documentpages[entry["documentid"]] = documentpages[entry["documentid"]]+entry["pagemetadata"]
+                pages = documentpages[entry["documentid"]]+entry["pagemetadata"]                
+                documentpages[entry["documentid"]] = list(set(pages))
         return documentpages
                 
 
     def __getredactionlayerid(self, layername):
-        return redactionlayerservice().getredactionlayerid(layername)
+        return redactionlayerservice().getredactionlayerid(layername.lower())
 

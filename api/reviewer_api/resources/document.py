@@ -116,17 +116,17 @@ class GetDocuments(Resource):
 
 
 @cors_preflight('POST,OPTIONS')
-@API.route('/document/ministryrequest/<int:ministryrequestid>/<string:redactionlayer>/page/delete')
+@API.route('/document/ministryrequest/<int:ministryrequestid>/deletedpages')
 class DeleteDocumenPage(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
-    def post(ministryrequestid, redactionlayer):
+    def post(ministryrequestid):
         try:
             payload = request.get_json()
             payload = DocumentDeletedPage().load(payload)
-            result = docdeletedpageservice().deletepages(ministryrequestid, redactionlayer, payload, AuthHelper.getuserinfo())
+            result = docdeletedpageservice().deletepages(ministryrequestid, payload, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except ValueError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
