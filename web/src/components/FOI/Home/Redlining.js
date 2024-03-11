@@ -706,14 +706,15 @@ const Redlining = React.forwardRef(
                 }
             }
         }
-        const finalResults = { documentpages: Object.values(results) };
+        const finalResults = { 
+          redactionlayer: currentLayer?.name,
+          documentpages: Object.values(results) };
         console.log(finalResults);
         deleteDocumentPages(
-          requestid, 
-          currentLayer?.name, 
+          requestid,
           finalResults,
           (data) => {
-            window.location.reload();
+            // window.location.reload();
           },
           (error) => {
             console.log(error);

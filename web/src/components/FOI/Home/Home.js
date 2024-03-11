@@ -98,7 +98,14 @@ function Home() {
               sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              prepareMapperObj(doclist);
+              fetchDeletedDocumentPages(
+                foiministryrequestid, 
+                (deletedDocPages) => {
+                  prepareMapperObj(doclist, deletedDocPages);
+                }, 
+                (error) =>
+                  console.log(error));
+              
               setCurrentDocument({
                 file: doclist[0]?.file || {},
                 page: 1,
@@ -129,40 +136,37 @@ function Home() {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
         let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline;
-        fetchDeletedDocumentPages(foiministryrequestid, currentLayer.name, null, (error) =>
-        console.log(error));
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
   }, [validoipcreviewlayer])
 
-
-  const prepareMapperObj = (doclistwithSortOrder) => {
+  const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-    // let deletedDocPages = {"2": [2, 3], "5": [3], "13": [2]} //13 = capx, 2 = refinement, 5 = fileB
-    let deletedDocPages = {};
+
     let index = 0;
     let stitchIndex = 1;
     let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       const documentId = sortedDoc.file.documentid;
-      const deletedPages = deletedDocPages[documentId] || [];
-      // update document pagecount of  
-      let documentPageCount = 0;
       const pages = [];
-      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-        const pageNumber = i + 1;
-        if (!deletedPages.includes(pageNumber)) {
-          documentPageCount = i + 1;
-          pages.push(pageNumber);
-        }
+      
+      let deletedPages = [];
+      if (deletedDocPages)
+        deletedPages = deletedDocPages[documentId] || [];
+      for (let i = 0; i < sortedDoc.file.originalpagecount; i++) {
+          const pageNumber = i + 1;
+          if (!deletedPages.includes(pageNumber)) {
+            pages.push(pageNumber);
+          }
       }
+      
       let j = 0;
 
-      for (let i = index + 1; i <= index + documentPageCount; i++) {
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
         j++;
         let pageMapping = {
           pageNo: j,
@@ -193,20 +197,11 @@ function Home() {
         pageMappings: mappedDoc.pageMappings,
       };
 
-      // const deletedPages = deletedDocPages[documentId] || []; 
-      // let documentPageCount = 0;
-      // for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-      //   const pageNumber = i + 1;
-      //   if (!deletedPages.includes(pageNumber)) {
-      //     documentPageCount = i + 1;
-      //     pages.push(pageNumber);
-      //   }
-      // }
-      index = index + documentPageCount;
+      index = index + sortedDoc.file.pagecount;
       sortedDoc.sortorder = _index + 1;
       sortedDoc.stitchIndex = stitchIndex;
       sortedDoc.pages = pages;
-      stitchIndex += documentPageCount;
+      stitchIndex += sortedDoc.file.pagecount;
     });
     doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
