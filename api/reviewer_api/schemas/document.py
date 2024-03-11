@@ -47,4 +47,5 @@ class DocumentDeletedPage(Schema):
         """Exclude unknown fields in the deserialized output."""
 
         unknown = EXCLUDE 
+    redactionlayer = fields.String(data_key="redactionlayer",allow_none=False)
     documentpages = fields.Nested(DocumentPage,many=True,validate=validate.Length(min=1),allow_none=False)
