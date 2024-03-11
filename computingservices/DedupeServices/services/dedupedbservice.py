@@ -11,9 +11,9 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible,pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 

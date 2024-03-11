@@ -1,6 +1,6 @@
 from .db import  db, ma
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, bindparam, update
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime as datetime2
 from sqlalchemy.orm import relationship, backref, aliased
@@ -31,6 +31,7 @@ class Document(db.Model):
     updatedby = db.Column(JSON, unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     statusid = db.Column(db.Integer, db.ForeignKey('DocumentStatus.statusid'))
+    originalpagecount = db.Column(db.Integer, nullable=True)
     pagecount = db.Column(db.Integer, nullable=True)
     incompatible = db.Column(db.Boolean, nullable=True)
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
@@ -324,6 +325,44 @@ class Document(db.Model):
             'divisions': document.attributes['divisions'],
             'pagecount': document.pagecount
         }
+    
+    
+    @DeprecationWarning
+    def updatepagecount(cls, ministryrequestid, pagemappings) -> DefaultMethodResult:
+        try:
+            db.session.bulk_update_mappings(Document, pagemappings)            
+            db.session.commit()
+            return DefaultMethodResult(True, "Document pagecount updated", ministryrequestid)
+        except Exception as ex:
+            logging.error(ex)
+            return DefaultMethodResult(False, "ocument pagecount update operation failed", ministryrequestid)
+        finally:
+            db.session.close()
+
+
+    @classmethod
+    def getdocumentpagedatabyrequest(cls, ministryrequestid):
+        docs = {}
+        try:
+            sql = """
+                  select distinct on (docs.documentid) docs.documentid, docs.pagecount 
+                        from  "Documents" docs
+                        where docs.foiministryrequestid = :ministryrequestid 
+                        order by docs.documentid, docs.version desc 
+                """
+            rs = db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid},
+            )  
+            for row in rs:
+                docs[row['documentid']]=row['pagecount']
+            return docs         
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close() 
+
+            
 
     # subquery to fetch the earliest uploaded, non-deleted duplicates in a request
     @classmethod
