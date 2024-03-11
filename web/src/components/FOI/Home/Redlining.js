@@ -121,6 +121,7 @@ const Redlining = React.forwardRef(
     const [docViewerMath, setDocViewerMath] = useState(null);
     const [docInstance, setDocInstance] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [messageModalOpen, setMessageModalOpen] = useState(false)
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [newRedaction, setNewRedaction] = useState(null);
     const [deleteQueue, setDeleteQueue] = useState([]);
@@ -2041,6 +2042,7 @@ const Redlining = React.forwardRef(
 
     const cancelRedaction = () => {
       setModalOpen(false);
+      setMessageModalOpen(false);
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -2073,10 +2075,21 @@ const Redlining = React.forwardRef(
       setDefaultSections([]);
     };
 
+    const setMessageModalForNotResponsive = () => {
+      setModalTitle("Not Responsive Default");
+          setModalMessage(
+          <div>You have 'Not Responsive' selected as a default section.
+            <ul>
+              <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
+              <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
+            </ul>
+          </div>);
+          setMessageModalOpen(true)
+    }
+
     useEffect(() => {
       if (newRedaction) {
-        let hasFullPageRedaction = false;
-        if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
+        let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
         if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
           setWarningModalOpen(true);
           cancelRedaction();
@@ -2085,9 +2098,9 @@ const Redlining = React.forwardRef(
         } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
           setModalOpen(true);
         } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
-          setDefaultSections([]);
+          setMessageModalForNotResponsive();
         } else if (hasFullPageRedaction) {
-          if (defaultSections.length != 0) setDefaultSections([]);
+          if (defaultSections.length != 0) setMessageModalForNotResponsive();
           setModalOpen(true)
         } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
           saveRedaction();
@@ -3794,6 +3807,41 @@ const Redlining = React.forwardRef(
             <button
               className="btn-bottom btn-cancel"
               onClick={cancelSaveRedlineDoc}
+            >
+              Cancel
+            </button>
+          </DialogActions>
+        </ReactModal>
+        <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog"}
+          onRequestClose={cancelRedaction}
+          isOpen={messageModalOpen}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">{modalTitle}</h2>
+            <IconButton className="title-col3" onClick={cancelRedaction}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"dialog-content-nomargin"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span className="confirmation-message">
+                {modalMessage} <br></br>
+              </span>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+            <button
+              className="btn-bottom btn-cancel"
+              onClick={cancelRedaction}
             >
               Cancel
             </button>
