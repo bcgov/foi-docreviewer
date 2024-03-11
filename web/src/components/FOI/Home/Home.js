@@ -137,15 +137,27 @@ function Home() {
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
-
+    let deletedDocPages = {"2": [2, 3], "5": [3], "13": [2]} //13 = capx, 2 = refinement, 5 = fileB
     let index = 0;
     let stitchIndex = 1;
     let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
-      let j = 0;
+      const documentId = sortedDoc.file.documentid;
+      const deletedPages = deletedDocPages[documentId] || [];
+      // update document pagecount of  
+      let documentPageCount = 0;
       const pages = [];
-      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
+      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
+        const pageNumber = i + 1;
+        if (!deletedPages.includes(pageNumber)) {
+          documentPageCount = i + 1;
+          pages.push(pageNumber);
+        }
+      }
+      let j = 0;
+
+      for (let i = index + 1; i <= index + documentPageCount; i++) {
         j++;
         let pageMapping = {
           pageNo: j,
@@ -153,14 +165,14 @@ function Home() {
         };
         mappedDoc.pageMappings.push(pageMapping);
         mappedDocs["stitchedPageLookup"][i] = {
-          docid: sortedDoc.file.documentid,
+          docid: documentId,
           docversion: sortedDoc.file.version,
           page: j,
         };
         totalPageCount = i;
       }
-      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["docIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: sortedDoc.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
@@ -169,21 +181,27 @@ function Home() {
       for (let div of sortedDoc.file.divisions) {
         fileDivisons.push(div.divisionid)
       }
-      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["redlineDocIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 
-      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-        pages.push(i + 1);
-      }
-      index = index + sortedDoc.file.pagecount;
+      // const deletedPages = deletedDocPages[documentId] || []; 
+      // let documentPageCount = 0;
+      // for (let i = 0; i < sortedDoc.file.pagecount; i++) {
+      //   const pageNumber = i + 1;
+      //   if (!deletedPages.includes(pageNumber)) {
+      //     documentPageCount = i + 1;
+      //     pages.push(pageNumber);
+      //   }
+      // }
+      index = index + documentPageCount;
       sortedDoc.sortorder = _index + 1;
       sortedDoc.stitchIndex = stitchIndex;
       sortedDoc.pages = pages;
-      stitchIndex += sortedDoc.file.pagecount;
+      stitchIndex += documentPageCount;
     });
     doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
