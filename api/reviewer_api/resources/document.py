@@ -126,7 +126,7 @@ class DeleteDocumenPage(Resource):
         try:
             payload = request.get_json()
             payload = DocumentDeletedPage().load(payload)
-            result = docdeletedpageservice().deletepages(ministryrequestid, payload, AuthHelper.getuserinfo())
+            result = docdeletedpageservice().newdeletepages(ministryrequestid, payload, AuthHelper.getuserinfo())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except ValueError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400

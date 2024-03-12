@@ -55,26 +55,6 @@ class SaveDocumentPageflag(Resource):
         
 
 @cors_preflight('GET,OPTIONS')
-@API.route('/ministryrequest/<requestid>/document/<documentid>/version/<documentversion>/pageflag/<redactionlayerid>')
-class GetDocumentPageflag(Resource):
-    """Get document page flag list.
-    """
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid, documentid, documentversion, redactionlayerid):
-        try:
-            result = documentpageflagservice().getdocumentpageflags(requestid,redactionlayerid, documentid, documentversion)
-            return json.dumps(result), 200
-        except KeyError as error:
-            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message':exception.message}, 500
-
-
-@cors_preflight('GET,OPTIONS')
 @API.route('/ministryrequest/<requestid>/pageflag/<redactionlayer>')
 class GetDocumentPageflag(Resource):
     """Get document page flag list.
@@ -87,7 +67,7 @@ class GetDocumentPageflag(Resource):
     def get(requestid, redactionlayer):
         try:
             documentids = request.args.getlist('documentids[]')
-            result = documentpageflagservice().getpageflags(requestid, redactionlayer, documentids)
+            result = documentpageflagservice().getpageflags_by_requestid_docids(requestid, redactionlayer, documentids)
             return json.dumps(result), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
