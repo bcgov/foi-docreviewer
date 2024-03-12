@@ -435,24 +435,23 @@ export const fetchPDFTronLicense = (
 
 export const deleteDocumentPages = (
   requestid: string,
-  redactionlayer: string,
   pagesDeleted: any,
   callback: any,
   errorCallback: any,
 ) => {
 
-  let apiUrlPost: string = replaceUrl(replaceUrl(
+  let apiUrlPost: string = replaceUrl(
     API.DOCREVIEWER_DOCUMENT_PAGE_DELETE,
     "<ministryrequestid>",
     requestid
-  ), "<redactionlayer>", redactionlayer);
+  );
 
 httpPOSTRequest({url: apiUrlPost, data: pagesDeleted, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
       } else {
-        throw new Error(`Error while deleting document pages for (requestid# ${requestid}, redactionlayerid ${redactionlayer})`);            
+        throw new Error(`Error while deleting document pages for (requestid# ${requestid})`);            
       }
     })
     .catch((error:any) => {
@@ -462,16 +461,15 @@ httpPOSTRequest({url: apiUrlPost, data: pagesDeleted, token: UserService.getToke
 
 export const fetchDeletedDocumentPages = (
   mininstryrequestid: number,
-  redactionlayer: string,
   callback: any,
   errorCallback: any
 ) => {
 
-  let apiUrlGet: string = replaceUrl(replaceUrl(
+  let apiUrlGet: string = replaceUrl(
     API.DOCREVIEWER_DOCUMENT_PAGE_DELETE,
     "<ministryrequestid>",
     mininstryrequestid
-  ), "<redactionlayer>", redactionlayer);
+  );
 
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
