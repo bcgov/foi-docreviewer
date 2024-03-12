@@ -229,13 +229,9 @@ class AnnotationSection(db.Model):
                         "section": annot["sectionsschema"],
                         "createdby": userinfo,
                         "isactive": True,
-                        "version": pkkey["version"] + 1,
-                        "redactionlayerid": redactionlayerid
-                        if pkkey is not None and "version" in pkkey
-                        else 1,
-                        "id": pkkey["id"]
-                        if pkkey is not None and "id" in pkkey
-                        else None,
+                        "redactionlayerid": redactionlayerid,
+                        "version": pkkey["version"] + 1  if pkkey is not None and "version" in pkkey else 1,
+                        "id": pkkey["id"] if pkkey is not None and "id" in pkkey else None
                     }
                 )
                 idxannots.append(annot["name"])
