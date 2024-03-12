@@ -36,6 +36,7 @@ import {
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
   deleteDocumentPages,
+  fetchDeletedDocumentPages,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -64,6 +65,7 @@ import {
   getSliceSetDetails,
   sortDocObjects,
   sortDocObjectsForRedline,
+  getDocumentPages,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -107,6 +109,7 @@ const Redlining = React.forwardRef(
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
+    const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const viewer = useRef(null);
 
     const documentList = useAppSelector(
@@ -170,6 +173,7 @@ const Redlining = React.forwardRef(
     const [requestStitchObject, setRequestStitchObject] = useState({});
     const [issingleredlinepackage, setIssingleredlinepackage] = useState(null);
     const [incompatableList, setIncompatableList]= useState({});
+    // const [triggerRemovePages, setTriggerRemovePages] = useState(true);
     
     //xml parser
     const parser = new XMLParser();
@@ -505,6 +509,7 @@ const Redlining = React.forwardRef(
             .setStyles(() => ({
               FillColor: new Annotations.Color(255, 255, 255),
             }));
+          let skipRemovePages = false;
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             //Search Document Logic (for multi-keyword search and etc)
@@ -546,8 +551,39 @@ const Redlining = React.forwardRef(
               doclistCopy.length,
               true
             );
-            if(doclistCopy.length > 1)
+            if(doclistCopy.length > 1) {
               doclistCopy?.shift();
+              let _firstdoc = documentViewer.getDocument();
+              fetchDeletedDocumentPages(
+                requestid, 
+                async (deletedDocPages) => {
+                  if (deletedDocPages) {
+                    const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
+                    if (deletedPages.length > 0) {
+                      skipRemovePages = true;
+                      await _firstdoc.removePages(deletedPages);                     
+                      let setCount = slicerdetails.setcount;
+                      let slicer = slicerdetails.slicer;            
+                      let objpreptasks = new Array(setCount);
+                      for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+                        let sliceDoclist = doclistCopy.splice(0, slicer);
+                        objpreptasks.push(
+                          mergeObjectsPreparation(
+                            instance.Core.createDocument,
+                            sliceDoclist,
+                            slicecount
+                          )
+                        );
+                      }
+
+                      Promise.all(objpreptasks);
+                    }
+                  }
+                }, 
+                (error) =>
+                  console.log(error));
+              
+            }
             let setCount = slicerdetails.setcount;
             let slicer = slicerdetails.slicer;            
             let objpreptasks = new Array(setCount);
@@ -589,9 +625,11 @@ const Redlining = React.forwardRef(
           });
           //Triggered when the layout has changed because pages have permanently been added, removed, moved or changed in some other way.
           documentViewer.addEventListener("pagesUpdated", change => {
-            if (change.removed.length > 0) {
+            if (change.removed.length > 0 && !skipRemovePages) {
               setPagesRemoved(change.removed)
             }
+            if (skipRemovePages)
+              skipRemovePages = false;
           })
           
           documentViewer.addEventListener("click", async () => {
@@ -714,7 +752,7 @@ const Redlining = React.forwardRef(
           requestid,
           finalResults,
           (data) => {
-            // window.location.reload();
+            window.location.reload();
           },
           (error) => {
             console.log(error);
@@ -2972,17 +3010,19 @@ const Redlining = React.forwardRef(
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
               if (docCount == 1) {
+                if (deletedDocPages) {
+                  const deletedPages = deletedDocPages[doc.documentid] || [];
+                  if (deletedPages.length > 0)
+                    docObj.removePages(deletedPages)
+                    // setTriggerRemovePages(false);
+                }
+                
                 stitchedDocObj = docObj;
               } else {
-                // create an array containing 1…N
-                let pages = Array.from(
-                  { length: doc.pagecount },
-                  (v, k) => k + 1
-                );
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
                 await stitchedDocObj.insertPages(
                   docObj,
-                  pages,
+                  doc.pages,
                   pageIndexToInsert
                 );
               }
@@ -3221,6 +3261,7 @@ const Redlining = React.forwardRef(
             await stitchObject.removePages(
               redlinepageMappings["pagestoremove"][divisionid]
             );
+            // setTriggerRemovePages(false);
           }
           
           let xfdfString =
@@ -3347,14 +3388,10 @@ const Redlining = React.forwardRef(
       let stitchIndex = 1;
       
       sortedList.forEach((sortedItem, _index) => {
-        const pages = [];
-        for (let i = 0; i < sortedItem.pagecount; i++) {
-          pages.push(i + 1);
-        }
         index = index + sortedItem.pagecount;
         sortedItem.sortorder = _index + 1;
         sortedItem.stitchIndex = stitchIndex;
-        sortedItem.pages = pages;
+        sortedItem.pages = getDocumentPages(sortedItem.documentid, deletedDocPages, sortedItem.originalpagecount);
         stitchIndex += sortedItem.pagecount;
       });
       return sortedList;
@@ -3496,6 +3533,7 @@ const Redlining = React.forwardRef(
             let doc = documentViewer.getDocument();
             await annotationManager.applyRedactions(); // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
+            // setTriggerRemovePages(false);
 
             const { PDFNet } = _instance.Core;
             PDFNet.initialize();

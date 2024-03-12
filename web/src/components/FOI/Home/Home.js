@@ -12,7 +12,7 @@ import {
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { sortDocList } from "./utils";
+import { sortDocList, getDocumentPages } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -152,33 +152,22 @@ function Home() {
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       const documentId = sortedDoc.file.documentid;
-      const pages = [];
-      
-      let deletedPages = [];
-      if (deletedDocPages)
-        deletedPages = deletedDocPages[documentId] || [];
-      for (let i = 0; i < sortedDoc.file.originalpagecount; i++) {
-          const pageNumber = i + 1;
-          if (!deletedPages.includes(pageNumber)) {
-            pages.push(pageNumber);
-          }
-      }
-      
+      let pages = getDocumentPages(documentId, deletedDocPages, sortedDoc.file.originalpagecount);      
       let j = 0;
 
-      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
-        j++;
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {        
         let pageMapping = {
-          pageNo: j,
+          pageNo: pages[j],
           stitchedPageNo: i,
         };
         mappedDoc.pageMappings.push(pageMapping);
         mappedDocs["stitchedPageLookup"][i] = {
           docid: documentId,
           docversion: sortedDoc.file.version,
-          page: j,
+          page: pages[j],
         };
         totalPageCount = i;
+        j++;
       }
       mappedDocs["docIdLookup"][documentId] = {
         docId: documentId,
