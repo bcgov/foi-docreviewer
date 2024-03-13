@@ -1,11 +1,12 @@
 from reviewer_api.models.DocumentDeletedPages import DocumentDeletedPage
 from reviewer_api.models.Documents import Document
+from reviewer_api.models.DocumentMaster import DocumentMaster
 from datetime import datetime
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 
 class docdeletedpageservice:
 
-    def deletepages(self, ministryid, docdeletedpage, userinfo):
+    def newdeletepages(self, ministryid, docdeletedpage, userinfo):
         layerid = self.__getredactionlayerid(docdeletedpage["redactionlayer"])
         docs = Document.getdocumentpagedatabyrequest(ministryid)
         docpages = []
@@ -30,7 +31,9 @@ class docdeletedpageservice:
         return DocumentDeletedPage().create(ministryid, docpages, docpagecounts)
 
     def getdeletedpages(self, ministryid):
-        deletedpages = DocumentDeletedPage().getdeletedpages(ministryid)
+        deletedmasterids = DocumentMaster.getdeleted(ministryid)
+        activedocumentids = Document.getactivedocumentidsbyrequest(ministryid, deletedmasterids)
+        deletedpages = DocumentDeletedPage().getdeletedpages(ministryid, activedocumentids)
         documentpages = {}
         for entry in deletedpages:
             if entry["documentid"] not in documentpages:

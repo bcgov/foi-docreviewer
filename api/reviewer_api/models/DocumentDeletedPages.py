@@ -33,10 +33,10 @@ class DocumentDeletedPage(db.Model):
             db.session.close()
 
     @classmethod
-    def getdeletedpages(cls, ministryrequestid):
+    def getdeletedpages(cls, ministryrequestid, docids):
         try:
             deletepage_schema = DocumentDeletedSchema(many=True)
-            query = db.session.query(DocumentDeletedPage).filter(DocumentDeletedPage.ministryrequestid == ministryrequestid).all()
+            query = db.session.query(DocumentDeletedPage).filter(DocumentDeletedPage.ministryrequestid == ministryrequestid, DocumentDeletedPage.documentid.in_(docids)).all()
             return deletepage_schema.dump(query)
         except Exception as ex:
             logging.error(ex)

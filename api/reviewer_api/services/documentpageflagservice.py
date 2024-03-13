@@ -6,13 +6,14 @@ from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
-
+from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
 
 class documentpageflagservice:    
-    def getpageflags(self, requestid, redactionlayer, documentids):
+    def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
         layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
-        return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
+        pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
+        return self.__removedeletedpages(requestid, pageflags)
     
     def getpublicbody(self, requestid, redactionlayer):
         redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
@@ -31,6 +32,19 @@ class documentpageflagservice:
             return pageflag["pageflag"], pageflag["attributes"]
         return [], None
 
+    def __removedeletedpages(self, requestid, pageflags):
+        docdeletedpages = docdeletedpageservice().getdeletedpages(requestid)
+        filteredpages = []
+        for entry in pageflags:
+            docid = entry["documentid"]
+            deletedpages = docdeletedpages[docid] if docid in docdeletedpages else []
+            filteredpages.append(self.__filterpages(entry["pageflag"], deletedpages))
+        return filteredpages
+    
+    def __filterpages(self, pageflag, deletedpages):
+        return list(filter(lambda pgflag: pgflag['page'] not in deletedpages, pageflag))
+
+
     def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
         layerids = redactionlayerservice().getmappedredactionlayers(
             {"redactionlayerid": redactionlayerid}
@@ -38,7 +52,7 @@ class documentpageflagservice:
         return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
     def removebookmark(self, requestid, redactionlayerid, userinfo):
-        pageflags = self.getpageflags(requestid, redactionlayerid)
+        pageflags = self.__getpageflags(requestid, redactionlayerid)
         for entry in pageflags:
             new_pageflag = list(filter(lambda x: x["flagid"] != 8, entry["pageflag"]))
             DocumentPageflag.savepageflag(
@@ -49,6 +63,10 @@ class documentpageflagservice:
                 json.dumps(userinfo),
                 redactionlayerid,
             )
+    def __getpageflags(self, requestid, redactionlayer):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        return DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids)    
 
     def bulksavedocumentpageflag(
         self, requestid, documentid, version, pageflags, redactionlayerid, userinfo

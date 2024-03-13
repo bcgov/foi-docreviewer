@@ -148,6 +148,32 @@ class Document(db.Model):
             db.session.close()
 
     @classmethod
+    def getactivedocumentidsbyrequest(cls, ministryrequestid, deletedmasterids):
+        docids = []
+        try:
+            sql = """
+                  select distinct on (docs.documentid) docs.documentid
+                        from  "Documents" docs
+                        where docs.foiministryrequestid = :ministryrequestid 
+                        and docs.documentmasterid not in :deletedmasterids
+                        order by docs.documentid, docs.version desc 
+                """
+            rs = db.session.execute(
+                text(sql),
+                {"ministryrequestid": ministryrequestid, "deletedmasterids": tuple(deletedmasterids)},
+            )  
+            for row in rs:
+                docids.append(row['documentid'])
+            return docids         
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+
+
+
+    @classmethod
     def getdocumentsbyids(cls, idlist):
         try:
             _session = db.session
