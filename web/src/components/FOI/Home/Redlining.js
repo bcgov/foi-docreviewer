@@ -63,6 +63,7 @@ import {
   getSliceSetDetails,
   sortDocObjects,
   sortDocObjectsForRedline,
+  addWatermarkToRedline
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -169,6 +170,9 @@ const Redlining = React.forwardRef(
     const [requestStitchObject, setRequestStitchObject] = useState({});
     const [issingleredlinepackage, setIssingleredlinepackage] = useState(null);
     const [incompatableList, setIncompatableList]= useState({});
+    const [includeNRPages, setIncludeNRPages]= useState(false);
+    const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
+    const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     
     //xml parser
     const parser = new XMLParser();
@@ -2065,7 +2069,9 @@ const Redlining = React.forwardRef(
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
-        files: [], 
+        files: [],
+        includeduplicatepages: includeDuplicatePages,
+        includenrpages: includeNRPages,
       };
       if (stitchedDocPath) {
         const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2264,18 +2270,19 @@ const Redlining = React.forwardRef(
     };
 
     const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg) => {      
-    if (redlineSinglePkg == "Y") {
-      let reqdocuments = [];
-      for (let divObj of divisionDocuments) {    
-        for (let doc of divObj.documentlist) {
-          reqdocuments.push(doc);
+      if (redlineSinglePkg == "Y") {
+        let reqdocuments = [];
+        for (let divObj of divisionDocuments) {    
+          for (let doc of divObj.documentlist) {
+            reqdocuments.push(doc);
+          }
         }
+        prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
+      } else {
+        prepareRedlinePageMappingByDivision(divisionDocuments);
       }
-      prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
-    } else {
-      prepareRedlinePageMappingByDivision(divisionDocuments);
     }
-  }
+
     const prepareRedlinePageMappingByRequest = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
@@ -2283,44 +2290,84 @@ const Redlining = React.forwardRef(
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
       let divPageMappings = {};
+      let duplicateWatermarkPages = {};
+      let duplicateWatermarkPagesEachDiv = [];
+      let NRWatermarksPages = {};
+      let NRWatermarksPagesEachDiv = [];
       for (let doc of divisionDocuments) {
-          let pagesToRemoveEachDoc = [];
-          pageMappings[doc.documentid] = {};
-            //gather pages that need to be removed
-            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-            for (const flagInfo of doc.pageFlag) {
-              if (
-                flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                flagInfo.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(
-                    getStitchedPageNoFromOriginal(
-                      doc.documentid,
-                      flagInfo.page,
-                      pageMappedDocs
-                    )
-                  );
-                  
-              } else {
-                pageMappings[doc.documentid][flagInfo.page] =
-                  flagInfo.page +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
-              }
+        let pagesToRemoveEachDoc = [];
+        pageMappings[doc.documentid] = {};
+        //gather pages that need to be removed
+        doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+        for (const flagInfo of doc.pageFlag) {
+          if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+            if(includeDuplicatePages) {
+              duplicateWatermarkPagesEachDiv.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
+            } else {
+              pagesToRemoveEachDoc.push(flagInfo.page);
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
             }
-              //End of pageMappingsByDivisions
-          totalPageCount += Object.keys(
-            pageMappings[doc.documentid]
-          ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
-          
-          
+          } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+            if(includeNRPages) {
+              NRWatermarksPagesEachDiv.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
+            } else {
+              pagesToRemoveEachDoc.push(flagInfo.page);
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
+            }
+          } else {
+            pageMappings[doc.documentid][flagInfo.page] =
+              flagInfo.page +
+              totalPageCount -
+              pagesToRemoveEachDoc.length;
+          }
         }
+        //End of pageMappingsByDivisions
+        totalPageCount += Object.keys(
+          pageMappings[doc.documentid]
+        ).length;
+        totalPageCountIncludeRemoved += doc.pagecount;
+      }
       divPageMappings['0'] = pageMappings;
-      removepages['0'] = pagesToRemove;  
-      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
+      removepages['0'] = pagesToRemove; 
+      duplicateWatermarkPages['0'] = duplicateWatermarkPagesEachDiv;
+      NRWatermarksPages['0'] = NRWatermarksPagesEachDiv;
+      console.log('duplicateWatermarkPages', duplicateWatermarkPages);
+      console.log('NRWatermarksPages', NRWatermarksPages);
+      setRedlinepageMappings({
+        'divpagemappings': divPageMappings,
+        'pagemapping': pageMappings,
+        'pagestoremove': removepages
+      });
+      setRedlineWatermarkPageMapping({
+        'duplicatewatermark': duplicateWatermarkPages,
+        'NRwatermark': NRWatermarksPages
+      });
     }
+
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
@@ -2329,50 +2376,76 @@ const Redlining = React.forwardRef(
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
       let divisionCount = 0; 
+      let duplicateWatermarkPages = {};
+      let duplicateWatermarkPagesEachDiv = [];
+      let NRWatermarksPages = {};
+      let NRWatermarksPagesEachDiv = [];
       for (let divObj of divisionDocuments) {    
         divisionCount++;  
         for (let doc of sortByLastModified(divObj.documentlist)) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
-            //gather pages that need to be removed
-            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-            //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
-            for (const flagInfo of doc.pageFlag) {
-              if (
-                flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                flagInfo.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                
-                      pagesToRemove.push(                  
-                        flagInfo.page + totalPageCountIncludeRemoved
-                      );
-                 
+
+          //gather pages that need to be removed
+          doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+          //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
+          for (const flagInfo of doc.pageFlag) {
+            if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+              if(includeDuplicatePages) {
+                duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved);
               } else {
-                pageMappings[doc.documentid][flagInfo.page] =
-                  flagInfo.page +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
+                pagesToRemoveEachDoc.push(flagInfo.page);
+              
+                pagesToRemove.push(                  
+                  flagInfo.page + totalPageCountIncludeRemoved
+                );
               }
+            } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+              if(includeNRPages) {
+                NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved);
+              } else {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+              
+                pagesToRemove.push(                  
+                  flagInfo.page + totalPageCountIncludeRemoved
+                );
+              }
+            } else {
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             }
-              //End of pageMappingsByDivisions
+          }
+          //End of pageMappingsByDivisions
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
+          totalPageCountIncludeRemoved += doc.pagecount;
           //}
           
         }
-          divPageMappings[divObj.divisionid] = pageMappings;
-          removepages[divObj.divisionid] = pagesToRemove;
-          pagesToRemove = [];
-          totalPageCount = 0;
-          totalPageCountIncludeRemoved = 0;
-          pageMappings = {}
-            
-        
+        divPageMappings[divObj.divisionid] = pageMappings;
+        removepages[divObj.divisionid] = pagesToRemove;
+        duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
+        NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
+        pagesToRemove = [];
+        duplicateWatermarkPagesEachDiv = [];
+        NRWatermarksPagesEachDiv = [];
+        totalPageCount = 0;
+        totalPageCountIncludeRemoved = 0;
+        pageMappings = {}
       }
-      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
+
+      setRedlinepageMappings({
+        'divpagemappings': divPageMappings,
+        'pagemapping': pageMappings,
+        'pagestoremove': removepages
+      });
+      setRedlineWatermarkPageMapping({
+        'duplicatewatermark': duplicateWatermarkPages,
+        'NRwatermark': NRWatermarksPages
+      });
     }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
@@ -2678,6 +2751,8 @@ const Redlining = React.forwardRef(
     }
 
     const cancelSaveRedlineDoc = () => {
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
       setRedlineModalOpen(false);
     };
 
@@ -2750,36 +2825,36 @@ const Redlining = React.forwardRef(
             divCount++;
             let docCount = 0;
             if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
-            for (let doc of div.documentlist) {
-              docCount++;
-              documentsObjArr.push(doc);
-              if (docCount == div.documentlist.length) {
-                if (pageMappedDocs != undefined) {
-                  let divisionsdocpages = Object.values(
-                    pageMappedDocs.redlineDocIdLookup
-                  )
-                    .filter((obj) => {
-                      return obj.division.includes(div.divisionid);
-                    })
-                    .map((obj) => {
-                      return obj.pageMappings;
+              for (let doc of div.documentlist) {
+                docCount++;
+                documentsObjArr.push(doc);
+                if (docCount == div.documentlist.length) {
+                  if (pageMappedDocs != undefined) {
+                    let divisionsdocpages = Object.values(
+                      pageMappedDocs.redlineDocIdLookup
+                    )
+                      .filter((obj) => {
+                        return obj.division.includes(div.divisionid);
+                      })
+                      .map((obj) => {
+                        return obj.pageMappings;
+                      });
+                    divisionsdocpages.forEach(function (_arr) {
+                      _arr.forEach(function (value) {
+                        divisionstitchpages.push(value);
+                      });
                     });
-                  divisionsdocpages.forEach(function (_arr) {
-                    _arr.forEach(function (value) {
-                      divisionstitchpages.push(value);
-                    });
-                  });
-                  divisionstitchpages.sort((a, b) =>
-                    a.stitchedPageNo > b.stitchedPageNo
-                      ? 1
-                      : b.stitchedPageNo > a.stitchedPageNo
-                      ? -1
-                      : 0
-                  );
+                    divisionstitchpages.sort((a, b) =>
+                      a.stitchedPageNo > b.stitchedPageNo
+                        ? 1
+                        : b.stitchedPageNo > a.stitchedPageNo
+                        ? -1
+                        : 0
+                    );
+                  }
                 }
               }
             }
-          }
             if (
               res.issingleredlinepackage == "Y" &&
               divCount == res.divdocumentList.length
@@ -2940,11 +3015,11 @@ const Redlining = React.forwardRef(
             requestStitchObject[division] = stitchedDocObj;
           }
         }
-      } else {
-        if (incompatableList[division]["incompatibleFiles"].length > 0) {
+        } else {
+          if (incompatableList[division]["incompatibleFiles"].length > 0) {
             requestStitchObject[division] = null
-        } 
-      }
+          } 
+        }
         if (redlineSinglePkg == "Y" && stitchedDocObj != null) {
           requestStitchObject["0"] = stitchedDocObj;
         }
@@ -3024,9 +3099,10 @@ const Redlining = React.forwardRef(
     ) => {
           for (const filerow of sliceDoclist) {
             try {
-            await createDocument(filerow.s3path_load, 
-              { useDownloader: false } // Added to fix BLANK page issue
-              ).then(async (newDoc) => {
+            await createDocument(filerow.s3path_load, {
+              useDownloader: false, // Added to fix BLANK page issue
+              loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
+            }).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3049,13 +3125,12 @@ const Redlining = React.forwardRef(
                 }
               }
             });
-          } catch (error) {
-            console.error("An error occurred during create document:", error);
-            // Handle any errors that occurred during the asynchronous operations
+            } catch (error) {
+              console.error("An error occurred during create document:", error);
+              // Handle any errors that occurred during the asynchronous operations
+            }
           }
-          }
-        
-      };
+    };
 
     useEffect(() => {
       if (
@@ -3161,6 +3236,8 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
             );
+            
+            addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
           }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
@@ -3215,9 +3292,9 @@ const Redlining = React.forwardRef(
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-              );
-        }
-        //OIPC - Special Block : End
+            );
+          }
+          //OIPC - Special Block : End
         
           
 
@@ -3547,6 +3624,14 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const handleIncludeNRPages = () => {
+      setIncludeNRPages(!includeNRPages);
+    }
+
+    const handleIncludeDuplicantePages = () => {
+      setIncludeDuplicatePages(!includeDuplicatePages);
+    }
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -3674,7 +3759,7 @@ const Redlining = React.forwardRef(
           initHeight={300}
           minWidth={600}
           minHeight={250}
-          className={"state-change-dialog"}
+          className={"state-change-dialog redline-modal"}
           onRequestClose={cancelRedaction}
           isOpen={redlineModalOpen}
         >
@@ -3690,8 +3775,25 @@ const Redlining = React.forwardRef(
               id="state-change-dialog-description"
               component={"span"}
             >
-              <span className="confirmation-message">
-                {modalMessage} <br></br>
+              <span>
+                {modalMessage} <br/><br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
+                  onChange={handleIncludeNRPages}
+                />
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
+                  onChange={handleIncludeDuplicantePages}
+                />
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
               </span>
             </DialogContentText>
           </DialogContent>
