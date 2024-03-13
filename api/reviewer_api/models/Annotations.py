@@ -537,6 +537,31 @@ class Annotation(db.Model):
             logging.error(ex)
         finally:
             db.session.close()
+    
+    @classmethod
+    def getredactionannotationsbydocumentpages(cls, docpagemapping, redactionlayerid):
+        try:
+            annotation_schema = AnnotationSchema(many=True)
+            query = (
+                db.session.query(Annotation.documentid, Annotation.pagenumber, func.array_agg(Annotation.annotation).label('annotations'))
+                .filter(
+                    and_(
+                        Annotation.annotation.ilike("%<redact %"),
+                        Annotation.redactionlayerid == redactionlayerid,
+                        Annotation.isactive == True
+                        ),
+                    or_(
+                        and_(Annotation.documentid == docid, Annotation.pagenumber == pagenumber)
+                        for docid, pagenumber in docpagemapping
+                    ))
+                .group_by(Annotation.documentid, Annotation.pagenumber)
+                .all()
+            )
+            return annotation_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 
 class AnnotationSchema(ma.Schema):
@@ -547,6 +572,7 @@ class AnnotationSchema(ma.Schema):
             "documentid",
             "documentversion",
             "annotation",
+            "annotations",
             "pagenumber",
             "redactionlayerid",
             "redactionlayer.redactionlayerid",
