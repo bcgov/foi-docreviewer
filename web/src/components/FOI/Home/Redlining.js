@@ -2307,7 +2307,7 @@ const Redlining = React.forwardRef(
                   doc.documentid,
                   flagInfo.page,
                   pageMappedDocs
-                )
+                ) - pagesToRemove.length
               );
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
@@ -2326,7 +2326,7 @@ const Redlining = React.forwardRef(
                   doc.documentid,
                   flagInfo.page,
                   pageMappedDocs
-                )
+                ) - pagesToRemove.length
               );
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
@@ -2355,8 +2355,6 @@ const Redlining = React.forwardRef(
       removepages['0'] = pagesToRemove; 
       duplicateWatermarkPages['0'] = duplicateWatermarkPagesEachDiv;
       NRWatermarksPages['0'] = NRWatermarksPagesEachDiv;
-      console.log('duplicateWatermarkPages', duplicateWatermarkPages);
-      console.log('NRWatermarksPages', NRWatermarksPages);
       setRedlinepageMappings({
         'divpagemappings': divPageMappings,
         'pagemapping': pageMappings,
@@ -2392,7 +2390,7 @@ const Redlining = React.forwardRef(
           for (const flagInfo of doc.pageFlag) {
             if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
               if(includeDuplicatePages) {
-                duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved);
+                duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
@@ -2402,7 +2400,7 @@ const Redlining = React.forwardRef(
               }
             } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
               if(includeNRPages) {
-                NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved);
+                NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
@@ -2772,6 +2770,8 @@ const Redlining = React.forwardRef(
           break;
         default:
       }
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
     };
 
     const getzipredlinecategory = (layertype) => {
@@ -3225,133 +3225,134 @@ const Redlining = React.forwardRef(
             );
           } else {
             let formattedAnnotationXML = formatAnnotationsForRedline(
-            redlineDocumentAnnotations,
-            redlinepageMappings["divpagemappings"][divisionid],
-            redlineStitchInfo[divisionid]["documentids"]
-          );
-          if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            redlineSinglePackage
+              redlineDocumentAnnotations,
+              redlinepageMappings["divpagemappings"][divisionid],
+              redlineStitchInfo[divisionid]["documentids"]
             );
-            
-            addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
-          }
-          if (
-            redlinepageMappings["pagestoremove"][divisionid] &&
-            redlinepageMappings["pagestoremove"][divisionid].length > 0
-          ) {
-            await stitchObject.removePages(
-              redlinepageMappings["pagestoremove"][divisionid]
-            );
-          }
-          
-          let xfdfString =
-            '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
-            formattedAnnotationXML +
-            "</annots></xfdf>";
-
-          //OIPC - Special Block (Redact S.14) : Begin
-          if(redlineCategory === "oipcreview") {
-            const rarr = []; 
-            let annotationManager = docInstance?.Core.annotationManager;
-            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            let rects = [];
-            for (const [key, value] of Object.entries(s14_sectionStamps)) {
-              let s14annoation = annotationManager.getAnnotationById(key);
-                  if ( s14annoation.Subject === "Redact") { 
-                          rects = rects.concat( 
-                          s14annoation.getQuads().map((q) => {
-                            return {
-                                pageno: s14_sectionStamps[key],
-                                recto: q.toRect(),
-                                vpageno: s14annoation.getPageNumber()
-                              };
-                            })
-                          );
-                      }
-                
-              
-            }
-            for (const rect of rects) {
-              let height = docViewer.getPageHeight(rect.vpageno);
-              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-            }
-            if (rarr.length > 0) {
-              const app = {};
-              app.redaction_overlay = true;
-              app.border = false;
-              app.show_redacted_content_regions = false;
-              const doc = await stitchObject.getPDFDoc();
-              await PDFNet.Redactor.redact(doc, rarr, app);
-            }
-            await stampPageNumberRedline(
+            if(redlineCategory !== "oipcreview") {  
+              await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
-            );
-          }
-          //OIPC - Special Block : End
-        
-          
-
-          stitchObject
-            .getFileData({
-              // saves the document with annotations in it
-              xfdfString: xfdfString,
-              downloadType: downloadType,
-              //flatten: true, //commented this as part of #4862
-            })
-            .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], {
-                type: "application/pdf",
-              });
-
-              saveFilesinS3(
-                { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                _blob,
-                (_res) => {
-                  // ######### call another process for zipping and generate download here ##########
-                  toast.update(toastId.current, {
-                    render: `Redline PDF saved to Object Storage`,
-                    type: "success",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                  triggerRedlineZipper(
-                    redlineIncompatabileMappings[divisionid],
-                    redlineStitchInfo[divisionid]["s3path"],
-                    divisionCountForToast,
-                    redlineSinglePackage
-                  );
-                },
-                (_err) => {
-                  console.log(_err);
-                  toast.update(toastId.current, {
-                    render: "Failed to save redline pdf to Object Storage",
-                    type: "error",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                }
               );
-            });
+            }
+            if (
+              redlinepageMappings["pagestoremove"][divisionid] &&
+              redlinepageMappings["pagestoremove"][divisionid].length > 0
+            ) {
+              await stitchObject.removePages(
+                redlinepageMappings["pagestoremove"][divisionid]
+              );
+            }
+            if(redlineCategory == "redline") {  
+              await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
+            }
+            
+            let xfdfString =
+              '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
+              formattedAnnotationXML +
+              "</annots></xfdf>";
+
+            //OIPC - Special Block (Redact S.14) : Begin
+            if(redlineCategory === "oipcreview") {
+              const rarr = []; 
+              let annotationManager = docInstance?.Core.annotationManager;
+              let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+              let rects = [];
+              for (const [key, value] of Object.entries(s14_sectionStamps)) {
+                let s14annoation = annotationManager.getAnnotationById(key);
+                    if ( s14annoation.Subject === "Redact") { 
+                            rects = rects.concat( 
+                            s14annoation.getQuads().map((q) => {
+                              return {
+                                  pageno: s14_sectionStamps[key],
+                                  recto: q.toRect(),
+                                  vpageno: s14annoation.getPageNumber()
+                                };
+                              })
+                            );
+                        }
+                  
+                
+              }
+              for (const rect of rects) {
+                let height = docViewer.getPageHeight(rect.vpageno);
+                rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+              }
+              if (rarr.length > 0) {
+                const app = {};
+                app.redaction_overlay = true;
+                app.border = false;
+                app.show_redacted_content_regions = false;
+                const doc = await stitchObject.getPDFDoc();
+                await PDFNet.Redactor.redact(doc, rarr, app);
+              }
+              await stampPageNumberRedline(
+                stitchObject,
+                PDFNet,
+                redlineStitchInfo[divisionid]["stitchpages"],
+                redlineSinglePackage
+              );
+            }
+            //OIPC - Special Block : End
+          
+            
+
+            stitchObject
+              .getFileData({
+                // saves the document with annotations in it
+                xfdfString: xfdfString,
+                downloadType: downloadType,
+                //flatten: true, //commented this as part of #4862
+              })
+              .then(async (_data) => {
+                const _arr = new Uint8Array(_data);
+                const _blob = new Blob([_arr], {
+                  type: "application/pdf",
+                });
+
+                saveFilesinS3(
+                  { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                  _blob,
+                  (_res) => {
+                    // ######### call another process for zipping and generate download here ##########
+                    toast.update(toastId.current, {
+                      render: `Redline PDF saved to Object Storage`,
+                      type: "success",
+                      className: "file-upload-toast",
+                      isLoading: false,
+                      autoClose: 3000,
+                      hideProgressBar: true,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      closeButton: true,
+                    });
+                    triggerRedlineZipper(
+                      redlineIncompatabileMappings[divisionid],
+                      redlineStitchInfo[divisionid]["s3path"],
+                      divisionCountForToast,
+                      redlineSinglePackage
+                    );
+                  },
+                  (_err) => {
+                    console.log(_err);
+                    toast.update(toastId.current, {
+                      render: "Failed to save redline pdf to Object Storage",
+                      type: "error",
+                      className: "file-upload-toast",
+                      isLoading: false,
+                      autoClose: 3000,
+                      hideProgressBar: true,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      closeButton: true,
+                    });
+                  }
+                );
+              });
           }
         }
       };
@@ -3624,12 +3625,12 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const handleIncludeNRPages = () => {
-      setIncludeNRPages(!includeNRPages);
+    const handleIncludeNRPages = (e) => {
+      setIncludeNRPages(e.target.checked);
     }
 
-    const handleIncludeDuplicantePages = () => {
-      setIncludeDuplicatePages(!includeDuplicatePages);
+    const handleIncludeDuplicantePages = (e) => {
+      setIncludeDuplicatePages(e.target.checked);
     }
 
     return (
@@ -3783,6 +3784,7 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="nr-checkbox"
+                  checked={includeNRPages}
                   onChange={handleIncludeNRPages}
                 />
                 <label for="nr-checkbox">Include NR pages</label>
@@ -3792,6 +3794,7 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="duplicate-checkbox"
+                  checked={includeDuplicatePages}
                   onChange={handleIncludeDuplicantePages}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
