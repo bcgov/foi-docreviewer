@@ -3402,7 +3402,6 @@ const Redlining = React.forwardRef(
           let pagesToRemove = [];
           for (const infoForEachDoc of pageFlags) {
             for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-              /** pageflag duplicate or not responsive */
               if (
                 pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
                 pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
@@ -3417,100 +3416,90 @@ const Redlining = React.forwardRef(
               }
             }
           }
-
           let doc = documentViewer.getDocument();
           await annotationManager.applyRedactions();
-          toast.update(toastID, {
-            render: "Saving section stamps...",
-            isLoading: true,
-          });
           /**must apply redactions before removing pages*/
           await doc.removePages(pagesToRemove);
 
           const { PDFNet } = _instance.Core;
           PDFNet.initialize();
           await stampPageNumberResponse(documentViewer, PDFNet);
-
+          toast.update(toastID, {
+            render: "Saving section stamps...",
+            isLoading: true,
+          });
           /**Fixing section cutoff issue in response pkg-
-           * Get all annotations after redactions applied & 
-           * delete annotations that are not freetext.
-           * (freetext annotations are added once redactions  
-           * are applied in the annotationChangedHandler )
+           * (For showing section names-freetext annotations are 
+           * added once redactions are applied in the annotationChangedHandler) 
+           * then export & filter freetext & widget annotations 
+           * after redactions applied.
+           * (widget is needed for showing data from fillable pdfs).
            */
           let annotsAfterRedaction = await annotationManager.getAnnotationsList();
-          /**Adding & deleting annotations other than freetext- starts*/
-          let annotsToDelete= [];
-          annotsAfterRedaction.forEach((annotation) => {
-            if(annotation.Subject !== 'Free Text' && annotation.Subject !== 'Widget'){
-              annotsToDelete.push(annotation);
-            }
-          });
-          await annotationManager.deleteAnnotation(annotsToDelete,{
-            force: true,
-          });
-          /**Adding & deleting annotations other than freetext- ends*/
-          await annotationManager.exportAnnotations().then(async (xfdfString) => {
+          const filteredAnnotations = annotsAfterRedaction.filter(annotation => 
+            annotation instanceof _instance.Core.Annotations?.FreeTextAnnotation ||
+            annotation instanceof _instance.Core.Annotations?.WidgetAnnotation
+          );
+          const xfdfString = await annotationManager.exportAnnotations({ annotationList: filteredAnnotations, widgets:true}); 
           /** apply redaction and save to s3 - xfdfString is needed to display 
-           * the freetext(section name) when
-           * file gets downloaded.*/
-            doc
-              .getFileData({
-                // saves the document with annotations in it
-                xfdfString:xfdfString,
-                downloadType: downloadType,
-                flatten: true
-              })
-              .then(async (_data) => {
-                const _arr = new Uint8Array(_data);
-                const _blob = new Blob([_arr], { type: "application/pdf" });
+           * the freetext(section name) on downloaded file.*/
+          doc
+            .getFileData({
+              // saves the document with annotations in it
+              xfdfString:xfdfString,
+              downloadType: downloadType,
+              flatten: true
+            })
+            .then(async (_data) => {
+              const _arr = new Uint8Array(_data);
+              const _blob = new Blob([_arr], { type: "application/pdf" });
 
-              toast.update(toastID, {
-                render: "Saving final package to Object Storage...",
-                isLoading: true,
-              });
-              saveFilesinS3(
-                { filepath: res.s3path_save },
-                _blob,
-                (_res) => {
-                  toast.update(toastID, {
-                    render:
-                      "Final package is saved to Object Storage. Page will reload in 3 seconds..",
-                    type: "success",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                  prepareMessageForResponseZipping(
-                    res.s3path_save,
-                    zipServiceMessage
-                  );
-                  setTimeout(() => {
-                    window.location.reload(true);
-                  }, 3000);
-                },
-                (_err) => {
-                  console.log(_err);
-                  toast.update(toastID, {
-                    render: "Failed to save final package to Object Storage",
-                    type: "error",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                }
-              );
+            toast.update(toastID, {
+              render: "Saving final package to Object Storage...",
+              isLoading: true,
             });
-          })
+            saveFilesinS3(
+              { filepath: res.s3path_save },
+              _blob,
+              (_res) => {
+                toast.update(toastID, {
+                  render:
+                    "Final package is saved to Object Storage. Page will reload in 3 seconds..",
+                  type: "success",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+                prepareMessageForResponseZipping(
+                  res.s3path_save,
+                  zipServiceMessage
+                );
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 3000);
+              },
+              (_err) => {
+                console.log(_err);
+                toast.update(toastID, {
+                  render: "Failed to save final package to Object Storage",
+                  type: "error",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+              }
+            );
+          });
         },
         (error) => {
           console.log("Error fetching document:", error);
