@@ -2,7 +2,11 @@ export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   let stitchedPageNo = 0;
   if (docid && !Array.isArray(pageMappedDocs)) {
     let doc = pageMappedDocs?.docIdLookup[docid];
-    stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
+    // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
+    let stitchedPage = doc?.pageMappings?.filter(_page => _page.pageNo === page);
+    if (stitchedPage && stitchedPage.length > 0) {
+      stitchedPageNo = stitchedPage[0].stitchedPageNo;
+    }
   }
   return stitchedPageNo;
 };
