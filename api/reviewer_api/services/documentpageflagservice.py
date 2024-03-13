@@ -33,13 +33,12 @@ class documentpageflagservice:
         return [], None
 
     def __removedeletedpages(self, requestid, pageflags):
-        docdeletedpages = docdeletedpageservice().getdeletedpages(requestid)
-        filteredpages = []
+        docdeletedpages = docdeletedpageservice().getdeletedpages(requestid)       
         for entry in pageflags:
             docid = entry["documentid"]
             deletedpages = docdeletedpages[docid] if docid in docdeletedpages else []
-            filteredpages.append(self.__filterpages(entry["pageflag"], deletedpages))
-        return filteredpages
+            entry["pageflag"] = self.__filterpages(entry["pageflag"], deletedpages)
+        return pageflags
     
     def __filterpages(self, pageflag, deletedpages):
         return list(filter(lambda pgflag: pgflag['page'] not in deletedpages, pageflag))
