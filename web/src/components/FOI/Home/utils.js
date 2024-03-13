@@ -100,6 +100,22 @@ export const sortByLastModified = (files) => {
   return sortedList
 };
 
+// pages array by removing deleted pages
+export const getDocumentPages = (documentid, deletedDocPages, originalPagecount) => {
+  const pages = [];
+  let deletedPages = [];
+  if (deletedDocPages) {
+    deletedPages = deletedDocPages[documentid] || [];
+  }
+  for (let i = 0; i < originalPagecount; i++) {
+    const pageNumber = i + 1;
+    if (!deletedPages.includes(pageNumber)) {
+      pages.push(pageNumber);
+    }
+  }
+  return pages;
+}
+
 export const getValidSections = (sections, redactionSectionsIds) => {
   return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);
 };

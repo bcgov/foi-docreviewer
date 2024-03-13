@@ -8,10 +8,11 @@ import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
+  fetchDeletedDocumentPages,
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { sortDocList } from "./utils";
+import { sortDocList, getDocumentPages } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -50,6 +51,17 @@ function Home() {
     let documentObjs = [];
     let totalPageCountVal = 0;
     let presignedurls = [];
+    let deletedDocPages = [];
+
+    fetchDeletedDocumentPages(
+      foiministryrequestid, 
+      (deletedPages) => {
+        deletedDocPages = deletedPages;
+      }, 
+      (error) =>
+        console.log(error)
+    );
+
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
@@ -97,7 +109,7 @@ function Home() {
               sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              prepareMapperObj(doclist);
+              prepareMapperObj(doclist, deletedDocPages);              
               setCurrentDocument({
                 file: doclist[0]?.file || {},
                 page: 1,
@@ -127,14 +139,14 @@ function Home() {
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
         let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline; 
+        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline;
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
   }, [validoipcreviewlayer])
 
-  const prepareMapperObj = (doclistwithSortOrder) => {
+  const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
@@ -143,24 +155,27 @@ function Home() {
     let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
+      const documentId = sortedDoc.file.documentid;
+      // pages array by removing deleted pages
+      let pages = getDocumentPages(documentId, deletedDocPages, sortedDoc.file.originalpagecount);      
       let j = 0;
-      const pages = [];
-      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
-        j++;
+
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {        
         let pageMapping = {
-          pageNo: j,
+          pageNo: pages[j],
           stitchedPageNo: i,
         };
         mappedDoc.pageMappings.push(pageMapping);
         mappedDocs["stitchedPageLookup"][i] = {
-          docid: sortedDoc.file.documentid,
+          docid: documentId,
           docversion: sortedDoc.file.version,
-          page: j,
+          page: pages[j],
         };
         totalPageCount = i;
+        j++;
       }
-      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["docIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: sortedDoc.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
@@ -169,16 +184,13 @@ function Home() {
       for (let div of sortedDoc.file.divisions) {
         fileDivisons.push(div.divisionid)
       }
-      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["redlineDocIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 
-      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-        pages.push(i + 1);
-      }
       index = index + sortedDoc.file.pagecount;
       sortedDoc.sortorder = _index + 1;
       sortedDoc.stitchIndex = stitchIndex;

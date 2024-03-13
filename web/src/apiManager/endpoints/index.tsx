@@ -16,5 +16,6 @@ const API = {
     DOCREVIEWER_REDLINE:`${DOCREVIEWER_BASE_API_URL}/api/triggerdownloadredline`,
     DOCREVIEWER_FINALPACKAGE:`${DOCREVIEWER_BASE_API_URL}/api/triggerdownloadfinalpackage`,
     DOCREVIEWER_LICENSE:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/webviewerlicense`,
+    DOCREVIEWER_DOCUMENT_PAGE_DELETE:`${DOCREVIEWER_BASE_API_URL}/api/document/ministryrequest/<ministryrequestid>/<redactionlayer>/page/delete`,
 };
 export default API;
