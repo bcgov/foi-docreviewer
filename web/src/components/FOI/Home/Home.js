@@ -92,7 +92,7 @@ function Home() {
         });
         let sortedFiles = []
         sortDocList(_files, null, sortedFiles);
-        setFiles(sortedFiles);
+        // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
           let urlPromises = [];
@@ -119,6 +119,8 @@ function Home() {
               setS3Url(doclist[0]?.s3url);
               setS3UrlReady(true);
               setDocsForStitcing(doclist);
+              //files will have pages [] added
+              setFiles(doclist.map(_doc => _doc.file));
               setTotalPageCount(totalPageCountVal);
             },
             (error) => {
@@ -194,6 +196,8 @@ function Home() {
       index = index + sortedDoc.file.pagecount;
       sortedDoc.sortorder = _index + 1;
       sortedDoc.stitchIndex = stitchIndex;
+      // added to iterate through the non deleted pages for the left panel functionalities
+      sortedDoc.file.pages = pages;
       sortedDoc.pages = pages;
       stitchIndex += sortedDoc.file.pagecount;
     });
