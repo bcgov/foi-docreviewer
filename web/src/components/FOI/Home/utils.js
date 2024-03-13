@@ -281,16 +281,16 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
           ctx.globalAlpha = 0.4;
       
           ctx.save();
-          ctx.translate(0, pageHeight / 2);
-          ctx.rotate(-Math.PI / 2);
+          ctx.translate(pageWidth / 2, pageHeight / 2);
+          ctx.rotate(-Math.PI / 4);
           ctx.fillText('DUPLICATE', 0, 0);
           ctx.restore();
       
-          ctx.save();
-          ctx.translate(pageWidth, pageHeight / 2);
-          ctx.rotate(Math.PI / 2);
-          ctx.fillText('DUPLICATE', 0, 0);
-          ctx.restore();
+          // ctx.save();
+          // ctx.translate(pageWidth, pageHeight / 2);
+          // ctx.rotate(Math.PI / 2);
+          // ctx.fillText('DUPLICATE', 0, 0);
+          // ctx.restore();
         }
       },
     });
@@ -315,16 +315,16 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
           ctx.globalAlpha = 0.4;
       
           ctx.save();
-          ctx.translate(0, pageHeight / 2);
-          ctx.rotate(-Math.PI / 2);
+          ctx.translate(pageWidth / 2, pageHeight / 2);
+          ctx.rotate(-Math.PI / 4);
           ctx.fillText('NOT RESPONSIVE', 0, 0);
           ctx.restore();
       
-          ctx.save();
-          ctx.translate(pageWidth, pageHeight / 2);
-          ctx.rotate(Math.PI / 2);
-          ctx.fillText('NOT RESPONSIVE', 0, 0);
-          ctx.restore();
+          // ctx.save();
+          // ctx.translate(pageWidth, pageHeight / 2);
+          // ctx.rotate(Math.PI / 2);
+          // ctx.fillText('NOT RESPONSIVE', 0, 0);
+          // ctx.restore();
         }
       },
     });
