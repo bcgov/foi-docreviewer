@@ -22,18 +22,11 @@ class RedactionLayer(db.Model):
     @classmethod
     def getall(cls, ministryrequestid):
         try:
-            sql = """select rl.*, case when sq.count is null then 0 else sq.count end as count 
-                        from public."RedactionLayers" rl left join (
-                            select redactionlayerid as rlid, count(redactionlayerid) 
-                            from public."Annotations" a
-                            join public."Documents" d on d.documentid = a.documentid and d.foiministryrequestid = :ministryrequestid
-                            join public."DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :ministryrequestid
-							left join public."DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :ministryrequestid
-                            where foiministryrequestid = :ministryrequestid and a.isactive = true
-							and (dd.deleted is false or dd.deleted is null)
-                            group by redactionlayerid
-                        ) as sq on sq.rlid = rl.redactionlayerid
-                    """
+            sql = """select r.redactionlayerid, r."name", r.description, r.sortorder, count(as2.id) as count
+            from  "RedactionLayers" r left join "AnnotationSections" as2 on  r.redactionlayerid = as2.redactionlayerid and as2.foiministryrequestid = :ministryrequestid and as2.isactive = true 
+            where  r.isactive = true
+            group by  r.redactionlayerid, as2.redactionlayerid
+            """
             rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
             return [
                 {
