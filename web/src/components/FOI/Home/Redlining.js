@@ -3759,7 +3759,7 @@ const Redlining = React.forwardRef(
           initHeight={300}
           minWidth={600}
           minHeight={250}
-          className={"state-change-dialog"}
+          className={"state-change-dialog redline-modal"}
           onRequestClose={cancelRedaction}
           isOpen={redlineModalOpen}
         >
@@ -3775,33 +3775,26 @@ const Redlining = React.forwardRef(
               id="state-change-dialog-description"
               component={"span"}
             >
-              <span className="confirmation-message">
-                {modalMessage} <br></br>
-              </span>
-              <div>
+              <span>
+                {modalMessage} <br/><br/>
                 <input
                   type="checkbox"
-                  style={{ position: "relative", top: 7, marginRight: 15 }}
-                  className="checkmark record-checkmark"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
                   onChange={handleIncludeNRPages}
-                  required
                 />
-                <span>
-                  Include NR pages
-                </span>
-              </div>
-              <div>
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
                 <input
                   type="checkbox"
-                  style={{ position: "relative", top: 7, marginRight: 15 }}
-                  className="checkmark record-checkmark"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
                   onChange={handleIncludeDuplicantePages}
-                  required
                 />
-                <span>
-                  Include Duplicate pages
-                </span>
-              </div>
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
+              </span>
             </DialogContentText>
           </DialogContent>
           <DialogActions className="foippa-modal-actions">
