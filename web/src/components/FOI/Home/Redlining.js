@@ -3759,7 +3759,7 @@ const Redlining = React.forwardRef(
           initHeight={300}
           minWidth={600}
           minHeight={250}
-          className={"state-change-dialog redline-modal"}
+          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
           onRequestClose={cancelRedaction}
           isOpen={redlineModalOpen}
         >
@@ -3777,6 +3777,7 @@ const Redlining = React.forwardRef(
             >
               <span>
                 {modalMessage} <br/><br/>
+                {modalFor == "redline" && <>
                 <input
                   type="checkbox"
                   style={{ marginRight: 10 }}
@@ -3794,6 +3795,7 @@ const Redlining = React.forwardRef(
                   onChange={handleIncludeDuplicantePages}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
+                </>}
               </span>
             </DialogContentText>
           </DialogContent>
