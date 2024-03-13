@@ -51,6 +51,17 @@ function Home() {
     let documentObjs = [];
     let totalPageCountVal = 0;
     let presignedurls = [];
+    let deletedDocPages = [];
+
+    fetchDeletedDocumentPages(
+      foiministryrequestid, 
+      (deletedPages) => {
+        deletedDocPages = deletedPages;
+      }, 
+      (error) =>
+        console.log(error)
+    );
+
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
@@ -98,14 +109,7 @@ function Home() {
               sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              fetchDeletedDocumentPages(
-                foiministryrequestid, 
-                (deletedDocPages) => {
-                  prepareMapperObj(doclist, deletedDocPages);
-                }, 
-                (error) =>
-                  console.log(error));
-              
+              prepareMapperObj(doclist, deletedDocPages);              
               setCurrentDocument({
                 file: doclist[0]?.file || {},
                 page: 1,
@@ -152,6 +156,7 @@ function Home() {
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
       const documentId = sortedDoc.file.documentid;
+      // pages array by removing deleted pages
       let pages = getDocumentPages(documentId, deletedDocPages, sortedDoc.file.originalpagecount);      
       let j = 0;
 

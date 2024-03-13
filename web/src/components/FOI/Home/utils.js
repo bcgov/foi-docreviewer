@@ -100,6 +100,7 @@ export const sortByLastModified = (files) => {
   return sortedList
 };
 
+// pages array by removing deleted pages
 export const getDocumentPages = (documentid, deletedDocPages, originalPagecount) => {
   const pages = [];
   let deletedPages = [];
