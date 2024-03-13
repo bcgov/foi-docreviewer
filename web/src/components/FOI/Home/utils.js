@@ -262,12 +262,10 @@ export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
 };
 
 export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPageMapping, division) => {
-  // duplicate watermark
+  // duplicate & NR watermark
   if (
-    redlineWatermarkPageMapping &&
-    redlineWatermarkPageMapping["duplicatewatermark"] &&
-    redlineWatermarkPageMapping["duplicatewatermark"][division] &&
-    redlineWatermarkPageMapping["duplicatewatermark"][division].length > 0
+    (redlineWatermarkPageMapping["duplicatewatermark"] && redlineWatermarkPageMapping["duplicatewatermark"][division]) ||
+    (redlineWatermarkPageMapping["NRwatermark"] && redlineWatermarkPageMapping["NRwatermark"][division])
   ) {
     await stitchedDocObj.setWatermark({
       // Draw custom watermark in middle of the document
@@ -292,23 +290,7 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
           // ctx.fillText('DUPLICATE', 0, 0);
           // ctx.restore();
         }
-      },
-    });
-  }
 
-  // NR watermark
-  if (
-    redlineWatermarkPageMapping &&
-    redlineWatermarkPageMapping["NRwatermark"] &&
-    redlineWatermarkPageMapping["NRwatermark"][division] &&
-    redlineWatermarkPageMapping["NRwatermark"][division].length > 0
-  ) {
-    await stitchedDocObj.setWatermark({
-      // Draw custom watermark in middle of the document
-      custom: (ctx, pageNumber, pageWidth, pageHeight) => {
-        // ctx is an instance of CanvasRenderingContext2D
-        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
-        // Hence being able to leverage those properties
         if(redlineWatermarkPageMapping["NRwatermark"][division].includes(pageNumber)) {
           ctx.fillStyle = '#ff0000';
           ctx.font = '20pt Arial';
@@ -329,5 +311,4 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
       },
     });
   }
-  // return stitchedDocObj;
 };
