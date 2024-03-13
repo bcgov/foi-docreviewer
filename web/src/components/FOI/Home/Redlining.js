@@ -172,6 +172,7 @@ const Redlining = React.forwardRef(
     const [incompatableList, setIncompatableList]= useState({});
     const [includeNRPages, setIncludeNRPages]= useState(false);
     const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
+    const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     
     //xml parser
     const parser = new XMLParser();
@@ -2287,9 +2288,9 @@ const Redlining = React.forwardRef(
             reqdocuments.push(doc);
           }
         }
-        return prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
+        prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
       } else {
-        return prepareRedlinePageMappingByDivision(divisionDocuments);
+        prepareRedlinePageMappingByDivision(divisionDocuments);
       }
     }
 
@@ -2372,10 +2373,10 @@ const Redlining = React.forwardRef(
         'pagemapping': pageMappings,
         'pagestoremove': removepages
       });
-      return {
+      setRedlineWatermarkPageMapping({
         'duplicatewatermark': duplicateWatermarkPages,
         'NRwatermark': NRWatermarksPages
-      };
+      });
     }
 
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
@@ -2452,10 +2453,10 @@ const Redlining = React.forwardRef(
         'pagemapping': pageMappings,
         'pagestoremove': removepages
       });
-      return {
+      setRedlineWatermarkPageMapping({
         'duplicatewatermark': duplicateWatermarkPages,
         'NRwatermark': NRWatermarksPages
-      };
+      });
     }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
@@ -2805,7 +2806,6 @@ const Redlining = React.forwardRef(
       const divisions = getDivisionsForSaveRedline(divisionFilesList);
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
-      let redlineWatermarkPageMapping = {};
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
         //normalizeforPdfStitchingReq(divisionDocuments),
@@ -2819,10 +2819,10 @@ const Redlining = React.forwardRef(
 
           let stitchDoc = {};
           
-          redlineWatermarkPageMapping = prepareRedlinePageMapping(
-                                          res['divdocumentList'],
-                                          res.issingleredlinepackage
-                                        );
+          prepareRedlinePageMapping(
+            res['divdocumentList'],
+            res.issingleredlinepackage
+          );
           let IncompatableList = prepareRedlineIncompatibleMapping(res);
           setIncompatableList(IncompatableList);
           fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
@@ -2931,8 +2931,7 @@ const Redlining = React.forwardRef(
               divisionDocuments,
               stitchDocuments,
               res.issingleredlinepackage,
-              IncompatableList,
-              redlineWatermarkPageMapping
+              IncompatableList
             );
           }
         },
@@ -2976,8 +2975,7 @@ const Redlining = React.forwardRef(
       divisionDocuments,
       stitchlist,
       redlineSinglePkg,
-      incompatableList,
-      redlineWatermarkPageMapping
+      incompatableList
     ) => {
       let requestStitchObject = {};
       let divCount = 0;
@@ -3025,7 +3023,7 @@ const Redlining = React.forwardRef(
             //}
           });
           if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
-            requestStitchObject[division] = addWatermarkToRedline(stitchedDocObj, redlineWatermarkPageMapping, division);
+            requestStitchObject[division] = stitchedDocObj;
           }
         }
         } else {
@@ -3034,7 +3032,7 @@ const Redlining = React.forwardRef(
           } 
         }
         if (redlineSinglePkg == "Y" && stitchedDocObj != null) {
-          requestStitchObject["0"] = addWatermarkToRedline(stitchedDocObj, redlineWatermarkPageMapping, "0");
+          requestStitchObject["0"] = stitchedDocObj;
         }
         if (divCount == noofdivision) {
           setRedlineStitchObject(requestStitchObject);
@@ -3249,6 +3247,8 @@ const Redlining = React.forwardRef(
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
             );
+            
+            addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
           }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&

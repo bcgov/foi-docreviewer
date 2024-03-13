@@ -329,5 +329,5 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
       },
     });
   }
-  return stitchedDocObj;
+  // return stitchedDocObj;
 };
