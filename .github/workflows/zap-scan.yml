@@ -56,7 +56,7 @@ jobs:
           allow_issue_writing: false
           token: ${{ secrets.GITHUB_TOKEN }}
           issue_title: 'ZAP Scan Report'
-          target: ${{ secrets.ZAP_SCAN_REVIEWER_URL }}
+          target: ${{ secrets.ZAP_SCAN_REVIEWER_URL_DEV }}
           
 
   zap_scan_backend:
@@ -69,4 +69,4 @@ jobs:
           allow_issue_writing: false
           token: ${{ secrets.GITHUB_TOKEN }}
           issue_title: 'ZAP Scan Report'
-          target: ${{ secrets.ZAP_SCAN_BACKEND_URL }}
+          target: ${{ secrets.ZAP_SCAN_BACKEND_URL_DEV }}
