@@ -113,9 +113,10 @@ const Redlining = React.forwardRef(
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const viewer = useRef(null);
 
-    const documentList = useAppSelector(
-      (state) => state.documents?.documentList
-    );
+    const documentList = docsForStitcing?.map(docs => docs.file);
+    // const documentList = useAppSelector(
+    //   (state) => state.documents?.documentList
+    // );
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     
     const [docViewer, setDocViewer] = useState(null);
@@ -2371,6 +2372,7 @@ const Redlining = React.forwardRef(
         pageMappings[doc.documentid] = {};
         //gather pages that need to be removed
         doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+        let pageIndex = 1;
         for (const flagInfo of doc.pageFlag) {
           if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
             if(includeDuplicatePages) {
@@ -2383,7 +2385,7 @@ const Redlining = React.forwardRef(
               );
 
               pageMappings[doc.documentid][flagInfo.page] =
-                flagInfo.page +
+                pageIndex +
                 totalPageCount -
                 pagesToRemoveEachDoc.length;
             } else {
@@ -2407,7 +2409,7 @@ const Redlining = React.forwardRef(
               );
 
               pageMappings[doc.documentid][flagInfo.page] =
-                flagInfo.page +
+                pageIndex +
                 totalPageCount -
                 pagesToRemoveEachDoc.length;
             } else {
@@ -2421,10 +2423,16 @@ const Redlining = React.forwardRef(
               );
             }
           } else {
-            pageMappings[doc.documentid][flagInfo.page] =
-              flagInfo.page +
-              totalPageCount -
-              pagesToRemoveEachDoc.length;
+            if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+              pageMappings[doc.documentid][flagInfo.page] =
+                pageIndex +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
+              pageIndex ++;
+            }
+          }
+          if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+            pageIndex ++;
           }
         }
         //End of pageMappingsByDivisions
@@ -2465,46 +2473,51 @@ const Redlining = React.forwardRef(
         for (let doc of sortByLastModified(divObj.documentlist)) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
-
+          let pageIndex = 1;
           //gather pages that need to be removed
           doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
           //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
           for (const flagInfo of doc.pageFlag) {
             if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
               if(includeDuplicatePages) {
-                duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+                duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
                 pageMappings[doc.documentid][flagInfo.page] =
-                  flagInfo.page +
+                  pageIndex +
                   totalPageCount -
                   pagesToRemoveEachDoc.length;
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
                 pagesToRemove.push(                  
-                  flagInfo.page + totalPageCountIncludeRemoved
+                  pageIndex + totalPageCountIncludeRemoved
                 );
               }
             } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
               if(includeNRPages) {
-                NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+                NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
                 pageMappings[doc.documentid][flagInfo.page] =
-                  flagInfo.page +
+                pageIndex +
                   totalPageCount -
                   pagesToRemoveEachDoc.length;
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
                 pagesToRemove.push(                  
-                  flagInfo.page + totalPageCountIncludeRemoved
+                  pageIndex + totalPageCountIncludeRemoved
                 );
               }
             } else {
-              pageMappings[doc.documentid][flagInfo.page] =
-                flagInfo.page +
-                totalPageCount -
-                pagesToRemoveEachDoc.length;
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                pageMappings[doc.documentid][flagInfo.page] =
+                  pageIndex +
+                  totalPageCount -
+                  pagesToRemoveEachDoc.length;
+              }
+            }
+            if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+              pageIndex ++;
             }
           }
           //End of pageMappingsByDivisions
