@@ -29,6 +29,7 @@ from reviewer_api.exceptions import BusinessException
 import json
 import os
 from reviewer_api.services.radactionservice import redactionservice
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
 
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.schemas.annotationrequest import (
@@ -90,14 +91,11 @@ class AnnotationPagination(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(ministryrequestid, redactionlayer="redline", page=1, size=1000):
         try:
-            isvalid, _redactionlayer = redactionservice().validateredactionlayer(
-                redactionlayer, ministryrequestid
+            redactionlayer = redactionlayerservice().getredactionlayerobj(redactionlayer)
+            result = redactionservice().getannotationsbyrequest(
+                ministryrequestid, redactionlayer, page, size
             )
-            if isvalid == True:
-                result = redactionservice().getannotationsbyrequest(
-                    ministryrequestid, _redactionlayer, page, size
-                )
-                return result, 200
+            return result, 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:

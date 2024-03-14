@@ -23,7 +23,14 @@ class redactionlayerservice:
                 return layer["redactionlayerid"]
         return 0
     
-
+    def getredactionlayerobj(self, name):
+        _name = self.__normalise(name)
+        layers = RedactionLayer.getlayers()
+        for layer in layers:
+            if (self.__normalise(layer['name']) == _name):
+                return layer
+        return 0
+    
     def getmappedredactionlayers(self, redactionlayer):     
         mpxlayers = []  
         mpxlayers.append(redactionlayer["redactionlayerid"])
