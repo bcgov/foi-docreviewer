@@ -50,8 +50,8 @@ class documentpageflagservice:
         )
         return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
-    def removebookmark(self, requestid, redactionlayerid, userinfo):
-        pageflags = self.__getpageflags(requestid, redactionlayerid)
+    def removebookmark(self, requestid, redactionlayerid, userinfo, documentids):
+        pageflags = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, documentids)
         for entry in pageflags:
             new_pageflag = list(filter(lambda x: x["flagid"] != 8, entry["pageflag"]))
             DocumentPageflag.savepageflag(
@@ -75,7 +75,7 @@ class documentpageflagservice:
         )
         for pageflag in pageflags:
             if self.__isbookmark(pageflag) == True:
-                self.removebookmark(requestid, redactionlayerid, userinfo)
+                self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
             docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
         __docpgattributes = (

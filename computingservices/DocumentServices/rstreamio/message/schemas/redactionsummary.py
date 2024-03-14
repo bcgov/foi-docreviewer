@@ -21,7 +21,7 @@ class SummaryPkgSchema(Schema):
     class Meta:
         unknown = EXCLUDE
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
-    documentids = fields.List(fields.Int())
+    documentids = fields.List(fields.Int(), allow_none=True)
 
 class SummarySchema(Schema):
     class Meta:
