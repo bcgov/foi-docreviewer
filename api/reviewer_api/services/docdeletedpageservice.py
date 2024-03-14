@@ -35,12 +35,13 @@ class docdeletedpageservice:
         activedocumentids = Document.getactivedocumentidsbyrequest(ministryid, deletedmasterids)
         deletedpages = DocumentDeletedPage().getdeletedpages(ministryid, activedocumentids)
         documentpages = {}
-        for entry in deletedpages:
-            if entry["documentid"] not in documentpages:
-                documentpages[entry["documentid"]] = entry["pagemetadata"]
-            else:
-                pages = documentpages[entry["documentid"]]+entry["pagemetadata"]                
-                documentpages[entry["documentid"]] = list(set(pages))
+        if deletedpages: 
+            for entry in deletedpages:
+                if entry["documentid"] not in documentpages:
+                    documentpages[entry["documentid"]] = entry["pagemetadata"]
+                else:
+                    pages = documentpages[entry["documentid"]]+entry["pagemetadata"]                
+                    documentpages[entry["documentid"]] = list(set(pages))
         return documentpages
                 
 
