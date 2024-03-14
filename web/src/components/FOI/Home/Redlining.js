@@ -2309,6 +2309,11 @@ const Redlining = React.forwardRef(
                   pageMappedDocs
                 ) - pagesToRemove.length
               );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
               pagesToRemove.push(
@@ -2328,6 +2333,11 @@ const Redlining = React.forwardRef(
                   pageMappedDocs
                 ) - pagesToRemove.length
               );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
               pagesToRemove.push(
@@ -2391,6 +2401,11 @@ const Redlining = React.forwardRef(
             if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
               if(includeDuplicatePages) {
                 duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+
+                pageMappings[doc.documentid][flagInfo.page] =
+                  flagInfo.page +
+                  totalPageCount -
+                  pagesToRemoveEachDoc.length;
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
@@ -2401,6 +2416,11 @@ const Redlining = React.forwardRef(
             } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
               if(includeNRPages) {
                 NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+
+                pageMappings[doc.documentid][flagInfo.page] =
+                  flagInfo.page +
+                  totalPageCount -
+                  pagesToRemoveEachDoc.length;
               } else {
                 pagesToRemoveEachDoc.push(flagInfo.page);
               
