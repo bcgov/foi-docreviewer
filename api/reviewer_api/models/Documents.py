@@ -151,17 +151,32 @@ class Document(db.Model):
     def getactivedocumentidsbyrequest(cls, ministryrequestid, deletedmasterids):
         docids = []
         try:
+            # sql = """
+            #       select distinct on (docs.documentid) docs.documentid
+            #             from  "Documents" docs
+            #             where docs.foiministryrequestid = :ministryrequestid 
+            #             and docs.documentmasterid not in :deletedmasterids
+            #             order by docs.documentid, docs.version desc 
+            #     """
+            # rs = db.session.execute(
+            #     text(sql),
+            #     {"ministryrequestid": ministryrequestid, "deletedmasterids": tuple(deletedmasterids)},
+            # )  
             sql = """
-                  select distinct on (docs.documentid) docs.documentid
-                        from  "Documents" docs
-                        where docs.foiministryrequestid = :ministryrequestid 
-                        and docs.documentmasterid not in :deletedmasterids
-                        order by docs.documentid, docs.version desc 
+                SELECT DISTINCT ON (docs.documentid) docs.documentid
+                FROM "Documents" docs
+                WHERE docs.foiministryrequestid = :ministryrequestid 
                 """
-            rs = db.session.execute(
-                text(sql),
-                {"ministryrequestid": ministryrequestid, "deletedmasterids": tuple(deletedmasterids)},
-            )  
+            parameters = {"ministryrequestid": ministryrequestid}
+
+            if deletedmasterids:
+                sql += "AND docs.documentmasterid NOT IN :deletedmasterids"
+                parameters["deletedmasterids"] = tuple(deletedmasterids)
+
+            sql += "ORDER BY docs.documentid, docs.version DESC"
+
+            rs = db.session.execute(text(sql), parameters)
+        
             for row in rs:
                 docids.append(row['documentid'])
             return docids         
