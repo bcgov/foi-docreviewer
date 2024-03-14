@@ -22,9 +22,9 @@ class RedactionLayer(db.Model):
     @classmethod
     def getall(cls, ministryrequestid):
         try:
-            sql = """select r.redactionlayerid, r."name", r.description, r.sortorder, count(as2.id) as count
-            from  "RedactionLayers" r left join "AnnotationSections" as2 on  r.redactionlayerid = as2.redactionlayerid and as2.foiministryrequestid = :ministryrequestid and as2.isactive = true 
-            where  r.isactive = true
+            sql = """select r.redactionlayerid, r."name", r.description, r.sortorder, count(as2.id) as count 
+            from  "RedactionLayers" r left join "DocumentPageflags" as2 on  r.redactionlayerid = as2.redactionlayerid and as2.foiministryrequestid = :ministryrequestid 
+            where  r.isactive = true 
             group by  r.redactionlayerid, as2.redactionlayerid
             """
             rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
