@@ -25,7 +25,6 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
-  const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
@@ -123,23 +122,19 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    fetchRedactionLayerMasterData(
-      foiministryrequestid,
-      (data) => {
-        let redline = data.find((l) => l.name === "Redline");
-        let currentLayer = redline;
-        store.dispatch(setCurrentLayer(currentLayer));
-      },
-      (error) => console.log(error)
-    );
-  }, [])
-
-  useEffect(() => {
-    const oipcLayer = redactionLayers.find((layer) => layer.name === "OIPC")
-    if (validoipcreviewlayer && oipcLayer?.count > 0) {
-      store.dispatch(setCurrentLayer(oipcLayer));
+    if(validoipcreviewlayer === undefined) {
+      fetchRedactionLayerMasterData(
+        foiministryrequestid,
+        (data) => {
+          let redline = data.find((l) => l.name === "Redline");
+          let oipc = data.find((l) => l.name === "OIPC");
+          let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline;
+          store.dispatch(setCurrentLayer(currentLayer));
+        },
+        (error) => console.log(error)
+      );
     }
-  }, [validoipcreviewlayer, redactionLayers])
+  }, [validoipcreviewlayer])
 
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };

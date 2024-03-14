@@ -23,9 +23,9 @@ class redactionlayerservice:
                 return layer["redactionlayerid"]
         return 0
     
-    def getredactionlayerobj(self, name):
+    def getredactionlayer(self, name):
         _name = self.__normalise(name)
-        layers = RedactionLayer.getlayers()
+        layers = self.getall()
         for layer in layers:
             if (self.__normalise(layer['name']) == _name):
                 return layer

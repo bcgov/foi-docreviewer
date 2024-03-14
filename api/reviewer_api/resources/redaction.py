@@ -91,11 +91,13 @@ class AnnotationPagination(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(ministryrequestid, redactionlayer="redline", page=1, size=1000):
         try:
-            redactionlayer = redactionlayerservice().getredactionlayerobj(redactionlayer)
-            result = redactionservice().getannotationsbyrequest(
-                ministryrequestid, redactionlayer, page, size
-            )
-            return result, 200
+            redactionlayer = redactionlayerservice().getredactionlayer(redactionlayer)
+            if redactionlayer is not None:
+                result = redactionservice().getannotationsbyrequest(
+                    ministryrequestid, redactionlayer, page, size
+                )
+                return result, 200
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + "Invalid Layer"}, 400
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
