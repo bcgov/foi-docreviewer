@@ -7,7 +7,7 @@ on:
     branches:
       - dev
       - dev-ac-1398
-      - dve-RQ-3026
+      - dev-RQ-3026
     
   workflow_dispatch:
     inputs:
