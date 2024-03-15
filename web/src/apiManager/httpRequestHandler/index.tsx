@@ -5,6 +5,7 @@ import { params } from "./types";
 export const httpGETRequest = (url: string, data: any, token: any, isBearer = true) => {
   return axios.get(url, {
     params: data,
+    timeout: 60000,
     headers: {
       'Access-Control-Allow-Origin' : '*',
       Authorization: isBearer
