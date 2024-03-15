@@ -227,7 +227,9 @@ const DocumentSelector = React.forwardRef(({
     }
 
     useEffect(() => {
-        setAdditionalData();
+        if (pageFlags) {
+            setAdditionalData();
+        }        
     }, [consultMinistries, pageFlags]);
 
     const assignIcon = (pageFlag: any) => {
