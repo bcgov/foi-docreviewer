@@ -624,56 +624,58 @@ const DocumentSelector = React.forwardRef(({
         )
     }
 
-    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
-        return (
-            organizeBy === "lastmodified" ? (
-            <Tooltip
-                sx={{
-                    backgroundColor: 'white',
-                    color: 'rgba(0, 0, 0, 0.87)',
-                    // boxShadow: theme.shadows[1],
-                    fontSize: 11
-                }}
-                title={<>
-                    Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                    {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                </>}
-                placement="bottom-end"
-                arrow
-                key={file?.documentid}
-                disableHoverListener={disableHover}
-            >
-                <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                    {
-                        expanded?.length > 0 ?
-                        (
-                                [...Array(file.originalpagecount)].map((_x, p) =>
-                                (filterFlags.length > 0 ?
-                                    consulteeFilterView(file,p)
-                                    :
-                                    noFilterView(file,p)                                               
-                                )
-                                )
-                        ) : (<></>)
-                    }
-                    {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
-                        <ContextMenu
-                            openFOIPPAModal={openFOIPPAModal}
-                            requestId={requestid}
-                            pageFlagList={pageFlagList}
-                            assignIcon={assignIcon}
-                            anchorPosition={anchorPosition}
-                            openContextPopup={openContextPopup}
-                            setOpenContextPopup={setOpenContextPopup}
-                            selectedPages={selectedPages}
-                            consultInfo={consultInfo}
-                            updatePageFlags={updatePageFlags}
-                            pageMappedDocs={pageMappedDocs}
-                        />
-                    }
-                </TreeItem>
-            </Tooltip>) : <></>
-        )
+    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => {
+        if (file?.pages?.length > 0) {
+            return (
+                organizeBy === "lastmodified" ? (
+                <Tooltip
+                    sx={{
+                        backgroundColor: 'white',
+                        color: 'rgba(0, 0, 0, 0.87)',
+                        // boxShadow: theme.shadows[1],
+                        fontSize: 11
+                    }}
+                    title={<>
+                        Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                        {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+                    </>}
+                    placement="bottom-end"
+                    arrow
+                    key={file?.documentid}
+                    disableHoverListener={disableHover}
+                >
+                    <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
+                        {
+                            expanded?.length > 0 ?
+                            (
+                                    [...Array(file.originalpagecount)].map((_x, p) =>
+                                    (filterFlags.length > 0 ?
+                                        consulteeFilterView(file,p)
+                                        :
+                                        noFilterView(file,p)                                               
+                                    )
+                                    )
+                            ) : (<></>)
+                        }
+                        {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
+                            <ContextMenu
+                                openFOIPPAModal={openFOIPPAModal}
+                                requestId={requestid}
+                                pageFlagList={pageFlagList}
+                                assignIcon={assignIcon}
+                                anchorPosition={anchorPosition}
+                                openContextPopup={openContextPopup}
+                                setOpenContextPopup={setOpenContextPopup}
+                                selectedPages={selectedPages}
+                                consultInfo={consultInfo}
+                                updatePageFlags={updatePageFlags}
+                                pageMappedDocs={pageMappedDocs}
+                            />
+                        }
+                    </TreeItem>
+                </Tooltip>) : <></>
+            )
+        }
     })
 
     const sortByDivisionFilterView = divisions.map((division: any, index) => {
@@ -681,48 +683,53 @@ const DocumentSelector = React.forwardRef(({
             organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
                 {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
-                    <Tooltip
-                        sx={{
-                            backgroundColor: 'white',
-                            color: 'rgba(0, 0, 0, 0.87)',
-                            fontSize: 11
-                        }}
-                        title={<>
-                            Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                            {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                        </>}
-                        placement="bottom-end"
-                        arrow
-                        key={file.documentid}
-                        disableHoverListener={disableHover}
-                    >
+                    <>
+                    { file?.pages?.length > 0 ?
+                        <Tooltip
+                            sx={{
+                                backgroundColor: 'white',
+                                color: 'rgba(0, 0, 0, 0.87)',
+                                fontSize: 11
+                            }}
+                            title={<>
+                                Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                                {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+                            </>}
+                            placement="bottom-end"
+                            arrow
+                            key={file.documentid}
+                            disableHoverListener={disableHover}
+                        >
 
-                        <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
-                            {[...Array(file.originalpagecount)].map((_x, p) =>
-                            (filterFlags.length > 0 ?
-                                consulteeFilterView(file,p,division)
-                                :
-                                noFilterView(file,p,division)
-                            )
-                            )
-                            }
-                            {pageFlagList && pageFlagList?.length > 0 &&
-                                <ContextMenu
-                                    openFOIPPAModal={openFOIPPAModal}
-                                    requestId={requestid}
-                                    pageFlagList={pageFlagList}
-                                    assignIcon={assignIcon}
-                                    anchorPosition={anchorPosition}
-                                    openContextPopup={openContextPopup}
-                                    setOpenContextPopup={setOpenContextPopup}
-                                    selectedPages={selectedPages}
-                                    consultInfo={consultInfo}
-                                    updatePageFlags={updatePageFlags}
-                                    pageMappedDocs={pageMappedDocs}
-                                />
-                            }
-                        </TreeItem>
-                    </Tooltip>
+                            <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
+                                {[...Array(file.originalpagecount)].map((_x, p) =>
+                                (filterFlags.length > 0 ?
+                                    consulteeFilterView(file,p,division)
+                                    :
+                                    noFilterView(file,p,division)
+                                )
+                                )
+                                }
+                                {pageFlagList && pageFlagList?.length > 0 &&
+                                    <ContextMenu
+                                        openFOIPPAModal={openFOIPPAModal}
+                                        requestId={requestid}
+                                        pageFlagList={pageFlagList}
+                                        assignIcon={assignIcon}
+                                        anchorPosition={anchorPosition}
+                                        openContextPopup={openContextPopup}
+                                        setOpenContextPopup={setOpenContextPopup}
+                                        selectedPages={selectedPages}
+                                        consultInfo={consultInfo}
+                                        updatePageFlags={updatePageFlags}
+                                        pageMappedDocs={pageMappedDocs}
+                                    />
+                                }
+                            </TreeItem>
+                        </Tooltip>
+                        : null 
+                    }
+                    </>
                 )}
             </TreeItem>) : (<></>)
         )
