@@ -36,4 +36,4 @@ class DocumentPageflagHistory(db.Model):
             return DefaultMethodResult(True, 'Page Flag history is saved', documentpageflaghistory.id)  
         except Exception as ex:
             logging.error(ex)
-            return DefaultMethodResult(True, 'Page Flag history is not saved', documentpageflaghistory.id)
+            return DefaultMethodResult(False, 'Page Flag history is not saved', documentpageflaghistory.id)
