@@ -216,3 +216,19 @@ li.modal-message-list-item {
 .expandallicon {
   color: grey !important;
 }
+
+.redline-modal {
+  min-height: 350px !important;
+}
+
+.redline-checkmark {
+  height:14px;
+  width:14px;
+  background-color:#eee;
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+.redline-checkmark:checked {
+  accent-color: #178100;
+}

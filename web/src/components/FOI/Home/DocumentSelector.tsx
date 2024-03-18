@@ -606,8 +606,9 @@ const DocumentSelector = React.forwardRef(({
         )
     }
 
-    const sortByModifiedDateView = filesForDisplay.sort(docSorting).map((file: any, index: number) => { 
+    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
         return (
+            organizeBy === "lastmodified" ? (
             <Tooltip
                 sx={{
                     backgroundColor: 'white',
@@ -625,14 +626,19 @@ const DocumentSelector = React.forwardRef(({
                 disableHoverListener={disableHover}
             >
                 <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                    {[...Array(file.pagecount)].map((_x, p) =>
-                    (filterFlags.length > 0 ?
-                        consulteeFilterView(file,p)
-                        :
-                        noFilterView(file,p)                                               
-                    )
-                    )}
-                    {pageFlagList && pageFlagList?.length > 0 &&
+                    {
+                        expanded?.length > 0 ?
+                        (
+                                [...Array(file.pagecount)].map((_x, p) =>
+                                (filterFlags.length > 0 ?
+                                    consulteeFilterView(file,p)
+                                    :
+                                    noFilterView(file,p)                                               
+                                )
+                                )
+                        ) : (<></>)
+                    }
+                    {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
                         <ContextMenu
                             openFOIPPAModal={openFOIPPAModal}
                             requestId={requestid}
@@ -648,12 +654,13 @@ const DocumentSelector = React.forwardRef(({
                         />
                     }
                 </TreeItem>
-            </Tooltip>
+            </Tooltip>) : <></>
         )
     })
 
     const sortByDivisionFilterView = divisions.map((division: any, index) => {
         return(
+            organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
                 {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
                     <Tooltip
@@ -699,19 +706,20 @@ const DocumentSelector = React.forwardRef(({
                         </TreeItem>
                     </Tooltip>
                 )}
-            </TreeItem>
+            </TreeItem>) : (<></>)
         )
     })
-
+    
     const displayFiles = () => {
+       
         return (
-            (filesForDisplay.length > 0 &&
-                (organizeBy === "division" ?
-                    sortByDivisionFilterView :
-                    sortByModifiedDateView
+                filesForDisplay?.length > 0 ?
+                (
+                organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
                 )
-            )
-        )
+                :
+                    <></>                
+            )         
     }
 
     const handleExpandClick = () => {
