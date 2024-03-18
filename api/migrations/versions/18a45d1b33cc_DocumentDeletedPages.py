@@ -1,7 +1,7 @@
 """empty message
 
 Revision ID: 18a45d1b33cc
-Revises: 549893ea9059
+Revises: 7db1cd6f0b36
 Create Date: 2024-03-07 10:00:01.341943
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '18a45d1b33cc'
-down_revision = '549893ea9059'
+down_revision = '7db1cd6f0b36'
 branch_labels = None
 depends_on = None
 
