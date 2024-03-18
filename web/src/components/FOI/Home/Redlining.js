@@ -178,6 +178,7 @@ const Redlining = React.forwardRef(
     const [includeNRPages, setIncludeNRPages]= useState(false);
     const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
+    const [skipDeletePages, setSkipDeletePages] = useState(false);
     
     //xml parser
     const parser = new XMLParser();
@@ -502,7 +503,6 @@ const Redlining = React.forwardRef(
             .setStyles(() => ({
               FillColor: new Annotations.Color(255, 255, 255),
             }));
-          let skipRemovePages = false;
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             //Search Document Logic (for multi-keyword search and etc)
@@ -551,7 +551,7 @@ const Redlining = React.forwardRef(
               if (deletedDocPages) {
                 const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
                 if (deletedPages.length > 0) {
-                  skipRemovePages = true;
+                  setSkipDeletePages(true);
                   await _firstdoc.removePages(deletedPages);
                   let setCount = slicerdetails.setcount;
                   let slicer = slicerdetails.slicer;            
@@ -612,11 +612,9 @@ const Redlining = React.forwardRef(
           });
           //Triggered when the layout has changed because pages have permanently been added, removed, moved or changed in some other way.
           documentViewer.addEventListener("pagesUpdated", change => {
-            if (change.removed.length > 0 && !skipRemovePages) {
+            if (change.removed.length > 0) {
               setPagesRemoved(change.removed)
             }
-            if (skipRemovePages)
-              skipRemovePages = false;
           })
           
           documentViewer.addEventListener("click", async () => {
@@ -718,7 +716,7 @@ const Redlining = React.forwardRef(
     }, []);
 
     useEffect(() => {
-      if (pagesRemoved.length > 0 && pageMappedDocs?.docIdLookup) {
+      if (pagesRemoved.length > 0 && pageMappedDocs?.docIdLookup && !skipDeletePages) {
         const results = {};     
         for (const [docId, obj] of Object.entries(pageMappedDocs.docIdLookup)) {
             const { pageMappings } = obj;
@@ -734,7 +732,7 @@ const Redlining = React.forwardRef(
         const finalResults = { 
           redactionlayer: currentLayer?.name,
           documentpages: Object.values(results) };
-        console.log(finalResults);
+        
         deleteDocumentPages(
           requestid,
           finalResults,
@@ -747,7 +745,7 @@ const Redlining = React.forwardRef(
         );        
     }
     
-    },[pagesRemoved, pageMappedDocs])
+    },[pagesRemoved, skipDeletePages, pageMappedDocs])
 
     const mergeObjectsPreparation = async (
       createDocument,
@@ -1515,6 +1513,8 @@ const Redlining = React.forwardRef(
         }
         applyAnnotationsFunc();
         setIsStitchingLoaded(true);
+        setPagesRemoved([]);
+        setSkipDeletePages(false);
         setpdftronDocObjects([]);
         setstichedfiles([]);
       }
@@ -2863,6 +2863,7 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
+      setSkipDeletePages(true);
       switch (modalFor) {
         case "oipcreview":
           saveRedlineDocument(docInstance, modalFor);
@@ -3547,7 +3548,6 @@ const Redlining = React.forwardRef(
         summarydocuments : prepareresponseredlinesummarylist(documentList),
         redactionlayerid: currentLayer.redactionlayerid
       };
-
       getResponsePackagePreSignedUrl(
         requestid,
         documentList[0],
@@ -3626,8 +3626,6 @@ const Redlining = React.forwardRef(
             let doc = documentViewer.getDocument();
             await annotationManager.applyRedactions(); // must apply redactions before removing pages
             await doc.removePages(pagesToRemove);
-            // setTriggerRemovePages(false);
-
             const { PDFNet } = _instance.Core;
             PDFNet.initialize();
             await stampPageNumberResponse(documentViewer, PDFNet);
