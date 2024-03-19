@@ -52,6 +52,41 @@ export const docSorting = (a, b) => {
   return sort;
 };
 
+// sort by parent-attachment, then last modified date
+export const sortDocList = (fullDocList, currentDoc, sortedDocList) => {
+  let parentid = null;
+  if(currentDoc) {
+    sortedDocList.push(currentDoc);
+    if(currentDoc.file)
+      parentid = currentDoc.file.documentmasterid;
+    else
+      parentid = currentDoc.documentmasterid;
+  }
+
+  //get all children of currentDoc
+  let childDocList = fullDocList.filter((_doc) => {
+    if(_doc.file)
+      return _doc.file.parentid === parentid;
+    else
+      return _doc.parentid === parentid;
+  });
+
+  if(childDocList.length === 0) {
+    return;
+  } else {
+    let sortedChildDocList = [];
+    if(childDocList.length == 1) {
+      sortedChildDocList = childDocList;
+    } else {
+      sortedChildDocList = childDocList.sort(docSorting);
+    }
+
+    sortedChildDocList.forEach((_doc, _index) => {
+      sortDocList(fullDocList, _doc, sortedDocList);
+    });
+  }
+};
+
 export const getProgramAreas = (pageFlagList) => {
   let consult = pageFlagList.find((pageFlag) => pageFlag.name === "Consult");
   return (({ others, programareas }) =>
@@ -60,10 +95,10 @@ export const getProgramAreas = (pageFlagList) => {
 
 // Helper function to sort files by lastmodified date
 export const sortByLastModified = (files) => {
-  if(files.length> 1) {
-    return files.sort(docSorting)
-  } 
-  return files };
+  let sortedList = [];
+  sortDocList(files, null, sortedList);
+  return sortedList
+};
 
 export const getValidSections = (sections, redactionSectionsIds) => {
   return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);
