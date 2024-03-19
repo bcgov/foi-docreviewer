@@ -104,6 +104,11 @@ export const sortByLastModified = (files) => {
   return sortedList
 };
 
+export const sortBySortOrder = (doclist) => {
+  doclist.sort((a, b) => a.sortorder - b.sortorder);
+  return doclist;
+}
+
 // pages array by removing deleted pages
 export const getDocumentPages = (documentid, deletedDocPages, originalPagecount) => {
   const pages = [];
@@ -332,3 +337,8 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
     });
   }
 };
+
+
+export const getDocumentsForStitching = (doclist) => {
+  return doclist.filter(_doc => _doc.file.pagecount > 0);
+}
