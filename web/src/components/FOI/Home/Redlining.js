@@ -3296,11 +3296,11 @@ const Redlining = React.forwardRef(
           stichedfilesForRedline != null &&
           (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
         ) {
-
+          
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
         } else {
           if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
-            requestStitchObject[redlineStitchDivisionDetails.division] = null
+              requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
         if (issingleredlinepackage == "Y" && stichedfilesForRedline != null &&
