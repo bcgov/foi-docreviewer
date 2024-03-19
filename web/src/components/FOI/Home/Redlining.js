@@ -544,35 +544,61 @@ const Redlining = React.forwardRef(
               individualDoc = localDocumentInfo;            
             // let doclistCopy = [...docsForStitcing];
             let doclistCopy = getDocumentsForStitching([...docsForStitcing])
+            const disableDelete = doclistCopy.length === 1 && doclistCopy[0]?.file?.pagecount === 1;
+            if (disableDelete) {
+              instance.UI.disableElements(["thumbDelete","deletePage"]);
+            }
             let slicerdetails = await getSliceSetDetails(
               doclistCopy.length,
               true
             );
+            let _firstdoc = documentViewer.getDocument();
+            if (deletedDocPages) {
+              const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
+              if (deletedPages.length > 0) {
+                setSkipDeletePages(true);
+                await _firstdoc.removePages(deletedPages);
+              }
+            }
             if(doclistCopy.length > 1) {
               doclistCopy?.shift();
-              let _firstdoc = documentViewer.getDocument();
-              // Delete pages from the first Document
-              if (deletedDocPages) {
-                const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
-                if (deletedPages.length > 0) {
-                  setSkipDeletePages(true);
-                  await _firstdoc.removePages(deletedPages);
-                  let setCount = slicerdetails.setcount;
-                  let slicer = slicerdetails.slicer;            
-                  let objpreptasks = new Array(setCount);
-                  for (let slicecount = 1; slicecount <= setCount; slicecount++) {
-                    let sliceDoclist = doclistCopy.splice(0, slicer);
-                    objpreptasks.push(
-                      mergeObjectsPreparation(
-                        instance.Core.createDocument,
-                        sliceDoclist,
-                        slicecount
-                      )
-                    );
-                  }
-                  Promise.all(objpreptasks);
-                }
+              let setCount = slicerdetails.setcount;
+              let slicer = slicerdetails.slicer;            
+              let objpreptasks = new Array(setCount);
+              for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+                let sliceDoclist = doclistCopy.splice(0, slicer);
+                objpreptasks.push(
+                  mergeObjectsPreparation(
+                    instance.Core.createDocument,
+                    sliceDoclist,
+                    slicecount
+                  )
+                );
               }
+              Promise.all(objpreptasks);
+              // let _firstdoc = documentViewer.getDocument();
+              // // Delete pages from the first Document
+              // if (deletedDocPages) {
+              //   const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
+              //   if (deletedPages.length > 0) {
+              //     setSkipDeletePages(true);
+              //     await _firstdoc.removePages(deletedPages);
+              //     let setCount = slicerdetails.setcount;
+              //     let slicer = slicerdetails.slicer;            
+              //     let objpreptasks = new Array(setCount);
+              //     for (let slicecount = 1; slicecount <= setCount; slicecount++) {
+              //       let sliceDoclist = doclistCopy.splice(0, slicer);
+              //       objpreptasks.push(
+              //         mergeObjectsPreparation(
+              //           instance.Core.createDocument,
+              //           sliceDoclist,
+              //           slicecount
+              //         )
+              //       );
+              //     }
+              //     Promise.all(objpreptasks);
+              //   }
+              // }
               
             }
             let setCount = slicerdetails.setcount;
