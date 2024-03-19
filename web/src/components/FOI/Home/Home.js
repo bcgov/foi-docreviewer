@@ -110,14 +110,15 @@ function Home() {
               sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              prepareMapperObj(doclist, deletedDocPages);              
+              prepareMapperObj(doclist, deletedDocPages);
+              const currentDoc = getCurrentDocument(doclist)              
               setCurrentDocument({
-                file: doclist[0]?.file || {},
+                file: currentDoc?.file || {},
                 page: 1,
-                currentDocumentS3Url: doclist[0]?.s3url,
+                currentDocumentS3Url: currentDoc?.s3url,
               });
               // localStorage.setItem("currentDocumentS3Url", s3data);
-              setS3Url(doclist[0]?.s3url);
+              setS3Url(currentDoc?.s3url);
               setS3UrlReady(true);
               setDocsForStitcing(doclist);
               //files will have pages [] added
@@ -135,6 +136,10 @@ function Home() {
       }
     );
   }, []);
+
+  const getCurrentDocument = (doclist) => {    
+    return doclist.find(item => item.file.pagecount > 0);    
+  }
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -201,13 +206,16 @@ function Home() {
         pageMappings: mappedDoc.pageMappings,
       };
 
-      index = index + sortedDoc.file.pagecount;
-      sortedDoc.sortorder = _index + 1;
-      sortedDoc.stitchIndex = stitchIndex;
-      // added to iterate through the non deleted pages for the left panel functionalities
+       // added to iterate through the non deleted pages for the left panel functionalities
       sortedDoc.file.pages = pages;
       sortedDoc.pages = pages;
-      stitchIndex += sortedDoc.file.pagecount;
+      if (sortedDoc.file.pagecount > 0) {
+        index = index + sortedDoc.file.pagecount;
+        sortedDoc.file.sortorder = _index + 1; //try this to fix the sorting issue.
+        sortedDoc.sortorder = _index + 1;
+        sortedDoc.stitchIndex = stitchIndex;     
+        stitchIndex += sortedDoc.file.pagecount;
+      }
     });
     doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
