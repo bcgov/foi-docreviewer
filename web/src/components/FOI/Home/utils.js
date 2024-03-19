@@ -105,7 +105,7 @@ export const sortByLastModified = (files) => {
 };
 
 export const sortBySortOrder = (doclist) => {
-  doclist.sort((a, b) => a.sortorder - b.sortorder);
+  doclist?.sort((a, b) => a?.sortorder - b?.sortorder);
   return doclist;
 }
 
