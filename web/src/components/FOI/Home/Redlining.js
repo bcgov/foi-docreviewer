@@ -3291,11 +3291,16 @@ const Redlining = React.forwardRef(
             }
           }
         }
-        if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+        if (
+          issingleredlinepackage == "N" &&
+          stichedfilesForRedline != null &&
+          (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
+        ) {
+
           requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
         } else {
-          if (Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
-              requestStitchObject[redlineStitchDivisionDetails.division] = null
+          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
+            requestStitchObject[redlineStitchDivisionDetails.division] = null
           }
         }
         if (issingleredlinepackage == "Y" && stichedfilesForRedline != null &&
