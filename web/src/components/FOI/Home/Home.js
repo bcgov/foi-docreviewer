@@ -25,6 +25,7 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+  const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
@@ -126,13 +127,20 @@ function Home() {
       foiministryrequestid,
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
-        let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline;
+        let currentLayer = redline;
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
-  }, [validoipcreviewlayer])
+  }, [])
+
+  //useEffect to manage and apply oipc layer to current layer
+  useEffect(() => {
+    const oipcLayer = redactionLayers.find((layer) => layer.name === "OIPC")
+    if(validoipcreviewlayer && oipcLayer?.count > 0) {
+      store.dispatch(setCurrentLayer(oipcLayer));
+    }
+  }, [validoipcreviewlayer, redactionLayers])
 
   const prepareMapperObj = (doclistwithSortOrder) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
@@ -189,8 +197,8 @@ function Home() {
     setPageMappedDocs(mappedDocs);
   };
 
-  const openFOIPPAModal = (pageNos) => {
-    redliningRef?.current?.addFullPageRedaction(pageNos);
+  const openFOIPPAModal = (pageNos, flagId) => {
+    redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
   const scrollLeftPanel = (pageNo) => {

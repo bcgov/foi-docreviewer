@@ -23,13 +23,13 @@ class cdogsapiservice:
             "data": data
         }
         json_request_body = json.dumps(request_body)
-        print("json_request_body:",json_request_body)
+        #print("json_request_body:",json_request_body)
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
         }
         url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}/render"
-        print("url:",url)
+        #print("url:",url)
         return self._post_generate_pdf(json_request_body, headers, url)
 
     def _post_generate_pdf(self, json_request_body, headers, url):

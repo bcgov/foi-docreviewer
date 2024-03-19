@@ -51,7 +51,7 @@ const ContextMenu = ({
 
     const savePageFlags = (flagId: number, data?: any) => {
         if(flagId === 3){
-            openFOIPPAModal(selectedPages.map((page: any) => getStitchedPageNoFromOriginal(page.docid, page.page, pageMappedDocs)));
+            openFOIPPAModal(selectedPages.map((page: any) => getStitchedPageNoFromOriginal(page.docid, page.page, pageMappedDocs)), flagId);
         } else {
             savePageFlag(
                 requestId,
