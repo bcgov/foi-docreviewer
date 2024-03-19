@@ -894,7 +894,7 @@ const Redlining = React.forwardRef(
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
-              docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+              getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
               (error) => console.log(error)
             );
           }
@@ -1013,7 +1013,7 @@ const Redlining = React.forwardRef(
                     fetchPageFlag(
                       requestid,
                       currentLayer.name.toLowerCase(),
-                      docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+                      getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
                       (error) => console.log(error)
                     );
                   },
@@ -1184,7 +1184,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
-                        docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+                        getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1218,7 +1218,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
-                        docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+                        getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1650,7 +1650,7 @@ const Redlining = React.forwardRef(
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
-              docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+              getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
               (error) => console.log(error)
             );
           },
@@ -1788,7 +1788,7 @@ const Redlining = React.forwardRef(
                   fetchPageFlag(
                     requestid,
                     currentLayer.name.toLowerCase(),
-                    docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+                    getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
                     (error) => console.log(error)
                   );
                 },
@@ -1939,7 +1939,7 @@ const Redlining = React.forwardRef(
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
-              docsForStitcing?.filter(item => item.file.pagecount > 0)?.map(d => d.file.documentid),
+              getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
               (error) => console.log(error)
             );
           },
@@ -3265,7 +3265,7 @@ const Redlining = React.forwardRef(
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
-                if (filerow.sortorder === 1) {
+                if (filerow.stitchIndex === 1) {
                   stitchedDocObj = newDoc;
                   setstichedfilesForRedline(stitchedDocObj)
                 } else {
