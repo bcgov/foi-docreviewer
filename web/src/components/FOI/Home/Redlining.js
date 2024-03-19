@@ -3507,10 +3507,10 @@ const Redlining = React.forwardRef(
       
       sortedList.forEach((sortedItem, _index) => {
         index = index + sortedItem.pagecount;
-        sortedItem.sortorder = _index + 1;
+        // sortedItem.sortorder = _index + 1;
         sortedItem.stitchIndex = stitchIndex;
         // pages array by removing deleted pages
-        sortedItem.pages = getDocumentPages(sortedItem.documentid, deletedDocPages, sortedItem.originalpagecount);
+        // sortedItem.pages = getDocumentPages(sortedItem.documentid, deletedDocPages, sortedItem.originalpagecount);
         stitchIndex += sortedItem.pagecount;
       });
       return sortedList;
