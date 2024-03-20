@@ -8,6 +8,7 @@
     "calibrate": "Kalibruj",
     "cancel": "Anuluj",
     "confirm": "Potwierdź",
+    "currentPageIs": "Aktualna strona to",
     "clear": "Wyczyść",
     "clearAll": "Wyczyść wszystko",
     "close": "Zamknij",
@@ -71,6 +72,7 @@
     "type": "Rodzaj",
     "upload": "Wgraj",
     "link": "Połączyć",
+    "unlink": "Usuń łącze",
     "fileAttachmentDownload": "Pobierz załączony plik",
     "prevResult": "Poprzedni wynik",
     "nextResult": "Następny wynik",
@@ -81,6 +83,8 @@
     "exit": "Wyjdź",
     "addOption": "Dodaj opcję",
     "formFieldEdit": "Edytuj pole formularza",
+    "formFieldEditMode": "Edytuj pola formularza",
+    "contentEditMode": "Edytuj treść",
     "viewShortCutKeysFor3D": "Wyświetl klawisze skrótów",
     "markAllRead": "Oznacz wszystkie jako przeczytane",
     "pageInsertion": "Wstawianie strony",
@@ -119,8 +123,13 @@
     "showComparison": "Pokaż porównanie",
     "back": "Z powrotem",
     "clearSignature": "Wyraźny podpis",
+    "readOnlySignature": "Nie można usunąć podpisu tylko do odczytu",
     "newDocument": "Nowy dokument",
-    "sideBySideView": "Widok obok siebie"
+    "sideBySideView": "Widok obok siebie",
+    "pageNumberInput": "Wprowadzanie numeru strony",
+    "addNewColor": "Dodaj nowy kolor",
+    "deleteColor": "Usuń wybrany kolor",
+    "copySelectedColor": "Skopiuj wybrany kolor"
   },
   "annotation": {
     "areaMeasurement": "Pomiar powierzchni",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Panel znaku wodnego"
   },
   "message": {
+    "showMore": "Pokaż więcej",
+    "showLess": "Pokaż mniej",
     "toolsOverlayNoPresets": "Brak ustawień wstępnych",
     "badDocument": "Nie udało się wczytać dokumentu. Dokument jest uszkodzony lub nieważny.",
     "customPrintPlaceholder": "np. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Ten dokument nie ma załączników.",
     "noResults": "Nie znaleziono wyników.",
     "numResultsFound": "Wyniki",
+    "loadError": "Błąd podczas ładowania dokumentu",
     "notSupported": "Ten typ pliku nie jest obsługiwany.",
     "passwordRequired": "wymagane hasło",
     "enterPasswordPlaceholder": "Wprowadź hasło",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Kolor"
+    },
+    "colorPalettePicker": {
+      "addColor": "Dodaj nowy kolor",
+      "selectColor": "Wybierz kolor"
     },
     "displayMode": {
       "layout": "Układ strony",
@@ -505,6 +521,9 @@
       "count": "Policz",
       "length": "Długość"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Skaluj rozmiar czcionki dynamicznie"
+    },
     "measurementOption": {
       "scale": "Skala"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Usuń zawartość",
         "message": "Czy na pewno chcesz usunąć wybraną zawartość? Tego nie można cofnąć."
+      },
+      "digitalSign": {
+        "title": "Ostrzeżenie Zapieczętowany dokument",
+        "message": "Niniejszy dokument został podpisany i nie można go zmieniać ani zmieniać."
       }
     },
     "stylePopup": {
@@ -758,6 +781,9 @@
     "colorPicker": {
       "deleteTitle": "Usuń kolor niestandardowy",
       "deleteMessage": "Usunąć wybrany kolor niestandardowy? Zostanie usunięty z Twojej palety kolorów."
+    },
+    "colorPalettePicker": {
+      "deleteTitle": "Usuń kolor niestandardowy"
     },
     "multiDeleteAnnotation": {
       "title": "Usunąć adnotacje?",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Zwiększ wcięcie",
     "insertLink": "Wstaw łącze",
     "insertImage": "Umieść obraz",
+    "table": "Tabela",
+    "insertRowAbove": "Wstaw wiersz powyżej",
+    "insertRowBelow": "Wstaw wiersz poniżej",
+    "insertColumnRight": "Wstaw kolumnę po prawej stronie",
+    "insertColumnLeft": "Wstaw kolumnę po lewej stronie",
+    "deleteRow": "Usuń wiersz",
+    "deleteColumn": "Usuń kolumnę",
+    "deleteTable": "Usuń tabelę",
     "notSupportedOnMobile": "Edycja pakietu Office nie jest obsługiwana na urządzeniach mobilnych."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Przeciągnij i upuść swój plik tutaj",
     "selectFile": "Wybierz swój plik tutaj",
     "or": "Lub"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Style",
+      "annotation": "Adnotacja",
+      "annotations": "Adnotacje",
+      "tool": "Narzędzie",
+      "textStyles": "Style tekstu",
+      "currentColor": "Aktualny kolor",
+      "customColors": "Niestandardowe kolory",
+      "redactionTextLabel": "Etykieta tekstowa",
+      "redactionMarkOutline": "Zarys Marka",
+      "redactionFill": "Kolor redakcji",
+      "redactionTextPlaceholder": "Wstaw etykietę tekstową",
+      "contentEdit": "Edycja treści"
+    },
+    "addColorToCustom": "Dodaj do niestandardowych kolorów",
+    "noToolSelected": "Wybierz narzędzie, aby wyświetlić właściwości narzędzia",
+    "noToolStyle": "Narzędzie nie zawiera żadnych właściwości stylizacji."
+  },
+  "signatureListPanel": {
+    "header": "Lista podpisów",
+    "newSignature": "Nowy podpis",
+    "newSignatureAndInitial": "Nowy podpis i inicjał",
+    "signatureList": {
+      "signature": "Podpis",
+      "initials": "Inicjały"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Znaczki",
+    "standard": "Standardowe znaczki"
   }
 }

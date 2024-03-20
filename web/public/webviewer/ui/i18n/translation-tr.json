@@ -8,6 +8,7 @@
     "calibrate": "kalibre et",
     "cancel": "İptal",
     "confirm": "Onaylamak",
+    "currentPageIs": "Geçerli sayfa:",
     "clear": "Temizlemek",
     "clearAll": "Hepsini temizle",
     "close": "Kapat",
@@ -71,6 +72,7 @@
     "type": "Tip",
     "upload": "Yüklemek",
     "link": "Bağlantı",
+    "unlink": "Bağlantıyı Sil",
     "fileAttachmentDownload": "Ekli dosyayı indirin",
     "prevResult": "Önceki sonuç",
     "nextResult": "Sonraki sonuç",
@@ -81,6 +83,8 @@
     "exit": "çıkış",
     "addOption": "Seçenek Ekle",
     "formFieldEdit": "Form Alanını Düzenle",
+    "formFieldEditMode": "Form Alanlarını Düzenle",
+    "contentEditMode": "İçeriği Düzenle",
     "viewShortCutKeysFor3D": "Kısayol Tuşlarını Görüntüle",
     "markAllRead": "Tümünü okundu olarak işaretle",
     "pageInsertion": "Sayfa Ekleme",
@@ -119,8 +123,13 @@
     "showComparison": "Karşılaştırmayı Göster",
     "back": "Geri",
     "clearSignature": "İmzayı temizle",
+    "readOnlySignature": "Salt okunur imza silinemez",
     "newDocument": "Yeni belge",
-    "sideBySideView": "Yan Yana Görünüm"
+    "sideBySideView": "Yan Yana Görünüm",
+    "pageNumberInput": "Sayfa numarası girişi",
+    "addNewColor": "Yeni Renk Ekle",
+    "deleteColor": "Seçilen Rengi Sil",
+    "copySelectedColor": "Seçilen Rengi Kopyala"
   },
   "annotation": {
     "areaMeasurement": "Alan",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Filigran Paneli"
   },
   "message": {
+    "showMore": "Daha fazla göster",
+    "showLess": "Daha az göster",
     "toolsOverlayNoPresets": "Ön Ayar Yok",
     "badDocument": "Belge yüklenemedi. Belge bozuk veya geçerli değil.",
     "customPrintPlaceholder": "Örneğin. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Bu belgenin eki yok.",
     "noResults": "Sonuç bulunamadı.",
     "numResultsFound": "sonuçlar bulundu",
+    "loadError": "Belge Yükleme Hatası",
     "notSupported": "Bu dosya tipi desteklenmiyor.",
     "passwordRequired": "şifre gerekli",
     "enterPasswordPlaceholder": "Parolanı Gir",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Renk"
+    },
+    "colorPalettePicker": {
+      "addColor": "Yeni renk ekle",
+      "selectColor": "Renk seç"
     },
     "displayMode": {
       "layout": "Sayfa düzeni",
@@ -505,6 +521,9 @@
       "count": "Saymak",
       "length": "Uzunluk"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Yazı tipi boyutunu dinamik olarak ölçeklendirin"
+    },
     "measurementOption": {
       "scale": "Ölçek"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "İçeriği Sil",
         "message": "Seçilen içeriği silmek istediğinizden emin misiniz? Bu geri alınamaz."
+      },
+      "digitalSign": {
+        "title": "Uyarı Mühürlü Belge",
+        "message": "Bu belge imzalanmıştır ve değiştirilemez veya değiştirilemez."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Özel rengi sil",
       "deleteMessage": "Seçilen özel renk silinsin mi? Renk paletinizden kaldırılacaktır."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Özel rengi sil"
+    },
     "multiDeleteAnnotation": {
       "title": "Ek Açıklamalar Silinsin mi?",
       "message": "Silme işlemi tüm yorumları, yanıtları ve gruplandırmayı kaldırır ve geri alınamaz.\n\n Bu ek açıklamaları silmek istediğinizden emin misiniz?"
@@ -791,7 +817,7 @@
     "select": "(ESC)",
     "signature": "(S)",
     "squiggly": "(G)",
-    "image": "(İ)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Girintiyi artır",
     "insertLink": "Bağlantı ekle",
     "insertImage": "Resim ekle",
+    "table": "Masa",
+    "insertRowAbove": "Yukarıya Satır Ekle",
+    "insertRowBelow": "Aşağıya Satır Ekle",
+    "insertColumnRight": "Sağa Sütun Ekle",
+    "insertColumnLeft": "Sola Sütun Ekle",
+    "deleteRow": "Sırayı sil",
+    "deleteColumn": "Sütunu Sil",
+    "deleteTable": "Tabloyu Sil",
     "notSupportedOnMobile": "Office düzenlemesi mobil cihazlarda desteklenmez."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Dosyanızı buraya sürükleyip bırakın",
     "selectFile": "dosyanızı buradan seçin",
     "or": "Veya"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Stiller",
+      "annotation": "Dipnot",
+      "annotations": "Ek açıklamalar",
+      "tool": "Alet",
+      "textStyles": "Metin Stilleri",
+      "currentColor": "Mevcut Renk",
+      "customColors": "Özel renkler",
+      "redactionTextLabel": "Metin Etiketi",
+      "redactionMarkOutline": "Anahattı İşaretle",
+      "redactionFill": "Redaksiyon Rengi",
+      "redactionTextPlaceholder": "Metin etiketi ekle",
+      "contentEdit": "İçerik Düzenleme"
+    },
+    "addColorToCustom": "Özel renklere ekle",
+    "noToolSelected": "Araç özelliklerini görüntülemek için bir araç seçin",
+    "noToolStyle": "Araç herhangi bir stil özelliği içermiyor."
+  },
+  "signatureListPanel": {
+    "header": "İmza Listesi",
+    "newSignature": "Yeni İmza",
+    "newSignatureAndInitial": "Yeni İmza ve Harf",
+    "signatureList": {
+      "signature": "İmza",
+      "initials": "Baş harfler"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Pullar",
+    "standard": "Standart Pullar"
   }
 }

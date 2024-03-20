@@ -8,6 +8,7 @@
     "calibrate": "Kalibrera",
     "cancel": "Avbryt",
     "confirm": "Bekräfta",
+    "currentPageIs": "Aktuell sida är",
     "clear": "Klar",
     "clearAll": "Rensa alla",
     "close": "Stänga",
@@ -71,6 +72,7 @@
     "type": "Typ",
     "upload": "Ladda upp",
     "link": "Länk",
+    "unlink": "Ta bort länk",
     "fileAttachmentDownload": "Ladda ner bifogad fil",
     "prevResult": "Tidigare resultat",
     "nextResult": "Nästa resultat",
@@ -81,6 +83,8 @@
     "exit": "Utgång",
     "addOption": "Lägg till alternativ",
     "formFieldEdit": "Redigera formulärfält",
+    "formFieldEditMode": "Redigera formulärfält",
+    "contentEditMode": "Redigera innehåll",
     "viewShortCutKeysFor3D": "Visa kortkommandon",
     "markAllRead": "Markera allt som läst",
     "pageInsertion": "Sidinsättning",
@@ -119,8 +123,13 @@
     "showComparison": "Visa jämförelse",
     "back": "Tillbaka",
     "clearSignature": "Tydlig signatur",
+    "readOnlySignature": "Skrivskyddad signatur kan inte raderas",
     "newDocument": "Nytt dokument",
-    "sideBySideView": "Vy sida vid sida"
+    "sideBySideView": "Vy sida vid sida",
+    "pageNumberInput": "Inmatning av sidnummer",
+    "addNewColor": "Lägg till ny färg",
+    "deleteColor": "Ta bort vald färg",
+    "copySelectedColor": "Kopiera vald färg"
   },
   "annotation": {
     "areaMeasurement": "Område",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Vattenstämpelpanel"
   },
   "message": {
+    "showMore": "Visa mer",
+    "showLess": "Visa mindre",
     "toolsOverlayNoPresets": "Inga förinställningar",
     "badDocument": "Det gick inte att ladda dokumentet. Dokumentet är antingen korrupt eller ogiltigt.",
     "customPrintPlaceholder": "t.ex. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Detta dokument har inga bilagor.",
     "noResults": "Inga resultat funna.",
     "numResultsFound": "resultat hittades",
+    "loadError": "Fel vid inläsning av dokument",
     "notSupported": "Den filtypen stöds inte.",
     "passwordRequired": "Lösenord krävs",
     "enterPasswordPlaceholder": "Skriv in lösenord",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Färg"
+    },
+    "colorPalettePicker": {
+      "addColor": "Lägg till ny färg",
+      "selectColor": "Välj färg"
     },
     "displayMode": {
       "layout": "Sidlayout",
@@ -505,6 +521,9 @@
       "count": "Räkna",
       "length": "Längd"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Skala teckenstorlek dynamiskt"
+    },
     "measurementOption": {
       "scale": "Skala"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Ta bort innehåll",
         "message": "Är du säker på att du vill ta bort det valda innehållet? Detta kan inte ångras."
+      },
+      "digitalSign": {
+        "title": "Varning förseglat dokument",
+        "message": "Detta dokument har undertecknats och kan inte ändras eller ändras."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Ta bort anpassad färg",
       "deleteMessage": "Vill du ta bort den valda anpassade färgen? Den kommer att tas bort från din färgpalett."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Ta bort anpassad färg"
+    },
     "multiDeleteAnnotation": {
       "title": "Ta bort anteckningar?",
       "message": "Att radera tar bort alla kommentarer, svar och gruppering och kan inte ångras.\n\n Är du säker på att du vill ta bort dessa kommentarer?"
@@ -791,7 +817,7 @@
     "select": "(Esc)",
     "signature": "(S)",
     "squiggly": "(G)",
-    "image": "(jag)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Öka indrag",
     "insertLink": "Infoga länk",
     "insertImage": "Infoga bild",
+    "table": "Tabell",
+    "insertRowAbove": "Infoga rad ovanför",
+    "insertRowBelow": "Infoga rad nedan",
+    "insertColumnRight": "Infoga kolumn höger",
+    "insertColumnLeft": "Infoga kolumn till vänster",
+    "deleteRow": "Ta bort rad",
+    "deleteColumn": "Ta bort kolumn",
+    "deleteTable": "Ta bort tabell",
     "notSupportedOnMobile": "Office-redigering stöds inte på mobila enheter."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Dra och släpp din fil här",
     "selectFile": "Välj din fil här",
     "or": "Eller"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Stilar",
+      "annotation": "Anteckning",
+      "annotations": "Anteckningar",
+      "tool": "Verktyg",
+      "textStyles": "Textstilar",
+      "currentColor": "Aktuell färg",
+      "customColors": "Anpassade färger",
+      "redactionTextLabel": "Textetikett",
+      "redactionMarkOutline": "Markera Outline",
+      "redactionFill": "Redaktionsfärg",
+      "redactionTextPlaceholder": "Infoga textetikett",
+      "contentEdit": "Redigera innehåll"
+    },
+    "addColorToCustom": "Lägg till anpassade färger",
+    "noToolSelected": "Välj ett verktyg för att se verktygets egenskaper",
+    "noToolStyle": "Verktyget innehåller inga stylingegenskaper."
+  },
+  "signatureListPanel": {
+    "header": "Signaturlista",
+    "newSignature": "Ny signatur",
+    "newSignatureAndInitial": "Ny signatur & initial",
+    "signatureList": {
+      "signature": "Signatur",
+      "initials": "Initialer"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Frimärken",
+    "standard": "Standardstämplar"
   }
 }

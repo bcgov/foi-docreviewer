@@ -7,6 +7,7 @@ const API = {
     DOCREVIEWER_ANNOTATION:`${DOCREVIEWER_BASE_API_URL}/api/annotation`,
     DOCREVIEWER_REDACTION:`${DOCREVIEWER_BASE_API_URL}/api/redaction`,
     DOCREVIEWER_DOCUMENT:`${DOCREVIEWER_BASE_API_URL}/api/document`,
+    DOCREVIEWER_UPDATE_DOCUMENT_ATTRIBUTES:`${DOCREVIEWER_BASE_API_URL}/api/document/update`,
     DOCREVIEWER_SECTIONS:`${DOCREVIEWER_BASE_API_URL}/api/sections/ministryrequest/<ministryrequestid>`,
     DOCREVIEWER_GET_ALL_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/pageflags/ministryrequest/<requestid>`,
     DOCREVIEWER_POST_PAGEFLAGS:`${DOCREVIEWER_BASE_API_URL}/api/ministryrequest/<requestid>/pageflags`,

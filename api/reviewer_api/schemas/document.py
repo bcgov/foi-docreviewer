@@ -31,4 +31,5 @@ class FOIRequestUpdateRecordsSchema(Schema):
         unknown = EXCLUDE
     documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
     ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
-    divisions = fields.Nested(DivisionSchema,many=True,validate=validate.Length(min=1),allow_none=False)
+    divisions = fields.Nested(DivisionSchema,many=True,validate=validate.Length(min=1),allow_none=True,required=False)
+    rotatedpages = fields.Dict(keys=fields.Str,values=fields.Int,allow_none=True,required=False) # {page: rotation in degrees}

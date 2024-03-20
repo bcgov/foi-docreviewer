@@ -8,6 +8,7 @@
     "calibrate": "Μετρώ την διάμετρο",
     "cancel": "Ματαίωση",
     "confirm": "Επιβεβαιώνω",
+    "currentPageIs": "Η τρέχουσα σελίδα είναι",
     "clear": "Σαφή",
     "clearAll": "Τα καθαρίζω όλα",
     "close": "Κλείσε",
@@ -71,6 +72,7 @@
     "type": "Τύπος",
     "upload": "Μεταφόρτωση",
     "link": "Σύνδεσμος",
+    "unlink": "Διαγραφή συνδέσμου",
     "fileAttachmentDownload": "Κατεβάστε το συνημμένο αρχείο",
     "prevResult": "Προηγούμενο αποτέλεσμα",
     "nextResult": "Επόμενο αποτέλεσμα",
@@ -81,6 +83,8 @@
     "exit": "Εξοδος",
     "addOption": "Προσθήκη Επιλογής",
     "formFieldEdit": "Επεξεργασία πεδίου φόρμας",
+    "formFieldEditMode": "Επεξεργασία πεδίων φόρμας",
+    "contentEditMode": "Επεξεργασία Περιεχομένου",
     "viewShortCutKeysFor3D": "Προβολή πλήκτρων συντόμευσης",
     "markAllRead": "Επισήμανση όλων ως αναγνωσμένων",
     "pageInsertion": "Εισαγωγή σελίδας",
@@ -119,8 +123,13 @@
     "showComparison": "Εμφάνιση σύγκρισης",
     "back": "Πίσω",
     "clearSignature": "Καθαρή υπογραφή",
+    "readOnlySignature": "Η υπογραφή μόνο για ανάγνωση δεν μπορεί να διαγραφεί",
     "newDocument": "Νέο Έγγραφο",
-    "sideBySideView": "Άποψη δίπλα δίπλα"
+    "sideBySideView": "Άποψη δίπλα δίπλα",
+    "pageNumberInput": "Εισαγωγή αριθμού σελίδας",
+    "addNewColor": "Προσθήκη νέου χρώματος",
+    "deleteColor": "Διαγραφή επιλεγμένου χρώματος",
+    "copySelectedColor": "Αντιγραφή επιλεγμένου χρώματος"
   },
   "annotation": {
     "areaMeasurement": "Περιοχή",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Πίνακας υδατογραφήματος"
   },
   "message": {
+    "showMore": "Δείτε περισσότερα",
+    "showLess": "Δείξε λιγότερο",
     "toolsOverlayNoPresets": "Χωρίς προεπιλογές",
     "badDocument": "Η φόρτωση του εγγράφου απέτυχε. Το έγγραφο είναι είτε κατεστραμμένο είτε δεν είναι έγκυρο.",
     "customPrintPlaceholder": "π.χ. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Αυτό το έγγραφο δεν έχει συνημμένα.",
     "noResults": "Δεν βρέθηκαν αποτελέσματα.",
     "numResultsFound": "βρέθηκαν αποτελέσματα",
+    "loadError": "Σφάλμα κατά τη φόρτωση του εγγράφου",
     "notSupported": "Αυτός ο τύπος αρχείου δεν υποστηρίζεται.",
     "passwordRequired": "Απαιτείται κωδικός πρόσβασης",
     "enterPasswordPlaceholder": "Εισάγετε τον κωδικό πρόσβασης",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Χρώμα"
+    },
+    "colorPalettePicker": {
+      "addColor": "Προσθέστε νέο χρώμα",
+      "selectColor": "Επιλέξτε χρώμα"
     },
     "displayMode": {
       "layout": "Διάταξη σελίδας",
@@ -505,6 +521,9 @@
       "count": "μετρώ",
       "length": "Μήκος"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Κλιμάκωση μεγέθους γραμματοσειράς δυναμικά"
+    },
     "measurementOption": {
       "scale": "Κλίμακα"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Διαγραφή Περιεχομένου",
         "message": "Είστε βέβαιοι ότι θέλετε να διαγράψετε το επιλεγμένο περιεχόμενο; Αυτό δεν μπορεί να αναιρεθεί."
+      },
+      "digitalSign": {
+        "title": "Προειδοποίηση σφραγισμένο έγγραφο",
+        "message": "Αυτό το έγγραφο έχει υπογραφεί και δεν μπορεί να τροποποιηθεί ή να αλλάξει."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Διαγραφή προσαρμοσμένου χρώματος",
       "deleteMessage": "Διαγραφή του επιλεγμένου προσαρμοσμένου χρώματος; Θα αφαιρεθεί από την χρωματική σας παλέτα."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Διαγραφή προσαρμοσμένου χρώματος"
+    },
     "multiDeleteAnnotation": {
       "title": "Διαγραφή σχολιασμών;",
       "message": "Η διαγραφή θα καταργήσει όλα τα σχόλια, τις απαντήσεις και την ομαδοποίηση και δεν μπορεί να αναιρεθεί.\n\n Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτούς τους σχολιασμούς;"
@@ -791,7 +817,7 @@
     "select": "(Esc)",
     "signature": "(ΜΙΚΡΟ)",
     "squiggly": "(ΣΟΛ)",
-    "image": "(ΕΓΩ)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Αύξηση εσοχής",
     "insertLink": "Εισαγωγή συνδέσμου",
     "insertImage": "Εισαγωγή εικόνας",
+    "table": "Τραπέζι",
+    "insertRowAbove": "Εισαγάγετε τη σειρά πάνω",
+    "insertRowBelow": "Εισαγάγετε τη σειρά παρακάτω",
+    "insertColumnRight": "Εισαγωγή στήλης δεξιά",
+    "insertColumnLeft": "Εισαγωγή στήλης αριστερά",
+    "deleteRow": "Διαγραφή σειράς",
+    "deleteColumn": "Διαγραφή στήλης",
+    "deleteTable": "Διαγραφή πίνακα",
     "notSupportedOnMobile": "Η επεξεργασία του Office δεν υποστηρίζεται σε κινητές συσκευές."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Σύρετε και αποθέστε το αρχείο σας εδώ",
     "selectFile": "Επιλέξτε το αρχείο σας εδώ",
     "or": "Ή"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Στυλ",
+      "annotation": "Σχόλιο",
+      "annotations": "Σχολιασμοί",
+      "tool": "Εργαλείο",
+      "textStyles": "Στυλ κειμένου",
+      "currentColor": "Τρέχον χρώμα",
+      "customColors": "Προσαρμοσμένα χρώματα",
+      "redactionTextLabel": "Ετικέτα κειμένου",
+      "redactionMarkOutline": "Σημειώστε το περίγραμμα",
+      "redactionFill": "Χρώμα επεξεργασίας",
+      "redactionTextPlaceholder": "Εισαγωγή ετικέτας κειμένου",
+      "contentEdit": "Επεξεργασία περιεχομένου"
+    },
+    "addColorToCustom": "Προσθήκη στα προσαρμοσμένα χρώματα",
+    "noToolSelected": "Επιλέξτε ένα εργαλείο για να δείτε τις ιδιότητες του εργαλείου",
+    "noToolStyle": "Το εργαλείο δεν περιέχει ιδιότητες styling."
+  },
+  "signatureListPanel": {
+    "header": "Λίστα υπογραφών",
+    "newSignature": "Νέα υπογραφή",
+    "newSignatureAndInitial": "Νέα Υπογραφή & Αρχικό",
+    "signatureList": {
+      "signature": "Υπογραφή",
+      "initials": "Αρχικά"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Γραμματόσημα",
+    "standard": "Πρότυπα γραμματόσημα"
   }
 }

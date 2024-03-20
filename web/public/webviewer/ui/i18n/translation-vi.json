@@ -8,6 +8,7 @@
     "calibrate": "Hiệu chỉnh",
     "cancel": "Hủy",
     "confirm": "Xác nhận",
+    "currentPageIs": "Trang hiện tại là",
     "clear": "Xóa",
     "clearAll": "Quet sạch tât cả",
     "close": "Đóng",
@@ -71,6 +72,7 @@
     "type": "Kiểu",
     "upload": "Tải lên",
     "link": "Liên kết",
+    "unlink": "Xóa liên kết",
     "fileAttachmentDownload": "Tải xuống tệp đính kèm",
     "prevResult": "Kết quả trước",
     "nextResult": "Kết quả tiếp theo",
@@ -81,6 +83,8 @@
     "exit": "Thoát",
     "addOption": "Thêm Tùy Chọn",
     "formFieldEdit": "Chỉnh Sửa Trường Biểu Mẫu",
+    "formFieldEditMode": "Chỉnh sửa trường biểu mẫu",
+    "contentEditMode": "Chỉnh sửa nội dung",
     "viewShortCutKeysFor3D": "Xem Phím Tắt",
     "markAllRead": "Đánh dấu tất cả là đọc",
     "pageInsertion": "Chèn trang",
@@ -119,8 +123,13 @@
     "showComparison": "Hiển thị so sánh",
     "back": "Mặt sau",
     "clearSignature": "Xóa chữ ký",
+    "readOnlySignature": "Không thể xóa chữ ký chỉ đọc",
     "newDocument": "Tài liệu mới",
-    "sideBySideView": "Xem cạnh nhau"
+    "sideBySideView": "Xem cạnh nhau",
+    "pageNumberInput": "Nhập số trang",
+    "addNewColor": "Thêm màu mới",
+    "deleteColor": "Xóa màu đã chọn",
+    "copySelectedColor": "Sao chép màu đã chọn"
   },
   "annotation": {
     "areaMeasurement": "Diện tích",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Bảng điều khiển hình mờ"
   },
   "message": {
+    "showMore": "Cho xem nhiều hơn",
+    "showLess": "Hiện ít hơn",
     "toolsOverlayNoPresets": "Không Có Cài Đặt Trước",
     "badDocument": "Không thể tải tài liệu. Tài liệu bị lỗi hoặc không hợp lệ.",
     "customPrintPlaceholder": "Ví dụ: 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Tài liệu này không có tệp đính kèm nào.",
     "noResults": "Không tìm thấy kết quả nào.",
     "numResultsFound": "kết quả tìm thấy",
+    "loadError": "Lỗi tải tài liệu",
     "notSupported": "Loại tệp đó không được hỗ trợ.",
     "passwordRequired": "Yêu cầu mật khẩu",
     "enterPasswordPlaceholder": "Nhập mật khẩu",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Màu"
+    },
+    "colorPalettePicker": {
+      "addColor": "Thêm màu mới",
+      "selectColor": "Chọn màu"
     },
     "displayMode": {
       "layout": "Bố Cục Trang",
@@ -505,6 +521,9 @@
       "count": "Số lượng",
       "length": "Chiều dài"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Chia tỷ lệ kích thước phông chữ một cách linh hoạt"
+    },
     "measurementOption": {
       "scale": "Quy mô"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Xóa nội dung",
         "message": "Bạn có chắc chắn muốn xóa nội dung đã chọn không? Không thể hoàn tác thao tác này."
+      },
+      "digitalSign": {
+        "title": "Tài liệu niêm phong cảnh báo",
+        "message": "Tài liệu này đã được ký và không thể thay đổi hoặc thay đổi."
       }
     },
     "stylePopup": {
@@ -758,6 +781,9 @@
     "colorPicker": {
       "deleteTitle": "Xóa màu tùy chỉnh",
       "deleteMessage": "Xóa màu tùy chỉnh đã chọn? Nó sẽ bị gỡ bỏ khỏi bảng màu của bạn."
+    },
+    "colorPalettePicker": {
+      "deleteTitle": "Xóa màu tùy chỉnh"
     },
     "multiDeleteAnnotation": {
       "title": "Xóa chú thích?",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Tăng thụt lề",
     "insertLink": "Chèn đường dẫn",
     "insertImage": "Chèn hình ảnh",
+    "table": "Bảng",
+    "insertRowAbove": "Chèn hàng bên trên",
+    "insertRowBelow": "Chèn hàng bên dưới",
+    "insertColumnRight": "Chèn cột bên phải",
+    "insertColumnLeft": "Chèn cột bên trái",
+    "deleteRow": "Xóa hàng",
+    "deleteColumn": "Xóa cột",
+    "deleteTable": "Xóa bảng",
     "notSupportedOnMobile": "Chỉnh sửa văn phòng không được hỗ trợ trên thiết bị di động."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Kéo và thả tệp của bạn vào đây",
     "selectFile": "Chọn tập tin của bạn ở đây",
     "or": "Hoặc"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Kiểu dáng",
+      "annotation": "Chú thích",
+      "annotations": "Chú thích",
+      "tool": "Dụng cụ",
+      "textStyles": "Kiểu văn bản",
+      "currentColor": "Màu hiện tại",
+      "customColors": "Màu sắc tùy chỉnh",
+      "redactionTextLabel": "Nhãn văn bản",
+      "redactionMarkOutline": "Đánh dấu phác thảo",
+      "redactionFill": "Màu biên tập",
+      "redactionTextPlaceholder": "Chèn nhãn văn bản",
+      "contentEdit": "Chỉnh sửa nội dung"
+    },
+    "addColorToCustom": "Thêm vào màu tùy chỉnh",
+    "noToolSelected": "Chọn một công cụ để xem thuộc tính công cụ",
+    "noToolStyle": "Công cụ không chứa bất kỳ thuộc tính tạo kiểu nào."
+  },
+  "signatureListPanel": {
+    "header": "Danh sách chữ ký",
+    "newSignature": "Chữ ký mới",
+    "newSignatureAndInitial": "Chữ ký mới & Tên viết tắt",
+    "signatureList": {
+      "signature": "Chữ ký",
+      "initials": "Tên viết tắt"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Tem",
+    "standard": "Tem tiêu chuẩn"
   }
 }

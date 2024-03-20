@@ -8,6 +8,7 @@
     "calibrate": "Calibrate",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "currentPageIs": "Current page is",
     "clear": "Clear",
     "clearAll": "Clear all",
     "close": "Close",
@@ -34,7 +35,7 @@
     "fitToWidth": "Fit to width",
     "more": "More",
     "openFile": "Open file",
-    "page":"Page",
+    "page": "Page",
     "pagePrev": "Previous page",
     "pageNext": "Next page",
     "pageSet": "Set page",
@@ -81,6 +82,8 @@
     "exit": "Exit",
     "addOption": "Add Option",
     "formFieldEdit": "Edit Form Field",
+    "formFieldEditMode": "Edit Form Fields",
+    "contentEditMode": "Edit Content",
     "viewShortCutKeysFor3D": "View Shortcut Keys",
     "markAllRead": "Mark all as read",
     "pageInsertion": "Page Insertion",
@@ -119,8 +122,13 @@
     "showComparison": "Show Comparison",
     "back": "Back",
     "clearSignature": "Clear signature",
+    "readOnlySignature": "Read-only signature cannot be deleted",
     "newDocument": "New Document",
-    "sideBySideView": "Side By Side View"
+    "sideBySideView": "Side By Side View",
+    "pageNumberInput": "Page number input",
+    "addNewColor": "Add New Color",
+    "deleteColor": "Delete Selected Color",
+    "copySelectedColor": "Copy Selected Color"
   },
   "annotation": {
     "areaMeasurement": "Area",
@@ -244,6 +252,8 @@
     "watermarkPanel": "Watermark Panel"
   },
   "message": {
+    "showMore": "Show More",
+    "showLess": "Show Less",
     "toolsOverlayNoPresets": "No Presets",
     "badDocument": "Failed to load document. The document is either corrupt or not valid.",
     "customPrintPlaceholder": "e.g. 3, 4-10",
@@ -259,6 +269,7 @@
     "noAttachments": "This document has no attachments.",
     "noResults": "No results found.",
     "numResultsFound": "results found",
+    "loadError": "Error Loading Document",
     "notSupported": "That file type is not supported.",
     "passwordRequired": "Password required",
     "enterPasswordPlaceholder": "Enter password",
@@ -361,6 +372,10 @@
     },
     "colorPalette": {
       "colorLabel": "Color"
+    },
+    "colorPalettePicker": {
+      "addColor": "Add new color",
+      "selectColor": "Select color"
     },
     "displayMode": {
       "layout": "Page Layout",
@@ -505,6 +520,9 @@
       "count": "Count",
       "length": "Length"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Scale font size dynamically"
+    },
     "measurementOption": {
       "scale": "Scale"
     },
@@ -546,6 +564,10 @@
       "deletionModal": {
         "title": "Delete Content",
         "message": "Are you sure you want to delete the selected content? This can't be undone."
+      },
+      "digitalSign": {
+        "title": "Warning Sealed Document",
+        "message": "This document has been signed and cannot be altered or changed."
       }
     },
     "stylePopup": {
@@ -758,6 +780,9 @@
     "colorPicker": {
       "deleteTitle": "Delete custom color",
       "deleteMessage": "Delete the selected custom color? It will be removed from your color palette."
+    },
+    "colorPalettePicker": {
+      "deleteTitle": "Delete custom color"
     },
     "multiDeleteAnnotation": {
       "title": "Delete Annotations?",
@@ -1156,6 +1181,14 @@
     "increaseIndent": "Increase indent",
     "insertLink": "Insert link",
     "insertImage": "Insert image",
+    "table": "Table",
+    "insertRowAbove": "Insert Row Above",
+    "insertRowBelow": "Insert Row Below",
+    "insertColumnRight": "Insert Column Right",
+    "insertColumnLeft": "Insert Column Left",
+    "deleteRow": "Delete Row",
+    "deleteColumn": "Delete Column",
+    "deleteTable": "Delete Table",
     "notSupportedOnMobile": "Office editing is not supported on mobile devices."
   },
   "insertPageModal": {
@@ -1247,5 +1280,37 @@
     "dragAndDrop": "Drag & Drop your file here",
     "selectFile": "Select your file here",
     "or": "Or"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Styles",
+      "annotation": "Annotation",
+      "annotations": "Annotations",
+      "tool": "Tool",
+      "textStyles": "Text Styles",
+      "currentColor": "Current Color",
+      "customColors": "Custom Colors",
+      "redactionTextLabel": "Text Label",
+      "redactionMarkOutline": "Mark Outline",
+      "redactionFill": "Redaction Color",
+      "redactionTextPlaceholder": "Insert text label",
+      "contentEdit": "Content Edit"
+    },
+    "addColorToCustom": "Add to custom colors",
+    "noToolSelected": "Select a tool to view tool properties",
+    "noToolStyle": "Tool does not contain any styling properties."
+  },
+  "signatureListPanel": {
+    "header": "Signature List",
+    "newSignature": "New Signature",
+    "newSignatureAndInitial": "Create New Signature & Initials",
+    "signatureList": {
+      "signature": "Signature",
+      "initials": "Initials"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Stamps",
+    "standard": "Standard Stamps"
   }
 }

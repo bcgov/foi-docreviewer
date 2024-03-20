@@ -8,6 +8,7 @@
     "calibrate": "Calibrer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
+    "currentPageIs": "La page actuelle est",
     "clear": "Effacer",
     "clearAll": "Tout effacer",
     "close": "Fermer",
@@ -71,6 +72,7 @@
     "type": "Type",
     "upload": "Télécharger",
     "link": "Lier",
+    "unlink": "Supprimer le lien",
     "fileAttachmentDownload": "Télécharger le fichier joint",
     "prevResult": "Résultat précédent",
     "nextResult": "Résultat suivant",
@@ -81,6 +83,8 @@
     "exit": "Sortie",
     "addOption": "Ajouter une option",
     "formFieldEdit": "Modifier le champ de formulaire",
+    "formFieldEditMode": "Modifier les champs du formulaire",
+    "contentEditMode": "Modifier le contenu",
     "viewShortCutKeysFor3D": "Afficher les touches de raccourci",
     "markAllRead": "Marquer tout comme lu",
     "pageInsertion": "Insertion de pages",
@@ -119,8 +123,13 @@
     "showComparison": "Afficher la comparaison",
     "back": "Retour",
     "clearSignature": "Signature claire",
+    "readOnlySignature": "La signature en lecture seule ne peut pas être supprimée",
     "newDocument": "Nouveau document",
-    "sideBySideView": "Vue côte à côte"
+    "sideBySideView": "Vue côte à côte",
+    "pageNumberInput": "Saisie du numéro de page",
+    "addNewColor": "Ajouter une nouvelle couleur",
+    "deleteColor": "Supprimer la couleur sélectionnée",
+    "copySelectedColor": "Copier la couleur sélectionnée"
   },
   "annotation": {
     "areaMeasurement": "Surface mesurée",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Panneau Filigrane"
   },
   "message": {
+    "showMore": "Montre plus",
+    "showLess": "Montrer moins",
     "toolsOverlayNoPresets": "Aucun préréglage",
     "badDocument": "Échec du chargement du document. Le document est corrompu ou non valide.",
     "customPrintPlaceholder": "par ex. : 3 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Ce document n'a pas de pièces jointes.",
     "noResults": "Aucun résultat trouvé.",
     "numResultsFound": "Résultats trouvés",
+    "loadError": "Erreur lors du chargement du document",
     "notSupported": "Ce type de fichier n'est pas pris en charge.",
     "passwordRequired": "Mot de passe requis",
     "enterPasswordPlaceholder": "Entrer le mot de passe",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Couleur"
+    },
+    "colorPalettePicker": {
+      "addColor": "Ajouter une nouvelle couleur",
+      "selectColor": "Choisissez la couleur"
     },
     "displayMode": {
       "layout": "Disposition",
@@ -505,6 +521,9 @@
       "count": "Compte",
       "length": "Longueur"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Ajuster la taille de la police de manière dynamique"
+    },
     "measurementOption": {
       "scale": "Échelle"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Supprimer le contenu",
         "message": "Voulez-vous vraiment supprimer le contenu sélectionné ? Cela ne peut pas être annulé."
+      },
+      "digitalSign": {
+        "title": "Avertissement Document scellé",
+        "message": "Ce document a été signé et ne peut être modifié ou modifié."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Supprimer la couleur personnalisée",
       "deleteMessage": "Supprimer la couleur personnalisée sélectionnée? Elle sera supprimée de votre palette de couleurs."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Supprimer la couleur personnalisée"
+    },
     "multiDeleteAnnotation": {
       "title": "Supprimer les annotations ?",
       "message": "La suppression supprimera tous les commentaires, réponses et regroupements et ne pourra pas être annulée.\n\n Voulez-vous vraiment supprimer ces annotations ?"
@@ -791,7 +817,7 @@
     "select": "(Esc)",
     "signature": "(S)",
     "squiggly": "(G)",
-    "image": "(JE)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Augmenter le retrait",
     "insertLink": "Insérer un lien",
     "insertImage": "Insérer une image",
+    "table": "Tableau",
+    "insertRowAbove": "Insérer une ligne au-dessus",
+    "insertRowBelow": "Insérer une ligne en dessous",
+    "insertColumnRight": "Insérer une colonne à droite",
+    "insertColumnLeft": "Insérer une colonne à gauche",
+    "deleteRow": "Supprimer la ligne",
+    "deleteColumn": "Supprimer la colonne",
+    "deleteTable": "Supprimer le tableau",
     "notSupportedOnMobile": "L'édition Office n'est pas prise en charge sur les appareils mobiles."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Faites glisser et déposez votre fichier ici",
     "selectFile": "Sélectionnez votre dossier ici",
     "or": "Ou"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "modes",
+      "annotation": "Annotation",
+      "annotations": "Annotations",
+      "tool": "Outil",
+      "textStyles": "Styles de texte",
+      "currentColor": "Couleur actuelle",
+      "customColors": "Couleurs personnalisées",
+      "redactionTextLabel": "Étiquette de texte",
+      "redactionMarkOutline": "Marquer le contour",
+      "redactionFill": "Couleur de rédaction",
+      "redactionTextPlaceholder": "Insérer une étiquette de texte",
+      "contentEdit": "Modifier le contenu"
+    },
+    "addColorToCustom": "Ajouter aux couleurs personnalisées",
+    "noToolSelected": "Sélectionnez un outil pour afficher les propriétés de l'outil",
+    "noToolStyle": "L'outil ne contient aucune propriété de style."
+  },
+  "signatureListPanel": {
+    "header": "Liste des signatures",
+    "newSignature": "Nouvelle Signature",
+    "newSignatureAndInitial": "Nouvelle signature et initiale",
+    "signatureList": {
+      "signature": "Signature",
+      "initials": "Initiales"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Timbres",
+    "standard": "Timbres standards"
   }
 }

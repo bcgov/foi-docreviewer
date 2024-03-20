@@ -8,6 +8,7 @@
     "calibrate": "Kalibrovat",
     "cancel": "zrušení",
     "confirm": "Potvrdit",
+    "currentPageIs": "Aktuální stránka je",
     "clear": "Průhledná",
     "clearAll": "Vymazat vše",
     "close": "Zavřít",
@@ -71,6 +72,7 @@
     "type": "Typ",
     "upload": "nahrát",
     "link": "Odkaz",
+    "unlink": "Smazat odkaz",
     "fileAttachmentDownload": "Stáhnout přiložený soubor",
     "prevResult": "Předchozí výsledek",
     "nextResult": "Další výsledek",
@@ -81,6 +83,8 @@
     "exit": "Výstup",
     "addOption": "Přidat možnost",
     "formFieldEdit": "Upravit pole formuláře",
+    "formFieldEditMode": "Upravit pole formuláře",
+    "contentEditMode": "Upravit obsah",
     "viewShortCutKeysFor3D": "Zobrazit klávesové zkratky",
     "markAllRead": "označit vše jako přečtené",
     "pageInsertion": "Vkládání stránky",
@@ -119,8 +123,13 @@
     "showComparison": "Zobrazit srovnání",
     "back": "Zadní",
     "clearSignature": "Jasný podpis",
+    "readOnlySignature": "Podpis pouze pro čtení nelze smazat",
     "newDocument": "Nový dokument",
-    "sideBySideView": "Pohled vedle sebe"
+    "sideBySideView": "Pohled vedle sebe",
+    "pageNumberInput": "Zadání čísla stránky",
+    "addNewColor": "Přidat novou barvu",
+    "deleteColor": "Smazat vybranou barvu",
+    "copySelectedColor": "Kopírovat vybranou barvu"
   },
   "annotation": {
     "areaMeasurement": "Plocha",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Panel vodoznaku"
   },
   "message": {
+    "showMore": "Zobrazit více",
+    "showLess": "Ukaž méně",
     "toolsOverlayNoPresets": "Žádné předvolby",
     "badDocument": "Dokument se nepodařilo načíst. Dokument je buď poškozený, nebo neplatný.",
     "customPrintPlaceholder": "např. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Tento dokument nemá žádné přílohy.",
     "noResults": "Nebyly nalezeny žádné výsledky.",
     "numResultsFound": "nalezeny výsledky",
+    "loadError": "Chyba při načítání dokumentu",
     "notSupported": "Tento typ souboru není podporován.",
     "passwordRequired": "Je vyžadováno heslo",
     "enterPasswordPlaceholder": "Zadejte heslo",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Barva"
+    },
+    "colorPalettePicker": {
+      "addColor": "Přidat novou barvu",
+      "selectColor": "Vyberte barvu"
     },
     "displayMode": {
       "layout": "Rozvržení stránky",
@@ -505,6 +521,9 @@
       "count": "Počet",
       "length": "Délka"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Dynamicky měnit velikost písma"
+    },
     "measurementOption": {
       "scale": "Měřítko"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Smazat obsah",
         "message": "Opravdu chcete smazat vybraný obsah? Toto nelze vrátit zpět."
+      },
+      "digitalSign": {
+        "title": "Varování zapečetěný dokument",
+        "message": "Tento dokument byl podepsán a nelze jej měnit ani měnit."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Smazat vlastní barvu",
       "deleteMessage": "Smazat vybranou vlastní barvu? Bude odstraněn z vaší palety barev."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Smazat vlastní barvu"
+    },
     "multiDeleteAnnotation": {
       "title": "Smazat poznámky?",
       "message": "Smazáním se odstraní všechny komentáře, odpovědi a seskupení a nelze jej vrátit zpět.\n\n Opravdu chcete tyto poznámky smazat?"
@@ -791,7 +817,7 @@
     "select": "(Esc)",
     "signature": "(S)",
     "squiggly": "(G)",
-    "image": "(já)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Zvětšit odsazení",
     "insertLink": "Vložit odkaz",
     "insertImage": "Vložit obrázek",
+    "table": "Stůl",
+    "insertRowAbove": "Vložit řádek výše",
+    "insertRowBelow": "Vložit řádek níže",
+    "insertColumnRight": "Vložit sloupec vpravo",
+    "insertColumnLeft": "Vložit sloupec vlevo",
+    "deleteRow": "Smazat řádek",
+    "deleteColumn": "Smazat sloupec",
+    "deleteTable": "Smazat tabulku",
     "notSupportedOnMobile": "Úpravy Office nejsou podporovány na mobilních zařízeních."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Sem přetáhněte soubor",
     "selectFile": "Zde vyberte svůj soubor",
     "or": "Nebo"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Styly",
+      "annotation": "Anotace",
+      "annotations": "Anotace",
+      "tool": "Nástroj",
+      "textStyles": "Styly textu",
+      "currentColor": "Aktuální barva",
+      "customColors": "Vlastní barvy",
+      "redactionTextLabel": "Textový štítek",
+      "redactionMarkOutline": "Označte obrys",
+      "redactionFill": "Barva redakce",
+      "redactionTextPlaceholder": "Vložte textový štítek",
+      "contentEdit": "Úprava obsahu"
+    },
+    "addColorToCustom": "Přidat k vlastním barvám",
+    "noToolSelected": "Chcete-li zobrazit vlastnosti nástroje, vyberte nástroj",
+    "noToolStyle": "Nástroj neobsahuje žádné stylingové vlastnosti."
+  },
+  "signatureListPanel": {
+    "header": "Seznam podpisů",
+    "newSignature": "Nový podpis",
+    "newSignatureAndInitial": "Nový podpis a iniciála",
+    "signatureList": {
+      "signature": "Podpis",
+      "initials": "Iniciály"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Známky",
+    "standard": "Standardní razítka"
   }
 }

@@ -8,6 +8,7 @@
     "calibrate": "調整する",
     "cancel": "キャンセル",
     "confirm": "確認",
+    "currentPageIs": "現在のページは",
     "clear": "クリア",
     "clearAll": "すべてクリア",
     "close": "閉じる",
@@ -71,6 +72,7 @@
     "type": "タイピング",
     "upload": "アップロード",
     "link": "リンク",
+    "unlink": "リンクの削除",
     "fileAttachmentDownload": "添付ファイルをダウンロード",
     "prevResult": "前の結果",
     "nextResult": "次の結果",
@@ -81,6 +83,8 @@
     "exit": "終了",
     "addOption": "オプションを追加",
     "formFieldEdit": "フォームフィールドの編集",
+    "formFieldEditMode": "フォームフィールドの編集",
+    "contentEditMode": "コンテンツの編集",
     "viewShortCutKeysFor3D": "ショートカットキーを表示する",
     "markAllRead": "すべて既読にする",
     "pageInsertion": "ページの挿入",
@@ -119,8 +123,13 @@
     "showComparison": "比較を表示",
     "back": "戻る",
     "clearSignature": "明確な署名",
+    "readOnlySignature": "読み取り専用の署名は削除できません",
     "newDocument": "新しいドキュメント",
-    "sideBySideView": "並べて表示"
+    "sideBySideView": "並べて表示",
+    "pageNumberInput": "ページ番号入力",
+    "addNewColor": "新しい色を追加",
+    "deleteColor": "選択した色を削除",
+    "copySelectedColor": "選択したカラーをコピー"
   },
   "annotation": {
     "areaMeasurement": "面積測定",
@@ -244,6 +253,8 @@
     "watermarkPanel": "透かしパネル"
   },
   "message": {
+    "showMore": "もっと見せる",
+    "showLess": "表示を減らす",
     "toolsOverlayNoPresets": "プリセットなし",
     "badDocument": "ドキュメントの読み込みに失敗しました。ドキュメントが破損しているか、有効ではありません。",
     "customPrintPlaceholder": "例：3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "このドキュメントには添付ファイルはありません。",
     "noResults": "結果が見つかりませんでした。",
     "numResultsFound": "結果が見つかりました",
+    "loadError": "ドキュメントの読み込みエラー",
     "notSupported": "このファイル形式はサポートされていません。",
     "passwordRequired": "パスワードが必要です",
     "enterPasswordPlaceholder": "パスワードを入力する",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "色"
+    },
+    "colorPalettePicker": {
+      "addColor": "新しい色を追加",
+      "selectColor": "色を選択してください"
     },
     "displayMode": {
       "layout": "レイアウト",
@@ -505,6 +521,9 @@
       "count": "カウント",
       "length": "長さ"
     },
+    "freeTextOption": {
+      "autoSizeFont": "フォントサイズを動的に拡大縮小する"
+    },
     "measurementOption": {
       "scale": "縮尺"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "コンテンツの削除",
         "message": "選択したコンテンツを削除してもよろしいですか?これを元に戻すことはできません。"
+      },
+      "digitalSign": {
+        "title": "警告 封印された文書",
+        "message": "この文書は署名されており、変更または変更することはできません。"
       }
     },
     "stylePopup": {
@@ -758,6 +781,9 @@
     "colorPicker": {
       "deleteTitle": "カスタムカラーを削除する",
       "deleteMessage": "選択したカスタムカラーを削除しますか？カラーパレットから削除されます。"
+    },
+    "colorPalettePicker": {
+      "deleteTitle": "カスタムカラーを削除する"
     },
     "multiDeleteAnnotation": {
       "title": "注釈を削除しますか？",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "インデントを増やします",
     "insertLink": "リンクを挿入",
     "insertImage": "画像を挿入",
+    "table": "テーブル",
+    "insertRowAbove": "上に行を挿入",
+    "insertRowBelow": "下に行を挿入",
+    "insertColumnRight": "列を右に挿入",
+    "insertColumnLeft": "列を左に挿入",
+    "deleteRow": "行の削除",
+    "deleteColumn": "列の削除",
+    "deleteTable": "テーブルの削除",
     "notSupportedOnMobile": "Office 編集は、モバイル デバイスではサポートされていません。"
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "ここにファイルをドラッグ＆ドロップします",
     "selectFile": "ここでファイルを選択してください",
     "or": "また"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "スタイル",
+      "annotation": "注釈",
+      "annotations": "注釈",
+      "tool": "道具",
+      "textStyles": "テキストスタイル",
+      "currentColor": "現在の色",
+      "customColors": "カスタムカラー",
+      "redactionTextLabel": "テキストラベル",
+      "redactionMarkOutline": "マークのアウトライン",
+      "redactionFill": "編集色",
+      "redactionTextPlaceholder": "テキストラベルを挿入",
+      "contentEdit": "コンテンツ編集"
+    },
+    "addColorToCustom": "カスタムカラーに追加",
+    "noToolSelected": "ツールを選択してツールのプロパティを表示します",
+    "noToolStyle": "ツールにはスタイル設定プロパティが含まれていません。"
+  },
+  "signatureListPanel": {
+    "header": "署名リスト",
+    "newSignature": "新しい署名",
+    "newSignatureAndInitial": "新しい署名とイニシャル",
+    "signatureList": {
+      "signature": "サイン",
+      "initials": "イニシャル"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "スタンプ",
+    "standard": "スタンダードスタンプ"
   }
 }

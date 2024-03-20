@@ -8,6 +8,7 @@
     "calibrate": "Calibrar",
     "cancel": "Cancelar",
     "confirm": "confirme",
+    "currentPageIs": "A página atual é",
     "clear": "Limpar",
     "clearAll": "Limpar tudo",
     "close": "Fechar",
@@ -71,6 +72,7 @@
     "type": "Tipo",
     "upload": "Enviar documento",
     "link": "Link",
+    "unlink": "Excluir link",
     "fileAttachmentDownload": "Baixar arquivo anexado",
     "prevResult": "Resultado anterior",
     "nextResult": "Próximo resultado",
@@ -81,6 +83,8 @@
     "exit": "Saída",
     "addOption": "Adicionar Opção",
     "formFieldEdit": "Editar campo de formulário",
+    "formFieldEditMode": "Editar campos de formulário",
+    "contentEditMode": "Editar conteúdo",
     "viewShortCutKeysFor3D": "Exibir teclas de atalho",
     "markAllRead": "Marcar todas como lidas",
     "pageInsertion": "Inserção de página",
@@ -119,8 +123,13 @@
     "showComparison": "Mostrar comparação",
     "back": "De volta",
     "clearSignature": "Assinatura clara",
+    "readOnlySignature": "A assinatura somente leitura não pode ser excluída",
     "newDocument": "Novo Documento",
-    "sideBySideView": "Vista lado a lado"
+    "sideBySideView": "Vista lado a lado",
+    "pageNumberInput": "Entrada do número da página",
+    "addNewColor": "Adicionar nova cor",
+    "deleteColor": "Excluir cor selecionada",
+    "copySelectedColor": "Copiar cor selecionada"
   },
   "annotation": {
     "areaMeasurement": "Medição de área",
@@ -244,6 +253,8 @@
     "watermarkPanel": "Painel de marca d'água"
   },
   "message": {
+    "showMore": "Mostre mais",
+    "showLess": "Mostre menos",
     "toolsOverlayNoPresets": "Sem predefinições",
     "badDocument": "Falha ao carregar documento. O documento está corrompido ou é inválido.",
     "customPrintPlaceholder": "ex: 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "Este documento não possui anexos.",
     "noResults": "Nenhum resultado encontrado.",
     "numResultsFound": "resultados encontrados",
+    "loadError": "Erro ao carregar o documento",
     "notSupported": "Esse tipo de arquivo não é compatível.",
     "passwordRequired": "Senha obrigatória",
     "enterPasswordPlaceholder": "Digite a senha",
@@ -361,6 +373,10 @@
     },
     "colorPalette": {
       "colorLabel": "Cor"
+    },
+    "colorPalettePicker": {
+      "addColor": "Adicionar nova cor",
+      "selectColor": "Selecione a cor"
     },
     "displayMode": {
       "layout": "Layout",
@@ -505,6 +521,9 @@
       "count": "Contagem",
       "length": "Comprimento"
     },
+    "freeTextOption": {
+      "autoSizeFont": "Dimensione o tamanho da fonte dinamicamente"
+    },
     "measurementOption": {
       "scale": "Escala"
     },
@@ -546,6 +565,10 @@
       "deletionModal": {
         "title": "Excluir conteúdo",
         "message": "Tem certeza de que deseja excluir o conteúdo selecionado? Isso não pode ser desfeito."
+      },
+      "digitalSign": {
+        "title": "Aviso de documento selado",
+        "message": "Este documento foi assinado e não pode ser alterado ou alterado."
       }
     },
     "stylePopup": {
@@ -759,6 +782,9 @@
       "deleteTitle": "Excluir cor personalizada",
       "deleteMessage": "Excluir a cor personalizada selecionada? Ele será removido da sua paleta de cores."
     },
+    "colorPalettePicker": {
+      "deleteTitle": "Excluir cor personalizada"
+    },
     "multiDeleteAnnotation": {
       "title": "Excluir anotações?",
       "message": "A exclusão removerá todos os comentários, respostas e agrupamentos e não poderá ser desfeita.\n\n Tem certeza de que deseja excluir essas anotações?"
@@ -791,7 +817,7 @@
     "select": "(Esc)",
     "signature": "(S)",
     "squiggly": "(G)",
-    "image": "(EU)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,14 @@
     "increaseIndent": "Aumentar recuo",
     "insertLink": "Inserir link",
     "insertImage": "Inserir Imagem",
+    "table": "Mesa",
+    "insertRowAbove": "Inserir linha acima",
+    "insertRowBelow": "Inserir linha abaixo",
+    "insertColumnRight": "Inserir coluna à direita",
+    "insertColumnLeft": "Inserir coluna à esquerda",
+    "deleteRow": "Excluir linha",
+    "deleteColumn": "Excluir coluna",
+    "deleteTable": "Excluir tabela",
     "notSupportedOnMobile": "A edição do Office não é suportada em dispositivos móveis."
   },
   "insertPageModal": {
@@ -1247,5 +1281,37 @@
     "dragAndDrop": "Arraste e solte seu arquivo aqui",
     "selectFile": "Selecione seu arquivo aqui",
     "or": "Ou"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "Estilos",
+      "annotation": "Anotação",
+      "annotations": "Anotações",
+      "tool": "Ferramenta",
+      "textStyles": "Estilos de texto",
+      "currentColor": "Cor atual",
+      "customColors": "Cores personalizadas",
+      "redactionTextLabel": "Etiqueta de texto",
+      "redactionMarkOutline": "Marcar contorno",
+      "redactionFill": "Cor de redação",
+      "redactionTextPlaceholder": "Inserir rótulo de texto",
+      "contentEdit": "Edição de conteúdo"
+    },
+    "addColorToCustom": "Adicionar às cores personalizadas",
+    "noToolSelected": "Selecione uma ferramenta para visualizar as propriedades da ferramenta",
+    "noToolStyle": "A ferramenta não contém nenhuma propriedade de estilo."
+  },
+  "signatureListPanel": {
+    "header": "Lista de assinaturas",
+    "newSignature": "Nova Assinatura",
+    "newSignatureAndInitial": "Nova Assinatura e Inicial",
+    "signatureList": {
+      "signature": "Assinatura",
+      "initials": "Iniciais"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "Selos",
+    "standard": "Selos padrão"
   }
 }
