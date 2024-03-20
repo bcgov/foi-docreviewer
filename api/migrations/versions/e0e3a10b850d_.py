@@ -1,7 +1,7 @@
 """Add new section (NOT RESPONSIVE)
 
 Revision ID: e0e3a10b850d
-Revises: 549893ea9059
+Revises: 7db1cd6f0b36
 Create Date: 2024-01-29 13:01:30.668629
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'e0e3a10b850d'
-down_revision = '549893ea9059'
+down_revision = '7db1cd6f0b36'
 branch_labels = None
 depends_on = None
 
