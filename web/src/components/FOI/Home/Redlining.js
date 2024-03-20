@@ -2042,6 +2042,7 @@ const Redlining = React.forwardRef(
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
+      setPageSelections([]);
       if (newRedaction != null) {
         let astr = parser.parseFromString(newRedaction.astr, "text/xml");
         for (const node of astr.getElementsByTagName("annots")[0].children) {
