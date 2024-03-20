@@ -61,7 +61,7 @@ class DocumentPageflag(db.Model):
             return DefaultMethodResult(True, "Page Flag is saved", _documentid)
         except Exception as ex:
             logging.error(ex)
-            return DefaultMethodResult(True, "Page Flag is not saved", _documentid)
+            return DefaultMethodResult(False, "Page Flag is not saved", _documentid)
         finally:
             db.session.close()
 
@@ -85,36 +85,33 @@ class DocumentPageflag(db.Model):
                     DocumentPageflag.documentversion == _documentversion,
                     DocumentPageflag.redactionlayerid == redactionlayerid,
                 )
-            )
-            if pageflag.count() == 1:
-                pageflagobj = pageflag.first()
+            ).order_by(
+                DocumentPageflag.id
+            ).first()
+            if pageflag is not None:
                 DocumentPageflagHistory.createpageflag(
                     DocumentPageflagHistory(
-                        documentpageflagid=pageflagobj.id,
-                        foiministryrequestid=pageflagobj.foiministryrequestid,
-                        documentid=pageflagobj.documentid,
-                        documentversion=pageflagobj.documentversion,
-                        pageflag=json.dumps(pageflagobj.pageflag),
-                        attributes=json.dumps(pageflagobj.attributes),
-                        createdby=json.dumps(pageflagobj.createdby),
-                        created_at=pageflagobj.created_at,
-                        updatedby=json.dumps(pageflagobj.updatedby),
-                        updated_at=pageflagobj.updated_at,
-                        redactionlayerid=pageflagobj.redactionlayerid,
+                        documentpageflagid=pageflag.id,
+                        foiministryrequestid=pageflag.foiministryrequestid,
+                        documentid=pageflag.documentid,
+                        documentversion=pageflag.documentversion,
+                        pageflag=json.dumps(pageflag.pageflag),
+                        attributes=json.dumps(pageflag.attributes),
+                        createdby=json.dumps(pageflag.createdby),
+                        created_at=pageflag.created_at,
+                        updatedby=json.dumps(pageflag.updatedby),
+                        updated_at=pageflag.updated_at,
+                        redactionlayerid=pageflag.redactionlayerid,
                     )
-                )
-                pageflag.update(
-                    {
-                        DocumentPageflag.pageflag: _pageflag,
-                        DocumentPageflag.attributes: _pageattributes,
-                        DocumentPageflag.updated_at: datetime.now(),
-                        DocumentPageflag.updatedby: userinfo,
-                    },
-                    synchronize_session=False,
-                )
+                )        
+                pageflag.pageflag = _pageflag  
+                pageflag.attributes = _pageattributes 
+                pageflag.updated_at = datetime.now() 
+                pageflag.updatedby = userinfo 
+                db.session.add(pageflag)
                 db.session.commit()
                 return DefaultMethodResult(True, "Page Flag is saved", _documentid)
-            elif pageflag.count() == 0:
+            else:
                 return cls.createpageflag(
                     _foiministryrequestid,
                     _documentid,
@@ -124,12 +121,10 @@ class DocumentPageflag(db.Model):
                     redactionlayerid,
                     _pageattributes,
                 )
-            raise Exception(
-                "More than 1 pageflag row created for layerid: " + redactionlayerid
-            )
+            
         except Exception as ex:
             logging.error(ex)
-            return DefaultMethodResult(True, "Page Flag is not saved", _documentid)
+            return DefaultMethodResult(False, "Page Flag is not saved", _documentid)
         finally:
             db.session.close()
 
@@ -184,7 +179,7 @@ class DocumentPageflag(db.Model):
             return DefaultMethodResult(True, "Page Flag is saved", _documentids)
         except Exception as ex:
             logging.error(ex)
-            return DefaultMethodResult(True, "Page Flag is not saved", _documentids)
+            return DefaultMethodResult(False, "Page Flag is not saved", _documentids)
         finally:
             db.session.close()
 
