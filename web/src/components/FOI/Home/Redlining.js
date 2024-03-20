@@ -3266,6 +3266,13 @@ const Redlining = React.forwardRef(
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
                 if (filerow.stitchIndex === 1) {
+                  if (deletedDocPages) {
+                    const deletedPages = deletedDocPages[filerow?.documentid] || [];
+                    if (deletedPages.length > 0) {
+                      setSkipDeletePages(true);
+                      await newDoc.removePages(deletedPages);
+                    }
+                  }
                   stitchedDocObj = newDoc;
                   setstichedfilesForRedline(stitchedDocObj)
                 } else {
