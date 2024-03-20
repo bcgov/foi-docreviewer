@@ -6,7 +6,6 @@ from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
-from reviewer_api.models.Pageflags import Pageflag
 
 
 class documentpageflagservice:    
