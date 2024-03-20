@@ -114,8 +114,8 @@ const Redlining = React.forwardRef(
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const viewer = useRef(null);
-    
-    const documentList = getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file);
+    const [documentList, setDocumentList] = useState([]);
+    // const documentList = getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file);
     // const documentList = docsForStitcing?.map(docs => docs.file);
     // const documentList = useAppSelector(
     //   (state) => state.documents?.documentList
@@ -260,25 +260,32 @@ const Redlining = React.forwardRef(
     const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
       let isvalid = false;
       for (let divObj of divisionDocuments) {    
-      if (divObj.divisionid == divisionid)  {
-      for (let doc of divObj.documentlist) {
-      for (const flagInfo of doc.pageFlag) {
-            if (
-              (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
-              (
-                (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
-                (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
-              )
-            ) {
-              if(isvalid == false) {
-                isvalid = true; 
-              } 
+        if (divObj.divisionid == divisionid)  {
+          if (divObj?.incompatableList?.length > 0) {
+            if(isvalid == false) {
+              isvalid = true; 
+            } 
+          }
+          else {
+            for (let doc of divObj.documentlist) {
+              for (const flagInfo of doc.pageFlag) {
+                if (
+                    (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
+                    (
+                      (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
+                      (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
+                    )
+                  ) {
+                    if(isvalid == false) {
+                      isvalid = true; 
+                    } 
+                }
+              }
             }
           }
         }
       }
-      }
-        return isvalid;
+      return isvalid;
     };
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
@@ -556,7 +563,11 @@ const Redlining = React.forwardRef(
               true
             );
             let _firstdoc = documentViewer.getDocument();
-            await deletePagesBeforeStitching(_firstdoc, currentDocument?.file?.documentid);
+            const deletedPages = getDeletedPagesBeforeStitching(currentDocument?.file?.documentid);
+            if (deletedPages.length > 0) {
+              setSkipDeletePages(true);
+              await _firstdoc.removePages(deletedPages);
+            }
             // if (deletedDocPages) {
             //   const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
             //   if (deletedPages.length > 0) {
@@ -725,14 +736,12 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
-    const deletePagesBeforeStitching = async (docObj, documentid) => {
+    const getDeletedPagesBeforeStitching = (documentid) => {
+      let deletedPages = [];
       if (deletedDocPages) {
-        const deletedPages = deletedDocPages[documentid] || [];
-        if (deletedPages.length > 0) {
-          setSkipDeletePages(true);
-          await docObj.removePages(deletedPages);
-        }
+        deletedPages = deletedDocPages[documentid] || [];
       }
+      return deletedPages;
     }
 
     useEffect(() => {
@@ -1363,8 +1372,10 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      checkSavingRedlineButton(docInstance);
-    }, [pageFlags, isStitchingLoaded]);
+      if (documentList.length > 0) {
+        checkSavingRedlineButton(docInstance);
+      }
+    }, [pageFlags, isStitchingLoaded, documentList]);
 
 
     const stitchPages = (_doc, pdftronDocObjs) => {
@@ -1492,6 +1503,9 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
+      if (docsForStitcing.length > 0) {
+        setDocumentList(getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file));
+      }
       if (
         pdftronDocObjects?.length > 0 &&
         docsForStitcing.length > 0 &&
@@ -3142,14 +3156,16 @@ const Redlining = React.forwardRef(
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
               if (docCount == 1) {
+                const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
+                if (deletedPages.length > 0) {
+                    docObj.removePages(deletedPages);
+                }
                 // Delete pages from the first document
                 // if (deletedDocPages) {
                 //   const deletedPages = deletedDocPages[doc.documentid] || [];
                 //   if (deletedPages.length > 0)
                 //     docObj.removePages(deletedPages)
-                // }
-                await deletePagesBeforeStitching(docObj, doc.documentid);
-                
+                // }                
                 stitchedDocObj = docObj;
               } else {
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
@@ -3257,7 +3273,12 @@ const Redlining = React.forwardRef(
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
                 if (filerow.stitchIndex === 1) {
-                  await deletePagesBeforeStitching(newDoc, filerow?.documentid);
+                  const deletedPages = getDeletedPagesBeforeStitching(filerow?.documentid);
+                  if (deletedPages.length > 0) {
+                    setSkipDeletePages(true);
+                    await newDoc.removePages(deletedPages);
+                  }
+
                   // if (deletedDocPages) {
                   //   const deletedPages = deletedDocPages[filerow?.documentid] || [];
                   //   if (deletedPages.length > 0) {
@@ -3374,6 +3395,16 @@ const Redlining = React.forwardRef(
 
           let divisionid = key;
           let stitchObject = redlineStitchObject[key];
+          // if all pages of a division with NR/Duplicate 
+          // and NR/Duplicate is not checked. 
+          // make stitchObject = null to stop the stitching
+          let count = Object.keys(redlinepageMappings["divpagemappings"][divisionid]).length;
+          if (count === 1) {           
+            const values = Object.values(redlinepageMappings["divpagemappings"][divisionid])
+            if (Object.keys(values[0]).length === 0) {
+              stitchObject = null
+            }
+          }
           if (stitchObject == null) {
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
