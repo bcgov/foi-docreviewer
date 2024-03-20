@@ -553,13 +553,14 @@ const Redlining = React.forwardRef(
               true
             );
             let _firstdoc = documentViewer.getDocument();
-            if (deletedDocPages) {
-              const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
-              if (deletedPages.length > 0) {
-                setSkipDeletePages(true);
-                await _firstdoc.removePages(deletedPages);
-              }
-            }
+            await deletePagesBeforeStitching(_firstdoc, currentDocument?.file?.documentid);
+            // if (deletedDocPages) {
+            //   const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
+            //   if (deletedPages.length > 0) {
+            //     setSkipDeletePages(true);
+            //     await _firstdoc.removePages(deletedPages);
+            //   }
+            // }
             if(doclistCopy.length > 1) {
               doclistCopy?.shift();
               let setCount = slicerdetails.setcount;
@@ -575,31 +576,7 @@ const Redlining = React.forwardRef(
                   )
                 );
               }
-              Promise.all(objpreptasks);
-              // let _firstdoc = documentViewer.getDocument();
-              // // Delete pages from the first Document
-              // if (deletedDocPages) {
-              //   const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
-              //   if (deletedPages.length > 0) {
-              //     setSkipDeletePages(true);
-              //     await _firstdoc.removePages(deletedPages);
-              //     let setCount = slicerdetails.setcount;
-              //     let slicer = slicerdetails.slicer;            
-              //     let objpreptasks = new Array(setCount);
-              //     for (let slicecount = 1; slicecount <= setCount; slicecount++) {
-              //       let sliceDoclist = doclistCopy.splice(0, slicer);
-              //       objpreptasks.push(
-              //         mergeObjectsPreparation(
-              //           instance.Core.createDocument,
-              //           sliceDoclist,
-              //           slicecount
-              //         )
-              //       );
-              //     }
-              //     Promise.all(objpreptasks);
-              //   }
-              // }
-              
+              Promise.all(objpreptasks);              
             }
             let setCount = slicerdetails.setcount;
             let slicer = slicerdetails.slicer;            
@@ -744,6 +721,16 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    const deletePagesBeforeStitching = async (docObj, documentid) => {
+      if (deletedDocPages) {
+        const deletedPages = deletedDocPages[documentid] || [];
+        if (deletedPages.length > 0) {
+          setSkipDeletePages(true);
+          await docObj.removePages(deletedPages);
+        }
+      }
+    }
 
     useEffect(() => {
       if (pagesRemoved.length > 0 && pageMappedDocs?.docIdLookup && !skipDeletePages) {
@@ -3153,11 +3140,12 @@ const Redlining = React.forwardRef(
               docCount++;
               if (docCount == 1) {
                 // Delete pages from the first document
-                if (deletedDocPages) {
-                  const deletedPages = deletedDocPages[doc.documentid] || [];
-                  if (deletedPages.length > 0)
-                    docObj.removePages(deletedPages)
-                }
+                // if (deletedDocPages) {
+                //   const deletedPages = deletedDocPages[doc.documentid] || [];
+                //   if (deletedPages.length > 0)
+                //     docObj.removePages(deletedPages)
+                // }
+                await deletePagesBeforeStitching(docObj, doc.documentid);
                 
                 stitchedDocObj = docObj;
               } else {
@@ -3266,13 +3254,14 @@ const Redlining = React.forwardRef(
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
                 if (filerow.stitchIndex === 1) {
-                  if (deletedDocPages) {
-                    const deletedPages = deletedDocPages[filerow?.documentid] || [];
-                    if (deletedPages.length > 0) {
-                      setSkipDeletePages(true);
-                      await newDoc.removePages(deletedPages);
-                    }
-                  }
+                  await deletePagesBeforeStitching(newDoc, filerow?.documentid);
+                  // if (deletedDocPages) {
+                  //   const deletedPages = deletedDocPages[filerow?.documentid] || [];
+                  //   if (deletedPages.length > 0) {
+                  //     setSkipDeletePages(true);
+                  //     await newDoc.removePages(deletedPages);
+                  //   }
+                  // }
                   stitchedDocObj = newDoc;
                   setstichedfilesForRedline(stitchedDocObj)
                 } else {
