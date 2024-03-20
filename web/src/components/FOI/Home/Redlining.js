@@ -264,8 +264,11 @@ const Redlining = React.forwardRef(
       for (let doc of divObj.documentlist) {
       for (const flagInfo of doc.pageFlag) {
             if (
-              flagInfo.flagid != pageFlagTypes["Duplicate"] &&
-              flagInfo.flagid != pageFlagTypes["Not Responsive"]
+              (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
+              (
+                (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
+                (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
+              )
             ) {
               if(isvalid == false) {
                 isvalid = true; 
