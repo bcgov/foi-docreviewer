@@ -35,6 +35,7 @@ import {
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
+  savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -63,6 +64,7 @@ import {
   getSliceSetDetails,
   sortDocObjects,
   sortDocObjectsForRedline,
+  addWatermarkToRedline
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -103,6 +105,7 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
+    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
@@ -119,11 +122,13 @@ const Redlining = React.forwardRef(
     const [docViewerMath, setDocViewerMath] = useState(null);
     const [docInstance, setDocInstance] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [messageModalOpen, setMessageModalOpen] = useState(false)
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [newRedaction, setNewRedaction] = useState(null);
     const [deleteQueue, setDeleteQueue] = useState([]);
     const [selectedSections, setSelectedSections] = useState([]);
     const [defaultSections, setDefaultSections] = useState([]);
+    const [selectedPageFlagId, setSelectedPageFlagId] = useState(null);
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [pageSelections, setPageSelections] = useState([]);
@@ -169,6 +174,9 @@ const Redlining = React.forwardRef(
     const [requestStitchObject, setRequestStitchObject] = useState({});
     const [issingleredlinepackage, setIssingleredlinepackage] = useState(null);
     const [incompatableList, setIncompatableList]= useState({});
+    const [includeNRPages, setIncludeNRPages]= useState(false);
+    const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
+    const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     
     //xml parser
     const parser = new XMLParser();
@@ -265,20 +273,9 @@ const Redlining = React.forwardRef(
         return isvalid;
     };
 
-    const [enableSavingRedline, setEnableSavingRedline] = useState(      
-      isReadyForSignOff() && isValidRedlineDownload() &&
-        [
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"],
-          RequestStates["Peer Review"],
-        ].includes(requestStatus)
-    );
-    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(
-      validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc"
-    )
-    const [enableSavingFinal, setEnableSavingFinal] = useState(
-      isReadyForSignOff() && requestStatus == RequestStates["Response"]
-    );
+    const [enableSavingRedline, setEnableSavingRedline] = useState(false);
+    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
+    const [enableSavingFinal, setEnableSavingFinal] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
 
@@ -904,7 +901,11 @@ const Redlining = React.forwardRef(
                   requestid,
                   currentLayer.redactionlayerid,
                   annotObjs,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   }
@@ -1047,7 +1048,11 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   },
@@ -1087,6 +1092,9 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
+                      fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                        console.log("Error:", error);
+                      });
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
@@ -1202,7 +1210,8 @@ const Redlining = React.forwardRef(
     ]);
 
     useImperativeHandle(ref, () => ({
-      addFullPageRedaction(pageNumbers) {
+      addFullPageRedaction(pageNumbers, flagId) {
+        if (flagId) setSelectedPageFlagId(flagId)
         let newAnnots = [];
         for (let pageNumber of pageNumbers) {
           let height = docViewer.getPageHeight(pageNumber);
@@ -1463,12 +1472,88 @@ const Redlining = React.forwardRef(
     }, [user]);
 
     useEffect(() => {
-      docViewer?.displayPageLocation(individualDoc["page"], 0, 0);
+      docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
+
+    // This updates the page flag based on the annotations on the page
+    useEffect(() => {
+      // only update page flags after initial load
+      if (!redactionInfo || redactionInfo.length == 0) return;
+      if (!redactionInfoIsLoaded) {
+        setRedactionInfoIsLoaded(true);
+        return;
+      }
+      const hasUpdated = updatePageFlagsByPage(redactionInfo);
+      if (!hasUpdated) {
+        fetchPageFlag(
+          requestid,
+          currentLayer.name.toLowerCase(),
+          docsForStitcing.map(d => d.file.documentid),
+          (error) => console.log(error)
+        );
+      }
+    }, [redactionInfo])
+
+    // This updates the page flags for pages where all the annotations have the same section
+    const updatePageFlagsByPage = (redactionInfo) => {
+      let hasUpdated = false;
+      const getSectionIdsMap = (redactionInfo) => {
+        let sectionIdsMap = {}
+        for (let annot of redactionInfo) {
+          for (let id of annot.sections.ids) {
+            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
+            } else if (sectionIdsMap?.[annot.documentid]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            } else {
+              sectionIdsMap[annot.documentid] = {}
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            }
+          }
+        }
+        return sectionIdsMap;
+      }
+
+      const setFlagsForPagesToUpdate = (redactionInfo) => {
+        let pagesToUpdate = []
+        let sectionIdsMap = getSectionIdsMap(redactionInfo)
+        for (let doc in sectionIdsMap) {
+          for (let page in sectionIdsMap[doc]) {
+            if (sectionIdsMap[doc][page].every(id => id >= 25) && sectionIdsMap[doc][page].includes(25)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["In Progress"]})
+            } else if (sectionIdsMap[doc][page].every(id => id == 26)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["Full Disclosure"]})
+            }
+          }
+        }
+        return pagesToUpdate
+      }
+      
+      let pagesToUpdate = setFlagsForPagesToUpdate(redactionInfo)
+      if (pagesToUpdate.length > 0) {
+        savePageFlag(
+          requestid, 
+          0, 
+          (data) => {
+            fetchPageFlag(
+              requestid,
+              currentLayer.name.toLowerCase(),
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
+            );
+          }, 
+          (error) => console.log('error: ', error), 
+          createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+        )
+        hasUpdated = true;
+      }
+      return hasUpdated;
+    }
 
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = editRedacts;
       let astr = parser.parseFromString(redactionObj.astr);
@@ -1497,7 +1582,6 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1549,13 +1633,11 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              docsForStitcing.map(d => d.file.documentid),
-              (error) => console.log(error)
-            );
+
           },
           (error) => {
             console.log(error);
@@ -1592,6 +1674,7 @@ const Redlining = React.forwardRef(
 
     const saveRedaction = async (_resizeAnnot = {}) => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
@@ -1687,6 +1770,9 @@ const Redlining = React.forwardRef(
                 requestid,
                 astr,
                 (data) => {
+                  fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                    console.log("Error:", error);
+                  });
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
@@ -1731,6 +1817,7 @@ const Redlining = React.forwardRef(
             return flag;
           });
         }
+
         // add section annotation
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1838,6 +1925,9 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
             fetchPageFlag(
               requestid,
@@ -1948,8 +2038,11 @@ const Redlining = React.forwardRef(
 
     const cancelRedaction = () => {
       setModalOpen(false);
+      setMessageModalOpen(false);
+      setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
+      setPageSelections([]);
       if (newRedaction != null) {
         let astr = parser.parseFromString(newRedaction.astr, "text/xml");
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1979,12 +2072,34 @@ const Redlining = React.forwardRef(
       setDefaultSections([]);
     };
 
+    const setMessageModalForNotResponsive = () => {
+      setModalTitle("Not Responsive Default");
+          setModalMessage(
+          <div>You have 'Not Responsive' selected as a default section.
+            <ul>
+              <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
+              <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
+            </ul>
+          </div>);
+          setMessageModalOpen(true)
+    }
+
     useEffect(() => {
       if (newRedaction) {
+        let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
         if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
           setWarningModalOpen(true);
           cancelRedaction();
-        } else if (defaultSections.length > 0) {
+        } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
+          saveRedaction();
+        } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
+          setModalOpen(true);
+        } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
+          setMessageModalForNotResponsive();
+        } else if (hasFullPageRedaction) {
+          if (defaultSections.length != 0) setMessageModalForNotResponsive();
+          setModalOpen(true)
+        } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
           saveRedaction();
         } else {
           setModalOpen(true);
@@ -2076,7 +2191,9 @@ const Redlining = React.forwardRef(
       const zipDocObj = {
         divisionid: null,
         divisionname: null,
-        files: [], 
+        files: [],
+        includeduplicatepages: includeDuplicatePages,
+        includenrpages: includeNRPages,
       };
       if (stitchedDocPath) {
         const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2275,18 +2392,19 @@ const Redlining = React.forwardRef(
     };
 
     const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg) => {      
-    if (redlineSinglePkg == "Y") {
-      let reqdocuments = [];
-      for (let divObj of divisionDocuments) {    
-        for (let doc of divObj.documentlist) {
-          reqdocuments.push(doc);
+      if (redlineSinglePkg == "Y") {
+        let reqdocuments = [];
+        for (let divObj of divisionDocuments) {    
+          for (let doc of divObj.documentlist) {
+            reqdocuments.push(doc);
+          }
         }
+        prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
+      } else {
+        prepareRedlinePageMappingByDivision(divisionDocuments);
       }
-      prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
-    } else {
-      prepareRedlinePageMappingByDivision(divisionDocuments);
     }
-  }
+
     const prepareRedlinePageMappingByRequest = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
@@ -2294,44 +2412,92 @@ const Redlining = React.forwardRef(
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
       let divPageMappings = {};
+      let duplicateWatermarkPages = {};
+      let duplicateWatermarkPagesEachDiv = [];
+      let NRWatermarksPages = {};
+      let NRWatermarksPagesEachDiv = [];
       for (let doc of divisionDocuments) {
-          let pagesToRemoveEachDoc = [];
-          pageMappings[doc.documentid] = {};
-            //gather pages that need to be removed
-            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-            for (const flagInfo of doc.pageFlag) {
-              if (
-                flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                flagInfo.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(
-                    getStitchedPageNoFromOriginal(
-                      doc.documentid,
-                      flagInfo.page,
-                      pageMappedDocs
-                    )
-                  );
-                  
-              } else {
-                pageMappings[doc.documentid][flagInfo.page] =
-                  flagInfo.page +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
-              }
+        let pagesToRemoveEachDoc = [];
+        pageMappings[doc.documentid] = {};
+        //gather pages that need to be removed
+        doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+        for (const flagInfo of doc.pageFlag) {
+          if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+            if(includeDuplicatePages) {
+              duplicateWatermarkPagesEachDiv.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                ) - pagesToRemove.length
+              );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
+            } else {
+              pagesToRemoveEachDoc.push(flagInfo.page);
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
             }
-              //End of pageMappingsByDivisions
-          totalPageCount += Object.keys(
-            pageMappings[doc.documentid]
-          ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
-          
-          
+          } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+            if(includeNRPages) {
+              NRWatermarksPagesEachDiv.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                ) - pagesToRemove.length
+              );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
+            } else {
+              pagesToRemoveEachDoc.push(flagInfo.page);
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  doc.documentid,
+                  flagInfo.page,
+                  pageMappedDocs
+                )
+              );
+            }
+          } else {
+            pageMappings[doc.documentid][flagInfo.page] =
+              flagInfo.page +
+              totalPageCount -
+              pagesToRemoveEachDoc.length;
+          }
         }
+        //End of pageMappingsByDivisions
+        totalPageCount += Object.keys(
+          pageMappings[doc.documentid]
+        ).length;
+        totalPageCountIncludeRemoved += doc.pagecount;
+      }
       divPageMappings['0'] = pageMappings;
-      removepages['0'] = pagesToRemove;  
-      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
+      removepages['0'] = pagesToRemove; 
+      duplicateWatermarkPages['0'] = duplicateWatermarkPagesEachDiv;
+      NRWatermarksPages['0'] = NRWatermarksPagesEachDiv;
+      setRedlinepageMappings({
+        'divpagemappings': divPageMappings,
+        'pagemapping': pageMappings,
+        'pagestoremove': removepages
+      });
+      setRedlineWatermarkPageMapping({
+        'duplicatewatermark': duplicateWatermarkPages,
+        'NRwatermark': NRWatermarksPages
+      });
     }
+
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
@@ -2340,50 +2506,86 @@ const Redlining = React.forwardRef(
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
       let divisionCount = 0; 
+      let duplicateWatermarkPages = {};
+      let duplicateWatermarkPagesEachDiv = [];
+      let NRWatermarksPages = {};
+      let NRWatermarksPagesEachDiv = [];
       for (let divObj of divisionDocuments) {    
         divisionCount++;  
         for (let doc of sortByLastModified(divObj.documentlist)) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
-            //gather pages that need to be removed
-            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-            //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
-            for (const flagInfo of doc.pageFlag) {
-              if (
-                flagInfo.flagid == pageFlagTypes["Duplicate"] ||
-                flagInfo.flagid == pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                
-                      pagesToRemove.push(                  
-                        flagInfo.page + totalPageCountIncludeRemoved
-                      );
-                 
-              } else {
+
+          //gather pages that need to be removed
+          doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+          //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
+          for (const flagInfo of doc.pageFlag) {
+            if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+              if(includeDuplicatePages) {
+                duplicateWatermarkPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+
                 pageMappings[doc.documentid][flagInfo.page] =
                   flagInfo.page +
                   totalPageCount -
                   pagesToRemoveEachDoc.length;
+              } else {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+              
+                pagesToRemove.push(                  
+                  flagInfo.page + totalPageCountIncludeRemoved
+                );
               }
+            } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+              if(includeNRPages) {
+                NRWatermarksPagesEachDiv.push(flagInfo.page + totalPageCountIncludeRemoved - pagesToRemove.length);
+
+                pageMappings[doc.documentid][flagInfo.page] =
+                  flagInfo.page +
+                  totalPageCount -
+                  pagesToRemoveEachDoc.length;
+              } else {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+              
+                pagesToRemove.push(                  
+                  flagInfo.page + totalPageCountIncludeRemoved
+                );
+              }
+            } else {
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             }
-              //End of pageMappingsByDivisions
+          }
+          //End of pageMappingsByDivisions
           totalPageCount += Object.keys(
             pageMappings[doc.documentid]
           ).length;
-        totalPageCountIncludeRemoved += doc.pagecount;
+          totalPageCountIncludeRemoved += doc.pagecount;
           //}
           
         }
-          divPageMappings[divObj.divisionid] = pageMappings;
-          removepages[divObj.divisionid] = pagesToRemove;
-          pagesToRemove = [];
-          totalPageCount = 0;
-          totalPageCountIncludeRemoved = 0;
-          pageMappings = {}
-            
-        
+        divPageMappings[divObj.divisionid] = pageMappings;
+        removepages[divObj.divisionid] = pagesToRemove;
+        duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
+        NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
+        pagesToRemove = [];
+        duplicateWatermarkPagesEachDiv = [];
+        NRWatermarksPagesEachDiv = [];
+        totalPageCount = 0;
+        totalPageCountIncludeRemoved = 0;
+        pageMappings = {}
       }
-      setRedlinepageMappings({'divpagemappings': divPageMappings, 'pagemapping': pageMappings, 'pagestoremove': removepages})
+
+      setRedlinepageMappings({
+        'divpagemappings': divPageMappings,
+        'pagemapping': pageMappings,
+        'pagestoremove': removepages
+      });
+      setRedlineWatermarkPageMapping({
+        'duplicatewatermark': duplicateWatermarkPages,
+        'NRwatermark': NRWatermarksPages
+      });
     }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
@@ -2689,6 +2891,8 @@ const Redlining = React.forwardRef(
     }
 
     const cancelSaveRedlineDoc = () => {
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
       setRedlineModalOpen(false);
     };
 
@@ -2708,6 +2912,8 @@ const Redlining = React.forwardRef(
           break;
         default:
       }
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
     };
 
     const getzipredlinecategory = (layertype) => {
@@ -2761,36 +2967,36 @@ const Redlining = React.forwardRef(
             divCount++;
             let docCount = 0;
             if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
-            for (let doc of div.documentlist) {
-              docCount++;
-              documentsObjArr.push(doc);
-              if (docCount == div.documentlist.length) {
-                if (pageMappedDocs != undefined) {
-                  let divisionsdocpages = Object.values(
-                    pageMappedDocs.redlineDocIdLookup
-                  )
-                    .filter((obj) => {
-                      return obj.division.includes(div.divisionid);
-                    })
-                    .map((obj) => {
-                      return obj.pageMappings;
+              for (let doc of div.documentlist) {
+                docCount++;
+                documentsObjArr.push(doc);
+                if (docCount == div.documentlist.length) {
+                  if (pageMappedDocs != undefined) {
+                    let divisionsdocpages = Object.values(
+                      pageMappedDocs.redlineDocIdLookup
+                    )
+                      .filter((obj) => {
+                        return obj.division.includes(div.divisionid);
+                      })
+                      .map((obj) => {
+                        return obj.pageMappings;
+                      });
+                    divisionsdocpages.forEach(function (_arr) {
+                      _arr.forEach(function (value) {
+                        divisionstitchpages.push(value);
+                      });
                     });
-                  divisionsdocpages.forEach(function (_arr) {
-                    _arr.forEach(function (value) {
-                      divisionstitchpages.push(value);
-                    });
-                  });
-                  divisionstitchpages.sort((a, b) =>
-                    a.stitchedPageNo > b.stitchedPageNo
-                      ? 1
-                      : b.stitchedPageNo > a.stitchedPageNo
-                      ? -1
-                      : 0
-                  );
+                    divisionstitchpages.sort((a, b) =>
+                      a.stitchedPageNo > b.stitchedPageNo
+                        ? 1
+                        : b.stitchedPageNo > a.stitchedPageNo
+                        ? -1
+                        : 0
+                    );
+                  }
                 }
               }
             }
-          }
             if (
               res.issingleredlinepackage == "Y" &&
               divCount == res.divdocumentList.length
@@ -2951,11 +3157,11 @@ const Redlining = React.forwardRef(
             requestStitchObject[division] = stitchedDocObj;
           }
         }
-      } else {
-        if (incompatableList[division]["incompatibleFiles"].length > 0) {
+        } else {
+          if (incompatableList[division]["incompatibleFiles"].length > 0) {
             requestStitchObject[division] = null
-        } 
-      }
+          } 
+        }
         if (redlineSinglePkg == "Y" && stitchedDocObj != null) {
           requestStitchObject["0"] = stitchedDocObj;
         }
@@ -3035,9 +3241,10 @@ const Redlining = React.forwardRef(
     ) => {
           for (const filerow of sliceDoclist) {
             try {
-            await createDocument(filerow.s3path_load, 
-              { useDownloader: false } // Added to fix BLANK page issue
-              ).then(async (newDoc) => {
+            await createDocument(filerow.s3path_load, {
+              useDownloader: false, // Added to fix BLANK page issue
+              loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
+            }).then(async (newDoc) => {
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3060,13 +3267,12 @@ const Redlining = React.forwardRef(
                 }
               }
             });
-          } catch (error) {
-            console.error("An error occurred during create document:", error);
-            // Handle any errors that occurred during the asynchronous operations
+            } catch (error) {
+              console.error("An error occurred during create document:", error);
+              // Handle any errors that occurred during the asynchronous operations
+            }
           }
-          }
-        
-      };
+    };
 
     useEffect(() => {
       if (
@@ -3161,131 +3367,134 @@ const Redlining = React.forwardRef(
             );
           } else {
             let formattedAnnotationXML = formatAnnotationsForRedline(
-            redlineDocumentAnnotations,
-            redlinepageMappings["divpagemappings"][divisionid],
-            redlineStitchInfo[divisionid]["documentids"]
-          );
-          if(redlineCategory !== "oipcreview") {  
-            stitchObject = await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            redlineSinglePackage
+              redlineDocumentAnnotations,
+              redlinepageMappings["divpagemappings"][divisionid],
+              redlineStitchInfo[divisionid]["documentids"]
             );
-          }
-          if (
-            redlinepageMappings["pagestoremove"][divisionid] &&
-            redlinepageMappings["pagestoremove"][divisionid].length > 0
-          ) {
-            await stitchObject.removePages(
-              redlinepageMappings["pagestoremove"][divisionid]
-            );
-          }
-          
-          let xfdfString =
-            '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
-            formattedAnnotationXML +
-            "</annots></xfdf>";
-
-          //OIPC - Special Block (Redact S.14) : Begin
-          if(redlineCategory === "oipcreview") {
-            const rarr = []; 
-            let annotationManager = docInstance?.Core.annotationManager;
-            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            let rects = [];
-            for (const [key, value] of Object.entries(s14_sectionStamps)) {
-              let s14annoation = annotationManager.getAnnotationById(key);
-                  if ( s14annoation.Subject === "Redact") { 
-                          rects = rects.concat( 
-                          s14annoation.getQuads().map((q) => {
-                            return {
-                                pageno: s14_sectionStamps[key],
-                                recto: q.toRect(),
-                                vpageno: s14annoation.getPageNumber()
-                              };
-                            })
-                          );
-                      }
-                
-              
-            }
-            for (const rect of rects) {
-              let height = docViewer.getPageHeight(rect.vpageno);
-              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-            }
-            if (rarr.length > 0) {
-              const app = {};
-              app.redaction_overlay = true;
-              app.border = false;
-              app.show_redacted_content_regions = false;
-              const doc = await stitchObject.getPDFDoc();
-              await PDFNet.Redactor.redact(doc, rarr, app);
-            }
-            stitchObject = await stampPageNumberRedline(
+            if(redlineCategory !== "oipcreview") {  
+              await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               redlineSinglePackage
               );
-        }
-        //OIPC - Special Block : End
-        
-          
-
-          stitchObject
-            .getFileData({
-              // saves the document with annotations in it
-              xfdfString: xfdfString,
-              downloadType: downloadType,
-              //flatten: true, //commented this as part of #4862
-            })
-            .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], {
-                type: "application/pdf",
-              });
-
-              saveFilesinS3(
-                { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                _blob,
-                (_res) => {
-                  // ######### call another process for zipping and generate download here ##########
-                  toast.update(toastId.current, {
-                    render: `Redline PDF saved to Object Storage`,
-                    type: "success",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                  triggerRedlineZipper(
-                    redlineIncompatabileMappings[divisionid],
-                    redlineStitchInfo[divisionid]["s3path"],
-                    divisionCountForToast,
-                    redlineSinglePackage
-                  );
-                },
-                (_err) => {
-                  console.log(_err);
-                  toast.update(toastId.current, {
-                    render: "Failed to save redline pdf to Object Storage",
-                    type: "error",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                }
+            }
+            if (
+              redlinepageMappings["pagestoremove"][divisionid] &&
+              redlinepageMappings["pagestoremove"][divisionid].length > 0
+            ) {
+              await stitchObject.removePages(
+                redlinepageMappings["pagestoremove"][divisionid]
               );
-            });
+            }
+            if(redlineCategory == "redline") {  
+              await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
+            }
+            
+            let xfdfString =
+              '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
+              formattedAnnotationXML +
+              "</annots></xfdf>";
+
+            //OIPC - Special Block (Redact S.14) : Begin
+            if(redlineCategory === "oipcreview") {
+              const rarr = []; 
+              let annotationManager = docInstance?.Core.annotationManager;
+              let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+              let rects = [];
+              for (const [key, value] of Object.entries(s14_sectionStamps)) {
+                let s14annoation = annotationManager.getAnnotationById(key);
+                    if ( s14annoation.Subject === "Redact") { 
+                            rects = rects.concat( 
+                            s14annoation.getQuads().map((q) => {
+                              return {
+                                  pageno: s14_sectionStamps[key],
+                                  recto: q.toRect(),
+                                  vpageno: s14annoation.getPageNumber()
+                                };
+                              })
+                            );
+                        }
+                  
+                
+              }
+              for (const rect of rects) {
+                let height = docViewer.getPageHeight(rect.vpageno);
+                rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+              }
+              if (rarr.length > 0) {
+                const app = {};
+                app.redaction_overlay = true;
+                app.border = false;
+                app.show_redacted_content_regions = false;
+                const doc = await stitchObject.getPDFDoc();
+                await PDFNet.Redactor.redact(doc, rarr, app);
+              }
+              await stampPageNumberRedline(
+                stitchObject,
+                PDFNet,
+                redlineStitchInfo[divisionid]["stitchpages"],
+                redlineSinglePackage
+              );
+            }
+            //OIPC - Special Block : End
+          
+            
+
+            stitchObject
+              .getFileData({
+                // saves the document with annotations in it
+                xfdfString: xfdfString,
+                downloadType: downloadType,
+                //flatten: true, //commented this as part of #4862
+              })
+              .then(async (_data) => {
+                const _arr = new Uint8Array(_data);
+                const _blob = new Blob([_arr], {
+                  type: "application/pdf",
+                });
+
+                saveFilesinS3(
+                  { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                  _blob,
+                  (_res) => {
+                    // ######### call another process for zipping and generate download here ##########
+                    toast.update(toastId.current, {
+                      render: `Redline PDF saved to Object Storage`,
+                      type: "success",
+                      className: "file-upload-toast",
+                      isLoading: false,
+                      autoClose: 3000,
+                      hideProgressBar: true,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      closeButton: true,
+                    });
+                    triggerRedlineZipper(
+                      redlineIncompatabileMappings[divisionid],
+                      redlineStitchInfo[divisionid]["s3path"],
+                      divisionCountForToast,
+                      redlineSinglePackage
+                    );
+                  },
+                  (_err) => {
+                    console.log(_err);
+                    toast.update(toastId.current, {
+                      render: "Failed to save redline pdf to Object Storage",
+                      type: "error",
+                      className: "file-upload-toast",
+                      isLoading: false,
+                      autoClose: 3000,
+                      hideProgressBar: true,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      closeButton: true,
+                    });
+                  }
+                );
+              });
           }
         }
       };
@@ -3557,6 +3766,58 @@ const Redlining = React.forwardRef(
         return b.count - a.count;
       }
     };
+    const decodeAstr = (astr) => {
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(astr, "text/xml")
+      const trnCustomDataXml = xmlDoc.getElementsByTagName("trn-custom-data");
+      const trnCustomDataJsonString = trnCustomDataXml[0].attributes[0].value
+      const trnCustomData = JSON.parse(trnCustomDataJsonString)
+      return trnCustomData
+    }
+
+    const sectionIsDisabled = (sectionid) => {
+      let isDisabled = false;
+      let hasFullPageRedaction = false;
+      if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
+      // For sections
+      if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
+        isDisabled = (sectionid === 25 || sectionid === 26)
+      // For Blank Code
+      } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
+        isDisabled = sectionid !== 25
+      } else if (hasFullPageRedaction) {
+        isDisabled = sectionid == 26
+      // For Not Responsive
+      } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
+        isDisabled = sectionid !== 26
+      } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && selectedSections?.length === 0) {
+        isDisabled = sectionid == 26
+      } else if (editAnnot) {
+        const trnCustomData = decodeAstr(editAnnot.astr)
+        const isFullPage = trnCustomData['trn-redaction-type'] === "fullPage"
+        isDisabled = isFullPage && sectionid == 26
+      } else if (editRedacts) {
+        let hasFullPageRedaction = false;
+        for (let annot of editRedacts.annots[0].children) {
+          const trnCustomDataJsonString = annot.children[0].attributes.bytes
+          const decodedJsonString = trnCustomDataJsonString.replace(/&quot;/g, '"');
+          const trnCustomData = JSON.parse(decodedJsonString)
+          if (trnCustomData['trn-redaction-type'] == 'fullPage') {
+            hasFullPageRedaction = true;
+          }
+        }
+        isDisabled = hasFullPageRedaction && sectionid == 26
+      }
+      return isDisabled
+    }
+
+    const handleIncludeNRPages = (e) => {
+      setIncludeNRPages(e.target.checked);
+    }
+
+    const handleIncludeDuplicantePages = (e) => {
+      setIncludeDuplicatePages(e.target.checked);
+    }
 
     return (
       <div>
@@ -3625,12 +3886,7 @@ const Redlining = React.forwardRef(
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
-                        disabled={
-                          selectedSections.length > 0 &&
-                          (section.id === 25
-                            ? !selectedSections.includes(25)
-                            : selectedSections.includes(25))
-                        }
+                        disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
                       <label
@@ -3685,7 +3941,7 @@ const Redlining = React.forwardRef(
           initHeight={300}
           minWidth={600}
           minHeight={250}
-          className={"state-change-dialog"}
+          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
           onRequestClose={cancelRedaction}
           isOpen={redlineModalOpen}
         >
@@ -3701,8 +3957,29 @@ const Redlining = React.forwardRef(
               id="state-change-dialog-description"
               component={"span"}
             >
-              <span className="confirmation-message">
-                {modalMessage} <br></br>
+              <span>
+                {modalMessage} <br/><br/>
+                {modalFor == "redline" && <>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
+                  checked={includeNRPages}
+                  onChange={handleIncludeNRPages}
+                />
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
+                  checked={includeDuplicatePages}
+                  onChange={handleIncludeDuplicantePages}
+                />
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
+                </>}
               </span>
             </DialogContentText>
           </DialogContent>
@@ -3713,6 +3990,41 @@ const Redlining = React.forwardRef(
             <button
               className="btn-bottom btn-cancel"
               onClick={cancelSaveRedlineDoc}
+            >
+              Cancel
+            </button>
+          </DialogActions>
+        </ReactModal>
+        <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog"}
+          onRequestClose={cancelRedaction}
+          isOpen={messageModalOpen}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">{modalTitle}</h2>
+            <IconButton className="title-col3" onClick={cancelRedaction}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"dialog-content-nomargin"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span className="confirmation-message">
+                {modalMessage} <br></br>
+              </span>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+            <button
+              className="btn-bottom btn-cancel"
+              onClick={cancelRedaction}
             >
               Cancel
             </button>

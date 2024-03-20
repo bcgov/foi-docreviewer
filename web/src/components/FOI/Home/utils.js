@@ -260,3 +260,55 @@ export const sortDocObjectsForRedline = (_pdftronDocObjs, doclist) => {
 
   return returnObjs;
 };
+
+export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPageMapping, division) => {
+  // duplicate & NR watermark
+  if (
+    (redlineWatermarkPageMapping["duplicatewatermark"] && redlineWatermarkPageMapping["duplicatewatermark"][division]) ||
+    (redlineWatermarkPageMapping["NRwatermark"] && redlineWatermarkPageMapping["NRwatermark"][division])
+  ) {
+    await stitchedDocObj.setWatermark({
+      // Draw custom watermark in middle of the document
+      custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+        // ctx is an instance of CanvasRenderingContext2D
+        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+        // Hence being able to leverage those properties
+        if(redlineWatermarkPageMapping["duplicatewatermark"][division].includes(pageNumber)) {
+          ctx.fillStyle = '#ff0000';
+          ctx.font = '20pt Arial';
+          ctx.globalAlpha = 0.4;
+      
+          ctx.save();
+          ctx.translate(pageWidth / 2, pageHeight / 2);
+          ctx.rotate(-Math.PI / 4);
+          ctx.fillText('DUPLICATE', 0, 0);
+          ctx.restore();
+      
+          // ctx.save();
+          // ctx.translate(pageWidth, pageHeight / 2);
+          // ctx.rotate(Math.PI / 2);
+          // ctx.fillText('DUPLICATE', 0, 0);
+          // ctx.restore();
+        }
+
+        if(redlineWatermarkPageMapping["NRwatermark"][division].includes(pageNumber)) {
+          ctx.fillStyle = '#ff0000';
+          ctx.font = '20pt Arial';
+          ctx.globalAlpha = 0.4;
+      
+          ctx.save();
+          ctx.translate(pageWidth / 2, pageHeight / 2);
+          ctx.rotate(-Math.PI / 4);
+          ctx.fillText('NOT RESPONSIVE', 0, 0);
+          ctx.restore();
+      
+          // ctx.save();
+          // ctx.translate(pageWidth, pageHeight / 2);
+          // ctx.rotate(Math.PI / 2);
+          // ctx.fillText('NOT RESPONSIVE', 0, 0);
+          // ctx.restore();
+        }
+      },
+    });
+  }
+};
