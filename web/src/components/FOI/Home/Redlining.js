@@ -3398,10 +3398,10 @@ const Redlining = React.forwardRef(
           // if all pages of a division with NR/Duplicate 
           // and NR/Duplicate is not checked. 
           // make stitchObject = null to stop the stitching
-          let count = Object.keys(redlinepageMappings["divpagemappings"][divisionid]).length;
-          if (count === 1) {           
-            const values = Object.values(redlinepageMappings["divpagemappings"][divisionid])
-            if (Object.keys(values[0]).length === 0) {
+          let divDocCount = Object.keys(redlinepageMappings["divpagemappings"][divisionid]).length;
+          if (divDocCount === 1) {           
+            const divDocValues = Object.values(redlinepageMappings["divpagemappings"][divisionid])
+            if (Object.keys(divDocValues[0]).length === 0) {
               stitchObject = null
             }
           }
