@@ -1,5 +1,6 @@
 from . import getdbconnection
 from models import dedupeproducermessage
+from utils.basicutils import to_json
 from datetime import datetime
 import json
 
@@ -163,6 +164,28 @@ def isbatchcompleted(batch):
     finally:
         if conn is not None:
             conn.close()
+
+
+def pagecalculatorjobstart(message):
+        conn = getdbconnection()
+        try:
+                    
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."PageCalculatorJob"
+                (version, ministryrequestid, inputmessage, status, createdby)
+                VALUES (%s::integer, %s::integer, %s, %s, %s) returning pagecalculatorjobid;''',
+                (1, message.ministryrequestid, to_json(message), 'pushedtostream', 'dedupeservice'))
+            pagecalculatorjobid = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            print("Inserted pagecalculatorjobid:", pagecalculatorjobid)
+            return pagecalculatorjobid
+        except(Exception) as error:
+            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
 
 
 

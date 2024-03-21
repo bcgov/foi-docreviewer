@@ -1,6 +1,7 @@
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from reviewer_api.models.PDFStitchJob import PDFStitchJob
+from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from reviewer_api.services.annotationservice import annotationservice
@@ -116,3 +117,15 @@ class jobrecordservice:
             else:
                 jobids[record['s3uripath']] = {'error': 'Invalid file type'}
         return jobids
+    
+
+    def insertpagecalculatorjobstatus(self, message, userid):
+        row = PageCalculatorJob(
+                    version=1,
+                    ministryrequestid=message['ministryrequestid'],
+                    inputmessage=message,
+                    status='pushedtostream',
+                    createdby=userid
+                )
+        job = PageCalculatorJob.insert(row)
+        return job

@@ -5,7 +5,7 @@ import logging
 from os import getenv
 
 
-class zipperproducerservice:
+class eventqueueproducerservice:
     """This class is reserved for integration with event queue (currently redis streams)."""
 
     host = os.getenv("ZIPPER_REDIS_HOST")
