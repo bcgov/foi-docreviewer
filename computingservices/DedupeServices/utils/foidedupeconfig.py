@@ -27,6 +27,12 @@ dedupe_s3_env = os.getenv("DEDUPE_S3_ENV")
 request_management_api = os.getenv("DEDUPE_REQUEST_MANAGEMENT_API")
 record_formats_path = os.getenv("DEDUPE_RECORD_FORMATS")
 
+pagecalculatorredishost = os.getenv('REDIS_HOST') 
+pagecalculatorredispassword = os.getenv('REDIS_PASSWORD')
+pagecalculatorredisport = os.getenv('REDIS_PORT')
+pagecalculatorstreamkey = os.getenv('PAGECALCULATOR_STREAM_KEY')
+health_check_interval = os.getenv('HEALTH_CHECK_INTERVAL', 15)
+
 try:
     response = requests.request(
         method="GET",

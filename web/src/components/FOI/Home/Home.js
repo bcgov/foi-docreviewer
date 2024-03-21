@@ -221,8 +221,8 @@ function Home() {
     setPageMappedDocs(mappedDocs);
   };
 
-  const openFOIPPAModal = (pageNos) => {
-    redliningRef?.current?.addFullPageRedaction(pageNos);
+  const openFOIPPAModal = (pageNos, flagId) => {
+    redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
   const scrollLeftPanel = (pageNo) => {

@@ -2,6 +2,7 @@ from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
+from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from datetime import datetime as datetime2, timezone
 from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
@@ -9,13 +10,14 @@ import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
+from reviewer_api.services.external.eventqueueproducerservice import eventqueueproducerservice
 import requests
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
 from reviewer_api.utils.enums import StateName
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
-
+pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class documentservice:
     def getdedupestatus(self, requestid):
@@ -39,7 +41,6 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-
         # Duplicate check
         finalresults = []
         (
@@ -358,7 +359,7 @@ class documentservice:
 
     def deletedocument(self, payload, userid):
         """Inserts document into list of deleted documents"""
-        return DocumentDeleted.create(
+        result = DocumentDeleted.create(
             [
                 DocumentDeleted(
                     filepath=path.splitext(filepath)[0],
@@ -370,6 +371,22 @@ class documentservice:
                 for filepath in payload["filepaths"]
             ]
         )
+        if result.success:
+                streamobject = {
+                        'ministryrequestid': payload["ministryrequestid"]
+                    }
+                row = PageCalculatorJob(
+                    version=1,
+                    ministryrequestid=payload["ministryrequestid"],
+                    inputmessage=streamobject,
+                    status='pushedtostream',
+                    createdby='delete'
+                )
+                job = PageCalculatorJob.insert(row)
+                streamobject["jobid"] = job.identifier
+                streamobject["createdby"] = 'delete'
+                eventqueueproducerservice().add(pagecalculatorstreamkey, streamobject)
+        return result
 
     def updatedocumentattributes(self, payload, userid):
         """update document attributes"""
@@ -422,7 +439,6 @@ class documentservice:
             for document in self.getdedupestatus(requestid)
         }
         attachments = []
-
         for documentid in documents:
             _attachments = documents[documentid].pop("attachments", [])
             for attachment in _attachments:

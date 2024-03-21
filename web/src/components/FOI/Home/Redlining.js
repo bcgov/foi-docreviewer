@@ -36,7 +36,7 @@ import {
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
   deleteDocumentPages,
-  fetchDeletedDocumentPages,
+  savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -109,6 +109,7 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
+    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
@@ -126,11 +127,13 @@ const Redlining = React.forwardRef(
     const [docViewerMath, setDocViewerMath] = useState(null);
     const [docInstance, setDocInstance] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [messageModalOpen, setMessageModalOpen] = useState(false)
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [newRedaction, setNewRedaction] = useState(null);
     const [deleteQueue, setDeleteQueue] = useState([]);
     const [selectedSections, setSelectedSections] = useState([]);
     const [defaultSections, setDefaultSections] = useState([]);
+    const [selectedPageFlagId, setSelectedPageFlagId] = useState(null);
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [pageSelections, setPageSelections] = useState([]);
@@ -997,7 +1000,11 @@ const Redlining = React.forwardRef(
                   requestid,
                   currentLayer.redactionlayerid,
                   annotObjs,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   }
@@ -1140,7 +1147,11 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {
+                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                      console.log("Error:", error);
+                    });
+                  },
                   (error) => {
                     console.log(error);
                   },
@@ -1180,6 +1191,9 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
+                      fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                        console.log("Error:", error);
+                      });
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
@@ -1295,7 +1309,8 @@ const Redlining = React.forwardRef(
     ]);
 
     useImperativeHandle(ref, () => ({
-      addFullPageRedaction(pageNumbers) {
+      addFullPageRedaction(pageNumbers, flagId) {
+        if (flagId) setSelectedPageFlagId(flagId)
         let newAnnots = [];
         for (let pageNumber of pageNumbers) {
           let height = docViewer.getPageHeight(pageNumber);
@@ -1567,9 +1582,85 @@ const Redlining = React.forwardRef(
       docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
 
+    // This updates the page flag based on the annotations on the page
+    useEffect(() => {
+      // only update page flags after initial load
+      if (!redactionInfo || redactionInfo.length == 0) return;
+      if (!redactionInfoIsLoaded) {
+        setRedactionInfoIsLoaded(true);
+        return;
+      }
+      const hasUpdated = updatePageFlagsByPage(redactionInfo);
+      if (!hasUpdated) {
+        fetchPageFlag(
+          requestid,
+          currentLayer.name.toLowerCase(),
+          docsForStitcing.map(d => d.file.documentid),
+          (error) => console.log(error)
+        );
+      }
+    }, [redactionInfo])
+
+    // This updates the page flags for pages where all the annotations have the same section
+    const updatePageFlagsByPage = (redactionInfo) => {
+      let hasUpdated = false;
+      const getSectionIdsMap = (redactionInfo) => {
+        let sectionIdsMap = {}
+        for (let annot of redactionInfo) {
+          for (let id of annot.sections.ids) {
+            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
+            } else if (sectionIdsMap?.[annot.documentid]) {
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            } else {
+              sectionIdsMap[annot.documentid] = {}
+              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+            }
+          }
+        }
+        return sectionIdsMap;
+      }
+
+      const setFlagsForPagesToUpdate = (redactionInfo) => {
+        let pagesToUpdate = []
+        let sectionIdsMap = getSectionIdsMap(redactionInfo)
+        for (let doc in sectionIdsMap) {
+          for (let page in sectionIdsMap[doc]) {
+            if (sectionIdsMap[doc][page].every(id => id >= 25) && sectionIdsMap[doc][page].includes(25)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["In Progress"]})
+            } else if (sectionIdsMap[doc][page].every(id => id == 26)) {
+              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["Full Disclosure"]})
+            }
+          }
+        }
+        return pagesToUpdate
+      }
+      
+      let pagesToUpdate = setFlagsForPagesToUpdate(redactionInfo)
+      if (pagesToUpdate.length > 0) {
+        savePageFlag(
+          requestid, 
+          0, 
+          (data) => {
+            fetchPageFlag(
+              requestid,
+              currentLayer.name.toLowerCase(),
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
+            );
+          }, 
+          (error) => console.log('error: ', error), 
+          createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+        )
+        hasUpdated = true;
+      }
+      return hasUpdated;
+    }
+
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = editRedacts;
       let astr = parser.parseFromString(redactionObj.astr);
@@ -1598,7 +1689,6 @@ const Redlining = React.forwardRef(
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
 
         //page flag updates
-
         updatePageFlags(
           defaultSections,
           selectedSections,
@@ -1650,6 +1740,9 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
             fetchPageFlag(
               requestid,
@@ -1693,6 +1786,7 @@ const Redlining = React.forwardRef(
 
     const saveRedaction = async (_resizeAnnot = {}) => {
       setModalOpen(false);
+      setSelectedPageFlagId(null);
       setSaveDisabled(true);
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
@@ -1788,6 +1882,9 @@ const Redlining = React.forwardRef(
                 requestid,
                 astr,
                 (data) => {
+                  fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+                    console.log("Error:", error);
+                  });
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
@@ -1832,6 +1929,7 @@ const Redlining = React.forwardRef(
             return flag;
           });
         }
+
         // add section annotation
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -1939,6 +2037,9 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
+            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
+              console.log("Error:", error);
+            });
             setPageSelections([]);
             fetchPageFlag(
               requestid,
@@ -2049,8 +2150,11 @@ const Redlining = React.forwardRef(
 
     const cancelRedaction = () => {
       setModalOpen(false);
+      setMessageModalOpen(false);
+      setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
+      setPageSelections([]);
       if (newRedaction != null) {
         let astr = parser.parseFromString(newRedaction.astr, "text/xml");
         for (const node of astr.getElementsByTagName("annots")[0].children) {
@@ -2080,12 +2184,34 @@ const Redlining = React.forwardRef(
       setDefaultSections([]);
     };
 
+    const setMessageModalForNotResponsive = () => {
+      setModalTitle("Not Responsive Default");
+          setModalMessage(
+          <div>You have 'Not Responsive' selected as a default section.
+            <ul>
+              <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
+              <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
+            </ul>
+          </div>);
+          setMessageModalOpen(true)
+    }
+
     useEffect(() => {
       if (newRedaction) {
+        let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
         if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
           setWarningModalOpen(true);
           cancelRedaction();
-        } else if (defaultSections.length > 0) {
+        } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
+          saveRedaction();
+        } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
+          setModalOpen(true);
+        } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
+          setMessageModalForNotResponsive();
+        } else if (hasFullPageRedaction) {
+          if (defaultSections.length != 0) setMessageModalForNotResponsive();
+          setModalOpen(true)
+        } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
           saveRedaction();
         } else {
           setModalOpen(true);
@@ -3795,6 +3921,50 @@ const Redlining = React.forwardRef(
         return b.count - a.count;
       }
     };
+    const decodeAstr = (astr) => {
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(astr, "text/xml")
+      const trnCustomDataXml = xmlDoc.getElementsByTagName("trn-custom-data");
+      const trnCustomDataJsonString = trnCustomDataXml[0].attributes[0].value
+      const trnCustomData = JSON.parse(trnCustomDataJsonString)
+      return trnCustomData
+    }
+
+    const sectionIsDisabled = (sectionid) => {
+      let isDisabled = false;
+      let hasFullPageRedaction = false;
+      if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
+      // For sections
+      if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
+        isDisabled = (sectionid === 25 || sectionid === 26)
+      // For Blank Code
+      } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
+        isDisabled = sectionid !== 25
+      } else if (hasFullPageRedaction) {
+        isDisabled = sectionid == 26
+      // For Not Responsive
+      } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
+        isDisabled = sectionid !== 26
+      } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && selectedSections?.length === 0) {
+        isDisabled = sectionid == 26
+      } else if (editAnnot) {
+        const trnCustomData = decodeAstr(editAnnot.astr)
+        const isFullPage = trnCustomData['trn-redaction-type'] === "fullPage"
+        isDisabled = isFullPage && sectionid == 26
+      } else if (editRedacts) {
+        let hasFullPageRedaction = false;
+        for (let annot of editRedacts.annots[0].children) {
+          const trnCustomDataJsonString = annot.children[0].attributes.bytes
+          const decodedJsonString = trnCustomDataJsonString.replace(/&quot;/g, '"');
+          const trnCustomData = JSON.parse(decodedJsonString)
+          if (trnCustomData['trn-redaction-type'] == 'fullPage') {
+            hasFullPageRedaction = true;
+          }
+        }
+        isDisabled = hasFullPageRedaction && sectionid == 26
+      }
+      return isDisabled
+    }
 
     const handleIncludeNRPages = (e) => {
       setIncludeNRPages(e.target.checked);
@@ -3871,12 +4041,7 @@ const Redlining = React.forwardRef(
                         id={"section" + section.id}
                         data-sectionid={section.id}
                         onChange={handleSectionSelected}
-                        disabled={
-                          selectedSections.length > 0 &&
-                          (section.id === 25
-                            ? !selectedSections.includes(25)
-                            : selectedSections.includes(25))
-                        }
+                        disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
                       <label
@@ -3980,6 +4145,41 @@ const Redlining = React.forwardRef(
             <button
               className="btn-bottom btn-cancel"
               onClick={cancelSaveRedlineDoc}
+            >
+              Cancel
+            </button>
+          </DialogActions>
+        </ReactModal>
+        <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog"}
+          onRequestClose={cancelRedaction}
+          isOpen={messageModalOpen}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">{modalTitle}</h2>
+            <IconButton className="title-col3" onClick={cancelRedaction}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"dialog-content-nomargin"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span className="confirmation-message">
+                {modalMessage} <br></br>
+              </span>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+            <button
+              className="btn-bottom btn-cancel"
+              onClick={cancelRedaction}
             >
               Cancel
             </button>

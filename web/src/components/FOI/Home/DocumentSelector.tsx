@@ -83,7 +83,7 @@ const DocumentSelector = React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(pageNumber: number) {
-            setExpanded(organizeBy == "lastmodified" ? expandall : expandallorganizebydivision);
+            setExpanded([...new Set([...expanded, "{\"docid\": " + pageMappedDocs.stitchedPageLookup[pageNumber].docid + "}"])]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
             let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
             if (pageRef) {
@@ -91,9 +91,10 @@ const DocumentSelector = React.forwardRef(({
                 let nodeId = pageRef.children[0].id;
                 nodeId = nodeId.substring(nodeId.indexOf('{'));
                 setSelected([nodeId])
+                setSelectedPages([JSON.parse(nodeId)])
             }
         },
-    }), [pageRefs, organizeBy]);
+    }), [pageRefs, expanded, pageMappedDocs]);
 
 
     useEffect(() => {
