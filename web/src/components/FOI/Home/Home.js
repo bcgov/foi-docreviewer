@@ -117,11 +117,10 @@ function Home() {
                 page: 1,
                 currentDocumentS3Url: currentDoc?.s3url,
               });
-              // localStorage.setItem("currentDocumentS3Url", s3data);
               setS3Url(currentDoc?.s3url);
               setS3UrlReady(true);
               setDocsForStitcing(doclist);
-              //files will have pages [] added
+              //files will have [pages] added
               setFiles(doclist.map(_doc => _doc.file));
               setTotalPageCount(totalPageCountVal);
             },
@@ -211,7 +210,8 @@ function Home() {
       sortedDoc.pages = pages;
       if (sortedDoc.file.pagecount > 0) {
         index = index + sortedDoc.file.pagecount;
-        sortedDoc.file.sortorder = _index + 1; //try this to fix the sorting issue.
+        //added sortorder to fix the sorting issue for redlining stitching
+        sortedDoc.file.sortorder = _index + 1; 
         sortedDoc.sortorder = _index + 1;
         sortedDoc.stitchIndex = stitchIndex;     
         stitchIndex += sortedDoc.file.pagecount;

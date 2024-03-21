@@ -338,7 +338,7 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
   }
 };
 
-
+// Get only document with Pages in it
 export const getDocumentsForStitching = (doclist) => {
   return doclist.filter(_doc => _doc.file.pagecount > 0);
 }

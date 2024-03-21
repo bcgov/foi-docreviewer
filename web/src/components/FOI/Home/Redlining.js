@@ -115,8 +115,6 @@ const Redlining = React.forwardRef(
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
-    // const documentList = getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file);
-    // const documentList = docsForStitcing?.map(docs => docs.file);
     // const documentList = useAppSelector(
     //   (state) => state.documents?.documentList
     // );
@@ -189,7 +187,6 @@ const Redlining = React.forwardRef(
     const isReadyForSignOff = () => {
       let pageFlagArray = [];
       let stopLoop = false;
-      // const filteredDocuments = getDocumentsForStitching([...docsForStitcing]);
       if (
         documentList.length > 0 &&
         documentList.length === pageFlags?.length
@@ -261,6 +258,7 @@ const Redlining = React.forwardRef(
       let isvalid = false;
       for (let divObj of divisionDocuments) {    
         if (divObj.divisionid == divisionid)  {
+          // enable the Redline for Sign off if a division has only Incompatable files
           if (divObj?.incompatableList?.length > 0) {
             if(isvalid == false) {
               isvalid = true; 
@@ -269,6 +267,7 @@ const Redlining = React.forwardRef(
           else {
             for (let doc of divObj.documentlist) {
               for (const flagInfo of doc.pageFlag) {
+                // Added condition to handle Duplicate/NR clicked for Redline for Sign off Modal
                 if (
                     (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
                     (
@@ -554,27 +553,26 @@ const Redlining = React.forwardRef(
               individualDoc = localDocumentInfo;            
             // let doclistCopy = [...docsForStitcing];
             let doclistCopy = getDocumentsForStitching([...docsForStitcing])
+            
+            //Disable the delete Icon if only 1 page for a request
             const disableDelete = doclistCopy.length === 1 && doclistCopy[0]?.file?.pagecount === 1;
             if (disableDelete) {
               instance.UI.disableElements(["thumbDelete","deletePage"]);
             }
+
             let slicerdetails = await getSliceSetDetails(
               doclistCopy.length,
               true
             );
+
+            // Handle deletePages for the first document
             let _firstdoc = documentViewer.getDocument();
             const deletedPages = getDeletedPagesBeforeStitching(currentDocument?.file?.documentid);
             if (deletedPages.length > 0) {
               setSkipDeletePages(true);
               await _firstdoc.removePages(deletedPages);
             }
-            // if (deletedDocPages) {
-            //   const deletedPages = deletedDocPages[currentDocument?.file?.documentid] || [];
-            //   if (deletedPages.length > 0) {
-            //     setSkipDeletePages(true);
-            //     await _firstdoc.removePages(deletedPages);
-            //   }
-            // }
+
             if(doclistCopy.length > 1) {
               doclistCopy?.shift();
               let setCount = slicerdetails.setcount;
@@ -736,6 +734,7 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
+    // Get deletePages based on documentid
     const getDeletedPagesBeforeStitching = (documentid) => {
       let deletedPages = [];
       if (deletedDocPages) {
@@ -745,6 +744,7 @@ const Redlining = React.forwardRef(
     }
 
     useEffect(() => {
+      // API call to save Deleted Pages to the BE
       if (pagesRemoved.length > 0 && pageMappedDocs?.docIdLookup && !skipDeletePages) {
         const results = {};     
         for (const [docId, obj] of Object.entries(pageMappedDocs.docIdLookup)) {
@@ -1012,7 +1012,7 @@ const Redlining = React.forwardRef(
                     fetchPageFlag(
                       requestid,
                       currentLayer.name.toLowerCase(),
-                      getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+                      documentList?.map(d => d.documentid),
                       (error) => console.log(error)
                     );
                   },
@@ -1183,7 +1183,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
-                        getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+                        documentList?.map(d => d.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1217,7 +1217,7 @@ const Redlining = React.forwardRef(
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
-                        getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+                        documentList?.map(d => d.documentid),
                         (error) => console.log(error)
                       );
                     },
@@ -1654,7 +1654,7 @@ const Redlining = React.forwardRef(
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
-              getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+              documentList?.map(d => d.documentid),
               (error) => console.log(error)
             );
           },
@@ -1792,7 +1792,7 @@ const Redlining = React.forwardRef(
                   fetchPageFlag(
                     requestid,
                     currentLayer.name.toLowerCase(),
-                    getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+                    documentList?.map(d => d.documentid),
                     (error) => console.log(error)
                   );
                 },
@@ -1943,7 +1943,7 @@ const Redlining = React.forwardRef(
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
-              getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+              documentList?.map(d => d.documentid),
               (error) => console.log(error)
             );
           },
@@ -2344,9 +2344,6 @@ const Redlining = React.forwardRef(
       ];
       return divisions;
     };
-    const getFilteredDocuments = (doclist) => {
-      return doclist.filter(_doc => _doc.pagecount > 0);
-    }
 
     const getDivisionDocumentMappingForRedline = (divisions) => {
       let newDocList = [];
@@ -2354,9 +2351,10 @@ const Redlining = React.forwardRef(
         let divDocList = documentList.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
-        // divDocList = sortByLastModified(divDocList);
+        
+        // sort based on sortorder as the sortorder added based on the LastModified
         divDocList = sortBySortOrder(divDocList);
-        // divDocList = getFilteredDocuments(divDocList);
+        
         let incompatableList = incompatibleFiles.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
         );
@@ -2390,7 +2388,7 @@ const Redlining = React.forwardRef(
             reqdocuments.push(doc);
           }
         }
-        // prepareRedlinePageMappingByRequest(sortByLastModified(reqdocuments));
+        // sort based on sortorder as the sortorder added based on the LastModified
         prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments));
       } else {
         prepareRedlinePageMappingByDivision(divisionDocuments);
@@ -2513,7 +2511,7 @@ const Redlining = React.forwardRef(
       let NRWatermarksPagesEachDiv = [];
       for (let divObj of divisionDocuments) {    
         divisionCount++;  
-        // for (let doc of sortByLastModified(divObj.documentlist)) {
+        // sort based on sortorder as the sortorder added based on the LastModified
         for (let doc of sortBySortOrder(divObj.documentlist)) {
           if (doc.pagecount > 0) {
             let pagesToRemoveEachDoc = [];
@@ -2909,6 +2907,7 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
+      // skip deletePages API call for all removePages related to Redline/Response package creation
       setSkipDeletePages(true);
       switch (modalFor) {
         case "oipcreview":
@@ -2947,9 +2946,6 @@ const Redlining = React.forwardRef(
       const divisions = getDivisionsForSaveRedline(divisionFilesList);
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
-      // const filteredDocumentList = getDocumentsForStitching([...docsForStitcing]);
-      // const documentids = filteredDocumentList.map((obj) => obj.documentid);
-      // const documentids = getFilteredDocuments(documentList)?.map((obj) => obj.documentid);
       getFOIS3DocumentRedlinePreSignedUrl(
         requestid,
         //normalizeforPdfStitchingReq(divisionDocuments),
@@ -3015,10 +3011,11 @@ const Redlining = React.forwardRef(
               divCount == res.divdocumentList.length
             ) {
               let sorteddocIds = [];
-              // let sorteddocuments =  sortByLastModified(documentsObjArr);
+
+              // sort based on sortorder as the sortorder added based on the LastModified
               let sorteddocuments =  sortBySortOrder(documentsObjArr);
-              // const filteredDocuments = getFilteredDocuments(sorteddocuments);
               stitchDocuments["0"] = setStitchDetails(sorteddocuments);
+
               for(const element of sorteddocuments) {
                 sorteddocIds.push(element['documentid']);
               }
@@ -3033,13 +3030,12 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage != "Y" &&
               docCount == div.documentlist.length
             ) {
-              //let divdocumentids = documentsObjArr.map((obj) => obj.documentid);
-              
+                            
               let divdocumentids = [];
-              // let sorteddocuments =  sortByLastModified(div.documentlist);
+              // sort based on sortorder as the sortorder added based on the LastModified
               let sorteddocuments =  sortBySortOrder(div.documentlist);
-              // const filteredDocuments = getFilteredDocuments(sorteddocuments);
               stitchDocuments[div.divisionid] = setStitchDetails(sorteddocuments);
+
               for(const element of sorteddocuments) {
                 divdocumentids.push(element['documentid']);
               }
@@ -3065,7 +3061,7 @@ const Redlining = React.forwardRef(
             summarydocuments: prepareredlinesummarylist(stitchDocuments),
             redactionlayerid: currentLayer.redactionlayerid
           });
-          // divisionDocuments = getFilteredDocuments(divisionDocuments);
+
           if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
             stitchSingleDivisionRedlineExport(
               _instance,
@@ -3110,7 +3106,7 @@ const Redlining = React.forwardRef(
         summarylist.push(summary_division);
       }
      let sorteddocids = []
-    //  let sorteddocs = sortByLastModified(alldocuments) 
+    // sort based on sortorder as the sortorder added based on the LastModified
     let sorteddocs = sortBySortOrder(alldocuments) 
      for (const sorteddoc of sorteddocs) {
         sorteddocids.push(sorteddoc['documentid']);
@@ -3156,16 +3152,11 @@ const Redlining = React.forwardRef(
             //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
               docCount++;
               if (docCount == 1) {
+                // Delete pages from the first document
                 const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
                 if (deletedPages.length > 0) {
                     docObj.removePages(deletedPages);
-                }
-                // Delete pages from the first document
-                // if (deletedDocPages) {
-                //   const deletedPages = deletedDocPages[doc.documentid] || [];
-                //   if (deletedPages.length > 0)
-                //     docObj.removePages(deletedPages)
-                // }                
+                }           
                 stitchedDocObj = docObj;
               } else {
                 let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
@@ -3273,19 +3264,12 @@ const Redlining = React.forwardRef(
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
                 if (filerow.stitchIndex === 1) {
+                  // Delete pages from the first document
                   const deletedPages = getDeletedPagesBeforeStitching(filerow?.documentid);
                   if (deletedPages.length > 0) {
                     setSkipDeletePages(true);
                     await newDoc.removePages(deletedPages);
                   }
-
-                  // if (deletedDocPages) {
-                  //   const deletedPages = deletedDocPages[filerow?.documentid] || [];
-                  //   if (deletedPages.length > 0) {
-                  //     setSkipDeletePages(true);
-                  //     await newDoc.removePages(deletedPages);
-                  //   }
-                  // }
                   stitchedDocObj = newDoc;
                   setstichedfilesForRedline(stitchedDocObj)
                 } else {
@@ -3563,10 +3547,12 @@ const Redlining = React.forwardRef(
       
       sortedList.forEach((sortedItem, _index) => {
         index = index + sortedItem.pagecount;
+        // DO NOT setup the sortorder to 1 for 1st divisional document 
+        // as the sort order is used to sort the document irrespective of the division
         // sortedItem.sortorder = _index + 1;
         sortedItem.stitchIndex = stitchIndex;
-        // pages array by removing deleted pages
-        // sortedItem.pages = getDocumentPages(sortedItem.documentid, deletedDocPages, sortedItem.originalpagecount);
+        // No need to update the pages again as the pages are already updated while preparing prepareMapperObj
+        // sortedItem.pages = pages;
         stitchIndex += sortedItem.pagecount;
       });
       return sortedList;
@@ -3620,7 +3606,6 @@ const Redlining = React.forwardRef(
       _instance
     ) => {
       const downloadType = "pdf";
-      // const filteredDocumentList = getFilteredDocuments(documentList);
       let zipServiceMessage = {
         ministryrequestid: requestid,
         category: "responsepackage",
@@ -3791,7 +3776,7 @@ const Redlining = React.forwardRef(
       summarylist.push(summary_division);   
       
       let sorteddocids = []
-      // let sorteddocs = sortByLastModified(alldocuments) 
+      // sort based on sortorder as the sortorder added based on the LastModified 
       let sorteddocs = sortBySortOrder(alldocuments) 
       for (const sorteddoc of sorteddocs) {
         sorteddocids.push(sorteddoc['documentid']);
