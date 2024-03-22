@@ -1528,13 +1528,12 @@ const Redlining = React.forwardRef(
       const setFlagsForPagesToUpdate = () => {
         let pagesToUpdate = []
         let sectionIdsMap = getSectionIdsMapByPage()
-        console.log('sectionIdsMap: ', sectionIdsMap)
         for (let page in sectionIdsMap) {
           let displayedDoc =
             pageMappedDocs.stitchedPageLookup[page];
           if (sectionIdsMap[page].includes('fullPage')) {
             pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Withheld in Full"]})
-          } else if (sectionIdsMap[page].every(id => id >= 25) && sectionIdsMap[page].includes(25)) {
+          } else if (sectionIdsMap[page].includes(25)) {
             pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]})
           } else if (sectionIdsMap[page].every(id => id == 26)) {
             pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]})
