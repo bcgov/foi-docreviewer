@@ -1503,7 +1503,7 @@ const Redlining = React.forwardRef(
       const getSectionIdsMapByPage = () => {
         let sectionIdsMap = {}
         for (let annot of annotations) {
-          if (annot.getCustomData("trn-redaction-type") == 'fullPage' && !sectionIdsMap[annot.getPageNumber()].includes('fullPage')) {
+          if (annot.getCustomData("trn-redaction-type") == 'fullPage') {
             if (sectionIdsMap[annot.getPageNumber()]) {
               sectionIdsMap[annot.getPageNumber()].push('fullPage')
             } else {
