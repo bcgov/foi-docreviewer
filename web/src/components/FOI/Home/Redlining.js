@@ -3508,13 +3508,14 @@ const Redlining = React.forwardRef(
           // if all pages of a division with NR/Duplicate 
           // and NR/Duplicate is not checked. 
           // make stitchObject = null to stop the stitching
-          let divDocCount = Object.keys(redlinepageMappings["divpagemappings"][divisionid]).length;
-          if (divDocCount === 1) {           
-            const divDocValues = Object.values(redlinepageMappings["divpagemappings"][divisionid])
-            if (Object.keys(divDocValues[0]).length === 0) {
-              stitchObject = null
+          for (const [documentId, values] of Object.entries(redlinepageMappings["divpagemappings"][divisionid])) {
+            if(Object.keys(values).length === 0) {
+              stitchObject = null;
+              redlineStitchInfo[divisionid]["documentids"] = [];
+              redlineStitchInfo[divisionid]["stitchpages"] = [];
+              redlineStitchInfo[divisionid]["s3path"] = null;
             }
-          }
+        }
           if (stitchObject == null) {
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
