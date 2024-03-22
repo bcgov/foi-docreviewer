@@ -1,8 +1,13 @@
 from reviewer_api.models.DocumentDeletedPages import DocumentDeletedPage
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
+from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from datetime import datetime
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
+from reviewer_api.services.external.eventqueueproducerservice import eventqueueproducerservice
+from os import getenv
+
+pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class docdeletedpageservice:
 
@@ -28,7 +33,23 @@ class docdeletedpageservice:
                 "updatedby": userinfo,
                 "updated_at": datetime.now()
                 })
-        return DocumentDeletedPage().create(ministryid, docpages, docpagecounts)
+        result = DocumentDeletedPage().create(ministryid, docpages, docpagecounts)
+        if result.success:
+                streamobject = {
+                        'ministryrequestid': ministryid
+                    }
+                row = PageCalculatorJob(
+                    version=1,
+                    ministryrequestid=ministryid,
+                    inputmessage=streamobject,
+                    status='pushedtostream',
+                    createdby='deletepages'
+                )
+                job = PageCalculatorJob.insert(row)
+                streamobject["jobid"] = job.identifier
+                streamobject["createdby"] = 'delete'
+                eventqueueproducerservice().add(pagecalculatorstreamkey, streamobject)
+        return result
 
     def getdeletedpages(self, ministryid):
         deletedmasterids = DocumentMaster.getdeleted(ministryid)
