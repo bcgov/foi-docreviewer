@@ -1483,7 +1483,7 @@ const Redlining = React.forwardRef(
         setRedactionInfoIsLoaded(true);
         return;
       }
-      const hasUpdated = updatePageFlagsByPage(redactionInfo);
+      const hasUpdated = updatePageFlagsByPage(redactionInfo).hasUpdated;
       if (!hasUpdated) {
         fetchPageFlag(
           requestid,
@@ -1495,41 +1495,57 @@ const Redlining = React.forwardRef(
     }, [redactionInfo])
 
     // This updates the page flags for pages where all the annotations have the same section
-    const updatePageFlagsByPage = (redactionInfo) => {
+    const updatePageFlagsByPage = () => {
       let hasUpdated = false;
-      const getSectionIdsMap = (redactionInfo) => {
+      const annotations = annotManager.getAnnotationsList()
+
+      // Returns an object with page numbers as keys and arrays of section ids as values, as well as indicating if the page has a full page redaction
+      const getSectionIdsMapByPage = () => {
         let sectionIdsMap = {}
-        for (let annot of redactionInfo) {
-          for (let id of annot.sections.ids) {
-            if (sectionIdsMap?.[annot.documentid]?.[annot.pagenumber + 1]) {
-              sectionIdsMap[annot.documentid][annot.pagenumber + 1].push(id)
-            } else if (sectionIdsMap?.[annot.documentid]) {
-              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+        for (let annot of annotations) {
+          if (annot.getCustomData("trn-redaction-type") == 'fullPage') {
+            if (sectionIdsMap[annot.getPageNumber()]) {
+              sectionIdsMap[annot.getPageNumber()].push('fullPage')
             } else {
-              sectionIdsMap[annot.documentid] = {}
-              sectionIdsMap[annot.documentid][annot.pagenumber + 1] = [id]
+              sectionIdsMap[annot.getPageNumber()] = ['fullPage']
+            }
+          } 
+          const sectionsStr = annot.getCustomData("sections")
+          if (!sectionsStr) continue
+          const sections = JSON.parse(sectionsStr)
+          if (!sections) continue
+          for (let section of sections) {
+            if (sectionIdsMap[annot.getPageNumber()]) {
+              sectionIdsMap[annot.getPageNumber()].push(section.id)
+            } else {
+              sectionIdsMap[annot.getPageNumber()] = [section.id]
             }
           }
         }
         return sectionIdsMap;
       }
-
-      const setFlagsForPagesToUpdate = (redactionInfo) => {
+      
+      const setFlagsForPagesToUpdate = () => {
         let pagesToUpdate = []
-        let sectionIdsMap = getSectionIdsMap(redactionInfo)
-        for (let doc in sectionIdsMap) {
-          for (let page in sectionIdsMap[doc]) {
-            if (sectionIdsMap[doc][page].every(id => id >= 25) && sectionIdsMap[doc][page].includes(25)) {
-              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["In Progress"]})
-            } else if (sectionIdsMap[doc][page].every(id => id == 26)) {
-              pagesToUpdate.push({ docid: doc, page: page, flagid: pageFlagTypes["Full Disclosure"]})
-            }
+        let sectionIdsMap = getSectionIdsMapByPage()
+        console.log('sectionIdsMap: ', sectionIdsMap)
+        for (let page in sectionIdsMap) {
+          let displayedDoc =
+            pageMappedDocs.stitchedPageLookup[page];
+          if (sectionIdsMap[page].includes('fullPage')) {
+            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Withheld in Full"]})
+          } else if (sectionIdsMap[page].every(id => id >= 25) && sectionIdsMap[page].includes(25)) {
+            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]})
+          } else if (sectionIdsMap[page].every(id => id == 26)) {
+            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]})
+          } else if (sectionIdsMap[page].length > 0) {
+            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]})
           }
         }
         return pagesToUpdate
       }
       
-      let pagesToUpdate = setFlagsForPagesToUpdate(redactionInfo)
+      let pagesToUpdate = setFlagsForPagesToUpdate()
       if (pagesToUpdate.length > 0) {
         savePageFlag(
           requestid, 
@@ -1547,7 +1563,7 @@ const Redlining = React.forwardRef(
         )
         hasUpdated = true;
       }
-      return hasUpdated;
+      return {hasUpdated: hasUpdated, pagesToUpdate: pagesToUpdate};
     }
 
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
@@ -1629,6 +1645,13 @@ const Redlining = React.forwardRef(
         foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
+        const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+        let pageFlagUpdates;
+        if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
+          pageFlagUpdates = updatedPageFlagsByPage;
+        } else {
+          pageFlagUpdates = pageSelectionList;
+        }
         saveAnnotation(
           requestid,
           astr,
@@ -1644,7 +1667,7 @@ const Redlining = React.forwardRef(
           },
           currentLayer.redactionlayerid,
           createPageFlagPayload(
-            pageSelectionList,
+            pageFlagUpdates,
             currentLayer.redactionlayerid
           ),
           sectn
@@ -1766,6 +1789,13 @@ const Redlining = React.forwardRef(
                 displayedDoc,
                 pageSelectionList
               );
+              const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+              let pageFlagUpdates;
+              if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
+                pageFlagUpdates = updatedPageFlagsByPage;
+              } else {
+                pageFlagUpdates = pageSelectionList;
+              }
               saveAnnotation(
                 requestid,
                 astr,
@@ -1786,7 +1816,7 @@ const Redlining = React.forwardRef(
                 },
                 currentLayer.redactionlayerid,
                 createPageFlagPayload(
-                  pageSelectionList,
+                  pageFlagUpdates,
                   currentLayer.redactionlayerid
                 ),
                 sectn
@@ -1921,6 +1951,13 @@ const Redlining = React.forwardRef(
           annotationList: annotationList,
           useDisplayAuthor: true,
         });
+        const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+        let pageFlagUpdates;
+        if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
+          pageFlagUpdates = updatedPageFlagsByPage;
+        } else {
+          pageFlagUpdates = pageFlagSelections;
+        }
         saveAnnotation(
           requestid,
           astr,
@@ -1941,7 +1978,7 @@ const Redlining = React.forwardRef(
           },
           currentLayer.redactionlayerid,
           createPageFlagPayload(
-            pageFlagSelections,
+            pageFlagUpdates,
             currentLayer.redactionlayerid
           )
         );
