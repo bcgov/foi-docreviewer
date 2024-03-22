@@ -1528,7 +1528,6 @@ const Redlining = React.forwardRef(
       const setFlagsForPagesToUpdate = () => {
         let pagesToUpdate = []
         let sectionIdsMap = getSectionIdsMapByPage()
-        console.log('sectionIdsMap: ', sectionIdsMap)
         for (let page in sectionIdsMap) {
           let displayedDoc =
             pageMappedDocs.stitchedPageLookup[page];
