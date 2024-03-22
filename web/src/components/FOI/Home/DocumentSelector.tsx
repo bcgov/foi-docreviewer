@@ -118,16 +118,10 @@ const DocumentSelector = React.forwardRef(({
     }, [requestInfo]);
 
     const updatePageFlags = () => {
-        // fetchPageFlagsMasterData(
-        //     requestid,
-        //     currentLayer.name.toLowerCase(),
-        //     (data: any) => setPageData(data),
-        //     (error: any) => console.log(error)
-        // );
         fetchPageFlag(
             requestid,
             currentLayer.name.toLowerCase(),
-            documents.map((d: any) => d.documentid),            
+            Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
             (error: any) => console.log(error)
         )
     }
