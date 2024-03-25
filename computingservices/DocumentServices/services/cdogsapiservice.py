@@ -23,7 +23,7 @@ class cdogsapiservice:
             "data": data
         }
         json_request_body = json.dumps(request_body)
-        print("json_request_body:",json_request_body)
+        #print("json_request_body:",json_request_body)
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
