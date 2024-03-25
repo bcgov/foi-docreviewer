@@ -40,19 +40,15 @@ class cdogsapiservice:
         "Authorization": f'Bearer {access_token}'
         }
         url = f"{cdogs_base_url}/api/v2/template"
-        if os.path.exists(template_path):
-            print("Exists!!")
         template = {'template':('template', open(template_path, 'rb'), "multipart/form-data")}
         response = self._post_upload_template(headers, url, template)
         if response.status_code == 200:
-            print('Returning new hash %s', response.headers['X-Template-Hash'])
             return response.headers['X-Template-Hash'];
     
         response_json = json.loads(response.content)
         if response.status_code == 405 and response_json['detail'] is not None:
             match = re.findall(r"Hash '(.*?)'", response_json['detail']);
             if match:
-                print('Template already hashed with code %s', match[0])
                 return match[0]
             
 
