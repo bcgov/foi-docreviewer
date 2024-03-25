@@ -34,18 +34,20 @@ class documentgenerationservice:
 
     def generate_pdf(self, data, documenttypename='redline_redaction_summary', template_path='templates/redline_redaction_summary.docx'):
         access_token= cdogsapiservice()._get_access_token()
+        print('access_token',access_token)
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
         if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
-            #print("template_cached:",template_cached)
+            print("template_cached:",template_cached)
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
             templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
             if templatefromdb is not None and templatefromdb["document_type_id"] is not None:
                 templatefromdb["cdogs_hash_code"] = templatecdogshashcode
                 documenttemplate().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
+                print('templatecdogshashcode',templatecdogshashcode)
         return cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
     
     def __gettemplate(self,documenttypename='redline_redaction_summary'):
