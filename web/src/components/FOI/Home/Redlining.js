@@ -902,9 +902,21 @@ const Redlining = React.forwardRef(
                   currentLayer.redactionlayerid,
                   annotObjs,
                   (data) => {
-                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-                      console.log("Error:", error);
-                    });
+                    const pagesToUpdate = updatePageFlagsByPage();
+                    savePageFlag(
+                      requestid, 
+                      0, 
+                      (data) => {
+                        fetchPageFlag(
+                          requestid,
+                          currentLayer.name.toLowerCase(),
+                          docsForStitcing.map(d => d.file.documentid),
+                          (error) => console.log(error)
+                        );
+                      }, 
+                      (error) => console.log('error: ', error), 
+                      createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+                    )
                   },
                   (error) => {
                     console.log(error);
@@ -1044,6 +1056,7 @@ const Redlining = React.forwardRef(
                     foiministryrequestid: requestid,
                   };
                 }
+                const pageFlagUpdates = updatePageFlagsByPage();
                 setSelectedSections([]);
                 saveAnnotation(
                   requestid,
@@ -1057,7 +1070,10 @@ const Redlining = React.forwardRef(
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  null,
+                  createPageFlagPayload(
+                    pageFlagUpdates,
+                    currentLayer.redactionlayerid
+                  ),
                   sectn
                   //pageSelections
                 );
@@ -1475,28 +1491,8 @@ const Redlining = React.forwardRef(
       docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
 
-    // This updates the page flag based on the annotations on the page
-    useEffect(() => {
-      // only update page flags after initial load
-      if (!redactionInfo || redactionInfo.length == 0) return;
-      if (!redactionInfoIsLoaded) {
-        setRedactionInfoIsLoaded(true);
-        return;
-      }
-      const hasUpdated = updatePageFlagsByPage(redactionInfo).hasUpdated;
-      if (!hasUpdated) {
-        fetchPageFlag(
-          requestid,
-          currentLayer.name.toLowerCase(),
-          docsForStitcing.map(d => d.file.documentid),
-          (error) => console.log(error)
-        );
-      }
-    }, [redactionInfo])
-
     // This updates the page flags for pages where all the annotations have the same section
     const updatePageFlagsByPage = () => {
-      let hasUpdated = false;
       const annotations = annotManager.getAnnotationsList()
 
       // Returns an object with page numbers as keys and arrays of section ids as values, as well as indicating if the page has a full page redaction
@@ -1545,24 +1541,7 @@ const Redlining = React.forwardRef(
       }
       
       let pagesToUpdate = setFlagsForPagesToUpdate()
-      if (pagesToUpdate.length > 0) {
-        savePageFlag(
-          requestid, 
-          0, 
-          (data) => {
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              docsForStitcing.map(d => d.file.documentid),
-              (error) => console.log(error)
-            );
-          }, 
-          (error) => console.log('error: ', error), 
-          createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
-        )
-        hasUpdated = true;
-      }
-      return {hasUpdated: hasUpdated, pagesToUpdate: pagesToUpdate};
+      return pagesToUpdate;
     }
 
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
@@ -1644,7 +1623,7 @@ const Redlining = React.forwardRef(
         foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
-        const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+        const updatedPageFlagsByPage = updatePageFlagsByPage();
         let pageFlagUpdates;
         if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
           pageFlagUpdates = updatedPageFlagsByPage;
@@ -1655,11 +1634,13 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
-            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-              console.log("Error:", error);
-            });
             setPageSelections([]);
-
+            fetchPageFlag(
+              requestid,
+              currentLayer.name.toLowerCase(),
+              docsForStitcing.map(d => d.file.documentid),
+              (error) => console.log(error)
+            );
           },
           (error) => {
             console.log(error);
@@ -1788,7 +1769,7 @@ const Redlining = React.forwardRef(
                 displayedDoc,
                 pageSelectionList
               );
-              const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+              const updatedPageFlagsByPage = updatePageFlagsByPage();
               let pageFlagUpdates;
               if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
                 pageFlagUpdates = updatedPageFlagsByPage;
@@ -1799,9 +1780,6 @@ const Redlining = React.forwardRef(
                 requestid,
                 astr,
                 (data) => {
-                  fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-                    console.log("Error:", error);
-                  });
                   setPageSelections([]);
                   fetchPageFlag(
                     requestid,
@@ -1950,7 +1928,7 @@ const Redlining = React.forwardRef(
           annotationList: annotationList,
           useDisplayAuthor: true,
         });
-        const updatedPageFlagsByPage = updatePageFlagsByPage().pagesToUpdate;
+        const updatedPageFlagsByPage = updatePageFlagsByPage();
         let pageFlagUpdates;
         if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
           pageFlagUpdates = updatedPageFlagsByPage;
@@ -1961,9 +1939,6 @@ const Redlining = React.forwardRef(
           requestid,
           astr,
           (data) => {
-            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-              console.log("Error:", error);
-            });
             setPageSelections([]);
             fetchPageFlag(
               requestid,
