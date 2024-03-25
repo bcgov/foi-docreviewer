@@ -105,7 +105,6 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
-    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
@@ -1061,11 +1060,7 @@ const Redlining = React.forwardRef(
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {
-                    fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-                      console.log("Error:", error);
-                    });
-                  },
+                  (data) => {},
                   (error) => {
                     console.log(error);
                   },
@@ -1108,9 +1103,6 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-                        console.log("Error:", error);
-                      });
                       fetchPageFlag(
                         requestid,
                         currentLayer.name.toLowerCase(),
