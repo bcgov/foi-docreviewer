@@ -2,7 +2,11 @@ export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   let stitchedPageNo = 0;
   if (docid && !Array.isArray(pageMappedDocs)) {
     let doc = pageMappedDocs?.docIdLookup[docid];
-    stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
+    // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
+    let stitchedPage = doc?.pageMappings?.filter(_page => _page.pageNo === page);
+    if (stitchedPage && stitchedPage.length > 0) {
+      stitchedPageNo = stitchedPage[0].stitchedPageNo;
+    }
   }
   return stitchedPageNo;
 };
@@ -99,6 +103,27 @@ export const sortByLastModified = (files) => {
   sortDocList(files, null, sortedList);
   return sortedList
 };
+
+export const sortBySortOrder = (doclist) => {
+  doclist?.sort((a, b) => a?.sortorder - b?.sortorder);
+  return doclist;
+}
+
+// pages array by removing deleted pages
+export const getDocumentPages = (documentid, deletedDocPages, originalPagecount) => {
+  const pages = [];
+  let deletedPages = [];
+  if (deletedDocPages) {
+    deletedPages = deletedDocPages[documentid] || [];
+  }
+  for (let i = 0; i < originalPagecount; i++) {
+    const pageNumber = i + 1;
+    if (!deletedPages.includes(pageNumber)) {
+      pages.push(pageNumber);
+    }
+  }
+  return pages;
+}
 
 export const getValidSections = (sections, redactionSectionsIds) => {
   return sections.filter((s) => redactionSectionsIds.indexOf(s.id) > -1);
@@ -312,3 +337,8 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
     });
   }
 };
+
+// Get only document with Pages in it
+export const getDocumentsForStitching = (doclist) => {
+  return doclist.filter(_doc => _doc.file.pagecount > 0);
+}

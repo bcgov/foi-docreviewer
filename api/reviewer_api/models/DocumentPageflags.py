@@ -212,7 +212,44 @@ class DocumentPageflag(db.Model):
             db.session.close()
 
     @classmethod
-    def getpageflag_by_request(cls, _foiministryrequestid, redactionlayerid, documentids):
+    def getpageflag_by_request(cls, _foiministryrequestid, redactionlayerid):
+        pageflags = []
+        try:
+            sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
+                     from "DocumentPageflags" dp
+                     join "Documents" d on dp.documentid = d.documentid and d.foiministryrequestid = :foiministryrequestid
+                     --join "DocumentMaster" dm on dm.documentmasterid = d.documentmasterid and dm.ministryrequestid = :foiministryrequestid
+                     --left join "DocumentDeleted" dd on dm.filepath ilike dd.filepath || '%' and dd.ministryrequestid = :foiministryrequestid
+                     where dp.foiministryrequestid = :foiministryrequestid --and (dd.deleted is false or dd.deleted is null)
+                     and redactionlayerid in :redactionlayerid
+                     order by dp.documentid, dp.documentversion desc, dp.id desc;
+                    """
+            rs = db.session.execute(
+                text(sql),
+                {
+                    "foiministryrequestid": _foiministryrequestid,
+                    "redactionlayerid": tuple(redactionlayerid),
+                },
+            )
+
+            for row in rs:
+                pageflags.append(
+                    {
+                        "documentid": row["documentid"],
+                        "documentversion": row["documentversion"],
+                        "pageflag": row["pageflag"],
+                    }
+                )
+        except Exception as ex:
+            logging.error(ex)
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+        return pageflags
+
+    @classmethod
+    def getpageflag_by_request_documentids(cls, _foiministryrequestid, redactionlayerid, documentids):
         pageflags = []
         try:
             sql = """select distinct on (dp.documentid) dp.documentid, dp.documentversion, dp.pageflag
