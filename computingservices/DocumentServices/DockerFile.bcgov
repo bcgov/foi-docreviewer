@@ -5,6 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
+RUN set -eux; apt-get update; apt-get install -y --no-install-recommends ca-certificates curl netbase wget ; rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --shell /bin/bash app_user
 WORKDIR /home/app_user
