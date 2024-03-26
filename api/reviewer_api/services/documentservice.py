@@ -429,7 +429,8 @@ class documentservice:
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
         divisions = {div['divisionid']: div for div in divisions_data['divisions']}
-
+        documentdivisionids=set()
+        filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
             for document in self.getdedupestatus(requestid)
@@ -472,12 +473,15 @@ class documentservice:
                 map(lambda d: {"divisionid": d}, documentdivisions)
             )
             document["divisions"] = list(map(lambda d: divisions[d], documentdivisions))
+            documentdivisionids.update(documentdivisions)
+
             # For replaced attachments, change filepath to .pdf instead of original extension
             if "trigger" in document["attributes"] and document["attributes"]["trigger"] == "recordreplace":
                 base_path, current_extension = path.splitext(document["filepath"])
                 document["filepath"] = base_path + ".pdf"
 
-        return [documents[documentid] for documentid in documents]
+        filtered_maps=([item for item in divisions_data['divisions'] if item["divisionid"] in documentdivisionids])
+        return filtered_maps,[documents[documentid] for documentid in documents]
 
     def getdocument(self, documentid):
         return Document.getdocument(documentid)

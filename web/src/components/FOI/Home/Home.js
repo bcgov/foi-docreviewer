@@ -42,6 +42,7 @@ function Home() {
   const [pageMappedDocs, setPageMappedDocs] = useState([]);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [divisions, setDivisions] = useState([]);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -53,8 +54,8 @@ function Home() {
     let presignedurls = [];
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data) => {
-
+      async (data, documentDivisions) => {
+        setDivisions(documentDivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
@@ -225,6 +226,7 @@ function Home() {
                 setIndividualDoc={setIndividualDoc}
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
+                divisions={divisions}
               />
             )
             // : <div>Loading</div>

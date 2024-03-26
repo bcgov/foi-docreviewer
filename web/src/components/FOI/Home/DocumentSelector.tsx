@@ -44,7 +44,8 @@ const DocumentSelector = React.forwardRef(({
     setCurrentPageInfo,
     setIndividualDoc,
     pageMappedDocs,
-    setWarningModalOpen
+    setWarningModalOpen,
+    divisions
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
@@ -276,8 +277,8 @@ const DocumentSelector = React.forwardRef(({
         
     }
 
-    let arr: any[] = [];
-    const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
+    //let arr: any[] = [];
+    //const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
 
     let expandall: any[] = [];
     let expandallorganizebydivision: any[] = [];
@@ -659,7 +660,7 @@ const DocumentSelector = React.forwardRef(({
         )
     })
 
-    const sortByDivisionFilterView = divisions.map((division: any, index) => {
+    const sortByDivisionFilterView = divisions.map((division: any) => {
         return(
             organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
