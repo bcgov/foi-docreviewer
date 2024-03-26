@@ -39,6 +39,8 @@ const documents = (state = initialState, action:any)=> {
         let layer: any = state.redactionLayers.find((l: any) => l.redactionlayerid === action.payload);
         layer.count++;
         return {...state, redactionLayers: state.redactionLayers };
+    case ACTION_CONSTANTS.SET_DELETED_PAGES:
+        return {...state, deletedDocPages: action.payload};
     default:
       return state;
   }

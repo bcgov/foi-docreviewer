@@ -185,3 +185,32 @@ class documentpageflag:
         finally:
             if conn is not None:
                 conn.close()
+
+    @classmethod
+    def getdeletedpages(cls, ministryrequestid, docids):
+        conn = getdbconnection()
+        deldocpages = []
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select id, documentid, pagemetadata  
+                from "DocumentDeletedPages" 
+                where ministryrequestid = %s::integer and documentid in  %s
+                order by documentid, id;""",
+                (ministryrequestid, tuple(docids)),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    deldocpages.append({"id": entry[0], "documentid": entry[1], "pagemetadata": entry[2]})
+                return deldocpages
+            return None
+        except Exception as error:
+            logging.error("Error in getting deletedpages for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
