@@ -2434,6 +2434,11 @@ const Redlining = React.forwardRef(
                   pageMappedDocs
                 ) - pagesToRemove.length
               );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
               pagesToRemove.push(
@@ -2453,6 +2458,11 @@ const Redlining = React.forwardRef(
                   pageMappedDocs
                 ) - pagesToRemove.length
               );
+
+              pageMappings[doc.documentid][flagInfo.page] =
+                flagInfo.page +
+                totalPageCount -
+                pagesToRemoveEachDoc.length;
             } else {
               pagesToRemoveEachDoc.push(flagInfo.page);
               pagesToRemove.push(
@@ -2463,12 +2473,12 @@ const Redlining = React.forwardRef(
                 )
               );
             }
+          } else {
+            pageMappings[doc.documentid][flagInfo.page] =
+              flagInfo.page +
+              totalPageCount -
+              pagesToRemoveEachDoc.length;
           }
-
-          pageMappings[doc.documentid][flagInfo.page] =
-            flagInfo.page +
-            totalPageCount -
-            pagesToRemoveEachDoc.length;
         }
         //End of pageMappingsByDivisions
         totalPageCount += Object.keys(
