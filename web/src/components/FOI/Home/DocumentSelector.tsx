@@ -34,6 +34,8 @@ import { pageFlagTypes } from '../../../constants/enum';
 import _ from "lodash";
 import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
+import ModifiedDateTreeView from './ModifiedDateTreeView';
+import DivisionTreeView from './DivisionTreeView';
 
 
 const DocumentSelector = React.forwardRef(({
@@ -44,7 +46,8 @@ const DocumentSelector = React.forwardRef(({
     setCurrentPageInfo,
     setIndividualDoc,
     pageMappedDocs,
-    setWarningModalOpen
+    setWarningModalOpen,
+    divisions
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
@@ -272,12 +275,12 @@ const DocumentSelector = React.forwardRef(({
         
     }
 
-    let arr: any[] = [];
-    const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
+    //let arr: any[] = [];
+    //const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
 
     let expandall: any[] = [];
     let expandallorganizebydivision: any[] = [];
-    divisions.forEach((division:any) => {
+    divisions?.forEach((division:any) => {
         expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
         files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
             expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
@@ -557,43 +560,59 @@ const DocumentSelector = React.forwardRef(({
     }
 
     const consulteeFilterView = (file: any, p: number, division?: any) => {
-        return (
-            (file.pages.includes(p + 1) ?
-                (consulteeFilter.length > 0 ?
-                    ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                        (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-                            (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-                            (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
-                        &&
-                        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                    
-                            <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-                                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                        </div>
-                    ) :
-                    viewWithoutConsulteeFilter(file, p)
-                ) : null
-            )
-        );
+        if (file.pages.includes(p + 1)) {            
+            if (consulteeFilter.length > 0) {
+                if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+                    ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+                    (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+                    (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
+                        return ( 
+                            <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>                    
+                                <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                            </div>
+                        )
+                    }
+            } else {
+                return viewWithoutConsulteeFilter(file, p)
+            }
+        }
+        // return (
+        // (consulteeFilter.length > 0 ?
+        //     ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+        //         (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+        //             (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+        //             (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
+        //         &&
+        //         <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                    
+        //             <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+        //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+        //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+        //         </div>
+        //     ) :
+        //     viewWithoutConsulteeFilter(file, p)
+        // )
+        // );
     }
 
     const noFilterView = (file: any, p: number, division?: any) => {
-        return (
-            (file.pages.includes(p + 1) ?
+        if (file.pages.includes(p + 1)) {
+            return (
                 (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-                <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                
+                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>                
                     <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                 </div>
                     :
-                    <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-                    <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
+                    <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
+                    <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs)}`}
                         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
                     </div>
-                ) : null
+                )
             )
-        )
+        }
     }
 
     const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
@@ -601,86 +620,106 @@ const DocumentSelector = React.forwardRef(({
     }
 
     const viewWithoutConsulteeFilter = (file: any, p:number) => {
-        return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
-        (
-        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-            <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </div>
-        )
-        :
-        (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
-        (
-        <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-        <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs) : p + 1}`}
-                onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        </div>
-        )
+        if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
+            return (
+                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
+                    <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                </div>
+            )
+        } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
+            return (
+                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
+                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+                </div>
+            )
+
+        }
+        // return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
+        // (
+        // <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
+        //     <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+        //         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+        //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+        // </div>
+        // )
+        // :
+        // (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
+        // (
+        // <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
+        // <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+        //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+        // </div>
+        // )
     }
 
-    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => {
+    const displayFilePages = (file: any, division?: any) => {
+        if (pageMappedDocs) {
+            if (filterFlags.length > 0) {
+                return  [...Array(file.pagecount)].map((_x, p) => consulteeFilterView(file,p,division))
+            } else {            
+                return  [...Array(file.pagecount)].map((_x, p) => noFilterView(file,p,division))
+            }
+        }
+    }
+
+    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
         if (file?.pages?.length > 0) {
-            return (
-                organizeBy === "lastmodified" ? (
-                <Tooltip
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'rgba(0, 0, 0, 0.87)',
-                        // boxShadow: theme.shadows[1],
-                        fontSize: 11
-                    }}
-                    title={<>
-                        Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                        {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                    </>}
-                    placement="bottom-end"
-                    arrow
-                    key={file?.documentid}
-                    disableHoverListener={disableHover}
-                >
-                    <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                        {
-                            expanded?.length > 0 ?
-                            (
-                                    [...Array(file.originalpagecount)].map((_x, p) =>
-                                    (filterFlags.length > 0 ?
-                                        consulteeFilterView(file,p)
-                                        :
-                                        noFilterView(file,p)                                               
-                                    )
-                                    )
-                            ) : (<></>)
-                        }
-                        {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
-                            <ContextMenu
-                                openFOIPPAModal={openFOIPPAModal}
-                                requestId={requestid}
-                                pageFlagList={pageFlagList}
-                                assignIcon={assignIcon}
-                                anchorPosition={anchorPosition}
-                                openContextPopup={openContextPopup}
-                                setOpenContextPopup={setOpenContextPopup}
-                                selectedPages={selectedPages}
-                                consultInfo={consultInfo}
-                                updatePageFlags={updatePageFlags}
-                                pageMappedDocs={pageMappedDocs}
-                            />
-                        }
-                    </TreeItem>
-                </Tooltip>) : <></>
-            )
+        return (
+            organizeBy === "lastmodified" ? (
+            <Tooltip
+                sx={{
+                    backgroundColor: 'white',
+                    color: 'rgba(0, 0, 0, 0.87)',
+                    // boxShadow: theme.shadows[1],
+                    fontSize: 11
+                }}
+                title={<>
+                    Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+                    {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+                </>}
+                placement="bottom-end"
+                arrow
+                key={file?.documentid}
+                disableHoverListener={disableHover}
+            >
+                <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
+                    {
+                        expanded?.length > 0 ?
+                        (
+                            displayFilePages(file)
+                        ) : (<></>)
+                    }
+                    {/* {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
+                        <ContextMenu
+                            openFOIPPAModal={openFOIPPAModal}
+                            requestId={requestid}
+                            pageFlagList={pageFlagList}
+                            assignIcon={assignIcon}
+                            anchorPosition={anchorPosition}
+                            openContextPopup={openContextPopup}
+                            setOpenContextPopup={setOpenContextPopup}
+                            selectedPages={selectedPages}
+                            consultInfo={consultInfo}
+                            updatePageFlags={updatePageFlags}
+                            pageMappedDocs={pageMappedDocs}
+                        />
+                    } */}
+                </TreeItem>
+            </Tooltip>) : <></>
+        )
         }
     })
 
-    const sortByDivisionFilterView = divisions.map((division: any, index) => {
+    const sortByDivisionFilterView = divisions?.map((division: any) => {
         return(
             organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
-                {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
-                    <>
-                    { file?.pages?.length > 0 ?
-                        <Tooltip
+                {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+                    if ( file?.pages?.length > 0) {
+                        return <Tooltip
                             sx={{
                                 backgroundColor: 'white',
                                 color: 'rgba(0, 0, 0, 0.87)',
@@ -697,15 +736,8 @@ const DocumentSelector = React.forwardRef(({
                         >
 
                             <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
-                                {[...Array(file.originalpagecount)].map((_x, p) =>
-                                (filterFlags.length > 0 ?
-                                    consulteeFilterView(file,p,division)
-                                    :
-                                    noFilterView(file,p,division)
-                                )
-                                )
-                                }
-                                {pageFlagList && pageFlagList?.length > 0 &&
+                                {displayFilePages(file, division)}
+                                {/* {pageFlagList && pageFlagList?.length > 0 &&
                                     <ContextMenu
                                         openFOIPPAModal={openFOIPPAModal}
                                         requestId={requestid}
@@ -719,16 +751,15 @@ const DocumentSelector = React.forwardRef(({
                                         updatePageFlags={updatePageFlags}
                                         pageMappedDocs={pageMappedDocs}
                                     />
-                                }
+                                } */}
                             </TreeItem>
                         </Tooltip>
-                        : null 
                     }
-                    </>
-                )}
+                })}
             </TreeItem>) : (<></>)
         )
     })
+    
     
     const displayFiles = () => {
        
@@ -958,7 +989,48 @@ const DocumentSelector = React.forwardRef(({
                         {filesForDisplay.length <= 0 && filterBookmark ?
                             <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
                             :
-                            displayFiles()
+                            organizeBy === "lastmodified" ? 
+                            <ModifiedDateTreeView                                
+                                selected={selected}
+                                expanded={expanded}
+                                handleToggle={handleToggle}
+                                handleSelect={handleSelect}
+                                filesForDisplay={filesForDisplay}
+                                filterBookmark={filterBookmark}
+                                consulteeFilterView={consulteeFilterView}
+                                noFilterView={noFilterView}
+                                disableHover={disableHover}
+                                displayFilePages={displayFilePages}
+                            /> : 
+                            divisions?.length > 0 &&
+                                <DivisionTreeView                                
+                                    selected={selected}
+                                    expanded={expanded}
+                                    handleToggle={handleToggle}
+                                    handleSelect={handleSelect}
+                                    filesForDisplay={filesForDisplay}
+                                    divisions={divisions}
+                                    filterBookmark={filterBookmark}
+                                    consulteeFilterView={consulteeFilterView}
+                                    noFilterView={noFilterView}
+                                    disableHover={disableHover}
+                                    displayFilePages={displayFilePages}
+                                />
+                        }
+                        {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
+                            <ContextMenu
+                                openFOIPPAModal={openFOIPPAModal}
+                                requestId={requestid}
+                                pageFlagList={pageFlagList}
+                                assignIcon={assignIcon}
+                                anchorPosition={anchorPosition}
+                                openContextPopup={openContextPopup}
+                                setOpenContextPopup={setOpenContextPopup}
+                                selectedPages={selectedPages}
+                                consultInfo={consultInfo}
+                                updatePageFlags={updatePageFlags}
+                                pageMappedDocs={pageMappedDocs}
+                            />
                         }
                     </TreeView>
                 </Stack>
