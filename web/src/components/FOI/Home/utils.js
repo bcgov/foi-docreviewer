@@ -1,6 +1,6 @@
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   let stitchedPageNo = 0;
-  if (docid && !Array.isArray(pageMappedDocs)) {
+  if (docid && pageMappedDocs) {
     let doc = pageMappedDocs?.docIdLookup[docid];
     stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
   }

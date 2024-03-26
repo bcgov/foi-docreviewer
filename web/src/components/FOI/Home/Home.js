@@ -39,7 +39,7 @@ function Home() {
   const [docsForStitcing, setDocsForStitcing] = useState([]);
   const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
-  const [pageMappedDocs, setPageMappedDocs] = useState([]);
+  const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
 
