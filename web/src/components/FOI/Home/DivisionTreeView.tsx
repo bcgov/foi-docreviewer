@@ -30,7 +30,7 @@ const DivisionTreeView = React.forwardRef(({
             onNodeSelect={handleSelect}
             sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
         >
-            {divisions.map((division: any) => {
+            {divisions?.map((division: any) => {
                 return <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
                 {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) =>
                     <Tooltip

@@ -284,7 +284,7 @@ const DocumentSelector = React.forwardRef(({
 
     let expandall: any[] = [];
     let expandallorganizebydivision: any[] = [];
-    divisions.forEach((division:any) => {
+    divisions?.forEach((division:any) => {
         expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
         files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
             expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
@@ -699,7 +699,7 @@ const DocumentSelector = React.forwardRef(({
         )
     })
 
-    const sortByDivisionFilterView = divisions.map((division: any) => {
+    const sortByDivisionFilterView = divisions?.map((division: any) => {
         return(
             organizeBy === "division" ? (
             <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
@@ -985,19 +985,20 @@ const DocumentSelector = React.forwardRef(({
                                 disableHover={disableHover}
                                 displayFilePages={displayFilePages}
                             /> : 
-                            <DivisionTreeView                                
-                                selected={selected}
-                                expanded={expanded}
-                                handleToggle={handleToggle}
-                                handleSelect={handleSelect}
-                                filesForDisplay={filesForDisplay}
-                                divisions={divisions}
-                                filterBookmark={filterBookmark}
-                                consulteeFilterView={consulteeFilterView}
-                                noFilterView={noFilterView}
-                                disableHover={disableHover}
-                                displayFilePages={displayFilePages}
-                            />
+                            divisions?.length > 0 &&
+                                <DivisionTreeView                                
+                                    selected={selected}
+                                    expanded={expanded}
+                                    handleToggle={handleToggle}
+                                    handleSelect={handleSelect}
+                                    filesForDisplay={filesForDisplay}
+                                    divisions={divisions}
+                                    filterBookmark={filterBookmark}
+                                    consulteeFilterView={consulteeFilterView}
+                                    noFilterView={noFilterView}
+                                    disableHover={disableHover}
+                                    displayFilePages={displayFilePages}
+                                />
                         }
                         {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
                             <ContextMenu
