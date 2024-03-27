@@ -3525,18 +3525,6 @@ const Redlining = React.forwardRef(
               divisionCountForToast,
               redlineSinglePackage
             );
-            toast.update(toastId.current, {
-              render: `Redline PDF saved to Object Storage`,
-              type: "success",
-              className: "file-upload-toast",
-              isLoading: false,
-              autoClose: 3000,
-              hideProgressBar: true,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              closeButton: true,
-            });
           } else {
             let formattedAnnotationXML = formatAnnotationsForRedline(
               redlineDocumentAnnotations,
