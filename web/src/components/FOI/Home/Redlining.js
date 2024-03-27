@@ -1010,7 +1010,7 @@ const Redlining = React.forwardRef(
                         fetchPageFlag(
                           requestid,
                           currentLayer.name.toLowerCase(),
-                          docsForStitcing.map(d => d.file.documentid),
+                          documentList?.map(d => d.documentid),
                           (error) => console.log(error)
                         );
                       }, 
