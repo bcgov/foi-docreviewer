@@ -182,6 +182,7 @@ const Redlining = React.forwardRef(
     const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     const [skipDeletePages, setSkipDeletePages] = useState(false);
+    const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     
     //xml parser
     const parser = new XMLParser();
@@ -290,6 +291,26 @@ const Redlining = React.forwardRef(
       }
       return isvalid;
     };
+
+    const disableNRDuplicate = () => {
+      let isDisabled = false;
+      if (pageFlags?.length > 0) {        
+        if (incompatibleFiles.length > 0) {
+          isDisabled = false;
+        }        
+        else {
+            let duplicateNRflags = [];
+            for (const flagInfo of pageFlags) {                  
+              duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
+              .map(flag => flag.flagid));
+            }
+            if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
+              isDisabled = true;
+            }
+          }
+        }
+      setIsDisableNRDuplicate(isDisabled);
+    }
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
     const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
@@ -1348,6 +1369,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
+      disableNRDuplicate();
       //oipc changes - begin
       const _enableSavingOipcRedline = 
         (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") &&
@@ -1397,7 +1419,7 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      if (documentList.length > 0) {
+      if (documentList.length > 0 && pageFlags?.length > 0) {
         checkSavingRedlineButton(docInstance);
       }
     }, [pageFlags, isStitchingLoaded, documentList]);
@@ -3975,6 +3997,8 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -4121,8 +4145,9 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="nr-checkbox"
-                  checked={includeNRPages}
+                  checked={isDisableNRDuplicate ? isDisableNRDuplicate : includeNRPages}
                   onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="nr-checkbox">Include NR pages</label>
                 <br/>
@@ -4131,8 +4156,9 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="duplicate-checkbox"
-                  checked={includeDuplicatePages}
+                  checked={isDisableNRDuplicate ? isDisableNRDuplicate : includeDuplicatePages}
                   onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
