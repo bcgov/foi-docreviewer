@@ -310,6 +310,10 @@ const Redlining = React.forwardRef(
           }
         }
       setIsDisableNRDuplicate(isDisabled);
+      if (isDisabled) {
+        setIncludeNRPages(isDisabled)
+        setIncludeDuplicatePages(isDisabled);
+      }
     }
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
@@ -4145,7 +4149,7 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="nr-checkbox"
-                  checked={isDisableNRDuplicate ? isDisableNRDuplicate : includeNRPages}
+                  checked={includeNRPages}
                   onChange={handleIncludeNRPages}
                   disabled={isDisableNRDuplicate}
                 />
@@ -4156,7 +4160,7 @@ const Redlining = React.forwardRef(
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="duplicate-checkbox"
-                  checked={isDisableNRDuplicate ? isDisableNRDuplicate : includeDuplicatePages}
+                  checked={includeDuplicatePages}
                   onChange={handleIncludeDuplicantePages}
                   disabled={isDisableNRDuplicate}
                 />
