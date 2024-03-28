@@ -206,6 +206,9 @@ const DocumentSelector = React.forwardRef(({
             pageFlags?.forEach((pageFlag1: any) => {
                 if (file1.documentid == pageFlag1?.documentid) {
                     file1.pageFlag = pageFlag1?.pageflag;
+                    file1.pageFlag.forEach((flag: any) => {
+                        flag.icon = assignIcon(flag.flagid);
+                    });
                     let consultDetails: any = pageFlag1?.pageflag?.filter((flag1: any) => (flag1.programareaid || flag1.other));
                     if (consultDetails?.length > 0) {
                         consultDetails.forEach((consult: any) => {
@@ -221,6 +224,7 @@ const DocumentSelector = React.forwardRef(({
                 }
             })
         });
+        //console.log("filesForDisplayCopy: ",filesForDisplayCopy)
         setFilesForDisplay(filesForDisplayCopy);
     }
 
@@ -230,63 +234,96 @@ const DocumentSelector = React.forwardRef(({
         }        
     }, [consultMinistries, pageFlags]);
 
+
+
+    const pageFlagIcons : any = {
+       1:faCircleHalfStroke,
+        "Partial Disclosure": faCircleHalfStroke,
+        2:filledCircle,
+        "Full Disclosure":filledCircle,
+        3:faCircle,
+        "Withheld in Full":faCircle,
+        4:faCircleQuestion,
+        "Consult":faCircleQuestion,
+        5:faCircleStop,
+        "Duplicate": faCircleStop,
+        6:faCircleXmark,
+        "Not Responsive": faCircleXmark,
+        7:faSpinner,
+        "In Progress": faSpinner,
+        8:faBookmark,
+        "Page Left Off": faBookmark,                
+    }
+
+
     const assignIcon = (pageFlag: any) => {
-        switch (pageFlag) {
-            case 1:
-            case "Partial Disclosure":
-                return faCircleHalfStroke;
-            case 2:
-            case "Full Disclosure":
-                return filledCircle;
-            case 3:
-            case "Withheld in Full":
-                return faCircle;
-            case 4:
-            case "Consult":
-                return faCircleQuestion;
-            case 5:
-            case "Duplicate":
-                return faCircleStop;
-            case 6:
-            case "Not Responsive":
-                return faCircleXmark;
-            case 7:
-            case "In Progress":
-                return faSpinner;
-            case 8:
-            case "Page Left Off":
-                return faBookmark;
-            default:
-                return null;
-        }
+        return pageFlagIcons[pageFlag];
+        // switch (pageFlag) {
+        //     case 1:
+        //     case "Partial Disclosure":
+        //         return faCircleHalfStroke;
+        //     case 2:
+        //     case "Full Disclosure":
+        //         return filledCircle;
+        //     case 3:
+        //     case "Withheld in Full":
+        //         return faCircle;
+        //     case 4:
+        //     case "Consult":
+        //         return faCircleQuestion;
+        //     case 5:
+        //     case "Duplicate":
+        //         return faCircleStop;
+        //     case 6:
+        //     case "Not Responsive":
+        //         return faCircleXmark;
+        //     case 7:
+        //     case "In Progress":
+        //         return faSpinner;
+        //     case 8:
+        //     case "Page Left Off":
+        //         return faBookmark;
+        //     default:
+        //         return null;
+        // }
     }
 
     //Revisit this method & assign icons when fetching itself!!
-    const assignPageIcon = (docId: number, page: number) => {
-        let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
-        let assignIconValue: any = [];
-        for (const pageFlag of pageFlagObjs) {
-            if (pageFlag.flagid !== undefined) {              
-                assignIconValue.push({icon: assignIcon(pageFlag.flagid), flagid: pageFlag.flagid});
-            }
-          }
-        return assignIconValue;
-        
+    // const assignPageIcon = (docId: number, page: number) => {
+    //     let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
+    //     let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
+    //     let assignIconValue: any = [];
+    //     for (const pageFlag of pageFlagObjs) {
+    //         if (pageFlag.flagid !== undefined) {              
+    //             assignIconValue.push({icon: assignIcon(pageFlag.flagid), flagid: pageFlag.flagid});
+    //         }
+    //       }
+    //     return assignIconValue;      
+    // }
+    const assignPageIcon = (file: any, page: number) => {
+        let flags=file.pageFlag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => 
+            (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
+        //console.log("Flag : ", flag?.icon)
+        return flags;    
     }
 
     //let arr: any[] = [];
     //const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
+    
+    //let expandall: any[] = [];
+    //let expandallorganizebydivision: any[] = [];    
 
-    let expandall: any[] = [];
-    let expandallorganizebydivision: any[] = [];
-    divisions?.forEach((division:any) => {
-        expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
-        files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
-            expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
-            expandall.push(`{"docid": ${file.documentid}}`);
-        })
-    });
+    // useEffect(() => {
+    //     divisions?.forEach((division:any) => {
+    //         expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
+    //         files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+    //             expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+    //             expandall.push(`{"docid": ${file.documentid}}`);
+    //         })
+    //     });
+    // }, [divisions]);
+
+    
 
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
@@ -548,13 +585,14 @@ const DocumentSelector = React.forwardRef(({
     };
     
     const addIcons = (file: any, p: any) => {
-        return assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
+        const flags = assignPageIcon(file, p + 1) ?? [];
+        return flags.map((flag: any) =>  (
                 <FontAwesomeIcon
-                key={icon.flagid}
+                key={flag.flagid}
                 className='leftPanelIcons'
-                icon={icon.icon as IconProp}
+                icon={flag.icon as IconProp}
                 size='1x'
-                title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+                title={PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS]}
                 />
         ))
     }
@@ -615,11 +653,42 @@ const DocumentSelector = React.forwardRef(({
         }
     }
 
-    const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
-        return file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p, pageMappedDocs) : p;
-    }
+    // const noFilterView = (file: any, p: number, division?: any) => {
+    //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1)) {
+    //     console.log("noFilterView!!")
+    //     const pageIndex = p + 1;
+    //     const refIndex = getStitchedPageNoFromOriginal(file.documentid, pageIndex, pageMappedDocs) - 1;
+    //     const isConsultPage = isConsult(file.consult, pageIndex);
+    //     const label = isConsultPage ? `Page ${getStitchedPageNoFromOriginal(file.documentid, pageIndex,  pageMappedDocs)} (${ministryOrgCode(pageIndex, file.consult)})` : 
+    //         `Page ${getStitchedPageNoFromOriginal(file?.documentid, pageIndex,  pageMappedDocs)}`;
+    //     const nodeId = division ? `{"division": ${division.divisionid}, "documentid": ${file.documentid}, "page": ${pageIndex}}` : 
+    //         `{"documentid": ${file.documentid}, "page": ${pageIndex}}`;
+    
+    //     const treeItemProps = {
+    //         nodeId,
+    //         key: pageIndex,
+    //         label,
+    //         onContextMenu: (e: any) => openContextMenu(file, pageIndex, e)
+    //     };
+    
+    //     const icon = addIcons(file, pageIndex);
+    
+    //     return (
+    //         <div ref={pageRefs.current[refIndex]}>
+    //             <StyledTreeItem {...treeItemProps} icon={icon} />
+    //         </div>
+    //     );
+    //     }
+    // };
+  
+    
+    // const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
+    //     return file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p, pageMappedDocs) : p;
+    // }
 
     const viewWithoutConsulteeFilter = (file: any, p:number) => {
+        console.log("viewWithoutConsulteeFilter")
+
         if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
             return (
                 <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
@@ -656,10 +725,14 @@ const DocumentSelector = React.forwardRef(({
     }
 
     const displayFilePages = (file: any, division?: any) => {
+        //console.log("displayFilePages")
         if (pageMappedDocs) {
             if (filterFlags.length > 0) {
                 return  [...Array(file.pagecount)].map((_x, p) => consulteeFilterView(file,p,division))
-            } else {            
+            } else {       
+                    if(file.recordid === 3){
+                        console.log("Print Display!! ")
+                    }     
                 return  [...Array(file.pagecount)].map((_x, p) => noFilterView(file,p,division))
             }
         }
@@ -761,33 +834,83 @@ const DocumentSelector = React.forwardRef(({
     })
     
     
-    const displayFiles = () => {
+    //const displayFiles = () => {
        
-        return (
-                filesForDisplay?.length > 0 ?
-                (
-                organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
-                )
-                :
-                    <></>                
-            )         
-    }
+    //     return (
+    //             filesForDisplay?.length > 0 ?
+    //             (
+    //             organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
+    //             )
+    //             :
+    //                 <></>                
+    //         )         
+    // }
 
-    const handleExpandClick = () => {
-        setExpanded((oldExpanded:any) => {
-                let result: any = [];
-                if (oldExpanded.length === 0 ) {
-                    if (organizeBy == "lastmodified" ) {
-                        result = expandall;
-                    }
-                    else {
-                        result = expandallorganizebydivision;
-                    }
+
+    // const expandAllByDivision1 = () => {
+    //     let expandall: any[] = [];
+    //     let expandallorganizebydivision: any[] = []; 
+    //     divisions?.forEach((division:any) => {
+    //         expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
+    //         files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+    //             expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+    //             expandall.push(`{"docid": ${file.documentid}}`);
+    //         })
+    //     });
+    //     return expandallorganizebydivision;
+    // }
+
+    const expandAllByDivision = () => {
+        console.log("expandAllByDivision")
+        const expandedList: any[] = [];
+        divisions?.forEach((division: any) => {
+            const divisionId = division.divisionid;
+            expandedList.push(`{"division": ${divisionId}}`);
+            files.forEach((file: any) => {
+                if (file.divisions.some((d: any) => d.divisionid === divisionId)) {
+                    expandedList.push(`{"division": ${divisionId}, "docid": ${file.documentid}}`);
                 }
-                return result;
-            }            
-        );
+            });
+        });
+        return expandedList;
+    }
+    
+    const expandAll = () => {
+        console.log("expandAll");
+        const expandedList: any[] = [];
+        files.forEach((file: any) => {
+            expandedList.push(`{"docid": ${file.documentid}}`);
+        });
+        return expandedList;
+    }
+    
+    
+    const handleExpandClick = () => {
+        setExpanded(oldExpanded => {
+            let result: any = [];
+            if (oldExpanded.length === 0) {
+                return (organizeBy === "lastmodified") ? result=expandAll() : result=expandAllByDivision() ;
+            }
+            return result;
+        });
     };
+
+    
+    // const handleExpandClick1 = () => {
+    //     setExpanded((oldExpanded:any) => {
+    //             let result: any = [];
+    //             if (oldExpanded.length === 0 ) {
+    //                 if (organizeBy == "lastmodified" ) {
+    //                     result = expandall;
+    //                 }
+    //                 else {
+    //                     result = expandallorganizebydivision;
+    //                 }
+    //             }
+    //             return result;
+    //         }            
+    //     );
+    // };
 
     const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => {
         setExpanded(nodeIds);
@@ -1068,4 +1191,4 @@ const ClickableChip = ({ clicked, ...rest }: any) => {
     );
 };
 
-export default DocumentSelector
+export default React.memo(DocumentSelector);
