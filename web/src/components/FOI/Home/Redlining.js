@@ -182,6 +182,7 @@ const Redlining = React.forwardRef(
     const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     const [skipDeletePages, setSkipDeletePages] = useState(false);
+    const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     
     //xml parser
     const parser = new XMLParser();
@@ -290,6 +291,30 @@ const Redlining = React.forwardRef(
       }
       return isvalid;
     };
+
+    const disableNRDuplicate = () => {
+      let isDisabled = false;
+      if (pageFlags?.length > 0) {        
+        if (incompatibleFiles.length > 0) {
+          isDisabled = false;
+        }        
+        else {
+            let duplicateNRflags = [];
+            for (const flagInfo of pageFlags) {                  
+              duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
+              .map(flag => flag.flagid));
+            }
+            if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
+              isDisabled = true;
+            }
+          }
+        }
+      setIsDisableNRDuplicate(isDisabled);
+      if (isDisabled) {
+        setIncludeNRPages(isDisabled)
+        setIncludeDuplicatePages(isDisabled);
+      }
+    }
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
     const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
@@ -1348,6 +1373,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
+      disableNRDuplicate();
       //oipc changes - begin
       const _enableSavingOipcRedline = 
         (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") &&
@@ -1397,7 +1423,7 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      if (documentList.length > 0) {
+      if (documentList.length > 0 && pageFlags?.length > 0) {
         checkSavingRedlineButton(docInstance);
       }
     }, [pageFlags, isStitchingLoaded, documentList]);
@@ -2540,65 +2566,67 @@ const Redlining = React.forwardRef(
           doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
           let pageIndex = 1;
           for (const flagInfo of doc.pageFlag) {
-            if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
-              if(includeDuplicatePages) {
-                duplicateWatermarkPagesEachDiv.push(
-                  getStitchedPageNoFromOriginal(
-                    doc.documentid,
-                    flagInfo.page,
-                    pageMappedDocs
-                  ) - pagesToRemove.length
-                );
+            if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
+              if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+                if(includeDuplicatePages) {
+                  duplicateWatermarkPagesEachDiv.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    ) - pagesToRemove.length
+                  );
 
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
-              } else {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(
-                  getStitchedPageNoFromOriginal(
-                    doc.documentid,
-                    flagInfo.page,
-                    pageMappedDocs
-                  )
-                );
-              }
-            } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
-              if(includeNRPages) {
-                NRWatermarksPagesEachDiv.push(
-                  getStitchedPageNoFromOriginal(
-                    doc.documentid,
-                    flagInfo.page,
-                    pageMappedDocs
-                  ) - pagesToRemove.length
-                );
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex +
+                    totalPageCount -
+                    pagesToRemoveEachDoc.length;
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+                  pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    )
+                  );
+                }
+              } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                if(includeNRPages) {
+                  NRWatermarksPagesEachDiv.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    ) - pagesToRemove.length
+                  );
 
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex +
+                    totalPageCount -
+                    pagesToRemoveEachDoc.length;
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+                  pagesToRemove.push(
+                    getStitchedPageNoFromOriginal(
+                      doc.documentid,
+                      flagInfo.page,
+                      pageMappedDocs
+                    )
+                  );
+                }
               } else {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-                pagesToRemove.push(
-                  getStitchedPageNoFromOriginal(
-                    doc.documentid,
-                    flagInfo.page,
-                    pageMappedDocs
-                  )
-                );
+                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex +
+                    totalPageCount -
+                    pagesToRemoveEachDoc.length;
+                  pageIndex ++;
+                }
               }
-            } else {
               if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
                 pageIndex ++;
               }
-            }
-            if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-              pageIndex ++;
             }
           }
           //End of pageMappingsByDivisions
@@ -2647,46 +2675,48 @@ const Redlining = React.forwardRef(
             doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
             //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
             for (const flagInfo of doc.pageFlag) {
-              if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
-                if(includeDuplicatePages) {
-                  duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
+                if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+                  if(includeDuplicatePages) {
+                    duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  } else {
+                    pagesToRemoveEachDoc.push(flagInfo.page);
+                  
+                    pagesToRemove.push(                  
+                      pageIndex + totalPageCountIncludeRemoved
+                    );
+                  }
+                } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                  if(includeNRPages) {
+                    NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+
+                    pageMappings[doc.documentid][flagInfo.page] =
                     pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  } else {
+                    pagesToRemoveEachDoc.push(flagInfo.page);
+                  
+                    pagesToRemove.push(                  
+                      pageIndex + totalPageCountIncludeRemoved
+                    );
+                  }
                 } else {
-                  pagesToRemoveEachDoc.push(flagInfo.page);
-                
-                  pagesToRemove.push(                  
-                    pageIndex + totalPageCountIncludeRemoved
-                  );
+                  if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  }
                 }
-              } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
-                if(includeNRPages) {
-                  NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
-                  pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
-                } else {
-                  pagesToRemoveEachDoc.push(flagInfo.page);
-                
-                  pagesToRemove.push(                  
-                    pageIndex + totalPageCountIncludeRemoved
-                  );
-                }
-              } else {
                 if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                  pageMappings[doc.documentid][flagInfo.page] =
-                    pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                  pageIndex ++;
                 }
-              }
-              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                pageIndex ++;
               }
             }
             //End of pageMappingsByDivisions
@@ -3975,6 +4005,8 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    
+
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -4123,6 +4155,7 @@ const Redlining = React.forwardRef(
                   id="nr-checkbox"
                   checked={includeNRPages}
                   onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="nr-checkbox">Include NR pages</label>
                 <br/>
@@ -4133,6 +4166,7 @@ const Redlining = React.forwardRef(
                   id="duplicate-checkbox"
                   checked={includeDuplicatePages}
                   onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
