@@ -3832,9 +3832,15 @@ const Redlining = React.forwardRef(
            * (widget is needed for showing data from fillable pdfs).
            */
           let annotsAfterRedaction = await annotationManager.getAnnotationsList();
-          const filteredAnnotations = annotsAfterRedaction.filter(annotation => 
-            annotation instanceof _instance.Core.Annotations?.FreeTextAnnotation ||
-            annotation instanceof _instance.Core.Annotations?.WidgetAnnotation
+          const filteredAnnotations = annotsAfterRedaction.filter(annotation => {
+            if (_instance.Core.Annotations) {
+              return (
+                annotation instanceof _instance.Core.Annotations.FreeTextAnnotation ||
+                annotation instanceof _instance.Core.Annotations.WidgetAnnotation
+              );
+            }
+            return false;
+          }
           );
           const xfdfString = await annotationManager.exportAnnotations({ annotationList: filteredAnnotations, widgets:true}); 
           /** apply redaction and save to s3 - xfdfString is needed to display 
