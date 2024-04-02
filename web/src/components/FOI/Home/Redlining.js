@@ -183,6 +183,9 @@ const Redlining = React.forwardRef(
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     const [skipDeletePages, setSkipDeletePages] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
+
+    const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
+    const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
     
     //xml parser
     const parser = new XMLParser();
@@ -514,6 +517,18 @@ const Redlining = React.forwardRef(
             );
           });
 
+          instance.UI.setHeaderItems(header => {
+            header.getHeader('toolbarGroup-Redact')
+            .get('undoButton').insertBefore({
+              type: 'actionButton',
+              dataElement: 'customRedactionPanel',
+              img: '<svg viewBox="-1 -1 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 2H2L2 16H16V2ZM2 0C0.895431 0 0 0.89543 0 2V16C0 17.1046 0.89543 18 2 18H16C17.1046 18 18 17.1046 18 16V2C18 0.895431 17.1046 0 16 0H2Z"></path><path d="M12 1H13.5V17H12V1Z"></path><path d="M4 4H10V5.75H4V4Z"></path><path d="M4 7.5H10V9.25H4V7.5Z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M6.29815 13.6088L7.53553 14.8462L8.5962 13.7855L7.35881 12.5482L8.59619 11.3108L7.53553 10.2501L6.29815 11.4875L5.06066 10.25L4 11.3107L5.23749 12.5482L4 13.7856L5.06066 14.8463L6.29815 13.6088Z"></path></svg>',
+              onClick: () => {
+                setClickRedactionPanel(true);
+              }
+            });
+          });
+
           instance.UI.annotationPopup.add({
             type: "customElement",
             title: "Edit",
@@ -675,7 +690,38 @@ const Redlining = React.forwardRef(
           document.body.addEventListener(
             "click",
             (e) => {
-              document.getElementById("saving_menu").style.display = "none";
+              document.getElementById("saving_menu").style.display = "none"; 
+              
+              // toggle between notesPanel and redactionPanel handled here
+              const toggleNotesButton = document.querySelector(
+                '[data-element="toggleNotesButton"]'
+              );
+              if (toggleNotesButton) {
+                toggleNotesButton?.addEventListener("click", function () {
+                  handleRedactionPanelClick(true, instance);
+                  const isActive = toggleNotesButton?.classList.contains("active");
+                  if (!isActive) {
+                      toggleNotesButton.classList.add("active");
+                      instance.UI.enableElements(["notesPanel"]);
+                    }
+                });
+              }
+
+              const customRedactionPanel = document.querySelector(
+                '[data-element="customRedactionPanel"]'
+              );
+              if (customRedactionPanel) {
+                customRedactionPanel?.addEventListener("click", function () {
+                  if (toggleNotesButton) {
+                    const isActive = toggleNotesButton?.classList.contains("active");                    
+                    if (isActive) {
+                      toggleNotesButton.classList.remove("active");
+                      instance.UI.closeElements(['notesPanel']);
+                      instance.UI.disableElements(["notesPanel"]);
+                    }
+                  }
+                });
+              }
 
               //START: Bulk Edit using Multi Select Option
               //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
@@ -762,6 +808,32 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+    useEffect(() =>{
+        if (clickRedactionPanel) {
+          handleRedactionPanelClick(enableRedactionPanel, docInstance);
+          setClickRedactionPanel(false);
+        }
+      
+    }, [clickRedactionPanel, enableRedactionPanel])
+
+
+    const handleRedactionPanelClick = (isOpen, instance) => {
+      if (instance) {
+        switch (isOpen) {
+          case true:
+            instance.UI.closeElements(['redactionPanel']);
+            instance.UI.disableElements(['redactionPanel']);
+            setEnableRedactionPanel(false)
+            break;
+          case false:
+            instance.UI.enableElements(['redactionPanel']);
+            instance.UI.openElements(['redactionPanel']);
+            setEnableRedactionPanel(true);
+            break;
+        }
+      }
+    }
 
     // Get deletePages based on documentid
     const getDeletedPagesBeforeStitching = (documentid) => {
@@ -977,6 +1049,7 @@ const Redlining = React.forwardRef(
           return;
         }
         //oipc changes - end
+
 
         if (
           info.source !== "redactionApplied" &&
