@@ -690,7 +690,38 @@ const Redlining = React.forwardRef(
           document.body.addEventListener(
             "click",
             (e) => {
-              document.getElementById("saving_menu").style.display = "none";              
+              document.getElementById("saving_menu").style.display = "none"; 
+              
+              // toggle between notesPanel and redactionPanel handled here
+              const toggleNotesButton = document.querySelector(
+                '[data-element="toggleNotesButton"]'
+              );
+              if (toggleNotesButton) {
+                toggleNotesButton?.addEventListener("click", function () {
+                  handleRedactionPanelClick(true, instance);
+                  const isActive = toggleNotesButton?.classList.contains("active");
+                  if (!isActive) {
+                      toggleNotesButton.classList.add("active");
+                      instance.UI.enableElements(["notesPanel"]);
+                    }
+                });
+              }
+
+              const customRedactionPanel = document.querySelector(
+                '[data-element="customRedactionPanel"]'
+              );
+              if (customRedactionPanel) {
+                customRedactionPanel?.addEventListener("click", function () {
+                  if (toggleNotesButton) {
+                    const isActive = toggleNotesButton?.classList.contains("active");                    
+                    if (isActive) {
+                      toggleNotesButton.classList.remove("active");
+                      instance.UI.closeElements(['notesPanel']);
+                      instance.UI.disableElements(["notesPanel"]);
+                    }
+                  }
+                });
+              }
 
               //START: Bulk Edit using Multi Select Option
               //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
@@ -1007,14 +1038,6 @@ const Redlining = React.forwardRef(
         }
         //oipc changes - end
 
-        if (["add", "modify"].includes(action)) {
-          if (!enableRedactionPanel) {
-            docInstance.UI.disableElements(['redactionPanel']);
-          }
-          else {
-            docInstance.UI.enableElements(['redactionPanel']);
-          }
-        }
 
         if (
           info.source !== "redactionApplied" &&
