@@ -57,7 +57,7 @@ class redactionsummary():
                     summarydata.append(_data)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
-            print('error occured in redaction summary service: ', error)
+            print('error occured in redaction dts service: ', error)
 
     def __getdeletedpages(self, ministryid, ordereddocids):
         deletedpages = documentpageflag().getdeletedpages(ministryid, ordereddocids)
