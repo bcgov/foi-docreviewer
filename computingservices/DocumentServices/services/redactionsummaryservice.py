@@ -29,6 +29,7 @@ class redactionsummaryservice():
                     divisionid = entry.divisionid
                     documentids = entry.documentids
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
+                    #print("formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                     messageattributes= message.attributes  

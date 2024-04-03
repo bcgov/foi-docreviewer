@@ -3,7 +3,7 @@ import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
-  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
@@ -431,4 +431,56 @@ export const fetchPDFTronLicense = (
     return "";
   });
   return response;
+};
+
+export const deleteDocumentPages = (
+  requestid: string,
+  pagesDeleted: any,
+  callback: any,
+  errorCallback: any,
+) => {
+
+  let apiUrlPost: string = replaceUrl(
+    API.DOCREVIEWER_DOCUMENT_PAGE_DELETE,
+    "<ministryrequestid>",
+    requestid
+  );
+
+httpPOSTRequest({url: apiUrlPost, data: pagesDeleted, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while deleting document pages for (requestid# ${requestid})`);            
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in deleting document pages");
+    });
+};
+
+export const fetchDeletedDocumentPages = (
+  mininstryrequestid: number,
+  callback: any,
+  errorCallback: any
+) => {
+
+  let apiUrlGet: string = replaceUrl(
+    API.DOCREVIEWER_DOCUMENT_PAGE_DELETE,
+    "<ministryrequestid>",
+    mininstryrequestid
+  );
+
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data || res.data === "") {
+        store.dispatch(setDeletedPages(res.data));
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in fetching deleted pages:",error);
+    });
 };

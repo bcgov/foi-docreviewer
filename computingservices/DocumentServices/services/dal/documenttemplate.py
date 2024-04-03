@@ -39,7 +39,6 @@ class documenttemplate:
                 '''
             parameters = (cdogshashcode, documenttypeid,)
             cursor.execute(query, parameters)
-            print("DB updated")
             conn.commit()
         except(Exception) as error:
             print("Exception while executing func updatecdogshashcode, Error : {0} ".format(error))

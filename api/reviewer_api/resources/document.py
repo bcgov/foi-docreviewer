@@ -22,12 +22,13 @@ from os import getenv
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
-from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema
+from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema, DocumentDeletedPage
 import json
 import requests
 import logging
 
 from reviewer_api.services.documentservice import documentservice
+from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
@@ -112,3 +113,39 @@ class GetDocuments(Resource):
         except requests.exceptions.HTTPError as err:
             logging.error("Request Management API returned the following message: {0} - {1}".format(err.response.status_code, err.response.text))
             return {'status': False, 'message': err.response.text}, err.response.status_code
+
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/document/ministryrequest/<int:ministryrequestid>/deletedpages')
+class DeleteDocumenPage(Resource):
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def post(ministryrequestid):
+        try:
+            payload = request.get_json()
+            payload = DocumentDeletedPage().load(payload)
+            result = docdeletedpageservice().newdeletepages(ministryrequestid, payload, AuthHelper.getuserinfo())
+            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+        except ValueError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/document/ministryrequest/<int:ministryrequestid>/deletedpages')
+class DeleteDocumenPage(Resource):
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(ministryrequestid):
+        try:
+            result = docdeletedpageservice().getdeletedpages(ministryrequestid)
+            return json.dumps(result), 200
+        except ValueError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500

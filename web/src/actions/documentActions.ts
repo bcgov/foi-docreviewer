@@ -85,3 +85,10 @@ export const incrementLayerCount = (data: any) => (dispatch:any) =>{
         payload:data
     })
 }
+
+export const setDeletedPages = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_DELETED_PAGES,
+        payload:data
+    })
+}

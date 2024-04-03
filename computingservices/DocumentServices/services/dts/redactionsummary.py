@@ -3,7 +3,7 @@ from services.dal.documentpageflag import documentpageflag
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        redactionsummary = self.prepare_pkg_redactionsummary(message, documentids, pageflags, programareas)
+        redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
         if message.category == "responsepackage":
             consolidated_redactions = []
             for entry in redactionsummary['data']:
@@ -17,7 +17,7 @@ class redactionsummary():
         rangestart = str(rangestart).split('(')[0]
         return int(rangestart)
 
-    def prepare_pkg_redactionsummary(self, message, documentids, pageflags, programareas):
+    def __packaggesummary(self, message, documentids, pageflags, programareas):
         try:
             redactionlayerid = message.redactionlayerid
             summarymsg = message.summarydocuments
@@ -30,13 +30,15 @@ class redactionsummary():
             
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
             pagecount = 0
             for docid in ordereddocids:
                 if docid in documentids:
+                    docdeletedpages = deletedpages[docid] if docid in deletedpages else []
                     docpageflag = docpageflags[docid]
                     for pageflag in _pageflags:
-                        filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], pagecount, pageflag["pageflagid"], message.category)
+                        filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
                         if len(filteredpages) > 0:
                             originalpagenos = [pg['originalpageno'] for pg in filteredpages]
                             docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
@@ -55,7 +57,19 @@ class redactionsummary():
                     summarydata.append(_data)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
-            print('error occured in redaction summary service: ', error)
+            print('error occured in redaction dts service: ', error)
+
+    def __getdeletedpages(self, ministryid, ordereddocids):
+        deletedpages = documentpageflag().getdeletedpages(ministryid, ordereddocids)
+        documentpages = {}
+        if deletedpages: 
+            for entry in deletedpages:
+                if entry["documentid"] not in documentpages:
+                    documentpages[entry["documentid"]] = entry["pagemetadata"]
+                else:
+                    pages = documentpages[entry["documentid"]]+entry["pagemetadata"]                
+                    documentpages[entry["documentid"]] = list(set(pages))
+        return documentpages
 
     def __transformpageflags(self, pageflags):
         for entry in pageflags:
@@ -137,12 +151,12 @@ class redactionsummary():
             sections += [x.strip() for x in dta['section'].split(",")] 
         return list(filter(None, sections))
 
-    def __get_pages_by_flagid(self, _docpageflags, totalpages, flagid, category):
+    def __get_pages_by_flagid(self, _docpageflags, deletedpages, totalpages, flagid, category):
         pagenos = []
         skippages = self.__get_skippagenos(_docpageflags,category)
         for x in _docpageflags:
-            if x["flagid"] == flagid:   
-                pagenos.append({'originalpageno':x["page"]-1, 'stitchedpageno':self.__calcstitchedpageno(x["page"], totalpages, category,skippages)})
+            if x["flagid"] == flagid and x["page"] not in deletedpages:   
+                pagenos.append({'originalpageno':x["page"]-1, 'stitchedpageno':self.__calcstitchedpageno(x["page"], totalpages, category, skippages, deletedpages)})
         return pagenos
     
     def __get_skippagenos(self, _docpageflags, category):
@@ -153,13 +167,18 @@ class redactionsummary():
                    skippages.append(x['page'])
         return skippages
                     
-    def __calcstitchedpageno(self, pageno, totalpages, category, skippages):
+    def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category == "responsepackage":        
-            for sno in skippages:
-                if sno < pageno:
-                    skipcount=skipcount+1
+        if category == "responsepackage":  
+            skipcount =  self.__calculateskipcount(pageno, skippages)     
+        skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
         return (pageno+totalpages)-skipcount
+    
+    def __calculateskipcount(self, pageno, ignorepages, skipcount=0):
+        for dno in ignorepages:
+            if dno < pageno:
+                skipcount=skipcount+1
+        return skipcount
 
 
     def __calculate_totalpages(self, data):

@@ -8,10 +8,11 @@ import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
+  fetchDeletedDocumentPages,
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { sortDocList } from "./utils";
+import { sortDocList, getDocumentPages } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -51,6 +52,17 @@ function Home() {
     let documentObjs = [];
     let totalPageCountVal = 0;
     let presignedurls = [];
+    let deletedDocPages = [];
+
+    fetchDeletedDocumentPages(
+      foiministryrequestid, 
+      (deletedPages) => {
+        deletedDocPages = deletedPages;
+      }, 
+      (error) =>
+        console.log(error)
+    );
+
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
@@ -81,7 +93,7 @@ function Home() {
         });
         let sortedFiles = []
         sortDocList(_files, null, sortedFiles);
-        setFiles(sortedFiles);
+        // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
           let urlPromises = [];
@@ -98,16 +110,18 @@ function Home() {
               sortDocList(newDocumentObjs, null, doclist);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              prepareMapperObj(doclist);
+              prepareMapperObj(doclist, deletedDocPages);
+              const currentDoc = getCurrentDocument(doclist)              
               setCurrentDocument({
-                file: doclist[0]?.file || {},
+                file: currentDoc?.file || {},
                 page: 1,
-                currentDocumentS3Url: doclist[0]?.s3url,
+                currentDocumentS3Url: currentDoc?.s3url,
               });
-              // localStorage.setItem("currentDocumentS3Url", s3data);
-              setS3Url(doclist[0]?.s3url);
+              setS3Url(currentDoc?.s3url);
               setS3UrlReady(true);
               setDocsForStitcing(doclist);
+              //files will have [pages] added
+              setFiles(doclist.map(_doc => _doc.file));
               setTotalPageCount(totalPageCountVal);
             },
             (error) => {
@@ -121,6 +135,10 @@ function Home() {
       }
     );
   }, []);
+
+  const getCurrentDocument = (doclist) => {    
+    return doclist.find(item => item.file.pagecount > 0);    
+  }
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -142,7 +160,7 @@ function Home() {
     }
   }, [validoipcreviewlayer, redactionLayers])
 
-  const prepareMapperObj = (doclistwithSortOrder) => {
+  const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
@@ -151,24 +169,27 @@ function Home() {
     let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
+      const documentId = sortedDoc.file.documentid;
+      // pages array by removing deleted pages
+      let pages = getDocumentPages(documentId, deletedDocPages, sortedDoc.file.originalpagecount);      
       let j = 0;
-      const pages = [];
-      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
-        j++;
+
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {        
         let pageMapping = {
-          pageNo: j,
+          pageNo: pages[j],
           stitchedPageNo: i,
         };
         mappedDoc.pageMappings.push(pageMapping);
         mappedDocs["stitchedPageLookup"][i] = {
-          docid: sortedDoc.file.documentid,
+          docid: documentId,
           docversion: sortedDoc.file.version,
-          page: j,
+          page: pages[j],
         };
         totalPageCount = i;
+        j++;
       }
-      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["docIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: sortedDoc.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
@@ -177,21 +198,24 @@ function Home() {
       for (let div of sortedDoc.file.divisions) {
         fileDivisons.push(div.divisionid)
       }
-      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["redlineDocIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 
-      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-        pages.push(i + 1);
-      }
-      index = index + sortedDoc.file.pagecount;
-      sortedDoc.sortorder = _index + 1;
-      sortedDoc.stitchIndex = stitchIndex;
+       // added to iterate through the non deleted pages for the left panel functionalities
+      sortedDoc.file.pages = pages;
       sortedDoc.pages = pages;
-      stitchIndex += sortedDoc.file.pagecount;
+      if (sortedDoc.file.pagecount > 0) {
+        index = index + sortedDoc.file.pagecount;
+        //added sortorder to fix the sorting issue for redlining stitching
+        sortedDoc.file.sortorder = _index + 1; 
+        sortedDoc.sortorder = _index + 1;
+        sortedDoc.stitchIndex = stitchIndex;     
+        stitchIndex += sortedDoc.file.pagecount;
+      }
     });
     doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
