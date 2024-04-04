@@ -72,6 +72,22 @@ import {
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
+import { 
+  createFinalPackageSelection, 
+  createOIPCForReviewSelection, 
+  createRedlineForSignOffSelection, 
+  createResponsePDFMenu, 
+  handleFinalPackageClick, 
+  handleRedlineForOipcClick, 
+  handleRedlineForSignOffClick, 
+  renderCustomButton} from "./CreateResponsePDF/createCustomComponent";
+import { 
+  isReadyForSignOff, 
+  isValidRedlineDivisionDownload, 
+  isValidRedlineDownload,
+  checkSavingRedline,
+  checkSavingOIPCRedline,
+  checkSavingFinalPackage} from "./CreateResponsePDF/helpers";
 
 const Redlining = React.forwardRef(
   (
@@ -94,7 +110,6 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
-    // to enable save final package button - request status needs to be 14 (Response)
     const requestStatus = useAppSelector(
       (state) => state.documents?.requeststatus
     );
@@ -184,118 +199,15 @@ const Redlining = React.forwardRef(
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     const [skipDeletePages, setSkipDeletePages] = useState(false);
     
-    //xml parser
-    const parser = new XMLParser();
-
-    const isReadyForSignOff = () => {
-      let pageFlagArray = [];
-      let stopLoop = false;
-      if (
-        documentList.length > 0 &&
-        documentList.length === pageFlags?.length
-      ) {
-        documentList.every((docInfo) => {
-          if (pageFlags?.length > 0) {
-            pageFlags.every((pageFlagInfo) => {
-              if (docInfo.documentid == pageFlagInfo?.documentid) {
-                const exceptConsult = pageFlagInfo.pageflag?.filter(flag => flag.flagid !== pageFlagTypes["Consult"])
-                if (docInfo.pagecount > exceptConsult?.length) {
-                  // not all page has flag set
-                  stopLoop = true;
-                  return false; //stop loop
-                } else {
-                  // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
-                  pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
-                    [
-                      pageFlagTypes["Partial Disclosure"],
-                      pageFlagTypes["Full Disclosure"],
-                      pageFlagTypes["Withheld in Full"],
-                      pageFlagTypes["Duplicate"],
-                      pageFlagTypes["Not Responsive"],
-                    ].includes(flag.flagid)
-                  );
-                  if (pageFlagArray.length != exceptConsult?.length) {
-                    stopLoop = true;
-                    return false; //stop loop
-                  }
-                }
-              }
-              return true; //continue loop
-            });
-          } else {
-            stopLoop = true;
-          }
-
-          return !stopLoop; //stop / continue loop
-        });
-      } else {
-        return false;
-      }
-
-      return !stopLoop;
-    };
-
-    const isValidRedlineDownload = () => {
-      let isvalid = false;
-      let pageFlagArray = [];
-      if (pageFlags?.length > 0) {
-        for (let pageFlagInfo of pageFlags) {
-          pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
-            [
-              pageFlagTypes["Partial Disclosure"],
-              pageFlagTypes["Full Disclosure"],
-              pageFlagTypes["Withheld in Full"],
-            ].includes(flag.flagid)
-          );
-          if (pageFlagArray.length > 0) {
-            if (isvalid == false) {
-              isvalid = true;
-            }
-          }
-        }
-      }
-      return isvalid;
-    };
-
-    const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
-      let isvalid = false;
-      for (let divObj of divisionDocuments) {    
-        if (divObj.divisionid == divisionid)  {
-          // enable the Redline for Sign off if a division has only Incompatable files
-          if (divObj?.incompatableList?.length > 0) {
-            if(isvalid == false) {
-              isvalid = true; 
-            } 
-          }
-          else {
-            for (let doc of divObj.documentlist) {
-              for (const flagInfo of doc.pageFlag) {
-                // Added condition to handle Duplicate/NR clicked for Redline for Sign off Modal
-                if (
-                    (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
-                    (
-                      (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
-                      (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
-                    )
-                  ) {
-                    if(isvalid == false) {
-                      isvalid = true; 
-                    } 
-                }
-              }
-            }
-          }
-        }
-      }
-      return isvalid;
-    };
-
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
     const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
     const [enableSavingFinal, setEnableSavingFinal] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
+    
+    //xml parser
+    const parser = new XMLParser();
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
@@ -338,148 +250,31 @@ const Redlining = React.forwardRef(
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
           instance.UI.setHeaderItems((header) => {
+            //Create custom Create Reseponse PDF button
             const parent = documentViewer.getScrollViewElement().parentElement;
-
-            const menu = document.createElement("div");
-            menu.classList.add("Overlay");
-            menu.classList.add("FlyoutMenu");
-            menu.id = "saving_menu";
-
-            const redlineForOipcBtn = document.createElement("button");
-            redlineForOipcBtn.textContent = "Redline for OIPC Review";
-            redlineForOipcBtn.id = "redline_for_oipc";
-            redlineForOipcBtn.className = "redline_for_oipc";
-            redlineForOipcBtn.style.backgroundColor = "transparent";
-            redlineForOipcBtn.style.border = "none";
-            redlineForOipcBtn.style.padding = "8px 8px 8px 10px";
-            redlineForOipcBtn.style.cursor = "pointer";
-            redlineForOipcBtn.style.alignItems = "left";
-            redlineForOipcBtn.disabled = !enableSavingOipcRedline;
-
-            redlineForOipcBtn.onclick = () => {  
-              // Save to s3
-              setModalFor("oipcreview");
-              setModalTitle("Redline for OIPC Review");
-              setModalMessage([
-                "Are you sure want to create the redline PDF for OIPC review?",
-                <br key="lineBreak1" />,
-                <br key="lineBreak2" />,
-                <span key="modalDescription1">
-                  This redline will be created from the active layer with s.14 annotations redacted. 
-                  When you create the redline PDF, your web browser page will
-                  automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create OIPC Redline PDF");
-              setRedlineModalOpen(true);
+            const menu = createResponsePDFMenu(document, enableSavingOipcRedline);
+            const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
+            const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
+            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+            redlineForOipcBtn.onclick = () => {
+              handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
             };
-
-            menu.appendChild(redlineForOipcBtn);
-
-            const redlineForSignOffBtn = document.createElement("button");
-            redlineForSignOffBtn.textContent = "Redline for Sign Off";
-            redlineForSignOffBtn.id = "redline_for_sign_off";
-            redlineForSignOffBtn.className = "redline_for_sign_off";
-            redlineForSignOffBtn.style.backgroundColor = "transparent";
-            redlineForSignOffBtn.style.border = "none";
-            redlineForSignOffBtn.style.padding = "8px 8px 8px 10px";
-            redlineForSignOffBtn.style.cursor = "pointer";
-            redlineForSignOffBtn.style.alignItems = "left";
-            redlineForSignOffBtn.disabled = !enableSavingRedline;
-
             redlineForSignOffBtn.onclick = () => {
-              // Save to s3
-              setModalFor("redline");
-              setModalTitle("Redline for Sign Off");
-              setModalMessage([
-                "Are you sure want to create the redline PDF for ministry sign off?",
-                <br key="lineBreak1" />,
-                <br key="lineBreak2" />,
-                <span key="modalDescription1">
-                  When you create the redline PDF, your web browser page will
-                  automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create Redline PDF");
-              setRedlineModalOpen(true);
+              handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
             };
-
-            menu.appendChild(redlineForSignOffBtn);
-
-            const finalPackageBtn = document.createElement("button");
-            finalPackageBtn.textContent = "Final Package for Applicant";
-            finalPackageBtn.id = "final_package";
-            finalPackageBtn.className = "final_package";
-            finalPackageBtn.style.backgroundColor = "transparent";
-            finalPackageBtn.style.border = "none";
-            finalPackageBtn.style.padding = "8px 8px 8px 10px";
-            finalPackageBtn.style.cursor = "pointer";
-            finalPackageBtn.style.alignItems = "left";
-
-            finalPackageBtn.disabled = !enableSavingFinal;
-
             finalPackageBtn.onclick = () => {
-              // Download
-              setModalFor("responsepackage");
-              setModalTitle("Create Package for Applicant");
-              setModalMessage([
-                "This should only be done when all redactions are finalized and ready to ",
-                <b key="bold1">
-                  <i>be</i>
-                </b>,
-                " sent to the ",
-                <b key="bold2">
-                  <i>Applicant</i>
-                </b>,
-                ". This will ",
-                <b key="bold3">
-                  <i>permanently</i>
-                </b>,
-                " apply the redactions and automatically create page stamps.",
-                <br key="break1" />,
-                <br key="break2" />,
-                <span key="modalDescription2">
-                  When you create the response package, your web browser page
-                  will automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create Applicant Package");
-              setRedlineModalOpen(true);
+              handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
             };
-
+            menu.appendChild(redlineForOipcBtn);
+            menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
+            parent.appendChild(menu);
 
-            const renderCustomMenu = () => {
-              const menuBtn = document.createElement("button");
-              menuBtn.textContent = "Create Response PDF";
-              menuBtn.id = "create_response_pdf";
-
-              menu.style.right = "auto";
-              menu.style.top = "30px";
-              menu.style.minWidth = "200px";
-              menu.padding = "0px";
-              menu.style.display = "none";
-              parent.appendChild(menu);
-
-              menuBtn.onclick = async () => {
-                if (menu.style.display == "flex") {
-                  menu.style.display = "none";
-                } else {
-                  menu.style.left = `${
-                    document.body.clientWidth - (menuBtn.clientWidth + 96)
-                  }px`;
-                  menu.style.display = "flex";
-                }
-              };
-
-              return menuBtn;
-            };
-
+            //Create render function to render custom Create Reseponse PDF button
             const newCustomElement = {
               type: "customElement",
-              render: renderCustomMenu,
+              render: () => renderCustomButton(document, menu)
             };
-
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -1337,61 +1132,34 @@ const Redlining = React.forwardRef(
     }));
 
     const checkSavingRedlineButton = (_instance) => {
-      let _enableSavingRedline = isReadyForSignOff() && isValidRedlineDownload();
-      //oipc changes - begin
-      const _enableSavingOipcRedline = 
-        (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") &&
-        isReadyForSignOff();
-      //oipc changes - end
-      setEnableSavingRedline(
-        _enableSavingRedline &&
-          [
-            RequestStates["Records Review"],
-            RequestStates["Ministry Sign Off"],
-            RequestStates["Peer Review"],
-          ].includes(requestStatus)
-      );
-      //oipc changes - begin
-      setEnableSavingOipcRedline(
-        _enableSavingOipcRedline &&
-        [
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"]
-        ].includes(requestStatus)
-      );
-      //oipc changes - end
-      setEnableSavingFinal(
-        _enableSavingRedline && requestStatus == RequestStates["Response"]
-      );
-      if (_instance) {
-        //oipc changes - begin
-        const document = _instance.UI.iframeWindow.document;
-        document.getElementById("redline_for_sign_off").disabled = 
-        !_enableSavingRedline ||
-        ![
-          RequestStates["Records Review"],
-          RequestStates["Ministry Sign Off"],
-          RequestStates["Peer Review"],
-        ].includes(requestStatus);
-        document.getElementById("redline_for_oipc").disabled = 
-          !_enableSavingOipcRedline || 
-          ![
-            RequestStates["Records Review"],
-            RequestStates["Ministry Sign Off"],
-          ].includes(requestStatus) ||
-          !isReadyForSignOff();
-        document.getElementById("final_package").disabled =
-          !_enableSavingRedline || requestStatus !== RequestStates["Response"];
-          //oipc changes - end
-      }
+      console.log("checksavingredlinebutton")
+      const readyForSignOff = isReadyForSignOff(documentList, pageFlags, pageFlagTypes);
+      const validRedlineDownload = isValidRedlineDownload(pageFlags, pageFlagTypes);
+      const _enableSavingRedline = readyForSignOff && validRedlineDownload;
+      const _enableSavingOipcRedline = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      checkSavingRedline(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingRedline)
+      checkSavingOIPCRedline(_enableSavingOipcRedline, requestStatus, RequestStates, _instance, readyForSignOff, setEnableSavingOipcRedline)
+      checkSavingFinalPackage(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingFinal)
     };
 
+    //useEffect to handle validation of Response Package downloads
     useEffect(() => {
-      if (documentList.length > 0) {
+      const handleCreateResponsePDFClick = () => {
         checkSavingRedlineButton(docInstance);
       }
-    }, [pageFlags, isStitchingLoaded, documentList]);
-
+      if (docInstance && documentList.length > 0) {
+        console.log("BANG")
+        const document = docInstance?.UI.iframeWindow.document;
+        document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
+      }
+      //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
+      return () => {
+        if (docInstance && documentList.length > 0) {
+          const document = docInstance?.UI.iframeWindow.document;
+          document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
+        }
+      };
+    }, [pageFlags, isStitchingLoaded]);
 
     const stitchPages = (_doc, pdftronDocObjs) => {
       for (let filerow of pdftronDocObjs) {
@@ -3030,6 +2798,7 @@ const Redlining = React.forwardRef(
     };
 
     const saveDoc = () => {
+      console.log("savedoc")
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
@@ -3101,7 +2870,8 @@ const Redlining = React.forwardRef(
           for (let div of res.divdocumentList) {
             divCount++;
             let docCount = 0;
-            if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && isValidRedlineDivisionDownload(div.divisionid, divisionDocuments))) {
+            let _isValidRedlineDivisionDownload = isValidRedlineDivisionDownload(div.divisionid, divisionDocuments, pageFlagTypes, includeDuplicatePages, includeNRPages);
+            if(res.issingleredlinepackage == "Y" || (res.issingleredlinepackage == "N" && _isValidRedlineDivisionDownload)) {
               for (let doc of div.documentlist) {
                 docCount++;
                 documentsObjArr.push(doc);
