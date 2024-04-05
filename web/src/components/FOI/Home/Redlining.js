@@ -862,7 +862,7 @@ const Redlining = React.forwardRef(
           requestid,
           finalResults,
           (data) => {
-            window.location.reload();
+            //window.location.reload();
           },
           (error) => {
             console.log(error);
@@ -2440,7 +2440,7 @@ const Redlining = React.forwardRef(
       if (divisionCountForToast === zipServiceMessage.attributes.length) {
         triggerDownloadRedlines(zipServiceMessage, (error) => {
           console.log(error);
-          window.location.reload();
+          //window.location.reload();
         });
       }
       return zipServiceMessage;
@@ -3939,7 +3939,7 @@ const Redlining = React.forwardRef(
                   zipServiceMessage
                 );
                 setTimeout(() => {
-                  window.location.reload(true);
+                  //window.location.reload(true);
                 }, 3000);
               },
               (_err) => {
