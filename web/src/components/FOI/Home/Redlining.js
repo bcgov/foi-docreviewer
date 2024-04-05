@@ -297,21 +297,16 @@ const Redlining = React.forwardRef(
 
     const disableNRDuplicate = () => {
       let isDisabled = false;
-      if (pageFlags?.length > 0) {        
-        if (incompatibleFiles.length > 0) {
-          isDisabled = false;
-        }        
-        else {
-            let duplicateNRflags = [];
-            for (const flagInfo of pageFlags) {                  
-              duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
-              .map(flag => flag.flagid));
-            }
-            if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
-              isDisabled = true;
-            }
-          }
+      if (pageFlags?.length > 0) {
+        let duplicateNRflags = [];
+        for (const flagInfo of pageFlags) {                  
+          duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
+          .map(flag => flag.flagid));
         }
+        if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
+          isDisabled = true;
+        }        
+      }
       setIsDisableNRDuplicate(isDisabled);
       if (isDisabled) {
         setIncludeNRPages(isDisabled)
@@ -3620,17 +3615,6 @@ const Redlining = React.forwardRef(
 
           let divisionid = key;
           let stitchObject = redlineStitchObject[key];
-          // if all pages of a division with NR/Duplicate 
-          // and NR/Duplicate is not checked. 
-          // make stitchObject = null to stop the stitching
-          for (const [documentId, values] of Object.entries(redlinepageMappings["divpagemappings"][divisionid])) {
-            if(Object.keys(values).length === 0) {
-              stitchObject = null;
-              redlineStitchInfo[divisionid]["documentids"] = [];
-              redlineStitchInfo[divisionid]["stitchpages"] = [];
-              redlineStitchInfo[divisionid]["s3path"] = null;
-            }
-        }
           if (stitchObject == null) {
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
