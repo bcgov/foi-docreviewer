@@ -302,7 +302,7 @@ const Redlining = React.forwardRef(
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
         fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
-        let response = await fetchPDFTronLicense(null, (error) =>
+        let response = await fetchPDFTronLicense(() => {}, (error) =>
           console.log(error)
         );
         WebViewer(
