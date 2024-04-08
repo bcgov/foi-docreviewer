@@ -80,14 +80,14 @@ import {
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick, 
-  renderCustomButton} from "./CreateResponsePDF/createCustomComponent";
+  renderCustomButton} from "./CreateResponsePDF/CreateResponsePDF";
 import { 
   isReadyForSignOff, 
   isValidRedlineDivisionDownload, 
   isValidRedlineDownload,
   checkSavingRedline,
   checkSavingOIPCRedline,
-  checkSavingFinalPackage} from "./CreateResponsePDF/helpers";
+  checkSavingFinalPackage} from "./CreateResponsePDF/DownloadResponsePDF";
 
 const Redlining = React.forwardRef(
   (
@@ -1137,9 +1137,9 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags, pageFlagTypes);
       const _enableSavingRedline = readyForSignOff && validRedlineDownload;
       const _enableSavingOipcRedline = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      checkSavingRedline(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingRedline)
-      checkSavingOIPCRedline(_enableSavingOipcRedline, requestStatus, RequestStates, _instance, readyForSignOff, setEnableSavingOipcRedline)
-      checkSavingFinalPackage(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingFinal)
+      checkSavingRedline(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingRedline);
+      checkSavingOIPCRedline(_enableSavingOipcRedline, requestStatus, RequestStates, _instance, readyForSignOff, setEnableSavingOipcRedline);
+      checkSavingFinalPackage(_enableSavingRedline, requestStatus, RequestStates, _instance, setEnableSavingFinal);
     };
 
     //useEffect to handle validation of Response Package downloads

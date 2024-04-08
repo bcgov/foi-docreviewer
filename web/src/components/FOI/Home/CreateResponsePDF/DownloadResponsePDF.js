@@ -1,4 +1,6 @@
-export const isReadyForSignOff = (documentList, pageFlags, pageFlagTypes) => {
+import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
+
+export const isReadyForSignOff = (documentList, pageFlags) => {
     console.log("READYFORSIGNOFF")
     let pageFlagArray = [];
     let stopLoop = false;
@@ -47,7 +49,7 @@ export const isReadyForSignOff = (documentList, pageFlags, pageFlagTypes) => {
     return !stopLoop;
   };
 
-export const isValidRedlineDownload = (pageFlags, pageFlagTypes) => {
+export const isValidRedlineDownload = (pageFlags) => {
     console.log("isvalidredlinedownload")
     let isvalid = false;
     let pageFlagArray = [];
@@ -71,7 +73,7 @@ export const isValidRedlineDownload = (pageFlags, pageFlagTypes) => {
   };
 
 //TEST
-export const isValidRedlineDivisionDownload = (divisionid, divisionDocuments, pageFlagTypes, includeDuplicatePages, includeNRPages) => {
+export const isValidRedlineDivisionDownload = (divisionid, divisionDocuments, includeDuplicatePages, includeNRPages) => {
     console.log("isValidRedlineDivisionDownload")
     let isvalid = false;
     for (let divObj of divisionDocuments) {    
@@ -105,7 +107,7 @@ export const isValidRedlineDivisionDownload = (divisionid, divisionDocuments, pa
     return isvalid;
   };
 
-export const checkSavingRedline = (enableSavingRedline, requestStatus, RequestStates, instance, setEnableSavingRedline) => {
+export const checkSavingRedline = (enableSavingRedline, requestStatus, instance, setEnableSavingRedline) => {
   const validRedlineStatus = [
     RequestStates["Records Review"],
     RequestStates["Ministry Sign Off"],
@@ -118,7 +120,7 @@ export const checkSavingRedline = (enableSavingRedline, requestStatus, RequestSt
   }
 }
 
-export const checkSavingOIPCRedline = (enableSavingOipcRedline, requestStatus, RequestStates, instance, readyForSignOff, setEnableSavingOipcRedline) => {
+export const checkSavingOIPCRedline = (enableSavingOipcRedline, requestStatus, instance, readyForSignOff, setEnableSavingOipcRedline) => {
   const validOIPCRedlineStatus = [
     RequestStates["Records Review"],
     RequestStates["Ministry Sign Off"]
@@ -130,7 +132,7 @@ export const checkSavingOIPCRedline = (enableSavingOipcRedline, requestStatus, R
   }
 }
 
-export const checkSavingFinalPackage = (enableSavingRedline, requestStatus, RequestStates, instance, setEnableSavingFinal) => {
+export const checkSavingFinalPackage = (enableSavingRedline, requestStatus, instance, setEnableSavingFinal) => {
   const validFinalPackageStatus = requestStatus === RequestStates["Response"];
   setEnableSavingFinal(enableSavingRedline && validFinalPackageStatus);
   if (instance) {
