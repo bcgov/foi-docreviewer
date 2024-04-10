@@ -76,6 +76,8 @@ const DocumentSelector = React.memo(React.forwardRef(({
     const [expanded, setExpanded] = useState<string[]>([]);
     const pageRefs = useRef([]);
     const treeRef: any = useRef();
+    const [completionCounter, setCompletionCounter]= useState(0);
+    const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
     // const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // // const StyledTreeItem = styled(TreeItem)(() => ({
@@ -175,6 +177,9 @@ const DocumentSelector = React.memo(React.forwardRef(({
         /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
            as it may show 100% even if the result is 99.9% */ 
         return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.floor((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        // setCompletionCounter(totalPageCount > 0 && totalPagesWithFlags >= 0
+        //   ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
+        //   : 0); 
     }
 
 
@@ -214,6 +219,9 @@ const DocumentSelector = React.memo(React.forwardRef(({
 
         }
         return filterFlags.length > 0 ? totalFilteredPages + unflagged : totalPageCount;
+        // setTotalDisplayedPages(filterFlags.length > 0
+      //       ? totalFilteredPages + unflagged
+      //       : totalPageCount);
     }
 
 
@@ -244,6 +252,8 @@ const DocumentSelector = React.memo(React.forwardRef(({
     useEffect(() => {
         if (pageFlags) {
             setAdditionalData();
+            //updateCompletionCounter();
+            //updatePageCount();
         }        
     }, [consultMinistries, pageFlags]);
 
