@@ -18,20 +18,25 @@ export const createPageFlagPayload = (
     if (!(page.docid in documentpageflags)) {
       documentpageflags[page.docid] = [];
     }
+    let deleted = page?.deleted || false;
+    if (data && data?.programareaid?.length === 0 && data?.other?.length === 0) {
+      deleted = true;
+    }
     documentpageflags[page.docid].push({
       flagid: page.flagid || flagId,
       page: page.page,
+      deleted: deleted,
       ...data,
     });
   }
   let payload = { documentpageflags: [] };
   for (let docid in documentpageflags) {
-    payload.documentpageflags.push({
-      documentid: docid,
-      version: 1,
-      pageflags: documentpageflags[docid],
-      redactionlayerid: currentLayerId,
-    });
+      payload.documentpageflags.push({
+        documentid: docid,
+        version: 1,
+        pageflags: documentpageflags[docid],
+        redactionlayerid: currentLayerId 
+      });    
   }
   return payload;
 };
@@ -312,3 +317,21 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
     });
   }
 };
+
+
+const getSectionArray = (sectionsStr) => {
+  if (sectionsStr) {
+    const sectionsArray = JSON.parse(sectionsStr);
+    return sectionsArray;
+  }
+}
+export const getSectionValue = (sectionsStr) => {
+  const sectionArray = getSectionArray(sectionsStr);
+  return sectionArray[0].section;
+}
+export const getJoinedSections = (sectionsStr) => {
+  const sectionArray = getSectionArray(sectionsStr);
+  const sectionValues = sectionArray?.map(item => item.section);
+  return sectionValues?.join(', ');
+
+}
