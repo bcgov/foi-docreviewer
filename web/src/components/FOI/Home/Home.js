@@ -44,6 +44,8 @@ function Home() {
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [divisions, setDivisions] = useState([]);
+  const [pageFlags, setPageFlags]= useState([]);
+
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -140,6 +142,15 @@ function Home() {
   const getCurrentDocument = (doclist) => {    
     return doclist.find(item => item.file.pagecount > 0);    
   }
+
+  const updatePageFlags1 = (updatedFlags) => {
+    console.log("HOME --> updatePageFlags1:",updatedFlags)
+    setPageFlags(updatedFlags);
+  };
+
+  useEffect(() => {
+    console.log("!!!!!!!!!!!!!!!!!!")
+  },[pageFlags]);
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -251,6 +262,8 @@ function Home() {
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
                 divisions={divisions}
+                pageFlags={pageFlags}
+                updatePageFlags1={updatePageFlags1}
               />
             )
             // : <div>Loading</div>
@@ -278,6 +291,9 @@ function Home() {
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  pageFlags={pageFlags}
+                  updatePageFlags1={updatePageFlags1}
+
                 />
               )
             // : <div>Loading</div>

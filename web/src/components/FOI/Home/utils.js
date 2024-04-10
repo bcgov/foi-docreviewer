@@ -342,3 +342,21 @@ export const addWatermarkToRedline = async (stitchedDocObj, redlineWatermarkPage
 export const getDocumentsForStitching = (doclist) => {
   return doclist.filter(_doc => _doc.file.pagecount > 0);
 }
+
+export const updatePageFlagOnPage = (documentpageflags, pageFlags) => {
+  const updatedPageFlags = [...pageFlags]; // Create a copy of the pageFlags array
+  for (let documentpageflag of documentpageflags) {
+      let toBeUpdated = updatedPageFlags.find((pageflag) => pageflag.documentid == documentpageflag.documentid);
+      if (toBeUpdated) {
+          for (let pageFlag of documentpageflag.pageflags) {
+              let pageFoundIndex = toBeUpdated.pageflag.findIndex((pageflag) => pageflag.page === pageFlag.page);
+              if (pageFoundIndex !== -1) {
+                  toBeUpdated.pageflag[pageFoundIndex] = pageFlag;
+              } else {
+                  toBeUpdated.pageflag.push(pageFlag);
+              }
+          }
+      }
+  }
+  return updatedPageFlags;
+}

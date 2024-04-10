@@ -67,15 +67,17 @@ const DocumentSelector = React.forwardRef(
       pageMappedDocs,
       setWarningModalOpen,
       divisions,
+      pageFlags,
+      updatePageFlags1
     }: any,
     ref
   ) => {
     const requestInfo = useAppSelector(
       (state: any) => state.documents?.requestinfo
     );
-    const pageFlags = useAppSelector(
-      (state: any) => state.documents?.pageFlags
-    );
+    // const pageFlags = useAppSelector(
+    //   (state: any) => state.documents?.pageFlags
+    // );
     const currentLayer = useAppSelector(
       (state: any) => state.documents?.currentLayer
     );
@@ -168,15 +170,22 @@ const DocumentSelector = React.forwardRef(
     }, [requestInfo]);
 
     const updatePageFlags = () => {
-      fetchPageFlag(
-        requestid,
-        currentLayer.name.toLowerCase(),
-        Object.keys(pageMappedDocs?.docIdLookup).filter(
-          (key) => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0
-        ), //this will return only the documents which has pages in it
-        (error: any) => console.log(error)
-      );
+      //console.log("fetchPageFlag in updatePageFlags!")
+      // fetchPageFlag(
+      //   requestid,
+      //   currentLayer.name.toLowerCase(),
+      //   Object.keys(pageMappedDocs?.docIdLookup).filter(
+      //     (key) => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0
+      //   ), //this will return only the documents which has pages in it
+      //   (error: any) => console.log(error)
+      // );
     };
+
+    // const updatePageFlags1 = (updatedFlags: any) => {
+    //   console.log("fetchPageFlag in updatePageFlags!!!:",updatedFlags)
+    //   setPageFlags(updatedFlags);
+    // };
+
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
       let consultVal = consults?.find((consult: any) => consult.page == pageNo);
@@ -209,25 +218,27 @@ const DocumentSelector = React.forwardRef(
     const updateCompletionCounter = () => {
       console.log("updateCompletionCounter");
       let totalPagesWithFlags = 0;
-      pageFlags?.forEach((element: any) => {
-        /**Page Flags to be avoided while
-         * calculating % on left panel-
-         * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-        let documentSpecificCount = element?.pageflag?.filter(
-          (obj: any) =>
-            ![
-              pageFlagTypes["Consult"],
-              pageFlagTypes["In Progress"],
-              pageFlagTypes["Page Left Off"],
-            ].includes(obj.flagid)
-        )?.length;
-        totalPagesWithFlags += documentSpecificCount;
-      });
-      /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
-           as it may show 100% even if the result is 99.9% */
-      // setCompletionCounter(totalPageCount > 0 && totalPagesWithFlags >= 0
-      //   ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
-      //   : 0); 
+      if(pageFlags?.length > 0){
+        pageFlags.forEach((element: any) => {
+          /**Page Flags to be avoided while
+           * calculating % on left panel-
+           * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
+          let documentSpecificCount = element?.pageflag?.filter(
+            (obj: any) =>
+              ![
+                pageFlagTypes["Consult"],
+                pageFlagTypes["In Progress"],
+                pageFlagTypes["Page Left Off"],
+              ].includes(obj.flagid)
+          )?.length;
+          totalPagesWithFlags += documentSpecificCount;
+        });
+        /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
+            as it may show 100% even if the result is 99.9% */
+        // setCompletionCounter(totalPageCount > 0 && totalPagesWithFlags >= 0
+        //   ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
+        //   : 0); 
+      }
       return (totalPageCount > 0 && totalPagesWithFlags >= 0
         ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
         : 0); 
@@ -338,7 +349,7 @@ const DocumentSelector = React.forwardRef(
           }
         });
       });
-      //console.log("filesForDisplayCopy: ",filesForDisplayCopy)
+      console.log("filesForDisplayCopy: ",filesForDisplayCopy)
       setFilesForDisplay(filesForDisplayCopy);
     };
 
@@ -352,6 +363,7 @@ const DocumentSelector = React.forwardRef(
 
     useEffect(() => {
       if (pageFlags) {
+        console.log("Inside consultMinistries, pageFlags useeffect!!")
         setAdditionalData();
         //updateCompletionCounter();
          //updatePageCount();
@@ -1041,7 +1053,7 @@ const DocumentSelector = React.forwardRef(
     // }
 
     const viewWithoutConsulteeFilter = (file: any, p: number) => {
-      console.log("viewWithoutConsulteeFilter");
+      //console.log("viewWithoutConsulteeFilter");
 
       if (
         file.pageFlag?.find(
@@ -1133,7 +1145,7 @@ const DocumentSelector = React.forwardRef(
     };
 
     const displayFilePages = (file: any, division?: any) => {
-      console.log("displayFilePages")
+      //console.log("displayFilePages")
       if (pageMappedDocs) {
         if (filterFlags.length > 0) {
           return [...Array(file.pagecount)].map((_x, p) =>
@@ -1268,7 +1280,7 @@ const DocumentSelector = React.forwardRef(
     // }
 
     const expandAllByDivision = () => {
-      console.log("expandAllByDivision");
+      //console.log("expandAllByDivision");
       const expandedList: any[] = [];
       divisions?.forEach((division: any) => {
         const divisionId = division.divisionid;
@@ -1652,7 +1664,7 @@ const DocumentSelector = React.forwardRef(
                 displayFilePages={displayFilePages}
               />
             ) : (
-              divisions?.length > 0 && (
+              organizeBy === "division" && divisions?.length > 0 && (
                 <DivisionTreeView
                   selected={selected}
                   expanded={expanded}
@@ -1681,8 +1693,10 @@ const DocumentSelector = React.forwardRef(
                   setOpenContextPopup={setOpenContextPopup}
                   selectedPages={selectedPages}
                   consultInfo={consultInfo}
-                  updatePageFlags={updatePageFlags}
+                  updatePageFlags1={updatePageFlags1}
                   pageMappedDocs={pageMappedDocs}
+                  pageFlags={pageFlags}
+                  //setPageFlags={setPageFlags}
                 />
               )}
           </TreeView>
