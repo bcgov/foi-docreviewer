@@ -7,7 +7,7 @@ import { faCirclePlus, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { savePageFlag } from '../../../apiManager/services/docReviewerService';
 import ConsultModal from "./ConsultModal";
-import {getStitchedPageNoFromOriginal, createPageFlagPayload, getProgramAreas} from "./utils";
+import {getStitchedPageNoFromOriginal, createPageFlagPayload, getProgramAreas, updatePageFlagOnPage} from "./utils";
 import { useAppSelector } from '../../../hooks/hook';
 
 const ContextMenu = ({
@@ -20,8 +20,9 @@ const ContextMenu = ({
     anchorPosition,
     selectedPages,
     consultInfo,
-    updatePageFlags,
-    pageMappedDocs
+    updatePageFlags1,
+    pageMappedDocs,
+    pageFlags,
 }: any) => {
 
     const [openModal, setOpenModal] = useState(false);
@@ -53,14 +54,18 @@ const ContextMenu = ({
         if(flagId === 3){
             openFOIPPAModal(selectedPages.map((page: any) => getStitchedPageNoFromOriginal(page.docid, page.page, pageMappedDocs)), flagId);
         } else {
+            let payload= createPageFlagPayload(selectedPages, currentLayer.redactionlayerid, flagId, data);
+            let documentpageflags: any = payload.documentpageflags;
             savePageFlag(
                 requestId,
                 flagId,
                 (data: any) => {
-                    updatePageFlags()
+                    const updatedPageFlags = updatePageFlagOnPage(documentpageflags,pageFlags)
+                    //console.log("updatedPageFlags: ",updatedPageFlags)
+                    updatePageFlags1(updatedPageFlags);
                 },
                 (error: any) => console.log(error),
-                createPageFlagPayload(selectedPages, currentLayer.redactionlayerid, flagId, data)
+                payload
             );
         }
         setOpenConsultPopup(false);

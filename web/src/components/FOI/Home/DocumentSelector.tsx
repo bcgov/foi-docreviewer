@@ -34,7 +34,7 @@ import { pageFlagTypes } from '../../../constants/enum';
 // import _ from "lodash";
 import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
-import CustomTreeView from './CustomTreeView';
+import CustomTreeView from "./CustomTreeView";
 // import DivisionTreeView from './DivisionTreeView';
 import SvgIcon, { SvgIconProps } from '@mui/material/SvgIcon';
 
@@ -76,8 +76,6 @@ const DocumentSelector = React.memo(React.forwardRef(({
     const [expanded, setExpanded] = useState<string[]>([]);
     const pageRefs = useRef([]);
     const treeRef: any = useRef();
-    const [completionCounter, setCompletionCounter]= useState(0);
-    const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
     // const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // // const StyledTreeItem = styled(TreeItem)(() => ({
@@ -139,12 +137,12 @@ const DocumentSelector = React.memo(React.forwardRef(({
     }, [requestInfo]);
 
     const updatePageFlags = () => {
-        fetchPageFlag(
-            requestid,
-            currentLayer.name.toLowerCase(),
-            Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
-            (error: any) => console.log(error)
-        )
+        // fetchPageFlag(
+        //     requestid,
+        //     currentLayer.name.toLowerCase(),
+        //     Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
+        //     (error: any) => console.log(error)
+        // )
     }
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {

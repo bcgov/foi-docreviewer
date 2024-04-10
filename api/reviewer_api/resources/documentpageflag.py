@@ -54,7 +54,28 @@ class SaveDocumentPageflag(Resource):
             return {'status': exception.status_code, 'message':exception.message}, 500
         
 
-@cors_preflight('GET,OPTIONS')
+# @cors_preflight('GET,OPTIONS')
+# @API.route('/ministryrequest/<requestid>/pageflag/<redactionlayer>')
+# class GetDocumentPageflag(Resource):
+#     """Get document page flag list.
+#     """
+#     @staticmethod
+#     @TRACER.trace()
+#     @cross_origin(origins=allowedorigins())
+#     #@auth.require
+#     #@auth.ismemberofgroups(getrequiredmemberships())
+#     def get(requestid, redactionlayer):
+#         try:
+#             documentids = request.args.getlist('documentids[]')
+#             result = documentpageflagservice().getpageflags_by_requestid_docids(requestid, redactionlayer, documentids)
+#             return json.dumps(result), 200
+#         except KeyError as error:
+#             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+#         except BusinessException as exception:
+#             return {'status': exception.status_code, 'message':exception.message}, 500
+        
+
+@cors_preflight('POST,OPTIONS')
 @API.route('/ministryrequest/<requestid>/pageflag/<redactionlayer>')
 class GetDocumentPageflag(Resource):
     """Get document page flag list.
@@ -64,9 +85,11 @@ class GetDocumentPageflag(Resource):
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid, redactionlayer):
+    def post(requestid, redactionlayer):
         try:
-            documentids = request.args.getlist('documentids[]')
+            payload = request.get_json()
+            documentids = payload["documentids"]
+            print("documentids: ", documentids)
             result = documentpageflagservice().getpageflags_by_requestid_docids(requestid, redactionlayer, documentids)
             return json.dumps(result), 200
         except KeyError as error:
