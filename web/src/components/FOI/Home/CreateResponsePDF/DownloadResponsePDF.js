@@ -72,7 +72,6 @@ export const isValidRedlineDownload = (pageFlags) => {
     return isvalid;
   };
 
-//TEST
 export const isValidRedlineDivisionDownload = (divisionid, divisionDocuments, includeDuplicatePages, includeNRPages) => {
     console.log("isValidRedlineDivisionDownload")
     let isvalid = false;

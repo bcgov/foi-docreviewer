@@ -6,30 +6,18 @@ import {
   getSliceSetDetails,
   sortBySortOrder,
 } from "../utils";
-import {
-  saveFilesinS3,
-  getResponsePackagePreSignedUrl,
-  getFOIS3DocumentRedlinePreSignedUrl,
-} from "../../../../apiManager/services/foiOSSService";
-import {
-  fetchDocumentAnnotations,
-  triggerDownloadFinalPackage,
-} from "../../../../apiManager/services/docReviewerService";
+import { getFOIS3DocumentRedlinePreSignedUrl } from "../../../../apiManager/services/foiOSSService";
+import { fetchDocumentAnnotations } from "../../../../apiManager/services/docReviewerService";
 import { isValidRedlineDivisionDownload } from "./DownloadResponsePDF";
 import { pageFlagTypes } from "../../../../constants/enum";
-import XMLParser from "react-xml-parser";
+import { useParams } from "react-router-dom";
 
 const SaveRedlineForSignoff = () => {
-  //xml parser
-  const parser = new XMLParser();
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
   );
-  const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
-  const requestnumber = useAppSelector(
-    (state) => state.documents?.requestnumber
-  );
+  const { foiministryrequestid } = useParams();
 
   const [redlineDocCount, setredlineDocCount] = useState(0);
   const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
@@ -53,7 +41,8 @@ const SaveRedlineForSignoff = () => {
   const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
   const [includeNRPages, setIncludeNRPages] = useState(false);
   const [includeDuplicatePages, setIncludeDuplicatePages] = useState(false);
-  const [redlineModalOpen, setRedlineModalOpen] = useState(false);
+  const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
+  const [redlineStitchObject, setRedlineStitchObject] = useState(null);
 
   const getDeletedPagesBeforeStitching = (documentid) => {
     let deletedPages = [];
@@ -429,8 +418,7 @@ const SaveRedlineForSignoff = () => {
     stitchlist,
     redlineSinglePkg,
     incompatableList,
-    toastId,
-    setRedlineStitchObject
+    toastId
   ) => {
     let requestStitchObject = {};
     let divCount = 0;
@@ -505,8 +493,7 @@ const SaveRedlineForSignoff = () => {
     stitchlist,
     redlineSinglePkg,
     toastId,
-    setSkipDeletePages,
-    setstichedfilesForRedline
+    setSkipDeletePages
   ) => {
     setRequestStitchObject({});
     let divCount = 0;
@@ -552,8 +539,7 @@ const SaveRedlineForSignoff = () => {
             divisionDocuments,
             docCount,
             stitchedDocObj,
-            setSkipDeletePages,
-            setstichedfilesForRedline
+            setSkipDeletePages
           )
         );
       }
@@ -567,8 +553,7 @@ const SaveRedlineForSignoff = () => {
     divisionDocuments,
     docCount,
     stitchedDocObj,
-    setSkipDeletePages,
-    setstichedfilesForRedline
+    setSkipDeletePages
   ) => {
     for (const filerow of sliceDoclist) {
       try {
@@ -585,7 +570,7 @@ const SaveRedlineForSignoff = () => {
                 filerow?.documentid
               );
               if (deletedPages.length > 0) {
-                setSkipDeletePages(true);
+                setSkipDeletePages(true);  //to DO TALK TO DIVYA AS I DON THINK WE NEED THIS -> ALREADY SET IN ABOVE TO TRUE AND BEING SET TO TRUE AGAIN IN SAVEREDLINESIGNOFF
                 await newDoc.removePages(deletedPages);
               }
               stitchedDocObj = newDoc;
@@ -632,16 +617,10 @@ const SaveRedlineForSignoff = () => {
     _instance,
     layertype,
     toastId,
-
-    //WORK ON GETT THE BELOW THINGS BEFORE THE SET STATE CALLS TO GLOBAL STATE?
     incompatibleFiles, // create redux state
     documentList, //use redux state
-    requestid, //use redux state
     pageMappedDocs,
-
-    setRedlineStitchObject,
-    setSkipDeletePages,
-    setstichedfilesForRedline
+    setSkipDeletePages
   ) => {
     toastId.current = toast(`Start saving redline...`, {
       autoClose: false,
@@ -657,7 +636,7 @@ const SaveRedlineForSignoff = () => {
     );
     const documentids = documentList.map((obj) => obj.documentid);
     getFOIS3DocumentRedlinePreSignedUrl(
-      requestid,
+      foiministryrequestid,
       //normalizeforPdfStitchingReq(divisionDocuments),
       divisionDocuments,
       async (res) => {
@@ -677,7 +656,7 @@ const SaveRedlineForSignoff = () => {
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
         fetchDocumentRedlineAnnotations(
-          requestid,
+          foiministryrequestid,
           documentids,
           currentLayer.name.toLowerCase()
         );
@@ -773,7 +752,7 @@ const SaveRedlineForSignoff = () => {
         setRedlineStitchInfo(stitchDoc);
         setIssingleredlinepackage(res.issingleredlinepackage);
         setRedlineZipperMessage({
-          ministryrequestid: requestid,
+          ministryrequestid: foiministryrequestid,
           category: getzipredlinecategory(layertype),
           attributes: [],
           requestnumber: res.requestnumber,
@@ -788,8 +767,7 @@ const SaveRedlineForSignoff = () => {
             stitchDocuments,
             res.issingleredlinepackage,
             toastId,
-            setSkipDeletePages,
-            setstichedfilesForRedline
+            setSkipDeletePages
           );
         } else {
           stitchForRedlineExport(
@@ -798,8 +776,7 @@ const SaveRedlineForSignoff = () => {
             stitchDocuments,
             res.issingleredlinepackage,
             IncompatableList,
-            toastId,
-            setRedlineStitchObject
+            toastId
           );
         }
       },
@@ -810,332 +787,10 @@ const SaveRedlineForSignoff = () => {
       currentLayer.name.toLowerCase()
     );
   };
-  const stampPageNumberResponse = async (_docViwer, PDFNet) => {
-    for (
-      let pagecount = 1;
-      pagecount <= _docViwer.getPageCount();
-      pagecount++
-    ) {
-      try {
-        let doc = null;
-
-        let _docmain = _docViwer.getDocument();
-        doc = await _docmain.getPDFDoc();
-
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
-
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagecount} of ${_docViwer.getPageCount()}`,
-            pgSet
-          );
-        });
-      } catch (err) {
-        console.log(err);
-        throw err;
-      }
-    }
-  };
-  const prepareMessageForResponseZipping = (
-    stitchedfilepath,
-    zipServiceMessage
-  ) => {
-    const stitchedDocPathArray = stitchedfilepath.split("/");
-
-    let fileName =
-      stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
-    fileName = decodeURIComponent(fileName);
-
-    const file = {
-      filename: fileName,
-      s3uripath: decodeURIComponent(stitchedfilepath.split("?")[0]),
-    };
-    const zipDocObj = {
-      files: [],
-    };
-    zipDocObj.files.push(file);
-
-    zipServiceMessage.attributes.push(zipDocObj);
-    triggerDownloadFinalPackage(zipServiceMessage, (error) => {
-      console.log(error);
-    });
-  };
-  const prepareresponseredlinesummarylist = (documentlist) => {
-    let summarylist = [];
-    let summary_division = {};
-    let summary_divdocuments = [];
-    let alldocuments = [];
-    summary_division["divisionid"] = "0";
-    for (let doc of documentlist) {
-      summary_divdocuments.push(doc.documentid);
-      alldocuments.push(doc);
-    }
-    summary_division["documentids"] = summary_divdocuments;
-    summarylist.push(summary_division);
-
-    let sorteddocids = [];
-    // sort based on sortorder as the sortorder added based on the LastModified
-    let sorteddocs = sortBySortOrder(alldocuments);
-    for (const sorteddoc of sorteddocs) {
-      sorteddocids.push(sorteddoc["documentid"]);
-    }
-    return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
-  };
-  const saveResponsePackage = async (
-    documentViewer,
-    annotationManager,
-    _instance,
-    requestid,
-    documentList,
-    pageMappedDocs
-  ) => {
-    const downloadType = "pdf";
-    let zipServiceMessage = {
-      ministryrequestid: requestid,
-      category: "responsepackage",
-      attributes: [],
-      requestnumber: "",
-      bcgovcode: "",
-      summarydocuments: prepareresponseredlinesummarylist(documentList),
-      redactionlayerid: currentLayer.redactionlayerid,
-    };
-    getResponsePackagePreSignedUrl(
-      requestid,
-      documentList[0],
-      async (res) => {
-        const toastID = toast.loading("Start generating final package...");
-        zipServiceMessage.requestnumber = res.requestnumber;
-        zipServiceMessage.bcgovcode = res.bcgovcode;
-
-        // go through annotations and get all section stamps
-        annotationManager.exportAnnotations().then(async (xfdfString) => {
-          //parse annotation xml
-          let jObj = parser.parseFromString(xfdfString); // Assume xmlText contains the example XML
-          let annots = jObj.getElementsByTagName("annots");
-
-          let sectionStamps = {};
-          let stampJson = {};
-          for (const annot of annots[0].children) {
-            // get section stamps from xml
-            if (annot.name == "freetext") {
-              let customData = annot.children.find(
-                (element) => element.name == "trn-custom-data"
-              );
-              if (customData?.attributes?.bytes?.includes("parentRedaction")) {
-                //parse section info to json
-                stampJson = JSON.parse(
-                  customData.attributes.bytes
-                    .replace(/&quot;\[/g, "[")
-                    .replace(/\]&quot;/g, "]")
-                    .replace(/&quot;/g, '"')
-                    .replace(/\\/g, "")
-                );
-                sectionStamps[stampJson["parentRedaction"]] =
-                  stampJson["trn-wrapped-text-lines"][0];
-              }
-            }
-          }
-
-          // add section stamps to redactions as overlay text
-          let annotList = annotationManager.getAnnotationsList();
-          toast.update(toastID, {
-            render: "Saving section stamps...",
-            isLoading: true,
-          });
-          for (const annot of annotList) {
-            if (sectionStamps[annot.Id]) {
-              annotationManager.setAnnotationStyles(annot, {
-                OverlayText: sectionStamps[annot.Id],
-                FontSize: Math.min(parseInt(annot.FontSize), 9) + "pt",
-              });
-            }
-          }
-          annotationManager.ungroupAnnotations(annotList);
-
-          // remove duplicate and not responsive pages
-          let pagesToRemove = [];
-          for (const infoForEachDoc of pageFlags) {
-            for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-              // pageflag duplicate or not responsive
-              if (
-                pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
-                pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
-              ) {
-                pagesToRemove.push(
-                  getStitchedPageNoFromOriginal(
-                    infoForEachDoc.documentid,
-                    pageFlagsForEachDoc.page,
-                    pageMappedDocs
-                  )
-                );
-              }
-            }
-          }
-
-          let doc = documentViewer.getDocument();
-          await annotationManager.applyRedactions(); // must apply redactions before removing pages
-          await doc.removePages(pagesToRemove);
-          const { PDFNet } = _instance.Core;
-          PDFNet.initialize();
-          await stampPageNumberResponse(documentViewer, PDFNet);
-
-          //apply redaction and save to s3
-          doc
-            .getFileData({
-              // saves the document with annotations in it
-              downloadType: downloadType,
-              flatten: true,
-            })
-            .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], { type: "application/pdf" });
-
-              toast.update(toastID, {
-                render: "Saving final package to Object Storage...",
-                isLoading: true,
-              });
-              saveFilesinS3(
-                { filepath: res.s3path_save },
-                _blob,
-                (_res) => {
-                  toast.update(toastID, {
-                    render:
-                      "Final package is saved to Object Storage. Page will reload in 3 seconds..",
-                    type: "success",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                  prepareMessageForResponseZipping(
-                    res.s3path_save,
-                    zipServiceMessage
-                  );
-                  setTimeout(() => {
-                    window.location.reload(true);
-                  }, 3000);
-                },
-                (_err) => {
-                  console.log(_err);
-                  toast.update(toastID, {
-                    render: "Failed to save final package to Object Storage",
-                    type: "error",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                }
-              );
-            });
-        });
-      },
-      (error) => {
-        console.log("Error fetching document:", error);
-      }
-    );
-  };
-  const saveDoc = (
-    docInstance,
-    modalFor,
-    toastId,
-    docViewer,
-    annotManager,
-
-    incompatibleFiles,
-    documentList,
-    requestid,
-    pageMappedDocs,
-
-    setRedlineStitchObject,
-    setSkipDeletePages,
-    setRedlineSaving,
-    setRedlineCategory,
-    setstichedfilesForRedline
-  ) => {
-    console.log("savedoc");
-    setRedlineModalOpen(false);
-    setRedlineSaving(true);
-    setRedlineCategory(modalFor);
-    // skip deletePages API call for all removePages related to Redline/Response package creation
-    setSkipDeletePages(true);
-    switch (modalFor) {
-      case "oipcreview":
-      case "redline":
-        saveRedlineDocument(
-          docInstance,
-          modalFor,
-          toastId,
-          incompatibleFiles,
-          documentList,
-          requestid,
-          pageMappedDocs,
-          setRedlineStitchObject,
-          setSkipDeletePages,
-          setstichedfilesForRedline
-        );
-        break;
-      case "responsepackage":
-        saveResponsePackage(
-          docViewer,
-          annotManager,
-          docInstance,
-          requestid,
-          documentList,
-          pageMappedDocs
-        );
-        break;
-      default:
-    }
-    setIncludeDuplicatePages(false);
-    setIncludeNRPages(false);
-  };
-
-  const cancelSaveRedlineDoc = () => {
-    setIncludeDuplicatePages(false);
-    setIncludeNRPages(false);
-    setRedlineModalOpen(false);
-  };
-
-  const handleIncludeNRPages = (e) => {
-    setIncludeNRPages(e.target.checked);
-  };
-
-  const handleIncludeDuplicantePages = (e) => {
-    setIncludeDuplicatePages(e.target.checked);
-  };
+  
+  //TO DO: Adjust this function to take in less args (use redux if avail or move state here) 
+  // + TEST ALL PACKAGES AND ALL FEATURES +
+  // finally refactor+rengineering functions for perofrmance (reduce dble loops + try aparnas local storage + be logic )
 
   return {
     redlineSinglePackage,
@@ -1151,16 +806,16 @@ const SaveRedlineForSignoff = () => {
     redlineStitchDivisionDetails,
     pdftronDocObjectsForRedline,
     redlineZipperMessage,
-    redlineModalOpen,
-    handleIncludeDuplicantePages,
-    handleIncludeNRPages,
-    setRedlineModalOpen,
-    cancelSaveRedlineDoc,
     includeNRPages,
     includeDuplicatePages,
-    saveDoc,
+    stichedfilesForRedline,
+    setstichedfilesForRedline,
+    redlineStitchObject,
+    setRedlineStitchObject,
+    setIncludeDuplicatePages,
+    setIncludeNRPages,
+    saveRedlineDocument,
   };
-
 };
 
 export default SaveRedlineForSignoff;

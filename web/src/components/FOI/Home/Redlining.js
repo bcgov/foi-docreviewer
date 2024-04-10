@@ -79,6 +79,7 @@ import {
   checkSavingOIPCRedline,
   checkSavingFinalPackage} from "./CreateResponsePDF/DownloadResponsePDF";
 import SaveRedlineForSignoff from "./CreateResponsePDF/SaveRedlineForSignOff";
+import SaveResponsePackage from "./CreateResponsePDF/SaveResponsePackage";
 
 const Redlining = React.forwardRef(
   (
@@ -149,22 +150,17 @@ const Redlining = React.forwardRef(
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState([""]);
     const [modalButtonLabel, setModalButtonLabel] = useState("");
-    const [redlineSaving, setRedlineSaving] = useState(false);
-    const [redlineCategory, setRedlineCategory] = useState(false);
     // State variables for Bulk Edit using Multi Selection option
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
 
-    const [redlineStitchObject, setRedlineStitchObject] = useState(null);
-
     const toastId = React.useRef(null);
 
     const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
     const [stichedfiles, setstichedfiles] = useState([]);
     const [stitchPageCount, setStitchPageCount] = useState(0);
-    const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
     const [alreadyStitchedList, setAlreadyStitchedList]= useState([]);
     const [skipDeletePages, setSkipDeletePages] = useState(false);
     
@@ -176,31 +172,39 @@ const Redlining = React.forwardRef(
     const [pagesRemoved, setPagesRemoved] = useState([]);
     //xml parser
     const parser = new XMLParser();
+
+    const [redlineSaving, setRedlineSaving] = useState(false);
+    const [redlineCategory, setRedlineCategory] = useState(false);
+    const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     
-    // Redline download & saving logic
+    // Response Package && Redline download and saving logic
     const { 
-      redlineSinglePackage, 
-      redlineStitchInfo, 
-      issingleredlinepackage, 
-      redlinepageMappings, 
-      redlineWatermarkPageMapping, 
-      redlineIncompatabileMappings, 
-      redlineDocumentAnnotations, 
-      requestStitchObject, 
-      incompatableList, 
+      redlineSinglePackage,
+      redlineStitchInfo,
+      issingleredlinepackage,
+      redlinepageMappings,
+      redlineWatermarkPageMapping,
+      redlineIncompatabileMappings,
+      redlineDocumentAnnotations,
+      requestStitchObject,
+      incompatableList,
       totalStitchList,
-      redlineStitchDivisionDetails, 
-      pdftronDocObjectsForRedline, 
+      redlineStitchDivisionDetails,
+      pdftronDocObjectsForRedline,
       redlineZipperMessage,
-      redlineModalOpen,
-      handleIncludeDuplicantePages,
-      handleIncludeNRPages,
-      setRedlineModalOpen,
-      cancelSaveRedlineDoc,
       includeNRPages,
       includeDuplicatePages,
-      saveDoc,
+      stichedfilesForRedline,
+      setstichedfilesForRedline,
+      redlineStitchObject,
+      setRedlineStitchObject,
+      setIncludeDuplicatePages,
+      setIncludeNRPages,
+      saveRedlineDocument,
     } = SaveRedlineForSignoff();
+    const {
+      saveResponsePackage
+    } = SaveResponsePackage();
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
@@ -2648,26 +2652,54 @@ const Redlining = React.forwardRef(
       );
     };
 
-    const handleSaveDoc = () => {
-      saveDoc(
-        docInstance, 
-        modalFor, 
-        toastId,
-        docViewer, 
-        annotManager, 
+    const cancelSaveRedlineDoc = () => {
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
+      setRedlineModalOpen(false);
+    };
   
-        incompatibleFiles, 
-        documentList, 
-        requestid, 
-        pageMappedDocs, 
-        
-        setRedlineStitchObject, 
-        setSkipDeletePages, 
-        setRedlineSaving, 
-        setRedlineCategory,
-        setstichedfilesForRedline
-      )
-    }
+    const handleIncludeNRPages = (e) => {
+      setIncludeNRPages(e.target.checked);
+    };
+  
+    const handleIncludeDuplicantePages = (e) => {
+      setIncludeDuplicatePages(e.target.checked);
+    };
+    
+    const saveDoc = () => {
+      console.log("savedoc");
+      setRedlineModalOpen(false);
+      setRedlineSaving(true);
+      setRedlineCategory(modalFor);
+      // skip deletePages API call for all removePages related to Redline/Response package creation
+      setSkipDeletePages(true);
+      switch (modalFor) {
+        case "oipcreview":
+        case "redline":
+          saveRedlineDocument(
+            docInstance,
+            modalFor,
+            toastId,
+            incompatibleFiles,
+            documentList,
+            pageMappedDocs,
+            setSkipDeletePages
+          );
+          break;
+        case "responsepackage":
+          saveResponsePackage(
+            docViewer,
+            annotManager,
+            docInstance,
+            documentList,
+            pageMappedDocs
+          );
+          break;
+        default:
+      }
+      setIncludeDuplicatePages(false);
+      setIncludeNRPages(false);
+    };
 
     const compareValues = (a, b) => {
       if (modalSortNumbered) {
@@ -2890,7 +2922,7 @@ const Redlining = React.forwardRef(
             </DialogContentText>
           </DialogContent>
           <DialogActions className="foippa-modal-actions">
-            <button className="btn-bottom btn-save btn" onClick={handleSaveDoc}>
+            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
               {modalButtonLabel}
             </button>
             <button
