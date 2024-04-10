@@ -228,7 +228,7 @@ class documentpageflagservice:
         return [
             entry
             for entry in pageflag["pageflag"]
-            if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 3, 7]
+            if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 2, 3, 7]
         ]
 
     def __createnewpageflag(self, pageflag, data):
