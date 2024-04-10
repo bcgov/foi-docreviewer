@@ -25,18 +25,10 @@ import { styled } from "@mui/material/styles";
 import PAGE_FLAGS from '../../../constants/PageFlags';
 import _ from "lodash";
 
-const ModifiedDateTreeView = React.memo(React.forwardRef(({
-    // selected,
-    expanded,
-    handleToggle,
-    // handleSelect,
+const CustomTreeView = React.memo(React.forwardRef(({
+    items,
     filesForDisplay,
-    filterBookmark,
-    consulteeFilterView,
-    noFilterView,
-    displayFilePages,
     pageMappedDocs,
-    // customTreeItem,
     selectTreeItem,
     setWarningModalOpen,
     updatePageFlags,
@@ -44,7 +36,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
     openFOIPPAModal,
     requestid
 
-}: any, ref) => {    
+}: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
@@ -58,24 +50,24 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
 
     const apiRef = useTreeViewApiRef();
 
-    useImperativeHandle(ref, () => ({
-        async scrollToPage(event: any, pageNumber: number) {
-            let lookup = pageMappedDocs.stitchedPageLookup[pageNumber];
-            setExpandedItems([...new Set([...expandedItems, "{\"docid\": " + lookup.docid + "}"])]);
-            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
-            apiRef.current?.focusItem(event, '{"docid": ' + lookup.docid + ', "page": ' + (lookup.page) + '}')
-        },
-    }), [apiRef, pageMappedDocs]);
-
-    const files = filesForDisplay;
-
-    const [expandedItems, setExpandedItems] = useState<string[]>([]);    
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
-    const [selected, setSelected] = useState<any>([]);    
-    const [consultInfo, setConsultInfo] = useState({});    
+    const [selected, setSelected] = useState<any>([]);
+    const [consultInfo, setConsultInfo] = useState({});
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
+
+
+    useImperativeHandle(ref, () => ({
+        async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
+            setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
+            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
+            apiRef.current?.focusItem(event, pageId)
+            setSelected([])
+            setSelectedPages([])
+        },
+    }), [apiRef, expandedItems]);
 
     const getAllItemsWithChildrenItemIds = () => {
       const itemIds: any = [];
@@ -86,7 +78,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
         }
       };
 
-      files.forEach(registerItemId);
+      items.forEach(registerItemId);
 
       return itemIds;
     };
@@ -106,7 +98,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
         //             }
         //         }
         //         return result;
-        //     }            
+        //     }
         // );
     };
 
@@ -194,7 +186,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
           ref={ref}
           {...props}
           title={itemid.title}
-        
+
         //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
           slots={{endIcon: (_props) => {return addIcons(itemid)}}}
         //   icon={faCircleHalfStroke}
@@ -287,7 +279,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
         //     {filesForDisplay.length <= 0 && filterBookmark ?
         //         <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
         //         :
-        //         filesForDisplay?.map((file: any, index: number) => { 
+        //         filesForDisplay?.map((file: any, index: number) => {
         //             return (
         //                 // <Tooltip
         //                 //     sx={{
@@ -350,7 +342,7 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
           {expandedItems.length === 0 ? 'Expand all' : 'Collapse all'}
         </Button> */}
         <RichTreeView
-          items={files}
+          items={items}
           selectedItems={selected}
           expandedItems={expandedItems}
           onSelectedItemsChange={handleSelect}
@@ -364,4 +356,4 @@ const ModifiedDateTreeView = React.memo(React.forwardRef(({
     );
 }))
 
-export default ModifiedDateTreeView;
+export default CustomTreeView;

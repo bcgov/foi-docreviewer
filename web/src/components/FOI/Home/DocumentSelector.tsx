@@ -34,7 +34,7 @@ import { pageFlagTypes } from '../../../constants/enum';
 // import _ from "lodash";
 import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
-import ModifiedDateTreeView from './ModifiedDateTreeView';
+import CustomTreeView from './CustomTreeView';
 // import DivisionTreeView from './DivisionTreeView';
 import SvgIcon, { SvgIconProps } from '@mui/material/SvgIcon';
 
@@ -77,16 +77,16 @@ const DocumentSelector = React.memo(React.forwardRef(({
     const pageRefs = useRef([]);
     const treeRef: any = useRef();
 
-    const StyledTreeItem = styled(TreeItem)((props: any) => ({
-    // const StyledTreeItem = styled(TreeItem)(() => ({
-        [`& .${treeItemClasses.label}`]: {
-            fontSize: '14px'
-        },
-        [`& .${treeItemClasses.content}`]: {
-            padding: props.children ? '0 8px' : '0 16px'
-            // padding: '0 16px'
-        }
-    }));
+    // const StyledTreeItem = styled(TreeItem)((props: any) => ({
+    // // const StyledTreeItem = styled(TreeItem)(() => ({
+    //     [`& .${treeItemClasses.label}`]: {
+    //         fontSize: '14px'
+    //     },
+    //     [`& .${treeItemClasses.content}`]: {
+    //         padding: props.children ? '0 8px' : '0 16px'
+    //         // padding: '0 16px'
+    //     }
+    // }));
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, pageNumber: number) {
@@ -100,10 +100,20 @@ const DocumentSelector = React.memo(React.forwardRef(({
             //     setSelected([nodeId])
             //     setSelectedPages([JSON.parse(nodeId)])
             // }
-            treeRef?.current?.scrollToPage(event, pageNumber)
+            let lookup = pageMappedDocs.stitchedPageLookup[pageNumber];
+            let file: any = filesForDisplay.find((f: any) => f.documentid === lookup.docid);
+            var pageId, newExpandedItems
+            if (organizeBy === 'lastmodified') {
+                pageId = `{"docid": ${file.documentid}, "page": ${lookup.page}, "flagid": [${getPageFlagIds(file.pageFlag, lookup.page)}], "title": "${getFlagName(file, lookup.page)}"}`
+                newExpandedItems = ["{\"docid\": " + lookup.docid + "}"]
+            } else {
+                pageId = `{"division": ${file.divisions[0].divisionid}, "docid": ${file.documentid}, "page": ${lookup.page}, "flagid": [${getPageFlagIds(file.pageFlag, lookup.page)}], "title": "${getFlagName(file, lookup.page)}"}`
+                newExpandedItems = ["{\"division\": " + file.divisions[0].divisionid + "}", "{\"division\": " + file.divisions[0].divisionid + ", \"docid\": " + lookup.docid + "}"]
+            }
+            treeRef?.current?.scrollToPage(event, newExpandedItems, pageId)
 
         },
-    }), [treeRef, pageRefs, expanded, pageMappedDocs]);
+    }), [treeRef, pageMappedDocs, filesForDisplay, organizeBy]);
 
 
     useEffect(() => {
@@ -813,9 +823,9 @@ const DocumentSelector = React.memo(React.forwardRef(({
         }
     }
 
-    const getFilePages = (file: any) => {
+    const getFilePages = (file: any, division?: any) => {
         if (filterFlags.length > 0) {
-            return file.pages.filter(((p: any) => {
+            let filteredpages =  file.pages.filter(((p: any) => {
                 if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
                     return true
                 } else {
@@ -836,13 +846,22 @@ const DocumentSelector = React.memo(React.forwardRef(({
                     })) 
                 }
 
-            })).map((p: any) => {
-                return {
-                    id: `{"docid": ${file.documentid}, "page": ${p}}`,
-                    // id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.documentid, p)}]}`,
-                    label: getPageLabel(file, p)
-                }
-            })
+            }))
+            if (organizeBy === "lastmodified" ) {
+                return filteredpages.map((p: any) => {
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            } else {
+                return filteredpages.map((p: any) => {
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            }
             // if (consulteeFilter.length > 0) {
             //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
             //         ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
@@ -855,43 +874,71 @@ const DocumentSelector = React.memo(React.forwardRef(({
             //     }
             // }
         } else {
-            return file.pages.map(
+            if (organizeBy === "lastmodified" ) {return file.pages.map(
                 (p: any) => {
-                    // try {
-                    //     JSON.parse(`{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`)
-                    // } catch {
-                    //     console.log("parsingerror")
-                    //     console.log(`{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`)
-                    // }
                     return {
-                        // id: `{"docid": ${file.documentid}, "page": ${p}}`,
-                        //  id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}]}`,
-                         id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                         label: getPageLabel(file, p)
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
                     }
                 }
             )
+
+            } else {
+                return file.pages.map(
+                    (p: any) => {
+                        return {
+                            id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                            label: getPageLabel(file, p)
+                        }
+                    }
+                )
+            }
         }
     }
 
-    const displayFiles = () => {
+    const getTreeItems = () => {
         if (pageFlags) {
-            return filesForDisplay.map((file: any, index: number) => {return {
-                id: `{"docid": ${file.documentid}}`,
-                label: file.filename,
-                file: file,
-                children: getFilePages(file) //file.pages.map(
-                    // (p: any) => {
-                    //     return {
-                    //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                    //          label: getPageLabel(file, p)
-                    //     }
-                    // }
-                // )
-            }})
+            if (organizeBy === "lastmodified" ) {
+                return filesForDisplay.map((file: any, index: number) => {return {
+                    id: `{"docid": ${file.documentid}}`,
+                    label: file.filename,
+                    children: getFilePages(file) //file.pages.map(
+                        // (p: any) => {
+                        //     return {
+                        //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                        //          label: getPageLabel(file, p)
+                        //     }
+                        // }
+                    // )
+                }})
+            } else {
+                return divisions.map((division: any) => {
+                    return {
+                        id: `{"division": ${division.divisionid}}`,
+                        label: division.name,
+                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                            label: file.filename,
+                            children: getFilePages(file, division) //file.pages.map(
+                                // (p: any) => {
+                                //     return {
+                                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                                //          label: getPageLabel(file, p)
+                                //     }
+                                // }
+                            // )
+                        }})
+                    }
+                })
+            }
         } else {
             return []
         }
+    }
+
+    const getPageId = (docid: any, p: any) => {        
+        let file: any = filesForDisplay.find((f: any) => f.documentid === docid);
+        return `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`
     }
 
     // const getPageTitle = (props: any) => {
@@ -1156,28 +1203,19 @@ const DocumentSelector = React.memo(React.forwardRef(({
                         {filesForDisplay.length <= 0 && filterBookmark ?
                             <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
                             :
-                            organizeBy === "lastmodified" ? 
-                            <ModifiedDateTreeView                                
-                                ref={treeRef}    
-                                selected={selected}
-                                expanded={expanded}
-                                handleToggle={handleToggle}
-                                // handleSelect={handleSelect}
-                                filesForDisplay={displayFiles()}
-                                filterBookmark={filterBookmark}
-                                // consulteeFilterView={consulteeFilterView}
-                                // noFilterView={noFilterView}
-                                // disableHover={disableHover} 
+                            // organizeBy === "lastmodified" ? 
+                            <CustomTreeView                                
+                                ref={treeRef}
+                                items={getTreeItems()}
+                                filesForDisplay={filesForDisplay}
                                 pageMappedDocs={pageMappedDocs}
-                                // customTreeItem={CustomTreeItem}
                                 selectTreeItem={selectTreeItem}
                                 setWarningModalOpen={setWarningModalOpen}
                                 updatePageFlags={updatePageFlags}
                                 pageFlagList={pageFlagList}                                
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestId={requestid}
-                                // displayFilePages={displayFilePages}
-                            /> : <></> 
+                            /> //: <></> 
                             // divisions?.length > 0 &&
                             //     <DivisionTreeView                                
                             //         selected={selected}
