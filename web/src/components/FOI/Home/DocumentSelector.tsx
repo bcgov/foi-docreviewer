@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useImperativeHandle, useRef, createRef, LegacyRef } from 'react'
 import Chip from "@mui/material/Chip";
-import {TreeView, TreeItem} from '@mui/x-tree-view';
+import {TreeView, TreeItem, TreeItem2} from '@mui/x-tree-view';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { treeItemClasses } from "@mui/x-tree-view/TreeItem";
@@ -24,21 +24,22 @@ import {
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
-import PAGE_FLAGS from '../../../constants/PageFlags';
+import {PAGE_FLAGS, pageFlagIcons} from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import LayerDropdown from "./LayerDropdown"
 import { styled } from "@mui/material/styles";
 import { useAppSelector } from '../../../hooks/hook';
 import { getStitchedPageNoFromOriginal, docSorting} from "./utils";
 import { pageFlagTypes } from '../../../constants/enum';
-import _ from "lodash";
+// import _ from "lodash";
 import Popover from "@mui/material/Popover";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
-import ModifiedDateTreeView from './ModifiedDateTreeView';
-import DivisionTreeView from './DivisionTreeView';
+import CustomTreeView from "./CustomTreeView";
+// import DivisionTreeView from './DivisionTreeView';
+import SvgIcon, { SvgIconProps } from '@mui/material/SvgIcon';
 
 
-const DocumentSelector = React.forwardRef(({
+const DocumentSelector = React.memo(React.forwardRef(({
     openFOIPPAModal,
     requestid,
     documents,
@@ -47,25 +48,27 @@ const DocumentSelector = React.forwardRef(({
     setIndividualDoc,
     pageMappedDocs,
     setWarningModalOpen,
-    divisions
+    divisions,
+    pageFlags,
+    updatePageFlags1
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
-    const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
+    // const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
     const [files] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
-    const [filesForDisplay, setFilesForDisplay] = useState(files);
+    const [filesForDisplay, setFilesForDisplay] = useState([]);
     const [consultMinistries, setConsultMinistries] = useState<any>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
     const [consultInfo, setConsultInfo] = useState({});
     const [filterFlags, setFilterFlags] = useState<any>([]);
     const [filteredFiles, setFilteredFiles] = useState(files);
     const [filterBookmark, setFilterBookmark] = useState(false);
-    const [disableHover, setDisableHover] = useState(false);
+    // const [disableHover, setDisableHover] = useState(false);
     const [selected, setSelected] = useState<any>([]);
     const [openconsulteeModal, setOpenConsulteeModal] = useState(false);
     const [assignedConsulteeList, setAssignedConsulteeList] = useState<any>([]);
@@ -74,30 +77,47 @@ const DocumentSelector = React.forwardRef(({
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [expanded, setExpanded] = useState<string[]>([]);
     const pageRefs = useRef([]);
+    const treeRef: any = useRef();
+    const [completionCounter, setCompletionCounter]= useState(0);
+    const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
-    const StyledTreeItem = styled(TreeItem)(() => ({
-        [`& .${treeItemClasses.label}`]: {
-            fontSize: '14px'
-        },
-        [`& .${treeItemClasses.content}`]: {
-            padding: '0 16px'
-        }
-    }));
+    // const StyledTreeItem = styled(TreeItem)((props: any) => ({
+    // // const StyledTreeItem = styled(TreeItem)(() => ({
+    //     [`& .${treeItemClasses.label}`]: {
+    //         fontSize: '14px'
+    //     },
+    //     [`& .${treeItemClasses.content}`]: {
+    //         padding: props.children ? '0 8px' : '0 16px'
+    //         // padding: '0 16px'
+    //     }
+    // }));
 
     useImperativeHandle(ref, () => ({
-        async scrollToPage(pageNumber: number) {
-            setExpanded([...new Set([...expanded, "{\"docid\": " + pageMappedDocs.stitchedPageLookup[pageNumber].docid + "}"])]);
-            await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
-            let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
-            if (pageRef) {
-                pageRef.scrollIntoView();
-                let nodeId = pageRef.children[0].id;
-                nodeId = nodeId.substring(nodeId.indexOf('{'));
-                setSelected([nodeId])
-                setSelectedPages([JSON.parse(nodeId)])
+        async scrollToPage(event: any, pageNumber: number) {
+            // setExpanded([...new Set([...expanded, "{\"docid\": " + pageMappedDocs.stitchedPageLookup[pageNumber].docid + "}"])]);
+            // await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
+            // let pageRef = (pageRefs.current[pageNumber - 1] as any).current;
+            // if (pageRef) {
+            //     pageRef.scrollIntoView();
+            //     let nodeId = pageRef.children[0].id;
+            //     nodeId = nodeId.substring(nodeId.indexOf('{'));
+            //     setSelected([nodeId])
+            //     setSelectedPages([JSON.parse(nodeId)])
+            // }
+            let lookup = pageMappedDocs.stitchedPageLookup[pageNumber];
+            let file: any = filesForDisplay.find((f: any) => f.documentid === lookup.docid);
+            var pageId, newExpandedItems
+            if (organizeBy === 'lastmodified') {
+                pageId = `{"docid": ${file.documentid}, "page": ${lookup.page}, "flagid": [${getPageFlagIds(file.pageFlag, lookup.page)}], "title": "${getFlagName(file, lookup.page)}"}`
+                newExpandedItems = ["{\"docid\": " + lookup.docid + "}"]
+            } else {
+                pageId = `{"division": ${file.divisions[0].divisionid}, "docid": ${file.documentid}, "page": ${lookup.page}, "flagid": [${getPageFlagIds(file.pageFlag, lookup.page)}], "title": "${getFlagName(file, lookup.page)}"}`
+                newExpandedItems = ["{\"division\": " + file.divisions[0].divisionid + "}", "{\"division\": " + file.divisions[0].divisionid + ", \"docid\": " + lookup.docid + "}"]
             }
+            treeRef?.current?.scrollToPage(event, newExpandedItems, pageId)
+
         },
-    }), [pageRefs, expanded, pageMappedDocs]);
+    }), [treeRef, pageMappedDocs, filesForDisplay, organizeBy]);
 
 
     useEffect(() => {
@@ -121,15 +141,16 @@ const DocumentSelector = React.forwardRef(({
     }, [requestInfo]);
 
     const updatePageFlags = () => {
-        fetchPageFlag(
-            requestid,
-            currentLayer.name.toLowerCase(),
-            Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
-            (error: any) => console.log(error)
-        )
+        // fetchPageFlag(
+        //     requestid,
+        //     currentLayer.name.toLowerCase(),
+        //     Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
+        //     (error: any) => console.log(error)
+        // )
     }
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
+        // console.log("ministryfn")
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
         if (consultVal?.programareaid?.length === 1 && consultVal?.other?.length === 0) {
             let ministry: any = consultMinistries?.find((ministry: any) => ministry.programareaid === consultVal.programareaid[0]);
@@ -158,6 +179,9 @@ const DocumentSelector = React.forwardRef(({
         /* We need to Math.floor the result because the result can be a float value and we want to take the lower value
            as it may show 100% even if the result is 99.9% */ 
         return (totalPageCount > 0 && totalPagesWithFlags >= 0) ? Math.floor((totalPagesWithFlags / totalPageCount) * 100) : 0;
+        // setCompletionCounter(totalPageCount > 0 && totalPagesWithFlags >= 0
+        //   ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
+        //   : 0); 
     }
 
 
@@ -197,11 +221,14 @@ const DocumentSelector = React.forwardRef(({
 
         }
         return filterFlags.length > 0 ? totalFilteredPages + unflagged : totalPageCount;
+        // setTotalDisplayedPages(filterFlags.length > 0
+      //       ? totalFilteredPages + unflagged
+      //       : totalPageCount);
     }
 
 
     const setAdditionalData = () => {
-        let filesForDisplayCopy = [...filesForDisplay];
+        let filesForDisplayCopy: any = filesForDisplay.length === 0 ? [...documents] : [...filesForDisplay];
         filesForDisplayCopy.forEach((file1: any) => {
             pageFlags?.forEach((pageFlag1: any) => {
                 if (file1.documentid == pageFlag1?.documentid) {
@@ -227,66 +254,43 @@ const DocumentSelector = React.forwardRef(({
     useEffect(() => {
         if (pageFlags) {
             setAdditionalData();
+            //updateCompletionCounter();
+            //updatePageCount();
         }        
     }, [consultMinistries, pageFlags]);
 
     const assignIcon = (pageFlag: any) => {
-        switch (pageFlag) {
-            case 1:
-            case "Partial Disclosure":
-                return faCircleHalfStroke;
-            case 2:
-            case "Full Disclosure":
-                return filledCircle;
-            case 3:
-            case "Withheld in Full":
-                return faCircle;
-            case 4:
-            case "Consult":
-                return faCircleQuestion;
-            case 5:
-            case "Duplicate":
-                return faCircleStop;
-            case 6:
-            case "Not Responsive":
-                return faCircleXmark;
-            case 7:
-            case "In Progress":
-                return faSpinner;
-            case 8:
-            case "Page Left Off":
-                return faBookmark;
-            default:
-                return null;
-        }
+        return pageFlagIcons[pageFlag];
     }
 
     //Revisit this method & assign icons when fetching itself!!
-    const assignPageIcon = (docId: number, page: number) => {
-        let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
-        let pageFlagObjs = docs?.pageflag?.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));
-        let assignIconValue: any = [];
-        for (const pageFlag of pageFlagObjs) {
-            if (pageFlag.flagid !== undefined) {              
-                assignIconValue.push({icon: assignIcon(pageFlag.flagid), flagid: pageFlag.flagid});
+    const getPageFlagIds = (pageFlags: any, page: number) => {
+        // let docs: any = pageFlags?.find((doc: any) => doc?.documentid === docId);
+        let flagids: any = [];
+        if (pageFlags) {
+            let pageFlagObjs = pageFlags.filter((flag: any) => flag.page === page).sort((a: any, b: any) => (Number(b.flagid === pageFlagTypes["Consult"] || false)) - (Number(a.flagid === pageFlagTypes["Consult"] || false)));            
+            for (const pageFlag of pageFlagObjs) {
+                if (pageFlag.flagid !== undefined) {              
+                    flagids.push(pageFlag.flagid);
+                }
             }
-          }
-        return assignIconValue;
+        }
+        return flagids;
         
     }
 
     //let arr: any[] = [];
     //const divisions = [...new Map(files.reduce((acc: any[], file: any) => [...acc, ...new Map(file.divisions.map((division: any) => [division.divisionid, division]))], arr)).values()]
 
-    let expandall: any[] = [];
-    let expandallorganizebydivision: any[] = [];
-    divisions?.forEach((division:any) => {
-        expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
-        files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
-            expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
-            expandall.push(`{"docid": ${file.documentid}}`);
-        })
-    });
+    // let expandall: any[] = [];
+    // let expandallorganizebydivision: any[] = [];
+    // divisions?.forEach((division:any) => {
+    //     expandallorganizebydivision.push(`{"division": ${division.divisionid}}`);
+    //     files.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+    //         expandallorganizebydivision.push(`{"division": ${division.divisionid}, "docid": ${file.documentid}}`);
+    //         expandall.push(`{"docid": ${file.documentid}}`);
+    //     })
+    // });
 
     const onFilterChange = (filterValue: string) => {
         setFilesForDisplay(files.filter((file: any) => file.filename.includes(filterValue)))
@@ -294,85 +298,89 @@ const DocumentSelector = React.forwardRef(({
 
     }
 
-    const selectTreeItem = (file: any, page: number) => {
+    const selectTreeItem = (docid: any, page: number) => {        
+        let file: any = filesForDisplay.find((f: any) => f.documentid === docid);
         if (file.pages.includes(page)) {
             if (pageMappedDocs?.docIdLookup && Object.keys(pageMappedDocs?.docIdLookup).length > 0) {
                 let pageNo: number = getStitchedPageNoFromOriginal(file.documentid, page, pageMappedDocs);
                 setIndividualDoc({ 'file': file, 'page': pageNo })
                 setCurrentPageInfo({ 'file': file, 'page': page });
                 // setCurrentDocument({ 'file': file, 'page': page })
-                if (page == 1)
-                    setDisableHover(false);
+                // if (page == 1)
+                //     setDisableHover(false);
             }
         }
     };
 
-    const handleSelect = (event: any, nodeIds: any) => {
+    // const handleSelect = (event: any, nodeIds: any) => {
 
-        let selectedpages:any[] = [];
-        let selectedothers:any[] = [];
-        let selectedNodes:any[] = [];
-        for (let n of nodeIds) {
-            let _n = JSON.parse(n);
-            selectedNodes.push(_n);
-            if(_n.page) {
-                selectedpages.push(n);
-            } else {
-                selectedothers.push(n);
-            }
-        }
+    //     let selectedpages:any[] = [];
+    //     let selectedothers:any[] = [];
+    //     let selectedNodes:any[] = [];
+    //     for (let n of nodeIds) {
+    //         let _n = JSON.parse(n);
+    //         selectedNodes.push(_n);
+    //         if(_n.page) {
+    //             selectedpages.push(n);
+    //         } else {
+    //             selectedothers.push(n);
+    //         }
+    //     }
 
-        if (selectedNodes.length === 1 && !_.isEqual(Object.keys(selectedNodes[0]), ["division"])) {
-            let selectedFile = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
-            selectTreeItem(selectedFile, selectedNodes[0].page || 1);
-        }
+    //     if (selectedNodes.length === 1 && !_.isEqual(Object.keys(selectedNodes[0]), ["division"])) {
+    //         let selectedFile = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
+    //         selectTreeItem(selectedFile, selectedNodes[0].page || 1);
+    //     }
 
-        // if new select includes divisions and filenames:
-        // 1. remove divisions and filenames from new select
-        // 2. join old select and new select
-        // else only keep new select
-        if(selectedothers.length > 0) {
-            selectedpages = [...new Set([...selected, ...selectedpages])];
-        }
+    //     // if new select includes divisions and filenames:
+    //     // 1. remove divisions and filenames from new select
+    //     // 2. join old select and new select
+    //     // else only keep new select
+    //     if(selectedothers.length > 0) {
+    //         selectedpages = [...new Set([...selected, ...selectedpages])];
+    //     }
 
-        if(selectedpages.length > PAGE_SELECT_LIMIT) {
-            setWarningModalOpen(true);
-        } else {
-            setSelected(selectedpages);
-            let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
-            setSelectedPages(_selectedpages);
-        }
-    };
+    //     if(selectedpages.length > PAGE_SELECT_LIMIT) {
+    //         setWarningModalOpen(true);
+    //     } else {
+    //         setSelected(selectedpages);
+    //         let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
+    //         setSelectedPages(_selectedpages);
+    //     }
+    // };
 
-    const openContextMenu = (file: any, page: number, e: any) => {
-        e.preventDefault();
-        let nodeId: string = e.target.parentElement.parentElement.id;
-        if (nodeId === "") {
-            nodeId = e.currentTarget.id;
-        }
-        nodeId = nodeId.substring(nodeId.indexOf('{'));
-        let selectedNodes: any;
-        if (!selected.includes(nodeId)) {
-            selectedNodes = [nodeId]
-            handleSelect(e, selectedNodes)
-        } else {
-            selectedNodes = selected
-        }
-        selectedNodes = selectedNodes.map((n: any) => JSON.parse(n));
-        if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("page")) {
-            let selectedFile = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
-            setConsultInfo(selectedFile.consult?.find((flag: any) => flag.page === selectedNodes[0].page) || {
-                flagid: 4, other: [], programareaid: []
-            })
-        } else {
-            setConsultInfo({ flagid: 4, other: [], programareaid: [] });
-        }
-        setOpenContextPopup(true);
-        setAnchorPosition(
-            e?.currentTarget?.getBoundingClientRect()
-        );
-        setDisableHover(true);
-    }
+    // const openContextMenu = (e: any, props: any) => {
+    //     if (props.children) return
+    //     // console.log("contextmenu")
+    //     e.preventDefault();
+    //     let nodeId: string = e.target.parentElement.parentElement.id;
+    //     if (nodeId === "") {
+    //         nodeId = e.currentTarget.id;
+    //     }
+    //     nodeId = nodeId.substring(nodeId.indexOf('{'));
+    //     let selectedNodes: any;
+    //     if (!selected.includes(nodeId)) {
+    //         selectedNodes = [nodeId]
+    //         handleSelect(e, selectedNodes)
+    //     } else {
+    //         selectedNodes = selected
+    //     }
+    //     selectedNodes = selectedNodes.map((n: any) => JSON.parse(n));
+    //     if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("page")) {
+    //         let selectedFile: any = filesForDisplay.find((f: any) => f.documentid === selectedNodes[0].docid);
+    //         setConsultInfo(selectedFile?.consult?.find((flag: any) => flag.page === selectedNodes[0].page) || {
+    //             flagid: 4, other: [], programareaid: []
+    //         })
+    //     } else {
+    //         setConsultInfo({ flagid: 4, other: [], programareaid: [] });
+    //     }
+    //     setOpenContextPopup(true);
+    //     setAnchorPosition(
+    //         e?.currentTarget?.getBoundingClientRect()
+    //     );
+    //     setDisableHover(true);
+    //     // console.log("contextfncomplete")
+    // }
 
     const isConsult = (consults: Array<any>, pageNo: number) => {
         if (consults?.find((consult: any) => consult.page == pageNo))
@@ -476,13 +484,16 @@ const DocumentSelector = React.forwardRef(({
 
     const getFlagName = (file: any, pageNo: number) => {
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
-        let consultFlag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
-        if (consultFlag && file.consult?.length > 0) {
-            let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
-            ministries.push(...consultFlag.other);
-            return `Consult - [` + ministries.join(`]\nConsult - [`) + ']';
+        if (flag) {
+            let consultFlag: any = file?.consult?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
+            if (file.consult?.length > 0) {
+                let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
+                ministries.push(...consultFlag.other);
+                return `Consult - [` + ministries.join(`]\\nConsult - [`) + ']';
+            }
+            return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
         }
-        return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
+        return ""
     }
 
    const codeById: Record<number, String> = {};
@@ -547,247 +558,435 @@ const DocumentSelector = React.forwardRef(({
         setOpenConsulteeModal(false)
     };
     
-    const addIcons = (file: any, p: any) => {
-        return assignPageIcon(file.documentid, p + 1).map((icon: any, index: any) => (
-                <FontAwesomeIcon
-                key={icon.flagid}
-                className='leftPanelIcons'
-                icon={icon.icon as IconProp}
-                size='1x'
-                title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
-                />
-        ))
-    }
+    // const addIcons = (itemid: any) => {
+    //         // console.log("iconfn")
+    //     if (itemid.page && pageFlags) {
+    //         let returnElem = (<>{itemid.flagid.map((id: any) => (
+    //             <FontAwesomeIcon
+    //             key={id}
+    //             className='leftPanelIcons'
+    //             icon={assignIcon(id) as IconProp}
+    //             size='1x'
+    //             title={PAGE_FLAGS[id as keyof typeof PAGE_FLAGS]}
+    //             />
+    //     ))}</>)
+    //         return returnElem
+    //     }
+    // }
 
-    const consulteeFilterView = (file: any, p: number, division?: any) => {
-        if (file.pages.includes(p + 1)) {            
-            if (consulteeFilter.length > 0) {
-                if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-                    ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-                    (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-                    (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
-                        return ( 
-                            <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>                    
-                                <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                                    title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
-                                    onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                            </div>
-                        )
-                    }
-            } else {
-                return viewWithoutConsulteeFilter(file, p)
-            }
-        }
-        // return (
-        // (consulteeFilter.length > 0 ?
-        //     ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-        //         (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-        //             (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-        //             (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
-        //         &&
-        //         <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                    
-        //             <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-        //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
-        //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        //         </div>
-        //     ) :
-        //     viewWithoutConsulteeFilter(file, p)
-        // )
-        // );
-    }
+    // const consulteeFilterView = (file: any, p: number, division?: any) => {
+    //     if (file.pages.includes(p + 1)) {            
+    //         if (consulteeFilter.length > 0) {
+    //             if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+    //                 ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+    //                 (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+    //                 (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
+    //                     let stitchedPageNo = getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)
+    //                     let icons = addIcons(file, p)
+    //                     return ( 
+    //                         <div ref={pageRefs.current[stitchedPageNo - 1]}>                    
+    //                             <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {icons}
+    //                                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${stitchedPageNo} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${stitchedPageNo}`}
+    //                                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //                         </div>
+    //                     )
+    //                 }
+    //         } else {
+    //             return viewWithoutConsulteeFilter(file, p)
+    //         }
+    //     }
+    //     // return (
+    //     // (consulteeFilter.length > 0 ?
+    //     //     ((file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+    //     //         (   (obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+    //     //             (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+    //     //             (obj.other?.some((val: any) => consulteeFilter.includes(val))))))                                                                       
+    //     //         &&
+    //     //         <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>                    
+    //     //             <StyledTreeItem nodeId={division ? `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+    //     //                 title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${displayStitchedPageNo(file, pageMappedDocs, p + 1)}`}
+    //     //                 onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //     //         </div>
+    //     //     ) :
+    //     //     viewWithoutConsulteeFilter(file, p)
+    //     // )
+    //     // );
+    // }
 
-    const noFilterView = (file: any, p: number, division?: any) => {
-        if (file.pages.includes(p + 1)) {
-            return (
-                (file.pageFlag?.find((obj: any) => obj.page === p + 1) ?
-                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>                
-                    <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs)}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </div>
-                    :
-                    <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
-                    <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file?.documentid, p + 1, pageMappedDocs)}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                    </div>
-                )
-            )
-        }
-    }
+    // const noFilterView = (file: any, p: number, division?: any) => {
+    //     if (file.pages.includes(p + 1)) {
+    //         let stitchedPageNo = getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)    
+    //         if (file.pageFlag?.find((obj: any) => obj.page === p + 1)) {
+    //             // let icons = addIcons(file, p);
+    //             return <div ref={pageRefs.current[stitchedPageNo - 1]}>                
+    //                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+    //                     title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${stitchedPageNo} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${stitchedPageNo}`}
+    //                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //             </div>
+    //         } else {                        
+    //             // console.log("page" + stitchedPageNo)
+    //             return <div ref={pageRefs.current[stitchedPageNo - 1]}>
+    //                 <StyledTreeItem nodeId={division ? `{"division": ${division.divisionid}, "docid": ${file.documentid}, "page": ${p + 1}}` : `{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${stitchedPageNo}`}
+    //                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //                 </div>                
+    //         }
+    //     }
+    // }
 
-    const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
-        return file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p, pageMappedDocs) : p;
-    }
+    // const displayStitchedPageNo = (file: any, pageMappedDocs: any, p : number) => {
+    //     return file && !Array.isArray(pageMappedDocs) ? getStitchedPageNoFromOriginal(file?.documentid, p, pageMappedDocs) : p;
+    // }
 
-    const viewWithoutConsulteeFilter = (file: any, p:number) => {
-        if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
-            return (
-                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
-                    <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-                        title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </div>
-            )
-        } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
-            return (
-                <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
-                <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
-                        onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-                </div>
-            )
+    // const viewWithoutConsulteeFilter = (file: any, p:number) => {
+    //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
+    //         let stitchedPageNo = getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs);
+    //         let icons = addIcons(file, p);
+    //         let flagName = getFlagName(file, p + 1);
+    //         return (
+    //             <div ref={pageRefs.current[stitchedPageNo - 1]}>
+    //                 <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {icons}
+    //                     title={flagName} label={isConsult(file.consult, p + 1) ? `Page ${stitchedPageNo} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${stitchedPageNo}`}
+    //                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //             </div>
+    //         )
+    //     } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
+    //         let stitchedPageNo = getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs);
+    //         return (
+    //             <div ref={pageRefs.current[stitchedPageNo - 1]}>
+    //             <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${stitchedPageNo}`}
+    //                     onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //             </div>
+    //         )
 
-        }
-        // return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
-        // (
-        // <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
-        //     <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
-        //         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
-        //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        // </div>
-        // )
-        // :
-        // (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
-        // (
-        // <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
-        // <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
-        //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
-        // </div>
-        // )
-    }
+    //     }
+    //     // return (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) ?
+    //     // (
+    //     // <div ref={pageRefs.current[displayStitchedPageNo(file, pageMappedDocs, p + 1) - 1]}>
+    //     //     <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} icon= {addIcons(file, p)}
+    //     //         title={getFlagName(file, p + 1)} label={isConsult(file.consult, p + 1) ? `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)} (${ministryOrgCode(p + 1, file.consult)})` : `Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+    //     //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //     // </div>
+    //     // )
+    //     // :
+    //     // (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) &&
+    //     // (
+    //     // <div ref={pageRefs.current[getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs) - 1]}>
+    //     // <StyledTreeItem nodeId={`{"docid": ${file.documentid}, "page": ${p + 1}}`} key={p + 1} label={`Page ${getStitchedPageNoFromOriginal(file.documentid, p + 1, pageMappedDocs)}`}
+    //     //         onContextMenu={(e) => openContextMenu(file, p + 1, e)} />
+    //     // </div>
+    //     // )
+    // }
 
-    const displayFilePages = (file: any, division?: any) => {
-        if (pageMappedDocs) {
-            if (filterFlags.length > 0) {
-                return  [...Array(file.pagecount)].map((_x, p) => consulteeFilterView(file,p,division))
-            } else {            
-                return  [...Array(file.pagecount)].map((_x, p) => noFilterView(file,p,division))
-            }
-        }
-    }
+    // const displayFilePages = (file: any, division?: any) => {
+    //     if (pageMappedDocs) {
+    //         if (filterFlags.length > 0) {
+    //             return  [...Array(file.pagecount)].map((_x, p) => consulteeFilterView(file,p,division))
+    //         } else {   
+    //             // if (file.recordid === 5) {
+    //             //     console.log("ipsum.pdf display")
+    //             // } 
+    //             // console.log(file.filename)        
+    //             return  [...Array(file.pagecount)].map((_x, p) => noFilterView(file,p,division))
+    //         }
+    //     }
+    // }
 
-    const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
-        if (file?.pages?.length > 0) {
-        return (
-            organizeBy === "lastmodified" ? (
-            <Tooltip
-                sx={{
-                    backgroundColor: 'white',
-                    color: 'rgba(0, 0, 0, 0.87)',
-                    // boxShadow: theme.shadows[1],
-                    fontSize: 11
-                }}
-                title={<>
-                    Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                    {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                </>}
-                placement="bottom-end"
-                arrow
-                key={file?.documentid}
-                disableHoverListener={disableHover}
-            >
-                <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-                    {
-                        expanded?.length > 0 ?
-                        (
-                            displayFilePages(file)
-                        ) : (<></>)
-                    }
-                    {/* {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
-                        <ContextMenu
-                            openFOIPPAModal={openFOIPPAModal}
-                            requestId={requestid}
-                            pageFlagList={pageFlagList}
-                            assignIcon={assignIcon}
-                            anchorPosition={anchorPosition}
-                            openContextPopup={openContextPopup}
-                            setOpenContextPopup={setOpenContextPopup}
-                            selectedPages={selectedPages}
-                            consultInfo={consultInfo}
-                            updatePageFlags={updatePageFlags}
-                            pageMappedDocs={pageMappedDocs}
-                        />
-                    } */}
-                </TreeItem>
-            </Tooltip>) : <></>
-        )
-        }
-    })
+    // const sortByModifiedDateView = filesForDisplay?.map((file: any, index: number) => { 
+    //     if (file?.pages?.length > 0) {
+    //     return (
+    //         organizeBy === "lastmodified" ? (
+    //         <Tooltip
+    //             sx={{
+    //                 backgroundColor: 'white',
+    //                 color: 'rgba(0, 0, 0, 0.87)',
+    //                 // boxShadow: theme.shadows[1],
+    //                 fontSize: 11
+    //             }}
+    //             title={<>
+    //                 Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+    //                 {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+    //             </>}
+    //             placement="bottom-end"
+    //             arrow
+    //             key={file?.documentid}
+    //             disableHoverListener={disableHover}
+    //         >
+    //             <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
+    //                 {
+    //                     expanded?.length > 0 ?
+    //                     (
+    //                         displayFilePages(file)
+    //                     ) : (<></>)
+    //                 }
+    //                 {/* {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
+    //                     <ContextMenu
+    //                         openFOIPPAModal={openFOIPPAModal}
+    //                         requestId={requestid}
+    //                         pageFlagList={pageFlagList}
+    //                         assignIcon={assignIcon}
+    //                         anchorPosition={anchorPosition}
+    //                         openContextPopup={openContextPopup}
+    //                         setOpenContextPopup={setOpenContextPopup}
+    //                         selectedPages={selectedPages}
+    //                         consultInfo={consultInfo}
+    //                         updatePageFlags={updatePageFlags}
+    //                         pageMappedDocs={pageMappedDocs}
+    //                     />
+    //                 } */}
+    //             </TreeItem>
+    //         </Tooltip>) : <></>
+    //     )
+    //     }
+    // })
 
-    const sortByDivisionFilterView = divisions?.map((division: any) => {
-        return(
-            organizeBy === "division" ? (
-            <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
-                {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
-                    if ( file?.pages?.length > 0) {
-                        return <Tooltip
-                            sx={{
-                                backgroundColor: 'white',
-                                color: 'rgba(0, 0, 0, 0.87)',
-                                fontSize: 11
-                            }}
-                            title={<>
-                                Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-                                {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-                            </>}
-                            placement="bottom-end"
-                            arrow
-                            key={file.documentid}
-                            disableHoverListener={disableHover}
-                        >
+    // const sortByDivisionFilterView = divisions?.map((division: any) => {
+    //     return(
+    //         organizeBy === "division" ? (
+    //         <TreeItem nodeId={`{"division": ${division.divisionid}}`} label={division.name} key={division.divisionid}>
+    //             {filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, i: number) => {
+    //                 if ( file?.pages?.length > 0) {
+    //                     return <Tooltip
+    //                         sx={{
+    //                             backgroundColor: 'white',
+    //                             color: 'rgba(0, 0, 0, 0.87)',
+    //                             fontSize: 11
+    //                         }}
+    //                         title={<>
+    //                             Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
+    //                             {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
+    //                         </>}
+    //                         placement="bottom-end"
+    //                         arrow
+    //                         key={file.documentid}
+    //                         disableHoverListener={disableHover}
+    //                     >
 
-                            <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
-                                {displayFilePages(file, division)}
-                                {/* {pageFlagList && pageFlagList?.length > 0 &&
-                                    <ContextMenu
-                                        openFOIPPAModal={openFOIPPAModal}
-                                        requestId={requestid}
-                                        pageFlagList={pageFlagList}
-                                        assignIcon={assignIcon}
-                                        anchorPosition={anchorPosition}
-                                        openContextPopup={openContextPopup}
-                                        setOpenContextPopup={setOpenContextPopup}
-                                        selectedPages={selectedPages}
-                                        consultInfo={consultInfo}
-                                        updatePageFlags={updatePageFlags}
-                                        pageMappedDocs={pageMappedDocs}
-                                    />
-                                } */}
-                            </TreeItem>
-                        </Tooltip>
-                    }
-                })}
-            </TreeItem>) : (<></>)
-        )
-    })
+    //                         <TreeItem nodeId={`{"division": ${division.divisionid}, "docid": ${file.documentid}}`} label={file.filename} key={file.documentid} disabled={pageMappedDocs?.length <= 0}>
+    //                             {displayFilePages(file, division)}
+    //                             {/* {pageFlagList && pageFlagList?.length > 0 &&
+    //                                 <ContextMenu
+    //                                     openFOIPPAModal={openFOIPPAModal}
+    //                                     requestId={requestid}
+    //                                     pageFlagList={pageFlagList}
+    //                                     assignIcon={assignIcon}
+    //                                     anchorPosition={anchorPosition}
+    //                                     openContextPopup={openContextPopup}
+    //                                     setOpenContextPopup={setOpenContextPopup}
+    //                                     selectedPages={selectedPages}
+    //                                     consultInfo={consultInfo}
+    //                                     updatePageFlags={updatePageFlags}
+    //                                     pageMappedDocs={pageMappedDocs}
+    //                                 />
+    //                             } */}
+    //                         </TreeItem>
+    //                     </Tooltip>
+    //                 }
+    //             })}
+    //         </TreeItem>) : (<></>)
+    //     )
+    // })
     
     
-    const displayFiles = () => {
+    // const displayFiles = () => {
        
-        return (
-                filesForDisplay?.length > 0 ?
-                (
-                organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
-                )
-                :
-                    <></>                
-            )         
+    //     return (
+    //             filesForDisplay?.length > 0 ?
+    //             (
+    //             organizeBy === "lastmodified" ? sortByModifiedDateView  : sortByDivisionFilterView
+    //             )
+    //             :
+    //                 <></>                
+    //         )         
+    // }
+
+    const getPageLabel = (file: any, p: number) => {
+        if (isConsult(file.consult, p)) {
+            return `Page ${getStitchedPageNoFromOriginal(file.documentid, p, pageMappedDocs)} (${ministryOrgCode(p, file.consult)})` 
+        } else {
+            return `Page ${getStitchedPageNoFromOriginal(file.documentid, p, pageMappedDocs)}`
+
+        }
     }
 
-    const handleExpandClick = () => {
-        setExpanded((oldExpanded:any) => {
-                let result: any = [];
-                if (oldExpanded.length === 0 ) {
-                    if (organizeBy == "lastmodified" ) {
-                        result = expandall;
+    const getFilePages = (file: any, division?: any) => {
+        if (filterFlags.length > 0) {
+            let filteredpages =  file.pages.filter(((p: any) => {
+                if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
+                    return true
+                } else {
+                    return (file.pageFlag?.find((obj: any) => {
+                        if (obj.page === p) {
+                            if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
+                                return true
+                            }
+                        } else if (consulteeFilter.length > 0) {
+                            if ((obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+                                (obj.other?.some((val: any) => consulteeFilter.includes(val)))) {
+                                    return true
+                                }
+                        } else {
+                            return false
+                        }
+
+                    })) 
+                }
+
+            }))
+            if (organizeBy === "lastmodified" ) {
+                return filteredpages.map((p: any) => {
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
                     }
-                    else {
-                        result = expandallorganizebydivision;
+                })
+            } else {
+                return filteredpages.map((p: any) => {
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            }
+            // if (consulteeFilter.length > 0) {
+            //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+            //         ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+            //         (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+            //         (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
+            //     }
+            // } else {
+            //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
+            //     } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
+            //     }
+            // }
+        } else {
+            if (organizeBy === "lastmodified" ) {return file.pages.map(
+                (p: any) => {
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
                     }
                 }
-                return result;
-            }            
-        );
-    };
+            )
+
+            } else {
+                return file.pages.map(
+                    (p: any) => {
+                        return {
+                            id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                            label: getPageLabel(file, p)
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    const getTreeItems = () => {
+        if (pageFlags) {
+            if (organizeBy === "lastmodified" ) {
+                return filesForDisplay.map((file: any, index: number) => {return {
+                    id: `{"docid": ${file.documentid}}`,
+                    label: file.filename,
+                    children: getFilePages(file) //file.pages.map(
+                        // (p: any) => {
+                        //     return {
+                        //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                        //          label: getPageLabel(file, p)
+                        //     }
+                        // }
+                    // )
+                }})
+            } else {
+                return divisions.map((division: any) => {
+                    return {
+                        id: `{"division": ${division.divisionid}}`,
+                        label: division.name,
+                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                            label: file.filename,
+                            children: getFilePages(file, division) //file.pages.map(
+                                // (p: any) => {
+                                //     return {
+                                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                                //          label: getPageLabel(file, p)
+                                //     }
+                                // }
+                            // )
+                        }})
+                    }
+                })
+            }
+        } else {
+            return []
+        }
+    }
+
+    const getPageId = (docid: any, p: any) => {        
+        let file: any = filesForDisplay.find((f: any) => f.documentid === docid);
+        return `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`
+    }
+
+    // const getPageTitle = (props: any) => {
+    //     console.log(props)
+    // }
+
+    function CloseSquare(props: SvgIconProps) {
+        if (Math.round(Math.random())) {
+            return <FontAwesomeIcon
+            // key={icon.flagid}
+            className='leftPanelIcons'
+            icon={faCircleHalfStroke as IconProp}
+            size='1x'
+            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+            />
+        } else {
+            return <FontAwesomeIcon
+            // key={icon.flagid}
+            className='leftPanelIcons'
+            icon={faCircle as IconProp}
+            size='1x'
+            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+            />
+        }
+      }
+
+    // const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
+    //     let itemid = JSON.parse(props.itemId);
+    //     return (
+    //     <StyledTreeItem
+    //       ref={ref}
+    //       {...props}
+    //       title={itemid.title}
+        
+    //     //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
+    //       slots={{endIcon: (_props) => {return addIcons(itemid)}}}
+    //     //   icon={faCircleHalfStroke}
+    //       onContextMenu={(e) => openContextMenu(e, props)}
+    //     //   slotProps={{
+    //     //     label: {
+    //     //       id: `${props.itemId}-label`,
+    //     //     },
+    //     //   }}
+    //     />
+    //   )
+    // });
+    
+
+    // const handleExpandClick = () => {
+    //     setExpanded((oldExpanded:any) => {
+    //             let result: any = [];
+    //             if (oldExpanded.length === 0 ) {
+    //                 if (organizeBy == "lastmodified" ) {
+    //                     result = expandall;
+    //                 }
+    //                 else {
+    //                     result = expandallorganizebydivision;
+    //                 }
+    //             }
+    //             return result;
+    //         }            
+    //     );
+    // };
 
     const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => {
         setExpanded(nodeIds);
@@ -958,7 +1157,7 @@ const DocumentSelector = React.forwardRef(({
                         </div>
                     </div>
                     <hr className='hrStyle' />
-                    <Box sx={{ mb: 1 }}>
+                    {/* <Box sx={{ mb: 1 }}>
                         <Tooltip
                             sx={{
                                 backgroundColor: 'white',
@@ -974,8 +1173,8 @@ const DocumentSelector = React.forwardRef(({
                             {expanded.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
                             </Button>
                         </Tooltip>
-                    </Box>
-                    <TreeView
+                    </Box> */}
+                    {/* <TreeView
                         aria-label="file system navigator"
                         defaultCollapseIcon={<ExpandMoreIcon />}
                         defaultExpandIcon={<ChevronRightIcon />}
@@ -985,39 +1184,42 @@ const DocumentSelector = React.forwardRef(({
                         onNodeToggle={handleToggle}
                         onNodeSelect={handleSelect}
                         sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-                    >
+                    > */}
                         {filesForDisplay.length <= 0 && filterBookmark ?
                             <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
                             :
-                            organizeBy === "lastmodified" ? 
-                            <ModifiedDateTreeView                                
-                                selected={selected}
-                                expanded={expanded}
-                                handleToggle={handleToggle}
-                                handleSelect={handleSelect}
+                            // organizeBy === "lastmodified" ? 
+                            <CustomTreeView
+                                ref={treeRef}
+                                items={getTreeItems()}
                                 filesForDisplay={filesForDisplay}
-                                filterBookmark={filterBookmark}
-                                consulteeFilterView={consulteeFilterView}
-                                noFilterView={noFilterView}
-                                disableHover={disableHover}
-                                displayFilePages={displayFilePages}
-                            /> : 
-                            divisions?.length > 0 &&
-                                <DivisionTreeView                                
-                                    selected={selected}
-                                    expanded={expanded}
-                                    handleToggle={handleToggle}
-                                    handleSelect={handleSelect}
-                                    filesForDisplay={filesForDisplay}
-                                    divisions={divisions}
-                                    filterBookmark={filterBookmark}
-                                    consulteeFilterView={consulteeFilterView}
-                                    noFilterView={noFilterView}
-                                    disableHover={disableHover}
-                                    displayFilePages={displayFilePages}
-                                />
+                                pageMappedDocs={pageMappedDocs}
+                                selectTreeItem={selectTreeItem}
+                                setWarningModalOpen={setWarningModalOpen}
+                                updatePageFlags={updatePageFlags}
+                                pageFlagList={pageFlagList}                                
+                                openFOIPPAModal={openFOIPPAModal}
+                                requestId={requestid}
+                                assignIcon={assignIcon}
+                                pageFlags={pageFlags}
+                                updatePageFlags1={updatePageFlags1}
+                            /> //: <></> 
+                            // divisions?.length > 0 &&
+                            //     <DivisionTreeView                                
+                            //         selected={selected}
+                            //         expanded={expanded}
+                            //         handleToggle={handleToggle}
+                            //         handleSelect={handleSelect}
+                            //         filesForDisplay={filesForDisplay}
+                            //         divisions={divisions}
+                            //         filterBookmark={filterBookmark}
+                            //         consulteeFilterView={consulteeFilterView}
+                            //         noFilterView={noFilterView}
+                            //         disableHover={disableHover}
+                            //         displayFilePages={displayFilePages}
+                            //     />
                         }
-                        {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
+                        {/* {pageFlagList && pageFlagList?.length > 0 && openContextPopup === true &&
                             <ContextMenu
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestId={requestid}
@@ -1031,14 +1233,14 @@ const DocumentSelector = React.forwardRef(({
                                 updatePageFlags={updatePageFlags}
                                 pageMappedDocs={pageMappedDocs}
                             />
-                        }
-                    </TreeView>
+                        } */}
+                    {/* </TreeView> */}
                 </Stack>
 
             </div>
     )
 }
-)
+))
 
 const ClickableChip = ({ clicked, ...rest }: any) => {
     return (
@@ -1068,4 +1270,4 @@ const ClickableChip = ({ clicked, ...rest }: any) => {
     );
 };
 
-export default DocumentSelector
+export default React.memo(DocumentSelector);
