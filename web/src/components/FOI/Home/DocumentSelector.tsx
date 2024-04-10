@@ -48,11 +48,13 @@ const DocumentSelector = React.memo(React.forwardRef(({
     setIndividualDoc,
     pageMappedDocs,
     setWarningModalOpen,
-    divisions
+    divisions,
+    pageFlags,
+    updatePageFlags1
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
-    const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
+    // const pageFlags = useAppSelector((state: any) => state.documents?.pageFlags);
     const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
     const [files] = useState(documents);
     const [openContextPopup, setOpenContextPopup] = useState(false);
@@ -76,6 +78,8 @@ const DocumentSelector = React.memo(React.forwardRef(({
     const [expanded, setExpanded] = useState<string[]>([]);
     const pageRefs = useRef([]);
     const treeRef: any = useRef();
+    const [completionCounter, setCompletionCounter]= useState(0);
+    const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
     // const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // // const StyledTreeItem = styled(TreeItem)(() => ({
@@ -1197,6 +1201,8 @@ const DocumentSelector = React.memo(React.forwardRef(({
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestId={requestid}
                                 assignIcon={assignIcon}
+                                pageFlags={pageFlags}
+                                updatePageFlags1={updatePageFlags1}
                             /> //: <></> 
                             // divisions?.length > 0 &&
                             //     <DivisionTreeView                                

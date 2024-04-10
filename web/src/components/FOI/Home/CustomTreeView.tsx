@@ -35,8 +35,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
     pageFlagList,
     openFOIPPAModal,
     requestid,
-    assignIcon
-
+    assignIcon,
+    pageFlags,
+    updatePageFlags1
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // const StyledTreeItem = styled(TreeItem)(() => ({
@@ -320,6 +321,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 consultInfo={consultInfo}
                 updatePageFlags={updatePageFlags}
                 pageMappedDocs={pageMappedDocs}
+                pageFlags={pageFlags}
+                updatePageFlags1={updatePageFlags1}
             />
         }
         <Box sx={{ mb: 1 }}>
