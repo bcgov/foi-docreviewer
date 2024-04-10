@@ -24,7 +24,7 @@ import {
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import "./DocumentSelector.scss";
-import PAGE_FLAGS from '../../../constants/PageFlags';
+import {PAGE_FLAGS, pageFlagIcons} from '../../../constants/PageFlags';
 import ContextMenu from "./ContextMenu";
 import LayerDropdown from "./LayerDropdown"
 import { styled } from "@mui/material/styles";
@@ -248,34 +248,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
     }, [consultMinistries, pageFlags]);
 
     const assignIcon = (pageFlag: any) => {
-        switch (pageFlag) {
-            case 1:
-            case "Partial Disclosure":
-                return faCircleHalfStroke;
-            case 2:
-            case "Full Disclosure":
-                return filledCircle;
-            case 3:
-            case "Withheld in Full":
-                return faCircle;
-            case 4:
-            case "Consult":
-                return faCircleQuestion;
-            case 5:
-            case "Duplicate":
-                return faCircleStop;
-            case 6:
-            case "Not Responsive":
-                return faCircleXmark;
-            case 7:
-            case "In Progress":
-                return faSpinner;
-            case 8:
-            case "Page Left Off":
-                return faBookmark;
-            default:
-                return null;
-        }
+        return pageFlagIcons[pageFlag];
     }
 
     //Revisit this method & assign icons when fetching itself!!
@@ -1204,7 +1177,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
                             <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
                             :
                             // organizeBy === "lastmodified" ? 
-                            <CustomTreeView                                
+                            <CustomTreeView
                                 ref={treeRef}
                                 items={getTreeItems()}
                                 filesForDisplay={filesForDisplay}
@@ -1215,6 +1188,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
                                 pageFlagList={pageFlagList}                                
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestId={requestid}
+                                assignIcon={assignIcon}
                             /> //: <></> 
                             // divisions?.length > 0 &&
                             //     <DivisionTreeView                                
@@ -1282,4 +1256,4 @@ const ClickableChip = ({ clicked, ...rest }: any) => {
     );
 };
 
-export default DocumentSelector
+export default React.memo(DocumentSelector);

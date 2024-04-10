@@ -22,7 +22,7 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import ContextMenu from "./ContextMenu";
 import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 import { styled } from "@mui/material/styles";
-import PAGE_FLAGS from '../../../constants/PageFlags';
+import {PAGE_FLAGS} from '../../../constants/PageFlags';
 import _ from "lodash";
 
 const CustomTreeView = React.memo(React.forwardRef(({
@@ -34,7 +34,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
     updatePageFlags,
     pageFlagList,
     openFOIPPAModal,
-    requestid
+    requestid,
+    assignIcon
 
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
@@ -74,7 +75,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
       const registerItemId = (item: any) => {
         if (item.children?.length) {
           itemIds.push(item.id);
-        //   item.children.forEach(registerItemId);
+          item.children.forEach(registerItemId);
         }
       };
 
@@ -233,36 +234,36 @@ const CustomTreeView = React.memo(React.forwardRef(({
         // console.log("contextfncomplete")
     }
 
-    const assignIcon = (pageFlag: any) => {
-        switch (pageFlag) {
-            case 1:
-            case "Partial Disclosure":
-                return faCircleHalfStroke;
-            case 2:
-            case "Full Disclosure":
-                return filledCircle;
-            case 3:
-            case "Withheld in Full":
-                return faCircle;
-            case 4:
-            case "Consult":
-                return faCircleQuestion;
-            case 5:
-            case "Duplicate":
-                return faCircleStop;
-            case 6:
-            case "Not Responsive":
-                return faCircleXmark;
-            case 7:
-            case "In Progress":
-                return faSpinner;
-            case 8:
-            case "Page Left Off":
-                return faBookmark;
-            default:
-                return null;
-        }
-    }
+    // const assignIcon = (pageFlag: any) => {
+    //     switch (pageFlag) {
+    //         case 1:
+    //         case "Partial Disclosure":
+    //             return faCircleHalfStroke;
+    //         case 2:
+    //         case "Full Disclosure":
+    //             return filledCircle;
+    //         case 3:
+    //         case "Withheld in Full":
+    //             return faCircle;
+    //         case 4:
+    //         case "Consult":
+    //             return faCircleQuestion;
+    //         case 5:
+    //         case "Duplicate":
+    //             return faCircleStop;
+    //         case 6:
+    //         case "Not Responsive":
+    //             return faCircleXmark;
+    //         case 7:
+    //         case "In Progress":
+    //             return faSpinner;
+    //         case 8:
+    //         case "Page Left Off":
+    //             return faBookmark;
+    //         default:
+    //             return null;
+    //     }
+    // }
 
     return (
         // <TreeView
@@ -322,22 +323,22 @@ const CustomTreeView = React.memo(React.forwardRef(({
             />
         }
         <Box sx={{ mb: 1 }}>
-                        <Tooltip
-                            sx={{
-                                backgroundColor: 'white',
-                                color: 'rgba(0, 0, 0, 0.87)',
-                                fontSize: 11
-                            }}
-                            title={expandedItems.length === 0 ? "Expand All" : "Collapse All"}
-                            placement="right"
-                            arrow
-                            disableHoverListener={disableHover}
-                        >
-                            <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
-                            {expandedItems.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
-                            </Button>
-                        </Tooltip>
-                    </Box>
+            <Tooltip
+                sx={{
+                    backgroundColor: 'white',
+                    color: 'rgba(0, 0, 0, 0.87)',
+                    fontSize: 11
+                }}
+                title={expandedItems.length === 0 ? "Expand All" : "Collapse All"}
+                placement="right"
+                arrow
+                disableHoverListener={disableHover}
+            >
+                <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
+                {expandedItems.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
+                </Button>
+            </Tooltip>
+        </Box>
         {/* <Button onClick={handleExpandClick}>
           {expandedItems.length === 0 ? 'Expand all' : 'Collapse all'}
         </Button> */}
