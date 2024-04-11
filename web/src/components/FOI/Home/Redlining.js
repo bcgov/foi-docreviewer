@@ -1933,6 +1933,8 @@ const Redlining = React.forwardRef(
       let redactionSectionsIds = selectedSections;
       let redactionIds = [];
       let pageSelectionList = [];
+      const pageFlagObj = [];
+      const exisitngAnnotations = annotManager.getAnnotationsList();
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let _redact = annotManager
           .getAnnotationsList()
@@ -1962,9 +1964,9 @@ const Redlining = React.forwardRef(
           displayedDoc,
           pageSelectionList
         );
-
+        let redactionSections = "";
         if (redactionSectionsIds.length > 0) {
-          let redactionSections = createRedactionSectionsString(
+          redactionSections = createRedactionSectionsString(
             sections,
             redactionSectionsIds
           );
@@ -1979,6 +1981,19 @@ const Redlining = React.forwardRef(
             "docversion",
             `${displayedDoc.docversion}`
           );
+        }
+
+        let annotationsInfo = {
+          stitchpage: node.attributes.page,                      
+          type: _redact?.Subject,
+          section: redactionSections,
+          redactiontype: fullpageredaction,
+          docid: displayedDoc.docid,
+          docversion: displayedDoc.docversion,
+        }
+        const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, "edit");
+        if (pageFlagAdded) {
+          pageFlagObj.push(pageFlagAdded);
         }
         const doc = docViewer?.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -2002,6 +2017,10 @@ const Redlining = React.forwardRef(
       };
       _annotationtring.then((astr) => {
         const updatedPageFlagsByPage = updatePageFlagsByPage();
+        let pageFlagData = {};
+        if (isObjectNotEmpty(pageFlagObj)) {
+          pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
+        }
         let pageFlagUpdates;
         if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
           pageFlagUpdates = updatedPageFlagsByPage;
@@ -2024,10 +2043,7 @@ const Redlining = React.forwardRef(
             console.log(error);
           },
           currentLayer.redactionlayerid,
-          createPageFlagPayload(
-            pageFlagUpdates,
-            currentLayer.redactionlayerid
-          ),
+          getValidObject(pageFlagData),
           sectn
         );
 
