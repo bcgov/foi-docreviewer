@@ -160,7 +160,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
             setWarningModalOpen(true);
         } else {
             setSelected(selectedpages);
-            let _selectedpages:any[] = selectedpages.map((n: any) => JSON.parse(n));
+            let _selectedpages:any[] = selectedpages.map((n: any) => {
+                let page = JSON.parse(n)
+                delete page.flagid;
+                return page
+            });
             setSelectedPages(_selectedpages);
         }
     };
