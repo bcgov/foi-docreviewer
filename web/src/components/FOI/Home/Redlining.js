@@ -1,5 +1,3 @@
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import React, {
   useRef,
   useEffect,
@@ -12,16 +10,7 @@ import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
-import ReactModal from "react-modal-resizable-draggable";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import CloseIcon from "@mui/icons-material/Close";
-import IconButton from "@mui/material/IconButton";
 import Switch from "@mui/material/Switch";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import {
   fetchAnnotationsByPagination,
@@ -50,8 +39,6 @@ import {
   REDACTION_SELECT_LIMIT,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
-import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { toast } from "react-toastify";
 import { pageFlagTypes, RequestStates } from "../../../constants/enum";
@@ -74,6 +61,9 @@ import {
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
+import {ConfirmationModal} from "./ConfirmationModal";
+import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
+import { NRWarningModal } from "./NRWarningModal";
 
 const Redlining = React.forwardRef(
   (
@@ -146,10 +136,7 @@ const Redlining = React.forwardRef(
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
     const [iframeDocument, setIframeDocument] = useState(null);
-    const [modalFor, setModalFor] = useState("");
-    const [modalTitle, setModalTitle] = useState("");
-    const [modalMessage, setModalMessage] = useState([""]);
-    const [modalButtonLabel, setModalButtonLabel] = useState("");
+    //const [modalFor, setModalFor] = useState("");
     const [redlineSaving, setRedlineSaving] = useState(false);
     const [redlineCategory, setRedlineCategory] = useState(false);
     // State variables for Bulk Edit using Multi Selection option
@@ -187,6 +174,7 @@ const Redlining = React.forwardRef(
     const [includeDuplicatePages, setIncludeDuplicatePages]= useState(false);
     const [redlineWatermarkPageMapping, setRedlineWatermarkPageMapping] = useState({});
     const [skipDeletePages, setSkipDeletePages] = useState(false);
+    const [modalData, setModalData] = useState(null);
     //const [pageFlags, setPageFlags]= useState([]);
     
     //xml parser
@@ -363,19 +351,34 @@ const Redlining = React.forwardRef(
 
             redlineForOipcBtn.onclick = () => {  
               // Save to s3
-              setModalFor("oipcreview");
-              setModalTitle("Redline for OIPC Review");
-              setModalMessage([
-                "Are you sure want to create the redline PDF for OIPC review?",
-                <br key="lineBreak1" />,
-                <br key="lineBreak2" />,
-                <span key="modalDescription1">
-                  This redline will be created from the active layer with s.14 annotations redacted. 
-                  When you create the redline PDF, your web browser page will
-                  automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create OIPC Redline PDF");
+              updateModalData({
+                modalFor: "oipcreview",
+                modalTitle: "Redline for OIPC Review",
+                modalMessage: [
+                  "Are you sure want to create the redline PDF for OIPC review?",
+                  <br key="lineBreak1" />,
+                  <br key="lineBreak2" />,
+                  <span key="modalDescription1">
+                    This redline will be created from the active layer with s.14 annotations redacted. 
+                    When you create the redline PDF, your web browser page will
+                    automatically refresh
+                  </span>,
+                ],
+                modalButtonLabel: "Create OIPC Redline PDF"
+              });
+              // setModalFor("oipcreview");
+              // setModalTitle("Redline for OIPC Review");
+              // setModalMessage([
+              //   "Are you sure want to create the redline PDF for OIPC review?",
+              //   <br key="lineBreak1" />,
+              //   <br key="lineBreak2" />,
+              //   <span key="modalDescription1">
+              //     This redline will be created from the active layer with s.14 annotations redacted. 
+              //     When you create the redline PDF, your web browser page will
+              //     automatically refresh
+              //   </span>,
+              // ]);
+              // setModalButtonLabel("Create OIPC Redline PDF");
               setRedlineModalOpen(true);
             };
 
@@ -394,18 +397,33 @@ const Redlining = React.forwardRef(
 
             redlineForSignOffBtn.onclick = () => {
               // Save to s3
-              setModalFor("redline");
-              setModalTitle("Redline for Sign Off");
-              setModalMessage([
-                "Are you sure want to create the redline PDF for ministry sign off?",
-                <br key="lineBreak1" />,
-                <br key="lineBreak2" />,
-                <span key="modalDescription1">
-                  When you create the redline PDF, your web browser page will
-                  automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create Redline PDF");
+              updateModalData({
+                modalFor: "redline",
+                modalTitle: "Redline for Sign Off",
+                modalMessage: [
+                  "Are you sure want to create the redline PDF for ministry sign off?",
+                  <br key="lineBreak1" />,
+                  <br key="lineBreak2" />,
+                  <span key="modalDescription1">
+                    When you create the redline PDF, your web browser page will
+                    automatically refresh
+                  </span>,
+                ],
+                modalButtonLabel: "Create Redline PDF"
+              });
+
+              // setModalFor("redline");
+              // setModalTitle("Redline for Sign Off");
+              // setModalMessage([
+              //   "Are you sure want to create the redline PDF for ministry sign off?",
+              //   <br key="lineBreak1" />,
+              //   <br key="lineBreak2" />,
+              //   <span key="modalDescription1">
+              //     When you create the redline PDF, your web browser page will
+              //     automatically refresh
+              //   </span>,
+              // ]);
+              // setModalButtonLabel("Create Redline PDF");
               setRedlineModalOpen(true);
             };
 
@@ -425,9 +443,10 @@ const Redlining = React.forwardRef(
 
             finalPackageBtn.onclick = () => {
               // Download
-              setModalFor("responsepackage");
-              setModalTitle("Create Package for Applicant");
-              setModalMessage([
+              updateModalData({
+                modalFor: "responsepackage",
+                modalTitle: "Create Package for Applicant",
+                modalMessage: [
                 "This should only be done when all redactions are finalized and ready to ",
                 <b key="bold1">
                   <i>be</i>
@@ -447,8 +466,33 @@ const Redlining = React.forwardRef(
                   When you create the response package, your web browser page
                   will automatically refresh
                 </span>,
-              ]);
-              setModalButtonLabel("Create Applicant Package");
+              ],
+                modalButtonLabel: "Create Applicant Package"
+              });
+              // setModalFor("responsepackage");
+              // setModalTitle("Create Package for Applicant");
+              // setModalMessage([
+              //   "This should only be done when all redactions are finalized and ready to ",
+              //   <b key="bold1">
+              //     <i>be</i>
+              //   </b>,
+              //   " sent to the ",
+              //   <b key="bold2">
+              //     <i>Applicant</i>
+              //   </b>,
+              //   ". This will ",
+              //   <b key="bold3">
+              //     <i>permanently</i>
+              //   </b>,
+              //   " apply the redactions and automatically create page stamps.",
+              //   <br key="break1" />,
+              //   <br key="break2" />,
+              //   <span key="modalDescription2">
+              //     When you create the response package, your web browser page
+              //     will automatically refresh
+              //   </span>,
+              // ]);
+              // setModalButtonLabel("Create Applicant Package");
               setRedlineModalOpen(true);
             };
 
@@ -795,6 +839,12 @@ const Redlining = React.forwardRef(
       };
       initializeWebViewer();
     }, []);
+
+
+    const updateModalData = (newModalData) => {
+      setModalData(newModalData);
+    };
+
 
     // Get deletePages based on documentid
     const getDeletedPagesBeforeStitching = (documentid) => {
@@ -1448,13 +1498,13 @@ const Redlining = React.forwardRef(
       }
     };
 
-    useEffect(() => {
-      console.log("Inside redlining!!")
+    // useEffect(() => {
+    //   console.log("Inside redlining!!")
 
-      if (documentList.length > 0) {
-        checkSavingRedlineButton(docInstance);
-      }
-    }, [pageFlags, isStitchingLoaded, documentList]);
+    //   if (documentList.length > 0) {
+    //     checkSavingRedlineButton(docInstance);
+    //   }
+    // }, [pageFlags, isStitchingLoaded, documentList]);
 
 
     const stitchPages = (_doc, pdftronDocObjs) => {
@@ -2272,14 +2322,27 @@ const Redlining = React.forwardRef(
     };
 
     const setMessageModalForNotResponsive = () => {
-      setModalTitle("Not Responsive Default");
-          setModalMessage(
+
+      updateModalData({
+        modalTitle: "Not Responsive Default",
+        modalMessage: [
           <div>You have 'Not Responsive' selected as a default section.
             <ul>
               <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
               <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
             </ul>
-          </div>);
+          </div>,
+        ],
+      });
+
+      // setModalTitle("Not Responsive Default");
+      //     setModalMessage(
+      //     <div>You have 'Not Responsive' selected as a default section.
+      //       <ul>
+      //         <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
+      //         <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
+      //       </ul>
+      //     </div>);
           setMessageModalOpen(true)
     }
 
@@ -3152,6 +3215,7 @@ const Redlining = React.forwardRef(
     const saveDoc = () => {
       setRedlineModalOpen(false);
       setRedlineSaving(true);
+      let modalFor= modalData? modalData.modalFor : ""
       setRedlineCategory(modalFor);
       // skip deletePages API call for all removePages related to Redline/Response package creation
       setSkipDeletePages(true);
@@ -4098,214 +4162,45 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        <ReactModal
-          initWidth={650}
-          initHeight={700}
-          minWidth={400}
-          minHeight={200}
-          className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
-          isOpen={modalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">FOIPPA Sections</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <Stack direction="row-reverse" spacing={1} alignItems="center">
-                <button
-                  onClick={changeSortOrder}
-                  style={{
-                    border: "none",
-                    backgroundColor: "white",
-                    padding: 0,
-                  }}
-                  disabled={!modalSortNumbered}
-                >
-                  {modalSortAsc ? (
-                    <FontAwesomeIcon
-                      icon={faArrowUp}
-                      size="1x"
-                      color="#666666"
-                    />
-                  ) : (
-                    <FontAwesomeIcon
-                      icon={faArrowDown}
-                      size="1x"
-                      color="#666666"
-                    />
-                  )}
-                </button>
-                <Typography>Numbered Order</Typography>
-                <AntSwitch
-                  onChange={changeModalSort}
-                  checked={modalSortNumbered}
-                  inputProps={{ "aria-label": "ant design" }}
-                />
-                <Typography>Most Used</Typography>
-              </Stack>
-              <div style={{ overflowY: "scroll" }}>
-                <List className="section-list">
-                  {sections?.sort(compareValues).map((section, index) => (
-                    <ListItem key={"list-item" + section.id}>
-                      <input
-                        type="checkbox"
-                        className="section-checkbox"
-                        key={"section-checkbox" + section.id}
-                        id={"section" + section.id}
-                        data-sectionid={section.id}
-                        onChange={handleSectionSelected}
-                        disabled={sectionIsDisabled(section.id)}
-                        defaultChecked={selectedSections.includes(section.id)}
-                      />
-                      <label
-                        key={"list-label" + section.id}
-                        className="check-item"
-                      >
-                        {section.section + " - " + section.description}
-                      </label>
-                    </ListItem>
-                  ))}
-                </List>
-              </div>
-              {/* <span className="confirmation-message">
-                  Are you sure you want to delete the attachments from this request? <br></br>
-                  <i>This will remove all attachments from the redaction app.</i>
-                </span> */}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button
-              className={`btn-bottom btn-save btn`}
-              onClick={editRedacts ? saveRedactions : saveRedaction}
-              disabled={saveDisabled}
-            >
-              Select Code(s)
-            </button>
-            {defaultSections.length > 0 ? (
-              <button
-                className="btn-bottom btn-cancel"
-                onClick={clearDefaultSections}
-              >
-                Clear Defaults
-              </button>
-            ) : (
-              <button
-                className={`btn-bottom btn-cancel ${
-                  saveDisabled && "btn-disabled"
-                }`}
-                onClick={saveDefaultSections}
-                disabled={saveDisabled}
-              >
-                Save as Default
-              </button>
-            )}
-            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
-        <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
-          onRequestClose={cancelRedaction}
-          isOpen={redlineModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">{modalTitle}</h2>
-            <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span>
-                {modalMessage} <br/><br/>
-                {modalFor == "redline" && <>
-                <input
-                  type="checkbox"
-                  style={{ marginRight: 10 }}
-                  className="redline-checkmark"
-                  id="nr-checkbox"
-                  checked={includeNRPages}
-                  onChange={handleIncludeNRPages}
-                />
-                <label for="nr-checkbox">Include NR pages</label>
-                <br/>
-                <input
-                  type="checkbox"
-                  style={{ marginRight: 10 }}
-                  className="redline-checkmark"
-                  id="duplicate-checkbox"
-                  checked={includeDuplicatePages}
-                  onChange={handleIncludeDuplicantePages}
-                />
-                <label for="duplicate-checkbox">Include Duplicate pages</label>
-                </>}
-              </span>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
-              {modalButtonLabel}
-            </button>
-            <button
-              className="btn-bottom btn-cancel"
-              onClick={cancelSaveRedlineDoc}
-            >
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
-        <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
-          isOpen={messageModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">{modalTitle}</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span className="confirmation-message">
-                {modalMessage} <br></br>
-              </span>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button
-              className="btn-bottom btn-cancel"
-              onClick={cancelRedaction}
-            >
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
+        { modalOpen &&
+          <FOIPPASectionsModal
+            cancelRedaction={cancelRedaction}
+            modalOpen={modalOpen}
+            changeSortOrder={changeSortOrder}
+            modalSortAsc={modalSortAsc}
+            sections={sections}
+            sectionIsDisabled={sectionIsDisabled}
+            selectedSections={selectedSections}
+            handleSectionSelected={handleSectionSelected}
+            editRedacts={editRedacts}
+            saveRedactions={saveRedactions}
+            saveDisabled={saveDisabled}
+            saveRedaction={saveRedaction}
+            defaultSections={defaultSections}
+            saveDefaultSections={saveDefaultSections}
+            clearDefaultSections={clearDefaultSections} 
+          />
+        }
+        {redlineModalOpen && 
+          <ConfirmationModal 
+          cancelRedaction={cancelRedaction}
+          redlineModalOpen={redlineModalOpen}
+          cancelSaveRedlineDoc={cancelSaveRedlineDoc}
+          includeNRPages={includeNRPages}
+          handleIncludeNRPages={handleIncludeNRPages}
+          includeDuplicatePages={includeDuplicatePages}
+          handleIncludeDuplicantePages={handleIncludeDuplicantePages}
+          saveDoc={saveDoc}
+          modalData={modalData}
+        />
+        }
+        {messageModalOpen &&
+          <NRWarningModal 
+          cancelRedaction={cancelRedaction}
+          messageModalOpen={messageModalOpen}
+          modalData={modalData}
+          />
+        }
       </div>
     );
   }
