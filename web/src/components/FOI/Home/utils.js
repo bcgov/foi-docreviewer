@@ -333,5 +333,15 @@ export const getJoinedSections = (sectionsStr) => {
   const sectionArray = getSectionArray(sectionsStr);
   const sectionValues = sectionArray?.map(item => item.section);
   return sectionValues?.join(', ');
+}
 
+
+export const isObjectNotEmpty = (obj) => {
+  return Object.keys(obj).length > 0;
+}
+
+export const getValidObject = (obj) => {
+  if (isObjectNotEmpty(obj)) {
+    return obj;
+  }
 }
