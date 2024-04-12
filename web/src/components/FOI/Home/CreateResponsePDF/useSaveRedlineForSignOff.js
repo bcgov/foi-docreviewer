@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppSelector } from "../../../../hooks/hook";
 import { toast } from "react-toastify";
 import {
@@ -8,14 +8,16 @@ import {
 } from "../utils";
 import { getFOIS3DocumentRedlinePreSignedUrl } from "../../../../apiManager/services/foiOSSService";
 import { fetchDocumentAnnotations } from "../../../../apiManager/services/docReviewerService";
-import { isValidRedlineDivisionDownload } from "./DownloadResponsePDF";
-import { pageFlagTypes } from "../../../../constants/enum";
+import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 
-const SaveRedlineForSignoff = () => {
+const useSaveRedlineForSignoff = () => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
+  );
+  const requestStatus = useAppSelector(
+    (state) => state.documents?.requeststatus
   );
   const { foiministryrequestid } = useParams();
 
@@ -43,7 +45,42 @@ const SaveRedlineForSignoff = () => {
   const [includeDuplicatePages, setIncludeDuplicatePages] = useState(false);
   const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
   const [redlineStitchObject, setRedlineStitchObject] = useState(null);
+  const [enableSavingRedline, setEnableSavingRedline] = useState(false);
+  const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false);
 
+  const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
+    console.log("isValidRedlineDivisionDownload");
+    let isvalid = false;
+    for (let divObj of divisionDocuments) {
+      if (divObj.divisionid == divisionid) {
+        // enable the Redline for Sign off if a division has only Incompatable files
+        if (divObj?.incompatableList?.length > 0) {
+          if (isvalid == false) {
+            isvalid = true;
+          }
+        } else {
+          for (let doc of divObj.documentlist) {
+            for (const flagInfo of doc.pageFlag) {
+              // Added condition to handle Duplicate/NR clicked for Redline for Sign off Modal
+              if (
+                (flagInfo.flagid != pageFlagTypes["Duplicate"] &&
+                  flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
+                (includeDuplicatePages &&
+                  flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
+                (includeNRPages &&
+                  flagInfo.flagid === pageFlagTypes["Not Responsive"])
+              ) {
+                if (isvalid === false) {
+                  isvalid = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return isvalid;
+  };
   const getDeletedPagesBeforeStitching = (documentid) => {
     let deletedPages = [];
     if (deletedDocPages) {
@@ -492,8 +529,7 @@ const SaveRedlineForSignoff = () => {
     divisionDocuments,
     stitchlist,
     redlineSinglePkg,
-    toastId,
-    setSkipDeletePages
+    toastId
   ) => {
     setRequestStitchObject({});
     let divCount = 0;
@@ -538,8 +574,7 @@ const SaveRedlineForSignoff = () => {
             slicecount,
             divisionDocuments,
             docCount,
-            stitchedDocObj,
-            setSkipDeletePages
+            stitchedDocObj
           )
         );
       }
@@ -552,8 +587,7 @@ const SaveRedlineForSignoff = () => {
     slicecount,
     divisionDocuments,
     docCount,
-    stitchedDocObj,
-    setSkipDeletePages
+    stitchedDocObj
   ) => {
     for (const filerow of sliceDoclist) {
       try {
@@ -570,7 +604,6 @@ const SaveRedlineForSignoff = () => {
                 filerow?.documentid
               );
               if (deletedPages.length > 0) {
-                setSkipDeletePages(true);  //to DO TALK TO DIVYA AS I DON THINK WE NEED THIS -> ALREADY SET IN ABOVE TO TRUE AND BEING SET TO TRUE AGAIN IN SAVEREDLINESIGNOFF
                 await newDoc.removePages(deletedPages);
               }
               stitchedDocObj = newDoc;
@@ -617,10 +650,9 @@ const SaveRedlineForSignoff = () => {
     _instance,
     layertype,
     toastId,
-    incompatibleFiles, // create redux state
-    documentList, //use redux state
-    pageMappedDocs,
-    setSkipDeletePages
+    incompatibleFiles,
+    documentList,
+    pageMappedDocs
   ) => {
     toastId.current = toast(`Start saving redline...`, {
       autoClose: false,
@@ -670,9 +702,7 @@ const SaveRedlineForSignoff = () => {
           let docCount = 0;
           let _isValidRedlineDivisionDownload = isValidRedlineDivisionDownload(
             div.divisionid,
-            divisionDocuments,
-            includeDuplicatePages,
-            includeNRPages
+            divisionDocuments
           );
           if (
             res.issingleredlinepackage == "Y" ||
@@ -766,8 +796,7 @@ const SaveRedlineForSignoff = () => {
             divisionDocuments,
             stitchDocuments,
             res.issingleredlinepackage,
-            toastId,
-            setSkipDeletePages
+            toastId
           );
         } else {
           stitchForRedlineExport(
@@ -787,10 +816,39 @@ const SaveRedlineForSignoff = () => {
       currentLayer.name.toLowerCase()
     );
   };
-  
-  //TO DO: Adjust this function to take in less args (use redux if avail or move state here) 
-  // + TEST ALL PACKAGES AND ALL FEATURES +
-  // finally refactor+rengineering functions for perofrmance (reduce dble loops + try aparnas local storage + be logic )
+  const checkSavingRedline = (redlineReadyAndValid, instance) => {
+    const validRedlineStatus = [
+      RequestStates["Records Review"],
+      RequestStates["Ministry Sign Off"],
+      RequestStates["Peer Review"],
+    ].includes(requestStatus);
+    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus);
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("redline_for_sign_off").disabled =
+        !redlineReadyAndValid || !validRedlineStatus;
+    }
+  };
+  const checkSavingOIPCRedline = (
+    oipcRedlineReadyAndValid,
+    instance,
+    readyForSignOff
+  ) => {
+    const validOIPCRedlineStatus = [
+      RequestStates["Records Review"],
+      RequestStates["Ministry Sign Off"],
+    ].includes(requestStatus);
+    setEnableSavingOipcRedline(
+      oipcRedlineReadyAndValid && validOIPCRedlineStatus
+    );
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("redline_for_oipc").disabled =
+        !oipcRedlineReadyAndValid ||
+        !validOIPCRedlineStatus ||
+        !readyForSignOff;
+    }
+  };
 
   return {
     redlineSinglePackage,
@@ -815,7 +873,11 @@ const SaveRedlineForSignoff = () => {
     setIncludeDuplicatePages,
     setIncludeNRPages,
     saveRedlineDocument,
+    enableSavingOipcRedline,
+    enableSavingRedline,
+    checkSavingRedline,
+    checkSavingOIPCRedline,
   };
 };
 
-export default SaveRedlineForSignoff;
+export default useSaveRedlineForSignoff;

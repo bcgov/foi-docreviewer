@@ -70,16 +70,12 @@ import {
   createResponsePDFMenu, 
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
-  handleRedlineForSignOffClick, 
-  renderCustomButton} from "./CreateResponsePDF/CreateResponsePDF";
-import { 
-  isReadyForSignOff, 
+  handleRedlineForSignOffClick,
+  renderCustomButton,
   isValidRedlineDownload,
-  checkSavingRedline,
-  checkSavingOIPCRedline,
-  checkSavingFinalPackage} from "./CreateResponsePDF/DownloadResponsePDF";
-import SaveRedlineForSignoff from "./CreateResponsePDF/SaveRedlineForSignOff";
-import SaveResponsePackage from "./CreateResponsePDF/SaveResponsePackage";
+  isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
+import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 
 const Redlining = React.forwardRef(
   (
@@ -102,10 +98,6 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
-    const requestStatus = useAppSelector(
-      (state) => state.documents?.requeststatus
-    );
-
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
@@ -163,10 +155,6 @@ const Redlining = React.forwardRef(
     const [stitchPageCount, setStitchPageCount] = useState(0);
     const [alreadyStitchedList, setAlreadyStitchedList]= useState([]);
     const [skipDeletePages, setSkipDeletePages] = useState(false);
-    
-    const [enableSavingRedline, setEnableSavingRedline] = useState(false);
-    const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
-    const [enableSavingFinal, setEnableSavingFinal] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
@@ -176,8 +164,9 @@ const Redlining = React.forwardRef(
     const [redlineSaving, setRedlineSaving] = useState(false);
     const [redlineCategory, setRedlineCategory] = useState(false);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
-    
-    // Response Package && Redline download and saving logic
+    const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
+
+    // Response Package && Redline download and saving logic (react custom hooks)
     const { 
       redlineSinglePackage,
       redlineStitchInfo,
@@ -201,10 +190,16 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages,
       setIncludeNRPages,
       saveRedlineDocument,
-    } = SaveRedlineForSignoff();
+      enableSavingOipcRedline,
+      enableSavingRedline,
+      checkSavingRedline,
+      checkSavingOIPCRedline,
+    } = useSaveRedlineForSignoff();
     const {
-      saveResponsePackage
-    } = SaveResponsePackage();
+      saveResponsePackage,
+      checkSavingFinalPackage,
+      enableSavingFinal,
+    } = useSaveResponsePackage();
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
@@ -249,7 +244,7 @@ const Redlining = React.forwardRef(
           instance.UI.setHeaderItems((header) => {
             //Create custom Create Reseponse PDF button
             const parent = documentViewer.getScrollViewElement().parentElement;
-            const menu = createResponsePDFMenu(document, enableSavingOipcRedline);
+            const menu = createResponsePDFMenu(document);
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
             const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
@@ -1128,15 +1123,40 @@ const Redlining = React.forwardRef(
       },
     }));
 
+    const disableNRDuplicate = () => {
+      let isDisabled = false;
+      if (pageFlags?.length > 0) {        
+        if (incompatibleFiles.length > 0) {
+          isDisabled = false;
+        }        
+        else {
+            let duplicateNRflags = [];
+            for (const flagInfo of pageFlags) {                  
+              duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
+              .map(flag => flag.flagid));
+            }
+            if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
+              isDisabled = true;
+            }
+          }
+        }
+      setIsDisableNRDuplicate(isDisabled);
+      if (isDisabled) {
+        setIncludeNRPages(isDisabled)
+        setIncludeDuplicatePages(isDisabled);
+      }
+    }
+
     const checkSavingRedlineButton = (_instance) => {
       console.log("checksavingredlinebutton")
+      disableNRDuplicate();
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
-      const _enableSavingRedline = readyForSignOff && validRedlineDownload;
-      const _enableSavingOipcRedline = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      checkSavingRedline(_enableSavingRedline, requestStatus, _instance, setEnableSavingRedline);
-      checkSavingOIPCRedline(_enableSavingOipcRedline, requestStatus, _instance, readyForSignOff, setEnableSavingOipcRedline);
-      checkSavingFinalPackage(_enableSavingRedline, requestStatus, _instance, setEnableSavingFinal);
+      const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
+      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      checkSavingRedline(redlineReadyAndValid, _instance);
+      checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
+      checkSavingFinalPackage(redlineReadyAndValid, _instance);
     };
 
     //useEffect to handle validation of Response Package downloads
@@ -1283,7 +1303,6 @@ const Redlining = React.forwardRef(
     };
 
     useEffect(() => {
-      console.log('LIQUIDDD')
       if (docsForStitcing.length > 0) {
         setDocumentList(getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file));
       }
@@ -2668,6 +2687,7 @@ const Redlining = React.forwardRef(
     
     const saveDoc = () => {
       console.log("savedoc");
+      console.log("MODAL", modalFor)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
@@ -2682,8 +2702,7 @@ const Redlining = React.forwardRef(
             toastId,
             incompatibleFiles,
             documentList,
-            pageMappedDocs,
-            setSkipDeletePages
+            pageMappedDocs
           );
           break;
         case "responsepackage":
@@ -2905,6 +2924,7 @@ const Redlining = React.forwardRef(
                   id="nr-checkbox"
                   checked={includeNRPages}
                   onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="nr-checkbox">Include NR pages</label>
                 <br/>
@@ -2915,6 +2935,7 @@ const Redlining = React.forwardRef(
                   id="duplicate-checkbox"
                   checked={includeDuplicatePages}
                   onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAppSelector } from "../../../../hooks/hook";
 import { toast } from "react-toastify";
 import { getStitchedPageNoFromOriginal, sortBySortOrder } from "../utils";
@@ -7,11 +7,11 @@ import {
   getResponsePackagePreSignedUrl,
 } from "../../../../apiManager/services/foiOSSService";
 import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
-import { pageFlagTypes } from "../../../../constants/enum";
+import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import XMLParser from "react-xml-parser";
 import { useParams } from "react-router-dom";
 
-const SaveResponsePackage = () => {
+const useSaveResponsePackage = () => {
   //xml parser
   const parser = new XMLParser();
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -19,7 +19,12 @@ const SaveResponsePackage = () => {
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
+  const requestStatus = useAppSelector(
+    (state) => state.documents?.requeststatus
+  );
   const { foiministryrequestid } = useParams();
+
+  const [enableSavingFinal, setEnableSavingFinal] = useState(false);
 
   const stampPageNumberResponse = async (_docViwer, PDFNet) => {
     for (
@@ -279,10 +284,21 @@ const SaveResponsePackage = () => {
       }
     );
   };
+  const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
+    const validFinalPackageStatus = requestStatus === RequestStates["Response"];
+    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("final_package").disabled =
+        !redlineReadyAndValid || !validFinalPackageStatus;
+    }
+  };
 
   return {
     saveResponsePackage,
+    checkSavingFinalPackage,
+    enableSavingFinal,
   };
 };
 
-export default SaveResponsePackage;
+export default useSaveResponsePackage;
