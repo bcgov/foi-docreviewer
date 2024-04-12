@@ -136,9 +136,9 @@ class documentpageflagservice:
         if len(match) == 0 and data['deleted'] == False:
             filtered.append(formatted_data)
         else:
-            flag_unmatch = [x for x in match if x['flagid'] != data['flagid']]
+            flag_unmatch = [x for x in match if x['flagid'] != data['flagid']] if data['flagid'] != 0 else []
             if data['deleted'] == True: 
-                return filtered if data["flagid"] != 4 else filtered + flag_unmatch               
+                return filtered + flag_unmatch               
             #Below block will only be executed during updates
             if (data['flagid'] != 4 and (len(flag_unmatch) == 1 and flag_unmatch[0]['flagid'] == 4)) or (data['flagid'] == 4 and (len(flag_unmatch) == 1 and flag_unmatch[0]['flagid'] != 4)):
                 filtered = filtered + flag_unmatch
