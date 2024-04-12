@@ -237,8 +237,8 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
-  const scrollLeftPanel = (pageNo) => {
-    selectorRef?.current?.scrollToPage(pageNo);
+  const scrollLeftPanel = (event, pageNo) => {
+    selectorRef?.current?.scrollToPage(event, pageNo);
   };
 
   const closeWarningMessage = () => {

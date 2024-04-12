@@ -683,8 +683,8 @@ const Redlining = React.forwardRef(
             }
           })
           
-          documentViewer.addEventListener("click", async () => {
-            scrollLeftPanel(documentViewer.getCurrentPage());
+          documentViewer.addEventListener("click", async (event) => {
+            scrollLeftPanel(event, documentViewer.getCurrentPage());
           });
 
           let root = null;
