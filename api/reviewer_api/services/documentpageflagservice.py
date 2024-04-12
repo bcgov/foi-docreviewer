@@ -131,17 +131,22 @@ class documentpageflagservice:
         formatted_data = self.__formatpageflag(data)  
         if not pageflag:
             pageflag = []
-        match = [x for x in pageflag if x['page'] == data['page']]
+        match = [x for x in pageflag if x['page'] == data['page']] 
         filtered = [x for x in pageflag if x['page'] != data['page']]
         if len(match) == 0 and data['deleted'] == False:
             filtered.append(formatted_data)
         else:
-            flag_unmatch = [x for x in match if x['flagid'] != data['flagid']] if data['flagid'] != 0 else []
+            flag_consult = [x for x in match if x['flagid'] == 4]
+            flag_nonconsults = [x for x in match if x['flagid'] != 4]            
             if data['deleted'] == True: 
-                return filtered + flag_unmatch               
+                if data['flagid'] == 0:
+                    return filtered + flag_consult
+                return filtered + flag_nonconsults               
             #Below block will only be executed during updates
-            if (data['flagid'] != 4 and (len(flag_unmatch) == 1 and flag_unmatch[0]['flagid'] == 4)) or (data['flagid'] == 4 and (len(flag_unmatch) == 1 and flag_unmatch[0]['flagid'] != 4)):
-                filtered = filtered + flag_unmatch
+            if data['flagid'] != 4 and len(flag_consult) > 0:
+                filtered = filtered + flag_consult
+            if data['flagid'] == 4 and len(flag_nonconsults) > 0:
+                filtered = filtered + flag_nonconsults            
             filtered.append(formatted_data)
         return filtered
     
