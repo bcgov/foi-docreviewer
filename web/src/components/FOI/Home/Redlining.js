@@ -913,9 +913,9 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
                     }
-                    const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "delete");
-                    if (pageFlagAdded) {
-                      pageFlagObj.push(pageFlagAdded);
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "delete");
+                    if (pageFlagsUpdated) {
+                      pageFlagObj.push(pageFlagsUpdated);
                     }                    
                   }
                 }
@@ -956,12 +956,6 @@ const Redlining = React.forwardRef(
                   currentLayer.redactionlayerid,
                   redactObjs,
                   (data) => {
-                    // fetchPageFlag(
-                    //   requestid,
-                    //   currentLayer.name.toLowerCase(),
-                    //   docsForStitcing.map(d => d.file.documentid),
-                    //   (error) => console.log(error)
-                    // );
                   },
                   (error) => {
                     console.log(error);
@@ -1070,9 +1064,9 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "add");
-                  if (pageFlagAdded) {
-                    pageFlagObj.push(pageFlagAdded);
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "add");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
                   }
                   
                   annot.setCustomData("docid", `${displayedDoc.docid}`);
@@ -1604,9 +1598,9 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
-        if (pageFlagAdded) {
-          pageFlagObj.push(pageFlagAdded);
+        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+        if (pageFlagsUpdated) {
+          pageFlagObj.push(pageFlagsUpdated);
         }
         const doc = docViewer?.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1781,9 +1775,9 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
-                  if (pageFlagAdded) {
-                    pageFlagObj.push(pageFlagAdded);
+              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
                   }
               let pageFlagData = {};
               if (isObjectNotEmpty(pageFlagObj)) {
