@@ -22,7 +22,7 @@ function PrivateRoute(props: any) {
     }
   }, [props.store, dispatch]);
 
-  const isAuth = useAppSelector((state: any) => state.user.isAuthenticated);;
+  const isAuth = useAppSelector((state: any) => state.user.isAuthenticated);
   const userDetail = useAppSelector((state: any) => state.user.userDetail);
   return (
     <>

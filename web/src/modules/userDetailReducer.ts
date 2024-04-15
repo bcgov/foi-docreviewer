@@ -4,7 +4,7 @@ import { encrypt } from "../helper/helper";
 const initialState = {
   bearerToken: '',
   roles: '',
-  userDetail:{},
+  userDetail: {},
   isAuthenticated: false,
   currentPage: '',
   isAuthorized: false,
