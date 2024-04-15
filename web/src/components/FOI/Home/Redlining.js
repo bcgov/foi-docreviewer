@@ -902,14 +902,10 @@ const Redlining = React.forwardRef(
                     let contents = annot?.children?.find(
                       (element) => element.name == "contents"
                     );
-                    let redactionType = annot?.children?.find(
-                      (element) => element.name == "trn-redaction-type"
-                    );
                     let annotationsInfo = {
                       stitchpage: annot.attributes.page,                      
                       type: annot.name,
                       section: contents?.value,
-                      redactiontype: redactionType?.value,
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
                     }
