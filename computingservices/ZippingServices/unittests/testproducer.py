@@ -9,13 +9,9 @@ load_dotenv()
 
 STREAM_KEY = os.getenv('ZIPPER_STREAM_KEY')
 
-# redishost = os.getenv('REDIS_HOST') 
-# redisport = os.getenv('REDIS_PORT')
-# redispassword = os.getenv('REDIS_PASSWORD')
-
-redishost = '142.34.194.68' 
-redisport = 44602
-redispassword = 'iWffXy381gEapMII'
+redishost = os.getenv('REDIS_HOST') 
+redisport = os.getenv('REDIS_PORT')
+redispassword = os.getenv('REDIS_PASSWORD')
 
 db = Database(host=redishost, port=redisport, db=0,password=redispassword)
 stream = db.Stream(STREAM_KEY)
