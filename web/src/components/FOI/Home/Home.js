@@ -94,8 +94,8 @@ function Home() {
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        let sortedFiles = []
-        sortDocList(_files, null, sortedFiles);
+        // let sortedFiles = []
+        // sortDocList(_files, null, sortedFiles);
         // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
