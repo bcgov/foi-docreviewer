@@ -325,7 +325,7 @@ const getSectionArray = (sectionsStr) => {
     return sectionsArray;
   }
 }
-export const getSectionValue = (sectionsStr) => {
+const getSectionValue = (sectionsStr) => {
   const sectionArray = getSectionArray(sectionsStr);
   return sectionArray[0].section;
 }
