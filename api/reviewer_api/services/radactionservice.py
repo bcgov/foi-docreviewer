@@ -101,26 +101,6 @@ class redactionservice:
         result = annotationservice().deactivateannotation(
             annotationnames, redactionlayerid, userinfo
         )
-        ### Remove/Update pageflags start here ###
-        # totaldocumentpagesmapping docid and pages mapping
-        inputdocpagesmapping = self.__getdocumentpagesmapping(
-            annotationschema["annotations"]
-        )
-        # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
-        skipdocpagesmapping = self.__getskipdocpagesmapping(
-            inputdocpagesmapping, redactionlayerid
-        )
-        # pages not having redactions
-        deldocpagesmapping = self.__getdeldocpagesmapping(
-            inputdocpagesmapping, skipdocpagesmapping
-        )
-        if deldocpagesmapping:
-            documentpageflagservice().updatepageflags(
-                requestid,
-                deldocpagesmapping,
-                redactionlayerid,
-                userinfo,
-            )
         ### Remove/Update pageflags end here ###
         return result
 
