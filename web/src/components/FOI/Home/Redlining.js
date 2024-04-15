@@ -68,7 +68,11 @@ import {
   getDocumentPages,
   addWatermarkToRedline,
   getDocumentsForStitching,
-  sortBySortOrder
+  sortBySortOrder,
+  getJoinedSections,
+  isObjectNotEmpty,
+  getValidObject,
+  constructPageFlags
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -1061,6 +1065,7 @@ const Redlining = React.forwardRef(
             let individualPageNo = displayedDoc.page;
             annot.setCustomData("originalPageNo", `${individualPageNo - 1}`);
           });
+          const exisitngAnnotations = annotManager.getAnnotationsList();
           let _annotationtring =
             docInstance?.Core.annotationManager.exportAnnotations({
               annotationList: annotations,
@@ -1073,6 +1078,8 @@ const Redlining = React.forwardRef(
             if (action === "delete") {
               let redactObjs = [];
               let annotObjs = [];
+              let pageFlagObj = [];
+              
               for (let annot of annots[0].children) {
                 let customData = annot.children.find(
                   (element) => element.name == "trn-custom-data"
@@ -1098,16 +1105,33 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
                     });
+                    let contents = annot?.children?.find(
+                      (element) => element.name == "contents"
+                    );
+                    let annotationsInfo = {
+                      stitchpage: annot.attributes.page,                      
+                      type: annot.name,
+                      section: contents?.value,
+                      docid: displayedDoc.docid,
+                      docversion: displayedDoc.docversion,
+                    }
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "delete");
+                    if (pageFlagsUpdated) {
+                      pageFlagObj.push(pageFlagsUpdated);
+                    }                    
                   }
                 }
               }
+              let pageFlagData = {};
+                if (isObjectNotEmpty(pageFlagObj)) {
+                  pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
+                }
               if (annotObjs?.length > 0) {
                 deleteAnnotation(
                   requestid,
                   currentLayer.redactionlayerid,
                   annotObjs,
                   (data) => {
-                    const pagesToUpdate = updatePageFlagsByPage();
                     savePageFlag(
                       requestid, 
                       0, 
@@ -1119,8 +1143,8 @@ const Redlining = React.forwardRef(
                           (error) => console.log(error)
                         );
                       }, 
-                      (error) => console.log('error: ', error), 
-                      createPageFlagPayload(pagesToUpdate, currentLayer.redactionlayerid)
+                      (error) => console.log('error: ', error),
+                      getValidObject(pageFlagData)
                     )
                   },
                   (error) => {
@@ -1134,12 +1158,6 @@ const Redlining = React.forwardRef(
                   currentLayer.redactionlayerid,
                   redactObjs,
                   (data) => {
-                    fetchPageFlag(
-                      requestid,
-                      currentLayer.name.toLowerCase(),
-                      documentList?.map(d => d.documentid),
-                      (error) => console.log(error)
-                    );
                   },
                   (error) => {
                     console.log(error);
@@ -1233,9 +1251,26 @@ const Redlining = React.forwardRef(
                   type: annot.name,
                 });
               } else {
+                let pageFlagObj = [];
                 for (let annot of annotations) {
                   displayedDoc =
                     pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
+                  const _sections = annot.getCustomData("sections");
+                  const joinedSections = getJoinedSections(_sections);
+                  let redactionType = annot.getCustomData("trn-redaction-type");
+                  let annotationsInfo = {
+                    stitchpage: Number(annot.PageNumber) - 1,                      
+                    type: annot.Subject,
+                    section: joinedSections,
+                    redactiontype: redactionType,
+                    docid: displayedDoc.docid,
+                    docversion: displayedDoc.docversion,
+                  }
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "add");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
+                  }
+                  
                   annot.setCustomData("docid", `${displayedDoc.docid}`);
                   annot.setCustomData(
                     "docversion",
@@ -1247,7 +1282,10 @@ const Redlining = React.forwardRef(
                   );
                   // annot.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
                 }
-
+                let pageFlagData = {};
+                if (isObjectNotEmpty(pageFlagObj)) {
+                  pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
+                }
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
                     annotationList: annotations,
@@ -1261,20 +1299,23 @@ const Redlining = React.forwardRef(
                     foiministryrequestid: requestid,
                   };
                 }
-                const pageFlagUpdates = updatePageFlagsByPage();
                 setSelectedSections([]);
                 saveAnnotation(
                   requestid,
                   astr,
-                  (data) => {},
+                  (data) => {
+                    fetchPageFlag(
+                      requestid,
+                      currentLayer.name.toLowerCase(),
+                      docsForStitcing.map(d => d.file.documentid),
+                      (error) => console.log(error)
+                    );
+                  },
                   (error) => {
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  createPageFlagPayload(
-                    pageFlagUpdates,
-                    currentLayer.redactionlayerid
-                  ),
+                  getValidObject(pageFlagData),
                   sectn
                   //pageSelections
                 );
@@ -1698,59 +1739,7 @@ const Redlining = React.forwardRef(
       docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
 
-    // This updates the page flags for pages where all the annotations have the same section
-    const updatePageFlagsByPage = () => {
-      const annotations = annotManager.getAnnotationsList()
-
-      // Returns an object with page numbers as keys and arrays of section ids as values, as well as indicating if the page has a full page redaction
-      const getSectionIdsMapByPage = () => {
-        let sectionIdsMap = {}
-        for (let annot of annotations) {
-          if (annot.getCustomData("trn-redaction-type") == 'fullPage') {
-            if (sectionIdsMap[annot.getPageNumber()]) {
-              sectionIdsMap[annot.getPageNumber()].push('fullPage')
-            } else {
-              sectionIdsMap[annot.getPageNumber()] = ['fullPage']
-            }
-          } 
-          const sectionsStr = annot.getCustomData("sections")
-          if (!sectionsStr) continue
-          const sections = JSON.parse(sectionsStr)
-          if (!sections) continue
-          for (let section of sections) {
-            if (sectionIdsMap[annot.getPageNumber()]) {
-              sectionIdsMap[annot.getPageNumber()].push(section.id)
-            } else {
-              sectionIdsMap[annot.getPageNumber()] = [section.id]
-            }
-          }
-        }
-        return sectionIdsMap;
-      }
-      
-      const setFlagsForPagesToUpdate = () => {
-        let pagesToUpdate = []
-        let sectionIdsMap = getSectionIdsMapByPage()
-        for (let page in sectionIdsMap) {
-          let displayedDoc =
-            pageMappedDocs.stitchedPageLookup[page];
-          if (sectionIdsMap[page].includes('fullPage')) {
-            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Withheld in Full"]})
-          } else if (sectionIdsMap[page].includes(25)) {
-            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]})
-          } else if (sectionIdsMap[page].every(id => id == 26)) {
-            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]})
-          } else if (sectionIdsMap[page].length > 0) {
-            pagesToUpdate.push({ docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]})
-          }
-        }
-        return pagesToUpdate
-      }
-      
-      let pagesToUpdate = setFlagsForPagesToUpdate()
-      return pagesToUpdate;
-    }
-
+    
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
       setModalOpen(false);
@@ -1762,6 +1751,8 @@ const Redlining = React.forwardRef(
       let redactionSectionsIds = selectedSections;
       let redactionIds = [];
       let pageSelectionList = [];
+      const pageFlagObj = [];
+      const exisitngAnnotations = annotManager.getAnnotationsList();
       for (const node of astr.getElementsByTagName("annots")[0].children) {
         let _redact = annotManager
           .getAnnotationsList()
@@ -1791,9 +1782,9 @@ const Redlining = React.forwardRef(
           displayedDoc,
           pageSelectionList
         );
-
+        let redactionSections = "";
         if (redactionSectionsIds.length > 0) {
-          let redactionSections = createRedactionSectionsString(
+          redactionSections = createRedactionSectionsString(
             sections,
             redactionSectionsIds
           );
@@ -1808,6 +1799,19 @@ const Redlining = React.forwardRef(
             "docversion",
             `${displayedDoc.docversion}`
           );
+        }
+
+        let annotationsInfo = {
+          stitchpage: node.attributes.page,                      
+          type: _redact?.Subject,
+          section: redactionSections,
+          redactiontype: fullpageredaction,
+          docid: displayedDoc.docid,
+          docversion: displayedDoc.docversion,
+        }
+        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+        if (pageFlagsUpdated) {
+          pageFlagObj.push(pageFlagsUpdated);
         }
         const doc = docViewer?.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1830,12 +1834,9 @@ const Redlining = React.forwardRef(
         foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
-        const updatedPageFlagsByPage = updatePageFlagsByPage();
-        let pageFlagUpdates;
-        if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
-          pageFlagUpdates = updatedPageFlagsByPage;
-        } else {
-          pageFlagUpdates = pageSelectionList;
+        let pageFlagData = {};
+        if (isObjectNotEmpty(pageFlagObj)) {
+          pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
         }
         saveAnnotation(
           requestid,
@@ -1853,10 +1854,7 @@ const Redlining = React.forwardRef(
             console.log(error);
           },
           currentLayer.redactionlayerid,
-          createPageFlagPayload(
-            pageFlagUpdates,
-            currentLayer.redactionlayerid
-          ),
+          getValidObject(pageFlagData),
           sectn
         );
 
@@ -1886,6 +1884,7 @@ const Redlining = React.forwardRef(
       setModalOpen(false);
       setSelectedPageFlagId(null);
       setSaveDisabled(true);
+      const exisitngAnnotations = annotManager.getAnnotationsList();
       let redactionObj = getRedactionObj(newRedaction, editAnnot, _resizeAnnot);
       let astr = parser.parseFromString(redactionObj.astr);
 
@@ -1912,8 +1911,9 @@ const Redlining = React.forwardRef(
           childAnnotation = getCoordinates(childAnnotation, redaction, X);
 
           let redactionSectionsIds = selectedSections;
+          let redactionSections = "";
           if (redactionSectionsIds.length > 0) {
-            let redactionSections = createRedactionSectionsString(
+            redactionSections = createRedactionSectionsString(
               sections,
               redactionSectionsIds
             );
@@ -1936,6 +1936,15 @@ const Redlining = React.forwardRef(
           } else if (_resizeAnnot?.type === "redact") {
             pageNumber = parseInt(_resizeAnnot.pages) + 1;
           }
+          let annotationsInfo = {
+            stitchpage: pageNumber - 1,                      
+            type: redaction?.Subject,
+            section: redactionSections,
+            redactiontype: fullpageredaction,
+            docid: displayedDoc.docid,
+            docversion: displayedDoc.docversion,
+          }
+
           const pageInfo = doc.getPageInfo(pageNumber);
           const pageMatrix = doc.getPageMatrix(pageNumber);
           const pageRotation = doc.getPageRotation(pageNumber);
@@ -1976,12 +1985,14 @@ const Redlining = React.forwardRef(
                 displayedDoc,
                 pageSelectionList
               );
-              const updatedPageFlagsByPage = updatePageFlagsByPage();
-              let pageFlagUpdates;
-              if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
-                pageFlagUpdates = updatedPageFlagsByPage;
-              } else {
-                pageFlagUpdates = pageSelectionList;
+              const pageFlagObj = [];              
+              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
+                  }
+              let pageFlagData = {};
+              if (isObjectNotEmpty(pageFlagObj)) {
+                pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
               }
               saveAnnotation(
                 requestid,
@@ -1999,10 +2010,7 @@ const Redlining = React.forwardRef(
                   console.log(error);
                 },
                 currentLayer.redactionlayerid,
-                createPageFlagPayload(
-                  pageFlagUpdates,
-                  currentLayer.redactionlayerid
-                ),
+                getValidObject(pageFlagData),
                 sectn
               );
             }
@@ -2135,33 +2143,17 @@ const Redlining = React.forwardRef(
           annotationList: annotationList,
           useDisplayAuthor: true,
         });
-        const updatedPageFlagsByPage = updatePageFlagsByPage();
-        let pageFlagUpdates;
-        if (updatedPageFlagsByPage && updatedPageFlagsByPage.length > 0) {
-          pageFlagUpdates = updatedPageFlagsByPage;
-        } else {
-          pageFlagUpdates = pageFlagSelections;
-        }
         saveAnnotation(
           requestid,
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              documentList?.map(d => d.documentid),
-              (error) => console.log(error)
-            );
           },
           (error) => {
             console.log(error);
           },
           currentLayer.redactionlayerid,
-          createPageFlagPayload(
-            pageFlagUpdates,
-            currentLayer.redactionlayerid
-          )
+          null
         );
         annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
 
