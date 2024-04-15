@@ -65,7 +65,6 @@ import {
   getSliceSetDetails,
   sortDocObjects,
   sortDocObjectsForRedline,
-  getDocumentPages,
   addWatermarkToRedline,
   getDocumentsForStitching,
   sortBySortOrder,
