@@ -4,10 +4,10 @@ import { encrypt } from "../helper/helper";
 const initialState = {
   bearerToken: '',
   roles: '',
-  userDetail: {},
-  isAuthenticated: false,
+  userDetail:{preferred_username:"dviswana@idir",family_name:"V",given_name:"Divya",groups:["/Intake Team"]},
+  isAuthenticated: true,
   currentPage: '',
-  isAuthorized: false,
+  isAuthorized: true,
 }
 
 

@@ -40,6 +40,7 @@ class redactionsummaryservice():
                         filesobj= messageattributes[0].files[0]
                     stitcheddocs3uri = filesobj.s3uripath
                     stitcheddocfilename = filesobj.filename
+                    print(f'filename = {filesobj.filename}')
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
@@ -52,6 +53,7 @@ class redactionsummaryservice():
                         summaryuploaderror= True
                         summaryuploaderrormsg = uploadobj.uploadresponse.text
                     pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
+                    
                     summaryfilestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
             return summaryfilestozip
         except (Exception) as error:

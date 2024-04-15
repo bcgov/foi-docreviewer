@@ -13,17 +13,17 @@ import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
 function PrivateRoute(props: any) {
-  const dispatch = useAppDispatch();
-  useEffect(() => {
-    if (props.store) {
-      UserService.initKeycloak(props.store, (_err: any, res: any) => {
-        dispatch(setUserAuth(res.authenticated));
-      });
-    }
-  }, [props.store, dispatch]);
+  // const dispatch = useAppDispatch();
+  // useEffect(() => {
+  //   if (props.store) {
+  //     UserService.initKeycloak(props.store, (_err: any, res: any) => {
+  //       dispatch(setUserAuth(res.authenticated));
+  //     });
+  //   }
+  // }, [props.store, dispatch]);
 
-  const isAuth = useAppSelector((state: any) => state.user.isAuthenticated);
-  const userDetail = useAppSelector((state: any) => state.user.userDetail);
+  const isAuth = true;
+  // const userDetail = useAppSelector((state: any) => state.user.userDetail);
   return (
     <>
       {isAuth ?
