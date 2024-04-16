@@ -375,35 +375,38 @@ export const getValidObject = (obj) => {
   }
 }
 
-const constructPageFlagsForDelete = (annotationsInfo, exisitngAnnotations, displayedDoc, pageFlagTypes) => {
+const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlagTypes) => {
   let pagesToUpdate = {};        
   let found = false;
   let foundNRAnnot = false;
   let foundBlankAnnot = false;
   let foundPartialAnnot = false;
-  for (let _annot of exisitngAnnotations) {
-    if (_annot.Subject === "Free Text" && _annot.getPageNumber() === Number(annotationsInfo.stitchpage) + 1) {
-      found = true;
-      const sectionsStr = _annot.getCustomData("sections");
-      const sectionValue = getSectionValue(sectionsStr)
-      if (_annot.getCustomData("trn-redaction-type") == 'fullPage') {
-        if (["", " "].includes(sectionValue)) {
-          return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
-        }
-        return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Withheld in Full"]};
-      }
-      else {              
-        if (!["", "  ", "NR"].includes(sectionValue)) {
-          // if a valid section found
-          foundPartialAnnot = true;
-        }             
-        if ( sectionValue == "") {
-          foundBlankAnnot = true;
-        }
-        else if (sectionValue == 'NR') {
-          foundNRAnnot = true;
-        }
-      }
+  const fullPageRedaction = exisitngAnnotations?.filter(_annotation => _annotation.getCustomData("trn-redaction-type") == 'fullPage');
+  // full page redaction is always have first priority
+  if (fullPageRedaction.length > 0) {
+    const fullPageSectionsStr = fullPageRedaction[0].getCustomData("sections");
+    const fullPageSectionValue = getSectionValue(fullPageSectionsStr);    
+    if (["", " "].includes(fullPageSectionValue)) {
+      return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["In Progress"]};
+    }
+     return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["Withheld in Full"]};
+  }
+  else {
+    // check other redactions
+    for (let _annot of exisitngAnnotations) {
+        found = true;
+        const sectionsStr = _annot.getCustomData("sections");
+        const sectionValue = getSectionValue(sectionsStr)             
+          if (!["", "  ", "NR"].includes(sectionValue)) {
+            // if a valid section found
+            foundPartialAnnot = true;
+          }             
+          if ( sectionValue == "") {
+            foundBlankAnnot = true;
+          }
+          else if (sectionValue == 'NR') {
+            foundNRAnnot = true;
+          }
     }
   }
   // precedence wise the conditions are added below.
@@ -442,54 +445,59 @@ const constructPageFlagsForAddOrEdit = (annotationsInfo, exisitngAnnotations, di
   else {
     // loop through existing annotations to find any other redaction on the same page
     // based on the precedence, it will prepare the pageflag object
-    for (let _annot of exisitngAnnotations) {
-      // consider checking only freetext as annotations contain other types as well
-      if (_annot.Subject === "Free Text" && _annot.getPageNumber() === Number(annotationsInfo.stitchpage) + 1) {
+
+    // get exisitng FreeText annotations on the page
+    const _exisitngAnnotations = exisitngAnnotations?.filter(_annotation => (_annotation.Subject === "Free Text" && _annotation.getPageNumber() === Number(annotationsInfo.stitchpage) + 1));
+    // get fullpage redaction on the page
+    const fullPageRedaction = _exisitngAnnotations?.filter(_annotation => _annotation.getCustomData("trn-redaction-type") == 'fullPage');
+    // full page redaction is always have first priority
+    if (fullPageRedaction.length > 0) {
+      const fullPageSectionsStr = fullPageRedaction[0].getCustomData("sections");
+      const fullPageSectionValue = getSectionValue(fullPageSectionsStr);    
+      if (["", " "].includes(fullPageSectionValue)) {
+        return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["In Progress"]};
+      }
+      return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["Withheld in Full"]};
+    }
+    else {
+      // loop through the annotations(other than full page redaction) on the current page
+      for (let _annot of _exisitngAnnotations) {
         const sectionsStr = _annot.getCustomData("sections");
         const sectionValue = getSectionValue(sectionsStr);
-        // again add/edit of any redaction, if a fullpage already exisis that takes priority
-        if (_annot.getCustomData("trn-redaction-type") == 'fullPage') {
-          if (["", " "].includes(sectionValue)) {
-            return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["In Progress"]};
+        if (foundBlank) {
+          // partial disclosure - always takes priority over NR/BLANK
+          if (!["", "  ", "NR"].includes(sectionValue)) {
+            return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
           }
-          return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["Withheld in Full"]};
-        }
-        else {              
-          if (foundBlank) {
-            // partial disclosure - always takes priority over NR/BLANK
-            if (!["", "  ", "NR"].includes(sectionValue)) {
-              return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-            }
-            else if (!["", "  "].includes(sectionValue)) {
-              // NR take precedence over BLANK
-              if (sectionValue === "NR") {
-                return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
-              }
-              else {
-                return;
-              }
+          else if (!["", "  "].includes(sectionValue)) {
+            // NR take precedence over BLANK
+            if (sectionValue === "NR") {
+              return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
             }
             else {
-              // don't retrun, let the loop run and find if any redaction with valid section in it
-              pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
-            }
-          }
-          else if (foundNR) {
-            // // partial disclosure - always takes priority over NR/BLANK
-            if (!["", "  ", "NR"].includes(sectionValue)) {
-              return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-            }
-            else {
-              // don't retrun, let the loop run and find if any redaction with valid section in it
-              pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
+              return;
             }
           }
           else {
-            pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
+            // don't retrun, let the loop run and find if any redaction with valid section in it
+            pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
           }
         }
+        else if (foundNR) {
+          // // partial disclosure - always takes priority over NR/BLANK
+          if (!["", "  ", "NR"].includes(sectionValue)) {
+            return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
+          }
+          else {
+            // don't retrun, let the loop run and find if any redaction with valid section in it
+            pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
+          }
+        }
+        else {
+          pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
+        }
       }
-    }
+    }    
     return getValidObject(pagesToUpdate);
   }
 }
@@ -500,13 +508,15 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
   // 3. then, NR (full disclosure)
   // 4. lastly, BLANK (in progress)
   const displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotationsInfo.stitchpage) + 1];
+  // get exisitng FreeText annotations on the page
+  const _exisitngAnnotations = exisitngAnnotations?.filter(_annotation => (_annotation.Subject === "Free Text" && _annotation.getPageNumber() === Number(annotationsInfo.stitchpage) + 1));
   if (action === "add") {
-    return constructPageFlagsForAddOrEdit(annotationsInfo, exisitngAnnotations, displayedDoc, pageFlagTypes);
+    return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
   else if (action === "delete") {
-    return constructPageFlagsForDelete(annotationsInfo, exisitngAnnotations, displayedDoc, pageFlagTypes);
+    return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
   else {
-    return constructPageFlagsForAddOrEdit(annotationsInfo, exisitngAnnotations, displayedDoc, pageFlagTypes);
+    return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
 }
