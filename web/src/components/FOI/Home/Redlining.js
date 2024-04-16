@@ -31,13 +31,9 @@ import {
   fetchSections,
   fetchPageFlag,
   fetchPDFTronLicense,
-  triggerDownloadRedlines,
   deleteDocumentPages,
   savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
-import {
-  saveFilesinS3,
-} from "../../../apiManager/services/foiOSSService";
 import {
   PDFVIEWER_DISABLED_FEATURES,
   ANNOTATION_PAGE_SIZE,
@@ -47,7 +43,6 @@ import { errorToast } from "../../../helper/helper";
 import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
-import { toast } from "react-toastify";
 import { pageFlagTypes } from "../../../constants/enum";
 import {
   createPageFlagPayload,
@@ -57,8 +52,6 @@ import {
   updatePageFlags,
   getSliceSetDetails,
   sortDocObjects,
-  sortDocObjectsForRedline,
-  addWatermarkToRedline,
   getDocumentsForStitching,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
@@ -148,45 +141,22 @@ const Redlining = React.forwardRef(
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
 
-    const toastId = React.useRef(null);
-
     const [pdftronDocObjects, setpdftronDocObjects] = useState([]);
     const [stichedfiles, setstichedfiles] = useState([]);
     const [stitchPageCount, setStitchPageCount] = useState(0);
-    const [alreadyStitchedList, setAlreadyStitchedList]= useState([]);
     const [skipDeletePages, setSkipDeletePages] = useState(false);
-
-    const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
     //xml parser
     const parser = new XMLParser();
 
     const [redlineSaving, setRedlineSaving] = useState(false);
-    const [redlineCategory, setRedlineCategory] = useState(false);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
 
     // Response Package && Redline download and saving logic (react custom hooks)
     const { 
-      redlineSinglePackage,
-      redlineStitchInfo,
-      issingleredlinepackage,
-      redlinepageMappings,
-      redlineWatermarkPageMapping,
-      redlineIncompatabileMappings,
-      redlineDocumentAnnotations,
-      requestStitchObject,
-      incompatableList,
-      totalStitchList,
-      redlineStitchDivisionDetails,
-      pdftronDocObjectsForRedline,
-      redlineZipperMessage,
       includeNRPages,
       includeDuplicatePages,
-      stichedfilesForRedline,
-      setstichedfilesForRedline,
-      redlineStitchObject,
-      setRedlineStitchObject,
       setIncludeDuplicatePages,
       setIncludeNRPages,
       saveRedlineDocument,
@@ -194,7 +164,9 @@ const Redlining = React.forwardRef(
       enableSavingRedline,
       checkSavingRedline,
       checkSavingOIPCRedline,
-    } = useSaveRedlineForSignoff();
+      setRedlineCategory,
+      setFilteredComments,
+    } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
       checkSavingFinalPackage,
@@ -1165,7 +1137,7 @@ const Redlining = React.forwardRef(
         checkSavingRedlineButton(docInstance);
       }
       if (docInstance && documentList.length > 0) {
-        console.log("BANG")
+        console.log("EVNT LISTINER")
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
       }
@@ -2078,107 +2050,6 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const prepareMessageForRedlineZipping = (
-      divObj,
-      divisionCountForToast,
-      zipServiceMessage,
-      redlineSinglePkg,
-      stitchedDocPath = ""
-    ) => {
-      const zipDocObj = {
-        divisionid: null,
-        divisionname: null,
-        files: [],
-        includeduplicatepages: includeDuplicatePages,
-        includenrpages: includeNRPages,
-      };
-      if (stitchedDocPath) {
-        const stitchedDocPathArray = stitchedDocPath?.split("/");
-        let fileName =
-          stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
-        if (redlineSinglePkg == "Y") {
-          fileName = fileName;
-        } else {
-          fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
-        }
-        const file = {
-          filename: fileName,
-          s3uripath: decodeURIComponent(stitchedDocPath?.split("?")[0]),
-        };
-        zipDocObj.files.push(file);
-      }
-      if (divObj["incompatibleFiles"].length > 0) {
-        zipDocObj.files = [...zipDocObj.files, ...divObj["incompatibleFiles"]];
-      }
-      if (redlineSinglePkg == "N") {
-        zipDocObj.divisionid = divObj["divisionid"];
-        zipDocObj.divisionname = divObj["divisionname"];
-      }
-      zipServiceMessage.attributes.push(zipDocObj);
-      //zipServiceMessage.summarydocuments = redlineStitchInfo[divObj["divisionid"]]["documentids"];
-      if (divisionCountForToast === zipServiceMessage.attributes.length) {
-        triggerDownloadRedlines(zipServiceMessage, (error) => {
-          console.log(error);
-          window.location.reload();
-        });
-      }
-      return zipServiceMessage;
-    };
-
-    const stampPageNumberRedline = async (
-      _docViwer,
-      PDFNet,
-      divisionsdocpages,
-      redlineSinglePackage
-    ) => {
-      try {
-        for (
-          let pagecount = 1;
-          pagecount <= divisionsdocpages.length;
-          pagecount++
-        ) {
-          
-          const doc = await _docViwer.getPDFDoc();
-          // Run PDFNet methods with memory management
-          await PDFNet.runWithCleanup(async () => {
-            // lock the document before a write operation
-            // runWithCleanup will auto unlock when complete
-            doc.lock();
-            const s = await PDFNet.Stamper.create(
-              PDFNet.Stamper.SizeType.e_relative_scale,
-              0.3,
-              0.3
-            );
-
-            await s.setAlignment(
-              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-            );
-            const font = await PDFNet.Font.create(
-              doc,
-              PDFNet.Font.StandardType1Font.e_courier
-            );
-            await s.setFont(font);
-            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-            await s.setFontColor(redColorPt);
-            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-            await s.setAsBackground(false);
-            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
-            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
-            await s.stampText(
-              doc,
-              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-              pgSet
-            );
-          });
-        }
-      } catch (err) {
-          console.log(err);
-          throw err;
-        }
-    };
-
     const normalizeforPdfStitchingReq = (documentlist) => {
       const normalizedDocumentlist = JSON.parse(JSON.stringify(documentlist));
       for (let divsionentry of normalizedDocumentlist) {
@@ -2189,486 +2060,6 @@ const Redlining = React.forwardRef(
         }
       }
       return normalizedDocumentlist;
-    };
-
-    const formatAnnotationsForRedline = (
-      redlineDocumentAnnotations,
-      redlinepageMappings,
-      documentids
-    ) => {
-      let domParser = new DOMParser();
-      let stitchAnnotation = [];
-      for (let docid of documentids) {
-        stitchAnnotation.push(
-          formatAnnotationsForDocument(
-            domParser,
-            redlineDocumentAnnotations[docid],
-            redlinepageMappings,
-            docid
-          )
-        );
-      }
-      return stitchAnnotation.join();
-    };
-
-    const constructFreeTextAndannoteIds = (data) => {
-      let _freeTextIds=[];
-      let _annoteIds=[];
-      for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);
-          if(xmlObj.name === "freetext")
-            _freeTextIds.push(xmlObj.attributes.name);
-          else if(xmlObj.name != "redact" && xmlObj.name != "freetext"){
-            let xmlObjAnnotId = xmlObj.attributes.name;
-            _annoteIds.push({ [xmlObjAnnotId]: xmlObj });
-          }            
-      }
-      return {_freeTextIds, _annoteIds}
-    }
-    const getAnnotationSections  = (annot) => {
-      let customSectionsData = annot.getCustomData("sections");
-      let stampJson = JSON.parse(
-                  customSectionsData
-                    .replace(/&quot;\[/g, "[")
-                    .replace(/\]&quot;/g, "]")
-                    .replace(/&quot;/g, '"')
-                    .replace(/\\/g, "")
-      );
-      return stampJson;        
-    }
-
-    const annotationSectionsMapping  = async (xfdfString, formattedAnnotationXML) => {
-      let annotationManager = docInstance?.Core.annotationManager;
-      let annotList = await annotationManager.importAnnotations(xfdfString);
-      let sectionStamps = {};
-    let  annotationpagenumbers = annotationpagemapping(formattedAnnotationXML);
-    for (const annot of annotList) {
-      let parentRedaction = annot.getCustomData("parentRedaction");
-      if (parentRedaction) {
-        if (annot.Subject == "Free Text") {
-          let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
-            let sections = getAnnotationSections(annot);
-            if (sections.some(item => item.section === 's. 14')) {
-                sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
-            }
-        }
-      }
-    }
-    return sectionStamps; 
-    }
-
-    const annotationpagemapping = (formattedAnnotationXML) => {
-      let xmlstring =
-            '<annots>' +
-            formattedAnnotationXML +
-            "</annots>";
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlstring,"text/xml");
-      let annotnodes = xmlDoc.documentElement.childNodes;
-      let annotationpages = {};
-      for (const element of annotnodes) {
-        if(element.nodeName === "redact") { 
-          annotationpages[element.getAttribute("name")] = parseInt(element.getAttribute("page"))+1;
-      }
-      }
-      return annotationpages;
-    }
-
-    const formatAnnotationsForDocument = (
-      domParser,
-      data,
-      redlinepageMappings,
-      documentid
-    ) => {
-      let updatedXML = [];
-      const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(data);
-
-      for (let annotxml of data) {
-        let xmlObj = parser.parseFromString(annotxml);           
-          let customfield = xmlObj.children.find(
-            (xmlfield) => xmlfield.name == "trn-custom-data"
-          );
-          let flags = xmlObj.attributes.flags;
-          let txt = domParser.parseFromString(
-            customfield.attributes.bytes,
-            "text/html"
-          );
-          let customData = JSON.parse(txt.documentElement.textContent);
-          let originalPageNo = parseInt(customData.originalPageNo);
-          if (redlinepageMappings[documentid][originalPageNo + 1]) {
-            //skip pages that need to be removed
-            // page num from annot xml
-            let y = annotxml.split('page="');
-            let z = y[1].split('"');
-            let oldPageNum = 'page="' + z[0] + '"';
-            let newPage =
-              'page="' +
-              (redlinepageMappings[documentid][originalPageNo + 1] - 1) +
-              '"';
-            let updatedFlags = xmlObj.attributes.flags+',locked';
-              
-            annotxml = annotxml.replace(flags, updatedFlags);
-            annotxml = annotxml.replace(oldPageNum, newPage);
-
-              if (xmlObj.name === "redact" || customData["parentRedaction"] || 
-                (Object.entries(filteredComments).length> 0 && checkFilter(xmlObj,_freeTextIds,_annoteIds)))
-                updatedXML.push(annotxml);
-        }
-      }
-      return updatedXML.join();
-    };
-
-    const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
-      //This method handles filtering of annotations in redline
-      let filtered = false;
-
-      const isType = filteredComments.types.includes(xmlObj.name) && !_freeTextIds.includes(xmlObj.attributes.inreplyto);
-      const isColor = filteredComments.colors.includes(xmlObj.attributes.color.toLowerCase() + 'ff');
-      const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
-      
-      const parentIsType =  _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&
-      filteredComments.types?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].name) && 
-        !_freeTextIds.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.inreplyto);
-      
-      const parentIsColor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) &&        
-        filteredComments.colors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase()+'ff');
-
-      const parentIsAuthor = _annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        filteredComments.authors?.includes(_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto))?.[xmlObj.attributes.inreplyto].attributes.title);      
-
-      if (filteredComments.types.length > 0 && filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsColor && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
-          return parentIsType && parentIsColor && parentIsAuthor
-        }
-        filtered = isType && (isColor || parentIsColor) && isAuthor
-      }
-      else if (filteredComments.types.length > 0 && filteredComments.colors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsColor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  && typeof parentIsColor !== 'undefined') {
-          return parentIsType && parentIsColor
-        }
-        filtered = isType && (isColor || parentIsColor)
-      }
-      else if (filteredComments.types.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined'  &&  typeof parentIsAuthor !== 'undefined') {
-          return parentIsType && parentIsAuthor
-        }
-        filtered = isType  && isAuthor
-      }
-      else if (filteredComments.colors.length > 0 && filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsColor && parentIsAuthor))){
-          return true;
-        }
-        else if (typeof parentIsColor !== 'undefined'  && typeof parentIsAuthor !== 'undefined') {
-          return parentIsColor && parentIsAuthor
-        }         
-        filtered =  (isColor || parentIsColor) && isAuthor
-      }
-
-      else if (filteredComments.types.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsType ))){
-          return true;
-        }
-        else if (typeof parentIsType !== 'undefined') {
-          return parentIsType
-        }
-        return isType
-      }
-      else if (filteredComments.colors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsColor ))){
-          return true;
-        }
-        else if (typeof parentIsColor !== 'undefined') {
-          return parentIsColor
-        }
-        return isColor
-      }
-      else if (filteredComments.authors.length > 0) {
-        if((_annoteIds.find(obj => obj.hasOwnProperty(xmlObj.attributes.inreplyto)) && 
-        (parentIsAuthor ))){
-          return true;
-        }
-        else if (typeof parentIsAuthor !== 'undefined') {
-          return parentIsAuthor
-        }
-        return isAuthor
-      }
-      return filtered;
-    }
-
-    useEffect(() => {
-      if (
-        pdftronDocObjectsForRedline?.length > 0 &&
-        totalStitchList[redlineStitchDivisionDetails.division]?.length > 0 &&
-        stichedfilesForRedline != null
-      ) {
-          let divisionDocListCopy = [...totalStitchList[redlineStitchDivisionDetails.division]];
-          if(divisionDocListCopy.length > 1){
-            divisionDocListCopy?.shift();
-            let _pdftronDocObjects = sortDocObjectsForRedline(
-              pdftronDocObjectsForRedline,
-              divisionDocListCopy
-            );
-            if (_pdftronDocObjects.length > 0) {
-              stitchPagesForRedline(_pdftronDocObjects);
-            }
-          }
-        }
-        if (
-          issingleredlinepackage == "N" &&
-          stichedfilesForRedline != null &&
-          (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length
-        ) {
-          
-          requestStitchObject[redlineStitchDivisionDetails.division] = stichedfilesForRedline;
-        } else {
-          if (stichedfilesForRedline === null && Object.keys(incompatableList)?.length > 0 && incompatableList[redlineStitchDivisionDetails.division]["incompatibleFiles"].length > 0) {
-              requestStitchObject[redlineStitchDivisionDetails.division] = null
-          }
-        }
-        if (issingleredlinepackage == "Y" && stichedfilesForRedline != null &&
-        (alreadyStitchedList?.length+1) === totalStitchList[redlineStitchDivisionDetails.division]?.length) {
-          requestStitchObject["0"] = stichedfilesForRedline;
-        }
-        if (redlineStitchDivisionDetails.divCount == redlineStitchDivisionDetails.noofdivision && requestStitchObject != null &&
-            requestStitchObject[redlineStitchDivisionDetails.division] != null) {
-          setRedlineStitchObject(requestStitchObject);
-        }
-    }, [
-      pdftronDocObjectsForRedline,
-      stichedfilesForRedline,
-      alreadyStitchedList,
-    ]);
-
-    const stitchPagesForRedline = (pdftronDocObjs) => {
-      for (let filerow of pdftronDocObjs) {
-        let _exists = alreadyStitchedList.filter(
-          (_file) => _file.file.documentid === filerow.file.documentid
-        );
-        if (_exists?.length === 0) {
-          let index = filerow.stitchIndex;
-          try {
-            stichedfilesForRedline?.insertPages(filerow.pdftronobject, filerow.pages, index).then(() => {
-            }).catch((error) => {
-              console.error("An error occurred during page insertion:", error);
-            }) ;
-            setAlreadyStitchedList((_arr) => [..._arr, filerow]);
-            setstichedfilesForRedline(stichedfilesForRedline)
-          } catch (error) {
-            console.error("An error occurred during page insertion:", error);
-          }
-        }
-      }
-    };
-
-    useEffect(() => {
-      const StitchAndUploadDocument = async () => {
-        const { PDFNet } = docInstance.Core;
-        const downloadType = "pdf";
-        let currentDivisionCount = 0;
-        const divisionCountForToast = Object.keys(redlineStitchObject).length;
-        for (const [key, value] of Object.entries(redlineStitchObject)) {
-          currentDivisionCount++;
-          toast.update(toastId.current, {
-            render:
-              redlineSinglePackage == "N"
-                ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
-                : `Saving redline PDF to Object Storage...`,
-            isLoading: true,
-            autoClose: 5000,
-          });
-
-          let divisionid = key;
-          let stitchObject = redlineStitchObject[key];
-          // if all pages of a division with NR/Duplicate 
-          // and NR/Duplicate is not checked. 
-          // make stitchObject = null to stop the stitching
-          for (const [documentId, values] of Object.entries(redlinepageMappings["divpagemappings"][divisionid])) {
-            if(Object.keys(values).length === 0) {
-              stitchObject = null;
-              redlineStitchInfo[divisionid]["documentids"] = [];
-              redlineStitchInfo[divisionid]["stitchpages"] = [];
-              redlineStitchInfo[divisionid]["s3path"] = null;
-            }
-        }
-          if (stitchObject == null) {
-            triggerRedlineZipper(
-              redlineIncompatabileMappings[divisionid],
-              redlineStitchInfo[divisionid]["s3path"],
-              divisionCountForToast,
-              redlineSinglePackage
-            );
-          } else {
-            let formattedAnnotationXML = formatAnnotationsForRedline(
-              redlineDocumentAnnotations,
-              redlinepageMappings["divpagemappings"][divisionid],
-              redlineStitchInfo[divisionid]["documentids"]
-            );
-            if(redlineCategory !== "oipcreview") {  
-              await stampPageNumberRedline(
-              stitchObject,
-              PDFNet,
-              redlineStitchInfo[divisionid]["stitchpages"],
-              redlineSinglePackage
-              );
-            }
-            if (
-              redlinepageMappings["pagestoremove"][divisionid] &&
-              redlinepageMappings["pagestoremove"][divisionid].length > 0
-            ) {
-              await stitchObject.removePages(
-                redlinepageMappings["pagestoremove"][divisionid]
-              );
-            }
-            if(redlineCategory == "redline") {  
-              await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
-            }
-            
-            let xfdfString =
-              '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
-              formattedAnnotationXML +
-              "</annots></xfdf>";
-
-            //OIPC - Special Block (Redact S.14) : Begin
-            if(redlineCategory === "oipcreview") {
-              const rarr = []; 
-              let annotationManager = docInstance?.Core.annotationManager;
-              let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              let rects = [];
-              for (const [key, value] of Object.entries(s14_sectionStamps)) {
-                let s14annoation = annotationManager.getAnnotationById(key);
-                    if ( s14annoation.Subject === "Redact") { 
-                            rects = rects.concat( 
-                            s14annoation.getQuads().map((q) => {
-                              return {
-                                  pageno: s14_sectionStamps[key],
-                                  recto: q.toRect(),
-                                  vpageno: s14annoation.getPageNumber()
-                                };
-                              })
-                            );
-                        }
-                  
-                
-              }
-              for (const rect of rects) {
-                let height = docViewer.getPageHeight(rect.vpageno);
-                rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-              }
-              if (rarr.length > 0) {
-                const app = {};
-                app.redaction_overlay = true;
-                app.border = false;
-                app.show_redacted_content_regions = false;
-                const doc = await stitchObject.getPDFDoc();
-                await PDFNet.Redactor.redact(doc, rarr, app);
-              }
-              await stampPageNumberRedline(
-                stitchObject,
-                PDFNet,
-                redlineStitchInfo[divisionid]["stitchpages"],
-                redlineSinglePackage
-              );
-            }
-            //OIPC - Special Block : End
-          
-            
-
-            stitchObject
-              .getFileData({
-                // saves the document with annotations in it
-                xfdfString: xfdfString,
-                downloadType: downloadType,
-                //flatten: true, //commented this as part of #4862
-              })
-              .then(async (_data) => {
-                const _arr = new Uint8Array(_data);
-                const _blob = new Blob([_arr], {
-                  type: "application/pdf",
-                });
-
-                saveFilesinS3(
-                  { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                  _blob,
-                  (_res) => {
-                    // ######### call another process for zipping and generate download here ##########
-                    toast.update(toastId.current, {
-                      render: `Redline PDF saved to Object Storage`,
-                      type: "success",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                    triggerRedlineZipper(
-                      redlineIncompatabileMappings[divisionid],
-                      redlineStitchInfo[divisionid]["s3path"],
-                      divisionCountForToast,
-                      redlineSinglePackage
-                    );
-                  },
-                  (_err) => {
-                    console.log(_err);
-                    toast.update(toastId.current, {
-                      render: "Failed to save redline pdf to Object Storage",
-                      type: "error",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                  }
-                );
-              });
-          }
-        }
-      };
-
-      if (
-        redlineStitchObject &&
-        redlineDocumentAnnotations &&
-        redlineStitchInfo &&
-        redlinepageMappings
-      ) {
-        StitchAndUploadDocument();
-      }
-    }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
-
-    const triggerRedlineZipper = (      
-      divObj,
-      stitchedDocPath,
-      divisionCountForToast,
-      redlineSinglePackage
-    ) => {
-      prepareMessageForRedlineZipping(
-        divObj,
-        divisionCountForToast,
-        redlineZipperMessage,
-        redlineSinglePackage,
-        stitchedDocPath
-      );
     };
 
     const cancelSaveRedlineDoc = () => {
@@ -2697,9 +2088,7 @@ const Redlining = React.forwardRef(
         case "oipcreview":
         case "redline":
           saveRedlineDocument(
-            docInstance,
             modalFor,
-            toastId,
             incompatibleFiles,
             documentList,
             pageMappedDocs
