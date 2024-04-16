@@ -486,10 +486,12 @@ const DocumentSelector = React.memo(React.forwardRef(({
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
         if (flag) {
             let consultFlag: any = file?.consult?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
-            if (file.consult?.length > 0) {
-                let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
-                ministries.push(...consultFlag.other);
-                return `Consult - [` + ministries.join(`]\\nConsult - [`) + ']';
+            if (!!file.consult && file.consult.length > 0 && !!consultFlag) {
+                let ministries = consultFlag?.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
+                if(!!ministries){
+                  ministries.push(...consultFlag.other);
+                  return `Consult - [` + ministries.join(`]\\nConsult - [`) + ']';
+                }
             }
             return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
         }
