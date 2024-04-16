@@ -55,6 +55,7 @@ const MINISTRYGROUPS: ministryType = {
 };
 
 const pageFlagTypes:pageFlagType = {
+  "No Flag": 0,
   "Partial Disclosure": 1,
   "Full Disclosure": 2,
   "Withheld in Full": 3,
