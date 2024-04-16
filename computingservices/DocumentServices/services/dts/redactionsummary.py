@@ -1,4 +1,5 @@
 from services.dal.documentpageflag import documentpageflag
+from rstreamio.message.schemas.redactionsummary import get_in_summary_object,get_in_summarypackage_object
 
 class redactionsummary():
 
@@ -21,7 +22,8 @@ class redactionsummary():
         try:
             redactionlayerid = message.redactionlayerid
             summarymsg = message.summarydocuments
-            ordereddocids = summarymsg.sorteddocuments
+            summaryobject = get_in_summary_object(summarymsg)
+            ordereddocids = summaryobject.sorteddocuments
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
             if totalpagecount <=0:
