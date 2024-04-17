@@ -220,6 +220,8 @@ export const isValidRedlineDownload = (pageFlags) => {
           pageFlagTypes["Partial Disclosure"],
           pageFlagTypes["Full Disclosure"],
           pageFlagTypes["Withheld in Full"],
+          pageFlagTypes["Duplicate"],
+          pageFlagTypes["Not Responsive"],
         ].includes(flag.flagid)
       );
       if (pageFlagArray.length > 0) {

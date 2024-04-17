@@ -211,59 +211,62 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
         let pageIndex = 1;
         for (const flagInfo of doc.pageFlag) {
-          if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
-            if (includeDuplicatePages) {
-              duplicateWatermarkPagesEachDiv.push(
-                getStitchedPageNoFromOriginal(
-                  doc.documentid,
-                  flagInfo.page,
-                  pageMappedDocs
-                ) - pagesToRemove.length
-              );
+          if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+            // ignore consult flag to fix bug FOIMOD-3062
+            if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+              if (includeDuplicatePages) {
+                duplicateWatermarkPagesEachDiv.push(
+                  getStitchedPageNoFromOriginal(
+                    doc.documentid,
+                    flagInfo.page,
+                    pageMappedDocs
+                  ) - pagesToRemove.length
+                );
 
-              pageMappings[doc.documentid][flagInfo.page] =
-                pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
-            } else {
-              pagesToRemoveEachDoc.push(flagInfo.page);
-              pagesToRemove.push(
-                getStitchedPageNoFromOriginal(
-                  doc.documentid,
-                  flagInfo.page,
-                  pageMappedDocs
-                )
-              );
-            }
-          } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
-            if (includeNRPages) {
-              NRWatermarksPagesEachDiv.push(
-                getStitchedPageNoFromOriginal(
-                  doc.documentid,
-                  flagInfo.page,
-                  pageMappedDocs
-                ) - pagesToRemove.length
-              );
+                pageMappings[doc.documentid][flagInfo.page] =
+                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+              } else {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+                pagesToRemove.push(
+                  getStitchedPageNoFromOriginal(
+                    doc.documentid,
+                    flagInfo.page,
+                    pageMappedDocs
+                  )
+                );
+              }
+            } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+              if (includeNRPages) {
+                NRWatermarksPagesEachDiv.push(
+                  getStitchedPageNoFromOriginal(
+                    doc.documentid,
+                    flagInfo.page,
+                    pageMappedDocs
+                  ) - pagesToRemove.length
+                );
 
-              pageMappings[doc.documentid][flagInfo.page] =
-                pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+                pageMappings[doc.documentid][flagInfo.page] =
+                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+              } else {
+                pagesToRemoveEachDoc.push(flagInfo.page);
+                pagesToRemove.push(
+                  getStitchedPageNoFromOriginal(
+                    doc.documentid,
+                    flagInfo.page,
+                    pageMappedDocs
+                  )
+                );
+              }
             } else {
-              pagesToRemoveEachDoc.push(flagInfo.page);
-              pagesToRemove.push(
-                getStitchedPageNoFromOriginal(
-                  doc.documentid,
-                  flagInfo.page,
-                  pageMappedDocs
-                )
-              );
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                pageMappings[doc.documentid][flagInfo.page] =
+                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+                pageIndex++;
+              }
             }
-          } else {
             if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-              pageMappings[doc.documentid][flagInfo.page] =
-                pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
               pageIndex++;
             }
-          }
-          if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-            pageIndex++;
           }
         }
         //End of pageMappingsByDivisions
@@ -292,11 +295,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     let pagesToRemove = [];
     let totalPageCount = 0;
     let totalPageCountIncludeRemoved = 0;
+    let divisionCount = 0;
     let duplicateWatermarkPages = {};
     let duplicateWatermarkPagesEachDiv = [];
     let NRWatermarksPages = {};
     let NRWatermarksPagesEachDiv = [];
     for (let divObj of divisionDocuments) {
+      divisionCount++;
       // sort based on sortorder as the sortorder added based on the LastModified
       for (let doc of sortBySortOrder(divObj.documentlist)) {
         if (doc.pagecount > 0) {
@@ -307,44 +312,47 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
           //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
           for (const flagInfo of doc.pageFlag) {
-            if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
-              if (includeDuplicatePages) {
-                duplicateWatermarkPagesEachDiv.push(
-                  pageIndex +
-                    totalPageCountIncludeRemoved -
-                    pagesToRemove.length
-                );
-
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
-              } else {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-
-                pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved);
-              }
-            } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
-              if (includeNRPages) {
-                NRWatermarksPagesEachDiv.push(
-                  pageIndex +
-                    totalPageCountIncludeRemoved -
-                    pagesToRemove.length
-                );
-
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
-              } else {
-                pagesToRemoveEachDoc.push(flagInfo.page);
-
-                pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved);
-              }
-            } else {
-              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
-              }
-            }
             if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-              pageIndex++;
+              // ignore consult flag to fix bug FOIMOD-3062
+              if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+                if (includeDuplicatePages) {
+                  duplicateWatermarkPagesEachDiv.push(
+                    pageIndex +
+                      totalPageCountIncludeRemoved -
+                      pagesToRemove.length
+                  );
+
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+
+                  pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved);
+                }
+              } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                if (includeNRPages) {
+                  NRWatermarksPagesEachDiv.push(
+                    pageIndex +
+                      totalPageCountIncludeRemoved -
+                      pagesToRemove.length
+                  );
+
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+
+                  pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved);
+                }
+              } else {
+                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
+                }
+              }
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                pageIndex++;
+              }
             }
           }
           //End of pageMappingsByDivisions
@@ -365,6 +373,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       totalPageCountIncludeRemoved = 0;
       pageMappings = {};
     }
+
     setRedlinepageMappings({
       divpagemappings: divPageMappings,
       pagemapping: pageMappings,
@@ -1303,11 +1312,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
   //useEffects to keep docInstance and docViewer state up to date with Redlining.js
   useEffect(() => {
-    console.log("SNAKE")
+    console.log("SNAKE");
     setDocInstance(initDocInstance);
   }, [initDocInstance]);
   useEffect(() => {
-    console.log("LIQUID")
+    console.log("LIQUID");
     setDocViewer(initDocViewer);
   }, [initDocViewer]);
 
@@ -1331,19 +1340,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
         let divisionid = key;
         let stitchObject = redlineStitchObject[key];
-        // if all pages of a division with NR/Duplicate
-        // and NR/Duplicate is not checked.
-        // make stitchObject = null to stop the stitching
-        for (const [documentId, values] of Object.entries(
-          redlinepageMappings["divpagemappings"][divisionid]
-        )) {
-          if (Object.keys(values).length === 0) {
-            stitchObject = null;
-            redlineStitchInfo[divisionid]["documentids"] = [];
-            redlineStitchInfo[divisionid]["stitchpages"] = [];
-            redlineStitchInfo[divisionid]["s3path"] = null;
-          }
-        }
         if (stitchObject == null) {
           triggerRedlineZipper(
             redlineIncompatabileMappings[divisionid],
