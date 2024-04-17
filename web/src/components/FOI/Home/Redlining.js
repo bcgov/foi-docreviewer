@@ -1038,7 +1038,7 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name.toLowerCase()
             );
-            console.log("fetchPageFlag in currentLayer!")
+            //console.log("fetchPageFlag in currentLayer!")
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
@@ -1179,7 +1179,8 @@ const Redlining = React.forwardRef(
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
               console.log("pageFlagData-del:",pageFlagData)
-              
+              const validObj=getValidObject(pageFlagData)
+              const documentpageflagsObj=validObj?.documentpageflags
               if (annotObjs?.length > 0) {
                 deleteAnnotation(
                   requestid,
@@ -1190,15 +1191,20 @@ const Redlining = React.forwardRef(
                       requestid, 
                       0, 
                       (data) => {
-                        fetchPageFlag(
-                          requestid,
-                          currentLayer.name.toLowerCase(),
-                          documentList?.map(d => d.documentid),
-                          (error) => console.log(error)
-                        );
+                        if(data.status == true){
+                          const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                          if(updatedPageFlags?.length > 0)
+                            updatePageFlags1(updatedPageFlags);
+                        }
+                        // fetchPageFlag(
+                        //   requestid,
+                        //   currentLayer.name.toLowerCase(),
+                        //   documentList?.map(d => d.documentid),
+                        //   (error) => console.log(error)
+                        // );
                       }, 
                       (error) => console.log('error: ', error),
-                      getValidObject(pageFlagData)
+                      validObj
                     )
                   },
                   (error) => {
@@ -1347,7 +1353,9 @@ const Redlining = React.forwardRef(
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
                 console.log("pageFlagData-new:",pageFlagData)
-
+                const validObj=getValidObject(pageFlagData)
+                const documentpageflagsObj=validObj?.documentpageflags
+                console.log("\ndocumentpageflagsObj",documentpageflagsObj)
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
                     annotationList: annotations,
@@ -1366,18 +1374,24 @@ const Redlining = React.forwardRef(
                   requestid,
                   astr,
                   (data) => {
-                    fetchPageFlag(
-                      requestid,
-                      currentLayer.name.toLowerCase(),
-                      docsForStitcing.map(d => d.file.documentid),
-                      (error) => console.log(error)
-                    );
+                    if(data.status == true){
+                      const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                      if(updatedPageFlags?.length > 0)
+                        updatePageFlags1(updatedPageFlags);
+                    }
+                    
+                    // fetchPageFlag(
+                    //   requestid,
+                    //   currentLayer.name.toLowerCase(),
+                    //   docsForStitcing.map(d => d.file.documentid),
+                    //   (error) => console.log(error)
+                    // );
                   },
                   (error) => {
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  getValidObject(pageFlagData),
+                  validObj,
                   sectn
                   //pageSelections
                 );
@@ -1412,9 +1426,6 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-                        console.log("Error:", error);
-                      });
                       // fetchPageFlag(
                       //   requestid,
                       //   currentLayer.name.toLowerCase(),
@@ -1608,8 +1619,6 @@ const Redlining = React.forwardRef(
     };
 
     // useEffect(() => {
-    //   console.log("Inside redlining!!")
-
     //   if (documentList.length > 0) {
     //     checkSavingRedlineButton(docInstance);
     //   }
@@ -1909,30 +1918,31 @@ const Redlining = React.forwardRef(
         if (isObjectNotEmpty(pageFlagObj)) {
           pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
         }
+        const validObj=getValidObject(pageFlagData)
+        const documentpageflagsObj=validObj?.documentpageflags
         saveAnnotation(
           requestid,
           astr,
           (data) => {
-            // const updatedPageFlags = updatePageFlagOnPage(documentpageflags,pageFlags)
-            // updatePageFlags1(updatedPageFlags);
-            // fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-            //   console.log("Error:", error);
-            // });
             setPageSelections([]);
+            if(data.status == true){
+              const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+              if(updatedPageFlags?.length > 0)
+                updatePageFlags1(updatedPageFlags);
+            }       
             
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              documentList?.map(d => d.documentid),
-              (error) => console.log(error)
-            );
+            // fetchPageFlag(
+            //   requestid,
+            //   currentLayer.name.toLowerCase(),
+            //   documentList?.map(d => d.documentid),
+            //   (error) => console.log(error)
+            // );
           },
           (error) => {
             console.log(error);
           },
           currentLayer.redactionlayerid,
-          //payload,
-          getValidObject(pageFlagData),
+          validObj,
           sectn
         );
 
@@ -2063,11 +2073,6 @@ const Redlining = React.forwardRef(
                 displayedDoc,
                 pageSelectionList
               );
-              // let payload= createPageFlagPayload(
-              //   pageSelectionList,
-              //   currentLayer.redactionlayerid
-              // )
-              // let documentpageflags= payload.documentpageflags;
               const pageFlagObj = [];              
               const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
                   if (pageFlagsUpdated) {
@@ -2077,14 +2082,19 @@ const Redlining = React.forwardRef(
               if (isObjectNotEmpty(pageFlagObj)) {
                 pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
               }
-              console.log("pageFlagData:",pageFlagData)
+              const validObj=getValidObject(pageFlagData)
+              const documentpageflagsObj=validObj?.documentpageflags
+              console.log("documentpageflagsObj in saveRedaction:",documentpageflagsObj)
               saveAnnotation(
                 requestid,
                 astr,
                 (data) => {
                   setPageSelections([]);
-                  const updatedPageFlags = updatePageFlagOnPage(pageFlagData,pageFlags)
-                  updatePageFlags1(updatedPageFlags);
+                  if(data.status == true){
+                    const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                    if(updatedPageFlags?.length > 0)
+                      updatePageFlags1(updatedPageFlags);
+                  }
                   // fetchPageFlag(
                   //   requestid,
                   //   currentLayer.name.toLowerCase(),
@@ -2096,7 +2106,7 @@ const Redlining = React.forwardRef(
                   console.log(error);
                 },
                 currentLayer.redactionlayerid,
-                getValidObject(pageFlagData),
+                validObj,
                 sectn
               );
             }
@@ -2229,18 +2239,10 @@ const Redlining = React.forwardRef(
           annotationList: annotationList,
           useDisplayAuthor: true,
         });
-        // let payload= createPageFlagPayload(
-        //   pageFlagSelections,
-        //   currentLayer.redactionlayerid
-        // )
-        // let documentpageflags= payload.documentpageflags;
         saveAnnotation(
           requestid,
           astr,
           (data) => {
-            fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
-              console.log("Error:", error);
-            });
             setPageSelections([]);
           },
           (error) => {

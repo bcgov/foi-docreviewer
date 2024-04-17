@@ -524,19 +524,42 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
 }
 
 export const updatePageFlagOnPage = (documentpageflags, pageFlags) => {
-  const updatedPageFlags = [...pageFlags]; // Create a copy of the pageFlags array
+  const updatedPageFlags = [...pageFlags];
+
+  // Create an object to quickly lookup page flags by document id
+  const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {
+    map[pageFlag.documentid] = pageFlag;
+    return map;
+  }, {});
+
   for (let documentpageflag of documentpageflags) {
-      let toBeUpdated = updatedPageFlags.find((pageflag) => pageflag.documentid == documentpageflag.documentid);
-      if (toBeUpdated) {
-          for (let pageFlag of documentpageflag.pageflags) {
-              let pageFoundIndex = toBeUpdated.pageflag.findIndex((pageflag) => pageflag.page === pageFlag.page);
-              if (pageFoundIndex !== -1) {
-                  toBeUpdated.pageflag[pageFoundIndex] = pageFlag;
-              } else {
-                  toBeUpdated.pageflag.push(pageFlag);
-              }
+    let toBeUpdated = pageFlagsMap[documentpageflag.documentid];
+    
+    if (toBeUpdated) {
+      for (let pageFlag of documentpageflag.pageflags) {
+        let existingPageflag = toBeUpdated.pageflag.find(pf => pf.page === pageFlag.page);
+        
+        if (existingPageflag) {
+          if (pageFlag.deleted) {
+            toBeUpdated.pageflag = toBeUpdated.pageflag.filter(pf => pf.page !== pageFlag.page);
+          } else if (existingPageflag.flagid !== pageFlag.flagid) {
+            existingPageflag.flagid = pageFlag.flagid;
+          } else {
+            // No need to update
+            return [];
           }
+        } else if (!pageFlag.deleted) {
+          toBeUpdated.pageflag.push(pageFlag);
+        }
       }
+    } else {
+      updatedPageFlags.push({
+        documentid: documentpageflag.documentid,
+        documentversion: documentpageflag.version,
+        pageflag: documentpageflag.pageflags
+      });
+    }
   }
+  
   return updatedPageFlags;
-}
+};

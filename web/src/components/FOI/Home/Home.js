@@ -144,13 +144,9 @@ function Home() {
   }
 
   const updatePageFlags1 = (updatedFlags) => {
-    console.log("HOME --> updatePageFlags1:",updatedFlags)
+    console.log("HOME::updatedFlags::",updatedFlags)
     setPageFlags(updatedFlags);
   };
-
-  useEffect(() => {
-    console.log("!!!!!!!!!!!!!!!!!!")
-  },[pageFlags]);
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
