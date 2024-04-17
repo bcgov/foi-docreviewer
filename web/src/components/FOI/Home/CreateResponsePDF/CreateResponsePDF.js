@@ -1,6 +1,18 @@
 import { pageFlagTypes } from "../../../../constants/enum";
+import TextField from "@mui/material/TextField";
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 
-export const createResponsePDFMenu = (document) => {
+import Dropdown from 'react-bootstrap/Dropdown';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+
+
+import React, { useEffect, useState } from "react";
+import ReactModal from "react-modal-resizable-draggable";
+// import useSaveResponsePackage from "./useSaveResponsePackage";
+
+export const createResponsePDFMenu = (document, docInstance, docViewer) => {
+  // const {enableSavingRedline} = useSaveResponsePackage(docInstance, docViewer);
   const menu = document.createElement("div");
   menu.classList.add("Overlay");
   menu.classList.add("FlyoutMenu");
@@ -10,6 +22,22 @@ export const createResponsePDFMenu = (document) => {
   menu.style.minWidth = "200px";
   menu.padding = "0px";
   menu.style.display = "none";
+
+  // const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
+  // const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
+  // const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+  // redlineForOipcBtn.onclick = () => {
+  //   handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+  // };
+  // redlineForSignOffBtn.onclick = () => {
+  //   handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+  // };
+  // finalPackageBtn.onclick = () => {
+  //   handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+  // };
+  // menu.appendChild(redlineForOipcBtn);
+  // menu.appendChild(redlineForSignOffBtn);
+  // menu.appendChild(finalPackageBtn);
 
   return menu;
 };
@@ -231,3 +259,86 @@ export const isValidRedlineDownload = (pageFlags) => {
   }
   return isvalid;
 };
+  
+export class ResponseDropdown extends React.Component {
+  constructor(props) {
+    super(props);
+    this.menuBtn = React.createRef()
+    this.state = {
+      modalOpen: false
+    }
+    const parent = props.instance.Core.documentViewer.getScrollViewElement().parentElement;
+    const document = props.instance.UI.iframeWindow.document;
+    const menu = createResponsePDFMenu(document);
+    const redlineForSignOffBtn = createRedlineForSignOffSelection(document, true);
+    const redlineForOipcBtn = createOIPCForReviewSelection(document, true);
+    const finalPackageBtn = createFinalPackageSelection(document, true);
+    redlineForOipcBtn.onclick = () => {
+      this.setState({
+        modalOpen: true
+      });
+    };
+    // redlineForOipcBtn.onclick = () => {
+    //   handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+    // };
+    // redlineForSignOffBtn.onclick = () => {
+    //   handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+    // };
+    // finalPackageBtn.onclick = () => {
+    //   handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+    // };
+    menu.appendChild(redlineForOipcBtn);
+    menu.appendChild(redlineForSignOffBtn);
+    menu.appendChild(finalPackageBtn);
+    parent.appendChild(menu);
+    this.options = [
+      {
+        "label": "Redline for OIPC Review",      
+      },
+      {
+        "label": "Redline for Sign Off",      
+      },
+      {
+        "label": "Final Package for Applicant",      
+      },
+    ]
+    this.openMenu = () => {
+      if (menu.style.display === "flex") {
+        menu.style.display = "none";
+      } else {
+        menu.style.left = `${
+          document.body.clientWidth - (this.menuBtn.current.clientWidth + 96)
+        }px`;
+        menu.style.display = "flex";
+      }
+    }
+  }
+  render() { return (
+    <>
+      <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog"}
+          // onRequestClose={}
+          isOpen={this.state.modalOpen}
+      ></ReactModal>
+      <button ref={this.menuBtn} class="create_response_pdf" onClick={this.openMenu}>
+        Create Response PDF
+      </button>
+    </>
+  )}
+}
+
+// export const Slider = () => {
+//   const [test, setTest] = useState(0)
+//   return (
+//     <input
+//       value={test}
+//       type="range"
+//       onInput={(e) => { setTest(e.target.value)}}
+//     >
+//     </input>    
+//   );
+// }

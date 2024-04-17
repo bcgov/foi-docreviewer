@@ -64,6 +64,8 @@ import {
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
+  ResponseDropdown,
+  // Slider,
   renderCustomButton,
   isValidRedlineDownload,
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
@@ -216,34 +218,45 @@ const Redlining = React.forwardRef(
           instance.UI.setHeaderItems((header) => {
             //Create custom Create Reseponse PDF button
             const parent = documentViewer.getScrollViewElement().parentElement;
-            const menu = createResponsePDFMenu(document);
-            const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
-            const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
-            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
-            redlineForOipcBtn.onclick = () => {
-              handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
-            };
-            redlineForSignOffBtn.onclick = () => {
-              handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
-            };
-            finalPackageBtn.onclick = () => {
-              handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
-            };
-            menu.appendChild(redlineForOipcBtn);
-            menu.appendChild(redlineForSignOffBtn);
-            menu.appendChild(finalPackageBtn);
-            parent.appendChild(menu);
+            // const menu = createResponsePDFMenu(document, instance, documentViewer);
+            // const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
+            // const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
+            // const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+            // redlineForOipcBtn.onclick = () => {
+            //   handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+            // };
+            // redlineForSignOffBtn.onclick = () => {
+            //   handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+            // };
+            // finalPackageBtn.onclick = () => {
+            //   handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+            // };
+            // menu.appendChild(redlineForOipcBtn);
+            // menu.appendChild(redlineForSignOffBtn);
+            // menu.appendChild(finalPackageBtn);
+            // parent.appendChild(menu);
 
-            //Create render function to render custom Create Reseponse PDF button
-            const newCustomElement = {
+            // Create render function to render custom Create Reseponse PDF button
+            // const newCustomElement = {
+            //   type: "customElement",
+            //   render: () => renderCustomButton(document, menu)
+            // };
+            // // insert dropdown button in front of search button
+            // header.headers.default.splice(
+            //   header.headers.default.length - 3,
+            //   0,
+            //   newCustomElement
+            // );
+            const newCustomElement2 = {
               type: "customElement",
-              render: () => renderCustomButton(document, menu)
+              // render: () => renderCustomButton(document, menu)
+              render: () => <ResponseDropdown instance={instance}/>
             };
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
               0,
-              newCustomElement
+              newCustomElement2
             );
           });
 
@@ -1132,23 +1145,23 @@ const Redlining = React.forwardRef(
     };
 
     //useEffect to handle validation of Response Package downloads
-    useEffect(() => {
-      const handleCreateResponsePDFClick = () => {
-        checkSavingRedlineButton(docInstance);
-      }
-      if (docInstance && documentList.length > 0) {
-        console.log("EVNT LISTINER")
-        const document = docInstance?.UI.iframeWindow.document;
-        document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
-      }
-      //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
-      return () => {
-        if (docInstance && documentList.length > 0) {
-          const document = docInstance?.UI.iframeWindow.document;
-          document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
-        }
-      };
-    }, [pageFlags, isStitchingLoaded]);
+    // useEffect(() => {
+    //   const handleCreateResponsePDFClick = () => {
+    //     checkSavingRedlineButton(docInstance);
+    //   }
+    //   if (docInstance && documentList.length > 0) {
+    //     console.log("EVNT LISTINER")
+    //     const document = docInstance?.UI.iframeWindow.document;
+    //     document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
+    //   }
+    //   //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
+    //   return () => {
+    //     if (docInstance && documentList.length > 0) {
+    //       const document = docInstance?.UI.iframeWindow.document;
+    //       document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
+    //     }
+    //   };
+    // }, [pageFlags, isStitchingLoaded]);
 
     const stitchPages = (_doc, pdftronDocObjs) => {
       for (let filerow of pdftronDocObjs) {
