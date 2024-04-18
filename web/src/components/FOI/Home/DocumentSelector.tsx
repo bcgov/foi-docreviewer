@@ -50,7 +50,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
     setWarningModalOpen,
     divisions,
     pageFlags,
-    updatePageFlags1
+    syncPageFlagsOnAction
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
@@ -140,17 +140,16 @@ const DocumentSelector = React.memo(React.forwardRef(({
         }
     }, [requestInfo]);
 
-    const updatePageFlags = () => {
+    //const updatePageFlags = () => {
         // fetchPageFlag(
         //     requestid,
         //     currentLayer.name.toLowerCase(),
         //     Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
         //     (error: any) => console.log(error)
         // )
-    }
+    //}
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
-        // console.log("ministryfn")
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
         if (consultVal?.programareaid?.length === 1 && consultVal?.other?.length === 0) {
             let ministry: any = consultMinistries?.find((ministry: any) => ministry.programareaid === consultVal.programareaid[0]);
@@ -1198,13 +1197,12 @@ const DocumentSelector = React.memo(React.forwardRef(({
                                 pageMappedDocs={pageMappedDocs}
                                 selectTreeItem={selectTreeItem}
                                 setWarningModalOpen={setWarningModalOpen}
-                                updatePageFlags={updatePageFlags}
                                 pageFlagList={pageFlagList}                                
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestid={requestid}
                                 assignIcon={assignIcon}
                                 pageFlags={pageFlags}
-                                updatePageFlags1={updatePageFlags1}
+                                syncPageFlagsOnAction={syncPageFlagsOnAction}
                             /> //: <></> 
                             // divisions?.length > 0 &&
                             //     <DivisionTreeView                                

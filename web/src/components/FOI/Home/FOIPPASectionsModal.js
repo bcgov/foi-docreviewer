@@ -22,8 +22,6 @@ import ListItem from "@mui/material/ListItem";
 export const FOIPPASectionsModal= ({
     cancelRedaction,
     modalOpen,
-    changeSortOrder,
-    modalSortAsc,
     sections,
     sectionIsDisabled,
     selectedSections,
@@ -38,6 +36,7 @@ export const FOIPPASectionsModal= ({
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
+    const [modalSortAsc, setModalSortAsc] = useState(true);
 
     const AntSwitch = styled(Switch)(({ theme }) => ({
         width: 28,
@@ -83,6 +82,12 @@ export const FOIPPASectionsModal= ({
 
       const changeModalSort = (e) => {
         setModalSortNumbered(e.target.checked);
+      };
+
+      const changeSortOrder = (e) => {
+        if (modalSortNumbered) {
+          setModalSortAsc(!modalSortAsc);
+        }
       };
 
       const compareValues = (a, b) => {

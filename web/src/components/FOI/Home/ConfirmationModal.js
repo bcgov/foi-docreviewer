@@ -20,6 +20,7 @@ export const ConfirmationModal= ({
     handleIncludeNRPages,
     includeDuplicatePages,
     handleIncludeDuplicantePages,
+    isDisableNRDuplicate,
     saveDoc,
     modalData
 }) => {
@@ -56,6 +57,7 @@ export const ConfirmationModal= ({
               id="nr-checkbox"
               checked={includeNRPages}
               onChange={handleIncludeNRPages}
+              disabled={isDisableNRDuplicate}
             />
             <label for="nr-checkbox">Include NR pages</label>
             <br/>
@@ -66,6 +68,7 @@ export const ConfirmationModal= ({
               id="duplicate-checkbox"
               checked={includeDuplicatePages}
               onChange={handleIncludeDuplicantePages}
+              disabled={isDisableNRDuplicate}
             />
             <label for="duplicate-checkbox">Include Duplicate pages</label>
             </>}

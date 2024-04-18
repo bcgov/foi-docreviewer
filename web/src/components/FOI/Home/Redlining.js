@@ -10,8 +10,6 @@ import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
-import Switch from "@mui/material/Switch";
-import { styled } from "@mui/material/styles";
 import {
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
@@ -73,22 +71,19 @@ const Redlining = React.forwardRef(
       requestid,
       docsForStitcing,
       currentDocument,
-      stitchedDoc,
-      setStitchedDoc,
       individualDoc,
       pageMappedDocs,
-      setPageMappedDocs,
-      incompatibleFiles,
       setIsStitchingLoaded,
       isStitchingLoaded,
-      licenseKey,
+      incompatibleFiles,
       setWarningModalOpen,
       scrollLeftPanel,
       pageFlags, 
-      updatePageFlags1
+      syncPageFlagsOnAction
     },
     ref
   ) => {
+
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
@@ -99,14 +94,13 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
-    const [redactionInfoIsLoaded, setRedactionInfoIsLoaded] = useState(false);
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
+    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
 
-    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
@@ -124,15 +118,11 @@ const Redlining = React.forwardRef(
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [pageSelections, setPageSelections] = useState([]);
-    const [modalSortNumbered, setModalSortNumbered] = useState(false);
-    const [modalSortAsc, setModalSortAsc] = useState(true);
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
     const [iframeDocument, setIframeDocument] = useState(null);
-    //const [modalFor, setModalFor] = useState("");
     const [redlineSaving, setRedlineSaving] = useState(false);
-    //const [redlineCategory, setRedlineCategory] = useState(false);
-    // State variables for Bulk Edit using Multi Selection option
+    /** State variables for Bulk Edit using Multi Selection option*/
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
@@ -151,7 +141,7 @@ const Redlining = React.forwardRef(
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     //xml parser
     const parser = new XMLParser();
-    // Response Package && Redline download and saving logic (react custom hooks)
+    /**Response Package && Redline download and saving logic (react custom hooks)*/
     const { 
       includeNRPages,
       includeDuplicatePages,
@@ -171,7 +161,6 @@ const Redlining = React.forwardRef(
       enableSavingFinal,
     } = useSaveResponsePackage();
 
-    // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
@@ -312,15 +301,11 @@ const Redlining = React.forwardRef(
             setAnnots(Annotations);
             setDocViewerMath(Math);
 
-            //update isloaded flag
-            //localStorage.setItem("isDocumentLoaded", "true");
-
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;            
             // let doclistCopy = [...docsForStitcing];
             let doclistCopy = getDocumentsForStitching([...docsForStitcing])
-            
             //Disable the delete Icon if only 1 page for a request
             const disableDelete = doclistCopy.length === 1 && doclistCopy[0]?.file?.pagecount === 1;
             if (disableDelete) {
@@ -370,7 +355,6 @@ const Redlining = React.forwardRef(
                 )
               );
             }
-
             Promise.all(objpreptasks);
 
             fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
@@ -726,7 +710,7 @@ const Redlining = React.forwardRef(
               currentLayer.name.toLowerCase(),
               getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
               (data) => {
-                updatePageFlags1(data)
+                syncPageFlagsOnAction(data)
               },
               (error) => console.log(error)
             );
@@ -876,7 +860,7 @@ const Redlining = React.forwardRef(
                         if(data.status == true){
                           const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
                           if(updatedPageFlags?.length > 0)
-                            updatePageFlags1(updatedPageFlags);
+                            syncPageFlagsOnAction(updatedPageFlags);
                         }
                         // fetchPageFlag(
                         //   requestid,
@@ -1059,7 +1043,7 @@ const Redlining = React.forwardRef(
                     if(data.status == true){
                       const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
                       if(updatedPageFlags?.length > 0)
-                        updatePageFlags1(updatedPageFlags);
+                        syncPageFlagsOnAction(updatedPageFlags);
                     }
                     
                     // fetchPageFlag(
@@ -1589,11 +1573,6 @@ const Redlining = React.forwardRef(
         foiministryrequestid: requestid,
       };
       _annotationtring.then((astr) => {
-        // let payload= createPageFlagPayload(
-        //   pageSelectionList,
-        //   currentLayer.redactionlayerid
-        // )
-        // let documentpageflags= payload.documentpageflags;
         let pageFlagData = {};
         if (isObjectNotEmpty(pageFlagObj)) {
           pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
@@ -1608,9 +1587,8 @@ const Redlining = React.forwardRef(
             if(data.status == true){
               const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
               if(updatedPageFlags?.length > 0)
-                updatePageFlags1(updatedPageFlags);
+                syncPageFlagsOnAction(updatedPageFlags);
             }       
-            
             // fetchPageFlag(
             //   requestid,
             //   currentLayer.name.toLowerCase(),
@@ -1773,7 +1751,7 @@ const Redlining = React.forwardRef(
                   if(data.status == true){
                     const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
                     if(updatedPageFlags?.length > 0)
-                      updatePageFlags1(updatedPageFlags);
+                      syncPageFlagsOnAction(updatedPageFlags);
                   }
                   // fetchPageFlag(
                   //   requestid,
@@ -1932,7 +1910,6 @@ const Redlining = React.forwardRef(
           null
         );
         annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
-
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
         setNewRedaction(null);
@@ -2059,7 +2036,6 @@ const Redlining = React.forwardRef(
     };
 
     const setMessageModalForNotResponsive = () => {
-
       updateModalData({
         modalTitle: "Not Responsive Default",
         modalMessage: [
@@ -2071,16 +2047,7 @@ const Redlining = React.forwardRef(
           </div>,
         ],
       });
-
-      // setModalTitle("Not Responsive Default");
-      //     setModalMessage(
-      //     <div>You have 'Not Responsive' selected as a default section.
-      //       <ul>
-      //         <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
-      //         <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
-      //       </ul>
-      //     </div>);
-          setMessageModalOpen(true)
+      setMessageModalOpen(true)
     }
 
     useEffect(() => {
@@ -2128,58 +2095,6 @@ const Redlining = React.forwardRef(
             newSelectedSections
           )
       );
-    };
-
-    const AntSwitch = styled(Switch)(({ theme }) => ({
-      width: 28,
-      height: 16,
-      padding: 0,
-      display: "flex",
-      "&:active": {
-        "& .MuiSwitch-thumb": {
-          width: 15,
-        },
-        "& .MuiSwitch-switchBase.Mui-checked": {
-          transform: "translateX(9px)",
-        },
-      },
-      "& .MuiSwitch-switchBase": {
-        padding: 2,
-        "&.Mui-checked": {
-          transform: "translateX(12px)",
-          color: "#fff",
-          "& + .MuiSwitch-track": {
-            opacity: 1,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "#177ddc" : "#38598a",
-          },
-        },
-      },
-      "& .MuiSwitch-thumb": {
-        boxShadow: "0 2px 4px 0 rgb(0 35 11 / 20%)",
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        transition: theme.transitions.create(["width"], {
-          duration: 200,
-        }),
-      },
-      "& .MuiSwitch-track": {
-        borderRadius: 16 / 2,
-        opacity: 1,
-        backgroundColor: theme.palette.mode === "dark" ? "#177ddc" : "#38598a",
-        boxSizing: "border-box",
-      },
-    }));
-
-    const changeModalSort = (e) => {
-      setModalSortNumbered(e.target.checked);
-    };
-
-    const changeSortOrder = (e) => {
-      if (modalSortNumbered) {
-        setModalSortAsc(!modalSortAsc);
-      }
     };
 
     const cancelSaveRedlineDoc = () => {
@@ -2230,17 +2145,6 @@ const Redlining = React.forwardRef(
       setIncludeNRPages(false);
     };
 
-    const compareValues = (a, b) => {
-      if (modalSortNumbered) {
-        if (modalSortAsc) {
-          return a.id - b.id;
-        } else {
-          return b.id - a.id;
-        }
-      } else {
-        return b.count - a.count;
-      }
-    };
 
     const decodeAstr = (astr) => {
       const parser = new DOMParser()
@@ -2294,8 +2198,6 @@ const Redlining = React.forwardRef(
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
-            changeSortOrder={changeSortOrder}
-            modalSortAsc={modalSortAsc}
             sections={sections}
             sectionIsDisabled={sectionIsDisabled}
             selectedSections={selectedSections}
@@ -2318,6 +2220,7 @@ const Redlining = React.forwardRef(
           handleIncludeNRPages={handleIncludeNRPages}
           includeDuplicatePages={includeDuplicatePages}
           handleIncludeDuplicantePages={handleIncludeDuplicantePages}
+          isDisableNRDuplicate={isDisableNRDuplicate}
           saveDoc={saveDoc}
           modalData={modalData}
         />

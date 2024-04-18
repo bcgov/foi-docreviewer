@@ -143,8 +143,8 @@ function Home() {
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
-  const updatePageFlags1 = (updatedFlags) => {
-    console.log("HOME::updatedFlags::",updatedFlags)
+  const syncPageFlagsOnAction = (updatedFlags) => {
+    console.log("HOME-Inside syncPageFlagsOnAction!")
     setPageFlags(updatedFlags);
   };
 
@@ -259,7 +259,7 @@ function Home() {
                 setWarningModalOpen={setWarningModalOpen}
                 divisions={divisions}
                 pageFlags={pageFlags}
-                updatePageFlags1={updatePageFlags1}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -277,18 +277,15 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
                   pageFlags={pageFlags}
-                  updatePageFlags1={updatePageFlags1}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
 
                 />
               )
