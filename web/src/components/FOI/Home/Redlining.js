@@ -1,27 +1,15 @@
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import React, {
   useRef,
   useEffect,
   useState,
   useImperativeHandle,
   useCallback,
+  useMemo
 } from "react";
 import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
-import ReactModal from "react-modal-resizable-draggable";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import CloseIcon from "@mui/icons-material/Close";
-import IconButton from "@mui/material/IconButton";
-import Switch from "@mui/material/Switch";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import { styled } from "@mui/material/styles";
 import {
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
@@ -40,8 +28,6 @@ import {
   REDACTION_SELECT_LIMIT,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
-import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { pageFlagTypes } from "../../../constants/enum";
 import {
@@ -53,10 +39,11 @@ import {
   getSliceSetDetails,
   sortDocObjects,
   getDocumentsForStitching,
-  getJoinedSections,
+  constructPageFlags,
   isObjectNotEmpty,
   getValidObject,
-  constructPageFlags
+  updatePageFlagOnPage,
+  getJoinedSections,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -73,6 +60,9 @@ import {
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
 import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
+import {ConfirmationModal} from "./ConfirmationModal";
+import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
+import { NRWarningModal } from "./NRWarningModal";
 
 const Redlining = React.forwardRef(
   (
@@ -81,37 +71,36 @@ const Redlining = React.forwardRef(
       requestid,
       docsForStitcing,
       currentDocument,
-      stitchedDoc,
-      setStitchedDoc,
       individualDoc,
       pageMappedDocs,
-      setPageMappedDocs,
-      incompatibleFiles,
       setIsStitchingLoaded,
       isStitchingLoaded,
-      licenseKey,
+      incompatibleFiles,
       setWarningModalOpen,
-      scrollLeftPanel
+      scrollLeftPanel,
+      pageFlags, 
+      syncPageFlagsOnAction
     },
     ref
   ) => {
+
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
 
     document.title = requestnumber + " - FOI Document Reviewer"
 
-    const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
+    //const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
     const sections = useSelector((state) => state.documents?.sections);
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
+    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
 
-    const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
@@ -129,16 +118,11 @@ const Redlining = React.forwardRef(
     const [editAnnot, setEditAnnot] = useState(null);
     const [saveDisabled, setSaveDisabled] = useState(true);
     const [pageSelections, setPageSelections] = useState([]);
-    const [modalSortNumbered, setModalSortNumbered] = useState(false);
-    const [modalSortAsc, setModalSortAsc] = useState(true);
     const [fetchAnnotResponse, setFetchAnnotResponse] = useState(false);
     const [merge, setMerge] = useState(false);
     const [iframeDocument, setIframeDocument] = useState(null);
-    const [modalFor, setModalFor] = useState("");
-    const [modalTitle, setModalTitle] = useState("");
-    const [modalMessage, setModalMessage] = useState([""]);
-    const [modalButtonLabel, setModalButtonLabel] = useState("");
-    // State variables for Bulk Edit using Multi Selection option
+    const [redlineSaving, setRedlineSaving] = useState(false);
+    /** State variables for Bulk Edit using Multi Selection option*/
     const [editRedacts, setEditRedacts] = useState(null);
     const [multiSelectFooter, setMultiSelectFooter] = useState(null);
     const [enableMultiSelect, setEnableMultiSelect] = useState(false);
@@ -148,19 +132,16 @@ const Redlining = React.forwardRef(
     const [stichedfiles, setstichedfiles] = useState([]);
     const [stitchPageCount, setStitchPageCount] = useState(0);
     const [skipDeletePages, setSkipDeletePages] = useState(false);
-    const [pagesRemoved, setPagesRemoved] = useState([]);
-
+    const [modalData, setModalData] = useState(null);
+    //const [pageFlags, setPageFlags]= useState([]);
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
-    
-    //xml parser
-    const parser = new XMLParser();
-
-    const [redlineSaving, setRedlineSaving] = useState(false);
+    const [pagesRemoved, setPagesRemoved] = useState([]);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
-
-    // Response Package && Redline download and saving logic (react custom hooks)
+    //xml parser
+    const parser = new XMLParser();
+    /**Response Package && Redline download and saving logic (react custom hooks)*/
     const { 
       includeNRPages,
       includeDuplicatePages,
@@ -180,7 +161,6 @@ const Redlining = React.forwardRef(
       enableSavingFinal,
     } = useSaveResponsePackage();
 
-    // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
@@ -228,13 +208,13 @@ const Redlining = React.forwardRef(
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
             const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
             redlineForOipcBtn.onclick = () => {
-              handleRedlineForOipcClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+              handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
             };
             redlineForSignOffBtn.onclick = () => {
-              handleRedlineForSignOffClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+              handleRedlineForSignOffClick(updateModalData, setRedlineModalOpen);
             };
             finalPackageBtn.onclick = () => {
-              handleFinalPackageClick(setModalFor, setModalTitle, setModalMessage, setModalButtonLabel, setRedlineModalOpen);
+              handleFinalPackageClick(updateModalData, setRedlineModalOpen);
             };
             menu.appendChild(redlineForOipcBtn);
             menu.appendChild(redlineForSignOffBtn);
@@ -275,27 +255,20 @@ const Redlining = React.forwardRef(
           });
           setDocInstance(instance);
 
-          PDFNet.initialize();
-          documentViewer
-            .getTool(instance.Core.Tools.ToolNames.REDACTION)
-            .setStyles(() => ({
-              FillColor: new Annotations.Color(255, 255, 255),
-            }));
-          documentViewer
-            .getTool(instance.Core.Tools.ToolNames.REDACTION2)
-            .setStyles(() => ({
-              FillColor: new Annotations.Color(255, 255, 255),
-            }));
-          documentViewer
-            .getTool(instance.Core.Tools.ToolNames.REDACTION3)
-            .setStyles(() => ({
-              FillColor: new Annotations.Color(255, 255, 255),
-            }));
-          documentViewer
-            .getTool(instance.Core.Tools.ToolNames.REDACTION4)
-            .setStyles(() => ({
-              FillColor: new Annotations.Color(255, 255, 255),
-            }));
+          //PDFNet.initialize();
+          const redactionToolNames = [
+            instance.Core.Tools.ToolNames.REDACTION,
+            instance.Core.Tools.ToolNames.REDACTION2,
+            instance.Core.Tools.ToolNames.REDACTION3,
+            instance.Core.Tools.ToolNames.REDACTION4
+          ];
+          redactionToolNames.forEach(toolName => {
+            documentViewer
+              .getTool(toolName)
+              .setStyles(() => ({
+                FillColor: new Annotations.Color(255, 255, 255),
+              }));
+          });
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             //Search Document Logic (for multi-keyword search and etc)
@@ -305,7 +278,9 @@ const Redlining = React.forwardRef(
               options.ambientString=true;
               if (searchPattern.includes("|")) {
                 options.regex = true;
-                //Conditional that ensures that there is no blank string after | and inbetween (). When regex is on, a character MUST follow | and must be inbetween () or else the regex search breaks as it is not a valid regex expression
+                /** Conditional that ensures that there is no blank string after | and inbetween ().
+                 * When regex is on, a character MUST follow | and must be inbetween () or 
+                 * else the regex search breaks as it is not a valid regex expression **/
                 if (!searchPattern.split("|").includes("") && !searchPattern.split("()").includes("")) {
                   originalSearch.apply(this, [searchPattern, options]);
                 }
@@ -326,15 +301,11 @@ const Redlining = React.forwardRef(
             setAnnots(Annotations);
             setDocViewerMath(Math);
 
-            //update isloaded flag
-            //localStorage.setItem("isDocumentLoaded", "true");
-
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;            
             // let doclistCopy = [...docsForStitcing];
             let doclistCopy = getDocumentsForStitching([...docsForStitcing])
-            
             //Disable the delete Icon if only 1 page for a request
             const disableDelete = doclistCopy.length === 1 && doclistCopy[0]?.file?.pagecount === 1;
             if (disableDelete) {
@@ -384,7 +355,6 @@ const Redlining = React.forwardRef(
                 )
               );
             }
-
             Promise.all(objpreptasks);
 
             fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
@@ -417,134 +387,141 @@ const Redlining = React.forwardRef(
             }
           })
           
-          documentViewer.addEventListener("click", async () => {
-            scrollLeftPanel(documentViewer.getCurrentPage());
+          documentViewer.addEventListener("click", async (event) => {
+            scrollLeftPanel(event, documentViewer.getCurrentPage());
           });
 
           let root = null;
 
-          // add event listener for hiding saving menu
-          document.body.addEventListener(
-            "click",
-            (e) => {
-              document.getElementById("saving_menu").style.display = "none"; 
-              
-              // toggle between notesPanel and redactionPanel handled here
-              const toggleNotesButton = document.querySelector(
-                '[data-element="toggleNotesButton"]'
-              );
-              if (toggleNotesButton) {
-                toggleNotesButton?.addEventListener("click", function () {
-                  handleRedactionPanelClick(true, instance);
-                  const isActive = toggleNotesButton?.classList.contains("active");
-                  if (!isActive) {
-                      toggleNotesButton.classList.add("active");
-                      instance.UI.enableElements(["notesPanel"]);
-                    }
-                });
+    // add event listener for hiding saving menu
+    document.body.addEventListener(
+      "click",
+      (e) => {
+        document.getElementById("saving_menu").style.display = "none"; 
+        
+        // toggle between notesPanel and redactionPanel handled here
+        const toggleNotesButton = document.querySelector(
+          '[data-element="toggleNotesButton"]'
+        );
+        if (toggleNotesButton) {
+          toggleNotesButton?.addEventListener("click", function () {
+            handleRedactionPanelClick(true, instance);
+            const isActive = toggleNotesButton?.classList.contains("active");
+            if (!isActive) {
+                toggleNotesButton.classList.add("active");
+                instance.UI.enableElements(["notesPanel"]);
               }
+          });
+        }
 
-              const customRedactionPanel = document.querySelector(
-                '[data-element="customRedactionPanel"]'
-              );
-              if (customRedactionPanel) {
-                customRedactionPanel?.addEventListener("click", function () {
-                  if (toggleNotesButton) {
-                    const isActive = toggleNotesButton?.classList.contains("active");                    
-                    if (isActive) {
-                      toggleNotesButton.classList.remove("active");
-                      instance.UI.closeElements(['notesPanel']);
-                      instance.UI.disableElements(["notesPanel"]);
-                    }
-                  }
-                });
+        const customRedactionPanel = document.querySelector(
+          '[data-element="customRedactionPanel"]'
+        );
+        if (customRedactionPanel) {
+          customRedactionPanel?.addEventListener("click", function () {
+            if (toggleNotesButton) {
+              const isActive = toggleNotesButton?.classList.contains("active");                    
+              if (isActive) {
+                toggleNotesButton.classList.remove("active");
+                instance.UI.closeElements(['notesPanel']);
+                instance.UI.disableElements(["notesPanel"]);
               }
+            }
+          });
+        }
 
-              //START: Bulk Edit using Multi Select Option
-              //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
-              const multiDeleteButton = document.querySelector(
-                '[data-element="multiDeleteButton"]'
-              );
-              if (multiDeleteButton) {
-                multiDeleteButton?.addEventListener("click", function () {
-                  root = null;
-                  setMultiSelectFooter(root);
-                  setEnableMultiSelect(false);
-                });
-              }
+        //START: Bulk Edit using Multi Select Option
+        //remove MultiSelectedAnnotations on click of multiDeleteButton because post that nothing will be selected.
+        const multiDeleteButton = document.querySelector(
+          '[data-element="multiDeleteButton"]'
+        );
+        if (multiDeleteButton) {
+          multiDeleteButton?.addEventListener("click", function () {
+            root = null;
+            setMultiSelectFooter(root);
+            setEnableMultiSelect(false);
+          });
+        }
 
-              //remove MultiSelectedAnnotations on click of multi-select-footer close button
-              const closeButton = document.querySelector(".close-container");
-              if (closeButton) {
-                closeButton?.addEventListener("click", function () {
-                  root = null;
-                  setMultiSelectFooter(root);
-                  setEnableMultiSelect(false);
-                });
-              }
-              //remove MultiSelectedAnnotations on click of Delete WarningModalSignButton
-              const warningButton = document.querySelector(
-                '[data-element="WarningModalSignButton"]'
-              );
-              warningButton?.addEventListener("click", function () {
-                root = null;
-                setMultiSelectFooter(root);
-                setEnableMultiSelect(false);
-              });
-
-              //remove MultiSelectedAnnotations on click of multi-select-button
-              const button = document.querySelector(
-                '[data-element="multiSelectModeButton"]'
-              );
-
-              button?.addEventListener("click", function () {
-                const isActive = button?.classList.contains("active");
-                if (isActive) {
-                  root = null;
-                  setMultiSelectFooter(root);
-                  setEnableMultiSelect(false);
-                }
-              });
-
-              const isButtonActive = button?.classList.contains("active");
-              if (isButtonActive) {
-                const _multiSelectFooter = document.querySelector(
-                  ".multi-select-footer"
-                );
-                let editButton = document.querySelector(".edit-button");
-                if (!editButton) {
-                  editButton = document.createElement("div");
-                  editButton.classList.add("edit-button");
-                  _multiSelectFooter?.insertBefore(
-                    editButton,
-                    _multiSelectFooter.firstChild
-                  );
-                }
-                const listItems =
-                  document.querySelectorAll('[role="listitem"]');
-                listItems.forEach((listItem) => {
-                  let checkbox = listItem.querySelector(
-                    'input[type="checkbox"]'
-                  );
-                  if (checkbox) {
-                    if (root === null) {
-                      root = createRoot(editButton);
-                      setMultiSelectFooter(root);
-                    }
-                    checkbox.addEventListener("click", function () {
-                      setEnableMultiSelect(true);
-                    });
-                  }
-                });
-                //END: Bulk Edit using Multi Select Option
-              }
-            },
-            true
-          );
+        //remove MultiSelectedAnnotations on click of multi-select-footer close button
+        const closeButton = document.querySelector(".close-container");
+        if (closeButton) {
+          closeButton?.addEventListener("click", function () {
+            root = null;
+            setMultiSelectFooter(root);
+            setEnableMultiSelect(false);
+          });
+        }
+        //remove MultiSelectedAnnotations on click of Delete WarningModalSignButton
+        const warningButton = document.querySelector(
+          '[data-element="WarningModalSignButton"]'
+        );
+        warningButton?.addEventListener("click", function () {
+          root = null;
+          setMultiSelectFooter(root);
+          setEnableMultiSelect(false);
         });
-      };
-      initializeWebViewer();
+
+        //remove MultiSelectedAnnotations on click of multi-select-button
+        const button = document.querySelector(
+          '[data-element="multiSelectModeButton"]'
+        );
+
+        button?.addEventListener("click", function () {
+          const isActive = button?.classList.contains("active");
+          if (isActive) {
+            root = null;
+            setMultiSelectFooter(root);
+            setEnableMultiSelect(false);
+          }
+        });
+
+        const isButtonActive = button?.classList.contains("active");
+        if (isButtonActive) {
+          const _multiSelectFooter = document.querySelector(
+            ".multi-select-footer"
+          );
+          let editButton = document.querySelector(".edit-button");
+          if (!editButton) {
+            editButton = document.createElement("div");
+            editButton.classList.add("edit-button");
+            _multiSelectFooter?.insertBefore(
+              editButton,
+              _multiSelectFooter.firstChild
+            );
+          }
+          const listItems =
+            document.querySelectorAll('[role="listitem"]');
+          listItems.forEach((listItem) => {
+            let checkbox = listItem.querySelector(
+              'input[type="checkbox"]'
+            );
+            if (checkbox) {
+              if (root === null) {
+                root = createRoot(editButton);
+                setMultiSelectFooter(root);
+              }
+              checkbox.addEventListener("click", function () {
+                setEnableMultiSelect(true);
+              });
+            }
+          });
+          //END: Bulk Edit using Multi Select Option
+        }
+      },
+      true
+    );
+    });
+    };
+    initializeWebViewer();
     }, []);
+
+
+
+    const updateModalData = (newModalData) => {
+      setModalData(newModalData);
+    };
+
 
     useEffect(() =>{
         if (clickRedactionPanel) {
@@ -645,7 +622,6 @@ const Redlining = React.forwardRef(
         if (currentLayer) {
           if (currentLayer.name.toLowerCase() === "response package") {
             // Manually create white boxes to simulate redaction because apply redaction is permanent
-
             const existingAnnotations = annotManager.getAnnotationsList();
             const redactions = existingAnnotations.filter(
               (a) => a.Subject === "Redact"
@@ -728,10 +704,14 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name.toLowerCase()
             );
+            //console.log("fetchPageFlag in currentLayer!")
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
               getDocumentsForStitching(docsForStitcing)?.map(d => d.file.documentid),
+              (data) => {
+                syncPageFlagsOnAction(data)
+              },
               (error) => console.log(error)
             );
           }
@@ -864,6 +844,9 @@ const Redlining = React.forwardRef(
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
+              console.log("pageFlagData-del:",pageFlagData)
+              const validObj=getValidObject(pageFlagData)
+              const documentpageflagsObj=validObj?.documentpageflags
               if (annotObjs?.length > 0) {
                 deleteAnnotation(
                   requestid,
@@ -874,15 +857,20 @@ const Redlining = React.forwardRef(
                       requestid, 
                       0, 
                       (data) => {
-                        fetchPageFlag(
-                          requestid,
-                          currentLayer.name.toLowerCase(),
-                          documentList?.map(d => d.documentid),
-                          (error) => console.log(error)
-                        );
+                        if(data.status == true){
+                          const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                          if(updatedPageFlags?.length > 0)
+                            syncPageFlagsOnAction(updatedPageFlags);
+                        }
+                        // fetchPageFlag(
+                        //   requestid,
+                        //   currentLayer.name.toLowerCase(),
+                        //   documentList?.map(d => d.documentid),
+                        //   (error) => console.log(error)
+                        // );
                       }, 
                       (error) => console.log('error: ', error),
-                      getValidObject(pageFlagData)
+                      validObj
                     )
                   },
                   (error) => {
@@ -896,6 +884,12 @@ const Redlining = React.forwardRef(
                   currentLayer.redactionlayerid,
                   redactObjs,
                   (data) => {
+                    // fetchPageFlag(
+                    //   requestid,
+                    //   currentLayer.name.toLowerCase(),
+                    //   documentList?.map(d => d.documentid),
+                    //   (error) => console.log(error)
+                    // );
                   },
                   (error) => {
                     console.log(error);
@@ -1024,6 +1018,10 @@ const Redlining = React.forwardRef(
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
+                console.log("pageFlagData-new:",pageFlagData)
+                const validObj=getValidObject(pageFlagData)
+                const documentpageflagsObj=validObj?.documentpageflags
+                console.log("\ndocumentpageflagsObj",documentpageflagsObj)
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
                     annotationList: annotations,
@@ -1042,18 +1040,24 @@ const Redlining = React.forwardRef(
                   requestid,
                   astr,
                   (data) => {
-                    fetchPageFlag(
-                      requestid,
-                      currentLayer.name.toLowerCase(),
-                      docsForStitcing.map(d => d.file.documentid),
-                      (error) => console.log(error)
-                    );
+                    if(data.status == true){
+                      const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                      if(updatedPageFlags?.length > 0)
+                        syncPageFlagsOnAction(updatedPageFlags);
+                    }
+                    
+                    // fetchPageFlag(
+                    //   requestid,
+                    //   currentLayer.name.toLowerCase(),
+                    //   docsForStitcing.map(d => d.file.documentid),
+                    //   (error) => console.log(error)
+                    // );
                   },
                   (error) => {
                     console.log(error);
                   },
                   currentLayer.redactionlayerid,
-                  getValidObject(pageFlagData),
+                  validObj,
                   sectn
                   //pageSelections
                 );
@@ -1088,12 +1092,12 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      fetchPageFlag(
-                        requestid,
-                        currentLayer.name.toLowerCase(),
-                        documentList?.map(d => d.documentid),
-                        (error) => console.log(error)
-                      );
+                      // fetchPageFlag(
+                      //   requestid,
+                      //   currentLayer.name.toLowerCase(),
+                      //   documentList?.map(d => d.documentid),
+                      //   (error) => console.log(error)
+                      // );
                     },
                     (error) => {
                       console.log(error);
@@ -1122,12 +1126,12 @@ const Redlining = React.forwardRef(
                     requestid,
                     astr,
                     (data) => {
-                      fetchPageFlag(
-                        requestid,
-                        currentLayer.name.toLowerCase(),
-                        documentList?.map(d => d.documentid),
-                        (error) => console.log(error)
-                      );
+                      // fetchPageFlag(
+                      //   requestid,
+                      //   currentLayer.name.toLowerCase(),
+                      //   documentList?.map(d => d.documentid),
+                      //   (error) => console.log(error)
+                      // );
                     },
                     (error) => {
                       console.log(error);
@@ -1568,23 +1572,30 @@ const Redlining = React.forwardRef(
         if (isObjectNotEmpty(pageFlagObj)) {
           pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
         }
+        const validObj=getValidObject(pageFlagData)
+        const documentpageflagsObj=validObj?.documentpageflags
         saveAnnotation(
           requestid,
           astr,
           (data) => {
             setPageSelections([]);
-            fetchPageFlag(
-              requestid,
-              currentLayer.name.toLowerCase(),
-              documentList?.map(d => d.documentid),
-              (error) => console.log(error)
-            );
+            if(data.status == true){
+              const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+              if(updatedPageFlags?.length > 0)
+                syncPageFlagsOnAction(updatedPageFlags);
+            }       
+            // fetchPageFlag(
+            //   requestid,
+            //   currentLayer.name.toLowerCase(),
+            //   documentList?.map(d => d.documentid),
+            //   (error) => console.log(error)
+            // );
           },
           (error) => {
             console.log(error);
           },
           currentLayer.redactionlayerid,
-          getValidObject(pageFlagData),
+          validObj,
           sectn
         );
 
@@ -1724,23 +1735,31 @@ const Redlining = React.forwardRef(
               if (isObjectNotEmpty(pageFlagObj)) {
                 pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
               }
+              const validObj=getValidObject(pageFlagData)
+              const documentpageflagsObj=validObj?.documentpageflags
+              console.log("documentpageflagsObj in saveRedaction:",documentpageflagsObj)
               saveAnnotation(
                 requestid,
                 astr,
                 (data) => {
                   setPageSelections([]);
-                  fetchPageFlag(
-                    requestid,
-                    currentLayer.name.toLowerCase(),
-                    documentList?.map(d => d.documentid),
-                    (error) => console.log(error)
-                  );
+                  if(data.status == true){
+                    const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                    if(updatedPageFlags?.length > 0)
+                      syncPageFlagsOnAction(updatedPageFlags);
+                  }
+                  // fetchPageFlag(
+                  //   requestid,
+                  //   currentLayer.name.toLowerCase(),
+                  //   documentList?.map(d => d.documentid),
+                  //   (error) => console.log(error)
+                  // );
                 },
                 (error) => {
                   console.log(error);
                 },
                 currentLayer.redactionlayerid,
-                getValidObject(pageFlagData),
+                validObj,
                 sectn
               );
             }
@@ -1886,7 +1905,6 @@ const Redlining = React.forwardRef(
           null
         );
         annotManager.addAnnotations(sectionAnnotations, { autoFocus: false });
-
         // Always redraw annotation
         sectionAnnotations.forEach((a) => annotManager.redrawAnnotation(a));
         setNewRedaction(null);
@@ -2013,37 +2031,42 @@ const Redlining = React.forwardRef(
     };
 
     const setMessageModalForNotResponsive = () => {
-      setModalTitle("Not Responsive Default");
-          setModalMessage(
+      updateModalData({
+        modalTitle: "Not Responsive Default",
+        modalMessage: [
           <div>You have 'Not Responsive' selected as a default section.
             <ul>
               <li className="modal-message-list-item">To flag this page as 'Withheld in Full', remove the default section.</li>
               <li className="modal-message-list-item">To flag this full page as 'Not Responsive', use the 'Not Responsive' page flag.</li>
             </ul>
-          </div>);
-          setMessageModalOpen(true)
+          </div>,
+        ],
+      });
+      setMessageModalOpen(true)
     }
 
     useEffect(() => {
-      if (newRedaction) {
-        let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
-        if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
-          setWarningModalOpen(true);
-          cancelRedaction();
-        } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
-          saveRedaction();
-        } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
-          setModalOpen(true);
-        } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
-          setMessageModalForNotResponsive();
-        } else if (hasFullPageRedaction) {
-          if (defaultSections.length != 0) setMessageModalForNotResponsive();
-          setModalOpen(true)
-        } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
-          saveRedaction();
-        } else {
-          setModalOpen(true);
-        }
+      if (!newRedaction) return;
+      const astrType = decodeAstr(newRedaction.astr)['trn-redaction-type'] || '';
+      const hasFullPageRedaction = astrType === "fullPage";
+      // let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
+
+      if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
+        setWarningModalOpen(true);
+        cancelRedaction();
+      } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
+        saveRedaction();
+      } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
+        setModalOpen(true);
+      } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
+        setMessageModalForNotResponsive();
+      } else if (hasFullPageRedaction) {
+        if (defaultSections.length != 0) setMessageModalForNotResponsive();
+        setModalOpen(true)
+      } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
+        saveRedaction();
+      } else {
+        setModalOpen(true);
       }
     }, [defaultSections, newRedaction]);
 
@@ -2069,70 +2092,6 @@ const Redlining = React.forwardRef(
       );
     };
 
-    const AntSwitch = styled(Switch)(({ theme }) => ({
-      width: 28,
-      height: 16,
-      padding: 0,
-      display: "flex",
-      "&:active": {
-        "& .MuiSwitch-thumb": {
-          width: 15,
-        },
-        "& .MuiSwitch-switchBase.Mui-checked": {
-          transform: "translateX(9px)",
-        },
-      },
-      "& .MuiSwitch-switchBase": {
-        padding: 2,
-        "&.Mui-checked": {
-          transform: "translateX(12px)",
-          color: "#fff",
-          "& + .MuiSwitch-track": {
-            opacity: 1,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "#177ddc" : "#38598a",
-          },
-        },
-      },
-      "& .MuiSwitch-thumb": {
-        boxShadow: "0 2px 4px 0 rgb(0 35 11 / 20%)",
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        transition: theme.transitions.create(["width"], {
-          duration: 200,
-        }),
-      },
-      "& .MuiSwitch-track": {
-        borderRadius: 16 / 2,
-        opacity: 1,
-        backgroundColor: theme.palette.mode === "dark" ? "#177ddc" : "#38598a",
-        boxSizing: "border-box",
-      },
-    }));
-
-    const changeModalSort = (e) => {
-      setModalSortNumbered(e.target.checked);
-    };
-
-    const changeSortOrder = (e) => {
-      if (modalSortNumbered) {
-        setModalSortAsc(!modalSortAsc);
-      }
-    };
-
-    const normalizeforPdfStitchingReq = (documentlist) => {
-      const normalizedDocumentlist = JSON.parse(JSON.stringify(documentlist));
-      for (let divsionentry of normalizedDocumentlist) {
-        for (let docentry of divsionentry["documentlist"]) {
-          if (docentry["pageFlag"]) {
-            delete docentry["pageFlag"];
-          }
-        }
-      }
-      return normalizedDocumentlist;
-    };
-
     const cancelSaveRedlineDoc = () => {
       setIncludeDuplicatePages(false);
       setIncludeNRPages(false);
@@ -2149,9 +2108,9 @@ const Redlining = React.forwardRef(
     
     const saveDoc = () => {
       console.log("savedoc");
-      console.log("MODAL", modalFor)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
+      let modalFor= modalData? modalData.modalFor : ""
       setRedlineCategory(modalFor);
       // skip deletePages API call for all removePages related to Redline/Response package creation
       setSkipDeletePages(true);
@@ -2180,17 +2139,6 @@ const Redlining = React.forwardRef(
       setIncludeNRPages(false);
     };
 
-    const compareValues = (a, b) => {
-      if (modalSortNumbered) {
-        if (modalSortAsc) {
-          return a.id - b.id;
-        } else {
-          return b.id - a.id;
-        }
-      } else {
-        return b.count - a.count;
-      }
-    };
     const decodeAstr = (astr) => {
       const parser = new DOMParser()
       const xmlDoc = parser.parseFromString(astr, "text/xml")
@@ -2239,219 +2187,47 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        <ReactModal
-          initWidth={650}
-          initHeight={700}
-          minWidth={400}
-          minHeight={200}
-          className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
-          isOpen={modalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">FOIPPA Sections</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <Stack direction="row-reverse" spacing={1} alignItems="center">
-                <button
-                  onClick={changeSortOrder}
-                  style={{
-                    border: "none",
-                    backgroundColor: "white",
-                    padding: 0,
-                  }}
-                  disabled={!modalSortNumbered}
-                >
-                  {modalSortAsc ? (
-                    <FontAwesomeIcon
-                      icon={faArrowUp}
-                      size="1x"
-                      color="#666666"
-                    />
-                  ) : (
-                    <FontAwesomeIcon
-                      icon={faArrowDown}
-                      size="1x"
-                      color="#666666"
-                    />
-                  )}
-                </button>
-                <Typography>Numbered Order</Typography>
-                <AntSwitch
-                  onChange={changeModalSort}
-                  checked={modalSortNumbered}
-                  inputProps={{ "aria-label": "ant design" }}
-                />
-                <Typography>Most Used</Typography>
-              </Stack>
-              <div style={{ overflowY: "scroll" }}>
-                <List className="section-list">
-                  {sections?.sort(compareValues).map((section, index) => (
-                    <ListItem key={"list-item" + section.id}>
-                      <input
-                        type="checkbox"
-                        className="section-checkbox"
-                        key={"section-checkbox" + section.id}
-                        id={"section" + section.id}
-                        data-sectionid={section.id}
-                        onChange={handleSectionSelected}
-                        disabled={sectionIsDisabled(section.id)}
-                        defaultChecked={selectedSections.includes(section.id)}
-                      />
-                      <label
-                        key={"list-label" + section.id}
-                        className="check-item"
-                      >
-                        {section.section + " - " + section.description}
-                      </label>
-                    </ListItem>
-                  ))}
-                </List>
-              </div>
-              {/* <span className="confirmation-message">
-                  Are you sure you want to delete the attachments from this request? <br></br>
-                  <i>This will remove all attachments from the redaction app.</i>
-                </span> */}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button
-              className={`btn-bottom btn-save btn`}
-              onClick={editRedacts ? saveRedactions : saveRedaction}
-              disabled={saveDisabled}
-            >
-              Select Code(s)
-            </button>
-            {defaultSections.length > 0 ? (
-              <button
-                className="btn-bottom btn-cancel"
-                onClick={clearDefaultSections}
-              >
-                Clear Defaults
-              </button>
-            ) : (
-              <button
-                className={`btn-bottom btn-cancel ${
-                  saveDisabled && "btn-disabled"
-                }`}
-                onClick={saveDefaultSections}
-                disabled={saveDisabled}
-              >
-                Save as Default
-              </button>
-            )}
-            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
-        <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
-          onRequestClose={cancelRedaction}
-          isOpen={redlineModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">{modalTitle}</h2>
-            <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span>
-                {modalMessage} <br/><br/>
-                {modalFor == "redline" && <>
-                <input
-                  type="checkbox"
-                  style={{ marginRight: 10 }}
-                  className="redline-checkmark"
-                  id="nr-checkbox"
-                  checked={includeNRPages}
-                  onChange={handleIncludeNRPages}
-                  disabled={isDisableNRDuplicate}
-                />
-                <label for="nr-checkbox">Include NR pages</label>
-                <br/>
-                <input
-                  type="checkbox"
-                  style={{ marginRight: 10 }}
-                  className="redline-checkmark"
-                  id="duplicate-checkbox"
-                  checked={includeDuplicatePages}
-                  onChange={handleIncludeDuplicantePages}
-                  disabled={isDisableNRDuplicate}
-                />
-                <label for="duplicate-checkbox">Include Duplicate pages</label>
-                </>}
-              </span>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
-              {modalButtonLabel}
-            </button>
-            <button
-              className="btn-bottom btn-cancel"
-              onClick={cancelSaveRedlineDoc}
-            >
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
-        <ReactModal
-          initWidth={800}
-          initHeight={300}
-          minWidth={600}
-          minHeight={250}
-          className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
-          isOpen={messageModalOpen}
-        >
-          <DialogTitle disableTypography id="state-change-dialog-title">
-            <h2 className="state-change-header">{modalTitle}</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
-              <i className="dialog-close-button">Close</i>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent className={"dialog-content-nomargin"}>
-            <DialogContentText
-              id="state-change-dialog-description"
-              component={"span"}
-            >
-              <span className="confirmation-message">
-                {modalMessage} <br></br>
-              </span>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions className="foippa-modal-actions">
-            <button
-              className="btn-bottom btn-cancel"
-              onClick={cancelRedaction}
-            >
-              Cancel
-            </button>
-          </DialogActions>
-        </ReactModal>
+        { modalOpen &&
+          <FOIPPASectionsModal
+            cancelRedaction={cancelRedaction}
+            modalOpen={modalOpen}
+            sections={sections}
+            sectionIsDisabled={sectionIsDisabled}
+            selectedSections={selectedSections}
+            handleSectionSelected={handleSectionSelected}
+            editRedacts={editRedacts}
+            saveRedactions={saveRedactions}
+            saveDisabled={saveDisabled}
+            saveRedaction={saveRedaction}
+            defaultSections={defaultSections}
+            saveDefaultSections={saveDefaultSections}
+            clearDefaultSections={clearDefaultSections} 
+          />
+        }
+        {redlineModalOpen && 
+          <ConfirmationModal 
+          cancelRedaction={cancelRedaction}
+          redlineModalOpen={redlineModalOpen}
+          cancelSaveRedlineDoc={cancelSaveRedlineDoc}
+          includeNRPages={includeNRPages}
+          handleIncludeNRPages={handleIncludeNRPages}
+          includeDuplicatePages={includeDuplicatePages}
+          handleIncludeDuplicantePages={handleIncludeDuplicantePages}
+          isDisableNRDuplicate={isDisableNRDuplicate}
+          saveDoc={saveDoc}
+          modalData={modalData}
+        />
+        }
+        {messageModalOpen &&
+          <NRWarningModal 
+          cancelRedaction={cancelRedaction}
+          messageModalOpen={messageModalOpen}
+          modalData={modalData}
+          />
+        }
       </div>
     );
   }
 );
 
-export default Redlining;
+export default React.memo(Redlining);

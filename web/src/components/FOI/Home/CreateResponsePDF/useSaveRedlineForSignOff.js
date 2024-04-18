@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppSelector } from "../../../../hooks/hook";
 import { toast } from "react-toastify";
 import {
@@ -1312,11 +1312,9 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
   //useEffects to keep docInstance and docViewer state up to date with Redlining.js
   useEffect(() => {
-    console.log("SNAKE");
     setDocInstance(initDocInstance);
   }, [initDocInstance]);
   useEffect(() => {
-    console.log("LIQUID");
     setDocViewer(initDocViewer);
   }, [initDocViewer]);
 

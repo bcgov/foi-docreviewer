@@ -78,66 +78,61 @@ export const renderCustomButton = (document, menu) => {
 };
 
 export const handleRedlineForSignOffClick = (
-  setModalFor,
-  setModalTitle,
-  setModalMessage,
-  setModalButtonLabel,
+  updateModalData,
   setRedlineModalOpen
 ) => {
   console.log("redlinebtn");
   // Save to s3
-  setModalFor("redline");
-  setModalTitle("Redline for Sign Off");
-  setModalMessage([
-    "Are you sure want to create the redline PDF for ministry sign off?",
-    <br key="lineBreak1" />,
-    <br key="lineBreak2" />,
-    <span key="modalDescription1">
-      When you create the redline PDF, your web browser page will automatically
-      refresh
-    </span>,
-  ]);
-  setModalButtonLabel("Create Redline PDF");
+  updateModalData({
+    modalFor: "redline",
+    modalTitle: "Redline for Sign Off",
+    modalMessage: [
+      "Are you sure want to create the redline PDF for ministry sign off?",
+      <br key="lineBreak1" />,
+      <br key="lineBreak2" />,
+      <span key="modalDescription1">
+        When you create the redline PDF, your web browser page will
+        automatically refresh
+      </span>,
+    ],
+    modalButtonLabel: "Create Redline PDF"
+  });
   setRedlineModalOpen(true);
 };
 
 export const handleRedlineForOipcClick = (
-  setModalFor,
-  setModalTitle,
-  setModalMessage,
-  setModalButtonLabel,
+  updateModalData,
   setRedlineModalOpen
 ) => {
   console.log("oipcbtn");
   // Save to s3
-  setModalFor("oipcreview");
-  setModalTitle("Redline for OIPC Review");
-  setModalMessage([
-    "Are you sure want to create the redline PDF for OIPC review?",
-    <br key="lineBreak1" />,
-    <br key="lineBreak2" />,
-    <span key="modalDescription1">
-      This redline will be created from the active layer with s.14 annotations
-      redacted. When you create the redline PDF, your web browser page will
-      automatically refresh
-    </span>,
-  ]);
-  setModalButtonLabel("Create OIPC Redline PDF");
+  updateModalData({
+    modalFor: "oipcreview",
+    modalTitle: "Redline for OIPC Review",
+    modalMessage: [
+      "Are you sure want to create the redline PDF for OIPC review?",
+      <br key="lineBreak1" />,
+      <br key="lineBreak2" />,
+      <span key="modalDescription1">
+        This redline will be created from the active layer with s.14 annotations redacted. 
+        When you create the redline PDF, your web browser page will
+        automatically refresh
+      </span>,
+    ],
+    modalButtonLabel: "Create OIPC Redline PDF"
+  });
   setRedlineModalOpen(true);
 };
 
 export const handleFinalPackageClick = (
-  setModalFor,
-  setModalTitle,
-  setModalMessage,
-  setModalButtonLabel,
+  updateModalData,
   setRedlineModalOpen
 ) => {
   console.log("finalbtn");
-  // Download
-  setModalFor("responsepackage");
-  setModalTitle("Create Package for Applicant");
-  setModalMessage([
+  updateModalData({
+    modalFor: "responsepackage",
+    modalTitle: "Create Package for Applicant",
+    modalMessage: [
     "This should only be done when all redactions are finalized and ready to ",
     <b key="bold1">
       <i>be</i>
@@ -154,11 +149,12 @@ export const handleFinalPackageClick = (
     <br key="break1" />,
     <br key="break2" />,
     <span key="modalDescription2">
-      When you create the response package, your web browser page will
-      automatically refresh
+      When you create the response package, your web browser page
+      will automatically refresh
     </span>,
-  ]);
-  setModalButtonLabel("Create Applicant Package");
+  ],
+    modalButtonLabel: "Create Applicant Package"
+  });
   setRedlineModalOpen(true);
 };
 

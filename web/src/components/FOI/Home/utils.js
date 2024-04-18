@@ -348,6 +348,7 @@ export const getDocumentsForStitching = (doclist) => {
   return doclist.filter(_doc => _doc.file.pagecount > 0);
 }
 
+
 const getSectionArray = (sectionsStr) => {
   if (sectionsStr) {
     const sectionsArray = JSON.parse(sectionsStr);
@@ -358,6 +359,7 @@ const getSectionValue = (sectionsStr) => {
   const sectionArray = getSectionArray(sectionsStr);
   return sectionArray[0].section;
 }
+
 export const getJoinedSections = (sectionsStr) => {
   const sectionArray = getSectionArray(sectionsStr);
   const sectionValues = sectionArray?.map(item => item.section);
@@ -520,3 +522,44 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
 }
+
+export const updatePageFlagOnPage = (documentpageflags, pageFlags) => {
+  const updatedPageFlags = [...pageFlags];
+
+  // Create an object to quickly lookup page flags by document id
+  const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {
+    map[pageFlag.documentid] = pageFlag;
+    return map;
+  }, {});
+
+  for (let documentpageflag of documentpageflags) {
+    let toBeUpdated = pageFlagsMap[documentpageflag.documentid];
+    
+    if (toBeUpdated) {
+      for (let pageFlag of documentpageflag.pageflags) {
+        let existingPageflag = toBeUpdated.pageflag.find(pf => pf.page === pageFlag.page);
+        
+        if (existingPageflag) {
+          if (pageFlag.deleted) {
+            toBeUpdated.pageflag = toBeUpdated.pageflag.filter(pf => pf.page !== pageFlag.page);
+          } else if (existingPageflag.flagid !== pageFlag.flagid) {
+            existingPageflag.flagid = pageFlag.flagid;
+          } else {
+            // No need to update
+            return [];
+          }
+        } else if (!pageFlag.deleted) {
+          toBeUpdated.pageflag.push(pageFlag);
+        }
+      }
+    } else {
+      updatedPageFlags.push({
+        documentid: documentpageflag.documentid,
+        documentversion: documentpageflag.version,
+        pageflag: documentpageflag.pageflags
+      });
+    }
+  }
+  
+  return updatedPageFlags;
+};

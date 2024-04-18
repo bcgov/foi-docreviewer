@@ -44,6 +44,8 @@ function Home() {
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [divisions, setDivisions] = useState([]);
+  const [pageFlags, setPageFlags]= useState([]);
+
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -141,6 +143,11 @@ function Home() {
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
+  const syncPageFlagsOnAction = (updatedFlags) => {
+    console.log("HOME-Inside syncPageFlagsOnAction!")
+    setPageFlags(updatedFlags);
+  };
+
   useEffect(() => {
     fetchRedactionLayerMasterData(
       foiministryrequestid,
@@ -226,8 +233,8 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
-  const scrollLeftPanel = (pageNo) => {
-    selectorRef?.current?.scrollToPage(pageNo);
+  const scrollLeftPanel = (event, pageNo) => {
+    selectorRef?.current?.scrollToPage(event, pageNo);
   };
 
   const closeWarningMessage = () => {
@@ -251,6 +258,8 @@ function Home() {
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
                 divisions={divisions}
+                pageFlags={pageFlags}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -268,16 +277,16 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
+
                 />
               )
             // : <div>Loading</div>
