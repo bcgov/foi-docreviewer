@@ -2113,7 +2113,6 @@ const Redlining = React.forwardRef(
     
     const saveDoc = () => {
       console.log("savedoc");
-      console.log("MODAL", modalFor)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       let modalFor= modalData? modalData.modalFor : ""
