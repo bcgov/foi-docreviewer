@@ -52,7 +52,7 @@ import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { toast } from "react-toastify";
-import { pageFlagTypes, RequestStates } from "../../../constants/enum";
+import { pageFlagTypes, RequestStates, RedactionTypes } from "../../../constants/enum";
 import {
   getStitchedPageNoFromOriginal,
   createPageFlagPayload,
@@ -65,10 +65,10 @@ import {
   sortDocObjects,
   sortDocObjectsForRedline,
   addWatermarkToRedline,
-  getSectionValue,
   getJoinedSections,
   isObjectNotEmpty,
-  getValidObject
+  getValidObject,
+  constructPageFlags
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -902,25 +902,25 @@ const Redlining = React.forwardRef(
                     let contents = annot?.children?.find(
                       (element) => element.name == "contents"
                     );
-                    let redactionType = annot?.children?.find(
-                      (element) => element.name == "trn-redaction-type"
+                    let customData = annot.children.find(
+                      (element) => element.name == "trn-custom-data"
                     );
+                    const isFullPage = customData?.attributes?.bytes?.includes("fullPage")
                     let annotationsInfo = {
                       stitchpage: annot.attributes.page,                      
                       type: annot.name,
                       section: contents?.value,
-                      redactiontype: redactionType?.value,
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
+                      isFullPage: isFullPage
                     }
-                    const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, "delete");
-                    if (pageFlagAdded) {
-                      pageFlagObj.push(pageFlagAdded);
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete");
+                    if (pageFlagsUpdated) {
+                      pageFlagObj.push(pageFlagsUpdated);
                     }                    
                   }
                 }
               }
-              console.log(pageFlagObj)
               let pageFlagData = {};
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
@@ -957,12 +957,6 @@ const Redlining = React.forwardRef(
                   currentLayer.redactionlayerid,
                   redactObjs,
                   (data) => {
-                    // fetchPageFlag(
-                    //   requestid,
-                    //   currentLayer.name.toLowerCase(),
-                    //   docsForStitcing.map(d => d.file.documentid),
-                    //   (error) => console.log(error)
-                    // );
                   },
                   (error) => {
                     console.log(error);
@@ -1071,9 +1065,9 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, "add");
-                  if (pageFlagAdded) {
-                    pageFlagObj.push(pageFlagAdded);
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
                   }
                   
                   annot.setCustomData("docid", `${displayedDoc.docid}`);
@@ -1087,7 +1081,6 @@ const Redlining = React.forwardRef(
                   );
                   // annot.NoMove = true; //All annotations except redactions shouldn't be restricted, hence commented this code.
                 }
-                console.log(pageFlagObj);
                 let pageFlagData = {};
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
@@ -1536,133 +1529,6 @@ const Redlining = React.forwardRef(
       docViewer?.setCurrentPage(individualDoc["page"], false);
     }, [individualDoc]);
 
-
-
-    const constructPageFlagsForDelete = (annotationsInfo, exisitngAnnotations) => {
-      let pagesToUpdate = {};
-      let displayedDoc = pageMappedDocs.stitchedPageLookup[Number(annotationsInfo.stitchpage) + 1];          
-      let found = false;
-      let foundNRAnnot = false;
-      let foundBlankAnnot = false;
-      let foundPartialAnnot = false;
-      for (let _annot of exisitngAnnotations) {
-        if (_annot.Subject === "Free Text" && _annot.getPageNumber() === Number(annotationsInfo.stitchpage) + 1) {
-          found = true;
-          const sectionsStr = _annot.getCustomData("sections");
-          const sectionValue = getSectionValue(sectionsStr)
-          if (_annot.getCustomData("trn-redaction-type") == 'fullPage') {
-            if (["", " "].includes(sectionValue)) {
-              return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
-            }
-            return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Withheld in Full"]};
-          }
-          else {              
-            if (!["", "  ", "NR"].includes(sectionValue)) {
-              // if valid section found
-              foundPartialAnnot = true;
-            }             
-            if ( sectionValue == "") {
-              foundBlankAnnot = true;
-            }
-            else if (sectionValue == 'NR') {
-              foundNRAnnot = true;
-            }
-          }
-        }
-      }
-      if (foundPartialAnnot) {
-        return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-      }
-      else if (foundNRAnnot) {
-        return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
-      }
-      else if (foundBlankAnnot) {
-        return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
-      }      
-      else if (!found) {
-        return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["No Flag"], deleted: true};
-      }
-      return getValidObject(pagesToUpdate);
-    }
-
-    const constructPageFlagsForAddOrEdit = (annotationsInfo, exisitngAnnotations) => {
-      let pagesToUpdate = {};
-      const foundBlank = ["", "  "].includes(annotationsInfo.section);
-      const foundNR = annotationsInfo.section == "NR";
-      const foundValidSection = !["", "  ", "NR"].includes(annotationsInfo.section);
-      let displayedDoc = pageMappedDocs?.stitchedPageLookup[Number(annotationsInfo.stitchpage) + 1];
-      if (annotationsInfo?.redactiontype === "fullPage") {
-        // addition of full page redaction with blank code return "In Progress" page flag.
-        if (foundBlank) {
-          return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["In Progress"]};
-        }
-        // adding a separate condition so that the control won't go to else if this condition is not matching
-        else if (foundValidSection) { 
-          return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["Withheld in Full"]};
-        }
-      }
-      else {
-        for (let _annot of exisitngAnnotations) {
-          if (_annot.Subject === "Free Text" && _annot.getPageNumber() === Number(annotationsInfo.stitchpage) + 1) {
-            const sectionsStr = _annot.getCustomData("sections");
-            const sectionValue = getSectionValue(sectionsStr);
-            if (_annot.getCustomData("trn-redaction-type") == 'fullPage') {
-              if (["", " "].includes(sectionValue)) {
-                return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["In Progress"]};
-              }
-              return { docid: displayedDoc?.docid, page: displayedDoc?.page, flagid: pageFlagTypes["Withheld in Full"]};
-            }
-            else {              
-              if (foundBlank) {
-                // exsiting partial disclosure
-                if (!["", "  ", "NR"].includes(sectionValue)) {
-                  return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-                }
-                else if (!["", "  "].includes(sectionValue)) {
-                  // NR take precedence over BLANK
-                  if (sectionValue === "NR") {
-                    return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
-                  }
-                  else {
-                    return;
-                  }
-                }
-                else {
-                  // don't retrun, let the loop run and find if any redaction with valid section in it
-                  pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
-                }
-              }
-              else if (foundNR) {
-                // exsiting partial disclosure
-                if (!["", "  ", "NR"].includes(sectionValue)) {
-                  return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-                }
-                else {
-                  // don't retrun, let the loop run and find if any redaction with valid section in it
-                  pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Full Disclosure"]};
-                }
-              }
-              else {
-                pagesToUpdate = { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["Partial Disclosure"]};
-              }
-            }
-          }
-        }
-        return getValidObject(pagesToUpdate);
-      }
-    }
-
-    const constructPageFlags = (annotationsInfo, exisitngAnnotations, action="") => {
-      if (action === "add") {
-        return constructPageFlagsForAddOrEdit(annotationsInfo, exisitngAnnotations);
-      }
-      else if (action === "delete") {
-        return constructPageFlagsForDelete(annotationsInfo, exisitngAnnotations);
-      }
-      else {
-        return constructPageFlagsForAddOrEdit(annotationsInfo, exisitngAnnotations);
-      }
-    }
     
     //START: Save updated redactions to BE part of Bulk Edit using Multi Select Option
     const saveRedactions = () => {
@@ -1733,9 +1599,9 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, "edit");
-        if (pageFlagAdded) {
-          pageFlagObj.push(pageFlagAdded);
+        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
+        if (pageFlagsUpdated) {
+          pageFlagObj.push(pageFlagsUpdated);
         }
         const doc = docViewer?.getDocument();
         let pageNumber = parseInt(node.attributes.page) + 1;
@@ -1910,9 +1776,9 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagAdded = constructPageFlags(annotationsInfo, exisitngAnnotations, "edit");
-                  if (pageFlagAdded) {
-                    pageFlagObj.push(pageFlagAdded);
+              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
+                  if (pageFlagsUpdated) {
+                    pageFlagObj.push(pageFlagsUpdated);
                   }
               let pageFlagData = {};
               if (isObjectNotEmpty(pageFlagObj)) {

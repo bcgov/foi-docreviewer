@@ -90,10 +90,20 @@ const RequestStates:RequestStatesType = {
   "Call For Records Overdue": "callforrecordsoverdue"
 };
 
+type RedactionType = {
+  [key: string]: string
+}
+const RedactionTypes: RedactionType = {
+  "fullpage": "fullpage",
+  "partial": "partial",
+  "nr": "nr",
+  "blank": "blank"
+};
 
 export {
   KCProcessingTeams,
   MINISTRYGROUPS,
   pageFlagTypes,
-  RequestStates
+  RequestStates,
+  RedactionTypes
 };
