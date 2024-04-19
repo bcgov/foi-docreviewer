@@ -143,14 +143,10 @@ function Home() {
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
-  const updatePageFlags1 = (updatedFlags) => {
-    console.log("HOME --> updatePageFlags1:",updatedFlags)
+  const syncPageFlagsOnAction = (updatedFlags) => {
+    console.log("HOME-Inside syncPageFlagsOnAction!")
     setPageFlags(updatedFlags);
   };
-
-  useEffect(() => {
-    console.log("!!!!!!!!!!!!!!!!!!")
-  },[pageFlags]);
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -263,7 +259,7 @@ function Home() {
                 setWarningModalOpen={setWarningModalOpen}
                 divisions={divisions}
                 pageFlags={pageFlags}
-                updatePageFlags1={updatePageFlags1}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -281,18 +277,15 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
                   pageFlags={pageFlags}
-                  updatePageFlags1={updatePageFlags1}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
 
                 />
               )
@@ -315,7 +308,7 @@ function Home() {
         className={"state-change-dialog"}
         isOpen={warningModalOpen}
       >
-        <DialogTitle disableTypography id="state-change-dialog-title">
+        <DialogTitle disabletypography="true" id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
           <IconButton className="title-col3" onClick={closeWarningMessage}>
             <i className="dialog-close-button">Close</i>

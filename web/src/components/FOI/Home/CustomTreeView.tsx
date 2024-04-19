@@ -31,13 +31,12 @@ const CustomTreeView = React.memo(React.forwardRef(({
     pageMappedDocs,
     selectTreeItem,
     setWarningModalOpen,
-    updatePageFlags,
     pageFlagList,
     openFOIPPAModal,
     requestid,
     assignIcon,
     pageFlags,
-    updatePageFlags1
+    syncPageFlagsOnAction
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
     // const StyledTreeItem = styled(TreeItem)(() => ({
@@ -108,26 +107,26 @@ const CustomTreeView = React.memo(React.forwardRef(({
         setExpandedItems(itemIds);
     };
 
-    function CloseSquare(props: SvgIconProps) {
-        return (
-            // <>
-            <FontAwesomeIcon
-            // key={icon.flagid}
-            className='leftPanelIcons'
-            icon={faCircleHalfStroke as IconProp}
-            size='1x'
-            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
-            />
-            /* <FontAwesomeIcon
-            // key={icon.flagid}
-            className='leftPanelIcons'
-            icon={faCircleHalfStroke as IconProp}
-            size='1x'
-            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
-            />
-            </> */
-        );
-      }
+    // function CloseSquare(props: SvgIconProps) {
+    //     return (
+    //         // <>
+    //         <FontAwesomeIcon
+    //         // key={icon.flagid}
+    //         className='leftPanelIcons'
+    //         icon={faCircleHalfStroke as IconProp}
+    //         size='1x'
+    //         // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+    //         />
+    //         /* <FontAwesomeIcon
+    //         // key={icon.flagid}
+    //         className='leftPanelIcons'
+    //         icon={faCircleHalfStroke as IconProp}
+    //         size='1x'
+    //         // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
+    //         />
+    //         </> */
+    //     );
+    //   }
 
       const handleSelect = (event: any, nodeIds: any) => {
 
@@ -170,7 +169,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
     };
 
     const addIcons = (itemid: any) => {
-        // console.log("iconfn")
         if (itemid.page) { //&& pageFlags) {
             let returnElem = (<>{itemid.flagid.map((id: any) => (
                 <FontAwesomeIcon
@@ -236,39 +234,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
             e?.currentTarget?.getBoundingClientRect()
         );
         setDisableHover(true);
-        // console.log("contextfncomplete")
     }
 
-    // const assignIcon = (pageFlag: any) => {
-    //     switch (pageFlag) {
-    //         case 1:
-    //         case "Partial Disclosure":
-    //             return faCircleHalfStroke;
-    //         case 2:
-    //         case "Full Disclosure":
-    //             return filledCircle;
-    //         case 3:
-    //         case "Withheld in Full":
-    //             return faCircle;
-    //         case 4:
-    //         case "Consult":
-    //             return faCircleQuestion;
-    //         case 5:
-    //         case "Duplicate":
-    //             return faCircleStop;
-    //         case 6:
-    //         case "Not Responsive":
-    //             return faCircleXmark;
-    //         case 7:
-    //         case "In Progress":
-    //             return faSpinner;
-    //         case 8:
-    //         case "Page Left Off":
-    //             return faBookmark;
-    //         default:
-    //             return null;
-    //     }
-    // }
 
     return (
         // <TreeView
@@ -323,10 +290,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 setOpenContextPopup={setOpenContextPopup}
                 selectedPages={selectedPages}
                 consultInfo={consultInfo}
-                updatePageFlags={updatePageFlags}
                 pageMappedDocs={pageMappedDocs}
                 pageFlags={pageFlags}
-                updatePageFlags1={updatePageFlags1}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
             />
         }
         <Box sx={{ mb: 1 }}>

@@ -1,0 +1,288 @@
+import { useState } from "react";
+import { useAppSelector } from "../../../../hooks/hook";
+import { toast } from "react-toastify";
+import { getStitchedPageNoFromOriginal, sortBySortOrder } from "../utils";
+import {
+  saveFilesinS3,
+  getResponsePackagePreSignedUrl,
+} from "../../../../apiManager/services/foiOSSService";
+import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
+import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
+import { useParams } from "react-router-dom";
+
+const useSaveResponsePackage = () => {
+  const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
+  const requestnumber = useAppSelector(
+    (state) => state.documents?.requestnumber
+  );
+  const requestStatus = useAppSelector(
+    (state) => state.documents?.requeststatus
+  );
+  const { foiministryrequestid } = useParams();
+
+  const [enableSavingFinal, setEnableSavingFinal] = useState(false);
+
+  const stampPageNumberResponse = async (_docViwer, PDFNet) => {
+    for (
+      let pagecount = 1;
+      pagecount <= _docViwer.getPageCount();
+      pagecount++
+    ) {
+      try {
+        let doc = null;
+
+        let _docmain = _docViwer.getDocument();
+        doc = await _docmain.getPDFDoc();
+
+        // Run PDFNet methods with memory management
+        await PDFNet.runWithCleanup(async () => {
+          // lock the document before a write operation
+          // runWithCleanup will auto unlock when complete
+          doc.lock();
+          const s = await PDFNet.Stamper.create(
+            PDFNet.Stamper.SizeType.e_relative_scale,
+            0.3,
+            0.3
+          );
+
+          await s.setAlignment(
+            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+          );
+          const font = await PDFNet.Font.create(
+            doc,
+            PDFNet.Font.StandardType1Font.e_courier
+          );
+          await s.setFont(font);
+          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+          await s.setFontColor(redColorPt);
+          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+          await s.setAsBackground(false);
+          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+
+          await s.stampText(
+            doc,
+            `${requestnumber} , Page ${pagecount} of ${_docViwer.getPageCount()}`,
+            pgSet
+          );
+        });
+      } catch (err) {
+        console.log(err);
+        throw err;
+      }
+    }
+  };
+  const prepareMessageForResponseZipping = (
+    stitchedfilepath,
+    zipServiceMessage
+  ) => {
+    const stitchedDocPathArray = stitchedfilepath.split("/");
+
+    let fileName =
+      stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+    fileName = decodeURIComponent(fileName);
+
+    const file = {
+      filename: fileName,
+      s3uripath: decodeURIComponent(stitchedfilepath.split("?")[0]),
+    };
+    const zipDocObj = {
+      files: [],
+    };
+    zipDocObj.files.push(file);
+
+    zipServiceMessage.attributes.push(zipDocObj);
+    triggerDownloadFinalPackage(zipServiceMessage, (error) => {
+      console.log(error);
+    });
+  };
+  const prepareresponseredlinesummarylist = (documentlist) => {
+    let summarylist = [];
+    let summary_division = {};
+    let summary_divdocuments = [];
+    let alldocuments = [];
+    summary_division["divisionid"] = "0";
+    for (let doc of documentlist) {
+      summary_divdocuments.push(doc.documentid);
+      alldocuments.push(doc);
+    }
+    summary_division["documentids"] = summary_divdocuments;
+    summarylist.push(summary_division);
+
+    let sorteddocids = [];
+    // sort based on sortorder as the sortorder added based on the LastModified
+    let sorteddocs = sortBySortOrder(alldocuments);
+    for (const sorteddoc of sorteddocs) {
+      sorteddocids.push(sorteddoc["documentid"]);
+    }
+    return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
+  };
+  const saveResponsePackage = async (
+    documentViewer,
+    annotationManager,
+    _instance,
+    documentList,
+    pageMappedDocs,
+    pageFlags
+  ) => {
+    console.log("SAVE RESPONSE");
+    const downloadType = "pdf";
+    let zipServiceMessage = {
+      ministryrequestid: foiministryrequestid,
+      category: "responsepackage",
+      attributes: [],
+      requestnumber: "",
+      bcgovcode: "",
+      summarydocuments: prepareresponseredlinesummarylist(documentList),
+      redactionlayerid: currentLayer.redactionlayerid,
+    };
+    getResponsePackagePreSignedUrl(
+      foiministryrequestid,
+      documentList[0],
+      async (res) => {
+        const toastID = toast.loading("Start generating final package...");
+        zipServiceMessage.requestnumber = res.requestnumber;
+        zipServiceMessage.bcgovcode = res.bcgovcode;
+        let annotList = annotationManager.getAnnotationsList();
+        annotationManager.ungroupAnnotations(annotList);
+        /** remove duplicate and not responsive pages */
+        let pagesToRemove = [];
+        console.log("PAGEFLAGS", pageFlags);
+        for (const infoForEachDoc of pageFlags) {
+          for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            /** pageflag duplicate or not responsive */
+            if (
+              pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
+              pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
+            ) {
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  infoForEachDoc.documentid,
+                  pageFlagsForEachDoc.page,
+                  pageMappedDocs
+                )
+              );
+            }
+          }
+        }
+        let doc = documentViewer.getDocument();
+        await annotationManager.applyRedactions();
+        /**must apply redactions before removing pages*/
+        await doc.removePages(pagesToRemove);
+
+        const { PDFNet } = _instance.Core;
+        PDFNet.initialize();
+        await stampPageNumberResponse(documentViewer, PDFNet);
+        toast.update(toastID, {
+          render: "Saving section stamps...",
+          isLoading: true,
+        });
+        /**Fixing section cutoff issue in response pkg-
+         * (For showing section names-freetext annotations are
+         * added once redactions are applied in the annotationChangedHandler)
+         * then export & filter freetext & widget annotations
+         * after redactions applied.
+         * (widget is needed for showing data from fillable pdfs).
+         */
+        let annotsAfterRedaction = await annotationManager.getAnnotationsList();
+        const filteredAnnotations = annotsAfterRedaction.filter(
+          (annotation) => {
+            if (_instance.Core.Annotations) {
+              return (
+                annotation instanceof
+                  _instance.Core.Annotations.FreeTextAnnotation ||
+                annotation instanceof
+                  _instance.Core.Annotations.WidgetAnnotation
+              );
+            }
+            return false;
+          }
+        );
+        const xfdfString = await annotationManager.exportAnnotations({
+          annotationList: filteredAnnotations,
+          widgets: true,
+        });
+        /** apply redaction and save to s3 - xfdfString is needed to display
+         * the freetext(section name) on downloaded file.*/
+        doc
+          .getFileData({
+            // saves the document with annotations in it
+            xfdfString: xfdfString,
+            downloadType: downloadType,
+            flatten: true,
+          })
+          .then(async (_data) => {
+            const _arr = new Uint8Array(_data);
+            const _blob = new Blob([_arr], { type: "application/pdf" });
+
+            toast.update(toastID, {
+              render: "Saving final package to Object Storage...",
+              isLoading: true,
+            });
+            saveFilesinS3(
+              { filepath: res.s3path_save },
+              _blob,
+              (_res) => {
+                toast.update(toastID, {
+                  render:
+                    "Final package is saved to Object Storage. Page will reload in 3 seconds..",
+                  type: "success",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+                prepareMessageForResponseZipping(
+                  res.s3path_save,
+                  zipServiceMessage
+                );
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 3000);
+              },
+              (_err) => {
+                console.log(_err);
+                toast.update(toastID, {
+                  render: "Failed to save final package to Object Storage",
+                  type: "error",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+              }
+            );
+          });
+      },
+      (error) => {
+        console.log("Error fetching document:", error);
+      }
+    );
+  };
+  const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
+    console.log("CHECK SAVE RESPONSE");
+    const validFinalPackageStatus = requestStatus === RequestStates["Response"];
+    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("final_package").disabled =
+        !redlineReadyAndValid || !validFinalPackageStatus;
+    }
+  };
+
+  return {
+    saveResponsePackage,
+    checkSavingFinalPackage,
+    enableSavingFinal,
+  };
+};
+
+export default useSaveResponsePackage;

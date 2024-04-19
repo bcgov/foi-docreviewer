@@ -15,7 +15,8 @@ class PageflagSchema(Schema):
         """Exclude unknown fields in the deserialized output."""
         unknown = EXCLUDE
     page = fields.Int(data_key="page",allow_none=False) 
-    flagid = fields.Int(data_key="flagid",allow_none=False) 
+    flagid = fields.Int(data_key="flagid",allow_none=True) 
+    deleted = fields.Boolean(data_key="deleted",allow_none=True) 
     programareaid =fields.List(fields.Int(allow_none=True), data_key="programareaid",allow_none=True)
     other = fields.List(fields.Str(allow_none=True), data_key="other",allow_none=True)
     publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)

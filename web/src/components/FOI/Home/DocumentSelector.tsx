@@ -50,7 +50,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
     setWarningModalOpen,
     divisions,
     pageFlags,
-    updatePageFlags1
+    syncPageFlagsOnAction
 }: any, ref) => {
 
     const requestInfo = useAppSelector((state: any) => state.documents?.requestinfo);
@@ -140,17 +140,16 @@ const DocumentSelector = React.memo(React.forwardRef(({
         }
     }, [requestInfo]);
 
-    const updatePageFlags = () => {
+    //const updatePageFlags = () => {
         // fetchPageFlag(
         //     requestid,
         //     currentLayer.name.toLowerCase(),
         //     Object.keys(pageMappedDocs?.docIdLookup).filter(key => pageMappedDocs?.docIdLookup[key].pageMappings.length > 0), //this will return only the documents which has pages in it           
         //     (error: any) => console.log(error)
         // )
-    }
+    //}
 
     const ministryOrgCode = (pageNo: number, consults: Array<any>) => {
-        // console.log("ministryfn")
         let consultVal = consults?.find((consult: any) => consult.page == pageNo);
         if (consultVal?.programareaid?.length === 1 && consultVal?.other?.length === 0) {
             let ministry: any = consultMinistries?.find((ministry: any) => ministry.programareaid === consultVal.programareaid[0]);
@@ -486,10 +485,12 @@ const DocumentSelector = React.memo(React.forwardRef(({
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
         if (flag) {
             let consultFlag: any = file?.consult?.find((flg: any) => flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]);
-            if (file.consult?.length > 0) {
-                let ministries = consultFlag.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
-                ministries.push(...consultFlag.other);
-                return `Consult - [` + ministries.join(`]\\nConsult - [`) + ']';
+            if (!!file.consult && file.consult.length > 0 && !!consultFlag) {
+                let ministries = consultFlag?.programareaid.map((m: any) => consultMinistries?.find((ministry: any) => ministry.programareaid === m)?.iaocode);
+                if(!!ministries){
+                  ministries.push(...consultFlag.other);
+                  return `Consult - [` + ministries.join(`]\\nConsult - [`) + ']';
+                }
             }
             return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
         }
@@ -897,24 +898,32 @@ const DocumentSelector = React.memo(React.forwardRef(({
                     // )
                 }})
             } else {
-                return divisions.map((division: any) => {
-                    return {
-                        id: `{"division": ${division.divisionid}}`,
-                        label: division.name,
-                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
-                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
-                            label: file.filename,
-                            children: getFilePages(file, division) //file.pages.map(
-                                // (p: any) => {
-                                //     return {
-                                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                                //          label: getPageLabel(file, p)
-                                //     }
-                                // }
-                            // )
-                        }})
-                    }
-                })
+                // const divisionIdsSet = new Set(filesForDisplay.flatMap((file: any) => file.divisions.map((d: any) => d.divisionid)));
+                // /** Filter divisions based on whether they have associated files*/
+                // const filteredDivisions = divisions.filter((division: any) => divisionIdsSet.has(division.divisionid));
+                if(filesForDisplay.length > 0){
+                    return divisions.map((division: any) => {
+                        return {
+                            id: `{"division": ${division.divisionid}}`,
+                            label: division.name,
+                            children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                                id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                                label: file.filename,
+                                children: getFilePages(file, division) //file.pages.map(
+                                    // (p: any) => {
+                                    //     return {
+                                    //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                                    //          label: getPageLabel(file, p)
+                                    //     }
+                                    // }
+                                // )
+                            }})
+                        }
+                    })
+                }
+                else {
+                    return []
+                }
             }
         } else {
             return []
@@ -1196,13 +1205,12 @@ const DocumentSelector = React.memo(React.forwardRef(({
                                 pageMappedDocs={pageMappedDocs}
                                 selectTreeItem={selectTreeItem}
                                 setWarningModalOpen={setWarningModalOpen}
-                                updatePageFlags={updatePageFlags}
                                 pageFlagList={pageFlagList}                                
                                 openFOIPPAModal={openFOIPPAModal}
                                 requestid={requestid}
                                 assignIcon={assignIcon}
                                 pageFlags={pageFlags}
-                                updatePageFlags1={updatePageFlags1}
+                                syncPageFlagsOnAction={syncPageFlagsOnAction}
                             /> //: <></> 
                             // divisions?.length > 0 &&
                             //     <DivisionTreeView                                

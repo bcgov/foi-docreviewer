@@ -39,7 +39,6 @@ class documentgenerationservice:
         if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
-            #print("template_cached:",template_cached)
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
             templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
