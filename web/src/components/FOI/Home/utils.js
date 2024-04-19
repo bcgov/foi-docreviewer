@@ -496,15 +496,15 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
 
 const getRedactionType = (sectionValue, isFullPage) => {
   if (isFullPage) {
-    return "fullpage"
+    return "fullpage"; // full page redaction
   }
   else if (!["", "  ", "NR"].includes(sectionValue)) {
-    return "partial"
+    return "partial"; // partial redaction
   }
   else if (sectionValue === "NR") {
-    return "NR"
+    return "NR"; // full disclosure
   }
   else if (["", "  "].includes(sectionValue)) {
-    return "Blank"
+    return "Blank"; // in progress
   }
 }
