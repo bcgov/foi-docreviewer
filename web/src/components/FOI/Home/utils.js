@@ -26,6 +26,7 @@ export const createPageFlagPayload = (
       flagid: page.flagid || flagId,
       page: page.page,
       deleted: deleted,
+      redactiontype: page?.redactiontype,
       ...data,
     });
   }
@@ -346,7 +347,7 @@ export const getValidObject = (obj) => {
   }
 }
 
-const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlagTypes) => {
+const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlagTypes, redactionType) => {
   let pagesToUpdate = {};        
   let found = false;
   let foundNRAnnot = false;
@@ -391,7 +392,7 @@ const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlag
     return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
   }      
   else if (!found) {
-    return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["No Flag"], deleted: true};
+    return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["No Flag"], deleted: true, redactiontype: redactionType};
   }
   return getValidObject(pagesToUpdate);
 }
@@ -473,7 +474,7 @@ const constructPageFlagsForAddOrEdit = (annotationsInfo, exisitngAnnotations, di
   }
 }
 
-export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, action="") => {
+export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, action="") => {
   // 1. always withheld in full takes precedence
   // 2. then, partial disclosure
   // 3. then, NR (full disclosure)
@@ -485,9 +486,25 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
   else if (action === "delete") {
-    return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes);
+    const redactionType = getRedactionType(annotationsInfo?.section, annotationsInfo?.isFullPage, RedactionTypes);
+    return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes, redactionType);
   }
   else {
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
+  }
+}
+
+const getRedactionType = (sectionValue, isFullPage, RedactionTypes) => {
+  if (isFullPage) {
+    return RedactionTypes["fullpage"]; // full page redaction
+  }
+  else if (!["", "  ", "NR"].includes(sectionValue)) {
+    return RedactionTypes["partial"]; // partial redaction
+  }
+  else if (sectionValue === "NR") {
+    return RedactionTypes["nr"]; // full disclosure
+  }
+  else if (["", "  "].includes(sectionValue)) {
+    return RedactionTypes["blank"]; // in progress
   }
 }

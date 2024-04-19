@@ -52,7 +52,7 @@ import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppSelector } from "../../../hooks/hook";
 import { toast } from "react-toastify";
-import { pageFlagTypes, RequestStates } from "../../../constants/enum";
+import { pageFlagTypes, RequestStates, RedactionTypes } from "../../../constants/enum";
 import {
   getStitchedPageNoFromOriginal,
   createPageFlagPayload,
@@ -902,14 +902,19 @@ const Redlining = React.forwardRef(
                     let contents = annot?.children?.find(
                       (element) => element.name == "contents"
                     );
+                    let customData = annot.children.find(
+                      (element) => element.name == "trn-custom-data"
+                    );
+                    const isFullPage = customData?.attributes?.bytes?.includes("fullPage")
                     let annotationsInfo = {
                       stitchpage: annot.attributes.page,                      
                       type: annot.name,
                       section: contents?.value,
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
+                      isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "delete");
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete");
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -1060,7 +1065,7 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "add");
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add");
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -1594,7 +1599,7 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -1771,7 +1776,7 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "edit");
+              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
