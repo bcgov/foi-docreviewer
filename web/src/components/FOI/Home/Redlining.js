@@ -1236,21 +1236,16 @@ const Redlining = React.forwardRef(
 
     const disableNRDuplicate = () => {
       let isDisabled = false;
-      if (pageFlags?.length > 0) {        
-        if (incompatibleFiles.length > 0) {
-          isDisabled = false;
-        }        
-        else {
-            let duplicateNRflags = [];
-            for (const flagInfo of pageFlags) {                  
-              duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
-              .map(flag => flag.flagid));
-            }
-            if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
-              isDisabled = true;
-            }
-          }
+      if (pageFlags?.length > 0) {
+        let duplicateNRflags = [];
+        for (const flagInfo of pageFlags) {                  
+          duplicateNRflags = duplicateNRflags.concat(flagInfo.pageflag.filter(flag => flag.flagid === pageFlagTypes["Duplicate"] || flag.flagid === pageFlagTypes["Not Responsive"])
+          .map(flag => flag.flagid));
         }
+        if (docsForStitcing.totalPageCount === duplicateNRflags.length) {
+          isDisabled = true;
+        }        
+      }
       setIsDisableNRDuplicate(isDisabled);
       if (isDisabled) {
         setIncludeNRPages(isDisabled)
@@ -2143,7 +2138,6 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(false);
       setIncludeNRPages(false);
     };
-
 
     const decodeAstr = (astr) => {
       const parser = new DOMParser()

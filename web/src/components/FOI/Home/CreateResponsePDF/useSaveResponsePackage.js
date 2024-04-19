@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "../../../../hooks/hook";
 import { toast } from "react-toastify";
 import { getStitchedPageNoFromOriginal, sortBySortOrder } from "../utils";
@@ -8,12 +8,9 @@ import {
 } from "../../../../apiManager/services/foiOSSService";
 import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
-import XMLParser from "react-xml-parser";
 import { useParams } from "react-router-dom";
 
 const useSaveResponsePackage = () => {
-  //xml parser
-  const parser = new XMLParser();
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
   const requestnumber = useAppSelector(
