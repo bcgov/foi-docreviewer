@@ -898,24 +898,32 @@ const DocumentSelector = React.memo(React.forwardRef(({
                     // )
                 }})
             } else {
-                return divisions.map((division: any) => {
-                    return {
-                        id: `{"division": ${division.divisionid}}`,
-                        label: division.name,
-                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
-                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
-                            label: file.filename,
-                            children: getFilePages(file, division) //file.pages.map(
-                                // (p: any) => {
-                                //     return {
-                                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                                //          label: getPageLabel(file, p)
-                                //     }
-                                // }
-                            // )
-                        }})
-                    }
-                })
+                // const divisionIdsSet = new Set(filesForDisplay.flatMap((file: any) => file.divisions.map((d: any) => d.divisionid)));
+                // /** Filter divisions based on whether they have associated files*/
+                // const filteredDivisions = divisions.filter((division: any) => divisionIdsSet.has(division.divisionid));
+                if(filesForDisplay.length > 0){
+                    return divisions.map((division: any) => {
+                        return {
+                            id: `{"division": ${division.divisionid}}`,
+                            label: division.name,
+                            children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                                id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                                label: file.filename,
+                                children: getFilePages(file, division) //file.pages.map(
+                                    // (p: any) => {
+                                    //     return {
+                                    //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                                    //          label: getPageLabel(file, p)
+                                    //     }
+                                    // }
+                                // )
+                            }})
+                        }
+                    })
+                }
+                else {
+                    return []
+                }
             }
         } else {
             return []

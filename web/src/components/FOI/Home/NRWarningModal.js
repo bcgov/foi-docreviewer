@@ -23,7 +23,7 @@ return (
     onRequestClose={cancelRedaction}
     isOpen={messageModalOpen}
   >
-    <DialogTitle disableTypography id="state-change-dialog-title">
+    <DialogTitle disabletypography="true" id="state-change-dialog-title">
       <h2 className="state-change-header">{modalData.modalTitle}</h2>
       <IconButton className="title-col3" onClick={cancelRedaction}>
         <i className="dialog-close-button">Close</i>

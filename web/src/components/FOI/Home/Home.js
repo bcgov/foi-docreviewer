@@ -308,7 +308,7 @@ function Home() {
         className={"state-change-dialog"}
         isOpen={warningModalOpen}
       >
-        <DialogTitle disableTypography id="state-change-dialog-title">
+        <DialogTitle disabletypography="true" id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
           <IconButton className="title-col3" onClick={closeWarningMessage}>
             <i className="dialog-close-button">Close</i>
