@@ -902,12 +902,17 @@ const Redlining = React.forwardRef(
                     let contents = annot?.children?.find(
                       (element) => element.name == "contents"
                     );
+                    let customData = annot.children.find(
+                      (element) => element.name == "trn-custom-data"
+                    );
+                    const isFullPage = customData?.attributes?.bytes?.includes("fullPage")
                     let annotationsInfo = {
                       stitchpage: annot.attributes.page,                      
                       type: annot.name,
                       section: contents?.value,
                       docid: displayedDoc.docid,
                       docversion: displayedDoc.docversion,
+                      isFullPage: isFullPage
                     }
                     const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, "delete");
                     if (pageFlagsUpdated) {

@@ -26,6 +26,7 @@ export const createPageFlagPayload = (
       flagid: page.flagid || flagId,
       page: page.page,
       deleted: deleted,
+      redactiontype: page?.redactiontype,
       ...data,
     });
   }
@@ -346,7 +347,7 @@ export const getValidObject = (obj) => {
   }
 }
 
-const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlagTypes) => {
+const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlagTypes, redactionType) => {
   let pagesToUpdate = {};        
   let found = false;
   let foundNRAnnot = false;
@@ -391,7 +392,7 @@ const constructPageFlagsForDelete = (exisitngAnnotations, displayedDoc, pageFlag
     return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["In Progress"]};
   }      
   else if (!found) {
-    return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["No Flag"], deleted: true};
+    return { docid: displayedDoc.docid, page: displayedDoc.page, flagid: pageFlagTypes["No Flag"], deleted: true, redactiontype: redactionType};
   }
   return getValidObject(pagesToUpdate);
 }
@@ -485,9 +486,25 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
   else if (action === "delete") {
-    return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes);
+    const redactionType = getRedactionType(annotationsInfo?.section, annotationsInfo?.isFullPage);
+    return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes, redactionType);
   }
   else {
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
+  }
+}
+
+const getRedactionType = (sectionValue, isFullPage) => {
+  if (isFullPage) {
+    return "fullpage"
+  }
+  else if (!["", "  ", "NR"].includes(sectionValue)) {
+    return "partial"
+  }
+  else if (sectionValue === "NR") {
+    return "NR"
+  }
+  else if (["", "  "].includes(sectionValue)) {
+    return "Blank"
   }
 }
