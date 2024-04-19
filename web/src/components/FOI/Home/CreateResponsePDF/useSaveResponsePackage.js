@@ -12,7 +12,6 @@ import { useParams } from "react-router-dom";
 
 const useSaveResponsePackage = () => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
-  const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
@@ -123,7 +122,8 @@ const useSaveResponsePackage = () => {
     annotationManager,
     _instance,
     documentList,
-    pageMappedDocs
+    pageMappedDocs,
+    pageFlags
   ) => {
     console.log("SAVE RESPONSE");
     const downloadType = "pdf";
@@ -147,6 +147,7 @@ const useSaveResponsePackage = () => {
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
         let pagesToRemove = [];
+        console.log("PAGEFLAGS", pageFlags);
         for (const infoForEachDoc of pageFlags) {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */

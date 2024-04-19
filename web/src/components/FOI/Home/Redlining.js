@@ -2130,7 +2130,8 @@ const Redlining = React.forwardRef(
             annotManager,
             docInstance,
             documentList,
-            pageMappedDocs
+            pageMappedDocs,
+            pageFlags
           );
           break;
         default:
