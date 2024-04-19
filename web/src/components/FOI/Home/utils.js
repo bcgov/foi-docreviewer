@@ -474,7 +474,7 @@ const constructPageFlagsForAddOrEdit = (annotationsInfo, exisitngAnnotations, di
   }
 }
 
-export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, action="") => {
+export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, action="") => {
   // 1. always withheld in full takes precedence
   // 2. then, partial disclosure
   // 3. then, NR (full disclosure)
@@ -486,7 +486,7 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
     return constructPageFlagsForAddOrEdit(annotationsInfo, _exisitngAnnotations, displayedDoc, pageFlagTypes);
   }
   else if (action === "delete") {
-    const redactionType = getRedactionType(annotationsInfo?.section, annotationsInfo?.isFullPage);
+    const redactionType = getRedactionType(annotationsInfo?.section, annotationsInfo?.isFullPage, RedactionTypes);
     return constructPageFlagsForDelete(_exisitngAnnotations, displayedDoc, pageFlagTypes, redactionType);
   }
   else {
@@ -494,17 +494,17 @@ export const constructPageFlags = (annotationsInfo, exisitngAnnotations, pageMap
   }
 }
 
-const getRedactionType = (sectionValue, isFullPage) => {
+const getRedactionType = (sectionValue, isFullPage, RedactionTypes) => {
   if (isFullPage) {
-    return "fullpage"; // full page redaction
+    return RedactionTypes["fullpage"]; // full page redaction
   }
   else if (!["", "  ", "NR"].includes(sectionValue)) {
-    return "partial"; // partial redaction
+    return RedactionTypes["partial"]; // partial redaction
   }
   else if (sectionValue === "NR") {
-    return "NR"; // full disclosure
+    return RedactionTypes["nr"]; // full disclosure
   }
   else if (["", "  "].includes(sectionValue)) {
-    return "Blank"; // in progress
+    return RedactionTypes["blank"]; // in progress
   }
 }
