@@ -20,6 +20,8 @@ class PageflagSchema(Schema):
     programareaid =fields.List(fields.Int(allow_none=True), data_key="programareaid",allow_none=True)
     other = fields.List(fields.Str(allow_none=True), data_key="other",allow_none=True)
     publicbodyaction=fields.Str(data_key="publicbodyaction",allow_none=True)
+    redactiontype=fields.Str(data_key="redactiontype",allow_none=True)
+    
 
 class DocumentPageflagSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods

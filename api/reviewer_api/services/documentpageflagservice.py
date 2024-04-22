@@ -7,6 +7,7 @@ from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
 from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
+from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 
 class documentpageflagservice:    
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
@@ -157,7 +158,10 @@ class documentpageflagservice:
             flag_nonconsults = [x for x in match if x['flagid'] != 4]            
             if data['deleted'] == True: 
                 if data['flagid'] == 0:
-                    return filtered + flag_consult
+                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsults) == True:
+                        return filtered + flag_consult
+                    else:
+                        return filtered + flag_consult + flag_nonconsults
                 return filtered + flag_nonconsults               
             #Below block will only be executed during updates
             if data['flagid'] != 4 and len(flag_consult) > 0:
@@ -167,6 +171,18 @@ class documentpageflagservice:
             filtered.append(formatted_data)
         return filtered
     
+    def __isdeleteallowed(self, redactiontype, flag_nonconsults):      
+        #Duplicate, Not Responsive
+        if len(flag_nonconsults) > 0:
+            existing_flag = flag_nonconsults[0]['flagid']
+            if  existing_flag in (5,6):
+                return False
+            elif existing_flag == RedactionPageFlagIDMapping.get_flagid(redactiontype):  
+                return True
+        return False
+        
+
+
     def __formatpageflag(self, data):
         _normalised = copy.deepcopy(data)
         if "publicbodyaction" in _normalised:

@@ -7,7 +7,7 @@ from .documentgenerationservice import documentgenerationservice
 from .s3documentservice import uploadbytes
 from services.dts.redactionsummary import redactionsummary
 from services.dal.documentpageflag import documentpageflag
-from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg
+from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg, get_in_summary_object,get_in_summarypackage_object
 class redactionsummaryservice():
 
     def processmessage(self,incomingmessage):
@@ -23,23 +23,22 @@ class redactionsummaryservice():
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
             programareas = documentpageflag().get_all_programareas()
-            divisiondocuments = summarymsg.pkgdocuments
+            divisiondocuments = get_in_summary_object(summarymsg).pkgdocuments
             for entry in divisiondocuments:
-                if hasattr(entry, 'documentids') == True and len(entry.documentids) > 0:
-                    divisionid = entry.divisionid
-                    documentids = entry.documentids
+                if 'documentids' in entry and len(entry['documentids']) > 0:
+                    divisionid = entry['divisionid']
+                    documentids = entry['documentids']
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
                     #print("formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
-                    messageattributes= message.attributes  
-                    #print("attributes length:",len(messageattributes))
+                    messageattributes= json.loads(message.attributes)
                     if len(messageattributes)>1:
-                        filesobj=(next(item for item in messageattributes if item.divisionid == divisionid)).files[0]
+                        filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
                     else:
-                        filesobj= messageattributes[0].files[0]
-                    stitcheddocs3uri = filesobj.s3uripath
-                    stitcheddocfilename = filesobj.filename
+                        filesobj= messageattributes[0]['files'][0]
+                    stitcheddocs3uri = filesobj['s3uripath']
+                    stitcheddocfilename = filesobj['filename']
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
