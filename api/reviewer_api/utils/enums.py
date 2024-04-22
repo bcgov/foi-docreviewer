@@ -151,3 +151,19 @@ class StateName(Enum):
     deduplication = "Deduplication"
     harmsassessment = "Harms Assessment"    
     response = "Response"
+
+class RedactionPageFlagIDMapping(Enum):
+    partial = 1
+    nr = 2
+    fullpage = 3
+    blank = 7
+
+    @classmethod
+    def get_flagid(cls, type):
+        try:
+            return getattr(RedactionPageFlagIDMapping, type).value
+        except AttributeError as err:
+            print('Unable to locate the type', err)
+            return 0
+
+    
