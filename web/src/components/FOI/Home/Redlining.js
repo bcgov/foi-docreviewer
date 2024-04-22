@@ -2697,7 +2697,6 @@ const Redlining = React.forwardRef(
                     pageIndex +
                     totalPageCount -
                     pagesToRemoveEachDoc.length;
-                  pageIndex ++;
                 }
               }
               if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
