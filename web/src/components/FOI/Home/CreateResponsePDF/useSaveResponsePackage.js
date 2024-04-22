@@ -147,7 +147,6 @@ const useSaveResponsePackage = () => {
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
         let pagesToRemove = [];
-        console.log("PAGEFLAGS", pageFlags);
         for (const infoForEachDoc of pageFlags) {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
