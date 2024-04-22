@@ -55,6 +55,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [pdftronDocObjectsForRedline, setPdftronDocObjectsForRedline] =
     useState([]);
   const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
+  const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
   const [includeNRPages, setIncludeNRPages] = useState(false);
   const [includeDuplicatePages, setIncludeDuplicatePages] = useState(false);
   const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
@@ -274,18 +275,18 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         totalPageCountIncludeRemoved += doc.pagecount;
       }
     }
-    divPageMappings["0"] = pageMappings;
-    removepages["0"] = pagesToRemove;
-    duplicateWatermarkPages["0"] = duplicateWatermarkPagesEachDiv;
-    NRWatermarksPages["0"] = NRWatermarksPagesEachDiv;
+    divPageMappings['0'] = pageMappings;
+    removepages['0'] = pagesToRemove; 
+    duplicateWatermarkPages['0'] = duplicateWatermarkPagesEachDiv;
+    NRWatermarksPages['0'] = NRWatermarksPagesEachDiv;
     setRedlinepageMappings({
-      divpagemappings: divPageMappings,
-      pagemapping: pageMappings,
-      pagestoremove: removepages,
+      'divpagemappings': divPageMappings,
+      'pagemapping': pageMappings,
+      'pagestoremove': removepages
     });
     setRedlineWatermarkPageMapping({
-      duplicatewatermark: duplicateWatermarkPages,
-      NRwatermark: NRWatermarksPages,
+      'duplicatewatermark': duplicateWatermarkPages,
+      'NRwatermark': NRWatermarksPages
     });
   };
   const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
@@ -375,15 +376,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
 
     setRedlinepageMappings({
-      divpagemappings: divPageMappings,
-      pagemapping: pageMappings,
-      pagestoremove: removepages,
+      'divpagemappings': divPageMappings,
+      'pagemapping': pageMappings,
+      'pagestoremove': removepages
     });
     setRedlineWatermarkPageMapping({
-      duplicatewatermark: duplicateWatermarkPages,
-      NRwatermark: NRWatermarksPages,
+      'duplicatewatermark': duplicateWatermarkPages,
+      'NRwatermark': NRWatermarksPages
     });
   };
+
   const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
     let divIncompatableMapping = {};
     let incompatibleFiles = [];
@@ -431,6 +433,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     setRedlineIncompatabileMappings(divIncompatableMapping);
     return divIncompatableMapping;
   };
+
   const fetchDocumentRedlineAnnotations = async (
     requestid,
     documentids,
@@ -663,19 +666,20 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const setStitchDetails = (sortedList) => {
     let index = 0;
     let stitchIndex = 1;
-
     sortedList.forEach((sortedItem, _index) => {
       index = index + sortedItem.pagecount;
-      // DO NOT setup the sortorder to 1 for 1st divisional document
-      // as the sort order is used to sort the document irrespective of the division
-      // sortedItem.sortorder = _index + 1;
+      /**  DO NOT setup the sortorder to 1 for 1st divisional document 
+       * as the sort order is used to sort the document irrespective of the division 
+       * sortedItem.sortorder = _index + 1; 
+       */
       sortedItem.stitchIndex = stitchIndex;
-      // No need to update the pages again as the pages are already updated while preparing prepareMapperObj
-      // sortedItem.pages = pages;
+      /**  No need to update the pages again as the pages are already updated while 
+       * preparing prepareMapperObj sortedItem.pages = pages;*/
       stitchIndex += sortedItem.pagecount;
     });
     return sortedList;
   };
+
   const saveRedlineDocument = async (
     layertype,
     incompatibleFiles,
@@ -698,16 +702,14 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     const documentids = documentList.map((obj) => obj.documentid);
     getFOIS3DocumentRedlinePreSignedUrl(
       foiministryrequestid,
-      //normalizeforPdfStitchingReq(divisionDocuments),
       divisionDocuments,
       async (res) => {
         toast.update(toastId.current, {
           render: `Start saving redline...`,
           isLoading: true,
         });
-
+        setRedlineSinglePackage(res.issingleredlinepackage);
         let stitchDoc = {};
-
         prepareRedlinePageMapping(
           res["divdocumentList"],
           res.issingleredlinepackage,
@@ -772,7 +774,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             divCount == res.divdocumentList.length
           ) {
             let sorteddocIds = [];
-            // sort based on sortorder as the sortorder added based on the LastModified
+            /** sort based on sortorder as the sortorder added based on the LastModified */
             let sorteddocuments = sortBySortOrder(documentsObjArr);
             stitchDocuments["0"] = setStitchDetails(sorteddocuments);
             for (const element of sorteddocuments) {
@@ -842,6 +844,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       currentLayer.name.toLowerCase()
     );
   };
+  
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
     console.log("CHECK SAVE REDLINE");
     const validRedlineStatus = [
@@ -856,6 +859,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         !redlineReadyAndValid || !validRedlineStatus;
     }
   };
+
   const checkSavingOIPCRedline = (
     oipcRedlineReadyAndValid,
     instance,
@@ -881,13 +885,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     divObj,
     stitchedDocPath,
     divisionCountForToast,
-    isSingleRedlinePackage
+    redlineSinglePackage
   ) => {
     prepareMessageForRedlineZipping(
       divObj,
       divisionCountForToast,
       redlineZipperMessage,
-      isSingleRedlinePackage,
+      redlineSinglePackage,
       stitchedDocPath
     );
   };
@@ -937,64 +941,61 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
     return zipServiceMessage;
   };
-  const stampPageNumberRedline = async (
-    _docViwer,
-    PDFNet,
-    divisionsdocpages,
-    isSingleRedlinePackage
-  ) => {
-    try {
-      for (
-        let pagecount = 1;
-        pagecount <= divisionsdocpages.length;
-        pagecount++
-      ) {
-        const doc = await _docViwer.getPDFDoc();
-        // Run PDFNet methods with memory management
-        await PDFNet.runWithCleanup(async () => {
-          // lock the document before a write operation
-          // runWithCleanup will auto unlock when complete
-          doc.lock();
-          const s = await PDFNet.Stamper.create(
-            PDFNet.Stamper.SizeType.e_relative_scale,
-            0.3,
-            0.3
-          );
 
-          await s.setAlignment(
-            PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
-            PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
-          );
-          const font = await PDFNet.Font.create(
-            doc,
-            PDFNet.Font.StandardType1Font.e_courier
-          );
-          await s.setFont(font);
-          const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
-          await s.setFontColor(redColorPt);
-          await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
-          await s.setAsBackground(false);
-          const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-          let pagenumber =
-            isSingleRedlinePackage == "Y" || redlineCategory === "oipcreview"
-              ? pagecount
-              : divisionsdocpages[pagecount - 1]?.stitchedPageNo;
-          let totalpagenumber =
-            redlineCategory === "oipcreview"
-              ? _docViwer.getPageCount()
-              : docViewer.getPageCount();
-          await s.stampText(
-            doc,
-            `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
-            pgSet
-          );
-        });
-      }
-    } catch (err) {
-      console.log(err);
-      throw err;
-    }
-  };
+const stampPageNumberRedline = async (
+      _docViwer,
+      PDFNet,
+      divisionsdocpages,
+      redlineSinglePackage
+    ) => {
+      try {
+        for (
+          let pagecount = 1;
+          pagecount <= divisionsdocpages.length;
+          pagecount++
+        ) {
+          
+          const doc = await _docViwer.getPDFDoc();
+          // Run PDFNet methods with memory management
+          await PDFNet.runWithCleanup(async () => {
+            // lock the document before a write operation
+            // runWithCleanup will auto unlock when complete
+            doc.lock();
+            const s = await PDFNet.Stamper.create(
+              PDFNet.Stamper.SizeType.e_relative_scale,
+              0.3,
+              0.3
+            );
+
+            await s.setAlignment(
+              PDFNet.Stamper.HorizontalAlignment.e_horizontal_center,
+              PDFNet.Stamper.VerticalAlignment.e_vertical_bottom
+            );
+            const font = await PDFNet.Font.create(
+              doc,
+              PDFNet.Font.StandardType1Font.e_courier
+            );
+            await s.setFont(font);
+            const redColorPt = await PDFNet.ColorPt.init(0, 0, 128, 0.5);
+            await s.setFontColor(redColorPt);
+            await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
+            await s.setAsBackground(false);
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
+            let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
+            let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
+            await s.stampText(
+              doc,
+              `${requestnumber} , Page ${pagenumber} of ${totalpagenumber}`,
+              pgSet
+            );
+          });
+        }
+      } catch (err) {
+          console.log(err);
+          throw err;
+        }
+    };
+
   const formatAnnotationsForRedline = (
     redlineDocumentAnnotations,
     redlinepageMappings,
@@ -1014,6 +1015,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
     return stitchAnnotation.join();
   };
+
   const formatAnnotationsForDocument = (
     domParser,
     data,
@@ -1061,6 +1063,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
     return updatedXML.join();
   };
+
   const constructFreeTextAndannoteIds = (data) => {
     let _freeTextIds = [];
     let _annoteIds = [];
@@ -1322,7 +1325,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
   useEffect(() => {
     const StitchAndUploadDocument = async () => {
-      console.log("STITCH AND UPLOAD");
       const { PDFNet } = docInstance.Core;
       const downloadType = "pdf";
       let currentDivisionCount = 0;
@@ -1331,7 +1333,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         currentDivisionCount++;
         toast.update(toastId.current, {
           render:
-            isSingleRedlinePackage == "N"
+            redlineSinglePackage == "N"
               ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
               : `Saving redline PDF to Object Storage...`,
           isLoading: true,
@@ -1345,7 +1347,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             redlineIncompatabileMappings[divisionid],
             redlineStitchInfo[divisionid]["s3path"],
             divisionCountForToast,
-            isSingleRedlinePackage
+            redlineSinglePackage
           );
         } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
@@ -1353,12 +1355,12 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if (redlineCategory !== "oipcreview") {
+          if(redlineCategory !== "oipcreview") {  
             await stampPageNumberRedline(
-              stitchObject,
-              PDFNet,
-              redlineStitchInfo[divisionid]["stitchpages"],
-              isSingleRedlinePackage
+            stitchObject,
+            PDFNet,
+            redlineStitchInfo[divisionid]["stitchpages"],
+            redlineSinglePackage
             );
           }
           if (
@@ -1369,57 +1371,40 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory == "redline") {
-            await addWatermarkToRedline(
-              stitchObject,
-              redlineWatermarkPageMapping,
-              key
-            );
+          if(redlineCategory == "redline") {  
+            await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
           }
-
+          
           let xfdfString =
             '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
             formattedAnnotationXML +
             "</annots></xfdf>";
 
           //OIPC - Special Block (Redact S.14) : Begin
-          if (redlineCategory === "oipcreview") {
-            const rarr = [];
+          if(redlineCategory === "oipcreview") {
+            const rarr = []; 
             let annotationManager = docInstance?.Core.annotationManager;
-            let s14_sectionStamps = await annotationSectionsMapping(
-              xfdfString,
-              formattedAnnotationXML
-            );
+            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
             let rects = [];
             for (const [key, value] of Object.entries(s14_sectionStamps)) {
               let s14annoation = annotationManager.getAnnotationById(key);
-              if (s14annoation.Subject === "Redact") {
-                rects = rects.concat(
-                  s14annoation.getQuads().map((q) => {
-                    return {
-                      pageno: s14_sectionStamps[key],
-                      recto: q.toRect(),
-                      vpageno: s14annoation.getPageNumber(),
-                    };
-                  })
-                );
-              }
+                  if ( s14annoation.Subject === "Redact") { 
+                          rects = rects.concat( 
+                          s14annoation.getQuads().map((q) => {
+                            return {
+                                pageno: s14_sectionStamps[key],
+                                recto: q.toRect(),
+                                vpageno: s14annoation.getPageNumber()
+                              };
+                            })
+                          );
+                      }
+                
+              
             }
             for (const rect of rects) {
               let height = docViewer.getPageHeight(rect.vpageno);
-              rarr.push(
-                await PDFNet.Redactor.redactionCreate(
-                  rect.pageno,
-                  await PDFNet.Rect.init(
-                    rect.recto.x1,
-                    height - rect.recto.y1,
-                    rect.recto.x2,
-                    height - rect.recto.y2
-                  ),
-                  false,
-                  ""
-                )
-              );
+              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
             }
             if (rarr.length > 0) {
               const app = {};
@@ -1433,10 +1418,12 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
-              isSingleRedlinePackage
+              redlineSinglePackage
             );
           }
           //OIPC - Special Block : End
+        
+          
 
           stitchObject
             .getFileData({
@@ -1472,7 +1459,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                     redlineIncompatabileMappings[divisionid],
                     redlineStitchInfo[divisionid]["s3path"],
                     divisionCountForToast,
-                    isSingleRedlinePackage
+                    redlineSinglePackage
                   );
                 },
                 (_err) => {

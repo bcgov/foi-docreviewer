@@ -2055,7 +2055,6 @@ const Redlining = React.forwardRef(
       if (!newRedaction) return;
       const astrType = decodeAstr(newRedaction.astr)['trn-redaction-type'] || '';
       const hasFullPageRedaction = astrType === "fullPage";
-      // let hasFullPageRedaction = decodeAstr(newRedaction?.astr)['trn-redaction-type'] === "fullPage" || false
 
       if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
         setWarningModalOpen(true);
