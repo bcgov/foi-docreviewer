@@ -1,3 +1,5 @@
+import { pageFlagTypes } from "../../../constants/enum";
+
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   let stitchedPageNo = 0;
   if (docid && pageMappedDocs) {
@@ -554,7 +556,8 @@ export const updatePageFlagOnPage = (documentpageflags, pageFlags) => {
     
     if (toBeUpdated) {
       for (let pageFlag of documentpageflag.pageflags) {
-        let existingPageflag = toBeUpdated.pageflag.find(pf => pf.page === pageFlag.page);
+        let existingPageflag = toBeUpdated.pageflag.find(pf => pf.page === pageFlag.page && 
+          pf.flagid !== pageFlagTypes['Consult'] && pageFlag.flagid !== pageFlagTypes['Consult']);
         
         if (existingPageflag) {
           if (pageFlag.deleted) {

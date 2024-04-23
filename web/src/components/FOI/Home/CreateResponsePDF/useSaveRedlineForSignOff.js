@@ -260,7 +260,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                 pageMappings[doc.documentid][flagInfo.page] =
                   pageIndex + totalPageCount - pagesToRemoveEachDoc.length;
-                pageIndex++;
               }
             }
             if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
