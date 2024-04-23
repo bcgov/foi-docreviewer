@@ -622,7 +622,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
         }).then(async (newDoc) => {
           docCount++;
-          if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
+          // if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
             if (filerow.stitchIndex === 1) {
               // Delete pages from the first document
               const deletedPages = getDeletedPagesBeforeStitching(
@@ -647,7 +647,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 },
               ]);
             }
-          }
+          // }
         });
       } catch (error) {
         console.error("An error occurred during create document:", error);
