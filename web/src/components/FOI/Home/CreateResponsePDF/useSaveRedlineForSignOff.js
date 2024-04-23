@@ -105,6 +105,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
     return deletedPages;
   };
+  // isIgnoredDocument is no longer needed as new logic exists for NR and Duplicates. Left just in case needed in the future.
   const isIgnoredDocument = (doc, pagecount, divisionDocuments) => {
     const divdocumentlist = JSON.parse(JSON.stringify(divisionDocuments));
     let removepagesCount = 0;
