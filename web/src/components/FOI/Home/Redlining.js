@@ -706,7 +706,6 @@ const Redlining = React.forwardRef(
               },
               currentLayer.name.toLowerCase()
             );
-            //console.log("fetchPageFlag in currentLayer!")
             fetchPageFlag(
               requestid,
               currentLayer.name.toLowerCase(),
@@ -851,9 +850,7 @@ const Redlining = React.forwardRef(
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
-              console.log("pageFlagData-del:",pageFlagData)
               const validObj=getValidObject(pageFlagData)
-              const documentpageflagsObj=validObj?.documentpageflags
               if (annotObjs?.length > 0) {
                 deleteAnnotation(
                   requestid,
@@ -865,7 +862,7 @@ const Redlining = React.forwardRef(
                       0, 
                       (data) => {
                         if(data.status == true){
-                          const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                          const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag, pageFlags)
                           if(updatedPageFlags?.length > 0)
                             syncPageFlagsOnAction(updatedPageFlags);
                         }
@@ -1025,10 +1022,7 @@ const Redlining = React.forwardRef(
                 if (isObjectNotEmpty(pageFlagObj)) {
                   pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
                 }
-                console.log("pageFlagData-new:",pageFlagData)
                 const validObj=getValidObject(pageFlagData)
-                const documentpageflagsObj=validObj?.documentpageflags
-                console.log("\ndocumentpageflagsObj",documentpageflagsObj)
                 let astr =
                   await docInstance.Core.annotationManager.exportAnnotations({
                     annotationList: annotations,
@@ -1048,7 +1042,7 @@ const Redlining = React.forwardRef(
                   astr,
                   (data) => {
                     if(data.status == true){
-                      const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                      const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
                       if(updatedPageFlags?.length > 0)
                         syncPageFlagsOnAction(updatedPageFlags);
                     }
@@ -1261,7 +1255,6 @@ const Redlining = React.forwardRef(
     }
 
     const checkSavingRedlineButton = (_instance) => {
-      console.log("checksavingredlinebutton")
       disableNRDuplicate();
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
@@ -1580,14 +1573,13 @@ const Redlining = React.forwardRef(
           pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
         }
         const validObj=getValidObject(pageFlagData)
-        const documentpageflagsObj=validObj?.documentpageflags
         saveAnnotation(
           requestid,
           astr,
           (data) => {
             setPageSelections([]);
             if(data.status == true){
-              const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+              const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
               if(updatedPageFlags?.length > 0)
                 syncPageFlagsOnAction(updatedPageFlags);
             }       
@@ -1743,15 +1735,13 @@ const Redlining = React.forwardRef(
                 pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
               }
               const validObj=getValidObject(pageFlagData)
-              const documentpageflagsObj=validObj?.documentpageflags
-              console.log("documentpageflagsObj in saveRedaction:",documentpageflagsObj)
               saveAnnotation(
                 requestid,
                 astr,
                 (data) => {
                   setPageSelections([]);
                   if(data.status == true){
-                    const updatedPageFlags = updatePageFlagOnPage(documentpageflagsObj,pageFlags)
+                    const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
                     if(updatedPageFlags?.length > 0)
                       syncPageFlagsOnAction(updatedPageFlags);
                   }
@@ -2113,7 +2103,6 @@ const Redlining = React.forwardRef(
     };
     
     const saveDoc = () => {
-      console.log("savedoc");
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       let modalFor= modalData? modalData.modalFor : ""
