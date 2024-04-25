@@ -181,6 +181,7 @@ const Redlining = React.forwardRef(
             useDownloader: false,
             css: "/stylesheets/webviewer.css",
             loadAsPDF: true,
+            backendType:'ems'
           },
           viewer.current
         ).then((instance) => {
@@ -266,9 +267,9 @@ const Redlining = React.forwardRef(
           redactionToolNames.forEach(toolName => {
             documentViewer
               .getTool(toolName)
-              .setStyles(() => ({
+              .setStyles({
                 FillColor: new Annotations.Color(255, 255, 255),
-              }));
+              });
           });
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
