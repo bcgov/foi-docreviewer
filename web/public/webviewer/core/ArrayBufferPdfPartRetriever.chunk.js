@@ -1,6 +1,2 @@
 /** Notice * This file contains works from many authors under various (but compatible) licenses. Please see core.txt for more information. **/
-<<<<<<< HEAD
 (function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[2],{560:function(xa,ta,n){n.r(ta);xa=n(54);n=n(476);var qa=function(){function na(oa){this.buffer=oa;this.fileSize=null===oa||void 0===oa?void 0:oa.byteLength}na.prototype.getFileData=function(oa){oa(new Uint8Array(this.buffer))};na.prototype.getFile=function(){return Promise.resolve(null)};return na}();Object(xa.a)(qa);Object(n.a)(qa);Object(n.b)(qa);ta["default"]=qa}}]);}).call(this || window)
-=======
-(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[2],{524:function(wa,ta,r){r.r(ta);wa=r(51);r=r(440);var pa=function(){function na(oa){this.buffer=oa;this.fileSize=null===oa||void 0===oa?void 0:oa.byteLength}na.prototype.getFileData=function(oa){oa(new Uint8Array(this.buffer))};na.prototype.getFile=function(){return Promise.resolve(null)};return na}();Object(wa.a)(pa);Object(r.a)(pa);Object(r.b)(pa);ta["default"]=pa}}]);}).call(this || window)
->>>>>>> dev
