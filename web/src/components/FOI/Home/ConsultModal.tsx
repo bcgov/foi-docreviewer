@@ -115,7 +115,7 @@ const ConsultModal = ({
                                 required
                                 defaultChecked={selectedPageFlag?.programareaid?.findIndex((e:any) => e === programArea.programareaid) > -1}
                             />
-                            <span id={"selectspan"+programArea.iaocode} key={index + 1} className="checkmark"></span>
+                            <span id={"selectspan"+programArea.iaocode} key={programArea.iaocode} className="checkmark"></span>
                             {programArea.iaocode}
                             </label>
                         ))}
@@ -128,13 +128,13 @@ const ConsultModal = ({
                                 type="checkbox"
                                 className="checkmark"
                                 id={"selectchk"+programArea}
-                                key={programArea + index}
+                                key={programArea + "_" + index}
                                 data-iaocode={programArea}
                                 onChange={handleSelectCustomMinistry}
                                 required
                                 defaultChecked={selectedPageFlag?.other?.findIndex((e:any) => e === programArea) > -1}
                             />
-                            <span id={"selectspan"+programArea} key={index + 1} className="checkmark"></span>
+                            <span id={"selectspan"+programArea} key={index + "_" + 1} className="checkmark"></span>
                             {programArea}
                             </label>
                         ))}

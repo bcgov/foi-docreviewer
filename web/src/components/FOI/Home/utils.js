@@ -661,7 +661,33 @@ const getRedactionType = (sectionValue, isFullPage, RedactionTypes) => {
   }
 };
 
-export const updatePageFlagOnPage = (documentpageflags, pageFlags) => {
+
+export const updatePageFlagOnPage = (updatedDocs, pageFlags) => {
+  // Create a shallow copy of the pageFlags array
+  const updatedPageFlags = [...pageFlags];
+  // Create a map from documentid to pageflag object for efficient lookup
+  const pageFlagsMap = new Map(
+    updatedPageFlags.map((pageFlag) => [pageFlag.documentid, pageFlag])
+  );
+  for (let document of updatedDocs) {
+    let toBeUpdated = pageFlagsMap.get(Number(document.documentid));
+    if (toBeUpdated) {
+      toBeUpdated.pageflag = document.updatedpageflag;
+    }
+    else {
+      updatedPageFlags.push({
+        documentid: document.documentid,
+        documentversion: document.version,
+        pageflag: document.updatedpageflag,
+      });
+    }
+  }
+  console.log("updatedPageFlags:",updatedPageFlags)
+  return updatedPageFlags;
+}
+
+
+export const updatePageFlagOnPage1 = (documentpageflags, pageFlags) => {
   const updatedPageFlags = [...pageFlags];
   // Create an object to quickly lookup page flags by document id
   // const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {

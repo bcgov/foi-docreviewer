@@ -144,7 +144,7 @@ function Home() {
   }
 
   const syncPageFlagsOnAction = (updatedFlags) => {
-    console.log("HOME-Inside syncPageFlagsOnAction!")
+    console.log("HOME-Inside syncPageFlagsOnAction!",updatedFlags)
     setPageFlags(updatedFlags);
   };
 

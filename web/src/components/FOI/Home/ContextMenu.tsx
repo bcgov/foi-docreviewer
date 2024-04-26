@@ -65,11 +65,13 @@ const ContextMenu = ({
         flagId,
         (data: any) => {
             if(data.status == true){
+                console.log("ContextMenu?")
                 const updatedPageFlags = updatePageFlagOnPage(
-                    documentpageflags,
+                    data.updatedpageflag,
                     pageFlags
                 );
-                syncPageFlagsOnAction(updatedPageFlags);
+                if(updatedPageFlags?.length > 0)
+                  syncPageFlagsOnAction(updatedPageFlags);
             }
         },
         (error: any) => console.log(error),
