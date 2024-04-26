@@ -46,9 +46,6 @@ class redactionservice:
     def copyannotation(self, ministryrequestid, targetlayer):
         sourcelayers = []
         sourcelayers.append(redactionlayerservice().getdefaultredactionlayerid())
-        print(ministryrequestid)
-        print(sourcelayers)
-        print(targetlayer)
         return annotationservice().copyannotation(ministryrequestid, sourcelayers, targetlayer)
 
     def saveannotation(self, annotationschema, userinfo):
@@ -101,73 +98,7 @@ class redactionservice:
         result = annotationservice().deactivateannotation(
             annotationnames, redactionlayerid, userinfo
         )
-        ### Remove/Update pageflags start here ###
-        # totaldocumentpagesmapping docid and pages mapping
-        inputdocpagesmapping = self.__getdocumentpagesmapping(
-            annotationschema["annotations"]
-        )
-        # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
-        skipdocpagesmapping = self.__getskipdocpagesmapping(
-            inputdocpagesmapping, redactionlayerid
-        )
-        # pages not having redactions
-        deldocpagesmapping = self.__getdeldocpagesmapping(
-            inputdocpagesmapping, skipdocpagesmapping
-        )
-        if deldocpagesmapping:
-            documentpageflagservice().updatepageflags(
-                requestid,
-                deldocpagesmapping,
-                redactionlayerid,
-                userinfo,
-            )
-        ### Remove/Update pageflags end here ###
         return result
-
-    def __getskipdocpagesmapping(self, _documentpagesmapping, _redactionlayerid):
-        skipdata = []
-        # gets the documentid and pages to skip based on documentid and pages
-        for item in _documentpagesmapping:
-            docid = item["docid"]
-            pages = item["pages"]
-            skipdata.extend(
-                Annotation.getredactionsbydocumentpages(docid, pages, _redactionlayerid)
-            )
-        return skipdata
-
-    def __getdeldocpagesmapping(self, inputdocpagesmapping, skipdocpagesmapping):
-        #  item["pagenumber"] + 1 is because the page in pageflags starts with 1
-        skip_combinations = {
-            (item["documentid"], item["pagenumber"])
-            for item in skipdocpagesmapping
-            if len(skipdocpagesmapping) > 0
-        }
-
-        # Filter inputdocpagesmapping to obtain deletedocumentpagesmapping
-        deldocpagesmapping = [
-            {
-                "docid": item["docid"],
-                "pages": [
-                    page + 1
-                    for page in item["pages"]
-                    if (item["docid"], page) not in skip_combinations
-                ],
-            }
-            for item in inputdocpagesmapping
-            if len(item["pages"]) > 0
-        ]
-        return deldocpagesmapping
-
-    def __getdocumentpagesmapping(self, annotations):
-        output_dict = {}
-        for annotation in annotations:
-            docid = annotation["docid"]
-            page = annotation["page"] - 1  # in DB the page starts with 0
-            if docid not in output_dict:
-                output_dict[docid] = {"docid": docid, "pages": []}
-            output_dict[docid]["pages"].append(page)
-        output_list = list(output_dict.values())
-        return output_list
 
     def getdocumentmapper(self, bucket):
         return DocumentPathMapper.getmapper(bucket)
