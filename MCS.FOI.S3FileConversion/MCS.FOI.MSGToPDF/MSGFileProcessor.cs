@@ -79,7 +79,7 @@ namespace MCS.FOI.MSGToPDF
 
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", attachmentStream.Length.ToString());
+                                        attachmentInfo.Add("size", attachmentSize);
                                         attachmentInfo.Add("lastmodified", lastModified);
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
                                         attachmentsObj.Add(attachmentStream, attachmentInfo);
