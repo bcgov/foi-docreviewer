@@ -69,7 +69,9 @@ class redactionservice:
                     annotationschema["pageflags"],
                     userinfo,
                 )
-        return result,pageflagresponse
+        print("result------>",result)
+        print("pageflagresponse------>",pageflagresponse)
+        return pageflagresponse, result
 
     def deactivateannotation(
         self,
