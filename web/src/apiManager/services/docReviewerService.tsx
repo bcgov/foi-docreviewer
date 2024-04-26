@@ -25,16 +25,176 @@ export const fetchDocuments = (
       }
       if (res.data) {
         // res.data.documents has all documents including the incompatible ones, below code is to filter out the incompatible ones
-        const __files = res.data.documents.filter((d: any) => {
-          const isPdfFile = getFileExt(d.filepath) === "pdf"
-          const isCompatible = !d.attributes.incompatible || isPdfFile
-          return isCompatible
-        });
+        // const __files = res.data.documents.filter((d: any) => {
+        //   const isPdfFile = getFileExt(d.filepath) === "pdf"
+        //   const isCompatible = !d.attributes.incompatible || isPdfFile
+        //   return isCompatible
+        // });
+        let __files: any = [
+          {
+            "recordid": 3,
+            "parentid": null,
+            "filepath": "https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/ABC-345-345345/a9f2821e-f79d-4fb0-8145-febaaa7020c4.pdf",
+            "documentmasterid": 3,
+            "attributes": {
+              "lastmodified": "2023-06-02T18:04:34.410Z",
+              "filesize": 64210,
+              "personalattributes": {
+                "person": "PERSON 1",
+                "filetype": "FY 6",
+                "trackingid": "test003",  
+                "volume": "VOL 1",
+                "section": "Medical"
+              },
+              "divisions": [
+                {
+                  "divisionid": 3
+                }
+              ],
+              "batch": "d5126329-f268-4e6a-a853-d5528086d721",
+              "extension": ".pdf",
+              "incompatible": false,
+              "rotatedpages": {
+                "1": 90,
+                "2": 270
+              }
+            },
+            "created_at": "2024-03-05T11:49:38.182552-08:00",
+            "createdby": "foiedu@idir",
+            "attachmentof": null,
+            "duplicatemasterid": 3,
+            "ministryrequestid": "1",
+            "isattachment": false,
+            "conversionstatus": null,
+            "deduplicationstatus": "completed",
+            "isredactionready": true,
+            "filename": "calibri.pdf",
+            "trigger": "recordupload",
+            "originalpagecount": 4,
+            "pagecount": 3,
+            "documentid": 1,
+            "version": 1,
+            "isduplicate": false,
+            "duplicateof": "calibri.pdf",
+            "divisions": [
+              {
+                "divisionid": 3,
+                "name": "Learning and Education Programs",
+                "sortorder": null,
+                "issection": false
+              }
+            ]
+          },
+          {
+            "recordid": 4,
+            "parentid": null,
+            "filepath": "https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/ABC-345-345345/d66d8f80-62c2-4287-a36e-bf4b3951796b.pdf",
+            "documentmasterid": 4,
+            "attributes": {
+              "lastmodified": "2023-02-16T20:09:40.949Z",
+              "filesize": 7693,
+              "personalattributes": {
+                "person": "PERSON 1",
+                "filetype": "FY 6",     
+                "volume": "VOL 1",
+                "trackingid": "test003"
+              },
+              "divisions": [
+                {
+                  "divisionid": 3
+                }
+              ],
+              "batch": "16e3e090-e46b-4cbe-8f18-1ee6919cd828",
+              "extension": ".pdf",
+              "incompatible": false,
+              "rotatedpages": {}
+            },
+            "created_at": "2024-03-05T11:50:23.457874-08:00",
+            "createdby": "foiedu@idir",
+            "attachmentof": null,
+            "duplicatemasterid": 4,
+            "ministryrequestid": "1",
+            "isattachment": false,
+            "conversionstatus": null,
+            "deduplicationstatus": "completed",
+            "isredactionready": true,
+            "filename": "lorem.pdf",
+            "trigger": "recordupload",
+            "originalpagecount": 1,
+            "pagecount": 1,
+            "documentid": 2,
+            "version": 1,
+            "isduplicate": false,
+            "duplicateof": "lorem.pdf",
+            "divisions": [
+              {
+                "divisionid": 3,
+                "name": "Learning and Education Programs",
+                "sortorder": null,
+                "issection": false
+              }
+            ]
+          },
+          {
+            "recordid": 5,
+            "parentid": null,
+            "filepath": "https://citz-foi-prod.objectstore.gov.bc.ca/edu-dev-e/conversion-test-files/lorem270.pdf",
+            "documentmasterid": 5,
+            "attributes": {
+              "lastmodified": "2023-02-10T23:54:56.099Z",
+              "filesize": 46438,
+              "personalattributes": {
+                "person": "PERSON 1",                
+                "filetype": "FY 6",         
+                "volume": "VOL 1",
+                "trackingid": "test004"
+              },
+              "divisions": [
+                {
+                  "divisionid": 3
+                }
+              ],
+              "batch": "16e3e090-e46b-4cbe-8f18-1ee6919cd828",
+              "extension": ".pdf",
+              "incompatible": false,
+              "rotatedpages": {
+                "1": 90
+              }
+            },
+            "created_at": "2024-03-05T11:50:23.477697-08:00",
+            "createdby": "foiedu@idir",
+            "attachmentof": null,
+            "duplicatemasterid": 5,
+            "ministryrequestid": "1",
+            "isattachment": false,
+            "conversionstatus": null,
+            "deduplicationstatus": "completed",
+            "isredactionready": true,
+            "filename": "ipsum.pdf",
+            "trigger": "recordupload",
+            "originalpagecount": 1,
+            "pagecount": 1,
+            "documentid": 3,
+            "version": 1,
+            "isduplicate": false,
+            "duplicateof": "ipsum.pdf",
+            "divisions": [
+              {
+                "divisionid": 3,
+                "name": "Learning and Education Programs",
+                "sortorder": null,
+                "issection": false
+              }
+            ]
+          }
+        ]
+        // __files = JSON.stringify(__files)
         store.dispatch(setDocumentList(__files) as any);
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
-        callback(res.data.documents, res.data.documentdivisions);
+        callback(__files, res.data.documentdivisions, res.data.requestinfo);
+        // callback(res.data.documents, res.data.documentdivisions, res.data.requestinfo);
       } else {
         throw new Error();
       }

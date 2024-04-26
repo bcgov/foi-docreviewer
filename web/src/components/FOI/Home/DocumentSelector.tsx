@@ -61,7 +61,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [organizeBy, setOrganizeBy] = useState("lastmodified")
     const [pageFlagList, setPageFlagList] = useState([]);
-    const [filesForDisplay, setFilesForDisplay] = useState([]);
+    const [filesForDisplay, setFilesForDisplay] = useState<any>([]);
     const [consultMinistries, setConsultMinistries] = useState<any>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
     const [consultInfo, setConsultInfo] = useState({});
@@ -832,17 +832,17 @@ const DocumentSelector = React.memo(React.forwardRef(({
                 }
 
             }))
-            if (organizeBy === "lastmodified" ) {
+            if (organizeBy === "division" ) {
                 return filteredpages.map((p: any) => {
-                    return {
-                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
                         label: getPageLabel(file, p)
                     }
                 })
             } else {
                 return filteredpages.map((p: any) => {
-                    return {                        
-                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
                         label: getPageLabel(file, p)
                     }
                 })
@@ -858,32 +858,54 @@ const DocumentSelector = React.memo(React.forwardRef(({
             //     } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
             //     }
             // }
-        } else {
-            if (organizeBy === "lastmodified" ) {return file.pages.map(
-                (p: any) => {
+        } else {            
+            if (organizeBy === "division" ) {
+                return file.pages.map((p: any) => {
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            } else {
+                return file.pages.map((p: any) => {
                     return {
                         id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
                         label: getPageLabel(file, p)
                     }
-                }
-            )
-
-            } else {
-                return file.pages.map(
-                    (p: any) => {
-                        return {
-                            id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                            label: getPageLabel(file, p)
-                        }
-                    }
-                )
+                })
             }
         }
     }
 
     const getTreeItems = () => {
         if (pageFlags) {
-            if (organizeBy === "lastmodified" ) {
+            // if (requestInfo.bcgovcode === "MCF") {
+            if (requestInfo.bcgovcode === "EDU") {
+                var index = 0;
+                let tree: any = []
+                for (let file of filesForDisplay) {
+                    var label = file.attributes.personalattributes.person + ' - ' + 
+                        file.attributes.personalattributes.filetype + ' - ' + 
+                        file.attributes.personalattributes.trackingid;
+                    if (file.attributes.personalattributes.volume) {
+                        label += (' - ' + file.attributes.personalattributes.volume)
+                    }
+                    if (tree.length === 0 || tree[index].label !== label) {
+                        tree.push({
+                            id: `{"filevolume": "${label}"}`,
+                            label: label,
+                            children: []
+                        })
+                        index = tree.length - 1
+                    }
+                    tree[index].children.push({
+                        id: `{"docid": ${file.documentid}}`,
+                        label: (file.attributes.personalattributes.personaltag || 'TBD') + ' (' + file.pages.length + ')',
+                        children: getFilePages(file)
+                    })
+                }
+                return tree;
+            } else if (organizeBy === "lastmodified" ) {
                 return filesForDisplay.map((file: any, index: number) => {return {
                     id: `{"docid": ${file.documentid}}`,
                     label: file.filename,
@@ -896,7 +918,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
                         // }
                     // )
                 }})
-            } else {
+            } else if (organizeBy === "division" ) {
                 return divisions.map((division: any) => {
                     return {
                         id: `{"division": ${division.divisionid}}`,
@@ -904,14 +926,7 @@ const DocumentSelector = React.memo(React.forwardRef(({
                         children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
                             id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
                             label: file.filename,
-                            children: getFilePages(file, division) //file.pages.map(
-                                // (p: any) => {
-                                //     return {
-                                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                                //          label: getPageLabel(file, p)
-                                //     }
-                                // }
-                            // )
+                            children: getFilePages(file, division)
                         }})
                     }
                 })
