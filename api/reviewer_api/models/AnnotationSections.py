@@ -330,7 +330,7 @@ class AnnotationSection(db.Model):
         try:
             sql = """select as2.annotationname  ,
                         cast("section"  AS json) ->> 'redactannotation' as redactannotation,
-                        cast("section"  AS json) ->> 'ids' as ids
+                        cast("section" AS json) ->> 'ids' as ids
                         from "AnnotationSections" as2, "Annotations" a
                         join (select distinct on (docs.documentid) docs.*
                             from  "Documents" docs

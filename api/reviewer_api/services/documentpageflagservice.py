@@ -6,39 +6,45 @@ from reviewer_api.models.DocumentPageflags import DocumentPageflag
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 from reviewer_api.models.default_method_result import DefaultMethodResult
 from datetime import datetime
-
+from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
+from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 
 class documentpageflagservice:    
-    def getpageflags(self, requestid, redactionlayer, documentids):
+    def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
         layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
-        return DocumentPageflag.getpageflag_by_request(requestid, layerids, documentids)
+        pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
+        return self.__removedeletedpages(requestid, pageflags)
     
     def getpublicbody(self, requestid, redactionlayer):
         redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
         return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
-    def getdocumentpageflags(
-        self, requestid, redactionlayerid, documentid=None, version=None
-    ):
-        layerids = redactionlayerservice().getmappedredactionlayers(
-            {"redactionlayerid": redactionlayerid}
-        )
-        pageflag = DocumentPageflag.getpageflag(
-            requestid, documentid, version, layerids
-        )
+    def getdocumentpageflags(self, requestid, redactionlayerid, documentid=None, version=None):
+        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
+        pageflag = DocumentPageflag.getpageflag(requestid, documentid, version, layerids)
         if pageflag not in (None, {}):
             return pageflag["pageflag"], pageflag["attributes"]
         return [], None
 
+    def __removedeletedpages(self, requestid, pageflags):
+        docdeletedpages = docdeletedpageservice().getdeletedpages(requestid)       
+        for entry in pageflags:
+            docid = entry["documentid"]
+            deletedpages = docdeletedpages[docid] if docid in docdeletedpages else []
+            entry["pageflag"] = self.__filterpages(entry["pageflag"], deletedpages)
+        return pageflags
+    
+    def __filterpages(self, pageflag, deletedpages):
+        return list(filter(lambda pgflag: pgflag['page'] not in deletedpages, pageflag))
+
+
     def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
-        layerids = redactionlayerservice().getmappedredactionlayers(
-            {"redactionlayerid": redactionlayerid}
-        )
+        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
         return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
-    def removebookmark(self, requestid, redactionlayerid, userinfo):
-        pageflags = self.getpageflags(requestid, redactionlayerid)
+    def removebookmark(self, requestid, redactionlayerid, userinfo, documentids):
+        pageflags = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, documentids)
         for entry in pageflags:
             new_pageflag = list(filter(lambda x: x["flagid"] != 8, entry["pageflag"]))
             DocumentPageflag.savepageflag(
@@ -49,55 +55,30 @@ class documentpageflagservice:
                 json.dumps(userinfo),
                 redactionlayerid,
             )
+    def __getpageflags(self, requestid, redactionlayer):
+        layerids = []
+        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        return DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids)    
 
-    def bulksavedocumentpageflag(
-        self, requestid, documentid, version, pageflags, redactionlayerid, userinfo
-    ):
-        docpageflags, docpgattributes = self.getdocumentpageflags(
-            requestid, redactionlayerid, documentid, version
-        )
+    def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
+        docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
         for pageflag in pageflags:
             if self.__isbookmark(pageflag) == True:
-                self.removebookmark(requestid, redactionlayerid, userinfo)
+                self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
             docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-        __docpgattributes = (
-            json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
-        )
-        __docpageflags = (
-            json.dumps(docpageflags) if docpageflags not in (None, "") else None
-        )
-        return DocumentPageflag.savepageflag(
-            requestid,
-            documentid,
-            version,
-            __docpageflags,
-            json.dumps(userinfo),
-            redactionlayerid,
-            __docpgattributes,
-        )
+        __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+        __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
+        return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
-    async def bulkarchivedocumentpageflag(
-        self, requestid, documentid, userinfo
-    ):
-        return DocumentPageflag.bulkarchivepageflag(
-            requestid,
-            documentid,
-            userinfo
-        )
+    async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
+        return DocumentPageflag.bulkarchivepageflag(requestid,documentid,userinfo)
 
     def bulksavepageflag(self, requestid, data, userinfo):
         results = []
         for entry in data["documentpageflags"]:
             try:
-                result = self.bulksavedocumentpageflag(
-                    requestid,
-                    entry["documentid"],
-                    entry["version"],
-                    entry["pageflags"],
-                    entry["redactionlayerid"],
-                    userinfo,
-                )
+                result = self.bulksavedocumentpageflag(requestid, entry["documentid"],entry["version"],entry["pageflags"],entry["redactionlayerid"],userinfo)
                 results.append(
                     {
                         "documentid": entry["documentid"],
@@ -132,130 +113,82 @@ class documentpageflagservice:
         else:
             return docpgattributes
 
-    def removepageflag(
-        self, requestid, documentid, version, page, redactionlayerid, userinfo
-    ):
-        pageflags, _ = self.getdocumentpageflags(
-            requestid, redactionlayerid, documentid, version
-        )
-        withheldinfullobj = next(
-            (
-                obj
-                for obj in pageflags
-                if (obj["page"] == page and obj["flagid"] in [1, 3, 7])
-            ),
-            None,
-        )
-        if withheldinfullobj is not None:
-            pageflags.remove(withheldinfullobj)
-            DocumentPageflag.savepageflag(
-                requestid,
-                documentid,
-                version,
-                json.dumps(pageflags),
-                json.dumps(userinfo),
-                redactionlayerid,
-            )
-
     # method to update pageflags by removing the necessary pageflags for a document
-    def updatepageflags(
-        self, requestid, deldocpagesmapping, redactionlayerid, userinfo
-    ):
+    def updatepageflags(self, requestid, deldocpagesmapping, redactionlayerid, userinfo):
         documentids = [
             item["docid"] for item in deldocpagesmapping if len(item["pages"]) > 0
         ]
         # get the pageflag details(all columns from table) for the pages with no redactions
-        pageflags = self.getdocumentpageflagsbydocids(
-            requestid, redactionlayerid, documentids
-        )
+        pageflags = self.getdocumentpageflagsbydocids(requestid, redactionlayerid, documentids)
         self.__filterandsavepageflags(
             pageflags, deldocpagesmapping, requestid, userinfo, redactionlayerid
         )
 
-    def __filterandsavepageflags(
-        self,
-        pageflags,
-        deldocpagesmapping,
-        requestid,
-        userinfo,
-        redactionlayerid,
-    ):
+    def __filterandsavepageflags(self,pageflags,deldocpagesmapping,requestid,userinfo,redactionlayerid):
         for page_data in deldocpagesmapping:
             if len(page_data["pages"]) > 0:
                 pages_to_remove = page_data["pages"]
                 for pageflag in pageflags:
                     if pageflag["documentid"] == page_data["docid"]:
-                        updatedpageflags = self.__getupdatedpageflag(
-                            pageflag, pages_to_remove
-                        )
+                        updatedpageflags = self.__getupdatedpageflag(pageflag, pages_to_remove)
                         pageflag["pageflag"] = (
                             json.dumps(updatedpageflags)
                             if updatedpageflags not in (None, "")
                             else None
                         )
                         break
-                DocumentPageflag.savepageflag(
-                    requestid,
-                    pageflag["documentid"],
-                    pageflag["documentversion"],
-                    pageflag["pageflag"],
-                    json.dumps(userinfo),
-                    redactionlayerid,
-                    json.dumps(pageflag["attributes"]),
-                )
+                DocumentPageflag.savepageflag(requestid,pageflag["documentid"],pageflag["documentversion"],pageflag["pageflag"],json.dumps(userinfo),redactionlayerid,json.dumps(pageflag["attributes"]))
 
     def __getupdatedpageflag(self, pageflag, pages_to_remove):
         # returns the updated pageflag after removing the pages with pageflags [1, 3, 7]
         # conditions to check: if the page is part of pages_to_remove
         # or flagid in [1(Partial Disclosure), 3 (Withheld in Full), 7(In Progress)]
-        return [
-            entry
-            for entry in pageflag["pageflag"]
-            if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 3, 7]
-        ]
-
+        return [entry for entry in pageflag["pageflag"] if entry["page"] not in pages_to_remove or entry["flagid"] not in [1, 2, 3, 7]]
+    
     def __createnewpageflag(self, pageflag, data):
-        formatted_data = self.__formatpageflag(data)        
+        formatted_data = self.__formatpageflag(data)  
         if not pageflag:
             pageflag = []
-        isnew = True
-        updated = False
-        for index, entry in enumerate(pageflag):
-            if entry["page"] == data["page"]:
-                isnew = False
-                if data["flagid"] == 4:
-                    pageflag, updated = self.__handleconsultflag(data, entry, index, pageflag, formatted_data, updated)
-                # handle all other flags except consult
-                elif data["flagid"] != 4 and entry["flagid"] != 4:
-                    del pageflag[index]
-                    pageflag.append(formatted_data)
-                    updated = True
-                    break
-
-        if isnew or not updated:
-            pageflag.append(formatted_data)
-
-        return pageflag
+        match = [x for x in pageflag if x['page'] == data['page']] 
+        filtered = [x for x in pageflag if x['page'] != data['page']]
+        if len(match) == 0 and data['deleted'] == False:
+            filtered.append(formatted_data)
+        else:
+            flag_consult = [x for x in match if x['flagid'] == 4]
+            flag_nonconsults = [x for x in match if x['flagid'] != 4]            
+            if data['deleted'] == True: 
+                if data['flagid'] == 0:
+                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsults) == True:
+                        return filtered + flag_consult
+                    else:
+                        return filtered + flag_consult + flag_nonconsults
+                return filtered + flag_nonconsults               
+            #Below block will only be executed during updates
+            if data['flagid'] != 4 and len(flag_consult) > 0:
+                filtered = filtered + flag_consult
+            if data['flagid'] == 4 and len(flag_nonconsults) > 0:
+                filtered = filtered + flag_nonconsults            
+            filtered.append(formatted_data)
+        return filtered
     
-    def __handleconsultflag(self, data, entry, index, pageflag, formatted_data, updated):
-        # remove consult flag
-        if data["flagid"] == 4 and not data["other"] and not data["programareaid"]:
-            if entry["flagid"] == data["flagid"]:
-                del pageflag[index]
-                updated = True
-                return pageflag, updated
-        # update consult flag
-        elif data["flagid"] == 4 and entry["flagid"] == data["flagid"]:
-            del pageflag[index]
-            pageflag.append(formatted_data)
-            updated = True
-            return pageflag, updated
-        return pageflag, updated
+    def __isdeleteallowed(self, redactiontype, flag_nonconsults):      
+        #Duplicate, Not Responsive
+        if len(flag_nonconsults) > 0:
+            existing_flag = flag_nonconsults[0]['flagid']
+            if  existing_flag in (5,6):
+                return False
+            elif existing_flag == RedactionPageFlagIDMapping.get_flagid(redactiontype):  
+                return True
+        return False
+        
+
 
     def __formatpageflag(self, data):
-        _normalised = data
+        _normalised = copy.deepcopy(data)
         if "publicbodyaction" in _normalised:
             del _normalised["publicbodyaction"]
+        if "deleted" in data:
+            del _normalised["deleted"]
         return _normalised
 
     def __isbookmark(self, data):

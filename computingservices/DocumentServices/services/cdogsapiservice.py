@@ -23,13 +23,13 @@ class cdogsapiservice:
             "data": data
         }
         json_request_body = json.dumps(request_body)
-        print("json_request_body:",json_request_body)
+        #print("json_request_body:",json_request_body)
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
         }
         url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}/render"
-        print("url:",url)
+        #print("url:",url)
         return self._post_generate_pdf(json_request_body, headers, url)
 
     def _post_generate_pdf(self, json_request_body, headers, url):
@@ -40,19 +40,15 @@ class cdogsapiservice:
         "Authorization": f'Bearer {access_token}'
         }
         url = f"{cdogs_base_url}/api/v2/template"
-        if os.path.exists(template_path):
-            print("Exists!!")
         template = {'template':('template', open(template_path, 'rb'), "multipart/form-data")}
         response = self._post_upload_template(headers, url, template)
         if response.status_code == 200:
-            print('Returning new hash %s', response.headers['X-Template-Hash'])
             return response.headers['X-Template-Hash'];
     
         response_json = json.loads(response.content)
         if response.status_code == 405 and response_json['detail'] is not None:
             match = re.findall(r"Hash '(.*?)'", response_json['detail']);
             if match:
-                print('Template already hashed with code %s', match[0])
                 return match[0]
             
 
