@@ -27,13 +27,13 @@
     }
 }
 
-/* .redact-all-marked {
+.redact-all-marked {
     display: none;
 }
 
 .redact-all-selected {
     display: none;
-} */
+}
 
 .clear-all-marked {
     display: none;
