@@ -32,3 +32,20 @@ class FOIRequestUpdateRecordsSchema(Schema):
     documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
     ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
     divisions = fields.Nested(DivisionSchema,many=True,validate=validate.Length(min=1),allow_none=False)
+
+
+class DocumentPage(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE 
+    docid = fields.Int(data_key="docid",allow_none=False)
+    pages = fields.List(fields.Integer(),data_key="pages",allow_none=False)
+
+class DocumentDeletedPage(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE 
+    redactionlayer = fields.String(data_key="redactionlayer",allow_none=False)
+    documentpages = fields.Nested(DocumentPage,many=True,validate=validate.Length(min=1),allow_none=False)
