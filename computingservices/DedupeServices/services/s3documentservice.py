@@ -13,6 +13,7 @@ from html import escape
 import hashlib
 import uuid
 from re import sub
+import fitz
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -80,8 +81,62 @@ def gets3documenthashcode(producermessage):
         
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
+        
+        # New logic to extract embedded file attachments (classified as annotations in the PDF) from pages in PDF
+        # Before looping of pdf pages started; confirm if annotations exist in the pdf using pyMuPdf library (fitz)
+        file_attachments = []
+        fitz_reader = fitz.open(stream=BytesIO(response.content), filetype="pdf")
+        if (fitz_reader.has_annots()):
+            print("LOOP ANNOTS")
+            for page in reader.pages:
+                if "/Annots" in page:
+                    annotations = page["/Annots"]
+                    for annotation in annotations:
+                        subtype = annotation.get_object()["/Subtype"]
+                        if subtype == "/FileAttachment":
+                            producermessage.attributes["hasattachment"] = True
+                            fileobj = annotation.get_object()["/FS"]
+                            file = fileobj["/F"]
+                            data = fileobj["/EF"]["/F"].get_data()
+                            # data = BytesIO(data).getvalue()
+                            s3uripath = (
+                                path.splitext(filepath)[0]
+                                + "/"
+                                + "{0}{1}".format(uuid.uuid4(), path.splitext(file)[1])
+                            )
+                            uploadresponse = requests.put(s3uripath, data=data, auth=auth)
+                            uploadresponse.raise_for_status()
+                            attachment = {
+                                "filename": escape(sub("<[0-9]+>", "", file, 1)),
+                                "s3uripath": s3uripath,
+                                "attributes": deepcopy(producermessage.attributes),
+                            }
+                            attachment["attributes"]["filesize"] = len(data)
+                            attachment["attributes"][
+                                "parentpdfmasterid"
+                            ] = producermessage.documentmasterid
+                            attachment["attributes"].pop("batch")
+                            attachment["attributes"].pop("extension")
+                            attachment["attributes"].pop("incompatible")
+                            file_attachments.append(attachment)
+        fitz_reader.close()
+        if (len(file_attachments) > 0):
+            print("SAVE FILE ATTACH")
+            saveresponse = requests.post(
+                request_management_api
+                + "/api/foirecord/-1/ministryrequest/"
+                + producermessage.ministryrequestid,
+                data=json.dumps({"records": file_attachments}),
+                headers={
+                    "Authorization": producermessage.usertoken,
+                    "Content-Type": "application/json",
+                }
+            )
+            saveresponse.raise_for_status()
+
         attachments = []
         if reader.attachments:
+            print("PORTFOLIO ATTACH")
             if "/Collection" in reader.trailer["/Root"]:
                 producermessage.attributes["isportfolio"] = True
             else:
@@ -120,6 +175,7 @@ def gets3documenthashcode(producermessage):
             )
             saveresponse.raise_for_status()
     elif extension.lower() in file_conversion_types:
+        print("SHOULD NOT PRINT")
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
