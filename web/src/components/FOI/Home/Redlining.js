@@ -2183,7 +2183,7 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        { modalOpen &&
+        {/* { modalOpen && */}
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
@@ -2199,7 +2199,7 @@ const Redlining = React.forwardRef(
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
           />
-        }
+        {/* } */}
         {redlineModalOpen && 
           <ConfirmationModal 
           cancelRedaction={cancelRedaction}
