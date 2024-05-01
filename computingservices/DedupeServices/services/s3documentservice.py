@@ -120,7 +120,6 @@ def gets3documenthashcode(producermessage):
         
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
-
         attachments = []
         if reader.attachments:
             if "/Collection" in reader.trailer["/Root"]:
@@ -168,7 +167,7 @@ def gets3documenthashcode(producermessage):
                 )
                 saveresponse.raise_for_status()
         fitz_reader.close()
-        
+
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
