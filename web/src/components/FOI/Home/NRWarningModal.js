@@ -24,7 +24,7 @@ return (
     isOpen={messageModalOpen}
   >
     <DialogTitle disabletypography="true" id="state-change-dialog-title">
-      <h2 className="state-change-header">{modalData.modalTitle}</h2>
+      <h2 className="state-change-header">{modalData?.modalTitle}</h2>
       <IconButton className="title-col3" onClick={cancelRedaction}>
         <i className="dialog-close-button">Close</i>
         <CloseIcon />
@@ -36,7 +36,7 @@ return (
         component={"span"}
       >
         <span className="confirmation-message">
-          {modalData.modalMessage} <br></br>
+          {modalData?.modalMessage} <br></br>
         </span>
       </DialogContentText>
     </DialogContent>

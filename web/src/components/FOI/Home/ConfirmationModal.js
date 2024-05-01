@@ -31,12 +31,12 @@ export const ConfirmationModal= ({
       initHeight={300}
       minWidth={600}
       minHeight={250}
-      className={"state-change-dialog" + (modalData.modalFor == "redline"?" redline-modal":"")}
+      className={"state-change-dialog" + (modalData?.modalFor == "redline"?" redline-modal":"")}
       onRequestClose={cancelRedaction}
       isOpen={redlineModalOpen}
     >
       <DialogTitle disabletypography="true" id="state-change-dialog-title">
-        <h2 className="state-change-header">{modalData.modalTitle}</h2>
+        <h2 className="state-change-header">{modalData?.modalTitle}</h2>
         <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
           <i className="dialog-close-button">Close</i>
           <CloseIcon />
@@ -48,8 +48,8 @@ export const ConfirmationModal= ({
           component={"span"}
         >
           <span>
-            {modalData.modalMessage} <br/><br/>
-            {modalData.modalFor == "redline" && <>
+            {modalData?.modalMessage} <br/><br/>
+            {modalData?.modalFor == "redline" && <>
             <input
               type="checkbox"
               style={{ marginRight: 10 }}
@@ -77,7 +77,7 @@ export const ConfirmationModal= ({
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
         <button className="btn-bottom btn-save btn" onClick={saveDoc}>
-          {modalData.modalButtonLabel}
+          {modalData?.modalButtonLabel}
         </button>
         <button
           className="btn-bottom btn-cancel"
