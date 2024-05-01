@@ -412,6 +412,8 @@ class documentservice:
             )
             newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
             newdocattributes["divisions"] = payload["divisions"]
+            if payload["personalattributes"] is not None:
+                newdocattributes["personalattributes"] = payload["personalattributes"]
             newRows.append(
                 DocumentAttributes(
                     version=docattributes["version"] + 1,
