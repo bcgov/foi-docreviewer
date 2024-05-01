@@ -143,7 +143,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
             }
         }
 
-        if (selectedNodes.length === 1 && !_.isEqual(Object.keys(selectedNodes[0]), ["division"])) {
+        if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("docid")) {
             selectTreeItem(selectedNodes[0].docid, selectedNodes[0].page || 1);
         }
 
