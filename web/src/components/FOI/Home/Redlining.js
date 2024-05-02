@@ -387,8 +387,18 @@ const Redlining = React.forwardRef(
             }
           })
           
-          documentViewer.addEventListener("click", async (event) => {
-            scrollLeftPanel(event, documentViewer.getCurrentPage());
+          var x = 0, y = 0
+          documentViewer.addEventListener("mouseLeftDown", async (event) => {            
+            x = event.pageX;
+            y = event.pageY;
+          });
+
+          documentViewer.addEventListener("mouseLeftUp", async (event) => {
+            if (window.Math.abs(event.pageX - x) < 2 && window.Math.abs(event.pageY - y) < 2) {
+              scrollLeftPanel(event, documentViewer.getCurrentPage());              
+            }
+            x = 0
+            y = 0
           });
 
           let root = null;
