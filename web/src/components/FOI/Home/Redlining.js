@@ -4,7 +4,6 @@ import React, {
   useState,
   useImperativeHandle,
   useCallback,
-  useMemo
 } from "react";
 import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
@@ -29,8 +28,7 @@ import {
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
-import { toast } from "react-toastify";
-import { pageFlagTypes, RequestStates, RedactionTypes } from "../../../constants/enum";
+import { pageFlagTypes, RedactionTypes } from "../../../constants/enum";
 import {
   createPageFlagPayload,
   createRedactionSectionsString,
@@ -518,12 +516,9 @@ const Redlining = React.forwardRef(
     initializeWebViewer();
     }, []);
 
-
-
     const updateModalData = (newModalData) => {
       setModalData(newModalData);
     };
-
 
     useEffect(() =>{
         if (clickRedactionPanel) {
@@ -1471,6 +1466,7 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       docViewer?.setCurrentPage(individualDoc["page"], false);
+      console.log(`individualDoc - Middle pane.... ${new Date().getSeconds()}`);
     }, [individualDoc]);
 
     
