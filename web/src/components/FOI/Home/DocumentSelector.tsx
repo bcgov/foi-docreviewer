@@ -69,7 +69,7 @@ const DocumentSelector = React.memo(
       const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
       const [selectAllConsultee, setSelectAllConsultee] = useState(false);
       const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-      const [expandedItems, setExpandedItems] = useState<string[]>([]);
+      //const [expandedItems, setExpandedItems] = useState<string[]>([]);
       const pageRefs = useRef([]);
       const treeRef: any = useRef();
       // const [completionCounter, setCompletionCounter]= useState(0);
@@ -831,7 +831,7 @@ const DocumentSelector = React.memo(
                     size="small"
                     onClick={() => {
                       setOrganizeBy("division");
-                      setExpandedItems([]);
+                      //setExpandedItems([]);
                     }}
                     clicked={organizeBy === "division"}
                   />
@@ -841,7 +841,7 @@ const DocumentSelector = React.memo(
                     size="small"
                     onClick={() => {
                       setOrganizeBy("lastmodified");
-                      setExpandedItems([]);
+                      //setExpandedItems([]);
                     }}
                     clicked={organizeBy === "lastmodified"}
                   />
@@ -1003,8 +1003,6 @@ const DocumentSelector = React.memo(
                   assignIcon={assignIcon}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
-                  expandedItems={expandedItems}
-                  setExpandedItems={setExpandedItems}
                 />
               ) //: <></>
               // divisions?.length > 0 &&

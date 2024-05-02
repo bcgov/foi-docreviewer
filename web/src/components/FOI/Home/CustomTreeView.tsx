@@ -37,8 +37,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
     assignIcon,
     pageFlags,
     syncPageFlagsOnAction,
-    expandedItems,
-    setExpandedItems
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
         [`& .${treeItemClasses.label}`]: {
@@ -51,7 +49,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     const apiRef = useTreeViewApiRef();
 
-    //const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
     const [selected, setSelected] = useState<any>([]);
     const [consultInfo, setConsultInfo] = useState({});
