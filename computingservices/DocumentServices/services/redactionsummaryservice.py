@@ -33,16 +33,19 @@ class redactionsummaryservice():
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                     messageattributes= json.loads(message.attributes)
+                    divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
+                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname']
                     else:
                         filesobj= messageattributes[0]['files'][0]
+                        divisioname =  messageattributes[0]['divisionname']
                     stitcheddocs3uri = filesobj['s3uripath']
-                    #stitcheddocfilename = filesobj['filename']
+                    stitcheddocfilename = filesobj['filename']                    
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    filename = self.__get_filename(message.requestnumber, category) 
-                    uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
+                    filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
+                    uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
                         summaryuploaderror= False    
@@ -58,12 +61,18 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
         
-    def __get_filename(self, requestnumber, category):
+    def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
+        stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
         if category == 'responsepackage':
-            return requestnumber+" - summary.pdf"
-        return requestnumber+" - "+category+" - summary.pdf"
-
-
+            _filename = requestnumber
+        elif category == 'oipcreviewredline':
+            _filename = requestnumber+ ' - Redline'
+        else:
+            _filename = requestnumber+" - "+category
+            if divisionname not in (None, ''):
+                _filename = _filename+" - "+divisionname       
+        return stitchedfilepath+_filename+" - summary.pdf"
+  
     def __get_pageflags(self, category):
         if category == "responsepackage":            
             return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
