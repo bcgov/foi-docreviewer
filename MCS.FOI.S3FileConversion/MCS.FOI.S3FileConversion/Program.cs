@@ -197,7 +197,7 @@ namespace MCS.FOI.S3FileConversion
                                 }
                                 catch (Exception ex)
                                 {
-                                    var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message}";
+                                    var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message}, StackTrace :{ex.StackTrace}";
                                     Console.WriteLine(errorMessage);
                                     await dbhandler.recordJobEnd(message, true, errorMessage, new List<Dictionary<string, String>>());
                                 }

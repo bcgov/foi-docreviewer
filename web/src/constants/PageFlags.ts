@@ -1,7 +1,6 @@
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark, faAngleDown, faCircleExclamation,
-    faAnglesDown, faAnglesUp
+    faCircleStop, faCircleXmark, faBookmark
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 
