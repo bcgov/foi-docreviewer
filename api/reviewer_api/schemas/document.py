@@ -43,6 +43,14 @@ class FOIRequestUpdateRecordsSchema(Schema):
     documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
     ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
     divisions = fields.Nested(DivisionSchema,many=True,validate=validate.Length(min=1),allow_none=False)
+
+class FOIRequestUpdateRecordPersonalAttributesSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        """Exclude unknown fields in the deserialized output."""
+
+        unknown = EXCLUDE
+    documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
+    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
     personalattributes = fields.Nested(PersonalAttributesSchema,required=False,allow_none=True)
 
 class DocumentPage(Schema):
