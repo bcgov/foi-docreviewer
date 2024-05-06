@@ -3358,7 +3358,9 @@ const Redlining = React.forwardRef(
     // sort based on sortorder as the sortorder added based on the LastModified
     let sorteddocs = sortBySortOrder(alldocuments) 
      for (const sorteddoc of sorteddocs) {
-        sorteddocids.push(sorteddoc['documentid']);
+      if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
      }
      
       return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}
@@ -4009,7 +4011,10 @@ const Redlining = React.forwardRef(
       // sort based on sortorder as the sortorder added based on the LastModified 
       let sorteddocs = sortBySortOrder(alldocuments) 
       for (const sorteddoc of sorteddocs) {
-        sorteddocids.push(sorteddoc['documentid']);
+        if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
+        
       }
       return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
     }
