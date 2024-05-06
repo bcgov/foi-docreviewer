@@ -72,6 +72,7 @@
     "type": "Type",
     "upload": "Upload",
     "link": "Link",
+    "unlink": "Delete Link",
     "fileAttachmentDownload": "Download attached file",
     "prevResult": "Previous result",
     "nextResult": "Next result",
@@ -290,9 +291,6 @@
     "linkURLorPage": "Link URL or a Page",
     "warning": "Warning",
     "svgMalicious": "SVG script ignored for security",
-    "enterContentEditingMode": "You are about to enter content editing mode.",
-    "existingAnnotationWarning": "Existing annotations may not match up with the text after it has been edited.",
-    "changesCannotBeUndone": "Any changes made cannot be undone.",
     "doNotShowAgain": "Do not show me this again",
     "doNotAskAgain": "Do not ask again",
     "enterReplacementText": "Enter the text you want to replace",
@@ -301,6 +299,8 @@
     "unpostedComment": "Unposted Comment",
     "lockedLayer": "Layer is locked",
     "layerVisibililtyNoChange": "Layer visibililty can't be changed",
+    "noLayers": "This document has no layers.",
+    "noSignatureFields": "This document has no signature fields.",
     "untitled": "Untitled",
     "selectHowToLoadFile": "Select how to load your document",
     "openFileByUrl": "Open file by URL:",
@@ -715,6 +715,7 @@
       "redoChange": "Redo an annotation change",
       "openFile": "Open the file picker",
       "openSearch": "Open the search overlay",
+      "zoomOptions": "Zoom Options",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "fitScreenWidth": "Fit the document to the screen width in a small screen(< 640px), otherwise fit it to its original size",
@@ -786,7 +787,7 @@
     },
     "multiDeleteAnnotation": {
       "title": "Delete Annotations?",
-      "message": "Deleteing will remove all comments, replies, and grouping and cannot be undone. \n\n Are you sure you want to delete these annotations?"
+      "message": "Deleting will remove all comments, replies, and grouping and cannot be undone. \n\n Are you sure you want to delete these annotations?"
     },
     "closeFile": {
       "title": "Close without downloading?",
@@ -1189,6 +1190,14 @@
     "deleteRow": "Delete Row",
     "deleteColumn": "Delete Column",
     "deleteTable": "Delete Table",
+    "deleted": "Deleted: ",
+    "added": "Added: ",
+    "editing": "Editing",
+    "editingDescription": "Edit document",
+    "reviewing": "Reviewing",
+    "reviewingDescription": "Make suggestions",
+    "viewOnly": "View Only",
+    "viewOnlyDescription": "View without suggestions",
     "notSupportedOnMobile": "Office editing is not supported on mobile devices."
   },
   "insertPageModal": {

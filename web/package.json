@@ -13,7 +13,7 @@
     "@mui/lab": "^5.0.0-alpha.103",
     "@mui/material": "^5.10.9",
     "@mui/styles": "^5.2.3",
-    "@pdftron/webviewer": "10.7.2",
+    "@pdftron/webviewer": "10.9.0",
     "@mui/x-tree-view": "6.17.0",
     "@reduxjs/toolkit": "^1.8.5",
     "@testing-library/jest-dom": "^5.16.5",
