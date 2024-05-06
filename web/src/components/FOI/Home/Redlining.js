@@ -241,6 +241,24 @@ const Redlining = React.forwardRef(
       return !stopLoop;
     };
 
+    const skipDocument = (documentPageFlags, pagecount) => {
+      let pageFlagArray = [];
+      let skipdocument = false;
+      if (documentPageFlags?.length > 0) {    
+            pageFlagArray = documentPageFlags?.filter((flag) =>
+                [
+                  pageFlagTypes["Duplicate"],
+                  pageFlagTypes["Not Responsive"],
+                ].includes(flag.flagid));
+
+            if (pageFlagArray.length == pagecount) {
+              skipdocument = true;
+            }
+
+      }
+      return skipdocument;
+    }
+
     const isValidRedlineDownload = () => {
       let isvalid = false;
       let pageFlagArray = [];
@@ -3361,6 +3379,8 @@ const Redlining = React.forwardRef(
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
+        // added this vopy variable for validating the first document of a division with NR/Duplicate
+        let docCountCopy = 0;
         let division = key;
         let documentlist = stitchlist[key];
         if (redlineSinglePkg == "N") {
@@ -3375,33 +3395,43 @@ const Redlining = React.forwardRef(
           });
         }
         if(documentlist.length > 0) {
-        for (let doc of documentlist) {
-          await _instance.Core.createDocument(doc.s3path_load, {
-            loadAsPDF: true,
-            useDownloader: false, // Added to fix BLANK page issue
-          }).then(async (docObj) => {            
-            //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
-              docCount++;
-              if (docCount == 1) {
-                // Delete pages from the first document
-                const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
-                if (deletedPages.length > 0) {
-                    docObj.removePages(deletedPages);
-                }           
-                stitchedDocObj = docObj;
-              } else {
-                let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-                await stitchedDocObj.insertPages(
-                  docObj,
-                  doc.pages,
-                  pageIndexToInsert
-                );
-              }
-            //}
-          });
-          if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
-            requestStitchObject[division] = stitchedDocObj;
-          }
+        for (let doc of documentlist) {          
+            await _instance.Core.createDocument(doc.s3path_load, {
+              loadAsPDF: true,
+              useDownloader: false, // Added to fix BLANK page issue
+            }).then(async (docObj) => {            
+              //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
+                docCountCopy++;
+                docCount++;
+                if (docCountCopy == 1) {
+                  // Delete pages from the first document
+                  const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
+                  if (deletedPages.length > 0) {
+                      docObj.removePages(deletedPages);
+                  }
+                  if (!skipDocument(doc.pageFlag, doc.pagecount)) {           
+                    stitchedDocObj = docObj;
+                  }
+                  else {
+                    docCountCopy--;
+                  }
+
+                } else {
+                  if (stitchedDocObj && !skipDocument(doc.pageFlag, doc.pagecount)) {
+                    let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                    await stitchedDocObj.insertPages(
+                      docObj,
+                      doc.pages,
+                      pageIndexToInsert
+                    );
+                  }
+                }
+              //}
+            });
+            if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
+              requestStitchObject[division] = stitchedDocObj;
+            }
+          
         }
         } else {
           if (incompatableList[division]["incompatibleFiles"].length > 0) {
@@ -3613,7 +3643,7 @@ const Redlining = React.forwardRef(
           if (stitchObject == null) {
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
-              redlineStitchInfo[divisionid]["s3path"],
+              null, // stitchObject == null then no stichedDocPath available
               divisionCountForToast,
               redlineSinglePackage
             );
@@ -3633,7 +3663,8 @@ const Redlining = React.forwardRef(
             }
             if (
               redlinepageMappings["pagestoremove"][divisionid] &&
-              redlinepageMappings["pagestoremove"][divisionid].length > 0
+              redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
+              stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
             ) {
               await stitchObject.removePages(
                 redlinepageMappings["pagestoremove"][divisionid]
