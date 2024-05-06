@@ -36,10 +36,12 @@ class redactionsummaryservice():
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
-                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname']
+                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None
+                        
                     else:
                         filesobj= messageattributes[0]['files'][0]
-                        divisioname =  messageattributes[0]['divisionname']
+                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
+                        
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename']                    
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
