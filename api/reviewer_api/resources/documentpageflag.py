@@ -47,7 +47,7 @@ class SaveDocumentPageflag(Resource):
         try:
             payload = BulkDocumentPageflagSchema().load(request.get_json())
             result = documentpageflagservice().bulksavepageflag(requestid, payload, AuthHelper.getuserinfo())
-            return {'status': True, 'message':result, 'id': requestid} , 200
+            return {'status': True, 'message':"Page Flag is saved", 'id': requestid, "updatedpageflag": result} , 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
@@ -89,7 +89,6 @@ class GetDocumentPageflag(Resource):
         try:
             payload = request.get_json()
             documentids = payload["documentids"]
-            print("documentids: ", documentids)
             result = documentpageflagservice().getpageflags_by_requestid_docids(requestid, redactionlayer, documentids)
             return json.dumps(result), 200
         except KeyError as error:

@@ -143,13 +143,14 @@ class SaveAnnotations(Resource):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(
+            pageflagresponse, result = redactionservice().saveannotation(
                 annotationschema, AuthHelper.getuserinfo()
             )
             return {
                 "status": result.success,
                 "message": result.message,
                 "annotationid": result.identifier,
+                "updatedpageflag":pageflagresponse
             }, 201
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400

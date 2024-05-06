@@ -31,22 +31,19 @@ const CustomTreeView = React.memo(React.forwardRef(({
     pageMappedDocs,
     selectTreeItem,
     setWarningModalOpen,
-    updatePageFlags,
     pageFlagList,
     openFOIPPAModal,
     requestid,
     assignIcon,
     pageFlags,
-    updatePageFlags1
+    syncPageFlagsOnAction,
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
-    // const StyledTreeItem = styled(TreeItem)(() => ({
         [`& .${treeItemClasses.label}`]: {
             fontSize: '14px'
         },
         [`& .${treeItemClasses.content}`]: {
             padding: props.children ? '0 8px' : '0 16px'
-            // padding: '0 16px'
         }
     }));
 
@@ -72,18 +69,30 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }), [apiRef, expandedItems]);
 
     const getAllItemsWithChildrenItemIds = () => {
-      const itemIds: any = [];
-      const registerItemId = (item: any) => {
-        if (item.children?.length) {
-          itemIds.push(item.id);
-          item.children.forEach(registerItemId);
-        }
-      };
-
-      items.forEach(registerItemId);
-
-      return itemIds;
+        const itemIds: any[] = [];
+        const registerItemId = (item: any) => {
+          if (item.children?.length) {
+            itemIds.push(item.id);
+            item.children.forEach(registerItemId);
+          }
+        };
+        items.forEach(registerItemId);
+        return itemIds;
     };
+      
+    // const getAllItemsWithChildrenItemIds = () => {
+    //   const itemIds: any = [];
+    //   const registerItemId = (item: any) => {
+    //     if (item.children?.length) {
+    //       itemIds.push(item.id);
+    //       item.children.forEach(registerItemId);
+    //     }
+    //   };
+
+    //   items.forEach(registerItemId);
+
+    //   return itemIds;
+    // };
 
     const handleExpandClick = () => {
         setExpandedItems((oldExpanded: any) =>
@@ -104,73 +113,88 @@ const CustomTreeView = React.memo(React.forwardRef(({
         // );
     };
 
-    const handleExpandedItemsChange = (event: any, itemIds: any) => {
+    const handleExpandedItemsChange = (event: any,itemIds: any) => {
         setExpandedItems(itemIds);
     };
-
-    function CloseSquare(props: SvgIconProps) {
-        return (
-            // <>
-            <FontAwesomeIcon
-            // key={icon.flagid}
-            className='leftPanelIcons'
-            icon={faCircleHalfStroke as IconProp}
-            size='1x'
-            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
-            />
-            /* <FontAwesomeIcon
-            // key={icon.flagid}
-            className='leftPanelIcons'
-            icon={faCircleHalfStroke as IconProp}
-            size='1x'
-            // title={PAGE_FLAGS[icon.flagid as keyof typeof PAGE_FLAGS]}
-            />
-            </> */
-        );
-      }
-
-      const handleSelect = (event: any, nodeIds: any) => {
-
-        let selectedpages:any[] = [];
-        let selectedothers:any[] = [];
-        let selectedNodes:any[] = [];
-        for (let n of nodeIds) {
-            let _n = JSON.parse(n);
-            selectedNodes.push(_n);
-            if(_n.page) {
-                selectedpages.push(n);
+       
+    const handleSelect = (event: any,nodeIds: any) => {
+        console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
+        let selectedPages = [];
+        let selectedOthers = [];
+        let selectedNodes = [];
+        for (let nodeId of nodeIds) {
+            let node = JSON.parse(nodeId);
+            selectedNodes.push(node);
+            if (node.page) {
+                selectedPages.push(nodeId);
             } else {
-                selectedothers.push(n);
+                selectedOthers.push(nodeId);
             }
         }
-
         if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("docid")) {
-            selectTreeItem(selectedNodes[0].docid, selectedNodes[0].page || 1);
+            const { docid, page } = selectedNodes[0];
+            selectTreeItem(docid, page || 1);
         }
-
-        // if new select includes divisions and filenames:
-        // 1. remove divisions and filenames from new select
-        // 2. join old select and new select
-        // else only keep new select
-        if(selectedothers.length > 0) {
-            selectedpages = [...new Set([...selected, ...selectedpages])];
+        /**if new select includes divisions and filenames:
+         * 1. remove divisions and filenames from new select
+         * 2. join old select and new select
+         * else only keep new select */
+        if (selectedOthers.length > 0) {
+            selectedPages = [...new Set([...selected, ...selectedPages])];
         }
-
-        if(selectedpages.length > PAGE_SELECT_LIMIT) {
+        if (selectedPages.length > PAGE_SELECT_LIMIT) {
             setWarningModalOpen(true);
         } else {
-            setSelected(selectedpages);
-            let _selectedpages:any[] = selectedpages.map((n: any) => {
-                let page = JSON.parse(n)
-                delete page.flagid;
-                return page
+            setSelected(selectedPages);
+            const selectedPagesInfo = selectedPages.map(nodeId => {
+                const { docid, page } = JSON.parse(nodeId);
+                return { docid, page };
             });
-            setSelectedPages(_selectedpages);
+            setSelectedPages(selectedPagesInfo);
         }
     };
 
+    //   const handleSelect1 = (event: any, nodeIds: any) => {
+    //     console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
+    //     let selectedpages:any[] = [];
+    //     let selectedothers:any[] = [];
+    //     let selectedNodes:any[] = [];
+    //     for (let n of nodeIds) {
+    //         let _n = JSON.parse(n);
+    //         selectedNodes.push(_n);
+    //         if(_n.page) {
+    //             selectedpages.push(n);
+    //         } else {
+    //             selectedothers.push(n);
+    //         }
+    //     }
+
+    //     if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("docid")) {
+    //         selectTreeItem(selectedNodes[0].docid, selectedNodes[0].page || 1);
+    //     }
+
+    //     // if new select includes divisions and filenames:
+    //     // 1. remove divisions and filenames from new select
+    //     // 2. join old select and new select
+    //     // else only keep new select
+    //     if(selectedothers.length > 0) {
+    //         selectedpages = [...new Set([...selected, ...selectedpages])];
+    //     }
+
+    //     if(selectedpages.length > PAGE_SELECT_LIMIT) {
+    //         setWarningModalOpen(true);
+    //     } else {
+    //         setSelected(selectedpages);
+    //         let _selectedpages:any[] = selectedpages.map((n: any) => {
+    //             let page = JSON.parse(n)
+    //             delete page.flagid;
+    //             return page
+    //         });
+    //         setSelectedPages(_selectedpages);
+    //     }
+    // };
+
     const addIcons = (itemid: any) => {
-        // console.log("iconfn")
         if (itemid.page) { //&& pageFlags) {
             let returnElem = (<>{itemid.flagid.map((id: any) => (
                 <FontAwesomeIcon
@@ -236,39 +260,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
             e?.currentTarget?.getBoundingClientRect()
         );
         setDisableHover(true);
-        // console.log("contextfncomplete")
     }
 
-    // const assignIcon = (pageFlag: any) => {
-    //     switch (pageFlag) {
-    //         case 1:
-    //         case "Partial Disclosure":
-    //             return faCircleHalfStroke;
-    //         case 2:
-    //         case "Full Disclosure":
-    //             return filledCircle;
-    //         case 3:
-    //         case "Withheld in Full":
-    //             return faCircle;
-    //         case 4:
-    //         case "Consult":
-    //             return faCircleQuestion;
-    //         case 5:
-    //         case "Duplicate":
-    //             return faCircleStop;
-    //         case 6:
-    //         case "Not Responsive":
-    //             return faCircleXmark;
-    //         case 7:
-    //         case "In Progress":
-    //             return faSpinner;
-    //         case 8:
-    //         case "Page Left Off":
-    //             return faBookmark;
-    //         default:
-    //             return null;
-    //     }
-    // }
 
     return (
         // <TreeView
@@ -323,10 +316,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 setOpenContextPopup={setOpenContextPopup}
                 selectedPages={selectedPages}
                 consultInfo={consultInfo}
-                updatePageFlags={updatePageFlags}
                 pageMappedDocs={pageMappedDocs}
                 pageFlags={pageFlags}
-                updatePageFlags1={updatePageFlags1}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
             />
         }
         <Box sx={{ mb: 1 }}>
