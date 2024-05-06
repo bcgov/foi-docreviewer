@@ -41,7 +41,7 @@ class redactionsummaryservice():
                     stitcheddocfilename = filesobj['filename']
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    filename = stitcheddocfilename.replace(".pdf","- summary.pdf")
+                    filename = self.__get_filename(message.requestnumber, category) 
                     uploadobj= uploadbytes(filename,redaction_summary.content, s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
@@ -57,6 +57,11 @@ class redactionsummaryservice():
             print('error occured in redaction summary service: ', error)
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
+        
+    def __get_filename(self, requestnumber, category):
+        if category == 'responsepackage':
+            return requestnumber+" - summary.pdf"
+        return requestnumber+" - "+category+" - summary.pdf"
 
 
     def __get_pageflags(self, category):
