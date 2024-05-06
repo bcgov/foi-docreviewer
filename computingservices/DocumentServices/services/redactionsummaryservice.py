@@ -38,7 +38,7 @@ class redactionsummaryservice():
                     else:
                         filesobj= messageattributes[0]['files'][0]
                     stitcheddocs3uri = filesobj['s3uripath']
-                    stitcheddocfilename = filesobj['filename']
+                    #stitcheddocfilename = filesobj['filename']
                     s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename = self.__get_filename(message.requestnumber, category) 
