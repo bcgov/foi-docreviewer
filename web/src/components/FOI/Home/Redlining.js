@@ -3340,7 +3340,7 @@ const Redlining = React.forwardRef(
     // sort based on sortorder as the sortorder added based on the LastModified
     let sorteddocs = sortBySortOrder(alldocuments) 
      for (const sorteddoc of sorteddocs) {
-      if (sorteddocids.includes(sorteddoc['documentid']) == false) {
+      if (!sorteddocids.includes(sorteddoc['documentid'])) {
           sorteddocids.push(sorteddoc['documentid']);
         }
      }
@@ -3980,7 +3980,7 @@ const Redlining = React.forwardRef(
       // sort based on sortorder as the sortorder added based on the LastModified 
       let sorteddocs = sortBySortOrder(alldocuments) 
       for (const sorteddoc of sorteddocs) {
-        if (sorteddocids.includes(sorteddoc['documentid']) == false) {
+        if (!sorteddocids.includes(sorteddoc['documentid'])) {
           sorteddocids.push(sorteddoc['documentid']);
         }
         
