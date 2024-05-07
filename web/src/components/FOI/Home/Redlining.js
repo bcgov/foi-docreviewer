@@ -3250,10 +3250,9 @@ const Redlining = React.forwardRef(
                       return obj.division.includes(div.divisionid) && obj.docId == doc.documentid;
                     })
                     .map((obj) => {
-                      if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
+                      if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
                         return obj.pageMappings;
                       }
-                      // return {};
                     });
                   if (divisionsdocpages[0]) {
                     divisionsdocpages.forEach(function (_arr) {
