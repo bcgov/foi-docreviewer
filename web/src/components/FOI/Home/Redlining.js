@@ -3900,7 +3900,9 @@ const Redlining = React.forwardRef(
           let doc = documentViewer.getDocument();
           await annotationManager.applyRedactions();
           /**must apply redactions before removing pages*/
-          await doc.removePages(pagesToRemove);
+          if (pagesToRemove.length > 0) {
+            await doc.removePages(pagesToRemove);
+          }          
 
           const { PDFNet } = _instance.Core;
           PDFNet.initialize();
