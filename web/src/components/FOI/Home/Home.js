@@ -68,7 +68,7 @@ function Home() {
 
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data, documentDivisions) => {
+      async (data, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
@@ -94,8 +94,8 @@ function Home() {
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        let sortedFiles = []
-        sortDocList(_files, null, sortedFiles);
+        // let sortedFiles = []
+        // sortDocList(_files, null, sortedFiles);
         // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
@@ -106,11 +106,13 @@ function Home() {
             totalPageCountVal += filePageCount;
           });
 
-          let doclist = [];
+          let doclist = [];          
+          let requestInfo = _requestInfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              sortDocList(newDocumentObjs, null, doclist);
+              console.log(requestInfo)
+              sortDocList(newDocumentObjs, null, doclist, requestInfo);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
               prepareMapperObj(doclist, deletedDocPages);

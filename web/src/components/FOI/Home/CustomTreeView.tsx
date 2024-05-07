@@ -215,7 +215,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         <StyledTreeItem
           ref={ref}
           {...props}
-          title={itemid.title}
+          title={itemid.title || props.label}
 
         //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
           slots={{endIcon: (_props) => {return addIcons(itemid)}}}
@@ -305,7 +305,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         //     }
         // </TreeView>
         <>
-        {openContextPopup === true &&
+        {openContextPopup === true && 
             <ContextMenu
                 openFOIPPAModal={openFOIPPAModal}
                 requestId={requestid}

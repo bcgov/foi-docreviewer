@@ -80,8 +80,27 @@ export const docSorting = (a, b) => {
   return sort;
 };
 
+export const CFDSorting = (a, b) => {
+  if (a.file) {
+    a = a.file;
+  }
+  if (b.file) {
+    b = b.file;
+  }
+  if (a.attributes.personalattributes.person !== b.attributes.personalattributes.person) {
+    return (a.attributes.personalattributes.person > b.attributes.personalattributes.person) ? 1 : -1 
+  } else if (a.attributes.personalattributes.filetype !== b.attributes.personalattributes.filetype) {
+    return (a.attributes.personalattributes.filetype > b.attributes.personalattributes.filetype) ? 1 : -1 
+  } else if (a.attributes.personalattributes.trackingid !== b.attributes.personalattributes.trackingid) {
+    return (a.attributes.personalattributes.trackingid > b.attributes.personalattributes.trackingid) ? 1 : -1 
+  } else if (a.attributes.personalattributes.volume !== b.attributes.personalattributes.volume) {
+    return (a.attributes.personalattributes.volume > b.attributes.personalattributes.volume) ? 1 : -1 
+  }
+  return Date.parse(a.created_at) - Date.parse(b.created_at);
+};
+
 // sort by parent-attachment, then last modified date
-export const sortDocList = (fullDocList, currentDoc, sortedDocList) => {
+export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo) => {
   let parentid = null;
   if (currentDoc) {
     sortedDocList.push(currentDoc);
@@ -102,7 +121,12 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList) => {
     if (childDocList.length == 1) {
       sortedChildDocList = childDocList;
     } else {
-      sortedChildDocList = childDocList.sort(docSorting);
+      if (requestInfo.bcgovcode === "MCF") {
+        sortedChildDocList = childDocList.sort(CFDSorting);
+      } else {
+        // sortedChildDocList = childDocList.sort(docSorting);
+        sortedChildDocList = childDocList.sort(CFDSorting);
+      }
     }
 
     sortedChildDocList.forEach((_doc, _index) => {
