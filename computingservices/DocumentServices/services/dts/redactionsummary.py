@@ -20,7 +20,7 @@ class redactionsummary():
 
     def __packaggesummary(self, message, documentids, pageflags, programareas):
         try:
-            redactionlayerid = message.redactionlayerid
+            redactionlayerid = message.redactionlayerid if message.category != "responsepackage" else 1
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
@@ -48,7 +48,7 @@ class redactionsummary():
                             pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
                     skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
                 pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
-                
+            
             for pageflag in _pageflags:
                 _data = {}
                 if len(pageflag['docpageflags']) > 0:
