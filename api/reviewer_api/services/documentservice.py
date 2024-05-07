@@ -450,7 +450,6 @@ class documentservice:
                 }
             )
             newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
-            # newdocattributes["divisions"] = payload["divisions"]
             if payload["personalattributes"] is not None:
                 #apply change to all
                 if(len(payload["documentmasterids"]) > 1):
