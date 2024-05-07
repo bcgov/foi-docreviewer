@@ -1,19 +1,29 @@
 import { pageFlagTypes } from "../../../constants/enum";
 
+// export const getStitchedPageNoFromOriginal1 = (docid, page, pageMappedDocs) => {
+//   let stitchedPageNo = 0;
+//   if (docid && pageMappedDocs) {
+//     let doc = pageMappedDocs?.docIdLookup[docid];
+//     // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
+//     let stitchedPage = doc?.pageMappings?.filter(
+//       (_page) => _page.pageNo === page
+//     );
+//     if (stitchedPage && stitchedPage.length > 0) {
+//       stitchedPageNo = stitchedPage[0].stitchedPageNo;
+//     }
+//   }
+//   return stitchedPageNo;
+// };
+
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
-  let stitchedPageNo = 0;
-  if (docid && pageMappedDocs) {
-    let doc = pageMappedDocs?.docIdLookup[docid];
-    // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
-    let stitchedPage = doc?.pageMappings?.filter(
-      (_page) => _page.pageNo === page
-    );
-    if (stitchedPage && stitchedPage.length > 0) {
-      stitchedPageNo = stitchedPage[0].stitchedPageNo;
-    }
-  }
-  return stitchedPageNo;
+  if (!docid || !pageMappedDocs) return 0;
+
+  const doc = pageMappedDocs?.docIdLookup[docid];
+  const stitchedPage = doc?.pageMappings?.find(_page => _page.pageNo === page);
+
+  return stitchedPage ? stitchedPage.stitchedPageNo : 0;
 };
+
 
 export const createPageFlagPayload = (
   selectedPages,

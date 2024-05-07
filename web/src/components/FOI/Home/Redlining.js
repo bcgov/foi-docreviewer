@@ -4,7 +4,6 @@ import React, {
   useState,
   useImperativeHandle,
   useCallback,
-  useMemo
 } from "react";
 import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
@@ -29,8 +28,7 @@ import {
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
-import { toast } from "react-toastify";
-import { pageFlagTypes, RequestStates, RedactionTypes } from "../../../constants/enum";
+import { pageFlagTypes, RedactionTypes } from "../../../constants/enum";
 import {
   createPageFlagPayload,
   createRedactionSectionsString,
@@ -389,8 +387,18 @@ const Redlining = React.forwardRef(
             }
           })
           
-          documentViewer.addEventListener("click", async (event) => {
-            scrollLeftPanel(event, documentViewer.getCurrentPage());
+          var x = 0, y = 0
+          documentViewer.addEventListener("mouseLeftDown", async (event) => {            
+            x = event.pageX;
+            y = event.pageY;
+          });
+
+          documentViewer.addEventListener("mouseLeftUp", async (event) => {
+            if (window.Math.abs(event.pageX - x) < 2 && window.Math.abs(event.pageY - y) < 2) {
+              scrollLeftPanel(event, documentViewer.getCurrentPage());              
+            }
+            x = 0
+            y = 0
           });
 
           let root = null;
@@ -518,12 +526,9 @@ const Redlining = React.forwardRef(
     initializeWebViewer();
     }, []);
 
-
-
     const updateModalData = (newModalData) => {
       setModalData(newModalData);
     };
-
 
     useEffect(() =>{
         if (clickRedactionPanel) {
@@ -1471,6 +1476,7 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       docViewer?.setCurrentPage(individualDoc["page"], false);
+      console.log(`individualDoc - Middle pane.... ${new Date().getSeconds()}`);
     }, [individualDoc]);
 
     
@@ -2183,7 +2189,7 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        { modalOpen &&
+        {/* { modalOpen && */}
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
@@ -2199,7 +2205,7 @@ const Redlining = React.forwardRef(
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
           />
-        }
+        {/* } */}
         {redlineModalOpen && 
           <ConfirmationModal 
           cancelRedaction={cancelRedaction}
