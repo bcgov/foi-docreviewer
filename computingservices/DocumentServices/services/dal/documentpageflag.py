@@ -214,3 +214,26 @@ class documentpageflag:
         finally:
             if conn is not None:
                 conn.close()
+
+    @classmethod
+    def getrecentredactionlayerid(cls, ministryrequestid):
+        conn = getdbconnection()
+        layerid = 1
+        try:
+            cursor = conn.cursor()
+            query = '''
+                select redactionlayerid  
+                from "DocumentPageflags" 
+                where foiministryrequestid = %s::integer
+                order by created_at desc limit 1;
+            '''
+            cursor.execute(query, (ministryrequestid,))
+            layerid = cursor.fetchone()
+            return layerid
+        except Exception as error:
+            logging.error("Error in getting recentredactionlayerid for requestid")
+            logging.error(error)
+        finally:
+            cursor.close()
+            if conn is not None:
+                conn.close()
