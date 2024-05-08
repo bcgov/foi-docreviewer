@@ -96,27 +96,53 @@ const useSaveResponsePackage = () => {
       console.log(error);
     });
   };
+  // const prepareresponseredlinesummarylist = (documentlist) => {
+  //   let summarylist = [];
+  //   let summary_division = {};
+  //   let summary_divdocuments = [];
+  //   let alldocuments = [];
+  //   summary_division["divisionid"] = "0";
+  //   for (let doc of documentlist) {
+  //     summary_divdocuments.push(doc.documentid);
+  //     alldocuments.push(doc);
+  //   }
+  //   summary_division["documentids"] = summary_divdocuments;
+  //   summarylist.push(summary_division);
+
+  //   let sorteddocids = [];
+  //   // sort based on sortorder as the sortorder added based on the LastModified
+  //   let sorteddocs = sortBySortOrder(alldocuments);
+  //   for (const sorteddoc of sorteddocs) {
+  //     sorteddocids.push(sorteddoc["documentid"]);
+  //   }
+  //   return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
+  // };
+
   const prepareresponseredlinesummarylist = (documentlist) => {
-    let summarylist = [];
+    let summarylist = []
     let summary_division = {};
     let summary_divdocuments = [];
     let alldocuments = [];
-    summary_division["divisionid"] = "0";
+    summary_division["divisionid"] = '0';
     for (let doc of documentlist) {
-      summary_divdocuments.push(doc.documentid);
-      alldocuments.push(doc);
+        summary_divdocuments.push(doc.documentid);
+        alldocuments.push(doc);
     }
     summary_division["documentids"] = summary_divdocuments;
-    summarylist.push(summary_division);
-
-    let sorteddocids = [];
-    // sort based on sortorder as the sortorder added based on the LastModified
-    let sorteddocs = sortBySortOrder(alldocuments);
+    summarylist.push(summary_division);   
+    
+    let sorteddocids = []
+    // sort based on sortorder as the sortorder added based on the LastModified 
+    let sorteddocs = sortBySortOrder(alldocuments) 
     for (const sorteddoc of sorteddocs) {
-      sorteddocids.push(sorteddoc["documentid"]);
+      if (!sorteddocids.includes(sorteddoc['documentid'])) {
+        sorteddocids.push(sorteddoc['documentid']);
+      }
+      
     }
-    return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
-  };
+    return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
+  }
+
   const saveResponsePackage = async (
     documentViewer,
     annotationManager,
