@@ -192,6 +192,8 @@ class FOIFlowS3PresignedRedline(Resource):
             packagetype = "redline"
             if redactionlayer == "oipc":
                 packagetype = "oipcreview" if layertype == "oipcreview" else "oipcredline"
+            if layertype == "consult":
+                packagetype = "consult"
 
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
@@ -202,6 +204,10 @@ class FOIFlowS3PresignedRedline(Resource):
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
                             filepathlist[0], division_name, packagetype
                         )
+                        if packagetype == "consult":
+                            filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
+                                filepathlist[0], division_name, packagetype
+                            )
 
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
