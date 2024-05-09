@@ -279,8 +279,26 @@ const Redlining = React.forwardRef(
     const [enableSavingFinal, setEnableSavingFinal] = useState(
       isReadyForSignOff() && requestStatus == RequestStates["Response"]
     );
+    const [enableSavingConsults, setEnableSavingConsults] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
+
+    const isValidConsults = (pageFlags) => {
+      if (pageFlags) {
+        for (const doc of pageFlags) {
+          const pageFlags = doc.pageflag;
+          console.log("BANG")
+          for (const flagInfo of pageFlags) {
+            console.log(flagInfo)
+            console.log(pageFlagTypes["Consult"])
+            if (flagInfo.flagid === pageFlagTypes["Consult"]) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
@@ -389,6 +407,36 @@ const Redlining = React.forwardRef(
             };
 
             menu.appendChild(redlineForSignOffBtn);
+
+            const consultPackageButton = document.createElement("button");
+            consultPackageButton.textContent = "Consult Public Body";
+            consultPackageButton.id = "consult_package";
+            consultPackageButton.className = "consult_package";
+            consultPackageButton.style.backgroundColor = "transparent";
+            consultPackageButton.style.border = "none";
+            consultPackageButton.style.padding = "8px 8px 8px 10px";
+            consultPackageButton.style.cursor = "pointer";
+            consultPackageButton.style.alignItems = "left";
+            consultPackageButton.disabled = !enableSavingConsults;
+            consultPackageButton.onclick = () => {
+              // Save to s3
+              console.log('click')
+              setModalFor("consult");
+              setModalTitle("Consult Public Body");
+              setModalMessage([
+                "Are you sure want to create a consult? A PDF will be created for each public body selected.",
+                <br key="lineBreak1" />,
+                <br key="lineBreak2" />,
+                <span key="modalDescription1">
+                  When you create the consult public body package, your web browser page will
+                  automatically refresh
+                </span>,
+              ]);
+              setModalButtonLabel("Create Consult");
+              setRedlineModalOpen(true);
+            };
+            
+            menu.appendChild(consultPackageButton);
 
             const finalPackageBtn = document.createElement("button");
             finalPackageBtn.textContent = "Final Package for Applicant";
@@ -1267,6 +1315,11 @@ const Redlining = React.forwardRef(
       setEnableSavingFinal(
         _enableSavingRedline && requestStatus == RequestStates["Response"]
       );
+      //consults validation
+      const _enableSavingConsults = isValidConsults(pageFlags)
+      setEnableSavingConsults(
+        _enableSavingConsults
+      );
       if (_instance) {
         //oipc changes - begin
         const document = _instance.UI.iframeWindow.document;
@@ -1286,7 +1339,9 @@ const Redlining = React.forwardRef(
           !isReadyForSignOff();
         document.getElementById("final_package").disabled =
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
-          //oipc changes - end
+          //oipc changes - en
+        // conults validation
+        document.getElementById("consult_package").disabled = !_enableSavingConsults
       }
     };
 
