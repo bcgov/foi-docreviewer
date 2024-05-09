@@ -3750,10 +3750,12 @@ const Redlining = React.forwardRef(
               await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
             }
             
-            let xfdfString =
-              '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
+            let string = await stitchObject.extractXFDF()
+
+            let xfdfString = string.xfdfString.replace('<annots />',
+              '<annots>' +
               formattedAnnotationXML +
-              "</annots></xfdf>";
+              "</annots>");
 
             //OIPC - Special Block (Redact S.14) : Begin
             if(redlineCategory === "oipcreview") {
