@@ -41,7 +41,6 @@ import {
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
   saveFilesinS3,
-  getConsultPackagePreSignedUrl,
   getResponsePackagePreSignedUrl,
 } from "../../../apiManager/services/foiOSSService";
 import {
@@ -2607,61 +2606,60 @@ const Redlining = React.forwardRef(
 
     const getDivisionDocumentMappingForRedline = (divisions) => {
       let newDocList = [];
-      for (let div of divisions) {
-        let divDocList = documentList.filter((doc) =>
-          doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
-        );
-        
-        // sort based on sortorder as the sortorder added based on the LastModified
-        divDocList = sortBySortOrder(divDocList);
-        
-        let incompatableList = incompatibleFiles.filter((doc) =>
-          doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
-        );
-        newDocList.push({
-          divisionid: div.divisionid,
-          divisionname: div.name,
-          documentlist: divDocList,
-          incompatableList: incompatableList,
-        });
+      if (modalFor == "redline" || modalFor == "oipcreview") {
+        for (let div of divisions) {
+          let divDocList = documentList.filter((doc) =>
+            doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
+          );
+          
+          // sort based on sortorder as the sortorder added based on the LastModified
+          divDocList = sortBySortOrder(divDocList);
+          
+          let incompatableList = incompatibleFiles.filter((doc) =>
+            doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
+          );
+          newDocList.push({
+            divisionid: div.divisionid,
+            divisionname: div.name,
+            documentlist: divDocList,
+            incompatableList: incompatableList,
+          });
+        }
+      } else if (modalFor == "consult") {
+        for (let publicBodyId of divisions) {
+          let publicBodyDocList = [];
+          documentList.forEach((doc) => {
+            let consultPages = new Set();
+            if (doc.consult && doc.consult.length) {
+              doc.consult.forEach((consult) => {
+                consult.programareaid.forEach((programareaid) => {
+                  if (programareaid == publicBodyId) {
+                    consultPages.add(consult.page);
+                  }
+                })
+              });
+              doc.pages = Array.from(consultPages);
+              if (doc.pages.length > 0) {
+                publicBodyDocList.push({...doc, pages: doc.pages});
+              }
+            }
+          })
+          publicBodyDocList = sortBySortOrder(publicBodyDocList);
+          
+          let incompatableList = [];
+
+          //TODO - insert the divisionname here
+          
+          newDocList.push({
+            divisionid: publicBodyId,
+            divisionname: publicBodyId.toString(),
+            documentlist: publicBodyDocList,
+            incompatableList: incompatableList,
+          })
+        }
       }
       return newDocList;
     };
-
-    const getDocumentMappingForConsult = (publicBodyIdList) => {
-      let newDocList = [];
-      for (let publicBodyId of publicBodyIdList) {
-        let publicBodyDocList = [];
-        documentList.forEach((doc) => {
-          let consultPages = new Set();
-          if (doc.consult && doc.consult.length) {
-            doc.consult.forEach((consult) => {
-              consult.programareaid.forEach((programareaid) => {
-                if (programareaid == publicBodyId) {
-                  consultPages.add(consult.page);
-                }
-              })
-            });
-            doc.pages = Array.from(consultPages);
-            if (doc.pages.length > 0) {
-              publicBodyDocList.push({...doc, pages: doc.pages});
-            }
-          }
-        })
-        publicBodyDocList = sortBySortOrder(publicBodyDocList);
-        
-        // let incompatableList = incompatibleFiles.filter((doc) =>
-        //   doc.divisions.map((d) => d.divisionid).includes(publicBodyId)
-        // );
-        
-        newDocList.push({
-          publicBody: publicBodyId,
-          documentlist: publicBodyDocList,
-          incompatableList: [],
-        })
-      }
-      return newDocList;
-    }
 
     const normalizeforPdfStitchingReq = (documentlist) => {
       const normalizedDocumentlist = JSON.parse(JSON.stringify(documentlist));
@@ -2901,104 +2899,6 @@ const Redlining = React.forwardRef(
         'NRwatermark': NRWatermarksPages
       });
     }
-
-    // const prepareRedlinePageMappingByPublicBody = (divisionDocuments) => {
-    //   let removepages = {};
-    //   let pageMappings = {};
-    //   let divPageMappings = {};
-    //   let pagesToRemove = []; 
-    //   let totalPageCount = 0;
-    //   let totalPageCountIncludeRemoved = 0;
-    //   let divisionCount = 0; 
-    //   let duplicateWatermarkPages = {};
-    //   let duplicateWatermarkPagesEachDiv = [];
-    //   let NRWatermarksPages = {};
-    //   let NRWatermarksPagesEachDiv = [];
-    //   for (let divObj of divisionDocuments) {    
-    //     divisionCount++;  
-    //     // sort based on sortorder as the sortorder added based on the LastModified
-    //     for (let doc of sortBySortOrder(divObj.documentlist)) {
-    //       if (doc.pagecount > 0) {
-    //         let pagesToRemoveEachDoc = [];
-    //         pageMappings[doc.documentid] = {};
-    //         let pageIndex = 1;
-    //         //gather pages that need to be removed
-    //         doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-    //         for (const flagInfo of doc.pageFlag) {
-    //           if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
-    //             if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
-    //               if(includeDuplicatePages) {
-    //                 duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
-    //                 pageMappings[doc.documentid][flagInfo.page] =
-    //                   pageIndex +
-    //                   totalPageCount -
-    //                   pagesToRemoveEachDoc.length;
-    //               } else {
-    //                 pagesToRemoveEachDoc.push(flagInfo.page);
-                  
-    //                 pagesToRemove.push(                  
-    //                   pageIndex + totalPageCountIncludeRemoved
-    //                 );
-    //               }
-    //             } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
-    //               if(includeNRPages) {
-    //                 NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
-    //                 pageMappings[doc.documentid][flagInfo.page] =
-    //                 pageIndex +
-    //                   totalPageCount -
-    //                   pagesToRemoveEachDoc.length;
-    //               } else {
-    //                 pagesToRemoveEachDoc.push(flagInfo.page);
-                  
-    //                 pagesToRemove.push(                  
-    //                   pageIndex + totalPageCountIncludeRemoved
-    //                 );
-    //               }
-    //             } else {
-    //               if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-    //                 pageMappings[doc.documentid][flagInfo.page] =
-    //                   pageIndex +
-    //                   totalPageCount -
-    //                   pagesToRemoveEachDoc.length;
-    //               }
-    //             }
-    //             if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-    //               pageIndex ++;
-    //             }
-    //           }
-    //         }
-    //         totalPageCount += Object.keys(
-    //           pageMappings[doc.documentid]
-    //         ).length;
-    //         totalPageCountIncludeRemoved += doc.pagecount;
-    //       }
-          
-    //     }
-    //     divPageMappings[divObj.divisionid] = pageMappings;
-    //     if (divObj.publicBody) divPageMappings[divObj.publicBody] = pageMappings;
-    //     removepages[divObj.divisionid] = pagesToRemove;
-    //     duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
-    //     NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
-    //     pagesToRemove = [];
-    //     duplicateWatermarkPagesEachDiv = [];
-    //     NRWatermarksPagesEachDiv = [];
-    //     totalPageCount = 0;
-    //     totalPageCountIncludeRemoved = 0;
-    //     pageMappings = {}
-    //   }
-
-    //   setRedlinepageMappings({
-    //     'divpagemappings': divPageMappings,
-    //     'pagemapping': pageMappings,
-    //     'pagestoremove': []
-    //   });
-    //   setRedlineWatermarkPageMapping({
-    //     'duplicatewatermark': duplicateWatermarkPages,
-    //     'NRwatermark': NRWatermarksPages
-    //   });
-    // }
 
     const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
       let divIncompatableMapping = {};
@@ -3329,7 +3229,7 @@ const Redlining = React.forwardRef(
           saveResponsePackage(docViewer, annotManager, docInstance);
           break;
         case "consult":
-          saveConsultPackage(docInstance, modalFor);
+          saveRedlineDocument(docInstance, modalFor);
           break;
         default:
       }
@@ -3346,6 +3246,20 @@ const Redlining = React.forwardRef(
     }
 
     /*Redline download & stitching code starts */
+    const getPublicBodyIdsList = () => {
+      let publicBodyList = [];
+      for (const doc of documentList) {
+        for (let pageflag of doc['pageFlag']) {
+          if ('programareaid' in pageflag) {
+            for (let programareaid of pageflag['programareaid']) {
+              publicBodyList.push(programareaid)
+            }
+          }
+        }
+      }
+      const filteredPublicBodyList = [...new Set(publicBodyList)]
+      return filteredPublicBodyList;
+    }
     
     const saveRedlineDocument = async (_instance, layertype) => {
       toastId.current = toast(`Start saving redline...`, {
@@ -3355,7 +3269,12 @@ const Redlining = React.forwardRef(
       });
 
       const divisionFilesList = [...documentList, ...incompatibleFiles];
-      const divisions = getDivisionsForSaveRedline(divisionFilesList);
+      let divisions;
+      if (modalFor == "consult") {
+        divisions = getPublicBodyIdsList();
+      } else {
+        divisions = getDivisionsForSaveRedline(divisionFilesList);
+      }
       const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
       const documentids = documentList.map((obj) => obj.documentid);
       getFOIS3DocumentRedlinePreSignedUrl(
@@ -3393,15 +3312,40 @@ const Redlining = React.forwardRef(
                 documentsObjArr.push(doc);
                 if (docCount == div.documentlist.length) {
                   if (pageMappedDocs != undefined) {
-                    let divisionsdocpages = Object.values(
-                      pageMappedDocs.redlineDocIdLookup
-                    )
-                      .filter((obj) => {
-                        return obj.division.includes(div.divisionid);
-                      })
-                      .map((obj) => {
-                        return obj.pageMappings;
-                      });
+                    let divisionsdocpages = [];
+                    if (modalFor == "consult") {
+                      Object.values(
+                        pageMappedDocs.redlineDocIdLookup
+                      )
+                        .forEach((obj) => {
+                          let newPageMappings = [];
+                          const hasPublicBodyInlcuded = obj.division.includes(div.divisionid)
+                          res.divdocumentList.forEach((doclist) => {
+                            doclist.documentlist.forEach((doc) => {
+                              if (obj.docId == doc.documentid) {
+                                obj.pageMappings.forEach((page) => {
+                                  if (hasPublicBodyInlcuded && doc.documentid == obj.docId && doc.pages.includes(page.pageNo)) {
+                                    newPageMappings.push(page)
+                                  }
+                                })
+                              }
+                            })
+                          })
+                          if (hasPublicBodyInlcuded) {
+                            divisionsdocpages.push(newPageMappings);
+                          }
+                        })
+                    } else {
+                      divisionsdocpages = Object.values(
+                        pageMappedDocs.redlineDocIdLookup
+                      )
+                        .filter((obj) => {
+                          return obj.division.includes(div.divisionid);
+                        })
+                        .map((obj) => {
+                          return obj.pageMappings;
+                        });
+                    }
                     divisionsdocpages.forEach(function (_arr) {
                       _arr.forEach(function (value) {
                         divisionstitchpages.push(value);
@@ -3566,8 +3510,13 @@ const Redlining = React.forwardRef(
               if (docCount == 1) {
                 // Delete pages from the first document
                 const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
-                if (deletedPages.length > 0) {
-                    docObj.removePages(deletedPages);
+                let totalPagesToRemove = deletedPages;
+                if (modalFor == "consult") {
+                  const initialPagesArray = new Array(docObj.getPageCount()).fill(0).map((_, i) => i + 1);
+                  totalPagesToRemove = initialPagesArray.filter(item => !doc.pages.includes(item)).filter(item => !deletedPages.includes(item));
+                }
+                if (totalPagesToRemove.length > 0) {
+                    docObj.removePages(totalPagesToRemove);
                 }           
                 stitchedDocObj = docObj;
               } else {
@@ -3598,71 +3547,6 @@ const Redlining = React.forwardRef(
         if (redlineSinglePkg == "N") {
           stitchedDocObj = null;
         }
-      }
-    };
-
-    const stitchForConsultExport = async (
-      _instance,
-      divisionDocuments,
-      stitchlist,
-      redlineSinglePkg,
-      incompatableList
-    ) => {
-      let requestStitchObject = {};
-      let divCount = 0;
-      const numberOfPublicBodies = Object.keys(stitchlist).length;
-      let stitchedDocObj = null;
-      for (const [key, value] of Object.entries(stitchlist)) {
-        divCount++;
-        let docCount = 0;
-        let division = key;
-        let documentlist = stitchlist[key];
-        toast.update(toastId.current, {
-          render: `Generating consult PDF...`,
-          isLoading: true,
-        });
-        if(documentlist.length > 0) {
-          for (let doc of documentlist) {
-            console.log('doc: ', doc)      
-
-            await _instance.Core.createDocument(doc.s3path_load, {
-              loadAsPDF: true,
-              useDownloader: false, // Added to fix BLANK page issue
-            }).then(async (docObj) => {    
-                docCount++;
-                if (docCount == 1) {
-                  // Delete pages from the first document
-                  const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
-                  const initialPagesArray = new Array(docObj.getPageCount()).fill(0).map((_, i) => i + 1);
-                  //initialPagesArray - doc.pages
-                  const totalPagesToRemove = initialPagesArray.filter(item => !doc.pages.includes(item)).filter(item => !deletedPages.includes(item));
-                  if (totalPagesToRemove.length > 0) {
-                      docObj.removePages(totalPagesToRemove);
-                  }           
-                  stitchedDocObj = docObj;
-                } else {
-                  let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-                  await stitchedDocObj.insertPages(
-                    docObj,
-                    doc.pages,
-                    pageIndexToInsert
-                  );
-                }
-              //}
-            });
-            if (docCount == documentlist.length) {
-              requestStitchObject[division] = stitchedDocObj;
-            }
-          }
-        } else {
-          if (incompatableList[division]["incompatibleFiles"].length > 0) {
-            requestStitchObject[division] = null
-          } 
-        }
-        if (divCount == numberOfPublicBodies) {
-          setRedlineStitchObject(requestStitchObject);
-        }
-        stitchedDocObj = null;
       }
     };
 
@@ -4200,151 +4084,6 @@ const Redlining = React.forwardRef(
               }
             );
           });
-        },
-        (error) => {
-          console.log("Error fetching document:", error);
-        }
-      );
-    };
-
-    const saveConsultPackage = async (
-      _instance, 
-      layertype
-    ) => {
-      const getPublicBodyIdsList = () => {
-        let publicBodyList = [];
-        for (const doc of documentList) {
-          for (let pageflag of doc['pageFlag']) {
-            if ('programareaid' in pageflag) {
-              for (let programareaid of pageflag['programareaid']) {
-                publicBodyList.push(programareaid)
-              }
-            }
-          }
-        }
-        const filteredPublicBodyList = [...new Set(publicBodyList)]
-        return filteredPublicBodyList;
-      }
-      const publicBodyIds = getPublicBodyIdsList();
-      const divisionFilesList = [...documentList, ...incompatibleFiles];
-      const divisions = getDivisionsForSaveRedline(divisionFilesList);
-      const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
-      const publicBodyDocuments = getDocumentMappingForConsult(publicBodyIds);
-      const documentids = documentList.map((obj) => obj.documentid);
-
-      getConsultPackagePreSignedUrl(
-        requestid,
-        { consultdocumentlist: publicBodyDocuments },
-        async (res) => {
-          toastId.current = toast.loading("Generating consult package...");
-
-          setRedlineSinglePackage(res.issingleredlinepackage);
-
-          let stitchDoc = {};
-
-          prepareRedlinePageMapping(
-            res['consultdocumentlist'],
-            res.issingleredlinepackage
-          );
-          let IncompatableList = prepareRedlineIncompatibleMapping(res);
-          setIncompatableList(IncompatableList);
-          fetchDocumentRedlineAnnotations(requestid, documentids, currentLayer.name.toLowerCase());
-
-          let stitchDocuments = {};
-          let documentsObjArr = [];
-          let publicBodyStitchPages = [];
-          let publicBodyCount = 0;
-
-          for (let publicBody of res.consultdocumentlist) {
-            publicBodyCount++;
-            let docCount = 0;
-            if((res.issingleredlinepackage == "N")) {
-              for (let doc of publicBody.documentlist) {
-                docCount++;
-                documentsObjArr.push(doc);
-                if (docCount == publicBody.documentlist.length) {
-                  if (pageMappedDocs != undefined) {
-                    let publicBodyDocPages = [];
-                    Object.values(
-                      pageMappedDocs.redlineDocIdLookup
-                    )
-                      .forEach((obj) => {
-                        let newPageMappings = [];
-                        const hasPublicBodyInlcuded = obj.division.includes(publicBody.publicBody)
-                        res.consultdocumentlist.forEach((doclist) => {
-                          doclist.documentlist.forEach((doc) => {
-                            if (obj.docId == doc.documentid) {
-                              obj.pageMappings.forEach((page) => {
-                                if (hasPublicBodyInlcuded && doc.documentid == obj.docId && doc.pages.includes(page.pageNo)) {
-                                  newPageMappings.push(page)
-                                }
-                              })
-                            }
-                          })
-                        })
-                        if (hasPublicBodyInlcuded) {
-                          publicBodyDocPages.push(newPageMappings);
-                        }
-                      })
-
-                    publicBodyDocPages.forEach(function (_arr) {
-                      _arr.forEach(function (value) {
-                        publicBodyStitchPages.push(value);
-                      });
-                    });
-                    publicBodyStitchPages.sort((a, b) =>
-                      a.stitchedPageNo > b.stitchedPageNo
-                        ? 1
-                        : b.stitchedPageNo > a.stitchedPageNo
-                        ? -1
-                        : 0
-                    );
-                  }
-                }
-              }
-            }
-            if (
-              res.issingleredlinepackage != "Y" &&
-              docCount == publicBody.documentlist.length
-            ) {                            
-              let divdocumentids = [];
-              // sort based on sortorder as the sortorder added based on the LastModified
-              let sorteddocuments =  sortBySortOrder(publicBody.documentlist);
-              stitchDocuments[publicBody.publicBody] = setStitchDetails(sorteddocuments);
-
-              for(const element of sorteddocuments) {
-                divdocumentids.push(element['documentid']);
-              }
-              stitchDoc[publicBody.publicBody] = {
-                documentids: divdocumentids,
-                s3path: publicBody.s3path_save,
-                stitchpages: publicBodyStitchPages,
-                bcgovcode: res.bcgovcode,
-              };
-              publicBodyStitchPages = [];
-              documentsObjArr = [];
-            }
-          }
-          
-          setRedlineStitchInfo(stitchDoc);
-          setIssingleredlinepackage(res.issingleredlinepackage);
-          setRedlineZipperMessage({
-            ministryrequestid: requestid,
-            category: getzipredlinecategory(layertype),
-            attributes: [],
-            requestnumber: res.requestnumber,
-            bcgovcode: res.bcgovcode,
-            summarydocuments: prepareredlinesummarylist(stitchDocuments),
-            redactionlayerid: currentLayer.redactionlayerid
-          });
-
-          stitchForConsultExport(
-            _instance,
-            divisionDocuments,
-            stitchDocuments,
-            res.issingleredlinepackage,
-            IncompatableList
-          );
         },
         (error) => {
           console.log("Error fetching document:", error);
