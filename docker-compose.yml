@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.local
       args:
         - NODE_ENV=${NODE_ENV:-development}
-        - GENERATE_SOURCEMAP=false
+        - GENERATE_SOURCEMAP=${GENERATE_SOURCEMAP:-false}
         - REACT_APP_KEYCLOAK_CLIENT=${KEYCLOAK_WEB_CLIENTID:-foi-document-redaction}
         - REACT_APP_KEYCLOAK_URL_REALM=${KEYCLOAK_URL_REALM:-5k8dbl4h}
         - REACT_APP_KEYCLOAK_URL=${KEYCLOAK_URL}
@@ -80,6 +80,7 @@ services:
       - DOCUMENTSERVICE_STREAM_KEY=${DOCUMENTSERVICE_STREAM_KEY}
       - BATCH_CONFIG=${BATCH_CONFIG}
       - REDLINE_SINGLE_PKG_MINISTRIES=${REDLINE_SINGLE_PKG_MINISTRIES}
+      - PAGECALCULATOR_STREAM_KEY=${PAGECALCULATOR_STREAM_KEY} 
 
   foi-docreviewer-db:
     image: postgres
@@ -157,6 +158,8 @@ services:
       - DEDUPE_REQUEST_MANAGEMENT_API=${DEDUPE_REQUEST_MANAGEMENT_API}
       - DEDUPE_RECORD_FORMATS=${DEDUPE_RECORD_FORMATS}
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+      - PAGECALCULATOR_STREAM_KEY=${PAGECALCULATOR_STREAM_KEY}
+      - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
 
   foi-docreviewer-zippingservice:
     container_name: foi-docreviewer-zippingservice
@@ -236,7 +239,7 @@ services:
         - ZIPPER_REDIS_PASSWORD=${DEDUPE_REDIS_PASSWORD}
         - ZIPPER_REDIS_PORT=${DEDUPE_REDIS_PORT}
         - ZIPPER_STREAM_KEY=${ZIPPER_STREAM_KEY}
-  
+
   foi-docreviewer-documentservice:
       container_name: foi-docreviewer-documentservice
       depends_on:
@@ -280,8 +283,36 @@ services:
         - FOI_DB_USER=${FOI_DB_USER}
         - FOI_DB_PASSWORD=${FOI_DB_PASSWORD}
   
-    
-
+  foi-docreviewer-pagecountcalculatorservice:
+      container_name: foi-docreviewer-pagecountcalculator
+      depends_on:
+        - foi-docreviewer-db
+        - foi-docreviewer-redis
+      build:
+        context: ./computingservices/PageCountCalculator
+        dockerfile: Dockerfile.local
+      image: docreviewerpagecountcalculatorimage
+      stdin_open: true
+      tty: true
+      networks:
+        services-network:
+          aliases:
+            - docreviewerpagecountcalculator     
+      environment:
+        - REDIS_HOST=${REDIS_HOST}
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+        - REDIS_PORT=${REDIS_PORT}      
+        - DOCUMENTSERVICE_DB_HOST=${DOCUMENTSERVICE_DB_HOST}
+        - DOCUMENTSERVICE_DB_NAME=${DOCUMENTSERVICE_DB_NAME}
+        - DOCUMENTSERVICE_DB_PORT=${DOCUMENTSERVICE_DB_PORT}
+        - DOCUMENTSERVICE_DB_USER=${DOCUMENTSERVICE_DB_USER}
+        - DOCUMENTSERVICE_DB_PASSWORD=${DOCUMENTSERVICE_DB_PASSWORD}
+        - PAGECALCULATOR_STREAM_KEY=${PAGECALCULATOR_STREAM_KEY} 
+        - FOI_DB_HOST=${FOI_DB_HOST}
+        - FOI_DB_NAME=${FOI_DB_NAME}
+        - FOI_DB_PORT=${FOI_DB_PORT}
+        - FOI_DB_USER=${FOI_DB_USER}
+        - FOI_DB_PASSWORD=${FOI_DB_PASSWORD}
 volumes:
   dbdata:
 networks:

@@ -6,7 +6,6 @@ import logging
 from enum import Enum
 from utils import redisstreamdb
 from utils.foidocumentserviceconfig import documentservice_stream_key
-from rstreamio.message.schemas.redactionsummary import decodesummarymsg
 from services.redactionsummaryservice import redactionsummaryservice
 from services.zippingservice import zippingservice
 
@@ -41,8 +40,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 message_id, message = _message 
                 print(f"processing {message_id}::{message}")
                 if message is not None:
-                    message = json.dumps({str(key): str(value) for (key, value) in message.items()})
-                    message = decodesummarymsg(message)
+                    message = json.dumps({str(key.decode("utf-8")): str(value.decode("utf-8")) for (key, value) in message.items()})
                     summaryfiles = []
                     try:
                         summaryfiles = redactionsummaryservice().processmessage(message)

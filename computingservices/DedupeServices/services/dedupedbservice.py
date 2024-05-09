@@ -1,5 +1,6 @@
 from . import getdbconnection
 from models import dedupeproducermessage
+from utils.basicutils import to_json
 from datetime import datetime
 import json
 
@@ -11,9 +12,9 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible,pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
@@ -163,6 +164,28 @@ def isbatchcompleted(batch):
     finally:
         if conn is not None:
             conn.close()
+
+
+def pagecalculatorjobstart(message):
+        conn = getdbconnection()
+        try:
+                    
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."PageCalculatorJob"
+                (version, ministryrequestid, inputmessage, status, createdby)
+                VALUES (%s::integer, %s::integer, %s, %s, %s) returning pagecalculatorjobid;''',
+                (1, message.ministryrequestid, to_json(message), 'pushedtostream', 'dedupeservice'))
+            pagecalculatorjobid = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            print("Inserted pagecalculatorjobid:", pagecalculatorjobid)
+            return pagecalculatorjobid
+        except(Exception) as error:
+            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
 
 
 

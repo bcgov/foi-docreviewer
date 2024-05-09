@@ -137,6 +137,8 @@ def getbatchconfig():
     return _begin, _size, _limit
 
 def is_single_redline_package(bcgovcode, packagetype):
+    if packagetype == "consult":
+        return False
     if (packagetype == "oipcreview"):
         return True
     if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
