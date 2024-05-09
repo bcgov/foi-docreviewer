@@ -4064,7 +4064,7 @@ const Redlining = React.forwardRef(
                   zipServiceMessage
                 );
                 setTimeout(() => {
-                  // window.location.reload(true);
+                  window.location.reload(true);
                 }, 3000);
               },
               (_err) => {
