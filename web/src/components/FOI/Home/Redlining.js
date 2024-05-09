@@ -314,10 +314,8 @@ const Redlining = React.forwardRef(
         }        
       }
       setIsDisableNRDuplicate(isDisabled);
-      if (isDisabled) {
-        setIncludeNRPages(isDisabled)
-        setIncludeDuplicatePages(isDisabled);
-      }
+      setIncludeNRPages(isDisabled)
+      setIncludeDuplicatePages(isDisabled);
     }
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
@@ -3149,8 +3147,7 @@ const Redlining = React.forwardRef(
     }
 
     const cancelSaveRedlineDoc = () => {
-      setIncludeDuplicatePages(false);
-      setIncludeNRPages(false);
+      disableNRDuplicate();
       setRedlineModalOpen(false);
     };
 
