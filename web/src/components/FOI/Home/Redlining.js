@@ -106,6 +106,8 @@ const Redlining = React.forwardRef(
       (state) => state.documents?.requestnumber
     );
 
+    const allPublicBodies = useAppSelector((state) => state.documents?.allPublicBodies)
+
     document.title = requestnumber + " - FOI Document Reviewer"
 
     const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
@@ -322,26 +324,12 @@ const Redlining = React.forwardRef(
     const [enableSavingFinal, setEnableSavingFinal] = useState(false);
     const [enableSavingConsults, setEnableSavingConsults] = useState(false);
 
+    const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
+    const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
+
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
-
-    const isValidConsults = (pageFlags) => {
-      if (pageFlags) {
-        for (const doc of pageFlags) {
-          const pageFlags = doc.pageflag;
-          console.log("BANG")
-          for (const flagInfo of pageFlags) {
-            console.log(flagInfo)
-            console.log(pageFlagTypes["Consult"])
-            if (flagInfo.flagid === pageFlagTypes["Consult"]) {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
-    }
-
+    
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -1573,9 +1561,10 @@ const Redlining = React.forwardRef(
         _enableSavingRedline && requestStatus == RequestStates["Response"]
       );
       //consults validation
-      const _enableSavingConsults = isValidConsults(pageFlags)
+      const publicBodyList = getPublicBodyList()
+      setDocumentPublicBodies(publicBodyList)
       setEnableSavingConsults(
-        _enableSavingConsults
+        publicBodyList.length > 0
       );
       if (_instance) {
         //oipc changes - begin
@@ -1598,7 +1587,7 @@ const Redlining = React.forwardRef(
           !_enableSavingRedline || requestStatus !== RequestStates["Response"];
           //oipc changes - en
         // conults validation
-        document.getElementById("consult_package").disabled = !_enableSavingConsults
+        document.getElementById("consult_package").disabled = !(publicBodyList.length > 0)
       }
     };
 
@@ -3270,19 +3259,29 @@ const Redlining = React.forwardRef(
     }
 
     /*Redline download & stitching code starts */
-    const getPublicBodyIdsList = () => {
-      let publicBodyList = [];
+    const getPublicBodyList = () => {
+      let publicBodyIdList = [];
       for (const doc of documentList) {
         for (let pageflag of doc['pageFlag']) {
           if ('programareaid' in pageflag) {
             for (let programareaid of pageflag['programareaid']) {
-              publicBodyList.push(programareaid)
+              publicBodyIdList.push(programareaid)
             }
           }
         }
       }
-      const filteredPublicBodyList = [...new Set(publicBodyList)]
-      return filteredPublicBodyList;
+      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)]
+      return getPublicBodyObjs(filteredPublicBodyIdList);
+    }
+
+    const getPublicBodyObjs = (publicBodyIDList) => {
+      const publicBodies = [];
+      for (const publicBody of allPublicBodies) {
+        if (publicBodyIDList.includes(publicBody.programareaid)) {
+          publicBodies.push(publicBody);
+        }
+      }
+      return publicBodies;
     }
     
     const saveRedlineDocument = async (_instance, layertype) => {
@@ -3295,7 +3294,7 @@ const Redlining = React.forwardRef(
       const divisionFilesList = [...documentList, ...incompatibleFiles];
       let divisions;
       if (modalFor == "consult") {
-        divisions = getPublicBodyIdsList();
+        divisions = selectedPublicBodyIDs;
       } else {
         divisions = getDivisionsForSaveRedline(divisionFilesList);
       }
@@ -4201,6 +4200,20 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    const handleSelectedPublicBodies = (e) => {
+      const publicBodyId = parseInt(e.target.value)
+      if (selectedPublicBodyIDs.includes(publicBodyId)) {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev.filter(id => id !== publicBodyId)]
+        })
+      }
+      else {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev, publicBodyId]
+        })
+      }
+    }
+
     
 
     return (
@@ -4343,7 +4356,7 @@ const Redlining = React.forwardRef(
             >
               <span>
                 {modalMessage} <br/><br/>
-                {modalFor == "redline" && <>
+                {modalFor === "redline" && <>
                 <input
                   type="checkbox"
                   style={{ marginRight: 10 }}
@@ -4365,6 +4378,23 @@ const Redlining = React.forwardRef(
                   disabled={isDisableNRDuplicate}
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
+                </>}
+                {modalFor === "consult" && <>
+                {documentPublicBodies?.map((publicBody) => {
+                  return (<>
+                    <input
+                      type="checkbox"
+                      style={{ marginRight: 10 }}
+                      className="redline-checkmark"
+                      id="nr-checkbox"
+                      value={publicBody.programareaid}
+                      checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
+                      onChange={handleSelectedPublicBodies}
+                    />
+                    <label for="nr-checkbox">{publicBody.bcgovcode}</label>
+                    <br/>
+                  </>)
+                })}
                 </>}
               </span>
             </DialogContentText>
