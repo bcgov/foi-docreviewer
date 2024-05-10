@@ -4382,23 +4382,25 @@ const Redlining = React.forwardRef(
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
-                {modalFor === "consult" && <>
+                {modalFor === "consult" && 
+                <>
                 {documentPublicBodies?.map((publicBody) => {
                   return (<>
                     <input
+                      key={publicBody.programareaid}
                       type="checkbox"
                       style={{ marginRight: 10 }}
                       className="redline-checkmark"
-                      id="nr-checkbox"
                       value={publicBody.programareaid}
                       checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
-                      onChange={handleSelectedPublicBodies}
+                      onClick={handleSelectedPublicBodies}
                     />
-                    <label for="nr-checkbox">{publicBody.bcgovcode}</label>
+                    <label>{publicBody.bcgovcode}</label>
                     <br/>
                   </>)
                 })}
-                </>}
+                </>
+                }
               </span>
             </DialogContentText>
           </DialogContent>
