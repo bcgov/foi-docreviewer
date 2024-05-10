@@ -3031,7 +3031,7 @@ const Redlining = React.forwardRef(
           )
         );
       }
-      return stitchAnnotation.join();
+      return stitchAnnotation.join("");
     };
 
     const constructFreeTextAndannoteIds = (data) => {
@@ -3138,7 +3138,7 @@ const Redlining = React.forwardRef(
                 updatedXML.push(annotxml);
         }
       }
-      return updatedXML.join();
+      return updatedXML.join("");
     };
 
     const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
@@ -3752,10 +3752,16 @@ const Redlining = React.forwardRef(
             
             let string = await stitchObject.extractXFDF()
 
-            let xfdfString = string.xfdfString.replace('<annots />',
-              '<annots>' +
-              formattedAnnotationXML +
-              "</annots>");
+            let xmlObj = parser.parseFromString(string.xfdfString);
+            let annots = parser.parseFromString('<annots>' + formattedAnnotationXML + '</annots>');
+            let annotsObj = xmlObj.getElementsByTagName('annots')
+            if (annotsObj.length > 0) {
+              annotsObj[0].children = annotsObj[0].children.concat(annots.children)
+            } else {
+              xmlObj.children.push(annots)
+            }          
+
+            let xfdfString = parser.toString(xmlObj);
 
             //OIPC - Special Block (Redact S.14) : Begin
             if(redlineCategory === "oipcreview") {
