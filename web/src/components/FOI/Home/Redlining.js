@@ -451,7 +451,6 @@ const Redlining = React.forwardRef(
             consultPackageButton.disabled = !enableSavingConsults;
             consultPackageButton.onclick = () => {
               // Save to s3
-              console.log('click')
               setModalFor("consult");
               setModalTitle("Consult Public Body");
               setModalMessage([
@@ -1590,6 +1589,9 @@ const Redlining = React.forwardRef(
         document.getElementById("consult_package").disabled = !(publicBodyList.length > 0)
       }
     };
+
+    console.log("selectedpubbody", selectedPublicBodyIDs)
+    console.log("docpubbody", documentPublicBodies)
 
     useEffect(() => {
       if (documentList.length > 0 && pageFlags?.length > 0) {
@@ -3222,6 +3224,7 @@ const Redlining = React.forwardRef(
     const cancelSaveRedlineDoc = () => {
       setIncludeDuplicatePages(false);
       setIncludeNRPages(false);
+      setSelectedPublicBodyIDs([]);
       setRedlineModalOpen(false);
     };
 
@@ -4400,7 +4403,7 @@ const Redlining = React.forwardRef(
             </DialogContentText>
           </DialogContent>
           <DialogActions className="foippa-modal-actions">
-            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
+            <button disabled={modalFor === "consult" ? selectedPublicBodyIDs.length === 0 : false} className="btn-bottom btn-save btn" onClick={saveDoc}>
               {modalButtonLabel}
             </button>
             <button
