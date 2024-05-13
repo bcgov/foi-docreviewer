@@ -21,6 +21,7 @@ import IconButton from "@mui/material/IconButton";
 import Switch from "@mui/material/Switch";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Grid from '@mui/material/Grid';
 import { styled } from "@mui/material/styles";
 import {
   fetchAnnotationsByPagination,
@@ -4341,7 +4342,7 @@ const Redlining = React.forwardRef(
           initHeight={300}
           minWidth={600}
           minHeight={250}
-          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
+          className={"state-change-dialog" + (modalFor === "redline" ? " redline-modal" : modalFor === "consult" ? " consult-modal" : "")}
           onRequestClose={cancelRedaction}
           isOpen={redlineModalOpen}
         >
@@ -4383,23 +4384,24 @@ const Redlining = React.forwardRef(
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
                 {modalFor === "consult" && 
-                <>
-                {documentPublicBodies?.map((publicBody) => {
-                  return (<>
-                    <input
-                      key={publicBody.programareaid}
-                      type="checkbox"
-                      style={{ marginRight: 10 }}
-                      className="redline-checkmark"
-                      value={publicBody.programareaid}
-                      checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
-                      onClick={handleSelectedPublicBodies}
-                    />
-                    <label>{publicBody.bcgovcode}</label>
-                    <br/>
-                  </>)
-                })}
-                </>
+                <Grid container spacing={1}>
+                  {documentPublicBodies?.map((publicBody) => {
+                    return (<>
+                    <Grid item sm={1.5} md={1.5}>
+                      <input
+                        key={publicBody.programareaid}
+                        type="checkbox"
+                        style={{ marginRight: 10 }}
+                        className="redline-checkmark"
+                        value={publicBody.programareaid}
+                        checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
+                        onClick={handleSelectedPublicBodies}
+                      />
+                      <label>{publicBody.bcgovcode}</label>
+                    </Grid>
+                    </>)
+                  })}
+                </Grid>
                 }
               </span>
             </DialogContentText>
