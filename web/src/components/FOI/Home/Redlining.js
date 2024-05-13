@@ -2665,10 +2665,10 @@ const Redlining = React.forwardRef(
           let incompatableList = [];
 
           //TODO - insert the divisionname here
-          
+          const publicBodyInfo = allPublicBodies.find((body) => body.programareaid == publicBodyId)
           newDocList.push({
             divisionid: publicBodyId,
-            divisionname: publicBodyId.toString(),
+            divisionname: publicBodyInfo.name,
             documentlist: publicBodyDocList,
             incompatableList: incompatableList,
           })
@@ -2810,7 +2810,6 @@ const Redlining = React.forwardRef(
     }
 
     const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
-      console.log('****MODALFOR in prep redlining by division: ', modalFor)
       let removepages = {};
       let pageMappings = {};
       let divPageMappings = {};
