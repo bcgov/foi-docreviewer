@@ -4384,7 +4384,7 @@ const Redlining = React.forwardRef(
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
                 {modalFor === "consult" && 
-                <Grid container spacing={1}>
+                <Grid container spacing={0.5}>
                   {documentPublicBodies?.map((publicBody) => {
                     return (<>
                     <Grid item sm={1.5} md={1.5}>
