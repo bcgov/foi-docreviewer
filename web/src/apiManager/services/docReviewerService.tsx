@@ -2,7 +2,7 @@
 import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
+import { setRedactionInfo, setIsPageLeftOff, setSections, 
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
@@ -34,7 +34,7 @@ export const fetchDocuments = (
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
-        callback(res.data.documents);
+        callback(res.data.documents, res.data.documentdivisions);
       } else {
         throw new Error();
       }
@@ -305,30 +305,55 @@ export const fetchPageFlag = (
   foiministryrquestid: string,
   redactionlayer: string,
   documentids: Array<any>,  
-  //callback: any,
+  callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = replaceUrl(
-    API.DOCREVIEWER_GET_PAGEFLAGS,
-    "<requestid>",
-    foiministryrquestid
-  ) + "/" +  redactionlayer;
+  // let apiUrlGet: string = replaceUrl(
+  //   API.DOCREVIEWER_GET_PAGEFLAGS,
+  //   "<requestid>",
+  //   foiministryrquestid
+  // ) + "/" +  redactionlayer;
+  // console.log("\n\ndocumentids: ",documentids)
   
-  httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
+  // httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
+  //   .then((res:any) => {
+  //     if (res.data || res.data === "") {
+  //       callback(res.data);
+  //      // store.dispatch(setPageFlags(res.data) as any);
+  //       /** Checking if BOOKMARK set for package */
+  //       let bookmarkedDoc= res.data?.filter((element:any) => {
+  //         return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+  //       })
+  //       store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
+  //     } else {
+  //       throw new Error();
+  //     }
+  //   })
+  //   .catch((error:any) => {
+  //     errorCallback("Error in fetching pageflags for a document");
+  //   });
+    let requestjson={"documentids":documentids}
+
+    let apiUrlPost: string = replaceUrl(
+      API.DOCREVIEWER_GET_PAGEFLAGS,
+      "<requestid>",
+      foiministryrquestid
+    ) + "/" +  redactionlayer;
+    httpPOSTRequest({url: apiUrlPost, data: requestjson, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
-      if (res.data || res.data === "") {
-        store.dispatch(setPageFlags(res.data) as any);
+      if (res.data) {
+        callback(res.data);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
           return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
       } else {
-        throw new Error();
+        throw new Error("Error while triggering download redline");
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in fetching pageflags for a document");
+      errorCallback("Error in triggering download redline:",error);
     });
 };
 

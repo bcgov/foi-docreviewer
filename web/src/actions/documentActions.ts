@@ -23,12 +23,12 @@ export const setSections = (data: any) => (dispatch:any) =>{
     })
 }
 
-export const setPageFlags = (data: any) => (dispatch:any) =>{
-    dispatch({
-        type:ACTION_CONSTANTS.SET_PAGE_FLAGS,
-        payload:data
-    })
-}
+// export const setPageFlags = (data: any) => (dispatch:any) =>{
+//     dispatch({
+//         type:ACTION_CONSTANTS.SET_PAGE_FLAGS,
+//         payload:data
+//     })
+// }
 
 export const setDocumentList = (data: any) => (dispatch:any) =>{
     dispatch({
