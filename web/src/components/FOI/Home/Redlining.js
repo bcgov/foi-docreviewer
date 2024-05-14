@@ -2890,7 +2890,7 @@ const Redlining = React.forwardRef(
         removepages[divObj.divisionid] = pagesToRemove;
         duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
         NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
-        if (modalFor == 'consult' && divObj.publicBody) {
+        if (modalFor == "consult" && divObj.publicBody) {
           divPageMappings[divObj.publicBody] = pageMappings;
           removepages[divObj.publicBody] = pagesToRemove;
           duplicateWatermarkPages[divObj.publicBody] = duplicateWatermarkPagesEachDiv;
