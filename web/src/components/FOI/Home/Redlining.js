@@ -323,10 +323,11 @@ const Redlining = React.forwardRef(
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
     const [enableSavingOipcRedline, setEnableSavingOipcRedline] = useState(false)
     const [enableSavingFinal, setEnableSavingFinal] = useState(false);
-    const [enableSavingConsults, setEnableSavingConsults] = useState(false);
 
+    const [enableSavingConsults, setEnableSavingConsults] = useState(false);
     const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
     const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
+    const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
@@ -455,12 +456,11 @@ const Redlining = React.forwardRef(
               setModalFor("consult");
               setModalTitle("Consult Public Body");
               setModalMessage([
-                "Are you sure want to create a consult? A PDF will be created for each public body selected.",
+                "Are you sure want to create a consult? A PDF will be created for each public body selected and your web browser page will automatically refresh",
                 <br key="lineBreak1" />,
                 <br key="lineBreak2" />,
                 <span key="modalDescription1">
-                  When you create the consult public body package, your web browser page will
-                  automatically refresh
+                  Select one or more Ministry you wish to send the selected page(s) to for consult*
                 </span>,
               ]);
               setModalButtonLabel("Create Consult");
@@ -3226,6 +3226,7 @@ const Redlining = React.forwardRef(
       setIncludeNRPages(false);
       setSelectedPublicBodyIDs([]);
       setRedlineModalOpen(false);
+      setConsultApplyRedactions(false);
     };
 
     const saveDoc = () => {
@@ -4203,17 +4204,21 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    const handleApplyRedactions = (e) => {
+      setConsultApplyRedactions(e.target.checked);
+    }
+
     const handleSelectedPublicBodies = (e) => {
-      const publicBodyId = parseInt(e.target.value)
+      const publicBodyId = parseInt(e.target.value);
       if (selectedPublicBodyIDs.includes(publicBodyId)) {
         setSelectedPublicBodyIDs((prev) => {
           return [...prev.filter(id => id !== publicBodyId)]
-        })
+        });
       }
       else {
         setSelectedPublicBodyIDs((prev) => {
           return [...prev, publicBodyId]
-        })
+        });
       }
     }
 
@@ -4382,25 +4387,61 @@ const Redlining = React.forwardRef(
                 />
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 </>}
-                {modalFor === "consult" && 
-                <Grid container spacing={0.5}>
-                  {documentPublicBodies?.map((publicBody) => {
-                    return (<>
-                    <Grid item sm={1.5} md={1.5}>
-                      <input
-                        key={publicBody.programareaid}
-                        type="checkbox"
-                        style={{ marginRight: 10 }}
-                        className="redline-checkmark"
-                        value={publicBody.programareaid}
-                        checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
-                        onClick={handleSelectedPublicBodies}
-                      />
-                      <label>{publicBody.bcgovcode}</label>
-                    </Grid>
-                    </>)
-                  })}
-                </Grid>
+                {modalFor === "consult" &&
+                <>
+                  <Grid container spacing={0.5}>
+                    {documentPublicBodies?.map((publicBody) => {
+                      return (<>
+                      <Grid item sm={1.5} md={1.5}>
+                        <input
+                          key={publicBody.programareaid}
+                          type="checkbox"
+                          style={{ marginRight: 10 }}
+                          className="redline-checkmark"
+                          id={`${publicBody.bcgovcode}-checkbox`}
+                          value={publicBody.programareaid}
+                          checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
+                          onClick={handleSelectedPublicBodies}
+                        />
+                        <label for={`${publicBody.bcgovcode}-checkbox`}>{publicBody.bcgovcode}</label>
+                      </Grid>
+                      </>)
+                    })}
+                  </Grid>
+                  <br/>
+                  <p>More Options:</p>
+                  <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
+                    id="nr-checkbox"
+                    checked={includeNRPages}
+                    onChange={handleIncludeNRPages}
+                    disabled={isDisableNRDuplicate}
+                  />
+                  <label for="nr-checkbox">Include NR pages</label>
+                  <br/>
+                  <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
+                    id="duplicate-checkbox"
+                    checked={includeDuplicatePages}
+                    onChange={handleIncludeDuplicantePages}
+                    disabled={isDisableNRDuplicate}
+                  />
+                  <label for="duplicate-checkbox">Include Duplicate pages</label>
+                  <br/>
+                  <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
+                    id="redaction-checkbox"
+                    checked={consultApplyRedactions}
+                    onChange={handleApplyRedactions}
+                  />
+                  <label for="redaction-checkbox">Apply Redactions</label>
+                </>
                 }
               </span>
             </DialogContentText>
