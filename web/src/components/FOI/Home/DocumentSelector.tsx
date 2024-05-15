@@ -29,7 +29,6 @@ import { pageFlagTypes } from "../../../constants/enum";
 import Popover from "@mui/material/Popover";
 import CustomTreeView from "./CustomTreeView";
 
-
 const DocumentSelector = React.memo(
   React.forwardRef(
     (
@@ -645,13 +644,15 @@ const DocumentSelector = React.memo(
 
       const getTreeItems = () => {
         if (pageFlags) {
-            if (requestInfo.bcgovcode === "EDU") {
+            if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
                 var index = 0;
                 let tree: any = []
                 for (let file of filesForDisplay) {
                     var label = file.attributes.personalattributes.person + ' - ' + 
-                        file.attributes.personalattributes.filetype + ' - ' + 
-                        file.attributes.personalattributes.trackingid;
+                        file.attributes.personalattributes.filetype;
+                    if (file.attributes.personalattributes.trackingid) {
+                        label += (' - ' + file.attributes.personalattributes.trackingid)
+                    }
                     if (file.attributes.personalattributes.volume) {
                         label += (' - ' + file.attributes.personalattributes.volume)
                     }
@@ -988,6 +989,7 @@ const DocumentSelector = React.memo(
                   assignIcon={assignIcon}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
+                  requestInfo={requestInfo}
                 />
               ) //: <></>
               // divisions?.length > 0 &&

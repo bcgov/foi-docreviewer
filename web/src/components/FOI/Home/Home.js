@@ -9,6 +9,7 @@ import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
   fetchDeletedDocumentPages,
+  fetchPersonalAttributes
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
@@ -26,6 +27,7 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+  const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
@@ -139,6 +141,8 @@ function Home() {
         console.log(error);
       }
     );
+
+
   }, []);
 
   const getCurrentDocument = (doclist) => {    
@@ -169,6 +173,17 @@ function Home() {
       store.dispatch(setCurrentLayer(oipcLayer));
     }
   }, [validoipcreviewlayer, redactionLayers])
+
+  useEffect(() => {
+    if(requestInfo?.bcgovcode && requestInfo.bcgovcode === "MCF"
+          && requestInfo?.requesttype && requestInfo.requesttype === "personal") {
+      fetchPersonalAttributes(
+        requestInfo.bcgovcode, 
+        (error) =>
+          console.log(error)
+      );
+    }
+  }, [requestInfo])
 
   const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
