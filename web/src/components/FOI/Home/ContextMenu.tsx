@@ -190,7 +190,7 @@ const ContextMenu = ({
 
   const updatePersonalAttributes = (_all = false) => {
     setEditTagModalOpen(false);
-    var updateRecords = [];
+    var documentMasterIDs = [];
 
     if(_all) {
       for (let record of filesForDisplay) {
@@ -199,19 +199,11 @@ const ContextMenu = ({
            && record.attributes?.personalattributes?.filetype
            && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
         ) {
-          updateRecords.push(
-            (({ documentmasterid }) => ({
-              documentmasterid,
-            }))(record)
-          );
+          documentMasterIDs.push(record.documentmasterid);
         }
       }
     } else {
-      updateRecords.push(
-        {
-          documentmasterid: currentEditRecord.documentmasterid,
-        }
-      );
+      documentMasterIDs.push(currentEditRecord.documentmasterid);
     }
     
     if(currentEditRecord && !comparePersonalAttributes(newPersonalAttributes, curPersonalAttributes)) {
@@ -224,8 +216,9 @@ const ContextMenu = ({
         },
         (error: any) => console.log(error),
         {
-          records: updateRecords,
-          newpersonalattributes: newPersonalAttributes
+          documentmasterids: documentMasterIDs,
+          personalattributes: newPersonalAttributes,
+          ministryrequestid: requestId
         },
       );
 

@@ -50,8 +50,8 @@ class FOIRequestUpdateRecordPersonalAttributesSchema(Schema):
 
         unknown = EXCLUDE
     documentmasterids = fields.List(fields.Integer(),data_key="documentmasterids",allow_none=False)
-    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
-    personalattributes = fields.Nested(PersonalAttributesSchema,required=False,allow_none=True)
+    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=True)
+    personalattributes = fields.Nested(PersonalAttributesSchema,required=False,allow_none=False)
 
 class DocumentPage(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
