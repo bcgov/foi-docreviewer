@@ -7,6 +7,7 @@
     color: #808080;
     margin:16px 0px;
     font-size: 14px;
+    min-width: 90px;
 
     .heading {
         margin-left: 16px;
@@ -280,4 +281,18 @@
         justify-content: right !important;
         gap: 2px !important;
     }
+}
+.taglist-cfdpersonal {
+  margin: 10px 9% 15px 9%;
+}
+.search-grid-container {
+  display: inline-block !important;
+  margin: 20px 0 !important;
+}
+.search-grid {
+  // border-right: 2px solid #38598A;
+  background-color: rgba(56,89,138,0.1);
+}
+.search-icon {
+  color: #38598A;
 }

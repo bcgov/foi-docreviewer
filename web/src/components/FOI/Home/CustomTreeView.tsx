@@ -37,6 +37,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     assignIcon,
     pageFlags,
     syncPageFlagsOnAction,
+    requestInfo
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
         [`& .${treeItemClasses.label}`]: {
@@ -56,7 +57,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
-
+    const [activeNode, setActiveNode] = useState<any>();
+    const [currentEditRecord, setCurrentEditRecord] = useState();
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
@@ -210,6 +212,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }
 
     const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
+        props.itemId = props.itemId.replaceAll("undefined", "\"\"");
         let itemid = JSON.parse(props.itemId);
         return (
         <StyledTreeItem
@@ -227,11 +230,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
         //     },
         //   }}
         />
-      )
+        )
     });
 
     const openContextMenu = (e: any, props: any) => {
-        if (props.children) return
+        if (props.children && requestInfo.bcgovcode !== "MCF" && requestInfo.requesttype !== "personal") return
         // console.log("contextmenu")
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
@@ -239,6 +242,21 @@ const CustomTreeView = React.memo(React.forwardRef(({
             nodeId = e.currentTarget.id;
         }
         nodeId = nodeId.substring(nodeId.indexOf('{'));
+        
+        //mcf personal
+        let nodeIdJson = JSON.parse(nodeId);
+        if(nodeIdJson.docid) { //popup menu only if docid exist (level 2 tree and children)
+            let currentFiles: any = filesForDisplay.filter((f: any) => {
+                return f.documentid === nodeIdJson.docid;
+            });
+            setCurrentEditRecord(currentFiles[0]);
+            // console.log("selected file: ", currentFiles[0]);
+
+            setActiveNode(nodeIdJson);
+        } else { //mcf personal level 1 tree item
+            return;
+        }
+
         let selectedNodes: any;
         if (!selected.includes(nodeId)) {
             selectedNodes = [nodeId]
@@ -319,6 +337,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 pageMappedDocs={pageMappedDocs}
                 pageFlags={pageFlags}
                 syncPageFlagsOnAction={syncPageFlagsOnAction}
+                filesForDisplay={filesForDisplay}
+                activeNode={activeNode}
+                requestInfo={requestInfo}
+                currentEditRecord={currentEditRecord}
+                setCurrentEditRecord={setCurrentEditRecord}
             />
         }
         <Box sx={{ mb: 1 }}>
