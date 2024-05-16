@@ -17,30 +17,33 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
             #Condition for handling oipcredline category
+            #bcgovcode= message.bcgovcode
             category = message.category  
-            documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
+            documenttypename= category+"_redaction_summary" if category == 'responsepackage' or category == 'CFD_responsepackage' else "redline_redaction_summary"
             #print('documenttypename', documenttypename)
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
             programareas = documentpageflag().get_all_programareas()
+            messageattributes= json.loads(message.attributes)
+            print("\nmessageattributes:",messageattributes)
             divisiondocuments = get_in_summary_object(summarymsg).pkgdocuments
             for entry in divisiondocuments:
                 if 'documentids' in entry and len(entry['documentids']) > 0:
                     divisionid = entry['divisionid']
                     documentids = entry['documentids']
-                    formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
-                    #print("formattedsummary", formattedsummary)
+                    formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas, messageattributes)
+                    print("formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
-                    messageattributes= json.loads(message.attributes)
+                    #messageattributes= json.loads(message.attributes)
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
-                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None
+                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'CFD_responsepackage') else None
                         
                     else:
                         filesobj= messageattributes[0]['files'][0]
-                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
+                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'CFD_responsepackage') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename']                    
@@ -72,7 +75,8 @@ class redactionsummaryservice():
         else:
             _filename = requestnumber+" - "+category
             if divisionname not in (None, ''):
-                _filename = _filename+" - "+divisionname       
+                _filename = _filename+" - "+divisionname    
+        print("---->",stitchedfilepath+_filename+" - summary.pdf")   
         return stitchedfilepath+_filename+" - summary.pdf"
   
     def __get_pageflags(self, category):

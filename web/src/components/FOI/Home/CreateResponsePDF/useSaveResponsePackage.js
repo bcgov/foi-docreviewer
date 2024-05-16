@@ -74,9 +74,17 @@ const useSaveResponsePackage = () => {
   };
   const prepareMessageForResponseZipping = (
     stitchedfilepath,
-    zipServiceMessage
+    zipServiceMessage,
+    personalAttributes,
+    documentid
   ) => {
     const stitchedDocPathArray = stitchedfilepath.split("/");
+    let recordLabel = personalAttributes.person + ' - ' + 
+      personalAttributes.filetype + ' - ' + 
+      personalAttributes.trackingid;
+    if (personalAttributes.volume) {
+      recordLabel += (' - ' + personalAttributes.volume)
+    }
 
     let fileName =
       stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -84,7 +92,9 @@ const useSaveResponsePackage = () => {
 
     const file = {
       filename: fileName,
+      recordname:recordLabel,
       s3uripath: decodeURIComponent(stitchedfilepath.split("?")[0]),
+      documentid: documentid,
     };
     const zipDocObj = {
       files: [],
@@ -118,28 +128,56 @@ const useSaveResponsePackage = () => {
   //   return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
   // };
 
-  const prepareresponseredlinesummarylist = (documentlist) => {
+  const prepareresponseredlinesummarylist = (documentlist, bcgovcode) => {
     let summarylist = []
     let summary_division = {};
     let summary_divdocuments = [];
     let alldocuments = [];
-    summary_division["divisionid"] = '0';
-    for (let doc of documentlist) {
-        summary_divdocuments.push(doc.documentid);
-        alldocuments.push(doc);
-    }
-    summary_division["documentids"] = summary_divdocuments;
-    summarylist.push(summary_division);   
-    
+    console.log("\ndocumentlist:",documentlist)
     let sorteddocids = []
-    // sort based on sortorder as the sortorder added based on the LastModified 
-    let sorteddocs = sortBySortOrder(alldocuments) 
-    for (const sorteddoc of sorteddocs) {
-      if (!sorteddocids.includes(sorteddoc['documentid'])) {
-        sorteddocids.push(sorteddoc['documentid']);
+    if(bcgovcode == 'CFD'){
+      for (let file of documentlist) {
+        var label = file.attributes.personalattributes.person + ' - ' + 
+            file.attributes.personalattributes.filetype + ' - ' + 
+            file.attributes.personalattributes.trackingid;
+        if (file.attributes.personalattributes.volume) {
+            label += (' - ' + file.attributes.personalattributes.volume)
+        }
+        summary_division["divisionid"]= 0;
+        summary_division["recordname"]= label;
+        summary_divdocuments.push(file.documentid);
+        alldocuments.push(file);
       }
+      summary_division["documentids"] = summary_divdocuments;
+      summarylist.push(summary_division);   
       
+      // sort based on sortorder as the sortorder added based on the LastModified 
+      let sorteddocs = sortBySortOrder(alldocuments) 
+      for (const sorteddoc of sorteddocs) {
+        if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
+      }
     }
+    else{
+      summary_division["divisionid"] = '0';
+      for (let doc of documentlist) {
+          summary_divdocuments.push(doc.documentid);
+          alldocuments.push(doc);
+      }
+      summary_division["documentids"] = summary_divdocuments;
+      summarylist.push(summary_division);   
+      
+      //let sorteddocids = []
+      // sort based on sortorder as the sortorder added based on the LastModified 
+      let sorteddocs = sortBySortOrder(alldocuments) 
+      for (const sorteddoc of sorteddocs) {
+        if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
+      }
+    }
+    
     return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
   }
 
@@ -159,7 +197,7 @@ const useSaveResponsePackage = () => {
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
-      summarydocuments: prepareresponseredlinesummarylist(documentList),
+      summarydocuments: {} ,
       redactionlayerid: currentLayer.redactionlayerid,
     };
     getResponsePackagePreSignedUrl(
@@ -168,7 +206,10 @@ const useSaveResponsePackage = () => {
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
-        zipServiceMessage.bcgovcode = res.bcgovcode;
+        zipServiceMessage.bcgovcode = 'CFD'; //res.bcgovcode;
+        if(zipServiceMessage.bcgovcode == 'CFD')
+          zipServiceMessage.category= "CFD_responsepackage"
+          zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
@@ -263,11 +304,13 @@ const useSaveResponsePackage = () => {
                 });
                 prepareMessageForResponseZipping(
                   res.s3path_save,
-                  zipServiceMessage
+                  zipServiceMessage,
+                  res.attributes.personalattributes,
+                  res.documentid
                 );
-                setTimeout(() => {
-                  window.location.reload(true);
-                }, 3000);
+                // setTimeout(() => {
+                //   window.location.reload(true);
+                // }, 3000);
               },
               (_err) => {
                 console.log(_err);
@@ -295,7 +338,8 @@ const useSaveResponsePackage = () => {
   const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
     console.log("CHECK SAVE RESPONSE");
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
-    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
+    setEnableSavingFinal(true)
+    //setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("final_package").disabled =

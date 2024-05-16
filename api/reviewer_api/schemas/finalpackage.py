@@ -4,7 +4,8 @@ from marshmallow import Schema, fields
 class FileSchema(Schema):
     s3uripath = fields.Str(data_key="s3uripath", allow_none=False)
     filename = fields.Str(data_key="filename", allow_none=False)
-
+    recordname = fields.Str(data_key="recordname", allow_none=False)
+    documentid = fields.Int(data_key="documentid", allow_none=True)
 
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
@@ -12,6 +13,7 @@ class AttributeSchema(Schema):
 
 class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
+    recordname = fields.Str(data_key="recordname", allow_none=True)
     documentids = fields.List(fields.Int())
 
 class SummarySchema(Schema):
