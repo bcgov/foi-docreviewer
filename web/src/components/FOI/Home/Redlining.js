@@ -1591,8 +1591,8 @@ const Redlining = React.forwardRef(
       }
     };
 
-    console.log("selectedpubbody", selectedPublicBodyIDs)
-    console.log("docpubbody", documentPublicBodies)
+    // console.log("selectedpubbody", selectedPublicBodyIDs)
+    // console.log("docpubbody", documentPublicBodies)
 
     useEffect(() => {
       if (documentList.length > 0 && pageFlags?.length > 0) {
@@ -3265,17 +3265,21 @@ const Redlining = React.forwardRef(
     /*Redline download & stitching code starts */
     const getPublicBodyList = () => {
       let publicBodyIdList = [];
-      for (const doc of documentList) {
-        for (let pageflag of doc['pageFlag']) {
-          if ('programareaid' in pageflag) {
-            for (let programareaid of pageflag['programareaid']) {
-              publicBodyIdList.push(programareaid)
+      if (documentList?.length > 0) {
+        for (const doc of documentList) {
+          if ('pageFlag' in doc) {
+            for (let pageflag of doc['pageFlag']) {
+              if ('programareaid' in pageflag) {
+                for (let programareaid of pageflag['programareaid']) {
+                  publicBodyIdList.push(programareaid)
+                }
+              }
             }
           }
         }
+        const filteredPublicBodyIdList = [...new Set(publicBodyIdList)]
+        return getPublicBodyObjs(filteredPublicBodyIdList);
       }
-      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)]
-      return getPublicBodyObjs(filteredPublicBodyIdList);
     }
 
     const getPublicBodyObjs = (publicBodyIDList) => {
