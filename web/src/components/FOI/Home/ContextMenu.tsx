@@ -266,11 +266,15 @@ const ContextMenu = ({
             <div
               className="editPersonalTags"
               style={
-                selectedPages.length > 1 
+                selectedPages.length > 1
                   ? { cursor: "not-allowed", color: "#cfcfcf" }
                   : {}
               }
-              onClick={() => editTags()}
+              onClick={() => {
+                if(selectedPages.length > 1) {
+                  editTags()
+                }
+              }}
             >
               Edit Tags
             </div>

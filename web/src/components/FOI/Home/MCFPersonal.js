@@ -58,17 +58,10 @@ const MCFPersonal = ({
       (state) => state.documents.foiPersonalVolumes
     );
 
-    console.log("MCFPeople: ", MCFPeople);
-    console.log("MCFFiletypes: ", MCFFiletypes);
-    console.log("MCFVolumes: ", MCFVolumes);
-
     const [people, setPeople] = useState([]);
-
     const [volumes, setVolumes] = useState([]);
-
     const [fileTypes, setFileTypes] = useState([]);
     const [otherFileTypes, setOtherFileTypes] = useState([]);
-
 
     const [showAllPeople, setShowAllPeople] = useState(false);
     const [showAllVolumes, setShowAllVolumes] = useState(false);
@@ -78,7 +71,6 @@ const MCFPersonal = ({
 
     useEffect(() => {
       setPersonalAttributes(curPersonalAttributes);
-      console.log("curPersonalAttributes: ", curPersonalAttributes);
     },[curPersonalAttributes])
 
     useEffect(() => {
@@ -95,10 +87,8 @@ const MCFPersonal = ({
 
     useEffect(() => {
       if(MCFPeople?.people) {
-        // setAllPeople(MCFPeople.people);
         if(MCFPeople.people.length > 5) {
           setPeople(MCFPeople.people.slice(0, 5));
-          console.log("people: ", MCFPeople.people.slice(0, 5));
         } else {
           setPeople(MCFPeople.people);
         }
@@ -163,7 +153,6 @@ const MCFPersonal = ({
 
     React.useEffect(() => {
       setAdditionalFileTypes(searchFileTypes(otherFileTypes, fileTypeSearchValue, personalAttributes?.filetype));
-      console.log("hello w: ", personalAttributes);
     },[fileTypeSearchValue, otherFileTypes, personalAttributes])
 
     useEffect(() => {
@@ -244,12 +233,10 @@ const MCFPersonal = ({
     };
 
     const handleFileTypeSearchKeywordChange = (keyword) => {
-      console.log("k: ", keyword);
       setFileTypeSearchValue(keyword);
     } 
 
     const handleTagSearchKeywordChange = (keyword) => {
-      console.log("k: ", keyword);
       setSearchValue(keyword);
     } 
 
