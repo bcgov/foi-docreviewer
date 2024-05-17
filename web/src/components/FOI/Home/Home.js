@@ -9,6 +9,7 @@ import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
   fetchDeletedDocumentPages,
+  fetchPersonalAttributes
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
@@ -26,6 +27,7 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+  const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
@@ -68,7 +70,7 @@ function Home() {
 
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data, documentDivisions) => {
+      async (data, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
@@ -94,8 +96,8 @@ function Home() {
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        let sortedFiles = []
-        sortDocList(_files, null, sortedFiles);
+        // let sortedFiles = []
+        // sortDocList(_files, null, sortedFiles);
         // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
@@ -106,11 +108,13 @@ function Home() {
             totalPageCountVal += filePageCount;
           });
 
-          let doclist = [];
+          let doclist = [];          
+          let requestInfo = _requestInfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              sortDocList(newDocumentObjs, null, doclist);
+              console.log(requestInfo)
+              sortDocList(newDocumentObjs, null, doclist, requestInfo);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
               prepareMapperObj(doclist, deletedDocPages);
@@ -137,6 +141,8 @@ function Home() {
         console.log(error);
       }
     );
+
+
   }, []);
 
   const getCurrentDocument = (doclist) => {    
@@ -167,6 +173,17 @@ function Home() {
       store.dispatch(setCurrentLayer(oipcLayer));
     }
   }, [validoipcreviewlayer, redactionLayers])
+
+  useEffect(() => {
+    if(requestInfo?.bcgovcode && requestInfo.bcgovcode === "MCF"
+          && requestInfo?.requesttype && requestInfo.requesttype === "personal") {
+      fetchPersonalAttributes(
+        requestInfo.bcgovcode, 
+        (error) =>
+          console.log(error)
+      );
+    }
+  }, [requestInfo])
 
   const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };

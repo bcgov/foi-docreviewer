@@ -38,10 +38,14 @@ from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES
 
+import requests
+import logging
+
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
 )
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 s3host = os.getenv("OSS_S3_HOST")
 s3region = os.getenv("OSS_S3_REGION")
@@ -49,6 +53,8 @@ webviewerlicense = os.getenv("PDFTRON_WEBVIEWER_LICENSE")
 
 imageextensions = [".png", ".jpg", ".jpeg", ".gif"]
 
+requestapiurl = os.getenv("FOI_REQ_MANAGEMENT_API_URL")
+requestapitimeout = os.getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
 
 @cors_preflight("GET,OPTIONS")
 @API.route("/foiflow/oss/presigned/<documentid>")
@@ -371,3 +377,40 @@ class WebveiwerLicense(Resource):
             return json.dumps({"license": webviewerlicense}), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/foiflow/personalattributes/<bcgovcode>')
+class GetPersonalTags(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def get(bcgovcode):
+        try:
+            attributes = ["people", "filetypes", "volumes", "personaltag"]
+            personalattributes = {}
+
+            for attribute in attributes:
+                response = requests.request(
+                    method='GET',
+                    url= requestapiurl + "/api/foiflow/divisions/" + bcgovcode + "/true/" + attribute,
+                    headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'},
+                    timeout=float(requestapitimeout)
+                )
+                response.raise_for_status()
+                # get request status
+                jsonobj = response.json()
+                personalattributes.update(jsonobj)
+
+            return json.dumps(personalattributes), 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+        except requests.exceptions.HTTPError as err:
+            logging.error("Request Management API returned the following message: {0} - {1}".format(err.response.status_code, err.response.text))
+            return {'status': False, 'message': err.response.text}, err.response.status_code
