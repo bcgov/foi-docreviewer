@@ -2646,26 +2646,28 @@ const Redlining = React.forwardRef(
         for (let publicBodyId of divisions) {
           let publicBodyDocList = [];
           documentList.forEach((doc) => {
-            let consultPages = new Set();
+            let programareaids = new Set();
             if (doc.consult && doc.consult.length) {
               doc.consult.forEach((consult) => {
                 consult.programareaid.forEach((programareaid) => {
-                  if (programareaid == publicBodyId) {
-                    consultPages.add(consult.page);
+                  if (programareaid === publicBodyId) {
+                    programareaids.add(programareaid);
                   }
                 })
               });
-              doc.pages = Array.from(consultPages);
-              if (doc.pages.length > 0) {
-                publicBodyDocList.push({...doc, pages: doc.pages});
+            }
+            //REFACTOR ? No need for this loop and can do this in above? AH NOTE
+            for (let programareaid of programareaids) {
+              if (programareaid === publicBodyId) {
+                publicBodyDocList.push({...doc})
               }
             }
+            
           })
           publicBodyDocList = sortBySortOrder(publicBodyDocList);
           
           let incompatableList = [];
 
-          //TODO - insert the divisionname here
           const publicBodyInfo = allPublicBodies.find((body) => body.programareaid == publicBodyId)
           newDocList.push({
             divisionid: publicBodyId,
@@ -2700,11 +2702,63 @@ const Redlining = React.forwardRef(
         }
         // sort based on sortorder as the sortorder added based on the LastModified
         prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments));
-      // } else if (modalFor == 'consult') {
-      //   prepareRedlinePageMappingByPublicBody(divisionDocuments);
+      } else if (modalFor == 'consult') {
+        prepareRedlinePageMappingByPublicBody(divisionDocuments);
       } else {
         prepareRedlinePageMappingByDivision(divisionDocuments);
       }
+    }
+    
+    const prepareRedlinePageMappingByPublicBody = (divisionDocuments) => {
+      let removepages = {};
+      let pageMappings = {};
+      let divPageMappings = {};
+      let pagesToRemove = []; 
+      let totalPageCount = 0;
+      let totalPageCountIncludeRemoved = 0;
+      let duplicateWatermarkPages = {};
+      let duplicateWatermarkPagesEachDiv = [];
+      let NRWatermarksPages = {};
+      let NRWatermarksPagesEachDiv = [];
+
+      // LOGIC => add to pages to remove {pageNo: n, stithcedPageNo: x} if page does not have a programareaid or does not have a programareaid matching the divisionid
+
+
+      for (let divObj of divisionDocuments) {
+        console.log("DIV", divObj)
+
+        for (let doc of sortBySortOrder(divObj.documentlist)) {
+          console.log("DOC", doc)
+          if (doc.pagecount > 0) {
+            let pagesToRemoveEachDoc = [];
+            pageMappings[doc.documentid] = {};
+            let pageIndex = 1;
+            //gather pages that need to be removed
+            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+          }
+        }
+
+        divPageMappings[divObj.divisionid] = pageMappings;
+        removepages[divObj.divisionid] = pagesToRemove;
+        duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
+        NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
+        pagesToRemove = [];
+        duplicateWatermarkPagesEachDiv = [];
+        NRWatermarksPagesEachDiv = [];
+        totalPageCount = 0;
+        totalPageCountIncludeRemoved = 0;
+        pageMappings = {}
+      }
+      
+      setRedlinepageMappings({
+        'divpagemappings': divPageMappings,
+        'pagemapping': pageMappings,
+        'pagestoremove': removepages
+      });
+      setRedlineWatermarkPageMapping({
+        'duplicatewatermark': duplicateWatermarkPages,
+        'NRwatermark': NRWatermarksPages
+      });
     }
 
     const prepareRedlinePageMappingByRequest = (divisionDocuments) => {
