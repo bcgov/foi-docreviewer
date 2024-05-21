@@ -273,7 +273,7 @@ const ContextMenu = ({
                   : {}
               }
               onClick={() => {
-                if(selectedPages.length > 1) {
+                if(selectedPages.length <= 1) {
                   editTags()
                 }
               }}
