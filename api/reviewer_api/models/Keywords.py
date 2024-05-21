@@ -3,7 +3,7 @@ from .default_method_result import DefaultMethodResult
 from sqlalchemy import or_
 from datetime import datetime as datetime2
 from sqlalchemy import or_, and_
-
+import logging
 class Keyword(db.Model):
     __tablename__ = 'Keywords' 
     # Defining the columns
@@ -19,10 +19,14 @@ class Keyword(db.Model):
 
     @classmethod
     def getall(cls):
-        keyword_schema = KeywordSchema(many=True)
-        query = db.session.query(Keyword).filter_by(isactive=True).all()
-        return keyword_schema.dump(query)
-    
+        try:
+            keyword_schema = KeywordSchema(many=True)
+            query = db.session.query(Keyword).filter_by(isactive=True).all()
+            return keyword_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 
 class KeywordSchema(ma.Schema):
     class Meta:
