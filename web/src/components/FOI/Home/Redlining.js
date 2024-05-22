@@ -3391,17 +3391,48 @@ const Redlining = React.forwardRef(
                   skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
                 } 
                 if (pageMappedDocs != undefined) {
-                  let divisionsdocpages = Object.values(
-                    pageMappedDocs.redlineDocIdLookup
-                  )
-                    .filter((obj) => {
-                      return obj.division.includes(div.divisionid) && obj.docId == doc.documentid;
-                    })
-                    .map((obj) => {
-                      if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
-                        return obj.pageMappings;
+                  let divisionsdocpages = [];
+                  if (modalFor == "consult") {
+                    Object.values(
+                      pageMappedDocs.redlineDocIdLookup
+                    )
+                    .forEach((obj) => {
+                      let newPageMappings = [];
+                      let belongsToDiv = false;
+                      for (let consult of doc.consult) {
+                        if (consult.programareaid.includes(div.divisionid)) {
+                          belongsToDiv = true;
+                          break;
+                        }
                       }
-                    });
+                      res.divdocumentList.forEach((doclist) => {
+                        doclist.documentlist.forEach((doc) => {
+                          if (obj.docId == doc.documentid) {
+                            obj.pageMappings.forEach((page) => {
+                              if (belongsToDiv && doc.documentid == obj.docId && doc.pages.includes(page.pageNo)) {
+                                newPageMappings.push(page)
+                              }
+                            })
+                          }
+                        })
+                      })
+                      if (belongsToDiv) {
+                        divisionsdocpages.push(newPageMappings);
+                      }
+                    })
+                  } else {
+                    divisionsdocpages = Object.values(
+                      pageMappedDocs.redlineDocIdLookup
+                    )
+                      .filter((obj) => {
+                        return obj.division.includes(div.divisionid) && obj.docId == doc.documentid;
+                      })
+                      .map((obj) => {
+                        if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
+                          return obj.pageMappings;
+                        }
+                      });
+                  }
                   if (divisionsdocpages[0]) {
                     divisionsdocpages.forEach(function (_arr) {
                       _arr.forEach(function (value) {
