@@ -189,7 +189,9 @@ const ContextMenu = ({
 
   const comparePersonalAttributes = (a: any, b: any) => {
     return a?.person === b?.person && a?.volume === b?.volume
-              && a?.filetype === b?.filetype && a?.personaltag === b?.personaltag;
+              && a?.filetype === b?.filetype
+              && a?.personaltag === b?.personaltag
+              && a?.trackingid === b?.trackingid;
   };
 
   const updatePersonalAttributes = (_all = false) => {
@@ -266,11 +268,15 @@ const ContextMenu = ({
             <div
               className="editPersonalTags"
               style={
-                selectedPages.length > 1 
+                selectedPages.length > 1
                   ? { cursor: "not-allowed", color: "#cfcfcf" }
                   : {}
               }
-              onClick={() => editTags()}
+              onClick={() => {
+                if(selectedPages.length <= 1) {
+                  editTags()
+                }
+              }}
             >
               Edit Tags
             </div>

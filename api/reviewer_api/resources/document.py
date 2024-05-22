@@ -70,7 +70,7 @@ class UpdateDocumentAttributes(Resource):
     def post():
         try:
             payload = request.get_json()
-            print("payload: ", payload)
+            # print("payload: ", payload)
             payload = FOIRequestUpdateRecordsSchema().load(payload)
             result = documentservice().updatedocumentattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
@@ -92,7 +92,7 @@ class UpdateDocumentPersonalAttributes(Resource):
     def post():
         try:
             payload = request.get_json()
-            # print("payload: ", payload)
+            # print("payload personal: ", payload)
             payload = FOIRequestUpdateRecordPersonalAttributesSchema().load(payload)
             result = documentservice().updatedocumentpersonalattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
