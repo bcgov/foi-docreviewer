@@ -2703,64 +2703,12 @@ const Redlining = React.forwardRef(
         // sort based on sortorder as the sortorder added based on the LastModified
         prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments));
       } else if (modalFor == 'consult') {
-        prepareRedlinePageMappingByPublicBody(divisionDocuments);
+        prepareRedlinePageMappingByDivision(divisionDocuments);
       } else {
         prepareRedlinePageMappingByDivision(divisionDocuments);
       }
     }
     
-    const prepareRedlinePageMappingByPublicBody = (divisionDocuments) => {
-      let removepages = {};
-      let pageMappings = {};
-      let divPageMappings = {};
-      let pagesToRemove = []; 
-      let totalPageCount = 0;
-      let totalPageCountIncludeRemoved = 0;
-      let duplicateWatermarkPages = {};
-      let duplicateWatermarkPagesEachDiv = [];
-      let NRWatermarksPages = {};
-      let NRWatermarksPagesEachDiv = [];
-
-      // LOGIC => add to pages to remove {pageNo: n, stithcedPageNo: x} if page does not have a programareaid or does not have a programareaid matching the divisionid
-
-
-      for (let divObj of divisionDocuments) {
-        console.log("DIV", divObj)
-
-        for (let doc of sortBySortOrder(divObj.documentlist)) {
-          console.log("DOC", doc)
-          if (doc.pagecount > 0) {
-            let pagesToRemoveEachDoc = [];
-            pageMappings[doc.documentid] = {};
-            let pageIndex = 1;
-            //gather pages that need to be removed
-            doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
-          }
-        }
-
-        divPageMappings[divObj.divisionid] = pageMappings;
-        removepages[divObj.divisionid] = pagesToRemove;
-        duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
-        NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
-        pagesToRemove = [];
-        duplicateWatermarkPagesEachDiv = [];
-        NRWatermarksPagesEachDiv = [];
-        totalPageCount = 0;
-        totalPageCountIncludeRemoved = 0;
-        pageMappings = {}
-      }
-      
-      setRedlinepageMappings({
-        'divpagemappings': divPageMappings,
-        'pagemapping': pageMappings,
-        'pagestoremove': removepages
-      });
-      setRedlineWatermarkPageMapping({
-        'duplicatewatermark': duplicateWatermarkPages,
-        'NRwatermark': NRWatermarksPages
-      });
-    }
-
     const prepareRedlinePageMappingByRequest = (divisionDocuments) => {
       let removepages = {};
       let pageMappings = {};
