@@ -273,7 +273,7 @@ const Redlining = React.forwardRef(
 
     const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
       let isvalid = false;
-      for (let divObj of divisionDocuments) {    
+      for (let divObj of divisionDocuments) { 
         if (divObj.divisionid == divisionid)  {
           // enable the Redline for Sign off if a division has only Incompatable files
           if (divObj?.incompatableList?.length > 0) {
@@ -284,8 +284,26 @@ const Redlining = React.forwardRef(
           else {
             for (let doc of divObj.documentlist) {
               for (const flagInfo of doc.pageFlag) {
+                if (modalFor == "consult") {
+                  for (let consult of doc.consult) {
+                    if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                      if (
+                        (flagInfo.flagid !== pageFlagTypes["Consult"] && 
+                        flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
+                        (
+                          (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
+                          (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
+                        )
+                      ) {
+                        if(isvalid == false) {
+                          isvalid = true; 
+                        } 
+                    }
+                    }
+                  }
+                }
                 // Added condition to handle Duplicate/NR clicked for Redline for Sign off Modal
-                if (
+                else if (
                     (flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
                     (
                       (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
@@ -301,6 +319,7 @@ const Redlining = React.forwardRef(
           }
         }
       }
+      console.log(divisionid, isvalid)
       return isvalid;
     };
 
@@ -2831,7 +2850,7 @@ const Redlining = React.forwardRef(
       let duplicateWatermarkPagesEachDiv = [];
       let NRWatermarksPages = {};
       let NRWatermarksPagesEachDiv = [];
-      for (let divObj of divisionDocuments) {    
+      for (let divObj of divisionDocuments) {  
         divisionCount++;  
         // sort based on sortorder as the sortorder added based on the LastModified
         for (let doc of sortBySortOrder(divObj.documentlist)) {
@@ -2909,8 +2928,10 @@ const Redlining = React.forwardRef(
                   if (!hasConsult) {
                     if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
                       pagesToRemoveEachDoc.push(flagInfo.page);
-                      delete pageMappings[doc.documentid][flagInfo.page];
-                      pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
+                      if(!skipDocumentPages) {
+                        delete pageMappings[doc.documentid][flagInfo.page];
+                        pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
+                      }
                     }
                   }
                 }
@@ -2941,6 +2962,10 @@ const Redlining = React.forwardRef(
         totalPageCountIncludeRemoved = 0;
         pageMappings = {}
       }
+
+      console.log('divpagemappings', divPageMappings)
+      console.log('pagemapping', pageMappings)
+      console.log('pagestoremove', removepages)
 
       setRedlinepageMappings({
         'divpagemappings': divPageMappings,
@@ -3477,7 +3502,7 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage != "Y" &&
               docCount == div.documentlist.length
             ) {
-                            
+            
               let divdocumentids = [];
               // sort based on sortorder as the sortorder added based on the LastModified
               let sorteddocuments =  sortBySortOrder(div.documentlist);
