@@ -2850,7 +2850,7 @@ const Redlining = React.forwardRef(
       let duplicateWatermarkPagesEachDiv = [];
       let NRWatermarksPages = {};
       let NRWatermarksPagesEachDiv = [];
-      for (let divObj of divisionDocuments) {  
+      for (let divObj of divisionDocuments) {
         divisionCount++;  
         // sort based on sortorder as the sortorder added based on the LastModified
         for (let doc of sortBySortOrder(divObj.documentlist)) {
@@ -3115,20 +3115,23 @@ const Redlining = React.forwardRef(
       let annotationManager = docInstance?.Core.annotationManager;
       let annotList = await annotationManager.importAnnotations(xfdfString);
       let sectionStamps = {};
-    let  annotationpagenumbers = annotationpagemapping(formattedAnnotationXML);
-    for (const annot of annotList) {
-      let parentRedaction = annot.getCustomData("parentRedaction");
-      if (parentRedaction) {
-        if (annot.Subject == "Free Text") {
-          let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
-            let sections = getAnnotationSections(annot);
-            if (sections.some(item => item.section === 's. 14')) {
+      let  annotationpagenumbers = annotationpagemapping(formattedAnnotationXML);
+      for (const annot of annotList) {
+        let parentRedaction = annot.getCustomData("parentRedaction");
+        if (parentRedaction) {
+          if (annot.Subject == "Free Text") {
+            let parentRedactionId = parentRedaction.replace(/&quot;/g, '"').replace(/\\/g, "")
+              let sections = getAnnotationSections(annot);
+              if (redlineCategory === "oipcreview" && sections.some(item => item.section === 's. 14')) {
                 sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
-            }
+              }
+              if (modalFor == "consult" && sections.some(item => item.section === 'NR')) {
+                sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
+              }
+          }
         }
       }
-    }
-    return sectionStamps; 
+      return sectionStamps; 
     }
 
     const annotationpagemapping = (formattedAnnotationXML) => {
@@ -3317,6 +3320,9 @@ const Redlining = React.forwardRef(
     };
 
     const getzipredlinecategory = (layertype) => {
+      if (modalFor == "consult") {
+        return "consultpackage";
+      }
       if (currentLayer.name.toLowerCase() === "oipc") {
         return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
       }  
@@ -3502,7 +3508,7 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage != "Y" &&
               docCount == div.documentlist.length
             ) {
-            
+             
               let divdocumentids = [];
               // sort based on sortorder as the sortorder added based on the LastModified
               let sorteddocuments =  sortBySortOrder(div.documentlist);
@@ -3858,6 +3864,38 @@ const Redlining = React.forwardRef(
       }
     };
 
+    const applyRedactionsToRedlinesBySection = async (appliedSectionStamps, PDFNet, stitchObject) => {
+      let annotationManager = docInstance?.Core.annotationManager;
+      const rarr = []; 
+      let rects = [];
+      for (const [key, value] of Object.entries(appliedSectionStamps)) {
+        let sectionAnnotation = annotationManager.getAnnotationById(key);
+        if (sectionAnnotation.Subject === "Redact") { 
+          rects = rects.concat( 
+            sectionAnnotation.getQuads().map((q) => {
+            return {
+              pageno: appliedSectionStamps[key],
+              recto: q.toRect(),
+              vpageno: sectionAnnotation.getPageNumber()
+            };
+          })
+        );
+      }
+      }
+      for (const rect of rects) {
+        let height = docViewer.getPageHeight(rect.vpageno);
+        rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+      }
+      if (rarr.length > 0) {
+        const app = {};
+        app.redaction_overlay = true;
+        app.border = false;
+        app.show_redacted_content_regions = false;
+        const doc = await stitchObject.getPDFDoc();
+        await PDFNet.Redactor.redact(doc, rarr, app);
+      }
+    }
+
     useEffect(() => {
       const StitchAndUploadDocument = async () => {
         const { PDFNet } = docInstance.Core;
@@ -3892,24 +3930,13 @@ const Redlining = React.forwardRef(
               redlinepageMappings["divpagemappings"][divisionid],
               redlineStitchInfo[divisionid]["documentids"]
             );
-            if(redlineCategory !== "oipcreview") { 
-              if (modalFor == "consult") {
-                await stampPageNumberRedline(
-                  stitchObject,
-                  PDFNet,
-                  redlineStitchInfo[divisionid]["stitchpages"],
-                  redlineSinglePackage,
-                  consultStartingPage
-                  );
-                  consultStartingPage += stitchObject.getPageCount();
-              } else {
-                await stampPageNumberRedline(
+            if(redlineCategory !== "oipcreview" || modalFor !== "consult") {
+              await stampPageNumberRedline(
                 stitchObject,
                 PDFNet,
                 redlineStitchInfo[divisionid]["stitchpages"],
                 redlineSinglePackage
-                );
-              }
+              );
             }
             if (
               redlinepageMappings["pagestoremove"][divisionid] &&
@@ -3931,38 +3958,8 @@ const Redlining = React.forwardRef(
 
             //OIPC - Special Block (Redact S.14) : Begin
             if(redlineCategory === "oipcreview") {
-              const rarr = []; 
-              let annotationManager = docInstance?.Core.annotationManager;
               let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              let rects = [];
-              for (const [key, value] of Object.entries(s14_sectionStamps)) {
-                let s14annoation = annotationManager.getAnnotationById(key);
-                    if ( s14annoation.Subject === "Redact") { 
-                            rects = rects.concat( 
-                            s14annoation.getQuads().map((q) => {
-                              return {
-                                  pageno: s14_sectionStamps[key],
-                                  recto: q.toRect(),
-                                  vpageno: s14annoation.getPageNumber()
-                                };
-                              })
-                            );
-                        }
-                  
-                
-              }
-              for (const rect of rects) {
-                let height = docViewer.getPageHeight(rect.vpageno);
-                rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-              }
-              if (rarr.length > 0) {
-                const app = {};
-                app.redaction_overlay = true;
-                app.border = false;
-                app.show_redacted_content_regions = false;
-                const doc = await stitchObject.getPDFDoc();
-                await PDFNet.Redactor.redact(doc, rarr, app);
-              }
+              await applyRedactionsToRedlinesBySection(s14_sectionStamps, PDFNet, stitchObject);
               await stampPageNumberRedline(
                 stitchObject,
                 PDFNet,
@@ -3971,8 +3968,23 @@ const Redlining = React.forwardRef(
               );
             }
             //OIPC - Special Block : End
-          
-            
+
+            //Consults - Redactions Block (Redact S.NR) : Start
+            if(modalFor == "consult") {
+              if (consultApplyRedactions) {
+                let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+                await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
+              }
+              await stampPageNumberRedline(
+                stitchObject,
+                PDFNet,
+                redlineStitchInfo[divisionid]["stitchpages"],
+                redlineSinglePackage,
+                consultStartingPage
+              );
+              consultStartingPage += stitchObject.getPageCount();
+            }
+            //Consults - Redactions Block (Redact S.NR) : End
 
             stitchObject
               .getFileData({
