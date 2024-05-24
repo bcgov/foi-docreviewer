@@ -13,7 +13,6 @@ from html import escape
 import hashlib
 import uuid
 from re import sub
-import fitz
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -50,45 +49,6 @@ def __getcredentialsbybcgovcode(bcgovcode):
 
     return s3cred
 
-def _prepareattachment(producermessage, data, s3uripath, file_name):
-    attachment = {
-        "filename": escape(sub("<[0-9]+>", "", file_name, 1)),
-        "s3uripath": s3uripath,
-        "attributes": deepcopy(producermessage.attributes),
-    }
-    attachment["attributes"]["filesize"] = len(data)
-    attachment["attributes"][
-        "parentpdfmasterid"
-    ] = producermessage.documentmasterid
-    attachment["attributes"].pop("batch")
-    attachment["attributes"].pop("extension")
-    attachment["attributes"].pop("incompatible")
-    return attachment
-
-def _generate_file_attachments(producermessage, reader, auth):
-    file_attachments = []
-    for page in reader.pages:
-        if "/Annots" in page:
-            annotations = page["/Annots"]
-            for annotation in annotations:
-                subtype = annotation.get_object()["/Subtype"]
-                if subtype == "/FileAttachment": 
-                    producermessage.attributes["hasattachment"] = True
-                    fileobj = annotation.get_object()["/FS"]
-                    file = fileobj["/F"]
-                    data = fileobj["/EF"]["/F"].get_data()
-                    # data = BytesIO(data).getvalue()
-                    s3uripath = (
-                        path.splitext(producermessage.s3filepath)[0]
-                        + "/"
-                        + "{0}{1}".format(uuid.uuid4(), path.splitext(file)[1])
-                    )
-                    uploadresponse = requests.put(s3uripath, data=data, auth=auth)
-                    uploadresponse.raise_for_status()
-                    attachment = _prepareattachment(producermessage, data, s3uripath, file)
-                    file_attachments.append(attachment)
-    return file_attachments
-    
 def gets3documenthashcode(producermessage):
     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
     s3_access_key_id = s3credentials.s3accesskey
@@ -135,7 +95,18 @@ def gets3documenthashcode(producermessage):
                 data = b"".join(reader.attachments[name])
                 uploadresponse = requests.put(s3uripath, data=data, auth=auth)
                 uploadresponse.raise_for_status()
-                attachment = _prepareattachment(producermessage, data, s3uripath, name)
+                attachment = {
+                    "filename": escape(sub("<[0-9]+>", "", name, 1)),
+                    "s3uripath": s3uripath,
+                    "attributes": deepcopy(producermessage.attributes),
+                }
+                attachment["attributes"]["filesize"] = len(data)
+                attachment["attributes"][
+                    "parentpdfmasterid"
+                ] = producermessage.documentmasterid
+                attachment["attributes"].pop("batch")
+                attachment["attributes"].pop("extension")
+                attachment["attributes"].pop("incompatible")
                 attachments.append(attachment)
             saveresponse = requests.post(
                 request_management_api
@@ -148,26 +119,6 @@ def gets3documenthashcode(producermessage):
                 },
             )
             saveresponse.raise_for_status()
-
-        # New logic to extract embedded file attachments (classified under annotations in the PDF) from pages in PDF
-        # Before looping of pdf pages started; confirm if annotations exist in the pdf using pyMuPdf library (fitz)
-        fitz_reader = fitz.open(stream=BytesIO(response.content), filetype="pdf")
-        if (fitz_reader.has_annots()):
-            file_attachments = _generate_file_attachments(producermessage, reader, auth)
-            if (len(file_attachments) > 0):
-                saveresponse = requests.post(
-                    request_management_api
-                    + "/api/foirecord/-1/ministryrequest/"
-                    + producermessage.ministryrequestid,
-                    data=json.dumps({"records": file_attachments}),
-                    headers={
-                        "Authorization": producermessage.usertoken,
-                        "Content-Type": "application/json",
-                    }
-                )
-                saveresponse.raise_for_status()
-        fitz_reader.close()
-
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
