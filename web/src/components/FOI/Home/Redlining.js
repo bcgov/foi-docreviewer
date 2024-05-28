@@ -2514,11 +2514,10 @@ const Redlining = React.forwardRef(
       PDFNet,
       divisionsdocpages,
       redlineSinglePackage,
-      startingPagecount = 1
     ) => {
       try {
         for (
-          let pagecount = startingPagecount;
+          let pagecount = 1;
           pagecount <= divisionsdocpages.length;
           pagecount++
         ) {
@@ -2548,13 +2547,7 @@ const Redlining = React.forwardRef(
             await s.setFontColor(redColorPt);
             await s.setTextAlignment(PDFNet.Stamper.TextAlignment.e_align_right);
             await s.setAsBackground(false);
-            let pgSet;
-            // for consult package, factor in the starting pagecount
-            if (modalFor == "consult") {
-              pgSet = await PDFNet.PageSet.createRange(pagecount - startingPagecount + 1, pagecount - startingPagecount + 1);
-            } else {
-              pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
-            }
+            const pgSet = await PDFNet.PageSet.createRange(pagecount, pagecount);
             let pagenumber = redlineSinglePackage == "Y" || redlineCategory === "oipcreview" ? pagecount : divisionsdocpages[pagecount - 1]?.stitchedPageNo
             let totalpagenumber = redlineCategory === "oipcreview" ? _docViwer.getPageCount() : docViewer.getPageCount()
             await s.stampText(
@@ -3423,33 +3416,23 @@ const Redlining = React.forwardRef(
                 } 
                 if (pageMappedDocs != undefined) {
                   let divisionsdocpages = [];
+                  // for consults, no need to filter by division/consult
                   if (modalFor == "consult") {
                     Object.values(
                       pageMappedDocs.redlineDocIdLookup
                     )
                     .forEach((obj) => {
-                      let newPageMappings = [];
-                      let belongsToDiv = false;
-                      for (let consult of doc.consult) {
-                        if (consult.programareaid.includes(div.divisionid)) {
-                          belongsToDiv = true;
-                          break;
-                        }
-                      }
-                      res.divdocumentList.forEach((doclist) => {
-                        doclist.documentlist.forEach((doc) => {
-                          if (obj.docId == doc.documentid) {
-                            obj.pageMappings.forEach((page) => {
-                              if (belongsToDiv && doc.documentid == obj.docId && doc.pages.includes(page.pageNo)) {
-                                newPageMappings.push(page)
-                              }
-                            })
-                          }
+                      divisionsdocpages = Object.values(
+                        pageMappedDocs.redlineDocIdLookup
+                      )
+                        .filter((obj) => {
+                          return obj.docId == doc.documentid;
                         })
-                      })
-                      if (belongsToDiv) {
-                        divisionsdocpages.push(newPageMappings);
-                      }
+                        .map((obj) => {
+                          if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
+                            return obj.pageMappings;
+                          }
+                        });
                     })
                   } else {
                     divisionsdocpages = Object.values(
@@ -3902,7 +3885,6 @@ const Redlining = React.forwardRef(
         const downloadType = "pdf";
         let currentDivisionCount = 0;
         // keep track of the starting page number for consult packages
-        let consultStartingPage = 1;
         const divisionCountForToast = Object.keys(redlineStitchObject).length;
         for (const [key, value] of Object.entries(redlineStitchObject)) {
           currentDivisionCount++;
@@ -3930,7 +3912,7 @@ const Redlining = React.forwardRef(
               redlinepageMappings["divpagemappings"][divisionid],
               redlineStitchInfo[divisionid]["documentids"]
             );
-            if(redlineCategory !== "oipcreview" || modalFor !== "consult") {
+            if(redlineCategory !== "oipcreview" || modalFor == "consult") {
               await stampPageNumberRedline(
                 stitchObject,
                 PDFNet,
@@ -3975,14 +3957,6 @@ const Redlining = React.forwardRef(
                 let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
                 await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
               }
-              await stampPageNumberRedline(
-                stitchObject,
-                PDFNet,
-                redlineStitchInfo[divisionid]["stitchpages"],
-                redlineSinglePackage,
-                consultStartingPage
-              );
-              consultStartingPage += stitchObject.getPageCount();
             }
             //Consults - Redactions Block (Redact S.NR) : End
 
