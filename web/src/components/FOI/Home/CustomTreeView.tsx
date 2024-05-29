@@ -125,6 +125,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
         let selectedOthers = [];
         let selectedNodes = [];
         for (let nodeId of nodeIds) {
+            nodeId = nodeId.replace(/undefined/g, "null");
+            console.log("nodeId:",nodeId)
             let node = JSON.parse(nodeId);
             selectedNodes.push(node);
             if (node.page) {
@@ -212,8 +214,19 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }
 
     const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
-        props.itemId = props.itemId.replaceAll("undefined", "\"\"");
-        let itemid = JSON.parse(props.itemId);
+        
+        // props.itemId = props?.itemId?.replaceAll("undefined", "\"\"");
+        // let itemid = JSON.parse(props?.itemId);
+        const derivedItemId = props.itemId?.replaceAll("undefined", "\"\"") ?? "";
+        // Parse the derived itemId
+        let itemid:any;
+        try {
+          itemid = JSON.parse(derivedItemId);
+        } catch (error) {
+          console.error("Invalid JSON in itemId:", error);
+          itemid = derivedItemId; // Fallback to the derived itemId if JSON parsing fails
+        }
+
         return (
         <StyledTreeItem
           ref={ref}
@@ -242,6 +255,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
             nodeId = e.currentTarget.id;
         }
         nodeId = nodeId.substring(nodeId.indexOf('{'));
+        nodeId = nodeId.replace(/undefined/g, "null");
         
         //mcf personal
         let nodeIdJson = JSON.parse(nodeId);

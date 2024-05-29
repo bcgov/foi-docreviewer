@@ -124,8 +124,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
       if (requestInfo.bcgovcode === "MCF") {
         sortedChildDocList = childDocList.sort(CFDSorting);
       } else {
-        // sortedChildDocList = childDocList.sort(docSorting);
-        sortedChildDocList = childDocList.sort(CFDSorting);
+        sortedChildDocList = childDocList.sort(docSorting);
       }
     }
 
@@ -721,86 +720,139 @@ export const updatePageFlagOnPage = (updatedDocs, pageFlags) => {
 }
 
 
-export const updatePageFlagOnPage1 = (documentpageflags, pageFlags) => {
-  const updatedPageFlags = [...pageFlags];
-  // Create an object to quickly lookup page flags by document id
-  // const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {
-  //   map[pageFlag.documentid] = pageFlag;
-  //   return map;
-  // }, {});
-  const pageFlagsMap = new Map(
-    pageFlags.map((pageFlag) => [pageFlag.documentid, { ...pageFlag }])
-  );
-  for (let documentpageflag of documentpageflags) {
-    let toBeUpdated = pageFlagsMap.get(Number(documentpageflag.documentid));
+// export const updatePageFlagOnPage1 = (documentpageflags, pageFlags) => {
+//   const updatedPageFlags = [...pageFlags];
+//   // Create an object to quickly lookup page flags by document id
+//   // const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {
+//   //   map[pageFlag.documentid] = pageFlag;
+//   //   return map;
+//   // }, {});
+//   const pageFlagsMap = new Map(
+//     pageFlags.map((pageFlag) => [pageFlag.documentid, { ...pageFlag }])
+//   );
+//   for (let documentpageflag of documentpageflags) {
+//     let toBeUpdated = pageFlagsMap.get(Number(documentpageflag.documentid));
 
-    if (toBeUpdated) {
-      for (let pageFlag of documentpageflag.pageflags) {
-        let existingNonConsultPage = toBeUpdated.pageflag.find(
-          (pf) =>
-            pf.page === pageFlag.page && pf.flagid != pageFlagTypes["Consult"]
-        );
-        let existingConsultPage = toBeUpdated.pageflag.find(
-          (pf) =>
-            pf.page === pageFlag.page && pf.flagid == pageFlagTypes["Consult"]
-        );
-        if (pageFlag.flagid != pageFlagTypes["Consult"]) {
-          if (existingNonConsultPage) {
-            if (pageFlag.deleted) {
-              const indexToRemove = toBeUpdated.pageflag.findIndex(
-                (item) =>
-                  item.page === existingNonConsultPage.page &&
-                  item.flagid == existingNonConsultPage.flagid
-              );
-              if (indexToRemove !== -1)
-                toBeUpdated.pageflag.splice(indexToRemove, 1);
-            } else {
-              if (existingNonConsultPage.flagid !== pageFlag.flagid) {
-                existingNonConsultPage.flagid = pageFlag.flagid;
-              } else return [];
-            }
-          } else {
-            toBeUpdated.pageflag.push(pageFlag);
-          }
-        } else {
-          if (existingConsultPage) {
-            if (pageFlag.deleted) {
-              const indexToRemove = toBeUpdated.pageflag.findIndex(
-                (item) =>
-                  item.page === existingConsultPage.page &&
-                  item.flagid == existingConsultPage.flagid
-              );
-              if (indexToRemove !== -1)
-                toBeUpdated.pageflag.splice(indexToRemove, 1);
-            } else {
-              if (
-                pageFlag.other.length > 0 ||
-                pageFlag.programareaid.length > 0
-              ) {
-                existingConsultPage.other = pageFlag.other;
-                existingConsultPage.programareaid = pageFlag.programareaid;
-              } else {
-                const indexToRemove = toBeUpdated.pageflag.findIndex(
-                  (item) =>
-                    item.page === existingConsultPage.page &&
-                    item.flagid == existingConsultPage.flagid
-                );
-                if (indexToRemove !== -1)
-                  toBeUpdated.pageflag.splice(indexToRemove, 1);
-              }
-            }
-          } else {
-            toBeUpdated.pageflag.push(pageFlag);
-          }
+//     if (toBeUpdated) {
+//       for (let pageFlag of documentpageflag.pageflags) {
+//         let existingNonConsultPage = toBeUpdated.pageflag.find(
+//           (pf) =>
+//             pf.page === pageFlag.page && pf.flagid != pageFlagTypes["Consult"]
+//         );
+//         let existingConsultPage = toBeUpdated.pageflag.find(
+//           (pf) =>
+//             pf.page === pageFlag.page && pf.flagid == pageFlagTypes["Consult"]
+//         );
+//         if (pageFlag.flagid != pageFlagTypes["Consult"]) {
+//           if (existingNonConsultPage) {
+//             if (pageFlag.deleted) {
+//               const indexToRemove = toBeUpdated.pageflag.findIndex(
+//                 (item) =>
+//                   item.page === existingNonConsultPage.page &&
+//                   item.flagid == existingNonConsultPage.flagid
+//               );
+//               if (indexToRemove !== -1)
+//                 toBeUpdated.pageflag.splice(indexToRemove, 1);
+//             } else {
+//               if (existingNonConsultPage.flagid !== pageFlag.flagid) {
+//                 existingNonConsultPage.flagid = pageFlag.flagid;
+//               } else return [];
+//             }
+//           } else {
+//             toBeUpdated.pageflag.push(pageFlag);
+//           }
+//         } else {
+//           if (existingConsultPage) {
+//             if (pageFlag.deleted) {
+//               const indexToRemove = toBeUpdated.pageflag.findIndex(
+//                 (item) =>
+//                   item.page === existingConsultPage.page &&
+//                   item.flagid == existingConsultPage.flagid
+//               );
+//               if (indexToRemove !== -1)
+//                 toBeUpdated.pageflag.splice(indexToRemove, 1);
+//             } else {
+//               if (
+//                 pageFlag.other.length > 0 ||
+//                 pageFlag.programareaid.length > 0
+//               ) {
+//                 existingConsultPage.other = pageFlag.other;
+//                 existingConsultPage.programareaid = pageFlag.programareaid;
+//               } else {
+//                 const indexToRemove = toBeUpdated.pageflag.findIndex(
+//                   (item) =>
+//                     item.page === existingConsultPage.page &&
+//                     item.flagid == existingConsultPage.flagid
+//                 );
+//                 if (indexToRemove !== -1)
+//                   toBeUpdated.pageflag.splice(indexToRemove, 1);
+//               }
+//             }
+//           } else {
+//             toBeUpdated.pageflag.push(pageFlag);
+//           }
+//         }
+//       }
+//     } else {
+//       updatedPageFlags.push({
+//         documentid: documentpageflag.documentid,
+//         documentversion: documentpageflag.version,
+//         pageflag: documentpageflag.pageflags,
+//       });
+//     }
+//   }
+//   return updatedPageFlags;
+// };
+
+
+export const skipDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Duplicate"],
+              pageFlagTypes["Not Responsive"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
         }
-      }
-    } else {
-      updatedPageFlags.push({
-        documentid: documentpageflag.documentid,
-        documentversion: documentpageflag.version,
-        pageflag: documentpageflag.pageflags,
-      });
-    }
+
   }
-  return updatedPageFlags;
-};
+  return skipdocument;
+}
+
+export const skipDuplicateDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Duplicate"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
+        }
+
+  }
+  return skipdocument;
+}
+
+export const skipNRDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Not Responsive"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
+        }
+
+  }
+  return skipdocument;
+}

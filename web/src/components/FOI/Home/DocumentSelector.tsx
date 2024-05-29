@@ -647,7 +647,7 @@ const DocumentSelector = React.memo(
             if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
                 var index = 0;
                 let tree: any = []
-                for (let file of filesForDisplay) {
+                for (let file of filesForDisplay as any[]) {
                     var label = file.attributes.personalattributes.person + ' - ' + 
                         file.attributes.personalattributes.filetype;
                     if (file.attributes.personalattributes.trackingid) {
@@ -671,53 +671,36 @@ const DocumentSelector = React.memo(
                     })
                 }
                 return tree;
-            } else if (organizeBy === "lastmodified") {
-            return filesForDisplay.map((file: any, index: number) => {
-              return {
-                id: `{"docid": ${file.documentid}}`,
-                label: file.filename,
-                children: getFilePages(file), //file.pages.map(
-                // (p: any) => {
-                //     return {
-                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                //          label: getPageLabel(file, p)
-                //     }
-                // }
-                // )
-              };
-            });
-          } else {
-            // const divisionIdsSet = new Set(filesForDisplay.flatMap((file: any) => file.divisions.map((d: any) => d.divisionid)));
-            // /** Filter divisions based on whether they have associated files*/
-            // const filteredDivisions = divisions.filter((division: any) => divisionIdsSet.has(division.divisionid));
-            if (filesForDisplay.length > 0) {
-              return divisions.map((division: any) => {
-                return {
-                  id: `{"division": ${division.divisionid}}`,
-                  label: division.name,
-                  children: filesForDisplay
-                    .filter((file: any) =>
-                      file.divisions
-                        .map((d: any) => d.divisionid)
-                        .includes(division.divisionid)
-                    )
-                    .map((file: any, index: number) => {
-                      return {
-                        id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
-                        label: file.filename,
-                        children: getFilePages(file, division)
-                      };
-                    }),
-                };
-              });
-            } else {
-              return [];
+            } else if (organizeBy === "lastmodified" ) {
+                return filesForDisplay.map((file: any, index: number) => {return {
+                    id: `{"docid": ${file.documentid}}`,
+                    label: file.filename,
+                    children: getFilePages(file) //file.pages.map(
+                        // (p: any) => {
+                        //     return {
+                        //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
+                        //          label: getPageLabel(file, p)
+                        //     }
+                        // }
+                    // )
+                }})
+            } else if (organizeBy === "division" ) {
+                return divisions.map((division: any) => {
+                    return {
+                        id: `{"division": ${division.divisionid}}`,
+                        label: division.name,
+                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                            label: file.filename,
+                            children: getFilePages(file, division)
+                        }})
+                    }
+                })
             }
-          }
         } else {
-          return [];
+            return []
         }
-      };
+    }
 
       return (
         <div className="leftPanel">
