@@ -46,13 +46,17 @@ const ContextMenu = ({
     personaltag: "TBD"
   });
   const [newPersonalAttributes, setNewPersonalAttributes] = useState<any>();
+  const [disablePageFlags, setDisablePageFlags] = useState(false);
 
   useEffect(() => {
     if(currentEditRecord?.attributes?.personalattributes)
       setCurPersonalAttributes(currentEditRecord.attributes.personalattributes);
   },[currentEditRecord])
 
-
+  useEffect(() => {
+    setDisablePageFlags(Object.keys(activeNode).length == 1);
+  },[activeNode])
+  
   const [openModal, setOpenModal] = useState(false);
   const [flagId, setFlagId] = React.useState(0);
   const currentLayer = useAppSelector(
@@ -123,7 +127,7 @@ const ContextMenu = ({
         <div
           className="pageLeftOff"
           style={
-            selectedPages.length !== 1
+            selectedPages.length !== 1 || disablePageFlags
               ? { cursor: "not-allowed", color: "#cfcfcf" }
               : {}
           }
@@ -147,7 +151,7 @@ const ContextMenu = ({
       ) : (
         <>
           <MenuList key={pageFlag?.pageflagid}>
-            <MenuItem>
+            <MenuItem disabled={disablePageFlags}>
               {pageFlag?.name == "Consult" ? (
                 <>
                   <div onClick={() => openConsultModal(pageFlag.pageflagid)}>
@@ -185,7 +189,9 @@ const ContextMenu = ({
 
   const comparePersonalAttributes = (a: any, b: any) => {
     return a?.person === b?.person && a?.volume === b?.volume
-              && a?.filetype === b?.filetype && a?.personaltag === b?.personaltag;
+              && a?.filetype === b?.filetype
+              && a?.personaltag === b?.personaltag
+              && a?.trackingid === b?.trackingid;
   };
 
   const updatePersonalAttributes = (_all = false) => {
@@ -255,30 +261,30 @@ const ContextMenu = ({
         }}
         onClose={() => setOpenContextPopup(false)}
       >
-        {Object.keys(activeNode).length == 1 ? (
-          <div className="pageFlagModal">
-            <div className="heading">
-              <div>Export</div>
-              <hr className="hrStyle" />
-              <div onClick={() => editTags()}>
-                Edit Tags
-              </div>
+        <div className="pageFlagModal">
+          <div className="heading">
+            <div>Export</div>
+            <hr className="hrStyle" />
+            <div
+              className="editPersonalTags"
+              style={
+                selectedPages.length > 1
+                  ? { cursor: "not-allowed", color: "#cfcfcf" }
+                  : {}
+              }
+              onClick={() => {
+                if(selectedPages.length <= 1) {
+                  editTags()
+                }
+              }}
+            >
+              Edit Tags
             </div>
+            <hr className="hrStyle" />
+            <div>Page Flags</div>
           </div>
-        ) : (
-          <div className="pageFlagModal">
-            <div className="heading">
-              <div>Export</div>
-              <hr className="hrStyle" />
-              <div onClick={() => editTags()}>
-                Edit Tags
-              </div>
-              <hr className="hrStyle" />
-              <div>Page Flags</div>
-            </div>
-            {showPageFlagList()}
-          </div>
-        )}
+          {showPageFlagList()}
+        </div>
       </Popover>
 
       {openModal && (

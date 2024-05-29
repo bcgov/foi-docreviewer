@@ -282,8 +282,40 @@
         gap: 2px !important;
     }
 }
+
+.pluscircle {
+  margin: 0px 8px 8px 0px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+}
 .taglist-cfdpersonal {
   margin: 10px 9% 15px 9%;
+}
+.taglist {
+  margin: 15px 9% 25px 9%;
+}
+.tagtitle {
+  margin-left: 9%;
+  margin-top: 5px;
+}
+.tag-message-container {
+  margin: 5px 0px 0px 9%;
+  display: block;
+  p {
+    line-height: 1rem;
+    font-size: 12px;
+  }
+}
+.tag-message-container-scanning {
+  margin: 5px 0px 20px 9%;
+  display: block;
+  p {
+    line-height: 1rem;
+    font-size: 12px;
+  }
+  padding-right: 10px;
 }
 .search-grid-container {
   display: inline-block !important;
@@ -295,4 +327,7 @@
 }
 .search-icon {
   color: #38598A;
+}
+.editPersonalTags {
+    cursor: pointer;
 }

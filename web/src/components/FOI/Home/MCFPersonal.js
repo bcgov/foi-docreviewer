@@ -2,22 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 // import "../FileUpload/FileUpload.scss";
 import Chip from "@mui/material/Chip";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import CloseIcon from "@material-ui/icons/Close";
-import Grid from "@material-ui/core/Grid";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import CloseIcon from "@mui/icons-material/Close";
+import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
-import SearchIcon from "@material-ui/icons/Search";
+import SearchIcon from "@mui/icons-material/Search";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputBase from "@mui/material/InputBase";
-import IconButton from "@material-ui/core/IconButton";
-import TextField from '@material-ui/core/TextField';
+import IconButton from "@mui/material/IconButton";
+import TextField from '@mui/material/TextField';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import _ from 'lodash';
 import { MCFPopularSections } from "../../../constants/enum";
+// import "./DocumentSelector.scss";
+// import "./FileUpload.scss";
 
 const MCFPersonal = ({
     editTagModalOpen,
@@ -30,10 +32,13 @@ const MCFPersonal = ({
     setCurPersonalAttributes,
     setCurrentEditRecord
 }) => {
-    const [personalAttributes, setPersonalAttributes] = useState();
-    useEffect(() => {
-      setPersonalAttributes(curPersonalAttributes);
-    },[curPersonalAttributes])
+    const [personalAttributes, setPersonalAttributes] = useState({
+      person: "",
+      filetype: "",
+      volume: "",
+      trackingid: "",
+      personaltag: "TBD"
+    });
 
     const [searchValue, setSearchValue] = useState("");
     const [showAdditionalTags, setShowAdditionalTags] = useState(false);
@@ -53,25 +58,20 @@ const MCFPersonal = ({
       (state) => state.documents.foiPersonalVolumes
     );
 
-    console.log("MCFPeople: ", MCFPeople);
-    console.log("MCFFiletypes: ", MCFFiletypes);
-    console.log("MCFVolumes: ", MCFVolumes);
-
-    const [allPeople, setAllPeople] = useState([]);
     const [people, setPeople] = useState([]);
-
-    const [allVolumes, setAllVolumes] = useState([]);
     const [volumes, setVolumes] = useState([]);
-
     const [fileTypes, setFileTypes] = useState([]);
     const [otherFileTypes, setOtherFileTypes] = useState([]);
-
 
     const [showAllPeople, setShowAllPeople] = useState(false);
     const [showAllVolumes, setShowAllVolumes] = useState(false);
     const [fileTypeSearchValue, setFileTypeSearchValue] = useState("");
     const [additionalFileTypes, setAdditionalFileTypes] = useState([]);
     const [showAdditionalFileTypes, setShowAdditionalFileTypes] = useState(false);
+
+    useEffect(() => {
+      setPersonalAttributes(curPersonalAttributes);
+    },[curPersonalAttributes])
 
     useEffect(() => {
       if(MCFSections?.sections) {
@@ -87,7 +87,6 @@ const MCFPersonal = ({
 
     useEffect(() => {
       if(MCFPeople?.people) {
-        setAllPeople(MCFPeople.people);
         if(MCFPeople.people.length > 5) {
           setPeople(MCFPeople.people.slice(0, 5));
         } else {
@@ -98,7 +97,6 @@ const MCFPersonal = ({
 
     useEffect(() => {
       if(MCFVolumes?.volumes) {
-        setAllVolumes(MCFVolumes.volumes);
         if(MCFFiletypes.filetypes.length > 5) {
           setVolumes(MCFVolumes.volumes.slice(0, 5));
         } else {
@@ -142,14 +140,14 @@ const MCFPersonal = ({
 
     React.useEffect(() => {
       if(showAllPeople) {
-        setPeople(allPeople)
+        setPeople(MCFPeople.people)
       } else {
-        setPeople(allPeople.slice(0, 5))
+        setPeople(MCFPeople.people.slice(0, 5))
       }
       if(showAllVolumes) {
-        setVolumes(allVolumes)
+        setVolumes(MCFVolumes.volumes)
       } else {
-        setVolumes(allVolumes.slice(0, 5))
+        setVolumes(MCFVolumes.volumes.slice(0, 5))
       }
     },[showAllPeople, showAllVolumes])
 
@@ -233,6 +231,14 @@ const MCFPersonal = ({
       setNewPersonalAttributes();
       setEditTagModalOpen(false);
     };
+
+    const handleFileTypeSearchKeywordChange = (keyword) => {
+      setFileTypeSearchValue(keyword);
+    } 
+
+    const handleTagSearchKeywordChange = (keyword) => {
+      setSearchValue(keyword);
+    } 
 
     return (
 
@@ -385,7 +391,7 @@ const MCFPersonal = ({
                         id="foirecordsfilter"
                         placeholder="Search any additional filetypes here"
                         defaultValue={""}
-                        onChange={(e)=>{setFileTypeSearchValue(e.target.value.trim())}}
+                        onChange={(e)=>{handleFileTypeSearchKeywordChange(e.target.value.trim())}}
                         sx={{
                           color: "#38598A",
                         }}
@@ -515,7 +521,7 @@ const MCFPersonal = ({
                         id="foirecordsfilter"
                         placeholder="Search any additional sections here"
                         defaultValue={""}
-                        onChange={(e)=>{setSearchValue(e.target.value.trim())}}
+                        onChange={(e)=>{handleTagSearchKeywordChange(e.target.value.trim())}}
                         sx={{
                           color: "#38598A",
                         }}
