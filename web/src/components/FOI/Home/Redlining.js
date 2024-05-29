@@ -475,6 +475,8 @@ const Redlining = React.forwardRef(
               // Save to s3
               setModalFor("consult");
               setModalTitle("Consult Public Body");
+              setIncludeDuplicatePages(true);
+              setIncludeNRPages(true);
               setModalMessage([
                 "Are you sure want to create a consult? A PDF will be created for each public body selected and your web browser page will automatically refresh",
                 <br key="lineBreak1" />,
@@ -2980,7 +2982,6 @@ const Redlining = React.forwardRef(
 
             // for consults, go through all pages
             for (const page of doc.pages) {
-              console.log('page: ', page)
               //find pageflags for this page
               const pageFlagsOnPage = doc.pageFlag.filter((pageFlag) => {
                 return pageFlag.page === page;
@@ -2991,7 +2992,6 @@ const Redlining = React.forwardRef(
 
               // if the page has no pageflags, remove it
               if (pageFlagsOnPage.length == 0) {
-                console.log('>>>NO FLAGS')
                 pagesToRemoveEachDoc.push(page);
                 if (!skipDocumentPages) {
                   pagesToRemove.push(
@@ -3004,7 +3004,6 @@ const Redlining = React.forwardRef(
               //differences in pagemapping for consults begin here
               //for pages with only consult flags, remove if page doesn't belong to current consult body
               if (pageFlagsOnPage.length > 0 && notConsultPageFlagsOnPage.length == 0) {
-                console.log('>>>CONSULT ONLY')
                 for (let flagInfo of pageFlagsOnPage) {
                   let hasConsult = false;
                     for (let consult of doc.consult) {
@@ -3028,7 +3027,6 @@ const Redlining = React.forwardRef(
 
               // if the page does have pageflags, process it
               for (let flagInfo of notConsultPageFlagsOnPage) {
-                console.log('>>>REGULAR FLAG')
                 if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
                   if(includeDuplicatePages) {
                     duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
@@ -3062,6 +3060,13 @@ const Redlining = React.forwardRef(
                       );
                     }
                   }
+                } else if (flagInfo.flagid == pageFlagTypes["In Progress"]) {
+                  NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex +
+                    totalPageCount -
+                    pagesToRemoveEachDoc.length;
                 } else {
                   if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                     pageMappings[doc.documentid][flagInfo.page] =
@@ -3072,27 +3077,25 @@ const Redlining = React.forwardRef(
                 }
 
                 // Check if the page has relevant consult flag, if not remove the page
-                if (modalFor == "consult") {
-                  let hasConsult = false;
-                  for (let consult of doc.consult) {
-                    if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
-                      hasConsult = true;
-                      break;
-                    }
+                let hasConsult = false;
+                for (let consult of doc.consult) {
+                  if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                    hasConsult = true;
+                    break;
                   }
-                  if (!hasConsult) {
-                    if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
-                      pagesToRemoveEachDoc.push(flagInfo.page);
-                      if(!skipDocumentPages) {
-                        delete pageMappings[doc.documentid][flagInfo.page];
-                        pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
-                      }
+                }
+                if (!hasConsult) {
+                  if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
+                    pagesToRemoveEachDoc.push(flagInfo.page);
+                    if(!skipDocumentPages) {
+                      delete pageMappings[doc.documentid][flagInfo.page];
+                      pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
                     }
                   }
                 }
-                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                  pageIndex ++;
-                }
+              }
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                pageIndex ++;
               }
             }
             //End of pageMappingsByConsults
