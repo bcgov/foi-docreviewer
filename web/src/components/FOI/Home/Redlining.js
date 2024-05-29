@@ -1380,7 +1380,7 @@ const Redlining = React.forwardRef(
           let originalPageNo = customData.originalPageNo;
           let mappedDoc = pageMappedDocs?.docIdLookup[entry];
           annot.attributes.page = (
-            mappedDoc.pageMappings.find(
+            mappedDoc?.pageMappings.find(
               (p) => p.pageNo - 1 === Number(originalPageNo)
             )?.stitchedPageNo - 1
           )?.toString();
