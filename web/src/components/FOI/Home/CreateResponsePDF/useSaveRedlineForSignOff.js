@@ -7,6 +7,9 @@ import {
   sortBySortOrder,
   addWatermarkToRedline,
   sortDocObjectsForRedline,
+  skipDocument,
+  skipDuplicateDocument,
+  skipNRDocument
 } from "../utils";
 import {
   getFOIS3DocumentRedlinePreSignedUrl,
@@ -64,6 +67,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [redlineCategory, setRedlineCategory] = useState(false);
   const [filteredComments, setFilteredComments] = useState({});
   const [alreadyStitchedList, setAlreadyStitchedList] = useState([]);
+  const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
+
 
   const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
     console.log("isValidRedlineDivisionDownload");
@@ -1152,7 +1157,12 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   //   );
   // };
   
-  const saveRedlineDocument = async (_instance, layertype) => {
+  const saveRedlineDocument = async (_instance, layertype, 
+    incompatibleFiles,
+    documentList,
+    pageMappedDocs,
+    requestid) => {
+    
     toastId.current = toast(`Start saving redline...`, {
       autoClose: false,
       closeButton: false,
@@ -1285,7 +1295,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         
         setRedlineStitchInfo(stitchDoc);
-        setIssingleredlinepackage(res.issingleredlinepackage);
+        setIsSingleRedlinePackage(res.issingleredlinepackage);
         setRedlineZipperMessage({
           ministryrequestid: requestid,
           category: getzipredlinecategory(layertype),
