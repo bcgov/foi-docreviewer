@@ -1295,8 +1295,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           summarydocuments: prepareredlinesummarylist(stitchDocuments),
           redactionlayerid: currentLayer.redactionlayerid
         });
-
-        if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+        if (res.issingleredlinepackage === "Y") {
           stitchSingleDivisionRedlineExport(
             _instance,
             divisionDocuments,
