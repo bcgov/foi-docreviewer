@@ -25,17 +25,19 @@ class redactionsummaryservice():
             pageflags = self.__get_pageflags(category)
             programareas = documentpageflag().get_all_programareas()
             messageattributes= json.loads(message.attributes)
-            print("\nmessageattributes:",messageattributes)
+            #print("\nmessageattributes:",messageattributes)
             divisiondocuments = get_in_summary_object(summarymsg).pkgdocuments
+            #print("\n divisiondocuments:",divisiondocuments)
             for entry in divisiondocuments:
-                if 'documentids' in entry and len(entry['documentids']) > 0:
+                #print("\n entry:",entry)
+                if 'documentids' in entry and len(entry['documentids']) > 0 :
+                    # print("\n entry['divisionid']:",entry['divisionid'])
                     divisionid = entry['divisionid']
                     documentids = entry['documentids']
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas, messageattributes)
-                    print("formattedsummary", formattedsummary)
+                    #print("formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
-                    #messageattributes= json.loads(message.attributes)
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
@@ -46,10 +48,16 @@ class redactionsummaryservice():
                         divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'CFD_responsepackage') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
-                    stitcheddocfilename = filesobj['filename']                    
-                    s3uricategoryfolder= "oipcreview" if category == 'oipcreviewredline' else category
+                    stitcheddocfilename = filesobj['filename'] 
+                    if category == 'oipcreviewredline':
+                        s3uricategoryfolder = "oipcreview"
+                    elif category == 'CFD_responsepackage':
+                        s3uricategoryfolder = 'responsepackage'
+                    else:
+                        s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
+                    print("\n filename:",filename)
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
@@ -59,6 +67,7 @@ class redactionsummaryservice():
                         summaryuploaderror= True
                         summaryuploaderrormsg = uploadobj.uploadresponse.text
                     pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
+                    print("\ns3uripath:",uploadobj["documentpath"])
                     summaryfilestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
             return summaryfilestozip
         except (Exception) as error:
@@ -68,7 +77,7 @@ class redactionsummaryservice():
         
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
-        if category == 'responsepackage':
+        if category == 'responsepackage' or category == 'CFD_responsepackage':
             _filename = requestnumber
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'

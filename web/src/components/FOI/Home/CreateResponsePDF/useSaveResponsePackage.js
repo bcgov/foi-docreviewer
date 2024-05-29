@@ -129,57 +129,82 @@ const useSaveResponsePackage = () => {
   // };
 
   const prepareresponseredlinesummarylist = (documentlist, bcgovcode) => {
-    let summarylist = []
-    let summary_division = {};
-    let summary_divdocuments = [];
+    let summarylist = [];
     let alldocuments = [];
-    console.log("\ndocumentlist:",documentlist)
-    let sorteddocids = []
-    if(bcgovcode == 'CFD'){
+    console.log("\ndocumentlist:", documentlist);
+    let sorteddocids = [];
+    if (bcgovcode === 'MCF') {
+      let labelGroups = {};
+      let alldocids = [];
+  
       for (let file of documentlist) {
-        var label = file.attributes.personalattributes.person + ' - ' + 
-            file.attributes.personalattributes.filetype + ' - ' + 
-            file.attributes.personalattributes.trackingid;
-        if (file.attributes.personalattributes.volume) {
-            label += (' - ' + file.attributes.personalattributes.volume)
+        var label = file.attributes.personalattributes.person == 'APPLICANT' ? 
+                    (file.attributes.personalattributes.person + ' - ' +
+                    file.attributes.personalattributes.filetype + ' - ' +
+                    file.attributes.personalattributes.trackingid)
+                    :
+                    (file.attributes.personalattributes.filetype + ' - ' +
+                    file.attributes.personalattributes.trackingid)
+        if (file.attributes.personalattributes.person != 'APPLICANT' && file.attributes.personalattributes.volume) {
+          label += (' - ' + file.attributes.personalattributes.volume);
         }
-        summary_division["divisionid"]= 0;
-        summary_division["recordname"]= label;
-        summary_divdocuments.push(file.documentid);
+  
+        if (!labelGroups[label]) {
+          labelGroups[label] = [];
+        }
+        labelGroups[label].push(file.documentid);
+        alldocids.push(file.documentid);
         alldocuments.push(file);
       }
-      summary_division["documentids"] = summary_divdocuments;
-      summarylist.push(summary_division);   
-      
-      // sort based on sortorder as the sortorder added based on the LastModified 
-      let sorteddocs = sortBySortOrder(alldocuments) 
+  
+      let divisionRecords = [];
+      for (let label in labelGroups) {
+        let record = {
+          "recordname": label,
+          "documentids": labelGroups[label]
+        };
+        divisionRecords.push(record);
+      }
+  
+      let summary_division = {
+        "divisionid": 0,
+        "documentids":alldocids,
+        "records": divisionRecords
+      };
+  
+      summarylist.push(summary_division);
+  
+      // Sort based on sortorder as the sortorder added based on the LastModified
+      let sorteddocs = sortBySortOrder(alldocuments);
       for (const sorteddoc of sorteddocs) {
         if (!sorteddocids.includes(sorteddoc['documentid'])) {
           sorteddocids.push(sorteddoc['documentid']);
         }
       }
-    }
-    else{
-      summary_division["divisionid"] = '0';
+    } else {
+      let summary_division = {
+        "divisionid": '0',
+        "documentids": []
+      };
+  
       for (let doc of documentlist) {
-          summary_divdocuments.push(doc.documentid);
-          alldocuments.push(doc);
+        summary_division.documentids.push(doc.documentid);
+        alldocuments.push(doc);
       }
-      summary_division["documentids"] = summary_divdocuments;
-      summarylist.push(summary_division);   
-      
-      //let sorteddocids = []
-      // sort based on sortorder as the sortorder added based on the LastModified 
-      let sorteddocs = sortBySortOrder(alldocuments) 
+      summarylist.push(summary_division);
+  
+      // Sort based on sortorder as the sortorder added based on the LastModified
+      let sorteddocs = sortBySortOrder(alldocuments);
       for (const sorteddoc of sorteddocs) {
         if (!sorteddocids.includes(sorteddoc['documentid'])) {
           sorteddocids.push(sorteddoc['documentid']);
         }
       }
     }
-    
-    return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
-  }
+  
+    return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist};
+  };
+  
 
   const saveResponsePackage = async (
     documentViewer,
@@ -206,8 +231,8 @@ const useSaveResponsePackage = () => {
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
-        zipServiceMessage.bcgovcode = 'CFD'; //res.bcgovcode;
-        if(zipServiceMessage.bcgovcode == 'CFD')
+        zipServiceMessage.bcgovcode = 'MCF'; //res.bcgovcode;
+        if(zipServiceMessage.bcgovcode == 'MCF')
           zipServiceMessage.category= "CFD_responsepackage"
           zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
         let annotList = annotationManager.getAnnotationsList();
