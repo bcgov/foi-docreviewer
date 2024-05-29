@@ -124,8 +124,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
       if (requestInfo.bcgovcode === "MCF") {
         sortedChildDocList = childDocList.sort(CFDSorting);
       } else {
-        // sortedChildDocList = childDocList.sort(docSorting);
-        sortedChildDocList = childDocList.sort(CFDSorting);
+        sortedChildDocList = childDocList.sort(docSorting);
       }
     }
 
