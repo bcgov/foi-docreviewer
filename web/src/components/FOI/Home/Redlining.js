@@ -289,7 +289,7 @@ const Redlining = React.forwardRef(
                     if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
                       if (
                         (flagInfo.flagid !== pageFlagTypes["Consult"] && 
-                        flagInfo.flagid != pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
+                        flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid !== pageFlagTypes["Not Responsive"]) ||
                         (
                           (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
                           (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
@@ -1611,9 +1611,6 @@ const Redlining = React.forwardRef(
       }
     };
 
-    // console.log("selectedpubbody", selectedPublicBodyIDs)
-    // console.log("docpubbody", documentPublicBodies)
-
     useEffect(() => {
       if (documentList.length > 0 && pageFlags?.length > 0) {
         checkSavingRedlineButton(docInstance);
@@ -2662,6 +2659,7 @@ const Redlining = React.forwardRef(
           });
         }
       } else if (modalFor == "consult") {
+        // map documents to publicBodies (Divisions) for consults
         for (let publicBodyId of divisions) {
           let publicBodyDocList = [];
           documentList.forEach((doc) => {
@@ -2675,19 +2673,17 @@ const Redlining = React.forwardRef(
                 })
               });
             }
-            //REFACTOR ? No need for this loop and can do this in above? AH NOTE
             for (let programareaid of programareaids) {
               if (programareaid === publicBodyId) {
                 publicBodyDocList.push({...doc})
               }
             }
-            
           })
           publicBodyDocList = sortBySortOrder(publicBodyDocList);
           
           let incompatableList = [];
 
-          const publicBodyInfo = allPublicBodies.find((body) => body.programareaid == publicBodyId)
+          const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId)
           newDocList.push({
             divisionid: publicBodyId,
             divisionname: publicBodyInfo.name,
@@ -2909,25 +2905,7 @@ const Redlining = React.forwardRef(
                       pagesToRemoveEachDoc.length;
                   }
                 }
-                // Check if the page has consult flag, if not remove the page
-                if (modalFor == "consult") {
-                  let hasConsult = false;
-                  for (let consult of doc.consult) {
-                    if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
-                      hasConsult = true;
-                      break;
-                    }
-                  }
-                  if (!hasConsult) {
-                    if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
-                      pagesToRemoveEachDoc.push(flagInfo.page);
-                      if(!skipDocumentPages) {
-                        delete pageMappings[doc.documentid][flagInfo.page];
-                        pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
-                      }
-                    }
-                  }
-                }
+
                 if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                   pageIndex ++;
                 }
@@ -2956,10 +2934,6 @@ const Redlining = React.forwardRef(
         pageMappings = {}
       }
 
-      console.log('divpagemappings', divPageMappings)
-      console.log('pagemapping', pageMappings)
-      console.log('pagestoremove', removepages)
-
       setRedlinepageMappings({
         'divpagemappings': divPageMappings,
         'pagemapping': pageMappings,
@@ -2978,13 +2952,11 @@ const Redlining = React.forwardRef(
       let pagesToRemove = [];
       let totalPageCount = 0;
       let totalPageCountIncludeRemoved = 0;
-      let divisionCount = 0;
       let duplicateWatermarkPages = {};
       let duplicateWatermarkPagesEachDiv = [];
       let NRWatermarksPages = {};
       let NRWatermarksPagesEachDiv = [];
       for (let divObj of divisionDocuments) {
-        divisionCount++;
         // sort based on sortorder as the sortorder added based on the LastModified
         for (let doc of sortBySortOrder(divObj.documentlist)) {
           if (doc.pagecount > 0) {
@@ -3021,7 +2993,7 @@ const Redlining = React.forwardRef(
               if (pageFlagsOnPage.length == 0) {
                 console.log('>>>NO FLAGS')
                 pagesToRemoveEachDoc.push(page);
-                if (!skipDocumentPages && !skipOnlyDuplicateDocument) {
+                if (!skipDocumentPages) {
                   pagesToRemove.push(
                     pageIndex + totalPageCountIncludeRemoved
                   );
@@ -3548,6 +3520,7 @@ const Redlining = React.forwardRef(
       const divisionFilesList = [...documentList, ...incompatibleFiles];
       let divisions;
       if (modalFor == "consult") {
+        //Key consult logic, uses preexisting division reldine logic for consults
         divisions = selectedPublicBodyIDs;
       } else {
         divisions = getDivisionsForSaveRedline(divisionFilesList);
@@ -3676,7 +3649,7 @@ const Redlining = React.forwardRef(
               res.issingleredlinepackage != "Y" &&
               docCount == div.documentlist.length
             ) {
-             
+
               let divdocumentids = [];
               // sort based on sortorder as the sortorder added based on the LastModified
               let sorteddocuments =  sortBySortOrder(div.documentlist);
