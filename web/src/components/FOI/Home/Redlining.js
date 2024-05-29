@@ -3093,9 +3093,9 @@ const Redlining = React.forwardRef(
                     }
                   }
                 }
-              }
-              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
-                pageIndex ++;
+                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                  pageIndex ++;
+                }
               }
             }
             //End of pageMappingsByConsults
