@@ -327,10 +327,6 @@ const useSaveResponsePackage = () => {
                   draggable: true,
                   closeButton: true,
                 });
-                res= {
-                  "s3path_save":"",
-                  "attributes": {}
-                }
                 prepareMessageForResponseZipping(
                   res.s3path_save,
                   zipServiceMessage,
