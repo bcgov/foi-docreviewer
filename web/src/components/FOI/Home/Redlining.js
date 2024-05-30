@@ -73,7 +73,6 @@ import {
   getJoinedSections,
   isObjectNotEmpty,
   getValidObject,
-  constructPageFlags,
   skipDocument,
   skipDuplicateDocument,
   skipNRDocument,
