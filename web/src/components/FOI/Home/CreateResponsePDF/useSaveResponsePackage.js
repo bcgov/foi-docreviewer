@@ -133,7 +133,7 @@ const useSaveResponsePackage = () => {
     let alldocuments = [];
     console.log("\ndocumentlist:", documentlist);
     let sorteddocids = [];
-    if (bcgovcode === 'MCF') {
+    if (bcgovcode?.toLowerCase() === 'mcf') {
       let labelGroups = {};
       let alldocids = [];
   
@@ -232,7 +232,7 @@ const useSaveResponsePackage = () => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
-        if(zipServiceMessage.bcgovcode == 'MCF')
+        if(zipServiceMessage.bcgovcode == 'mcf')
           zipServiceMessage.category= "CFD_responsepackage"
           zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
         let annotList = annotationManager.getAnnotationsList();
@@ -333,9 +333,9 @@ const useSaveResponsePackage = () => {
                   (Object.keys(res.attributes).length > 0 && 'personalattributes' in res.attributes && Object.keys(res.attributes?.personalattributes).length > 0) ? res.attributes.personalattributes: {},
                   res.documentid
                 );
-                // setTimeout(() => {
-                //   window.location.reload(true);
-                // }, 3000);
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 3000);
               },
               (_err) => {
                 console.log(_err);
