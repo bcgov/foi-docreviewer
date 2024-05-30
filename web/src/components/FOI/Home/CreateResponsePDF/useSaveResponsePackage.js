@@ -79,9 +79,9 @@ const useSaveResponsePackage = () => {
     documentid
   ) => {
     const stitchedDocPathArray = stitchedfilepath.split("/");
-    let recordLabel = personalAttributes.person + ' - ' + 
+    let recordLabel = Object.keys(personalAttributes).length > 0 ? personalAttributes.person + ' - ' + 
       personalAttributes.filetype + ' - ' + 
-      personalAttributes.trackingid;
+      personalAttributes.trackingid :  "" ;
     if (personalAttributes.volume) {
       recordLabel += (' - ' + personalAttributes.volume)
     }
@@ -330,7 +330,7 @@ const useSaveResponsePackage = () => {
                 prepareMessageForResponseZipping(
                   res.s3path_save,
                   zipServiceMessage,
-                  res.attributes.personalattributes,
+                  (Object.keys(res.attributes).length > 0 && Object.keys(res.attributes.personalattributes).length > 0) ? res.attributes.personalattributes: {},
                   res.documentid
                 );
                 // setTimeout(() => {
