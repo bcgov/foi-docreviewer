@@ -2335,6 +2335,7 @@ const Redlining = React.forwardRef(
             }
           );
         }
+        setNewRedaction(null)
       }
       setEditAnnot(null);
     };
