@@ -327,10 +327,14 @@ const useSaveResponsePackage = () => {
                   draggable: true,
                   closeButton: true,
                 });
+                res= {
+                  "s3path_save":"",
+                  "attributes": {}
+                }
                 prepareMessageForResponseZipping(
                   res.s3path_save,
                   zipServiceMessage,
-                  (Object.keys(res.attributes).length > 0 && Object.keys(res.attributes.personalattributes).length > 0) ? res.attributes.personalattributes: {},
+                  (Object.keys(res.attributes).length > 0 && 'personalattributes' in res.attributes && Object.keys(res.attributes?.personalattributes).length > 0) ? res.attributes.personalattributes: {},
                   res.documentid
                 );
                 // setTimeout(() => {
