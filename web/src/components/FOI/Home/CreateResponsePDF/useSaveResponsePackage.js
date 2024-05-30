@@ -231,7 +231,7 @@ const useSaveResponsePackage = () => {
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
-        zipServiceMessage.bcgovcode = 'MCF'; //res.bcgovcode;
+        zipServiceMessage.bcgovcode = res.bcgovcode;
         if(zipServiceMessage.bcgovcode == 'MCF')
           zipServiceMessage.category= "CFD_responsepackage"
           zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
