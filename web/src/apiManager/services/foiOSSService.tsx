@@ -58,6 +58,8 @@ export const getFOIS3DocumentRedlinePreSignedUrl = (
     
     if (layertype === "oipcreview") {
         apiurl = apiurl + "/oipcreview"
+    } else if (layertype === "consult") {
+        apiurl = apiurl + "/consult"
     } else {
         apiurl = apiurl + "/" + layer
     }
