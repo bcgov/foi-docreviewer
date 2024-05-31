@@ -137,7 +137,7 @@ const DocumentSelector = React.memo(
       useEffect(() => {
         if (
           requestInfo.requesttype == "personal" &&
-          ["MSD", "MCF"].includes(requestInfo.bcgovcode)
+          ["MSD"].includes(requestInfo.bcgovcode)
         ) {
           setOrganizeBy("division");
         }
@@ -783,40 +783,44 @@ const DocumentSelector = React.memo(
                 />
               </div>
             </div>
-            <hr className="hrStyle" />
-            <div className="row">
-              <div className="col-lg-4" style={{ paddingRight: "0px" }}>
-                Organize by:
+            {!['mcf','msd'].includes(requestInfo.bcgovcode) &&
+              <>
+              <hr className="hrStyle" />
+              <div className="row">
+                <div className="col-lg-4" style={{ paddingRight: "0px" }}>
+                  Organize by:
+                </div>
+                <div className="col-lg-8" style={{ paddingLeft: "0px" }}>
+                  <Stack
+                    direction="row"
+                    sx={{ paddingBottom: "5px" }}
+                    spacing={1}
+                  >
+                    <ClickableChip
+                      label="Division"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        setOrganizeBy("division");
+                        //setExpandedItems([]);
+                      }}
+                      clicked={organizeBy === "division"}
+                    />
+                    <ClickableChip
+                      label="Modified Date"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        setOrganizeBy("lastmodified");
+                        //setExpandedItems([]);
+                      }}
+                      clicked={organizeBy === "lastmodified"}
+                    />
+                  </Stack>
+                </div>
               </div>
-              <div className="col-lg-8" style={{ paddingLeft: "0px" }}>
-                <Stack
-                  direction="row"
-                  sx={{ paddingBottom: "5px" }}
-                  spacing={1}
-                >
-                  <ClickableChip
-                    label="Division"
-                    color="primary"
-                    size="small"
-                    onClick={() => {
-                      setOrganizeBy("division");
-                      //setExpandedItems([]);
-                    }}
-                    clicked={organizeBy === "division"}
-                  />
-                  <ClickableChip
-                    label="Modified Date"
-                    color="primary"
-                    size="small"
-                    onClick={() => {
-                      setOrganizeBy("lastmodified");
-                      //setExpandedItems([]);
-                    }}
-                    clicked={organizeBy === "lastmodified"}
-                  />
-                </Stack>
-              </div>
-            </div>
+              </>
+            }
             <hr className="hrStyle" />
             <div>
               <span className="filterText">Filter:</span>
