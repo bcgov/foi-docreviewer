@@ -342,7 +342,7 @@ class SaveFinalPackage(Resource):
         try:
             requestjson = request.get_json()
             print("\nrequestjson:",requestjson)
-            if(requestjson['category'] == 'CFD_responsepackage' ):
+            if(requestjson['bcgovcode'] == "mcf"):
                 finalpackageschema = MCFFinalPackageSchema().load(requestjson) 
             else:
                 finalpackageschema = FinalPackageSchema().load(requestjson)
