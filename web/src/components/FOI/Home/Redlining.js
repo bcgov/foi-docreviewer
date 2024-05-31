@@ -289,7 +289,7 @@ const Redlining = React.forwardRef(
                   for (let consult of doc.consult) {
                     if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
                       if (
-                        (flagInfo.flagid !== pageFlagTypes["Consult"] && 
+                        (
                         flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid !== pageFlagTypes["Not Responsive"]) ||
                         (
                           (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
@@ -320,7 +320,6 @@ const Redlining = React.forwardRef(
           }
         }
       }
-      console.log(divisionid, isvalid)
       return isvalid;
     };
 
@@ -3126,6 +3125,12 @@ const Redlining = React.forwardRef(
                           pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
                         }
                       }
+                    } else {
+                      // add page as it will match the curent publicBody / division id
+                      pageMappings[doc.documentid][flagInfo.page] =
+                        pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
                     }
                   }
                 pageIndex ++;
