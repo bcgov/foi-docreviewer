@@ -17,9 +17,12 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
             #Condition for handling oipcredline category
-            #bcgovcode= message.bcgovcode
-            category = message.category  
-            documenttypename= category+"_redaction_summary" if category == 'responsepackage' or category == 'CFD_responsepackage' else "redline_redaction_summary"
+            bcgovcode= message.bcgovcode
+            category = message.category 
+            if bcgovcode == 'mcf':
+                documenttypename= 'CFD_responsepackage_redaction_summary'
+            else:
+                documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
             #print('documenttypename', documenttypename)
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
@@ -41,18 +44,16 @@ class redactionsummaryservice():
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
-                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'CFD_responsepackage') else None
+                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None
                         
                     else:
                         filesobj= messageattributes[0]['files'][0]
-                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'CFD_responsepackage') else None  
+                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename'] 
                     if category == 'oipcreviewredline':
                         s3uricategoryfolder = "oipcreview"
-                    elif category == 'CFD_responsepackage':
-                        s3uricategoryfolder = 'responsepackage'
                     else:
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
@@ -77,7 +78,7 @@ class redactionsummaryservice():
         
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
-        if category == 'responsepackage' or category == 'CFD_responsepackage':
+        if category == 'responsepackage':
             _filename = requestnumber
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'

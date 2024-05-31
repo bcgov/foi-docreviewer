@@ -232,9 +232,7 @@ const useSaveResponsePackage = () => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
-        if(zipServiceMessage.bcgovcode == 'mcf')
-          zipServiceMessage.category= "CFD_responsepackage"
-          zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
+        zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
