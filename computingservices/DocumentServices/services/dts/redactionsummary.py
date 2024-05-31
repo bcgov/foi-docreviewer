@@ -6,11 +6,11 @@ from collections import defaultdict
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        if message.category == "CFD_responsepackage":
+        if message.bcgovcode == 'mcf':
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if message.category == "responsepackage":
+        if message.category == "responsepackage" and message.bcgovcode != 'mcf':
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
