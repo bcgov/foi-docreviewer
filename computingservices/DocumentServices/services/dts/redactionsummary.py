@@ -87,9 +87,13 @@ class redactionsummary():
             records = pkgdocuments[0].get('records', [])
             summarydata = []
 
-            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, documentids)
+            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
+            print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
-            mapped_flags = self.process_page_flags(docpageflags,deletedpages)
+            #print("============>deletedpages:", deletedpages)
+            mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
+            #print("###mapped_flags1:",mapped_flags)
             pagecounts= self.count_pages_per_doc(mapped_flags)
             print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
