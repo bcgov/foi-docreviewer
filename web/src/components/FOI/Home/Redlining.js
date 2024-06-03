@@ -2119,6 +2119,7 @@ const Redlining = React.forwardRef(
         case "oipcreview":
         case "redline":
           saveRedlineDocument(
+            docInstance,
             modalFor,
             incompatibleFiles,
             documentList,
