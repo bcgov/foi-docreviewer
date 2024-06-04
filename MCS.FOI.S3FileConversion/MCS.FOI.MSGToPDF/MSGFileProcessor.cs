@@ -119,6 +119,7 @@ namespace MCS.FOI.MSGToPDF
                             var options = RegexOptions.None;
                             var timeout = TimeSpan.FromSeconds(10);
                             var bodyreplaced = Regex.Replace(body, "page:WordSection1;", "", options, timeout);
+                            bodyreplaced = Regex.Replace(bodyreplaced, "</style>", "table {max-width: 800px !important;}</style>", options, timeout);
                             //var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(body, "<br.*?>", "<br/>", options, timeout), "<hr.*?>", "<hr/>", options, timeout), "href=\"[^\"]*=[^\"]\"", "", options, timeout).Replace(";=\"\"", "").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout), "<img src=\"(?!cid).*?>", "", options, timeout);
                             const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                             const string imgString = "<img(.|\\n)*src=\"cid(.|\\n)*?>";
