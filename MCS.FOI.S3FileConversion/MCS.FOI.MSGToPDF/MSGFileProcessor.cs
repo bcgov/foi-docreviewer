@@ -67,10 +67,20 @@ namespace MCS.FOI.MSGToPDF
                                             filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
                                         }
                                         fileNameHash.Add(filename, true);
+
+                                        var lastModified = _attachment.LastModificationTime.ToString();
+                                        var sentOn = _attachment.SentOn.ToString();
+                                        if (!string.IsNullOrEmpty(sentOn))
+                                            lastModified = sentOn;
+                                            
+                                        var attachmentSize = attachmentStream.Length.ToString();
+                                        if (string.IsNullOrEmpty(attachmentSize))
+                                            attachmentSize = attachmentStream.Capacity.ToString();
+
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("size", attachmentSize);
+                                        attachmentInfo.Add("lastmodified", lastModified);
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
                                         attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     }

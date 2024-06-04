@@ -537,3 +537,56 @@ const getRedactionType = (sectionValue, isFullPage, RedactionTypes) => {
     return RedactionTypes["blank"]; // in progress
   }
 }
+
+
+export const skipDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Duplicate"],
+              pageFlagTypes["Not Responsive"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
+        }
+
+  }
+  return skipdocument;
+}
+
+export const skipDuplicateDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Duplicate"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
+        }
+
+  }
+  return skipdocument;
+}
+
+export const skipNRDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
+  let pageFlagArray = [];
+  let skipdocument = false;
+  if (documentPageFlags?.length > 0) {    
+        pageFlagArray = documentPageFlags?.filter((flag) =>
+            [
+              pageFlagTypes["Not Responsive"],
+            ].includes(flag.flagid));
+
+        if (pageFlagArray.length == pagecount) {
+          skipdocument = true;
+        }
+
+  }
+  return skipdocument;
+}
