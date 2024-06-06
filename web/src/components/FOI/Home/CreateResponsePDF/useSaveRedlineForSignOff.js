@@ -175,7 +175,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   };
 
 
-  const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg) => {      
+  const prepareRedlinePageMapping = (divisionDocuments, redlineSinglePkg, pageMappedDocs) => {      
     if (redlineSinglePkg == "Y") {
       let reqdocuments = [];
       for (let divObj of divisionDocuments) {    
@@ -184,7 +184,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
       }
       // sort based on sortorder as the sortorder added based on the LastModified
-      prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments));
+      prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments), pageMappedDocs);
     } else {
       prepareRedlinePageMappingByDivision(divisionDocuments);
     }
@@ -764,7 +764,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         
         prepareRedlinePageMapping(
           res['divdocumentList'],
-          res.issingleredlinepackage
+          res.issingleredlinepackage,
+          pageMappedDocs
         );
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
