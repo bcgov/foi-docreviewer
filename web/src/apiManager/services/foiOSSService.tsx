@@ -46,6 +46,7 @@ export const getFOIS3DocumentPreSignedUrls = (
 
 export const getFOIS3DocumentRedlinePreSignedUrl = (
     ministryrequestID: any,
+    requestType: any,
     documentList: any[],
     callback: any,
     errorCallback: any,
@@ -64,7 +65,7 @@ export const getFOIS3DocumentRedlinePreSignedUrl = (
     
     
 
-    httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList}, token: UserService.getToken() || ''})
+    httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList,"requestType":requestType}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

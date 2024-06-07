@@ -69,6 +69,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [alreadyStitchedList, setAlreadyStitchedList] = useState([]);
   const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
 
+  const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
+  const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
 
   const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
     console.log("isValidRedlineDivisionDownload");
@@ -752,6 +754,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     getFOIS3DocumentRedlinePreSignedUrl(
       requestid,
       //normalizeforPdfStitchingReq(divisionDocuments),
+      requestType,
       divisionDocuments,
       async (res) => {
         toast.update(toastId.current, {
