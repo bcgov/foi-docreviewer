@@ -96,7 +96,8 @@ const Redlining = React.forwardRef(
       isStitchingLoaded,
       licenseKey,
       setWarningModalOpen,
-      scrollLeftPanel
+      scrollLeftPanel,
+      isBalanceFeeOverrode
     },
     ref
   ) => {
@@ -192,6 +193,10 @@ const Redlining = React.forwardRef(
 
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
+    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
+    const [outstandingBalance, setOutstandingBalance]= useState(1)
+    const [isOverride, setIsOverride]= useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");
     
     //xml parser
     const parser = new XMLParser();
@@ -447,32 +452,44 @@ const Redlining = React.forwardRef(
             finalPackageBtn.disabled = !enableSavingFinal;
 
             finalPackageBtn.onclick = () => {
-              // Download
-              setModalFor("responsepackage");
-              setModalTitle("Create Package for Applicant");
-              setModalMessage([
-                "This should only be done when all redactions are finalized and ready to ",
-                <b key="bold1">
-                  <i>be</i>
-                </b>,
-                " sent to the ",
-                <b key="bold2">
-                  <i>Applicant</i>
-                </b>,
-                ". This will ",
-                <b key="bold3">
-                  <i>permanently</i>
-                </b>,
-                " apply the redactions and automatically create page stamps.",
-                <br key="break1" />,
-                <br key="break2" />,
-                <span key="modalDescription2">
-                  When you create the response package, your web browser page
-                  will automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create Applicant Package");
-              setRedlineModalOpen(true);
+              if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+                setModalFor("responsepackage");
+                setModalTitle("Create Package for Applicant");
+                setModalMessage([
+                  "There is an outstanding balance of fees, please cancel to resolve, or click override to proceed",
+                ]);
+                setModalButtonLabel("Override");
+                setOutstandingBalanceModal(true);
+                setIsOverride(false)
+              }
+              else{
+                // Download
+                setModalFor("responsepackage");
+                setModalTitle("Create Package for Applicant");
+                setModalMessage([
+                  "This should only be done when all redactions are finalized and ready to ",
+                  <b key="bold1">
+                    <i>be</i>
+                  </b>,
+                  " sent to the ",
+                  <b key="bold2">
+                    <i>Applicant</i>
+                  </b>,
+                  ". This will ",
+                  <b key="bold3">
+                    <i>permanently</i>
+                  </b>,
+                  " apply the redactions and automatically create page stamps.",
+                  <br key="break1" />,
+                  <br key="break2" />,
+                  <span key="modalDescription2">
+                    When you create the response package, your web browser page
+                    will automatically refresh
+                  </span>,
+                ]);
+                setModalButtonLabel("Create Applicant Package");
+                setRedlineModalOpen(true);
+              }
             };
 
             menu.appendChild(finalPackageBtn);
@@ -490,6 +507,7 @@ const Redlining = React.forwardRef(
               parent.appendChild(menu);
 
               menuBtn.onclick = async () => {
+                console.log("Menu button clicked");
                 if (menu.style.display == "flex") {
                   menu.style.display = "none";
                 } else {
@@ -2252,8 +2270,14 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
-      setModalOpen(false);
-      setMessageModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setIsOverride(false)
+        setOutstandingBalanceModal(false)
+      }
+      else{
+        setModalOpen(false);
+        setMessageModalOpen(false);
+      }
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -3149,10 +3173,18 @@ const Redlining = React.forwardRef(
 
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
-      setRedlineModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setOutstandingBalanceModal(false)
+        setIsOverride(false)
+      }
+      else
+        setRedlineModalOpen(false);
     };
 
     const saveDoc = () => {
+      console.log("Inside saveDoc!")
+      setIsOverride(false)
+      setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
@@ -3166,7 +3198,8 @@ const Redlining = React.forwardRef(
           saveRedlineDocument(docInstance, modalFor);
           break;
         case "responsepackage":
-          saveResponsePackage(docViewer, annotManager, docInstance);
+          console.log("Inside responsepackage -- ", feeOverrideReason)
+          saveResponsePackage(docViewer, annotManager, docInstance,feeOverrideReason);
           break;
         default:
       }
@@ -3896,7 +3929,8 @@ const Redlining = React.forwardRef(
         requestnumber: "",
         bcgovcode: "",
         summarydocuments : prepareresponseredlinesummarylist(documentList),
-        redactionlayerid: currentLayer.redactionlayerid
+        redactionlayerid: currentLayer.redactionlayerid,
+        pdfstitchjobattributes:{"feeoverridereason":""}
       };
       getResponsePackagePreSignedUrl(
         requestid,
@@ -3905,6 +3939,7 @@ const Redlining = React.forwardRef(
           const toastID = toast.loading("Start generating final package...");
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
+          zipServiceMessage.pdfstitchjobattributes= {"feeoverridereason":feeOverrideReason}
           let annotList = annotationManager.getAnnotationsList();
           annotManager.ungroupAnnotations(annotList);
           /** remove duplicate and not responsive pages */
@@ -3997,9 +4032,9 @@ const Redlining = React.forwardRef(
                   res.s3path_save,
                   zipServiceMessage
                 );
-                setTimeout(() => {
-                  window.location.reload(true);
-                }, 3000);
+                // setTimeout(() => {
+                //   window.location.reload(true);
+                // }, 3000);
               },
               (_err) => {
                 console.log(_err);
@@ -4114,6 +4149,20 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    const overrideOutstandingBalance = () => {
+      setIsOverride(true)
+    }
+
+    // const saveOverrideReason = () => {
+    //   console.log("Saved override reason!",feeOverrideReason)
+    //   saveDoc("responsepackage")
+    //   setIsOverride(false)
+    //   setOutstandingBalanceModal(false)
+    // }
+
+    const handleOverrideReasonChange = (event) => {
+      setFeeOverrideReason(event.target.value);
+    };
     
 
     return (
@@ -4324,6 +4373,63 @@ const Redlining = React.forwardRef(
             <button
               className="btn-bottom btn-cancel"
               onClick={cancelRedaction}
+            >
+              Cancel
+            </button>
+          </DialogActions>
+        </ReactModal>
+        <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
+          onRequestClose={cancelRedaction}
+          isOpen={outstandingBalanceModal}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">{modalTitle}</h2>
+            <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"modal-content"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span>
+                {modalMessage} 
+                {isOverride && <>
+                  <br/><br/>
+                  <label for="override-reason">Reason for the override : </label>
+                  <input
+                    type="text"
+                    size={50}
+                    style={{ marginLeft: 10 }}
+                    id="override-reason"
+                    value={feeOverrideReason}
+                    onChange={handleOverrideReasonChange}
+                  />    
+                </>}
+              </span>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+          {!isOverride &&
+            <button className="btn-bottom btn-save btn" onClick={overrideOutstandingBalance}>
+              {modalButtonLabel}
+            </button>
+          }
+          {isOverride &&
+            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
+              Continue
+            </button>
+          }
+            <button
+              className="btn-bottom btn-cancel"
+              onClick={cancelSaveRedlineDoc}
             >
               Cancel
             </button>
