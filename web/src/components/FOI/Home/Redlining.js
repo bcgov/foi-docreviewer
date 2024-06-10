@@ -2300,7 +2300,6 @@ const Redlining = React.forwardRef(
     };
     
     const saveDoc = () => {
-      console.log("Inside saveDoc!")
       setIsOverride(false)
       setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
