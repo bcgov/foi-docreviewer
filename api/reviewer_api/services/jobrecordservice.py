@@ -141,13 +141,8 @@ class jobrecordservice:
                 )
         job = PDFStitchJobAttributes.insert(row)
         return job
-    
-    def __getpdfstitchjobattributesbyid(self, requestid):
-        job = PDFStitchJobAttributes().getpdfstitchjobattributesbyid(requestid)
-        return job
 
     def isbalancefeeoverrodforrequest(self, requestid):
-        pdfstitchjobattributes= self.__getpdfstitchjobattributesbyid(requestid)
+        pdfstitchjobattributes= PDFStitchJobAttributes().getpdfstitchjobattributesbyid(requestid)
         isbalancefeeoverrode= False if pdfstitchjobattributes is None or not pdfstitchjobattributes else True
-        #print("\nisbalancefeeoverrode:",isbalancefeeoverrode)
         return isbalancefeeoverrode

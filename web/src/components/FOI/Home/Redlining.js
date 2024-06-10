@@ -507,7 +507,6 @@ const Redlining = React.forwardRef(
               parent.appendChild(menu);
 
               menuBtn.onclick = async () => {
-                console.log("Menu button clicked");
                 if (menu.style.display == "flex") {
                   menu.style.display = "none";
                 } else {
@@ -3182,7 +3181,6 @@ const Redlining = React.forwardRef(
     };
 
     const saveDoc = () => {
-      console.log("Inside saveDoc!")
       setIsOverride(false)
       setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
@@ -3198,7 +3196,6 @@ const Redlining = React.forwardRef(
           saveRedlineDocument(docInstance, modalFor);
           break;
         case "responsepackage":
-          console.log("Inside responsepackage -- ", feeOverrideReason)
           saveResponsePackage(docViewer, annotManager, docInstance,feeOverrideReason);
           break;
         default:
@@ -4032,9 +4029,9 @@ const Redlining = React.forwardRef(
                   res.s3path_save,
                   zipServiceMessage
                 );
-                // setTimeout(() => {
-                //   window.location.reload(true);
-                // }, 3000);
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 3000);
               },
               (_err) => {
                 console.log(_err);
@@ -4152,13 +4149,6 @@ const Redlining = React.forwardRef(
     const overrideOutstandingBalance = () => {
       setIsOverride(true)
     }
-
-    // const saveOverrideReason = () => {
-    //   console.log("Saved override reason!",feeOverrideReason)
-    //   saveDoc("responsepackage")
-    //   setIsOverride(false)
-    //   setOutstandingBalanceModal(false)
-    // }
 
     const handleOverrideReasonChange = (event) => {
       setFeeOverrideReason(event.target.value);
