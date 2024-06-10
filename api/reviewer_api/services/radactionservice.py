@@ -123,7 +123,16 @@ class redactionservice:
         job = jobrecordservice().insertpdfstitchjobstatus(
             _jobmessage, userinfo["userid"]
         )
+        print("job:: ",job.message)
+        print("job-2:: ",job.identifier)
         if job.success:
+            if finalpackageschema['pdfstitchjobattributes'] is not None:
+                feeoverridereason= finalpackageschema['pdfstitchjobattributes']['feeoverridereason']
+                print("feeoverridereason:",feeoverridereason)
+                if feeoverridereason is not None and feeoverridereason != '':
+                    feeoverridereasonresult= jobrecordservice().insertfeeoverridereason(finalpackageschema,job.identifier,userinfo["userid"])
+                    #print("feeoverridereasonresult:",feeoverridereasonresult)
+                #Add here the reason- comment text and a boolean 
             _message = self.__preparemessageforsummaryservice(
                 finalpackageschema, userinfo, job
             )
@@ -131,6 +140,17 @@ class redactionservice:
 
     # redline/final package download: prepare message for zipping service
     def __preparemessageforsummaryservice(self, messageschema, userinfo, job):
+        pdf_stitch_job_attributes = to_json(messageschema['pdfstitchjobattributes'])
+        print("pdf_stitch_job_attributes:",pdf_stitch_job_attributes)
+        if pdf_stitch_job_attributes is not None:
+            feeoverridereason= json.loads(pdf_stitch_job_attributes).get("feeoverridereason", None) 
+            if feeoverridereason is not None and feeoverridereason != '':
+                feeoverridereason= userinfo["firstname"]+" "+userinfo["lastname"]+" overrode balance outstanding warning for the following reason: "+feeoverridereason
+                print("feeoverridereason:",feeoverridereason)
+            else:
+                feeoverridereason= ""
+        else:
+            feeoverridereason= ""
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
@@ -147,7 +167,9 @@ class redactionservice:
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
             "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
             "requesttype": messageschema["requesttype"],
+            "feeoverridereason":feeoverridereason
         }
+        print("_message:",_message)
         return _message
 
     # redline/final package download: prepare message for zipping service

@@ -10,6 +10,8 @@ class FileSchema(Schema):
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
 
+class FeeOverrideSchema(Schema):
+    feeoverridereason = fields.Str(data_key="feeoverridereason", allow_none=True)
 
 class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
@@ -56,3 +58,4 @@ class MCFFinalPackageSchema(Schema):
     summarydocuments = fields.Nested(MCFSummarySchema, allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
     requesttype = fields.Str(data_key="requesttype", allow_none=False)
+    pdfstitchjobattributes = fields.Nested(FeeOverrideSchema, allow_none=True, many=False)

@@ -29,6 +29,7 @@ import logging
 
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
+from reviewer_api.services.jobrecordservice import jobrecordservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
@@ -122,10 +123,12 @@ class GetDocuments(Resource):
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
+            balancefeeoverrodforrequest = jobrecordservice().isbalancefeeoverrodforrequest(requestid)
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
                 "requesttype": jsonobj["requestType"],
                 "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
+                "balancefeeoverrodforrequest": balancefeeoverrodforrequest
             }
             documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200

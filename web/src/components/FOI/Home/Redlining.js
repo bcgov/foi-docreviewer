@@ -81,7 +81,8 @@ const Redlining = React.forwardRef(
       setWarningModalOpen,
       scrollLeftPanel,
       pageFlags, 
-      syncPageFlagsOnAction
+      syncPageFlagsOnAction,
+      isBalanceFeeOverrode
     },
     ref
   ) => {
@@ -141,6 +142,11 @@ const Redlining = React.forwardRef(
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
+    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
+    const [outstandingBalance, setOutstandingBalance]= useState(1)
+    const [isOverride, setIsOverride]= useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");
+    
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -2134,8 +2140,14 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
-      setModalOpen(false);
-      setMessageModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setIsOverride(false)
+        setOutstandingBalanceModal(false)
+      }
+      else{
+        setModalOpen(false);
+        setMessageModalOpen(false);
+      }
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -2271,7 +2283,12 @@ const Redlining = React.forwardRef(
 
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
-      setRedlineModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setOutstandingBalanceModal(false)
+        setIsOverride(false)
+      }
+      else
+        setRedlineModalOpen(false);
     };
   
     const handleIncludeNRPages = (e) => {
@@ -2283,6 +2300,9 @@ const Redlining = React.forwardRef(
     };
     
     const saveDoc = () => {
+      console.log("Inside saveDoc!")
+      setIsOverride(false)
+      setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       let modalFor= modalData? modalData.modalFor : ""
@@ -2309,7 +2329,8 @@ const Redlining = React.forwardRef(
             documentList,
             pageMappedDocs,
             pageFlags,
-            requestType
+            requestType,
+            feeOverrideReason
           );
           break;
         default:
