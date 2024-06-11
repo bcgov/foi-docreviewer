@@ -107,8 +107,8 @@ class GetDocuments(Resource):
                 "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
                 "balancefeeoverrodforrequest": balancefeeoverrodforrequest
             }
-            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
-            return json.dumps({"requeststatuslabel": "", "documents": result, "requestnumber":"", "requestinfo":requestinfo,"documentdivisions":documentdivisionslist}), 200
+            result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+            return json.dumps({"requeststatuslabel": "", "documents": result, "requestnumber":"", "requestinfo":requestinfo}), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
