@@ -33,7 +33,10 @@ class DocumentPageflagHistory(db.Model):
         # no db close or commit because this function is called in a loop
         try:
             db.session.add(documentpageflaghistory)
+            db.session.commit()
             return DefaultMethodResult(True, 'Page Flag history is saved', documentpageflaghistory.id)  
         except Exception as ex:
             logging.error(ex)
             return DefaultMethodResult(False, 'Page Flag history is not saved', documentpageflaghistory.id)
+        finally:
+            db.session.close()

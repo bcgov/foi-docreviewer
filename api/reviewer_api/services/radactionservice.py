@@ -123,6 +123,11 @@ class redactionservice:
             _jobmessage, userinfo["userid"]
         )
         if job.success:
+            if finalpackageschema['pdfstitchjobattributes'] is not None:
+                if 'feeoverridereason' in finalpackageschema['pdfstitchjobattributes']:
+                    feeoverridereason= finalpackageschema['pdfstitchjobattributes']['feeoverridereason']
+                    if feeoverridereason is not None and feeoverridereason != '':
+                        jobrecordservice().insertfeeoverridereason(finalpackageschema,job.identifier,userinfo["userid"])
             _message = self.__preparemessageforsummaryservice(
                 finalpackageschema, userinfo, job
             )
@@ -130,6 +135,12 @@ class redactionservice:
 
     # redline/final package download: prepare message for zipping service
     def __preparemessageforsummaryservice(self, messageschema, userinfo, job):
+        feeoverridereason= None
+        pdf_stitch_job_attributes = to_json(messageschema['pdfstitchjobattributes'])
+        if pdf_stitch_job_attributes is not None:
+            feeoverridereason= json.loads(pdf_stitch_job_attributes).get("feeoverridereason", None) 
+            if feeoverridereason is not None and feeoverridereason != '':
+                feeoverridereason= userinfo["firstname"]+" "+userinfo["lastname"]+" overrode balance outstanding warning for the following reason: "+feeoverridereason
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
@@ -144,7 +155,8 @@ class redactionservice:
             "finaloutput": to_json(""),
             "attributes": to_json(messageschema["attributes"]),
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
-            "redactionlayerid": json.dumps(messageschema["redactionlayerid"])
+            "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
+            "feeoverridereason":feeoverridereason
         }
         return _message
 

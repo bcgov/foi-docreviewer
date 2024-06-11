@@ -43,6 +43,7 @@ function Home() {
   const [pageMappedDocs, setPageMappedDocs] = useState([]);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -66,7 +67,7 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
-
+        setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
@@ -75,7 +76,7 @@ function Home() {
         // New code added to get the incompatable files for download redline
         // data has all the files including incompatable ones
         // _files has all files except incompatable ones
-        const _incompatableFiles = data.filter(
+        const _incompatableFiles = data.documents.filter(
           (d) => {
             const isPdfFile = getFileExt(d.filepath) === "pdf"
             if (isPdfFile) {
@@ -86,7 +87,7 @@ function Home() {
           }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.filter((d) => {
+        const _files = data.documents.filter((d) => {
           const isPdfFile = getFileExt(d.filepath) === "pdf"
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
@@ -276,6 +277,7 @@ function Home() {
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  isBalanceFeeOverrode={isBalanceFeeOverrode}
                 />
               )
             // : <div>Loading</div>

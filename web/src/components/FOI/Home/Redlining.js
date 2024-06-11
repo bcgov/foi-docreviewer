@@ -72,7 +72,10 @@ import {
   getJoinedSections,
   isObjectNotEmpty,
   getValidObject,
-  constructPageFlags
+  constructPageFlags,
+  skipDocument,
+  skipDuplicateDocument,
+  skipNRDocument
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
 import _ from "lodash";
@@ -94,7 +97,8 @@ const Redlining = React.forwardRef(
       isStitchingLoaded,
       licenseKey,
       setWarningModalOpen,
-      scrollLeftPanel
+      scrollLeftPanel,
+      isBalanceFeeOverrode
     },
     ref
   ) => {
@@ -190,6 +194,10 @@ const Redlining = React.forwardRef(
 
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
+    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
+    const [outstandingBalance, setOutstandingBalance]= useState(1)
+    const [isOverride, setIsOverride]= useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");
     
     //xml parser
     const parser = new XMLParser();
@@ -211,7 +219,7 @@ const Redlining = React.forwardRef(
                   stopLoop = true;
                   return false; //stop loop
                 } else {
-                  // artial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
+                  // partial Disclosure, Full Disclosure, Withheld in Full, Duplicate, Not Responsive
                   pageFlagArray = pageFlagInfo.pageflag?.filter((flag) =>
                     [
                       pageFlagTypes["Partial Disclosure"],
@@ -312,10 +320,8 @@ const Redlining = React.forwardRef(
         }        
       }
       setIsDisableNRDuplicate(isDisabled);
-      if (isDisabled) {
-        setIncludeNRPages(isDisabled)
-        setIncludeDuplicatePages(isDisabled);
-      }
+      setIncludeNRPages(isDisabled)
+      setIncludeDuplicatePages(isDisabled);
     }
 
     const [enableSavingRedline, setEnableSavingRedline] = useState(false);
@@ -447,32 +453,44 @@ const Redlining = React.forwardRef(
             finalPackageBtn.disabled = !enableSavingFinal;
 
             finalPackageBtn.onclick = () => {
-              // Download
-              setModalFor("responsepackage");
-              setModalTitle("Create Package for Applicant");
-              setModalMessage([
-                "This should only be done when all redactions are finalized and ready to ",
-                <b key="bold1">
-                  <i>be</i>
-                </b>,
-                " sent to the ",
-                <b key="bold2">
-                  <i>Applicant</i>
-                </b>,
-                ". This will ",
-                <b key="bold3">
-                  <i>permanently</i>
-                </b>,
-                " apply the redactions and automatically create page stamps.",
-                <br key="break1" />,
-                <br key="break2" />,
-                <span key="modalDescription2">
-                  When you create the response package, your web browser page
-                  will automatically refresh
-                </span>,
-              ]);
-              setModalButtonLabel("Create Applicant Package");
-              setRedlineModalOpen(true);
+              if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+                setModalFor("responsepackage");
+                setModalTitle("Create Package for Applicant");
+                setModalMessage([
+                  "There is an outstanding balance of fees, please cancel to resolve, or click override to proceed",
+                ]);
+                setModalButtonLabel("Override");
+                setOutstandingBalanceModal(true);
+                setIsOverride(false)
+              }
+              else{
+                // Download
+                setModalFor("responsepackage");
+                setModalTitle("Create Package for Applicant");
+                setModalMessage([
+                  "This should only be done when all redactions are finalized and ready to ",
+                  <b key="bold1">
+                    <i>be</i>
+                  </b>,
+                  " sent to the ",
+                  <b key="bold2">
+                    <i>Applicant</i>
+                  </b>,
+                  ". This will ",
+                  <b key="bold3">
+                    <i>permanently</i>
+                  </b>,
+                  " apply the redactions and automatically create page stamps.",
+                  <br key="break1" />,
+                  <br key="break2" />,
+                  <span key="modalDescription2">
+                    When you create the response package, your web browser page
+                    will automatically refresh
+                  </span>,
+                ]);
+                setModalButtonLabel("Create Applicant Package");
+                setRedlineModalOpen(true);
+              }
             };
 
             menu.appendChild(finalPackageBtn);
@@ -2358,8 +2376,14 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
-      setModalOpen(false);
-      setMessageModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setIsOverride(false)
+        setOutstandingBalanceModal(false)
+      }
+      else{
+        setModalOpen(false);
+        setMessageModalOpen(false);
+      }
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -2376,6 +2400,7 @@ const Redlining = React.forwardRef(
             }
           );
         }
+        setNewRedaction(null)
       }
       setEditAnnot(null);
     };
@@ -2855,6 +2880,18 @@ const Redlining = React.forwardRef(
             let pageIndex = 1;
             //gather pages that need to be removed
             doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+            let skipDocumentPages = false;
+            let skipOnlyDuplicateDocument = false;
+            let skipOnlyNRDocument = false;
+            if (!includeDuplicatePages && !includeNRPages) {
+              skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }
+            else if (!includeDuplicatePages) {
+              skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }
+            else if (!includeNRPages) {
+              skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }
             //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
             for (const flagInfo of doc.pageFlag) {
               if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
@@ -2868,11 +2905,13 @@ const Redlining = React.forwardRef(
                       pagesToRemoveEachDoc.length;
                   } else {
                     pagesToRemoveEachDoc.push(flagInfo.page);
-                  
-                    pagesToRemove.push(                  
-                      pageIndex + totalPageCountIncludeRemoved
-                    );
+                    if (!skipDocumentPages && !skipOnlyDuplicateDocument) {
+                      pagesToRemove.push(                  
+                        pageIndex + totalPageCountIncludeRemoved
+                      );
+                    }
                   }
+
                 } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
                   if(includeNRPages) {
                     NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
@@ -2883,10 +2922,11 @@ const Redlining = React.forwardRef(
                       pagesToRemoveEachDoc.length;
                   } else {
                     pagesToRemoveEachDoc.push(flagInfo.page);
-                  
-                    pagesToRemove.push(                  
-                      pageIndex + totalPageCountIncludeRemoved
-                    );
+                    if (!skipDocumentPages && !skipOnlyNRDocument) {
+                      pagesToRemove.push(                  
+                        pageIndex + totalPageCountIncludeRemoved
+                      );
+                    }
                   }
                 } else {
                   if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
@@ -2905,7 +2945,9 @@ const Redlining = React.forwardRef(
             totalPageCount += Object.keys(
               pageMappings[doc.documentid]
             ).length;
-            totalPageCountIncludeRemoved += doc.pagecount;
+            if (!skipDocumentPages) {
+              totalPageCountIncludeRemoved += doc.pagecount;
+            }
           //}
           }
           
@@ -3236,12 +3278,18 @@ const Redlining = React.forwardRef(
     }
 
     const cancelSaveRedlineDoc = () => {
-      setIncludeDuplicatePages(false);
-      setIncludeNRPages(false);
-      setRedlineModalOpen(false);
+      disableNRDuplicate();
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setOutstandingBalanceModal(false)
+        setIsOverride(false)
+      }
+      else
+        setRedlineModalOpen(false);
     };
 
     const saveDoc = () => {
+      setIsOverride(false)
+      setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       setRedlineCategory(modalFor);
@@ -3255,7 +3303,7 @@ const Redlining = React.forwardRef(
           saveRedlineDocument(docInstance, modalFor);
           break;
         case "responsepackage":
-          saveResponsePackage(docViewer, annotManager, docInstance);
+          saveResponsePackage(docViewer, annotManager, docInstance,feeOverrideReason);
           break;
         default:
       }
@@ -3317,17 +3365,31 @@ const Redlining = React.forwardRef(
               for (let doc of div.documentlist) {
                 docCount++;
                 documentsObjArr.push(doc);
-                if (docCount == div.documentlist.length) {
-                  if (pageMappedDocs != undefined) {
-                    let divisionsdocpages = Object.values(
-                      pageMappedDocs.redlineDocIdLookup
-                    )
-                      .filter((obj) => {
-                        return obj.division.includes(div.divisionid);
-                      })
-                      .map((obj) => {
+                let skipDocumentPages = false;
+                let skipOnlyDuplicateDocument = false;
+                let skipOnlyNRDocument = false;
+                if (!includeDuplicatePages && !includeNRPages) {
+                  skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+                }
+                else if (!includeDuplicatePages) {
+                  skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+                }
+                else if (!includeNRPages) {
+                  skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+                } 
+                if (pageMappedDocs != undefined) {
+                  let divisionsdocpages = Object.values(
+                    pageMappedDocs.redlineDocIdLookup
+                  )
+                    .filter((obj) => {
+                      return obj.division.includes(div.divisionid) && obj.docId == doc.documentid;
+                    })
+                    .map((obj) => {
+                      if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
                         return obj.pageMappings;
-                      });
+                      }
+                    });
+                  if (divisionsdocpages[0]) {
                     divisionsdocpages.forEach(function (_arr) {
                       _arr.forEach(function (value) {
                         divisionstitchpages.push(value);
@@ -3342,6 +3404,9 @@ const Redlining = React.forwardRef(
                     );
                   }
                 }
+                // if (docCount == div.documentlist.length) {
+                  
+                // }
               }
             }
             if (
@@ -3447,7 +3512,9 @@ const Redlining = React.forwardRef(
     // sort based on sortorder as the sortorder added based on the LastModified
     let sorteddocs = sortBySortOrder(alldocuments) 
      for (const sorteddoc of sorteddocs) {
-        sorteddocids.push(sorteddoc['documentid']);
+      if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
      }
      
       return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}
@@ -3468,6 +3535,8 @@ const Redlining = React.forwardRef(
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
+        // added this vopy variable for validating the first document of a division with NR/Duplicate
+        let docCountCopy = 0;
         let division = key;
         let documentlist = stitchlist[key];
         if (redlineSinglePkg == "N") {
@@ -3483,33 +3552,54 @@ const Redlining = React.forwardRef(
         }
         if(documentlist.length > 0) {
         for (let doc of documentlist) {
-          await _instance.Core.createDocument(doc.s3path_load, {
-            loadAsPDF: true,
-            useDownloader: false, // Added to fix BLANK page issue
-          }).then(async (docObj) => {     
-              applyRotations(docObj, doc.attributes.rotatedpages)       
-            //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
-              docCount++;
-              if (docCount == 1) {
-                // Delete pages from the first document
-                const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
-                if (deletedPages.length > 0) {
-                    docObj.removePages(deletedPages);
-                }           
-                stitchedDocObj = docObj;
-              } else {
-                let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
-                await stitchedDocObj.insertPages(
-                  docObj,
-                  doc.pages,
-                  pageIndexToInsert
-                );
-              }
-            //}
-          });
-          if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
-            requestStitchObject[division] = stitchedDocObj;
-          }
+            let skipDocumentPages = false;
+            let skipOnlyDuplicateDocument = false;
+            let skipOnlyNRDocument = false;
+            if (!includeDuplicatePages && !includeNRPages) {
+              skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }
+            else if (!includeDuplicatePages) {
+              skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }
+            else if (!includeNRPages) {
+              skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+            }        
+            await _instance.Core.createDocument(doc.s3path_load, {
+              loadAsPDF: true,
+              useDownloader: false, // Added to fix BLANK page issue
+            }).then(async (docObj) => {            
+              //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
+                docCountCopy++;
+                docCount++;
+                if (docCountCopy == 1) {
+                  // Delete pages from the first document
+                  const deletedPages = getDeletedPagesBeforeStitching(doc.documentid);
+                  if (deletedPages.length > 0) {
+                      docObj.removePages(deletedPages);
+                  }
+                  if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {           
+                    stitchedDocObj = docObj;
+                  }
+                  else {
+                    docCountCopy--;
+                  }
+
+                } else {
+                  if (stitchedDocObj && (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
+                    let pageIndexToInsert = stitchedDocObj?.getPageCount() + 1;
+                    await stitchedDocObj.insertPages(
+                      docObj,
+                      doc.pages,
+                      pageIndexToInsert
+                    );
+                  }
+                }
+              //}
+            });
+            if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
+              requestStitchObject[division] = stitchedDocObj;
+            }
+          
         }
         } else {
           if (incompatableList[division]["incompatibleFiles"].length > 0) {
@@ -3722,7 +3812,7 @@ const Redlining = React.forwardRef(
           if (stitchObject == null) {
             triggerRedlineZipper(
               redlineIncompatabileMappings[divisionid],
-              redlineStitchInfo[divisionid]["s3path"],
+              null, // stitchObject == null then no stichedDocPath available
               divisionCountForToast,
               redlineSinglePackage
             );
@@ -3742,7 +3832,8 @@ const Redlining = React.forwardRef(
             }
             if (
               redlinepageMappings["pagestoremove"][divisionid] &&
-              redlinepageMappings["pagestoremove"][divisionid].length > 0
+              redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
+              stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
             ) {
               await stitchObject.removePages(
                 redlinepageMappings["pagestoremove"][divisionid]
@@ -3951,7 +4042,8 @@ const Redlining = React.forwardRef(
         requestnumber: "",
         bcgovcode: "",
         summarydocuments : prepareresponseredlinesummarylist(documentList),
-        redactionlayerid: currentLayer.redactionlayerid
+        redactionlayerid: currentLayer.redactionlayerid,
+        pdfstitchjobattributes:{"feeoverridereason":""}
       };
       getResponsePackagePreSignedUrl(
         requestid,
@@ -3960,6 +4052,7 @@ const Redlining = React.forwardRef(
           const toastID = toast.loading("Start generating final package...");
           zipServiceMessage.requestnumber = res.requestnumber;
           zipServiceMessage.bcgovcode = res.bcgovcode;
+          zipServiceMessage.pdfstitchjobattributes= {"feeoverridereason":feeOverrideReason}
           let annotList = annotationManager.getAnnotationsList();
           annotManager.ungroupAnnotations(annotList);
           /** remove duplicate and not responsive pages */
@@ -3984,7 +4077,9 @@ const Redlining = React.forwardRef(
           let doc = documentViewer.getDocument();
           await annotationManager.applyRedactions();
           /**must apply redactions before removing pages*/
-          await doc.removePages(pagesToRemove);
+          if (pagesToRemove.length > 0) {
+            await doc.removePages(pagesToRemove);
+          }          
 
           const { PDFNet } = _instance.Core;
           PDFNet.initialize();
@@ -4095,7 +4190,10 @@ const Redlining = React.forwardRef(
       // sort based on sortorder as the sortorder added based on the LastModified 
       let sorteddocs = sortBySortOrder(alldocuments) 
       for (const sorteddoc of sorteddocs) {
-        sorteddocids.push(sorteddoc['documentid']);
+        if (!sorteddocids.includes(sorteddoc['documentid'])) {
+          sorteddocids.push(sorteddoc['documentid']);
+        }
+        
       }
       return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist}   
     }
@@ -4164,6 +4262,13 @@ const Redlining = React.forwardRef(
       setIncludeDuplicatePages(e.target.checked);
     }
 
+    const overrideOutstandingBalance = () => {
+      setIsOverride(true)
+    }
+
+    const handleOverrideReasonChange = (event) => {
+      setFeeOverrideReason(event.target.value);
+    };
     
 
     return (
@@ -4374,6 +4479,63 @@ const Redlining = React.forwardRef(
             <button
               className="btn-bottom btn-cancel"
               onClick={cancelRedaction}
+            >
+              Cancel
+            </button>
+          </DialogActions>
+        </ReactModal>
+        <ReactModal
+          initWidth={800}
+          initHeight={300}
+          minWidth={600}
+          minHeight={250}
+          className={"state-change-dialog" + (modalFor == "redline"?" redline-modal":"")}
+          onRequestClose={cancelRedaction}
+          isOpen={outstandingBalanceModal}
+        >
+          <DialogTitle disableTypography id="state-change-dialog-title">
+            <h2 className="state-change-header">{modalTitle}</h2>
+            <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"modal-content"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+              <span>
+                {modalMessage} 
+                {isOverride && <>
+                  <br/><br/>
+                  <label for="override-reason">Reason for the override : </label>
+                  <input
+                    type="text"
+                    size={50}
+                    style={{ marginLeft: 10 }}
+                    id="override-reason"
+                    value={feeOverrideReason}
+                    onChange={handleOverrideReasonChange}
+                  />    
+                </>}
+              </span>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+          {!isOverride &&
+            <button className="btn-bottom btn-save btn" onClick={overrideOutstandingBalance}>
+              {modalButtonLabel}
+            </button>
+          }
+          {isOverride &&
+            <button className="btn-bottom btn-save btn" onClick={saveDoc}>
+              Continue
+            </button>
+          }
+            <button
+              className="btn-bottom btn-cancel"
+              onClick={cancelSaveRedlineDoc}
             >
               Cancel
             </button>
