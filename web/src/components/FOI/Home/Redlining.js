@@ -35,6 +35,7 @@ import {
   fetchPDFTronLicense,
   triggerDownloadRedlines,
   triggerDownloadFinalPackage,
+  saveRotateDocumentPage,
   deleteDocumentPages,
   savePageFlag,
 } from "../../../apiManager/services/docReviewerService";
@@ -607,7 +608,8 @@ const Redlining = React.forwardRef(
 
             //update isloaded flag
             //localStorage.setItem("isDocumentLoaded", "true");
-
+            
+            applyRotations(documentViewer.getDocument(), docsForStitcing[0].file.attributes.rotatedpages)
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;            
@@ -670,6 +672,29 @@ const Redlining = React.forwardRef(
               console.log("Error:", error);
             });
           });
+
+          // documentViewer.addEventListener('pagesUpdated', async (changes) => {
+          //   if (isStitchingLoaded) {
+          //     let payloads = {};
+          //     for (let page of changes.contentChanged) {
+          //       let originalpage = pageMappedDocs.stitchedPageLookup[page];
+          //       let documentmasterid = documentList.find(d => d.documentid === originalpage.docid).documentmasterid;
+          //       let rotation = documentViewer.getDocument().getPageRotation(page)
+          //       payloads[documentmasterid] = {...payloads[documentmasterid], [originalpage.page]: rotation}
+          //     }
+          //     for (let documentmasterid in payloads) {            
+          //       saveRotateDocumentPage(
+          //         requestid,
+          //         documentmasterid,
+          //         payloads[documentmasterid],
+          //         (data) => {},
+          //         (error) => {
+          //           errorToast(error);
+          //         }
+          //       )
+          //     }
+          //   }
+          // })
 
           instance.UI.addEventListener(UIEvents.ANNOTATION_FILTER_CHANGED, e => {
           e.detail.types = e.detail.types.map(type => {
@@ -825,6 +850,14 @@ const Redlining = React.forwardRef(
       initializeWebViewer();
     }, []);
 
+    const applyRotations = (document, rotatedpages) => {
+      for (let page in rotatedpages) {            
+        let existingrotation = document.getPageRotation(page);     
+        let rotation = (rotatedpages[page] - existingrotation + 360) / 90;
+        document.rotatePages([page], rotation);
+      }
+    }
+
     useEffect(() =>{
         if (clickRedactionPanel) {
           handleRedactionPanelClick(enableRedactionPanel, docInstance);
@@ -903,6 +936,7 @@ const Redlining = React.forwardRef(
             useDownloader: false, // Added to fix BLANK page issue
             loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
         }).then(async (newDoc) => {
+          applyRotations(newDoc, filerow.file.attributes.rotatedpages);
           setpdftronDocObjects((_arr) => [
             ..._arr,
             {
@@ -1071,6 +1105,8 @@ const Redlining = React.forwardRef(
           info.source !== "redactionApplied" &&
           info.source !== "cancelRedaction"
         ) {
+          
+
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving
@@ -1433,9 +1469,44 @@ const Redlining = React.forwardRef(
         newRedaction,
         pageSelections,
         redlineSaving,
+        multiSelectFooter,
+        enableMultiSelect,
         isStitchingLoaded,
       ]
     );
+
+    const rotationChangedHandler = useCallback(async (changes) => {
+      if (isStitchingLoaded && changes.rotationChanged) {
+        let payloads = {};
+        for (let page of changes.rotationChanged) {
+          let originalpage = pageMappedDocs.stitchedPageLookup[page];
+          let documentmasterid = documentList.find(d => d.documentid === originalpage.docid).documentmasterid;
+          let rotation = docViewer.getDocument().getPageRotation(page)
+          payloads[documentmasterid] = {...payloads[documentmasterid], [String(originalpage.page)]: rotation}
+        }
+        for (let documentmasterid in payloads) {            
+          saveRotateDocumentPage(
+            requestid,
+            documentmasterid,
+            payloads[documentmasterid],
+            (data) => {},
+            (error) => {
+              errorToast(error);
+            }
+          )
+        }
+      }
+    },
+    [
+      pageMappedDocs,
+      currentLayer,
+      newRedaction,
+      pageSelections,
+      redlineSaving,
+      multiSelectFooter,
+      enableMultiSelect,
+      isStitchingLoaded,
+    ]);
 
     useEffect(() => {
       annotManager?.addEventListener(
@@ -1469,10 +1540,16 @@ const Redlining = React.forwardRef(
         "annotationChanged",
         annotationChangedHandler
       );
+      docViewer?.removeEventListener("pagesUpdated", rotationChangedHandler)      
+      docViewer?.addEventListener("pagesUpdated", rotationChangedHandler)
       return () => {
         annotManager?.removeEventListener(
           "annotationChanged",
           annotationChangedHandler
+        );
+        docViewer?.removeEventListener(
+          "pagesUpdated",
+          rotationChangedHandler
         );
       };
     }, [
@@ -1787,10 +1864,10 @@ const Redlining = React.forwardRef(
           node.attributes.name
         );
         childAnnotation.PageNumber = _redact?.getPageNumber();
-        childAnnotation.X = _redact.X;
-        childAnnotation.Y = _redact.Y;
-        childAnnotation.FontSize =
-          Math.min(parseInt(_redact.FontSize), 9) + "pt";
+        // childAnnotation.X = _redact.X;
+        // childAnnotation.Y = _redact.Y;
+        // childAnnotation.FontSize =
+        //   Math.min(parseInt(_redact.FontSize), 9) + "pt";
         const fullpageredaction = _redact.getCustomData("trn-redaction-type");
         const displayedDoc =
           pageMappedDocs.stitchedPageLookup[Number(node.attributes.page) + 1];
@@ -1835,16 +1912,17 @@ const Redlining = React.forwardRef(
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
-        const doc = docViewer?.getDocument();
-        let pageNumber = parseInt(node.attributes.page) + 1;
+        // const doc = docViewer?.getDocument();
+        // let pageNumber = parseInt(node.attributes.page) + 1;
 
-        const pageInfo = doc.getPageInfo(pageNumber);
-        const pageMatrix = doc.getPageMatrix(pageNumber);
-        const pageRotation = doc.getPageRotation(pageNumber);
-        childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-        let rect = childAnnotation.getRect();
-        rect.x2 = Math.ceil(rect.x2);
-        childAnnotation.setRect(rect);
+        // const pageInfo = doc.getPageInfo(pageNumber);
+        // const pageMatrix = doc.getPageMatrix(pageNumber);
+        // const pageRotation = doc.getPageRotation(pageNumber);
+        // childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+        // let rect = childAnnotation.getRect();
+        // rect.x2 = Math.ceil(rect.x2);
+        // childAnnotation.setRect(rect);
+        childAnnotation = getCoordinates(childAnnotation, _redact)
         annotManager.redrawAnnotation(childAnnotation);
         childAnnotations.push(childAnnotation);
       }
@@ -1928,9 +2006,6 @@ const Redlining = React.forwardRef(
           redaction.NoMove = true;
           const fullpageredaction =
             redaction.getCustomData("trn-redaction-type");
-          let coords = node.attributes.coords;
-          let X = coords?.substring(0, coords.indexOf(","));
-          childAnnotation = getCoordinates(childAnnotation, redaction, X);
 
           let redactionSectionsIds = selectedSections;
           let redactionSections = "";
@@ -1966,15 +2041,15 @@ const Redlining = React.forwardRef(
             docid: displayedDoc.docid,
             docversion: displayedDoc.docversion,
           }
-
-          const pageInfo = doc.getPageInfo(pageNumber);
-          const pageMatrix = doc.getPageMatrix(pageNumber);
-          const pageRotation = doc.getPageRotation(pageNumber);
-          childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
-          childAnnotation.NoMove = true;
-          let rect = childAnnotation.getRect();
-          rect.x2 = Math.ceil(rect.x2);
-          childAnnotation.setRect(rect);
+          // const pageInfo = doc.getPageInfo(pageNumber);
+          // const pageMatrix = doc.getPageMatrix(pageNumber);
+          // const pageRotation = doc.getPageRotation(pageNumber);
+          // childAnnotation.fitText(pageInfo, pageMatrix, pageRotation);
+          // childAnnotation.NoMove = true;
+          // let rect = childAnnotation.getRect();
+          // rect.x2 = Math.ceil(rect.x2);
+          // childAnnotation.setRect(rect);
+          childAnnotation = getCoordinates(childAnnotation, redaction);
           annotManager.redrawAnnotation(childAnnotation);
           let _annotationtring = annotManager.exportAnnotations({
             annotationList: [childAnnotation],
@@ -2066,11 +2141,8 @@ const Redlining = React.forwardRef(
         let sectionAnnotations = [];
         for (const node of astr.getElementsByTagName("annots")[0].children) {
           let annotationsToDelete = [];
-          let redaction = annotManager.getAnnotationById(node.attributes.name);
-          let coords = node.attributes.coords;
-          let X = coords?.substring(0, coords.indexOf(","));
+          let redaction = annotManager.getAnnotationById(node.attributes.name);          
           let annot = new annots.FreeTextAnnotation();
-          annot = getCoordinates(annot, redaction, X);
           annot.Color = "red";
           annot.StrokeThickness = 0;
           annot.Author = user?.name || user?.preferred_username || "";
@@ -2086,16 +2158,17 @@ const Redlining = React.forwardRef(
           annot.setCustomData(
             "sections",
             JSON.stringify(getSections(sections, redactionSectionsIds))
-          );
-          const doc = docViewer.getDocument();
-          const pageInfo = doc.getPageInfo(annot.PageNumber);
-          const pageMatrix = doc.getPageMatrix(annot.PageNumber);
-          const pageRotation = doc.getPageRotation(annot.PageNumber);
-          annot.NoMove = true;
-          annot.fitText(pageInfo, pageMatrix, pageRotation);
-          let rect = annot.getRect();
-          rect.x2 = Math.ceil(rect.x2);
-          annot.setRect(rect);
+          );          
+          annot = getCoordinates(annot, redaction);
+          // const doc = docViewer.getDocument();
+          // const pageInfo = doc.getPageInfo(annot.PageNumber);
+          // const pageMatrix = doc.getPageMatrix(annot.PageNumber);
+          // const pageRotation = doc.getPageRotation(annot.PageNumber);
+          // annot.NoMove = true;
+          // annot.fitText(pageInfo, pageMatrix, pageRotation);
+          // let rect = annot.getRect();
+          // rect.x2 = Math.ceil(rect.x2);
+          // annot.setRect(rect);
           if (redaction.type == "fullPage") {
             annot.NoResize = true;
             annot.setCustomData("trn-redaction-type", "fullPage");
@@ -2187,9 +2260,43 @@ const Redlining = React.forwardRef(
 
     const getCoordinates = (_annot, _redaction, X) => {
       _annot.PageNumber = _redaction?.getPageNumber();
-      _annot.X = X || _redaction.X;
-      _annot.Y = _redaction.Y;
+      // let rect = _redaction.getQuads()[0].toRect();
+      let quad = _redaction.getQuads()[0];
+      let rect = new docInstance.Core.Math.Rect(quad.x1, quad.y3, quad.x2, quad.y2);
+      const doc = docViewer.getDocument();
+      const pageInfo = doc.getPageInfo(_annot.PageNumber);
+      const pageMatrix = doc.getPageMatrix(_annot.PageNumber);
+      const pageRotation = doc.getPageRotation(_annot.PageNumber);
       _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 9) + "pt";
+      _annot.Rotation = 0; // reset rotation before resizing
+      _annot.fitText(pageInfo, pageMatrix, pageRotation);
+      let annotrect = _annot.getRect();
+      annotrect.x2 = Math.ceil(annotrect.x2);
+      _annot.setRect(annotrect);
+      if (pageRotation === 0 || _redaction.IsText) {
+        // _annot.X = X || rect.x1;
+        // _annot.Y = rect.y1;        
+        _annot.setRect(new docViewerMath.Rect(rect.x1, rect.y1, rect.x1 + _annot.Width, rect.y1 + _annot.Height));  
+        // let annotrect = _annot.getRect();
+        // annotrect.x2 = Math.ceil(annotrect.x2);
+        // _annot.setRect(annotrect);
+      } else if (pageRotation === 90) {
+        _annot.setRect(new docViewerMath.Rect(rect.x1, rect.y2 - _annot.Width, rect.x1 + _annot.Height, rect.y2));  
+        _annot.Rotation = pageRotation;
+        // _annot.X = rect.x1;
+        // _annot.Y = rect.y2;
+      } else if (pageRotation === 180) {
+        _annot.setRect(new docViewerMath.Rect(rect.x2 - _annot.Width, rect.y2 - _annot.Height, rect.x2, rect.y2));
+        _annot.Rotation = pageRotation;
+        // _annot.X = rect.x2;
+        // _annot.Y = rect.y2;  
+      } else if (pageRotation === 270) {
+        _annot.setRect(new docViewerMath.Rect(rect.x2 - _annot.Height, rect.y1, rect.x2, rect.y1 + _annot.Width));  
+        _annot.Rotation = pageRotation;
+        // _annot.X = rect.x2;
+        // _annot.Y = rect.y1;   
+      } 
+      _annot.NoMove = true;
       return _annot;
     };
 
@@ -2968,7 +3075,7 @@ const Redlining = React.forwardRef(
           )
         );
       }
-      return stitchAnnotation.join();
+      return stitchAnnotation.join("");
     };
 
     const constructFreeTextAndannoteIds = (data) => {
@@ -3075,7 +3182,7 @@ const Redlining = React.forwardRef(
                 updatedXML.push(annotxml);
         }
       }
-      return updatedXML.join();
+      return updatedXML.join("");
     };
 
     const checkFilter = (xmlObj,_freeTextIds, _annoteIds) => {
@@ -3582,6 +3689,7 @@ const Redlining = React.forwardRef(
               useDownloader: false, // Added to fix BLANK page issue
               loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
             }).then(async (newDoc) => {
+              applyRotations(newDoc, filerow.attributes.rotatedpages)
               docCount++;
               setredlineDocCount(docCount);
               if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
@@ -3735,10 +3843,18 @@ const Redlining = React.forwardRef(
               await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
             }
             
-            let xfdfString =
-              '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
-              formattedAnnotationXML +
-              "</annots></xfdf>";
+            let string = await stitchObject.extractXFDF()
+
+            let xmlObj = parser.parseFromString(string.xfdfString);
+            let annots = parser.parseFromString('<annots>' + formattedAnnotationXML + '</annots>');
+            let annotsObj = xmlObj.getElementsByTagName('annots')
+            if (annotsObj.length > 0) {
+              annotsObj[0].children = annotsObj[0].children.concat(annots.children)
+            } else {
+              xmlObj.children.push(annots)
+            }          
+
+            let xfdfString = parser.toString(xmlObj);
 
             //OIPC - Special Block (Redact S.14) : Begin
             if(redlineCategory === "oipcreview") {

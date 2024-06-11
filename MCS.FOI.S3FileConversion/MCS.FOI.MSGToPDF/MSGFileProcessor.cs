@@ -56,15 +56,25 @@ namespace MCS.FOI.MSGToPDF
                                     var _attachment = (Storage.Message)attachment;
                                     var filename = _attachment.FileName;
                                     var extension = Path.GetExtension(filename);
+                                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
                                         _attachment.Save(attachmentStream);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-
+                                        
+                                        // If the filename already exists, increment the duplicate count to create a unique filename
                                         if (fileNameHash.ContainsKey(filename))
                                         {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                            int duplicateCount = 1; // Initialize the duplicate count
+                                            string newFilename;
+                                            
+                                            // Loop until a unique filename is found
+                                            do
+                                            {
+                                                newFilename = baseFilename + duplicateCount.ToString() + extension;
+                                                duplicateCount++;
+                                            } while (fileNameHash.ContainsKey(newFilename));
+                                            filename = newFilename;
                                         }
                                         fileNameHash.Add(filename, true);
                                         attachmentInfo.Add("filename", _attachment.FileName);
@@ -80,19 +90,27 @@ namespace MCS.FOI.MSGToPDF
                                     var _attachment = (Storage.Attachment)attachment;
                                     var filename = _attachment.FileName;
                                     var extension = Path.GetExtension(filename);
-
+                                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
                                         attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-
+                                        
+                                        // If the filename already exists, increment the duplicate count to create a unique filename
                                         if (fileNameHash.ContainsKey(filename))
                                         {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                            int duplicateCount = 1;  // Initialize the duplicate count
+                                            string newFilename;
+                                            // Loop until a unique filename is found
+                                            do
+                                            {
+                                                newFilename = baseFilename + '-' +duplicateCount.ToString() + extension;
+                                                duplicateCount++;
+                                            } while (fileNameHash.ContainsKey(newFilename));
+                                            filename = newFilename; // Set the unique filename
                                         }
                                         fileNameHash.Add(filename, true);
-                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("filename", filename);
                                         attachmentInfo.Add("s3filename", filename);
                                         attachmentInfo.Add("cid", _attachment.ContentId);
                                         attachmentInfo.Add("size", _attachment.Data.Length.ToString());
@@ -109,6 +127,7 @@ namespace MCS.FOI.MSGToPDF
                             var options = RegexOptions.None;
                             var timeout = TimeSpan.FromSeconds(10);
                             var bodyreplaced = Regex.Replace(body, "page:WordSection1;", "", options, timeout);
+                            bodyreplaced = Regex.Replace(bodyreplaced, "</style>", "table {max-width: 800px !important;}</style>", options, timeout);
                             //var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(body, "<br.*?>", "<br/>", options, timeout), "<hr.*?>", "<hr/>", options, timeout), "href=\"[^\"]*=[^\"]\"", "", options, timeout).Replace(";=\"\"", "").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout), "<img src=\"(?!cid).*?>", "", options, timeout);
                             const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                             const string imgString = "<img(.|\\n)*src=\"cid(.|\\n)*?>";
