@@ -44,6 +44,7 @@ function Home() {
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
+  const [outstandingBalance, setOutstandingBalance]= useState(0)
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -67,6 +68,7 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
+        setOutstandingBalance(outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
@@ -278,6 +280,7 @@ function Home() {
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
+                  outstandingBalance={outstandingBalance}
                 />
               )
             // : <div>Loading</div>

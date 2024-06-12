@@ -100,11 +100,16 @@ class GetDocuments(Resource):
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
+            print("jsonobj:", jsonobj)
             balancefeeoverrodforrequest = jobrecordservice().isbalancefeeoverrodforrequest(requestid)
+            outstandingbalance=0
+            if 'cfrfee' in jsonobj and 'feedata' in jsonobj['cfrfee'] and "balanceDue" in jsonobj['cfrfee']['feedata']:
+                outstandingbalance= jsonobj['cfrfee']['feedata']["balanceDue"]
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
                 "requesttype": jsonobj["requestType"],
                 "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
+                "outstandingbalance": outstandingbalance,
                 "balancefeeoverrodforrequest": balancefeeoverrodforrequest
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])

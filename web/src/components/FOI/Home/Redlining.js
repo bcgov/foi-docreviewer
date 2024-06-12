@@ -98,7 +98,8 @@ const Redlining = React.forwardRef(
       licenseKey,
       setWarningModalOpen,
       scrollLeftPanel,
-      isBalanceFeeOverrode
+      isBalanceFeeOverrode,
+      outstandingBalance
     },
     ref
   ) => {
@@ -195,7 +196,6 @@ const Redlining = React.forwardRef(
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
-    const [outstandingBalance, setOutstandingBalance]= useState(1)
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");
     
