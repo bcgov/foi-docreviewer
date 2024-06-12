@@ -29,6 +29,7 @@ import logging
 
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.services.docdeletedpageservice import docdeletedpageservice
+from reviewer_api.services.jobrecordservice import jobrecordservice
 
 API = Namespace('Document Services', description='Endpoints for deleting and replacing documents')
 TRACER = Tracer.get_instance()
@@ -99,13 +100,21 @@ class GetDocuments(Resource):
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
+            print("jsonobj:", jsonobj)
+            balancefeeoverrodforrequest = jobrecordservice().isbalancefeeoverrodforrequest(requestid)
+            outstandingbalance=0.0
+            if 'cfrfee' in jsonobj and 'feedata' in jsonobj['cfrfee'] and "balanceDue" in jsonobj['cfrfee']['feedata']:
+                outstandingbalancestr = jsonobj['cfrfee']['feedata']["balanceDue"]
+                outstandingbalance = float(outstandingbalancestr)
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
                 "requesttype": jsonobj["requestType"],
                 "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
+                "outstandingbalance": outstandingbalance,
+                "balancefeeoverrodforrequest": balancefeeoverrodforrequest
             }
             result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
-            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
+            return json.dumps({"requeststatuslabel": "", "documents": result, "requestnumber":"", "requestinfo":requestinfo}), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
