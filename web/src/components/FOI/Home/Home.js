@@ -68,7 +68,7 @@ function Home() {
     fetchDocuments(
       parseInt(foiministryrequestid),
       async (data) => {
-        setOutstandingBalance(outstandingbalance)
+        setOutstandingBalance(data.requestinfo.outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
