@@ -13,6 +13,9 @@ class redactionsummaryservice():
     def processmessage(self,incomingmessage):
         summaryfilestozip = []
         message = get_in_redactionsummary_msg(incomingmessage)
+        #Condition to handle consults packaages (no summary files to be created)
+        if message.category == "consultpackage":
+            return summaryfilestozip
         try:
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
