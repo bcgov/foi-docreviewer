@@ -19,7 +19,7 @@ depends_on = None
 def upgrade():
     op.create_table('PDFStitchJobAttributes',
         sa.Column('attributesid', sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column('pdfstitchjobid', sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
+        sa.Column('pdfstitchjobid', sa.Integer(), nullable=False),
         sa.Column('version', sa.Integer(), nullable=False),
         sa.Column('ministryrequestid', sa.Integer(), nullable=False),        
         sa.Column('attributes', postgresql.JSON(astext_type=sa.Text()), nullable=False),
