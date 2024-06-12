@@ -82,7 +82,8 @@ const Redlining = React.forwardRef(
       scrollLeftPanel,
       pageFlags, 
       syncPageFlagsOnAction,
-      isBalanceFeeOverrode
+      isBalanceFeeOverrode,
+      outstandingBalance
     },
     ref
   ) => {
@@ -143,7 +144,6 @@ const Redlining = React.forwardRef(
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
-    const [outstandingBalance, setOutstandingBalance]= useState(1)
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");
     

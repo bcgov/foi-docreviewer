@@ -46,6 +46,7 @@ function Home() {
   const [divisions, setDivisions] = useState([]);
   const [pageFlags, setPageFlags]= useState([]);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
+  const [outstandingBalance, setOutstandingBalance]= useState(0)
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -69,6 +70,7 @@ function Home() {
       parseInt(foiministryrequestid),
       async (data, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
+        setOutstandingBalance(outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
@@ -304,6 +306,7 @@ function Home() {
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
+                  outstandingBalance={outstandingBalance}
                 />
               )
             // : <div>Loading</div>
