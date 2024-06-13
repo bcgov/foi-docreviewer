@@ -3827,7 +3827,7 @@ const Redlining = React.forwardRef(
             redactionlayerid: currentLayer.redactionlayerid
           });
 
-          if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+          if(res.issingleredlinepackage == 'Y'){
             stitchSingleDivisionRedlineExport(
               _instance,
               divisionDocuments,
@@ -3929,7 +3929,8 @@ const Redlining = React.forwardRef(
             await _instance.Core.createDocument(doc.s3path_load, {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
-            }).then(async (docObj) => {            
+            }).then(async (docObj) => {
+              applyRotations(docObj, doc.attributes.rotatedpages)
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
