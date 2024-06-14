@@ -58,7 +58,19 @@ class DocumentPageflag(db.Model):
                 )
             )
             db.session.commit()
-            return DefaultMethodResult(True, "Page Flag is saved", _documentid)
+            pageflagquery = db.session.query(DocumentPageflag).filter(
+                and_(
+                    DocumentPageflag.foiministryrequestid == _foiministryrequestid,
+                    DocumentPageflag.documentid == _documentid,
+                    DocumentPageflag.documentversion == _documentversion,
+                    DocumentPageflag.redactionlayerid == redactionlayerid,
+                )
+            ).order_by(
+                DocumentPageflag.id
+            ).with_entities(DocumentPageflag.documentid, DocumentPageflag.pageflag).first()
+            pageflag_schema = DocumentPageflagSchema(many=False)
+            updated_pageflag = pageflag_schema.dump(pageflagquery)
+            return DefaultMethodResult(True, "Page Flag is saved", updated_pageflag['pageflag'])
         except Exception as ex:
             logging.error(ex)
             return DefaultMethodResult(False, "Page Flag is not saved", _documentid)
@@ -88,6 +100,7 @@ class DocumentPageflag(db.Model):
             ).order_by(
                 DocumentPageflag.id
             ).first()
+            pageflag_schema = DocumentPageflagSchema(many=False)
             if pageflag is not None:
                 DocumentPageflagHistory.createpageflag(
                     DocumentPageflagHistory(
@@ -110,7 +123,21 @@ class DocumentPageflag(db.Model):
                 pageflag.updatedby = userinfo 
                 db.session.add(pageflag)
                 db.session.commit()
-                return DefaultMethodResult(True, "Page Flag is saved", _documentid)
+                pageflagquery = dbquery.filter(
+                    and_(
+                        DocumentPageflag.foiministryrequestid == _foiministryrequestid,
+                        DocumentPageflag.documentid == _documentid,
+                        DocumentPageflag.documentversion == _documentversion,
+                        DocumentPageflag.redactionlayerid == redactionlayerid,
+                    )
+                ).order_by(
+                    DocumentPageflag.id
+                ).with_entities(DocumentPageflag.documentid, DocumentPageflag.pageflag).first()
+                updated_pageflag = pageflag_schema.dump(pageflagquery)
+                if updated_pageflag is None:
+                    logging.debug("Updated Pageflag not found!")
+                #return DefaultMethodResult(True, "Page Flag is saved", _documentid, updated_pageflag)
+                return DefaultMethodResult(True, "Page Flag is saved", updated_pageflag['pageflag'])
             else:
                 return cls.createpageflag(
                     _foiministryrequestid,

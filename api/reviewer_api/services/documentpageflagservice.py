@@ -85,6 +85,7 @@ class documentpageflagservice:
                         "version": entry["version"],
                         "redactionlayerid": entry["redactionlayerid"],
                         "message": result.message,
+                        "updatedpageflag": result.identifier
                     }
                 )
             except Exception as ex:
