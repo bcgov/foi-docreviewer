@@ -123,7 +123,7 @@ class redactionservice:
             _jobmessage, userinfo["userid"]
         )
         if job.success:
-            if finalpackageschema['pdfstitchjobattributes'] is not None:
+            if 'pdfstitchjobattributes' in finalpackageschema and finalpackageschema['pdfstitchjobattributes'] is not None:
                 if 'feeoverridereason' in finalpackageschema['pdfstitchjobattributes']:
                     feeoverridereason= finalpackageschema['pdfstitchjobattributes']['feeoverridereason']
                     if feeoverridereason is not None and feeoverridereason != '':
@@ -135,8 +135,10 @@ class redactionservice:
 
     # redline/final package download: prepare message for zipping service
     def __preparemessageforsummaryservice(self, messageschema, userinfo, job):
-        feeoverridereason= None
-        pdf_stitch_job_attributes = to_json(messageschema['pdfstitchjobattributes'])
+        feeoverridereason= ''
+        pdf_stitch_job_attributes = None
+        if 'pdfstitchjobattributes' in messageschema:
+            pdf_stitch_job_attributes = to_json(messageschema['pdfstitchjobattributes'])
         if pdf_stitch_job_attributes is not None:
             feeoverridereason= json.loads(pdf_stitch_job_attributes).get("feeoverridereason", None) 
             if feeoverridereason is not None and feeoverridereason != '':
