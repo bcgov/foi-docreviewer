@@ -113,7 +113,10 @@ const useSaveResponsePackage = () => {
     // sort based on sortorder as the sortorder added based on the LastModified
     let sorteddocs = sortBySortOrder(alldocuments);
     for (const sorteddoc of sorteddocs) {
-      sorteddocids.push(sorteddoc["documentid"]);
+      if (!sorteddocids.includes(sorteddoc['documentid'])) {
+        sorteddocids.push(sorteddoc['documentid']);
+      }
+      
     }
     return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
   };
@@ -167,8 +170,9 @@ const useSaveResponsePackage = () => {
         let doc = documentViewer.getDocument();
         await annotationManager.applyRedactions();
         /**must apply redactions before removing pages*/
-        await doc.removePages(pagesToRemove);
-
+        if (pagesToRemove.length > 0) {
+          await doc.removePages(pagesToRemove);
+        }   
         const { PDFNet } = _instance.Core;
         PDFNet.initialize();
         await stampPageNumberResponse(documentViewer, PDFNet);

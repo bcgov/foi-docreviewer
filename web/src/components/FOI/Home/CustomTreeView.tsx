@@ -1,5 +1,5 @@
 // import {TreeView, TreeItem} from '@mui/x-tree-view';
-import {TreeItem, TreeItem2} from '@mui/x-tree-view';
+import {TreeItem} from '@mui/x-tree-view';
 import { treeItemClasses } from "@mui/x-tree-view/TreeItem";
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import React, { useEffect, useState, useImperativeHandle, useRef, createRef, LegacyRef } from 'react'
@@ -218,7 +218,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           title={itemid.title}
 
         //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
-          slots={{endIcon: (_props) => {return addIcons(itemid)}}}
+          slots={{endIcon: (_props: any) => {return addIcons(itemid)}}}
         //   icon={faCircleHalfStroke}
           onContextMenu={(e) => openContextMenu(e, props)}
         //   slotProps={{
