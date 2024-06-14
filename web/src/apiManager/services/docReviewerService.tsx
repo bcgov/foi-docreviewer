@@ -45,6 +45,30 @@ export const fetchDocuments = (
     });
 };
 
+export const saveRotateDocumentPage = (
+  foiministryrequestid: number,
+  documentmasterid: number,
+  rotatedpage: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_UPDATE_DOCUMENT_ATTRIBUTES}`
+  let requestJSON = {ministryrequestid: foiministryrequestid, documentmasterids: [documentmasterid], rotatedpages: rotatedpage}
+  
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        errorCallback("Error in saving rotated page");
+        throw new Error(`Error while saving rotated page`);
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in saving rotated page");
+    });
+};
+
 export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
   activepage: number,

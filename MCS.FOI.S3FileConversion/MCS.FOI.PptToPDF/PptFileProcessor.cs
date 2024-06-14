@@ -1,21 +1,10 @@
 ﻿
 using Serilog;
-//using Syncfusion.OfficeChartToImageConverter;
+using Syncfusion.Pdf;
 using Syncfusion.Presentation;
 using Syncfusion.PresentationRenderer;
-//using Syncfusion.PresentationToPdfConverter;
-using System.IO;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using Syncfusion.Pdf;
-using Syncfusion.Drawing;
 using Image = System.Drawing.Image;
 using ImageFormat = System.Drawing.Imaging.ImageFormat;
-using System.Transactions;
-
-using Syncfusion.Pdf;
 
 
 

@@ -20,7 +20,7 @@ class redactionsummary():
 
     def __packaggesummary(self, message, documentids, pageflags, programareas):
         try:
-            redactionlayerid = message.redactionlayerid
+            redactionlayerid = self.__getredactionlayerid(message)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
@@ -48,7 +48,7 @@ class redactionsummary():
                             pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
                     skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
                 pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
-                
+            
             for pageflag in _pageflags:
                 _data = {}
                 if len(pageflag['docpageflags']) > 0:
@@ -60,6 +60,11 @@ class redactionsummary():
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             print('error occured in redaction dts service: ', error)
+
+    def __getredactionlayerid(self, message):
+        if message.category == "responsepackage":
+            return documentpageflag().getrecentredactionlayerid(message.ministryrequestid)
+        return message.redactionlayerid 
 
     def __getdeletedpages(self, ministryid, ordereddocids):
         deletedpages = documentpageflag().getdeletedpages(ministryid, ordereddocids)
