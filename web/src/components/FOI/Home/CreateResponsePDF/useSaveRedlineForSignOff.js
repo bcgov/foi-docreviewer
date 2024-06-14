@@ -154,7 +154,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     console.log("divdocmapping");
     let newDocList = [];
     for (let div of divisions) {
-      let divDocList = documentList.filter((doc) =>
+      let divDocList = documentList?.filter((doc) =>
         doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
       );
       // sort based on sortorder as the sortorder added based on the LastModified
@@ -750,7 +750,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
     const divisionFilesList = [...documentList, ...incompatibleFiles];
     const divisions = getDivisionsForSaveRedline(divisionFilesList);
-    const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
+    const divisionDocuments = getDivisionDocumentMappingForRedline(
+      divisions,
+      documentList,
+      incompatibleFiles
+    );
     const documentids = documentList.map((obj) => obj.documentid);
     getFOIS3DocumentRedlinePreSignedUrl(
       foiministryrequestid,
