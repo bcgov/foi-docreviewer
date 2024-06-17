@@ -196,6 +196,7 @@ const ContextMenu = ({
 
   const updatePersonalAttributes = (_all = false) => {
     setEditTagModalOpen(false);
+    setOpenContextPopup(false);
     var documentMasterIDs = [];
 
     if(_all) {
@@ -301,6 +302,7 @@ const ContextMenu = ({
         <MCFPersonal
           editTagModalOpen={editTagModalOpen}
           setEditTagModalOpen={setEditTagModalOpen}
+          setOpenContextPopup={setOpenContextPopup}
           setNewDivision={setDivisionModalTagValue}
           curPersonalAttributes={curPersonalAttributes}
           setNewPersonalAttributes={setNewPersonalAttributes}

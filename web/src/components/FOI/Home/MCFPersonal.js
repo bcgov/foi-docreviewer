@@ -24,6 +24,7 @@ import { MCFPopularSections } from "../../../constants/enum";
 const MCFPersonal = ({
     editTagModalOpen,
     setEditTagModalOpen,
+    setOpenContextPopup,
     setNewDivision,
     // tagValue,
     curPersonalAttributes,
@@ -230,6 +231,7 @@ const MCFPersonal = ({
       });
       setNewPersonalAttributes();
       setEditTagModalOpen(false);
+      setOpenContextPopup(false);
     };
 
     const handleFileTypeSearchKeywordChange = (keyword) => {
