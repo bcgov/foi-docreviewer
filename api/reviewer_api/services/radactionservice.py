@@ -49,6 +49,7 @@ class redactionservice:
         return annotationservice().copyannotation(ministryrequestid, sourcelayers, targetlayer)
 
     def saveannotation(self, annotationschema, userinfo):
+        pageflagresponse= None
         result = annotationservice().saveannotation(annotationschema, userinfo)
         if (
             result.success == True
@@ -63,12 +64,12 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                documentpageflagservice().bulksavepageflag(
+                pageflagresponse= documentpageflagservice().bulksavepageflag(
                     foiministryrequestid,
                     annotationschema["pageflags"],
                     userinfo,
                 )
-        return result
+        return pageflagresponse, result
 
     def deactivateannotation(
         self,

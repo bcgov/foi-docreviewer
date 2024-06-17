@@ -30,7 +30,6 @@ function Home() {
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
-
   const [currentPageInfo, setCurrentPageInfo] = useState({ file: {}, page: 0 });
   const [s3UrlReady, setS3UrlReady] = useState(false);
   const [s3Url, setS3Url] = useState("");
@@ -38,11 +37,12 @@ function Home() {
   const [totalPageCount, setTotalPageCount] = useState(0);
   const [currentDocument, setCurrentDocument] = useState({});
   const [docsForStitcing, setDocsForStitcing] = useState([]);
-  const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
-  const [pageMappedDocs, setPageMappedDocs] = useState([]);
+  const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [divisions, setDivisions] = useState([]);
+  const [pageFlags, setPageFlags]= useState([]);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -51,7 +51,6 @@ function Home() {
     setS3UrlReady(false);
     let documentObjs = [];
     let totalPageCountVal = 0;
-    let presignedurls = [];
     let deletedDocPages = [];
 
     fetchDeletedDocumentPages(
@@ -65,8 +64,8 @@ function Home() {
 
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data) => {
-
+      async (data, documentDivisions) => {
+        setDivisions(documentDivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
@@ -139,6 +138,10 @@ function Home() {
   const getCurrentDocument = (doclist) => {    
     return doclist.find(item => item.file.pagecount > 0);    
   }
+
+  const syncPageFlagsOnAction = (updatedFlags) => {
+    setPageFlags(updatedFlags);
+  };
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -225,8 +228,8 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
-  const scrollLeftPanel = (pageNo) => {
-    selectorRef?.current?.scrollToPage(pageNo);
+  const scrollLeftPanel = (event, pageNo) => {
+    selectorRef?.current?.scrollToPage(event, pageNo);
   };
 
   const closeWarningMessage = () => {
@@ -249,6 +252,9 @@ function Home() {
                 setIndividualDoc={setIndividualDoc}
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
+                divisions={divisions}
+                pageFlags={pageFlags}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -266,16 +272,16 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
+
                 />
               )
             // : <div>Loading</div>
@@ -297,7 +303,7 @@ function Home() {
         className={"state-change-dialog"}
         isOpen={warningModalOpen}
       >
-        <DialogTitle disableTypography id="state-change-dialog-title">
+        <DialogTitle disabletypography="true" id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
           <IconButton className="title-col3" onClick={closeWarningMessage}>
             <i className="dialog-close-button">Close</i>

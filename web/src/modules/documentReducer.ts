@@ -21,8 +21,8 @@ const documents = (state = initialState, action:any)=> {
       return {...state, sections: action.payload};
     case ACTION_CONSTANTS.SET_REQUEST_NUMBER:
         return {...state, requestnumber: action.payload};  
-    case ACTION_CONSTANTS.SET_PAGE_FLAGS:
-      return {...state, pageFlags: action.payload};
+    // case ACTION_CONSTANTS.SET_PAGE_FLAGS:
+    //   return {...state, pageFlags: action.payload};
     case ACTION_CONSTANTS.SET_DOCUMENT_LIST:
       return {...state, documentList: action.payload};
     case ACTION_CONSTANTS.SET_KEYWORDS:
