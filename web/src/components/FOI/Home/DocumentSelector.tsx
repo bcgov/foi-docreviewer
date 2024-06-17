@@ -69,11 +69,8 @@ const DocumentSelector = React.memo(
       const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
       const [selectAllConsultee, setSelectAllConsultee] = useState(false);
       const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-      //const [expandedItems, setExpandedItems] = useState<string[]>([]);
       const pageRefs = useRef([]);
       const treeRef: any = useRef();
-      // const [completionCounter, setCompletionCounter]= useState(0);
-      // const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
       useImperativeHandle(
         ref,
@@ -325,35 +322,9 @@ const DocumentSelector = React.memo(
             setIndividualDoc({ file, page: pageNo });
             setCurrentPageInfo({ file, page });
         }
-        console.log(`selectTreeItem - Ended.... ${new Date().getSeconds()}`);
     };
 
-    //   const selectTreeItem1 = (docid: any, page: number) => {
-        
-    //     let file: any = filesForDisplay.find(
-    //       (f: any) => f.documentid === docid
-    //     );
-    //     if (file.pages.includes(page)) {
-    //       if (
-    //         pageMappedDocs?.docIdLookup &&
-    //         Object.keys(pageMappedDocs?.docIdLookup).length > 0
-    //       ) {
-    //         let pageNo: number = getStitchedPageNoFromOriginal(
-    //           file.documentid,
-    //           page,
-    //           pageMappedDocs
-    //         );
-    //         setIndividualDoc({ file: file, page: pageNo });
-    //         setCurrentPageInfo({ file: file, page: page });
-    //         // setCurrentDocument({ 'file': file, 'page': page })
-    //         // if (page == 1)
-    //         //     setDisableHover(false);
-    //       }
-    //     }
-    //     console.log(`selectTreeItem - Ended.... ${new Date().getSeconds()}`);
-    //   };
-
-      const isConsult = (consults: Array<any>, pageNo: number) => {
+    const isConsult = (consults: Array<any>, pageNo: number) => {
         if (consults?.find((consult: any) => consult.page == pageNo))
           return true;
         return false;
@@ -494,7 +465,6 @@ const DocumentSelector = React.memo(
       let codeById: Record<number, string> = {};
       const mapConsultMinistries = () => {
         if (consultMinistries && consultMinistries.length > 0) {
-          console.log("#############");
           codeById = {};
           consultMinistries.forEach((item: any) => {
             codeById[item.programareaid] = item.iaocode;
@@ -683,20 +653,10 @@ const DocumentSelector = React.memo(
               return {
                 id: `{"docid": ${file.documentid}}`,
                 label: file.filename,
-                children: getFilePages(file), //file.pages.map(
-                // (p: any) => {
-                //     return {
-                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                //          label: getPageLabel(file, p)
-                //     }
-                // }
-                // )
+                children: getFilePages(file), 
               };
             });
           } else {
-            // const divisionIdsSet = new Set(filesForDisplay.flatMap((file: any) => file.divisions.map((d: any) => d.divisionid)));
-            // /** Filter divisions based on whether they have associated files*/
-            // const filteredDivisions = divisions.filter((division: any) => divisionIdsSet.has(division.divisionid));
             if (filesForDisplay.length > 0) {
               return divisions.map((division: any) => {
                 return {
@@ -712,14 +672,7 @@ const DocumentSelector = React.memo(
                       return {
                         id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
                         label: file.filename,
-                        children: getFilePages(file, division), //file.pages.map(
-                        // (p: any) => {
-                        //     return {
-                        //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                        //          label: getPageLabel(file, p)
-                        //     }
-                        // }
-                        // )
+                        children: getFilePages(file, division),
                       };
                     }),
                 };
@@ -955,41 +908,12 @@ const DocumentSelector = React.memo(
               </div>
             </div>
             <hr className="hrStyle" />
-            {/* <Box sx={{ mb: 1 }}>
-                        <Tooltip
-                            sx={{
-                                backgroundColor: 'white',
-                                color: 'rgba(0, 0, 0, 0.87)',
-                                fontSize: 11
-                            }}
-                            title={expanded.length === 0 ? "Expand All" : "Collapse All"}
-                            placement="right"
-                            arrow
-                            disableHoverListener={disableHover}
-                        >
-                            <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
-                            {expanded.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
-                            </Button>
-                        </Tooltip>
-                    </Box> */}
-            {/* <TreeView
-                        aria-label="file system navigator"
-                        defaultCollapseIcon={<ExpandMoreIcon />}
-                        defaultExpandIcon={<ChevronRightIcon />}
-                        expanded={expanded}
-                        multiSelect
-                        selected={selected}
-                        onNodeToggle={handleToggle}
-                        onNodeSelect={handleSelect}
-                        sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-                    > */}
             {
               filesForDisplay.length <= 0 && filterBookmark ? (
                 <div style={{ textAlign: "center" }}>
                   No page has been book marked.
                 </div>
               ) : (
-                // organizeBy === "lastmodified" ?
                 <CustomTreeView
                   ref={treeRef}
                   items={getTreeItems()}
@@ -1004,23 +928,8 @@ const DocumentSelector = React.memo(
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                 />
-              ) //: <></>
-              // divisions?.length > 0 &&
-              //     <DivisionTreeView
-              //         selected={selected}
-              //         expanded={expanded}
-              //         handleToggle={handleToggle}
-              //         handleSelect={handleSelect}
-              //         filesForDisplay={filesForDisplay}
-              //         divisions={divisions}
-              //         filterBookmark={filterBookmark}
-              //         consulteeFilterView={consulteeFilterView}
-              //         noFilterView={noFilterView}
-              //         disableHover={disableHover}
-              //         displayFilePages={displayFilePages}
-              //     />
+              )
             }
-            {/* </TreeView> */}
           </Stack>
         </div>
       );

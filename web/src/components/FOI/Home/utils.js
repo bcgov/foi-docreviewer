@@ -1,19 +1,4 @@
-import { pageFlagTypes } from "../../../constants/enum";
 
-// export const getStitchedPageNoFromOriginal1 = (docid, page, pageMappedDocs) => {
-//   let stitchedPageNo = 0;
-//   if (docid && pageMappedDocs) {
-//     let doc = pageMappedDocs?.docIdLookup[docid];
-//     // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
-//     let stitchedPage = doc?.pageMappings?.filter(
-//       (_page) => _page.pageNo === page
-//     );
-//     if (stitchedPage && stitchedPage.length > 0) {
-//       stitchedPageNo = stitchedPage[0].stitchedPageNo;
-//     }
-//   }
-//   return stitchedPageNo;
-// };
 
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   if (!docid || !pageMappedDocs) return 0;
@@ -690,7 +675,6 @@ export const updatePageFlagOnPage = (updatedDocs, pageFlags) => {
       });
     }
   }
-  //console.log("updatedPageFlags:",updatedPageFlags)
   return updatedPageFlags;
 }
 
