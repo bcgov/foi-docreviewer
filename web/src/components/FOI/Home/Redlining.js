@@ -1862,8 +1862,8 @@ const Redlining = React.forwardRef(
       } else {
         let pageFlagSelections = pageSelections;
         if (
-          (defaultSections.length > 0 && defaultSections[0] === 25) ||
-          selectedSections[0] === 25
+          (defaultSections.length > 0 && defaultSections[0] === blankID) ||
+          selectedSections[0] === blankID
         ) {
           pageFlagSelections = pageFlagSelections.map((flag) => {
             flag.flagid = pageFlagTypes["In Progress"];
@@ -2168,7 +2168,7 @@ const Redlining = React.forwardRef(
       if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
         setWarningModalOpen(true);
         cancelRedaction();
-      } else if (defaultSections.length > 0 && !defaultSections.includes(26)) {
+      } else if (defaultSections.length > 0 && !defaultSections.includes(NRID)) {
         saveRedaction();
       } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
         setModalOpen(true);
@@ -2177,7 +2177,7 @@ const Redlining = React.forwardRef(
       } else if (hasFullPageRedaction) {
         if (defaultSections.length != 0) setMessageModalForNotResponsive();
         setModalOpen(true)
-      } else if (defaultSections.includes(26) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
+      } else if (defaultSections.includes(NRID) && selectedPageFlagId != pageFlagTypes["Withheld in Full"]) {
         saveRedaction();
       } else {
         setModalOpen(true);
@@ -2262,27 +2262,30 @@ const Redlining = React.forwardRef(
       return trnCustomData
     }
 
+    const NRID = sections?.find(s => s.section === "NR").id;
+    const blankID = sections?.find(s => s.section === "").id;
+
     const sectionIsDisabled = (sectionid) => {
       let isDisabled = false;
       let hasFullPageRedaction = false;
       if (newRedaction) hasFullPageRedaction = decodeAstr(newRedaction.astr)['trn-redaction-type'] === "fullPage"
       // For sections
-      if (selectedSections.length > 0 && !selectedSections.includes(25) && !selectedSections.includes(26)) {
-        isDisabled = (sectionid === 25 || sectionid === 26)
+      if (selectedSections.length > 0 && !selectedSections.includes(blankID) && !selectedSections.includes(NRID)) {
+        isDisabled = (sectionid === blankID || sectionid === NRID)
       // For Blank Code
-      } else if (selectedSections.length > 0 && selectedSections.includes(25)) {
-        isDisabled = sectionid !== 25
+      } else if (selectedSections.length > 0 && selectedSections.includes(blankID)) {
+        isDisabled = sectionid !== blankID
       } else if (hasFullPageRedaction) {
-        isDisabled = sectionid == 26
+        isDisabled = sectionid == NRID
       // For Not Responsive
-      } else if (selectedSections.length > 0 && selectedSections.includes(26)) {
-        isDisabled = sectionid !== 26
+      } else if (selectedSections.length > 0 && selectedSections.includes(NRID)) {
+        isDisabled = sectionid !== NRID
       } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && selectedSections?.length === 0) {
-        isDisabled = sectionid == 26
+        isDisabled = sectionid == NRID
       } else if (editAnnot) {
         const trnCustomData = decodeAstr(editAnnot.astr)
         const isFullPage = trnCustomData['trn-redaction-type'] === "fullPage"
-        isDisabled = isFullPage && sectionid == 26
+        isDisabled = isFullPage && sectionid == NRID
       } else if (editRedacts) {
         let hasFullPageRedaction = false;
         for (let annot of editRedacts.annots[0].children) {
@@ -2293,7 +2296,7 @@ const Redlining = React.forwardRef(
             hasFullPageRedaction = true;
           }
         }
-        isDisabled = hasFullPageRedaction && sectionid == 26
+        isDisabled = hasFullPageRedaction && sectionid == NRID
       }
       return isDisabled
     }
