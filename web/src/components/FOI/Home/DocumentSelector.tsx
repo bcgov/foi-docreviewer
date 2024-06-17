@@ -393,7 +393,7 @@ const DocumentSelector = React.memo(
         const flagFilterCopy = [...filterFlags];
         let consulteeIds = [...consulteeFilter];
         if (flagFilterCopy.includes(flagId)) {
-          if (flagId == 4) {
+          if (flagId == pageFlagTypes['Consult']) {
             if (event.target.checked) {
               if (allSelectedconsulteeList.length > 0) {
                 consulteeIds = allSelectedconsulteeList;
@@ -415,7 +415,7 @@ const DocumentSelector = React.memo(
           )
             setFilterBookmark(true);
         } else {
-          if (flagId == 4) {
+          if (flagId == pageFlagTypes['Consult']) {
             if (event.target.checked) {
               if (allSelectedconsulteeList.length > 0)
                 consulteeIds = allSelectedconsulteeList;
@@ -475,7 +475,7 @@ const DocumentSelector = React.memo(
       const openConsulteeList = (e: any) => {
         mapConsultMinistries();
         const consultFlagged = files.filter((file: any) =>
-          file.pageFlag?.some((obj: any) => obj.flagid === 4)
+          file.pageFlag?.some((obj: any) => obj.flagid === pageFlagTypes['Consult'])
         );
         if (consultFlagged.length > 0 && Object.keys(codeById).length > 0) {
           const namedConsultValues: any[] = Array.from(
@@ -807,7 +807,7 @@ const DocumentSelector = React.memo(
               <span>
                 {pageFlagList.map((item: any) => (
                   <>
-                    {item.pageflagid == "Consult" || item.pageflagid == 4 ? (
+                    {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
                       <span
                         style={consultFilterStyle}
                         onClick={(event) => openConsulteeList(event)}
@@ -816,7 +816,7 @@ const DocumentSelector = React.memo(
                           key={item.pageflagid}
                           title={item.name}
                           className={
-                            item.pageflagid == "Consult" || item.pageflagid == 4
+                            item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
                               ? "filterConsultIcon"
                               : "filterIcons"
                           }
@@ -836,7 +836,7 @@ const DocumentSelector = React.memo(
                         key={item.pageflagid}
                         title={item.name}
                         className={
-                          item.pageflagid == "Consult" || item.pageflagid == 4
+                          item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
                             ? "filterConsultIcon"
                             : "filterIcons"
                         }

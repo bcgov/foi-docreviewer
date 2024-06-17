@@ -7,6 +7,7 @@ import { setRedactionInfo, setIsPageLeftOff, setSections,
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
+import { pageFlagTypes } from "../../constants/enum";
 
 
 export const fetchDocuments = (
@@ -345,7 +346,7 @@ export const fetchPageFlag = (
         callback(res.data);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
-          return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+          return element?.pageflag?.some((obj: any) =>(obj.flagid === pageFlagTypes["Page Left Off"]));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
       } else {
