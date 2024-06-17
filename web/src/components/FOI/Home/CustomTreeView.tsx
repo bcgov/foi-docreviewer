@@ -118,7 +118,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
     };
        
     const handleSelect = (event: any,nodeIds: any) => {
-        console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
         let selectedPages = [];
         let selectedOthers = [];
         let selectedNodes = [];
@@ -154,46 +153,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         }
     };
 
-    //   const handleSelect1 = (event: any, nodeIds: any) => {
-    //     console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
-    //     let selectedpages:any[] = [];
-    //     let selectedothers:any[] = [];
-    //     let selectedNodes:any[] = [];
-    //     for (let n of nodeIds) {
-    //         let _n = JSON.parse(n);
-    //         selectedNodes.push(_n);
-    //         if(_n.page) {
-    //             selectedpages.push(n);
-    //         } else {
-    //             selectedothers.push(n);
-    //         }
-    //     }
-
-    //     if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("docid")) {
-    //         selectTreeItem(selectedNodes[0].docid, selectedNodes[0].page || 1);
-    //     }
-
-    //     // if new select includes divisions and filenames:
-    //     // 1. remove divisions and filenames from new select
-    //     // 2. join old select and new select
-    //     // else only keep new select
-    //     if(selectedothers.length > 0) {
-    //         selectedpages = [...new Set([...selected, ...selectedpages])];
-    //     }
-
-    //     if(selectedpages.length > PAGE_SELECT_LIMIT) {
-    //         setWarningModalOpen(true);
-    //     } else {
-    //         setSelected(selectedpages);
-    //         let _selectedpages:any[] = selectedpages.map((n: any) => {
-    //             let page = JSON.parse(n)
-    //             delete page.flagid;
-    //             return page
-    //         });
-    //         setSelectedPages(_selectedpages);
-    //     }
-    // };
-
+    
     const addIcons = (itemid: any) => {
         if (itemid.page) { //&& pageFlags) {
             let returnElem = (<>{itemid.flagid.map((id: any) => (
@@ -232,7 +192,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     const openContextMenu = (e: any, props: any) => {
         if (props.children) return
-        // console.log("contextmenu")
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
         if (nodeId === "") {
