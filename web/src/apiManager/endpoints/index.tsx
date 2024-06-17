@@ -17,5 +17,7 @@ const API = {
     DOCREVIEWER_FINALPACKAGE:`${DOCREVIEWER_BASE_API_URL}/api/triggerdownloadfinalpackage`,
     DOCREVIEWER_LICENSE:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/webviewerlicense`,
     DOCREVIEWER_DOCUMENT_PAGE_DELETE:`${DOCREVIEWER_BASE_API_URL}/api/document/ministryrequest/<ministryrequestid>/deletedpages`,
+    FOI_GET_PERSONALTAG:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/personalattributes`,
+    DOCREVIEWER_EDIT_PERSONAL_ATTRIBUTES:`${DOCREVIEWER_BASE_API_URL}/api/document/update/personal`,
 };
 export default API;

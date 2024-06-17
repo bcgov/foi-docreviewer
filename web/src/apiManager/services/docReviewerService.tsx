@@ -3,7 +3,8 @@ import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
-  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages
+  setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages,
+  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
@@ -34,7 +35,8 @@ export const fetchDocuments = (
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
-        callback(res.data.documents, res.data.documentdivisions);
+        // callback(__files, res.data.documentdivisions, res.data.requestinfo);
+        callback(res.data.documents, res.data.documentdivisions, res.data.requestinfo);
       } else {
         throw new Error();
       }
@@ -507,5 +509,54 @@ export const fetchDeletedDocumentPages = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching deleted pages:",error);
+    });
+};
+
+export const fetchPersonalAttributes = (
+  bcgovcode: string,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.FOI_GET_PERSONALTAG}/${bcgovcode}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data) {
+        console.log("fetchPersonalAttributes: ", res.data);
+        store.dispatch(setFOIPersonalPeople(res.data) as any);
+        store.dispatch(setFOIPersonalFiletypes(res.data) as any);
+        store.dispatch(setFOIPersonalVolumes(res.data) as any);
+        store.dispatch(setFOIPersonalSections(res.data) as any);
+        // callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in fetching personal attributes");
+    });
+};
+
+export const editPersonalAttributes = (
+  foiministryrquestid: string,
+  callback: any,
+  errorCallback: any,
+  data?: any
+) => {
+  let apiUrlPost: string = replaceUrl(
+    API.DOCREVIEWER_EDIT_PERSONAL_ATTRIBUTES,
+    "<requestid>",
+    foiministryrquestid
+  )
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while editing personal attributes for requestid ${foiministryrquestid}`);
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in editing personal attributes");
     });
 };

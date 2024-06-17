@@ -92,3 +92,28 @@ export const setDeletedPages = (data: any) => (dispatch:any) =>{
         payload:data
     })
 }
+
+export const setFOIPersonalSections = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_PERSONAL_SECTIONS,
+        payload:data      
+    })
+  }
+  export const setFOIPersonalPeople = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_PERSONAL_PEOPLE,
+        payload:data      
+    })
+  }
+  export const setFOIPersonalFiletypes = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_PERSONAL_FILETYPES,
+        payload:data      
+    })
+  }
+  export const setFOIPersonalVolumes = (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_PERSONAL_VOLUMES,
+        payload:data      
+    })
+  }

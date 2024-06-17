@@ -29,7 +29,6 @@ import { pageFlagTypes } from "../../../constants/enum";
 import Popover from "@mui/material/Popover";
 import CustomTreeView from "./CustomTreeView";
 
-
 const DocumentSelector = React.memo(
   React.forwardRef(
     (
@@ -57,7 +56,7 @@ const DocumentSelector = React.memo(
       const files = useMemo(() => documents, [documents]);
       const [organizeBy, setOrganizeBy] = useState("lastmodified");
       const [pageFlagList, setPageFlagList] = useState([]);
-      const [filesForDisplay, setFilesForDisplay] = useState([]);
+      const [filesForDisplay, setFilesForDisplay] = useState<any>([]);
       const [consultMinistries, setConsultMinistries] = useState<any>([]);
       const [filterFlags, setFilterFlags] = useState<any>([]);
       const [filteredFiles, setFilteredFiles] = useState(files);
@@ -138,7 +137,7 @@ const DocumentSelector = React.memo(
       useEffect(() => {
         if (
           requestInfo.requesttype == "personal" &&
-          ["MSD", "MCF"].includes(requestInfo.bcgovcode)
+          ["MSD"].includes(requestInfo.bcgovcode)
         ) {
           setOrganizeBy("division");
         }
@@ -587,151 +586,121 @@ const DocumentSelector = React.memo(
 
       const getFilePages = (file: any, division?: any) => {
         if (filterFlags.length > 0) {
-          let filteredpages = file.pages.filter((p: any) => {
-            if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
-              return true;
-            } else {
-              return file.pageFlag?.find((obj: any) => {
-                if (obj.page === p) {
-                  if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
-                    return true;
-                  }
-                } else if (consulteeFilter.length > 0) {
-                  if (
-                    obj.programareaid?.some((val: any) =>
-                      consulteeFilter.includes(val)
-                    ) ||
-                    obj.other?.some((val: any) => consulteeFilter.includes(val))
-                  ) {
-                    return true;
-                  }
+            let filteredpages =  file.pages.filter(((p: any) => {
+                if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
+                    return true
                 } else {
-                  return false;
+                    return (file.pageFlag?.find((obj: any) => {
+                        if (obj.page === p) {
+                            if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
+                                return true
+                            }
+                        } else if (consulteeFilter.length > 0) {
+                            if ((obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+                                (obj.other?.some((val: any) => consulteeFilter.includes(val)))) {
+                                    return true
+                                }
+                        } else {
+                            return false
+                        }
+
+                    })) 
                 }
-              });
+
+            }))
+            if (organizeBy === "division" ) {
+                return filteredpages.map((p: any) => {
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            } else {
+                return filteredpages.map((p: any) => {
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
             }
-          });
-          if (organizeBy === "lastmodified") {
-            return filteredpages.map((p: any) => {
-              return {
-                id: `{"docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          } else {
-            return filteredpages.map((p: any) => {
-              return {
-                id: `{"division": ${division?.divisionid}, "docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          }
-          // if (consulteeFilter.length > 0) {
-          //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
-          //         ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
-          //         (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-          //         (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
-          //     }
-          // } else {
-          //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
-          //     } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
-          //     }
-          // }
-        } else {
-          if (organizeBy === "lastmodified") {
-            return file.pages.map((p: any) => {
-              return {
-                id: `{"docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          } else {
-            return file.pages.map((p: any) => {
-              return {
-                id: `{"division": ${division?.divisionid}, "docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          }
+        } else {            
+            if (organizeBy === "division" ) {
+                return file.pages.map((p: any) => {
+                    return {                        
+                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            } else {
+                return file.pages.map((p: any) => {
+                    return {
+                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
+                        label: getPageLabel(file, p)
+                    }
+                })
+            }
         }
-      };
+    }
 
       const getTreeItems = () => {
         if (pageFlags) {
-          if (organizeBy === "lastmodified") {
-            return filesForDisplay.map((file: any, index: number) => {
-              return {
-                id: `{"docid": ${file.documentid}}`,
-                label: file.filename,
-                children: getFilePages(file), //file.pages.map(
-                // (p: any) => {
-                //     return {
-                //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
-                //          label: getPageLabel(file, p)
-                //     }
-                // }
-                // )
-              };
-            });
-          } else {
-            // const divisionIdsSet = new Set(filesForDisplay.flatMap((file: any) => file.divisions.map((d: any) => d.divisionid)));
-            // /** Filter divisions based on whether they have associated files*/
-            // const filteredDivisions = divisions.filter((division: any) => divisionIdsSet.has(division.divisionid));
-            if (filesForDisplay.length > 0) {
-              return divisions.map((division: any) => {
-                return {
-                  id: `{"division": ${division.divisionid}}`,
-                  label: division.name,
-                  children: filesForDisplay
-                    .filter((file: any) =>
-                      file.divisions
-                        .map((d: any) => d.divisionid)
-                        .includes(division.divisionid)
-                    )
-                    .map((file: any, index: number) => {
-                      return {
-                        id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
-                        label: file.filename,
-                        children: getFilePages(file, division), //file.pages.map(
+            if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
+                var index = 0;
+                let tree: any = []
+                for (let file of filesForDisplay as any[]) {
+                    var label = file.attributes.personalattributes.person + ' - ' + 
+                        file.attributes.personalattributes.filetype;
+                    if (file.attributes.personalattributes.trackingid) {
+                        label += (' - ' + file.attributes.personalattributes.trackingid)
+                    }
+                    if (file.attributes.personalattributes.volume) {
+                        label += (' - ' + file.attributes.personalattributes.volume)
+                    }
+                    if (tree.length === 0 || tree[index].label !== label) {
+                        tree.push({
+                            id: `{"filevolume": "${label}"}`,
+                            label: label,
+                            children: []
+                        })
+                        index = tree.length - 1
+                    }
+                    tree[index].children.push({
+                        id: `{"docid": ${file.documentid}}`,
+                        label: (file.attributes.personalattributes.personaltag || 'TBD') + ' (' + file.pages.length + ')',
+                        children: getFilePages(file)
+                    })
+                }
+                return tree;
+            } else if (organizeBy === "lastmodified" ) {
+                return filesForDisplay.map((file: any, index: number) => {return {
+                    id: `{"docid": ${file.documentid}}`,
+                    label: file.filename,
+                    children: getFilePages(file) //file.pages.map(
                         // (p: any) => {
                         //     return {
                         //          id: `{"docid": ${file.documentid}, "page": ${p + 1}}`,
                         //          label: getPageLabel(file, p)
                         //     }
                         // }
-                        // )
-                      };
-                    }),
-                };
-              });
-            } else {
-              return [];
+                    // )
+                }})
+            } else if (organizeBy === "division" ) {
+                return divisions.map((division: any) => {
+                    return {
+                        id: `{"division": ${division.divisionid}}`,
+                        label: division.name,
+                        children: filesForDisplay.filter((file: any) => file.divisions.map((d: any) => d.divisionid).includes(division.divisionid)).map((file: any, index: number) => {return {
+                            id: `{"division": ${division.divisionid}, "docid": ${file.documentid}}`,
+                            label: file.filename,
+                            children: getFilePages(file, division)
+                        }})
+                    }
+                })
             }
-          }
         } else {
-          return [];
+            return []
         }
-      };
+    }
 
       return (
         <div className="leftPanel">
@@ -814,40 +783,44 @@ const DocumentSelector = React.memo(
                 />
               </div>
             </div>
-            <hr className="hrStyle" />
-            <div className="row">
-              <div className="col-lg-4" style={{ paddingRight: "0px" }}>
-                Organize by:
+            {!['mcf','msd'].includes(requestInfo.bcgovcode) &&
+              <>
+              <hr className="hrStyle" />
+              <div className="row">
+                <div className="col-lg-4" style={{ paddingRight: "0px" }}>
+                  Organize by:
+                </div>
+                <div className="col-lg-8" style={{ paddingLeft: "0px" }}>
+                  <Stack
+                    direction="row"
+                    sx={{ paddingBottom: "5px" }}
+                    spacing={1}
+                  >
+                    <ClickableChip
+                      label="Division"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        setOrganizeBy("division");
+                        //setExpandedItems([]);
+                      }}
+                      clicked={organizeBy === "division"}
+                    />
+                    <ClickableChip
+                      label="Modified Date"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        setOrganizeBy("lastmodified");
+                        //setExpandedItems([]);
+                      }}
+                      clicked={organizeBy === "lastmodified"}
+                    />
+                  </Stack>
+                </div>
               </div>
-              <div className="col-lg-8" style={{ paddingLeft: "0px" }}>
-                <Stack
-                  direction="row"
-                  sx={{ paddingBottom: "5px" }}
-                  spacing={1}
-                >
-                  <ClickableChip
-                    label="Division"
-                    color="primary"
-                    size="small"
-                    onClick={() => {
-                      setOrganizeBy("division");
-                      //setExpandedItems([]);
-                    }}
-                    clicked={organizeBy === "division"}
-                  />
-                  <ClickableChip
-                    label="Modified Date"
-                    color="primary"
-                    size="small"
-                    onClick={() => {
-                      setOrganizeBy("lastmodified");
-                      //setExpandedItems([]);
-                    }}
-                    clicked={organizeBy === "lastmodified"}
-                  />
-                </Stack>
-              </div>
-            </div>
+              </>
+            }
             <hr className="hrStyle" />
             <div>
               <span className="filterText">Filter:</span>
@@ -1003,6 +976,7 @@ const DocumentSelector = React.memo(
                   assignIcon={assignIcon}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
+                  requestInfo={requestInfo}
                 />
               ) //: <></>
               // divisions?.length > 0 &&
