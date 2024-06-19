@@ -353,6 +353,7 @@ const Redlining = React.forwardRef(
     const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
     const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
     const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
+    const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
@@ -3585,6 +3586,7 @@ const Redlining = React.forwardRef(
         setRedlineModalOpen(false);
         setSelectedPublicBodyIDs([]);
         setConsultApplyRedactions(false);
+        setConsultApplyRedlines(false);
       }
     };
 
@@ -4637,6 +4639,9 @@ const Redlining = React.forwardRef(
     const handleApplyRedactions = (e) => {
       setConsultApplyRedactions(e.target.checked);
     }
+    const handleApplyRedlines = (e) => {
+      setConsultApplyRedlines(e.target.checked);
+    }
 
     const handleSelectedPublicBodies = (e) => {
       const publicBodyId = parseInt(e.target.value);
@@ -4873,11 +4878,21 @@ const Redlining = React.forwardRef(
                     type="checkbox"
                     style={{ marginRight: 10 }}
                     className="redline-checkmark"
+                    id="applyredline-checkbox"
+                    checked={consultApplyRedlines}
+                    onChange={handleApplyRedlines}
+                  />
+                  <label for="applyredline-checkbox">Include Redlines</label>
+                  <br/>
+                  <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
                     id="redaction-checkbox"
                     checked={consultApplyRedactions}
                     onChange={handleApplyRedactions}
                   />
-                  <label for="redaction-checkbox">Apply Redactions</label>
+                  <label for="redaction-checkbox">Apply Redactions (NR code only)</label>
                 </>
                 }
               </span>
