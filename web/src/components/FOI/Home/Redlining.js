@@ -2139,8 +2139,8 @@ const Redlining = React.forwardRef(
           break;
         default:
       }
-      setIncludeDuplicatePages(false);
-      setIncludeNRPages(false);
+      // setIncludeDuplicatePages(false);
+      // setIncludeNRPages(false);
     };
 
     const decodeAstr = (astr) => {

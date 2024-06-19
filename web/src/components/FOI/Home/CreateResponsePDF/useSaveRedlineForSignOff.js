@@ -961,6 +961,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       isSingleRedlinePackage,
       stitchedDocPath
     );
+    setIncludeDuplicatePages(false);
+    setIncludeNRPages(false);
   };
   const prepareMessageForRedlineZipping = (
     divObj,
@@ -1392,164 +1394,164 @@ const stampPageNumberRedline = async (
     setDocViewer(initDocViewer);
   }, [initDocViewer]);
 
-  
-  useEffect(() => {
-    const StitchAndUploadDocument = async () => {
-      const { PDFNet } = docInstance.Core;
-      const downloadType = "pdf";
-      let currentDivisionCount = 0;
-      const divisionCountForToast = Object.keys(redlineStitchObject).length;
-      for (const [key, value] of Object.entries(redlineStitchObject)) {
-        currentDivisionCount++;
-        toast.update(toastId.current, {
-          render:
-            redlineSinglePackage == "N"
-              ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
-              : `Saving redline PDF to Object Storage...`,
-          isLoading: true,
-          autoClose: 5000,
-        });
+  const StitchAndUploadDocument = async () => {
+    const { PDFNet } = docInstance.Core;
+    const downloadType = "pdf";
+    let currentDivisionCount = 0;
+    const divisionCountForToast = Object.keys(redlineStitchObject).length;
+    for (const [key, value] of Object.entries(redlineStitchObject)) {
+      currentDivisionCount++;
+      toast.update(toastId.current, {
+        render:
+          redlineSinglePackage == "N"
+            ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
+            : `Saving redline PDF to Object Storage...`,
+        isLoading: true,
+        autoClose: 5000,
+      });
 
-        let divisionid = key;
-        let stitchObject = redlineStitchObject[key];
-        if (stitchObject == null) {
-          triggerRedlineZipper(
-            redlineIncompatabileMappings[divisionid],
-            null, // stitchObject == null then no stichedDocPath available
-            divisionCountForToast,
-            redlineSinglePackage
+      let divisionid = key;
+      let stitchObject = redlineStitchObject[key];
+      if (stitchObject == null) {
+        triggerRedlineZipper(
+          redlineIncompatabileMappings[divisionid],
+          null, // stitchObject == null then no stichedDocPath available
+          divisionCountForToast,
+          redlineSinglePackage
+        );
+      } else {
+        let formattedAnnotationXML = formatAnnotationsForRedline(
+          redlineDocumentAnnotations,
+          redlinepageMappings["divpagemappings"][divisionid],
+          redlineStitchInfo[divisionid]["documentids"]
+        );
+        if(redlineCategory !== "oipcreview") {  
+          await stampPageNumberRedline(
+          stitchObject,
+          PDFNet,
+          redlineStitchInfo[divisionid]["stitchpages"],
+          redlineSinglePackage
           );
-        } else {
-          let formattedAnnotationXML = formatAnnotationsForRedline(
-            redlineDocumentAnnotations,
-            redlinepageMappings["divpagemappings"][divisionid],
-            redlineStitchInfo[divisionid]["documentids"]
+        }
+        if (
+          redlinepageMappings["pagestoremove"][divisionid] &&
+          redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
+          stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
+        ) {
+          await stitchObject.removePages(
+            redlinepageMappings["pagestoremove"][divisionid]
           );
-          if(redlineCategory !== "oipcreview") {  
-            await stampPageNumberRedline(
+        }
+        if(redlineCategory == "redline") {  
+          await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
+        }
+        
+        let xfdfString =
+          '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
+          formattedAnnotationXML +
+          "</annots></xfdf>";
+
+        //OIPC - Special Block (Redact S.14) : Begin
+        if(redlineCategory === "oipcreview") {
+          const rarr = []; 
+          let annotationManager = docInstance?.Core.annotationManager;
+          let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+          let rects = [];
+          for (const [key, value] of Object.entries(s14_sectionStamps)) {
+            let s14annoation = annotationManager.getAnnotationById(key);
+                if ( s14annoation.Subject === "Redact") { 
+                        rects = rects.concat( 
+                        s14annoation.getQuads().map((q) => {
+                          return {
+                              pageno: s14_sectionStamps[key],
+                              recto: q.toRect(),
+                              vpageno: s14annoation.getPageNumber()
+                            };
+                          })
+                        );
+                    }
+              
+            
+          }
+          for (const rect of rects) {
+            let height = docViewer.getPageHeight(rect.vpageno);
+            rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+          }
+          if (rarr.length > 0) {
+            const app = {};
+            app.redaction_overlay = true;
+            app.border = false;
+            app.show_redacted_content_regions = false;
+            const doc = await stitchObject.getPDFDoc();
+            await PDFNet.Redactor.redact(doc, rarr, app);
+          }
+          await stampPageNumberRedline(
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
             redlineSinglePackage
-            );
-          }
-          if (
-            redlinepageMappings["pagestoremove"][divisionid] &&
-            redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
-            stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
-          ) {
-            await stitchObject.removePages(
-              redlinepageMappings["pagestoremove"][divisionid]
-            );
-          }
-          if(redlineCategory == "redline") {  
-            await addWatermarkToRedline(stitchObject, redlineWatermarkPageMapping, key);
-          }
-          
-          let xfdfString =
-            '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots>' +
-            formattedAnnotationXML +
-            "</annots></xfdf>";
-
-          //OIPC - Special Block (Redact S.14) : Begin
-          if(redlineCategory === "oipcreview") {
-            const rarr = []; 
-            let annotationManager = docInstance?.Core.annotationManager;
-            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            let rects = [];
-            for (const [key, value] of Object.entries(s14_sectionStamps)) {
-              let s14annoation = annotationManager.getAnnotationById(key);
-                  if ( s14annoation.Subject === "Redact") { 
-                          rects = rects.concat( 
-                          s14annoation.getQuads().map((q) => {
-                            return {
-                                pageno: s14_sectionStamps[key],
-                                recto: q.toRect(),
-                                vpageno: s14annoation.getPageNumber()
-                              };
-                            })
-                          );
-                      }
-                
-              
-            }
-            for (const rect of rects) {
-              let height = docViewer.getPageHeight(rect.vpageno);
-              rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
-            }
-            if (rarr.length > 0) {
-              const app = {};
-              app.redaction_overlay = true;
-              app.border = false;
-              app.show_redacted_content_regions = false;
-              const doc = await stitchObject.getPDFDoc();
-              await PDFNet.Redactor.redact(doc, rarr, app);
-            }
-            await stampPageNumberRedline(
-              stitchObject,
-              PDFNet,
-              redlineStitchInfo[divisionid]["stitchpages"],
-              redlineSinglePackage
-            );
-          }
-          //OIPC - Special Block : End        
-          stitchObject
-            .getFileData({
-              // saves the document with annotations in it
-              xfdfString: xfdfString,
-              downloadType: downloadType,
-              //flatten: true, //commented this as part of #4862
-            })
-            .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], {
-                type: "application/pdf",
-              });
-
-              saveFilesinS3(
-                { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                _blob,
-                (_res) => {
-                  // ######### call another process for zipping and generate download here ##########
-                  toast.update(toastId.current, {
-                    render: `Redline PDF saved to Object Storage`,
-                    type: "success",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                  triggerRedlineZipper(
-                    redlineIncompatabileMappings[divisionid],
-                    redlineStitchInfo[divisionid]["s3path"],
-                    divisionCountForToast,
-                    redlineSinglePackage
-                  );
-                },
-                (_err) => {
-                  console.log(_err);
-                  toast.update(toastId.current, {
-                    render: "Failed to save redline pdf to Object Storage",
-                    type: "error",
-                    className: "file-upload-toast",
-                    isLoading: false,
-                    autoClose: 3000,
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    closeButton: true,
-                  });
-                }
-              );
-            });
+          );
         }
+        //OIPC - Special Block : End        
+        stitchObject
+          .getFileData({
+            // saves the document with annotations in it
+            xfdfString: xfdfString,
+            downloadType: downloadType,
+            //flatten: true, //commented this as part of #4862
+          })
+          .then(async (_data) => {
+            const _arr = new Uint8Array(_data);
+            const _blob = new Blob([_arr], {
+              type: "application/pdf",
+            });
+
+            saveFilesinS3(
+              { filepath: redlineStitchInfo[divisionid]["s3path"] },
+              _blob,
+              (_res) => {
+                // ######### call another process for zipping and generate download here ##########
+                toast.update(toastId.current, {
+                  render: `Redline PDF saved to Object Storage`,
+                  type: "success",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+                triggerRedlineZipper(
+                  redlineIncompatabileMappings[divisionid],
+                  redlineStitchInfo[divisionid]["s3path"],
+                  divisionCountForToast,
+                  redlineSinglePackage
+                );
+              },
+              (_err) => {
+                console.log(_err);
+                toast.update(toastId.current, {
+                  render: "Failed to save redline pdf to Object Storage",
+                  type: "error",
+                  className: "file-upload-toast",
+                  isLoading: false,
+                  autoClose: 3000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  closeButton: true,
+                });
+              }
+            );
+          });
       }
-    };
+    }
+  };
+  
+  useEffect(() => {
 
     if (
       redlineStitchObject &&
