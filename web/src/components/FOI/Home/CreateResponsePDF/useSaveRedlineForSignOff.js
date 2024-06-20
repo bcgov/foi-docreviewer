@@ -1123,7 +1123,7 @@ const stampPageNumberRedline = async (
           updatedXML.push(annotxml);
       }
     }
-    return updatedXML.join();
+    return updatedXML.join("");
   };
 
   const constructFreeTextAndannoteIds = (data) => {
