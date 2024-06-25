@@ -762,7 +762,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         
         prepareRedlinePageMapping(
           res['divdocumentList'],
-          res.issingleredlinepackage
+          res.issingleredlinepackage,
+          pageMappedDocs
         );
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
