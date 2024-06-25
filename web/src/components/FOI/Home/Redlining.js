@@ -1385,11 +1385,11 @@ const Redlining = React.forwardRef(
       lastPageIndex = 1
     ) => {
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
-        await fetchAnnotationsByPagination(
+        fetchAnnotationsByPagination(
           requestid,
           i,
           ANNOTATION_PAGE_SIZE,
-          (data) => {
+          async (data) => {
             assignAnnotationsPagination(mappedDocs, data["data"], domParser);
           },
           (error) => {
