@@ -20,7 +20,6 @@ export const httpGETBigRequest = async (url: string, data: any, token: any, time
     params: data,
     timeout: timeout,
     headers: {
-      'Access-Control-Allow-Origin' : '*',
       Authorization: isBearer
         ? `Bearer ${token || UserService.getToken()}`
         : token,
