@@ -565,16 +565,16 @@ const DocumentSelector = React.memo(
                 if (obj.page === p) {
                   if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
                     return true;
-                  }
-                } else if (consulteeFilter.length > 0) {
-                  if (
-                    obj.programareaid?.some((val: any) =>
-                      consulteeFilter.includes(val)
-                    ) ||
-                    obj.other?.some((val: any) => consulteeFilter.includes(val))
-                  ) {
-                    return true;
-                  }
+                  } else if (consulteeFilter.length > 0) {
+                    if (
+                        obj.programareaid?.some((val: any) =>
+                        consulteeFilter.includes(val)
+                        ) ||
+                        obj.other?.some((val: any) => consulteeFilter.includes(val))
+                    ) {
+                        return true;
+                    }
+                  }                    
                 } else {
                   return false;
                 }

@@ -762,7 +762,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         
         prepareRedlinePageMapping(
           res['divdocumentList'],
-          res.issingleredlinepackage
+          res.issingleredlinepackage,
+          pageMappedDocs
         );
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
@@ -1123,7 +1124,7 @@ const stampPageNumberRedline = async (
           updatedXML.push(annotxml);
       }
     }
-    return updatedXML.join();
+    return updatedXML.join("");
   };
 
   const constructFreeTextAndannoteIds = (data) => {
