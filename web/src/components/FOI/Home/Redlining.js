@@ -400,6 +400,14 @@ const Redlining = React.forwardRef(
             y = 0
           });
 
+          instance.UI.addEventListener("selectedThumbnailChanged", event => {
+            if (event.detail.length > 1) {
+              instance.UI.disableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
+            } else {
+              instance.UI.enableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
+            }
+          })
+
           let root = null;
 
     // add event listener for hiding saving menu
