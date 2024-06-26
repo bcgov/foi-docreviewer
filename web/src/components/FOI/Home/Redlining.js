@@ -26,6 +26,7 @@ import {
   PDFVIEWER_DISABLED_FEATURES,
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
+  BIG_HTTP_GET_TIMEOUT,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -724,7 +725,8 @@ const Redlining = React.forwardRef(
               (error) => {
                 console.log("Error:", error);
               },
-              currentLayer.name.toLowerCase()
+              currentLayer.name.toLowerCase(),
+              BIG_HTTP_GET_TIMEOUT
             );
             fetchPageFlag(
               requestid,
@@ -1404,7 +1406,8 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name.toLowerCase()
+          currentLayer.name.toLowerCase(),
+          BIG_HTTP_GET_TIMEOUT
         );
       }
     };

@@ -1,5 +1,5 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
@@ -76,12 +76,13 @@ export const fetchAnnotationsByPagination = (
   size: number,
   callback: any,
   errorCallback: any,
-  redactionlayer: string = "redline"
+  redactionlayer: string = "redline",
+  timeout: number = 60000
 ) => {
   
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);

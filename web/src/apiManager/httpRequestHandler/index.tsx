@@ -15,6 +15,18 @@ export const httpGETRequest = (url: string, data: any, token: any, isBearer = tr
   });
 };
 
+export const httpGETBigRequest = async (url: string, data: any, token: any, timeout: number = 60000, isBearer = true) => {
+  return axios.get(url, {
+    params: data,
+    timeout: timeout,
+    headers: {
+      Authorization: isBearer
+        ? `Bearer ${token || UserService.getToken()}`
+        : token,
+    },
+  });
+};
+
 export const httpGETRequest1 = ({url, data}:params) => {
   return axios.get(url, {
     params: data
