@@ -16,7 +16,7 @@ export const httpGETRequest = (url: string, data: any, token: any, isBearer = tr
 };
 
 export const httpGETBigRequest = async (url: string, data: any, token: any, timeout: number = 60000, isBearer = true) => {
-  return await axios.get(url, {
+  return axios.get(url, {
     params: data,
     timeout: timeout,
     headers: {

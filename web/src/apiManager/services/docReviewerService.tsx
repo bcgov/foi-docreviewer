@@ -70,7 +70,7 @@ export const saveRotateDocumentPage = (
     });
 };
 
-export const fetchAnnotationsByPagination = async (
+export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
   activepage: number,
   size: number,
@@ -82,7 +82,7 @@ export const fetchAnnotationsByPagination = async (
   
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
-  return await httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
