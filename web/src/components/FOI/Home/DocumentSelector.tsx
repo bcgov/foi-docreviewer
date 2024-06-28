@@ -107,8 +107,14 @@ const DocumentSelector = React.memo(
                   "}",
               ];
             }
+            
             treeRef?.current?.scrollToPage(event, newExpandedItems, pageId);
+            
           },
+          scrollLeftPanelPosition(event: any)
+          {              
+              treeRef?.current?.scrollLeftPanelPosition(event)
+          }
         }),
         [treeRef, pageMappedDocs, filesForDisplay, organizeBy]
       );

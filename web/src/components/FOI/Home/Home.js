@@ -135,11 +135,14 @@ function Home() {
     );
   }, []);
 
+
+
   const getCurrentDocument = (doclist) => {    
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
   const syncPageFlagsOnAction = (updatedFlags) => {
+    selectorRef?.current?.scrollLeftPanelPosition("")
     setPageFlags(updatedFlags);
   };
 

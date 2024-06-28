@@ -60,12 +60,24 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
+            
             setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
-            apiRef.current?.focusItem(event, pageId)
+            apiRef.current?.focusItem(event, pageId)            
             setSelected([])
             setSelectedPages([])
         },
+        scrollLeftPanelPosition(event: any)
+        {
+            let _lastselected = localStorage.getItem("lastselected")
+            if(_lastselected)
+           { 
+                let _docid = JSON.parse(_lastselected)?.docid
+                let docidstring = `{"docid": ${_docid}}`
+                apiRef.current?.focusItem(event, docidstring)
+                localStorage.removeItem("lastselected")
+            }
+        }
     }), [apiRef, expandedItems]);
 
     const getAllItemsWithChildrenItemIds = () => {
@@ -93,6 +105,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     //   return itemIds;
     // };
+
+
+
 
     const handleExpandClick = () => {
         setExpandedItems((oldExpanded: any) =>
@@ -144,6 +159,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         if (selectedPages.length > PAGE_SELECT_LIMIT) {
             setWarningModalOpen(true);
         } else {
+            localStorage.setItem("lastselected",selectedPages[selectedPages.length-1])
             setSelected(selectedPages);
             const selectedPagesInfo = selectedPages.map(nodeId => {
                 const { docid, page } = JSON.parse(nodeId);
