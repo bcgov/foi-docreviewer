@@ -142,7 +142,28 @@ function Home() {
   }
 
   const syncPageFlagsOnAction = (updatedFlags) => {
-    selectorRef?.current?.scrollLeftPanelPosition("")
+
+    let _lastselected = localStorage.getItem("lastselected")
+
+    if(_lastselected)
+      {
+        let lastselectedjson = JSON.parse(_lastselected)
+        let _docid = lastselectedjson?.docid
+        let _page = lastselectedjson?.page
+        let docwithpages = updatedFlags.find(doc =>doc.documentid === _docid)        
+        let pages = docwithpages?.pageflag.filter(p=>p.page === _page)
+        let flagarr = []
+        for (const _page in pages) {
+          const value = pages[_page];
+          flagarr.push(value.flagid)
+        }
+        lastselectedjson["flagid"] = flagarr  
+       
+        
+        selectorRef?.current?.scrollLeftPanelPosition("",JSON.stringify(lastselectedjson))
+      }
+
+    
     setPageFlags(updatedFlags);
   };
 

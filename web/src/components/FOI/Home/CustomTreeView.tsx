@@ -48,6 +48,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }));
 
     const apiRef = useTreeViewApiRef();
+    
 
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
@@ -67,18 +68,39 @@ const CustomTreeView = React.memo(React.forwardRef(({
             setSelected([])
             setSelectedPages([])
         },
-        scrollLeftPanelPosition(event: any)
+        scrollLeftPanelPosition(event: any,lastselectedid:string)
         {
-            let _lastselected = localStorage.getItem("lastselected")
+            console.log(`lastselectedid is ${lastselectedid}`)
+
+            //let _lastselected = localStorage.getItem("lastselected")
+            let _lastselected = lastselectedid
             if(_lastselected)
            { 
+                console.log(`_lastselected value on .focusItem ${_lastselected}`)
                 let _docid = JSON.parse(_lastselected)?.docid
-                let docidstring = `{"docid": ${_docid}}`
+                
+                let docidstring = ''
+                if(_lastselected.indexOf('division')>-1)
+                {
+                        let _divisionid = JSON.parse(_lastselected)?.division
+                        docidstring = `{"division": ${_divisionid}, "docid": ${_docid}}`
+                }
+                else
+                {      
+                        let _page = JSON.parse(_lastselected)?.page;
+                        let _flagids = JSON.parse(_lastselected)?.flagid;
+                        docidstring = `{"docid": ${_docid}`                        
+                }
+                 
+               
+                //apiRef.current?.focusItem(event, '{"docid": 192, "page": 1, "flagid": [1], "title": "Partial Disclosure"}')
                 apiRef.current?.focusItem(event, docidstring)
                 localStorage.removeItem("lastselected")
             }
         }
     }), [apiRef, expandedItems]);
+
+  
 
     const getAllItemsWithChildrenItemIds = () => {
         const itemIds: any[] = [];
@@ -159,7 +181,10 @@ const CustomTreeView = React.memo(React.forwardRef(({
         if (selectedPages.length > PAGE_SELECT_LIMIT) {
             setWarningModalOpen(true);
         } else {
-            localStorage.setItem("lastselected",selectedPages[selectedPages.length-1])
+            //localStorage.setItem("lastselected",selectedPages[selectedPages.length-1])
+            console.log(`selectedPages[selectedPages.length-1] IS : ${selectedPages[selectedPages.length-1]}`)
+            console.log(`nodeIds[nodeIds.length-1] IS : ${nodeIds[nodeIds.length-1]}`)
+            localStorage.setItem("lastselected",nodeIds[nodeIds.length-1])
             setSelected(selectedPages);
             const selectedPagesInfo = selectedPages.map(nodeId => {
                 const { docid, page } = JSON.parse(nodeId);
@@ -186,7 +211,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }
 
     const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
-        let itemid = JSON.parse(props.itemId);
+        let itemid = JSON.parse(props.itemId);        
         return (
         <StyledTreeItem
           ref={ref}
@@ -237,6 +262,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         setDisableHover(true);
     }
 
+  
 
     return (
         // <TreeView
@@ -324,6 +350,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           onExpandedItemsChange={handleExpandedItemsChange}
           multiSelect
           apiRef={apiRef}
+                  
           slots={{item: CustomTreeItem}}
         //   slotProps={{item: {ContentProps: {id: 'test'}}}}
           sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
