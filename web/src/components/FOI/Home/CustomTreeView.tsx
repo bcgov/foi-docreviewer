@@ -48,6 +48,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }));
 
     const apiRef = useTreeViewApiRef();
+    
 
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
@@ -60,13 +61,39 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
+            
             setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
-            apiRef.current?.focusItem(event, pageId)
+            apiRef.current?.focusItem(event, pageId)            
             setSelected([])
             setSelectedPages([])
         },
+        scrollLeftPanelPosition(event: any)
+        {           
+            let _lastselected = localStorage.getItem("lastselected")
+            
+            if(_lastselected)
+           {                 
+                let _docid = JSON.parse(_lastselected)?.docid                
+                let docidstring = ''
+                if(_lastselected.indexOf('division')>-1)
+                {
+                        let _divisionid = JSON.parse(_lastselected)?.division
+                        docidstring = `{"division": ${_divisionid}, "docid": ${_docid}}`
+                }
+                else
+                {                            
+                        docidstring = `{"docid": ${_docid}}`                        
+                }
+                                
+                //TODO: Future research ABIN: apiRef.current?.focusItem(event, '{"docid": 192, "page": 1, "flagid": [1], "title": "Partial Disclosure"}')
+                apiRef.current?.focusItem(event, docidstring)
+                localStorage.removeItem("lastselected")
+            }
+        }
     }), [apiRef, expandedItems]);
+
+  
 
     const getAllItemsWithChildrenItemIds = () => {
         const itemIds: any[] = [];
@@ -80,37 +107,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
         return itemIds;
     };
       
-    // const getAllItemsWithChildrenItemIds = () => {
-    //   const itemIds: any = [];
-    //   const registerItemId = (item: any) => {
-    //     if (item.children?.length) {
-    //       itemIds.push(item.id);
-    //       item.children.forEach(registerItemId);
-    //     }
-    //   };
-
-    //   items.forEach(registerItemId);
-
-    //   return itemIds;
-    // };
-
     const handleExpandClick = () => {
         setExpandedItems((oldExpanded: any) =>
             oldExpanded.length === 0 ? getAllItemsWithChildrenItemIds() : []
         );
-        // setExpanded((oldExpanded:any) => {
-        //         let result: any = [];
-        //         if (oldExpanded.length === 0 ) {
-        //             if (organizeBy == "lastmodified" ) {
-        //                 result = expandall;
-        //             }
-        //             else {
-        //                 result = expandallorganizebydivision;
-        //             }
-        //         }
-        //         return result;
-        //     }
-        // );
+
     };
 
     const handleExpandedItemsChange = (event: any,itemIds: any) => {
@@ -144,6 +145,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
         if (selectedPages.length > PAGE_SELECT_LIMIT) {
             setWarningModalOpen(true);
         } else {
+                      
+            localStorage.setItem("lastselected",nodeIds[nodeIds.length-1])
             setSelected(selectedPages);
             const selectedPagesInfo = selectedPages.map(nodeId => {
                 const { docid, page } = JSON.parse(nodeId);
@@ -170,7 +173,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }
 
     const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
-        let itemid = JSON.parse(props.itemId);
+        let itemid = JSON.parse(props.itemId);        
         return (
         <StyledTreeItem
           ref={ref}
@@ -221,48 +224,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
         setDisableHover(true);
     }
 
+  
 
-    return (
-        // <TreeView
-        //     aria-label="file system navigator"
-        //     defaultCollapseIcon={<ExpandMoreIcon />}
-        //     defaultExpandIcon={<ChevronRightIcon />}
-        //     expanded={expanded}
-        //     multiSelect
-        //     selected={selected}
-        //     onNodeToggle={handleToggle}
-        //     onNodeSelect={handleSelect}
-        //     sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-        // >
-        //     {filesForDisplay.length <= 0 && filterBookmark ?
-        //         <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
-        //         :
-        //         filesForDisplay?.map((file: any, index: number) => {
-        //             return (
-        //                 // <Tooltip
-        //                 //     sx={{
-        //                 //         backgroundColor: 'white',
-        //                 //         color: 'rgba(0, 0, 0, 0.87)',
-        //                 //         // boxShadow: theme.shadows[1],
-        //                 //         fontSize: 11
-        //                 //     }}
-        //                 //     title={<>
-        //                 //         Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-        //                 //         {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-        //                 //     </>}
-        //                 //     placement="bottom-end"
-        //                 //     arrow
-        //                 //     key={file?.documentid}
-        //                 //     disableHoverListener={disableHover}
-        //                 // >
-        //                     <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-        //                         {displayFilePages(file)}
-        //                     </TreeItem>
-        //                 // </Tooltip>
-        //             )
-        //         })
-        //     }
-        // </TreeView>
+    return (        
         <>
         {openContextPopup === true &&
             <ContextMenu
@@ -308,6 +272,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           onExpandedItemsChange={handleExpandedItemsChange}
           multiSelect
           apiRef={apiRef}
+                  
           slots={{item: CustomTreeItem}}
         //   slotProps={{item: {ContentProps: {id: 'test'}}}}
           sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}

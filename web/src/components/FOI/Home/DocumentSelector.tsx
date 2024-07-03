@@ -107,8 +107,14 @@ const DocumentSelector = React.memo(
                   "}",
               ];
             }
+            
             treeRef?.current?.scrollToPage(event, newExpandedItems, pageId);
+            
           },
+          scrollLeftPanelPosition(event: any)
+          {                            
+              treeRef?.current?.scrollLeftPanelPosition(event)
+          }
         }),
         [treeRef, pageMappedDocs, filesForDisplay, organizeBy]
       );
@@ -660,7 +666,7 @@ const DocumentSelector = React.memo(
             if (filesForDisplay.length > 0) {
               return divisions.map((division: any) => {
                 return {
-                  id: `{"division": ${division.divisionid}}`,
+                  id:`{"division": ${division.divisionid}}`,
                   label: division.name,
                   children: filesForDisplay
                     .filter((file: any) =>
