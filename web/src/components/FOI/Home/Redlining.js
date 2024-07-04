@@ -201,7 +201,7 @@ const Redlining = React.forwardRef(
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");
-    
+
     //xml parser
     const parser = new XMLParser();
 
@@ -289,8 +289,18 @@ const Redlining = React.forwardRef(
           }
           else {
             for (let doc of divObj.documentlist) {
+              //page to pageFlag mappings logic for consults
+              const pagePageFlagMappings = {};
+              for (let pageFlag of doc.pageFlag) {
+                if (pageFlag.page in pagePageFlagMappings) {
+                  pagePageFlagMappings[pageFlag.page].push(pageFlag.flagid);
+                } else {
+                  pagePageFlagMappings[pageFlag.page] = [pageFlag.flagid];
+                }
+              }
               for (const flagInfo of doc.pageFlag) {
                 if (modalFor == "consult") {
+                  const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                   for (let consult of doc.consult) {
                     if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
                       if (
@@ -302,8 +312,12 @@ const Redlining = React.forwardRef(
                         )
                       ) {
                         if(isvalid == false) {
-                          isvalid = true; 
-                        } 
+                          if ((!includeDuplicatePages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Duplicate"])) || (!includeNRPages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Not Responsive"]))) {
+                            isvalid = false;
+                          } else {
+                            isvalid = true; 
+                          }
+                        }
                     }
                     }
                   }
@@ -353,6 +367,7 @@ const Redlining = React.forwardRef(
     const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
     const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
     const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
+    const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
 
     const [filteredComments, setFilteredComments] = useState({});
     const [pagesRemoved, setPagesRemoved] = useState([]);
@@ -483,11 +498,11 @@ const Redlining = React.forwardRef(
               setIncludeDuplicatePages(true);
               setIncludeNRPages(true);
               setModalMessage([
-                "Are you sure want to create a consult? A PDF will be created for each public body selected and your web browser page will automatically refresh",
+                "Are you sure you want to create a consult package? A PDF will be created for each public body selected, and your web browser will automatically refresh after package creation.",
                 <br key="lineBreak1" />,
                 <br key="lineBreak2" />,
                 <span key="modalDescription1">
-                  Select one or more Ministry you wish to send the selected page(s) to for consult*
+                  Select one or more public bodies you wish to create a consult package for:
                 </span>,
               ]);
               setModalButtonLabel("Create Consult");
@@ -2849,7 +2864,7 @@ const Redlining = React.forwardRef(
         }
         // sort based on sortorder as the sortorder added based on the LastModified
         prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments));
-      } else if (modalFor == 'consult') {
+      } else if (modalFor == "consult") {
         prepareRedlinePageMappingByConsult(divisionDocuments);
       } else {
         prepareRedlinePageMappingByDivision(divisionDocuments);
@@ -3040,7 +3055,7 @@ const Redlining = React.forwardRef(
                 if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                   pageIndex ++;
                 }
-              }
+              }              
             }
             //End of pageMappingsByDivisions
             totalPageCount += Object.keys(
@@ -3051,7 +3066,7 @@ const Redlining = React.forwardRef(
             }
           //}
           }
-          
+
         }
         divPageMappings[divObj.divisionid] = pageMappings;
         removepages[divObj.divisionid] = pagesToRemove;
@@ -3585,6 +3600,7 @@ const Redlining = React.forwardRef(
         setRedlineModalOpen(false);
         setSelectedPublicBodyIDs([]);
         setConsultApplyRedactions(false);
+        setConsultApplyRedlines(false);
       }
     };
 
@@ -3827,7 +3843,7 @@ const Redlining = React.forwardRef(
             redactionlayerid: currentLayer.redactionlayerid
           });
 
-          if(res.issingleredlinepackage == 'Y' || divisions.length == 1){
+          if(res.issingleredlinepackage == 'Y'){
             stitchSingleDivisionRedlineExport(
               _instance,
               divisionDocuments,
@@ -3929,7 +3945,8 @@ const Redlining = React.forwardRef(
             await _instance.Core.createDocument(doc.s3path_load, {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
-            }).then(async (docObj) => {            
+            }).then(async (docObj) => {
+              applyRotations(docObj, doc.attributes.rotatedpages)     
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -4053,13 +4070,11 @@ const Redlining = React.forwardRef(
             }).then(async (newDoc) => {
               applyRotations(newDoc, filerow.attributes.rotatedpages)
               docCount++;
-              setredlineDocCount(docCount);
-              if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
+              // if (isIgnoredDocument(filerow, newDoc, divisionDocuments) === false) {
                 if (filerow.stitchIndex === 1) {
                   // Delete pages from the first document
                   const deletedPages = getDeletedPagesBeforeStitching(filerow?.documentid);
                   if (deletedPages.length > 0) {
-                    setSkipDeletePages(true);
                     await newDoc.removePages(deletedPages);
                   }
                   stitchedDocObj = newDoc;
@@ -4078,7 +4093,7 @@ const Redlining = React.forwardRef(
                     }
                   ])
                 }
-              }
+              // }
             });
             } catch (error) {
               console.error("An error occurred during create document:", error);
@@ -4264,14 +4279,22 @@ const Redlining = React.forwardRef(
             }
             //OIPC - Special Block : End
 
-            //Consults - Redactions Block (Redact S.NR) : Start
+            //Consults - Redlines + Redactions (Redact S.NR) Block : Start
             if(modalFor == "consult") {
+              if (!consultApplyRedlines) {
+                const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
+                const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
+                  return annot.name !== "freetext" && annot.name !== 'redact'
+                });
+                xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
+                xfdfString = parser.toString(xmlObj);
+              }
               if (consultApplyRedactions) {
                 let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
                 await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
               }
             }
-            //Consults - Redactions Block (Redact S.NR) : End
+            //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
             stitchObject
               .getFileData({
@@ -4292,7 +4315,7 @@ const Redlining = React.forwardRef(
                   (_res) => {
                     // ######### call another process for zipping and generate download here ##########
                     toast.update(toastId.current, {
-                      render: `Redline PDF saved to Object Storage`,
+                      render: `${modalFor == "consult" ? "Consult" : "Redline"} PDF saved to Object Storage`,
                       type: "success",
                       className: "file-upload-toast",
                       isLoading: false,
@@ -4637,6 +4660,12 @@ const Redlining = React.forwardRef(
     const handleApplyRedactions = (e) => {
       setConsultApplyRedactions(e.target.checked);
     }
+    const handleApplyRedlines = (e) => {
+      setConsultApplyRedlines(e.target.checked);
+      if (consultApplyRedactions) {
+        setConsultApplyRedactions(false);
+      }
+    }
 
     const handleSelectedPublicBodies = (e) => {
       const publicBodyId = parseInt(e.target.value);
@@ -4873,11 +4902,22 @@ const Redlining = React.forwardRef(
                     type="checkbox"
                     style={{ marginRight: 10 }}
                     className="redline-checkmark"
+                    id="applyredline-checkbox"
+                    checked={consultApplyRedlines}
+                    onChange={handleApplyRedlines}
+                  />
+                  <label for="applyredline-checkbox">Include Redlines</label>
+                  <br/>
+                  <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
                     id="redaction-checkbox"
                     checked={consultApplyRedactions}
                     onChange={handleApplyRedactions}
+                    disabled={!consultApplyRedlines}
                   />
-                  <label for="redaction-checkbox">Apply Redactions</label>
+                  <label for="redaction-checkbox">Apply Redactions (NR code only)</label>
                 </>
                 }
               </span>
