@@ -26,6 +26,7 @@ import {
   PDFVIEWER_DISABLED_FEATURES,
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
+  BIG_HTTP_GET_TIMEOUT,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -90,7 +91,6 @@ const Redlining = React.forwardRef(
 
     document.title = requestnumber + " - FOI Document Reviewer"
 
-    //const pageFlags = useAppSelector((state) => state.documents?.pageFlags);
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
@@ -100,7 +100,6 @@ const Redlining = React.forwardRef(
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
-
     
     const [docViewer, setDocViewer] = useState(null);
     const [annotManager, setAnnotManager] = useState(null);
@@ -133,7 +132,6 @@ const Redlining = React.forwardRef(
     const [stitchPageCount, setStitchPageCount] = useState(0);
     const [skipDeletePages, setSkipDeletePages] = useState(false);
     const [modalData, setModalData] = useState(null);
-    //const [pageFlags, setPageFlags]= useState([]);
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
     const [pagesRemoved, setPagesRemoved] = useState([]);
@@ -302,12 +300,10 @@ const Redlining = React.forwardRef(
             setAnnots(Annotations);
             setDocViewerMath(Math);
             //update isloaded flag
-            //localStorage.setItem("isDocumentLoaded", "true");           
             applyRotations(documentViewer.getDocument(), docsForStitcing[0].file.attributes.rotatedpages)
             let localDocumentInfo = currentDocument;
             if (Object.entries(individualDoc["file"])?.length <= 0)
               individualDoc = localDocumentInfo;            
-            // let doclistCopy = [...docsForStitcing];
             let doclistCopy = getDocumentsForStitching([...docsForStitcing])
             //Disable the delete Icon if only 1 page for a request
             const disableDelete = doclistCopy.length === 1 && doclistCopy[0]?.file?.pagecount === 1;
@@ -365,29 +361,6 @@ const Redlining = React.forwardRef(
             });
           });
 
-          // documentViewer.addEventListener('pagesUpdated', async (changes) => {
-          //   if (isStitchingLoaded) {
-          //     let payloads = {};
-          //     for (let page of changes.contentChanged) {
-          //       let originalpage = pageMappedDocs.stitchedPageLookup[page];
-          //       let documentmasterid = documentList.find(d => d.documentid === originalpage.docid).documentmasterid;
-          //       let rotation = documentViewer.getDocument().getPageRotation(page)
-          //       payloads[documentmasterid] = {...payloads[documentmasterid], [originalpage.page]: rotation}
-          //     }
-          //     for (let documentmasterid in payloads) {            
-          //       saveRotateDocumentPage(
-          //         requestid,
-          //         documentmasterid,
-          //         payloads[documentmasterid],
-          //         (data) => {},
-          //         (error) => {
-          //           errorToast(error);
-          //         }
-          //       )
-          //     }
-          //   }
-          // })
-
           instance.UI.addEventListener(UIEvents.ANNOTATION_FILTER_CHANGED, e => {
           e.detail.types = e.detail.types.map(type => {
             switch (type) {
@@ -426,6 +399,14 @@ const Redlining = React.forwardRef(
             x = 0
             y = 0
           });
+
+          instance.UI.addEventListener("selectedThumbnailChanged", event => {
+            if (event.detail.length > 1) {
+              instance.UI.disableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
+            } else {
+              instance.UI.enableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
+            }
+          })
 
           let root = null;
 
@@ -744,7 +725,8 @@ const Redlining = React.forwardRef(
               (error) => {
                 console.log("Error:", error);
               },
-              currentLayer.name.toLowerCase()
+              currentLayer.name.toLowerCase(),
+              BIG_HTTP_GET_TIMEOUT
             );
             fetchPageFlag(
               requestid,
@@ -807,7 +789,6 @@ const Redlining = React.forwardRef(
           return;
         }
         //oipc changes - end
-
 
         if (
           info.source !== "redactionApplied" &&
@@ -1088,13 +1069,6 @@ const Redlining = React.forwardRef(
                       if(updatedPageFlags?.length > 0)
                         syncPageFlagsOnAction(updatedPageFlags);
                     }
-                    
-                    // fetchPageFlag(
-                    //   requestid,
-                    //   currentLayer.name.toLowerCase(),
-                    //   docsForStitcing.map(d => d.file.documentid),
-                    //   (error) => console.log(error)
-                    // );
                   },
                   (error) => {
                     console.log(error);
@@ -1357,7 +1331,6 @@ const Redlining = React.forwardRef(
         checkSavingRedlineButton(docInstance);
       }
       if (docInstance && documentList.length > 0) {
-        console.log("EVNT LISTINER")
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
       }
@@ -1433,7 +1406,8 @@ const Redlining = React.forwardRef(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
           },
-          currentLayer.name.toLowerCase()
+          currentLayer.name.toLowerCase(),
+          BIG_HTTP_GET_TIMEOUT
         );
       }
     };
@@ -1557,7 +1531,6 @@ const Redlining = React.forwardRef(
 
     useEffect(() => {
       docViewer?.setCurrentPage(individualDoc["page"], false);
-      console.log(`individualDoc - Middle pane.... ${new Date().getSeconds()}`);
     }, [individualDoc]);
 
     

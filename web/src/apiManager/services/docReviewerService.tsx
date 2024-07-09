@@ -1,5 +1,5 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
@@ -76,12 +76,13 @@ export const fetchAnnotationsByPagination = (
   size: number,
   callback: any,
   errorCallback: any,
-  redactionlayer: string = "redline"
+  redactionlayer: string = "redline",
+  timeout: number = 60000
 ) => {
   
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
@@ -333,32 +334,8 @@ export const fetchPageFlag = (
   callback: any,
   errorCallback: any
 ) => {
-  // let apiUrlGet: string = replaceUrl(
-  //   API.DOCREVIEWER_GET_PAGEFLAGS,
-  //   "<requestid>",
-  //   foiministryrquestid
-  // ) + "/" +  redactionlayer;
-  // console.log("\n\ndocumentids: ",documentids)
-  
-  // httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
-  //   .then((res:any) => {
-  //     if (res.data || res.data === "") {
-  //       callback(res.data);
-  //      // store.dispatch(setPageFlags(res.data) as any);
-  //       /** Checking if BOOKMARK set for package */
-  //       let bookmarkedDoc= res.data?.filter((element:any) => {
-  //         return element?.pageflag?.some((obj: any) =>(obj.flagid === pageFlagTypes["Page Left Off"]));
-  //       })
-  //       store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-  //     } else {
-  //       throw new Error();
-  //     }
-  //   })
-  //   .catch((error:any) => {
-  //     errorCallback("Error in fetching pageflags for a document");
-  //   });
-    let requestjson={"documentids":documentids}
 
+    let requestjson={"documentids":documentids}
     let apiUrlPost: string = replaceUrl(
       API.DOCREVIEWER_GET_PAGEFLAGS,
       "<requestid>",

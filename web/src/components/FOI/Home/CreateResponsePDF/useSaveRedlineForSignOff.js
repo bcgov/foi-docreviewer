@@ -69,7 +69,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [alreadyStitchedList, setAlreadyStitchedList] = useState([]);
 
   const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
-    console.log("isValidRedlineDivisionDownload");
     let isvalid = false;
     for (let divObj of divisionDocuments) {    
       if (divObj.divisionid === divisionid)  {
@@ -112,7 +111,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const isIgnoredDocument = (doc, pagecount, divisionDocuments) => {
     const divdocumentlist = JSON.parse(JSON.stringify(divisionDocuments));
     let removepagesCount = 0;
-    console.log("IGNORED");
     for (let divsionentry of divdocumentlist) {
       for (let docentry of divsionentry["documentlist"]) {
         if (doc.documentid === docentry.documentid) {
@@ -151,10 +149,9 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     documentList,
     incompatibleFiles
   ) => {
-    console.log("divdocmapping");
     let newDocList = [];
     for (let div of divisions) {
-      let divDocList = documentList.filter((doc) =>
+      let divDocList = documentList?.filter((doc) =>
         doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
       );
       // sort based on sortorder as the sortorder added based on the LastModified
@@ -176,7 +173,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     redlineSinglePkg,
     pageMappedDocs
   ) => {
-    console.log("prep redline page mapping");
     if (redlineSinglePkg === "Y") {
       let reqdocuments = [];
       for (let divObj of divisionDocuments) {
@@ -385,7 +381,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             totalPageCount += Object.keys(
               pageMappings[doc.documentid]
             ).length;
-            if (!skipDocumentPages) {
+            if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
               totalPageCountIncludeRemoved += doc.pagecount;
             }
           //}
@@ -420,7 +416,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     let incompatibleFiles = [];
     let divCounter = 0;
 
-    console.log("prep redline incomp mapping");
     for (let divObj of redlineAPIResponse.divdocumentList) {
       divCounter++;
       let incompatableObj = {};
@@ -487,7 +482,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     return "redline";
   };
   const prepareredlinesummarylist = (stitchDocuments) => {
-    console.log("PREP SUMM");
     let summarylist = [];
     let alldocuments = [];
     for (const [key, value] of Object.entries(stitchDocuments)) {
@@ -522,7 +516,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     incompatableList,
     applyRotations
   ) => {
-    console.log("STITHC MULTI DIV FOR REDLINE");
     let requestStitchObject = {};
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
@@ -619,7 +612,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     stitchlist,
     redlineSinglePkg
   ) => {
-    console.log("STITCH SINGLE");
     setRequestStitchObject({});
     let divCount = 0;
     const noofdivision = Object.keys(stitchlist).length;
@@ -677,7 +669,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     docCount,
     stitchedDocObj
   ) => {
-    console.log("MERGE");
     for (const filerow of sliceDoclist) {
       try {
         await createDocument(filerow.s3path_load, {
@@ -750,7 +741,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
     const divisionFilesList = [...documentList, ...incompatibleFiles];
     const divisions = getDivisionsForSaveRedline(divisionFilesList);
-    const divisionDocuments = getDivisionDocumentMappingForRedline(divisions);
+    const divisionDocuments = getDivisionDocumentMappingForRedline(
+      divisions,
+      documentList,
+      incompatibleFiles
+    );
     const documentids = documentList.map((obj) => obj.documentid);
     getFOIS3DocumentRedlinePreSignedUrl(
       foiministryrequestid,
@@ -767,7 +762,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         
         prepareRedlinePageMapping(
           res['divdocumentList'],
-          res.issingleredlinepackage
+          res.issingleredlinepackage,
+          pageMappedDocs
         );
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
@@ -913,7 +909,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   };
   
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
-    console.log("CHECK SAVE REDLINE");
     const validRedlineStatus = [
       RequestStates["Records Review"],
       RequestStates["Ministry Sign Off"],
@@ -932,7 +927,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     instance,
     readyForSignOff
   ) => {
-    console.log("CHECK SAVE OIPC");
     const validOIPCRedlineStatus = [
       RequestStates["Records Review"],
       RequestStates["Ministry Sign Off"],
@@ -1130,7 +1124,7 @@ const stampPageNumberRedline = async (
           updatedXML.push(annotxml);
       }
     }
-    return updatedXML.join();
+    return updatedXML.join("");
   };
 
   const constructFreeTextAndannoteIds = (data) => {

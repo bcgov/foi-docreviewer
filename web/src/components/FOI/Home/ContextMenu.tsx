@@ -66,7 +66,6 @@ const ContextMenu = ({
         flagId,
         (data: any) => {
             if(data.status == true){
-                console.log("ContextMenu?")
                 const updatedPageFlags = updatePageFlagOnPage(
                     data.updatedpageflag,
                     pageFlags

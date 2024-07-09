@@ -128,7 +128,6 @@ const useSaveResponsePackage = () => {
     pageMappedDocs,
     pageFlags
   ) => {
-    console.log("SAVE RESPONSE");
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
@@ -271,7 +270,6 @@ const useSaveResponsePackage = () => {
     );
   };
   const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
-    console.log("CHECK SAVE RESPONSE");
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
     setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
     if (instance) {
