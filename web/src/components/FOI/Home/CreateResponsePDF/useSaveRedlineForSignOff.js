@@ -381,7 +381,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             totalPageCount += Object.keys(
               pageMappings[doc.documentid]
             ).length;
-            if (!skipDocumentPages) {
+            if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
               totalPageCountIncludeRemoved += doc.pagecount;
             }
           //}
