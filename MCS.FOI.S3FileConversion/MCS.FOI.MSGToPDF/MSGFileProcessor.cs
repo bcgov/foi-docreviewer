@@ -153,8 +153,22 @@ namespace MCS.FOI.MSGToPDF
                                     }
                                 }
                                 var startAt = 0;
-                                foreach (var inlineAttachment in inlineAttachments.OrderBy(m => m.GetType().GetProperty("RenderingPosition").GetValue(m, null)))
+                                foreach (var inlineAttachment in inlineAttachments.OrderBy(m =>
                                 {
+                                    int pos = (int) m.GetType().GetProperty("RenderingPosition").GetValue(m, null);
+                                    if (pos > -1)
+                                    {
+                                        return pos;
+                                    }
+                                    else
+                                    {
+                                        var _inlineAttachment = (Storage.Attachment)m;
+                                        Regex regex = new Regex(@"<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
+                                        Match match = regex.Match(bodyreplaced, startAt);
+                                        return match.Index;
+                                    }
+                                }))
+                                {                                    
                                     if (rtfInline)
                                     {
                                         if (!inlineAttachment.GetType().FullName.ToLower().Contains("message"))
@@ -185,7 +199,7 @@ namespace MCS.FOI.MSGToPDF
                                     else if (htmlInline)
                                     {
                                         var _inlineAttachment = (Storage.Attachment)inlineAttachment;
-                                        Regex regex = new Regex("<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
+                                        Regex regex = new Regex(@"<img(.|\\n)*cid:" + _inlineAttachment.ContentId + "(.|\\n)*?>");
                                         Match match = regex.Match(bodyreplaced, startAt);
                                         if (match.Success)
                                         {
@@ -218,7 +232,7 @@ namespace MCS.FOI.MSGToPDF
                                                 heightString = " height =\"" + height + "\"";
                                             }
                                             string imgReplacementString = "<img "+ widthString + heightString + " style =\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
-                                            bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, 1, startAt);
+                                            bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, Int32.MaxValue, startAt);
                                             startAt = match.Index + imgReplacementString.Length;
                                         }
                                         foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
