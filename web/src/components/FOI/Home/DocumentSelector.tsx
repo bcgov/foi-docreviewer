@@ -68,11 +68,8 @@ const DocumentSelector = React.memo(
       const [consulteeFilter, setConsulteeFilter] = useState<any>([]);
       const [selectAllConsultee, setSelectAllConsultee] = useState(false);
       const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-      //const [expandedItems, setExpandedItems] = useState<string[]>([]);
       const pageRefs = useRef([]);
       const treeRef: any = useRef();
-      // const [completionCounter, setCompletionCounter]= useState(0);
-      // const [totalDisplayedPages, setTotalDisplayedPages]= useState(0);
 
       useImperativeHandle(
         ref,
@@ -109,8 +106,14 @@ const DocumentSelector = React.memo(
                   "}",
               ];
             }
+            
             treeRef?.current?.scrollToPage(event, newExpandedItems, pageId);
+            
           },
+          scrollLeftPanelPosition(event: any)
+          {                            
+              treeRef?.current?.scrollLeftPanelPosition(event)
+          }
         }),
         [treeRef, pageMappedDocs, filesForDisplay, organizeBy]
       );
@@ -324,35 +327,9 @@ const DocumentSelector = React.memo(
             setIndividualDoc({ file, page: pageNo });
             setCurrentPageInfo({ file, page });
         }
-        console.log(`selectTreeItem - Ended.... ${new Date().getSeconds()}`);
     };
 
-    //   const selectTreeItem1 = (docid: any, page: number) => {
-        
-    //     let file: any = filesForDisplay.find(
-    //       (f: any) => f.documentid === docid
-    //     );
-    //     if (file.pages.includes(page)) {
-    //       if (
-    //         pageMappedDocs?.docIdLookup &&
-    //         Object.keys(pageMappedDocs?.docIdLookup).length > 0
-    //       ) {
-    //         let pageNo: number = getStitchedPageNoFromOriginal(
-    //           file.documentid,
-    //           page,
-    //           pageMappedDocs
-    //         );
-    //         setIndividualDoc({ file: file, page: pageNo });
-    //         setCurrentPageInfo({ file: file, page: page });
-    //         // setCurrentDocument({ 'file': file, 'page': page })
-    //         // if (page == 1)
-    //         //     setDisableHover(false);
-    //       }
-    //     }
-    //     console.log(`selectTreeItem - Ended.... ${new Date().getSeconds()}`);
-    //   };
-
-      const isConsult = (consults: Array<any>, pageNo: number) => {
+    const isConsult = (consults: Array<any>, pageNo: number) => {
         if (consults?.find((consult: any) => consult.page == pageNo))
           return true;
         return false;
@@ -421,7 +398,7 @@ const DocumentSelector = React.memo(
         const flagFilterCopy = [...filterFlags];
         let consulteeIds = [...consulteeFilter];
         if (flagFilterCopy.includes(flagId)) {
-          if (flagId == 4) {
+          if (flagId == pageFlagTypes['Consult']) {
             if (event.target.checked) {
               if (allSelectedconsulteeList.length > 0) {
                 consulteeIds = allSelectedconsulteeList;
@@ -443,7 +420,7 @@ const DocumentSelector = React.memo(
           )
             setFilterBookmark(true);
         } else {
-          if (flagId == 4) {
+          if (flagId == pageFlagTypes['Consult']) {
             if (event.target.checked) {
               if (allSelectedconsulteeList.length > 0)
                 consulteeIds = allSelectedconsulteeList;
@@ -493,7 +470,6 @@ const DocumentSelector = React.memo(
       let codeById: Record<number, string> = {};
       const mapConsultMinistries = () => {
         if (consultMinistries && consultMinistries.length > 0) {
-          console.log("#############");
           codeById = {};
           consultMinistries.forEach((item: any) => {
             codeById[item.programareaid] = item.iaocode;
@@ -504,7 +480,7 @@ const DocumentSelector = React.memo(
       const openConsulteeList = (e: any) => {
         mapConsultMinistries();
         const consultFlagged = files.filter((file: any) =>
-          file.pageFlag?.some((obj: any) => obj.flagid === 4)
+          file.pageFlag?.some((obj: any) => obj.flagid === pageFlagTypes['Consult'])
         );
         if (consultFlagged.length > 0 && Object.keys(codeById).length > 0) {
           const namedConsultValues: any[] = Array.from(
@@ -586,59 +562,92 @@ const DocumentSelector = React.memo(
 
       const getFilePages = (file: any, division?: any) => {
         if (filterFlags.length > 0) {
-            let filteredpages =  file.pages.filter(((p: any) => {
-                if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
-                    return true
+          let filteredpages = file.pages.filter((p: any) => {
+            if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
+              return true;
+            } else {
+              return file.pageFlag?.find((obj: any) => {
+                if (obj.page === p) {
+                  if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
+                    return true;
+                  } else if (consulteeFilter.length > 0) {
+                    if (
+                        obj.programareaid?.some((val: any) =>
+                        consulteeFilter.includes(val)
+                        ) ||
+                        obj.other?.some((val: any) => consulteeFilter.includes(val))
+                    ) {
+                        return true;
+                    }
+                  }                    
                 } else {
-                    return (file.pageFlag?.find((obj: any) => {
-                        if (obj.page === p) {
-                            if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
-                                return true
-                            }
-                        } else if (consulteeFilter.length > 0) {
-                            if ((obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
-                                (obj.other?.some((val: any) => consulteeFilter.includes(val)))) {
-                                    return true
-                                }
-                        } else {
-                            return false
-                        }
-
-                    })) 
+                  return false;
                 }
-
-            }))
-            if (organizeBy === "division" ) {
-                return filteredpages.map((p: any) => {
-                    return {                        
-                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                        label: getPageLabel(file, p)
-                    }
-                })
-            } else {
-                return filteredpages.map((p: any) => {
-                    return {
-                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                        label: getPageLabel(file, p)
-                    }
-                })
+              });
             }
-        } else {            
-            if (organizeBy === "division" ) {
-                return file.pages.map((p: any) => {
-                    return {                        
-                        id: `{"division": ${division?.divisionid}, "docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                        label: getPageLabel(file, p)
-                    }
-                })
-            } else {
-                return file.pages.map((p: any) => {
-                    return {
-                        id: `{"docid": ${file.documentid}, "page": ${p}, "flagid": [${getPageFlagIds(file.pageFlag, p)}], "title": "${getFlagName(file, p)}"}`,
-                        label: getPageLabel(file, p)
-                    }
-                })
-            }
+          });
+          if (organizeBy === "lastmodified") {
+            return filteredpages.map((p: any) => {
+              return {
+                id: `{"docid": ${
+                  file.documentid
+                }, "page": ${p}, "flagid": [${getPageFlagIds(
+                  file.pageFlag,
+                  p
+                )}], "title": "${getFlagName(file, p)}"}`,
+                label: getPageLabel(file, p),
+              };
+            });
+          } else {
+            return filteredpages.map((p: any) => {
+              return {
+                id: `{"division": ${division?.divisionid}, "docid": ${
+                  file.documentid
+                }, "page": ${p}, "flagid": [${getPageFlagIds(
+                  file.pageFlag,
+                  p
+                )}], "title": "${getFlagName(file, p)}"}`,
+                label: getPageLabel(file, p),
+              };
+            });
+          }
+          // if (consulteeFilter.length > 0) {
+          //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 &&
+          //         ((obj.flagid != 4 && filterFlags?.includes(obj.flagid))||
+          //         (obj.programareaid?.some((val: any) => consulteeFilter.includes(val))) ||
+          //         (obj.other?.some((val: any) => consulteeFilter.includes(val)))))) {
+          //     }
+          // } else {
+          //     if (file.pageFlag?.find((obj: any) => obj.page === p + 1 && obj.flagid != 4 && filterFlags?.includes(obj.flagid))) {
+          //     } else if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p+1)) {
+          //     }
+          // }
+        } else {
+          if (organizeBy === "lastmodified") {
+            return file.pages.map((p: any) => {
+              return {
+                id: `{"docid": ${
+                  file.documentid
+                }, "page": ${p}, "flagid": [${getPageFlagIds(
+                  file.pageFlag,
+                  p
+                )}], "title": "${getFlagName(file, p)}"}`,
+                label: getPageLabel(file, p),
+              };
+            });
+          } else {
+            return file.pages.map((p: any) => {
+              return {
+                id: `{"division": ${division?.divisionid}, "docid": ${
+                  file.documentid
+                }, "page": ${p}, "flagid": [${getPageFlagIds(
+                  file.pageFlag,
+                  p
+                )}], "title": "${getFlagName(file, p)}"}`,
+                label: getPageLabel(file, p),
+              };
+            });
+          }
         }
     }
 
@@ -827,7 +836,7 @@ const DocumentSelector = React.memo(
               <span>
                 {pageFlagList.map((item: any) => (
                   <>
-                    {item.pageflagid == "Consult" || item.pageflagid == 4 ? (
+                    {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
                       <span
                         style={consultFilterStyle}
                         onClick={(event) => openConsulteeList(event)}
@@ -836,7 +845,7 @@ const DocumentSelector = React.memo(
                           key={item.pageflagid}
                           title={item.name}
                           className={
-                            item.pageflagid == "Consult" || item.pageflagid == 4
+                            item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
                               ? "filterConsultIcon"
                               : "filterIcons"
                           }
@@ -856,7 +865,7 @@ const DocumentSelector = React.memo(
                         key={item.pageflagid}
                         title={item.name}
                         className={
-                          item.pageflagid == "Consult" || item.pageflagid == 4
+                          item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
                             ? "filterConsultIcon"
                             : "filterIcons"
                         }
@@ -928,41 +937,12 @@ const DocumentSelector = React.memo(
               </div>
             </div>
             <hr className="hrStyle" />
-            {/* <Box sx={{ mb: 1 }}>
-                        <Tooltip
-                            sx={{
-                                backgroundColor: 'white',
-                                color: 'rgba(0, 0, 0, 0.87)',
-                                fontSize: 11
-                            }}
-                            title={expanded.length === 0 ? "Expand All" : "Collapse All"}
-                            placement="right"
-                            arrow
-                            disableHoverListener={disableHover}
-                        >
-                            <Button onClick={handleExpandClick} sx={{minWidth:"35px"}}>
-                            {expanded.length === 0 ? <FontAwesomeIcon icon={faAnglesDown} className='expandallicon' /> : <FontAwesomeIcon icon={faAnglesUp} className='expandallicon' />}
-                            </Button>
-                        </Tooltip>
-                    </Box> */}
-            {/* <TreeView
-                        aria-label="file system navigator"
-                        defaultCollapseIcon={<ExpandMoreIcon />}
-                        defaultExpandIcon={<ChevronRightIcon />}
-                        expanded={expanded}
-                        multiSelect
-                        selected={selected}
-                        onNodeToggle={handleToggle}
-                        onNodeSelect={handleSelect}
-                        sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-                    > */}
             {
               filesForDisplay.length <= 0 && filterBookmark ? (
                 <div style={{ textAlign: "center" }}>
                   No page has been book marked.
                 </div>
               ) : (
-                // organizeBy === "lastmodified" ?
                 <CustomTreeView
                   ref={treeRef}
                   items={getTreeItems()}
@@ -978,23 +958,8 @@ const DocumentSelector = React.memo(
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   requestInfo={requestInfo}
                 />
-              ) //: <></>
-              // divisions?.length > 0 &&
-              //     <DivisionTreeView
-              //         selected={selected}
-              //         expanded={expanded}
-              //         handleToggle={handleToggle}
-              //         handleSelect={handleSelect}
-              //         filesForDisplay={filesForDisplay}
-              //         divisions={divisions}
-              //         filterBookmark={filterBookmark}
-              //         consulteeFilterView={consulteeFilterView}
-              //         noFilterView={noFilterView}
-              //         disableHover={disableHover}
-              //         displayFilePages={displayFilePages}
-              //     />
+              )
             }
-            {/* </TreeView> */}
           </Stack>
         </div>
       );

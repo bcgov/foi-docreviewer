@@ -1,5 +1,5 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
@@ -8,6 +8,7 @@ import { setRedactionInfo, setIsPageLeftOff, setSections,
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
+import { pageFlagTypes } from "../../constants/enum";
 
 
 export const fetchDocuments = (
@@ -47,18 +48,43 @@ export const fetchDocuments = (
     });
 };
 
+export const saveRotateDocumentPage = (
+  foiministryrequestid: number,
+  documentmasterid: number,
+  rotatedpage: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = `${API.DOCREVIEWER_UPDATE_DOCUMENT_ATTRIBUTES}`
+  let requestJSON = {ministryrequestid: foiministryrequestid, documentmasterids: [documentmasterid], rotatedpages: rotatedpage}
+  
+  httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        errorCallback("Error in saving rotated page");
+        throw new Error(`Error while saving rotated page`);
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in saving rotated page");
+    });
+};
+
 export const fetchAnnotationsByPagination = (
   ministryrequestid: number,
   activepage: number,
   size: number,
   callback: any,
   errorCallback: any,
-  redactionlayer: string = "redline"
+  redactionlayer: string = "redline",
+  timeout: number = 60000
 ) => {
   
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
@@ -310,32 +336,8 @@ export const fetchPageFlag = (
   callback: any,
   errorCallback: any
 ) => {
-  // let apiUrlGet: string = replaceUrl(
-  //   API.DOCREVIEWER_GET_PAGEFLAGS,
-  //   "<requestid>",
-  //   foiministryrquestid
-  // ) + "/" +  redactionlayer;
-  // console.log("\n\ndocumentids: ",documentids)
-  
-  // httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
-  //   .then((res:any) => {
-  //     if (res.data || res.data === "") {
-  //       callback(res.data);
-  //      // store.dispatch(setPageFlags(res.data) as any);
-  //       /** Checking if BOOKMARK set for package */
-  //       let bookmarkedDoc= res.data?.filter((element:any) => {
-  //         return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
-  //       })
-  //       store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
-  //     } else {
-  //       throw new Error();
-  //     }
-  //   })
-  //   .catch((error:any) => {
-  //     errorCallback("Error in fetching pageflags for a document");
-  //   });
-    let requestjson={"documentids":documentids}
 
+    let requestjson={"documentids":documentids}
     let apiUrlPost: string = replaceUrl(
       API.DOCREVIEWER_GET_PAGEFLAGS,
       "<requestid>",
@@ -347,7 +349,7 @@ export const fetchPageFlag = (
         callback(res.data);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
-          return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+          return element?.pageflag?.some((obj: any) =>(obj.flagid === pageFlagTypes["Page Left Off"]));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
       } else {

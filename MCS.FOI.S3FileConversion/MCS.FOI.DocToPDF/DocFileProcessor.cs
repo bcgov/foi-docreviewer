@@ -62,7 +62,7 @@ namespace MCS.FOI.DocToPDF
                                     }
     
                                     List<Entity> datefields = wordDocument.FindAllItemsByProperty(EntityType.Field, "FieldType", FieldType.FieldDate.ToString());
-                                    if (datefields != null)
+                                    if (datefields != null && originalDates?.Count > 0 && datefields?.Count == originalDates?.Count)
                                     {
                                         foreach (var (datefield, i) in datefields.Select((datefield, i) => (datefield, i)))
                                         {
@@ -85,6 +85,9 @@ namespace MCS.FOI.DocToPDF
                             wordDocument.RevisionOptions.CommentDisplayMode = CommentDisplayMode.ShowInBalloons;
                             wordDocument.RevisionOptions.CommentColor = RevisionColor.Blue;
                             wordDocument.RevisionOptions.ShowMarkup = RevisionType.Deletions | RevisionType.Insertions;
+
+                            
+
 
                             using (DocIORenderer renderer = new DocIORenderer())
                             {

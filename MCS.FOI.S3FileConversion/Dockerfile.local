@@ -13,6 +13,7 @@ COPY MCS.FOI.CalendarToPDFUnitTests/*.csproj ./MCS.FOI.CalendarToPDFUnitTests/
 COPY MCS.FOI.MSGToPDFUnitTests/*.csproj ./MCS.FOI.MSGToPDFUnitTests/
 COPY MCS.FOI.DocToPDFUnitTests/*.csproj ./MCS.FOI.DocToPDFUnitTests/
 COPY MCS.FOI.DocToPDF/*.csproj ./MCS.FOI.DocToPDF/
+COPY MCS.FOI.PPTToPDFUnitTests/*.csproj ./MCS.FOI.PPTToPDFUnitTests/
 
 # COPY NuGet.Config /
 # RUN ["cp", "/NuGet.Config", "/root/.nuget/NuGet/NuGet.Config"]

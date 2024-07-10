@@ -15,6 +15,7 @@ import {
 } from "./utils";
 import { useAppSelector } from "../../../hooks/hook";
 import MCFPersonal from "./MCFPersonal";
+import { pageFlagTypes } from "../../../constants/enum";
 
 const ContextMenu = ({
   openFOIPPAModal,
@@ -76,7 +77,7 @@ const ContextMenu = ({
   };
 
   const savePageFlags = (flagId: number, data?: any) => {
-    if (flagId === 3) {
+    if (flagId === pageFlagTypes["Withheld in Full"]) {
       openFOIPPAModal(
         selectedPages.map((page: any) =>
           getStitchedPageNoFromOriginal(page.docid, page.page, pageMappedDocs)
@@ -96,7 +97,6 @@ const ContextMenu = ({
         flagId,
         (data: any) => {
             if(data.status == true){
-                console.log("ContextMenu?")
                 const updatedPageFlags = updatePageFlagOnPage(
                     data.updatedpageflag,
                     pageFlags

@@ -1,5 +1,5 @@
 // import {TreeView, TreeItem} from '@mui/x-tree-view';
-import {TreeItem, TreeItem2} from '@mui/x-tree-view';
+import {TreeItem} from '@mui/x-tree-view';
 import { treeItemClasses } from "@mui/x-tree-view/TreeItem";
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import React, { useEffect, useState, useImperativeHandle, useRef, createRef, LegacyRef } from 'react'
@@ -49,6 +49,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }));
 
     const apiRef = useTreeViewApiRef();
+    
 
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [selectedPages, setSelectedPages] = useState<any>([]);
@@ -62,13 +63,39 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
+            
             setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
-            apiRef.current?.focusItem(event, pageId)
+            apiRef.current?.focusItem(event, pageId)            
             setSelected([])
             setSelectedPages([])
         },
+        scrollLeftPanelPosition(event: any)
+        {           
+            let _lastselected = localStorage.getItem("lastselected")
+            
+            if(_lastselected)
+           {                 
+                let _docid = JSON.parse(_lastselected)?.docid                
+                let docidstring = ''
+                if(_lastselected.indexOf('division')>-1)
+                {
+                        let _divisionid = JSON.parse(_lastselected)?.division
+                        docidstring = `{"division": ${_divisionid}, "docid": ${_docid}}`
+                }
+                else
+                {                            
+                        docidstring = `{"docid": ${_docid}}`                        
+                }
+                                
+                //TODO: Future research ABIN: apiRef.current?.focusItem(event, '{"docid": 192, "page": 1, "flagid": [1], "title": "Partial Disclosure"}')
+                apiRef.current?.focusItem(event, docidstring)
+                localStorage.removeItem("lastselected")
+            }
+        }
     }), [apiRef, expandedItems]);
+
+  
 
     const getAllItemsWithChildrenItemIds = () => {
         const itemIds: any[] = [];
@@ -82,37 +109,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
         return itemIds;
     };
       
-    // const getAllItemsWithChildrenItemIds = () => {
-    //   const itemIds: any = [];
-    //   const registerItemId = (item: any) => {
-    //     if (item.children?.length) {
-    //       itemIds.push(item.id);
-    //       item.children.forEach(registerItemId);
-    //     }
-    //   };
-
-    //   items.forEach(registerItemId);
-
-    //   return itemIds;
-    // };
-
     const handleExpandClick = () => {
         setExpandedItems((oldExpanded: any) =>
             oldExpanded.length === 0 ? getAllItemsWithChildrenItemIds() : []
         );
-        // setExpanded((oldExpanded:any) => {
-        //         let result: any = [];
-        //         if (oldExpanded.length === 0 ) {
-        //             if (organizeBy == "lastmodified" ) {
-        //                 result = expandall;
-        //             }
-        //             else {
-        //                 result = expandallorganizebydivision;
-        //             }
-        //         }
-        //         return result;
-        //     }
-        // );
+
     };
 
     const handleExpandedItemsChange = (event: any,itemIds: any) => {
@@ -120,7 +121,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
     };
        
     const handleSelect = (event: any,nodeIds: any) => {
-        console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
         let selectedPages = [];
         let selectedOthers = [];
         let selectedNodes = [];
@@ -149,6 +149,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
         if (selectedPages.length > PAGE_SELECT_LIMIT) {
             setWarningModalOpen(true);
         } else {
+                      
+            localStorage.setItem("lastselected",nodeIds[nodeIds.length-1])
             setSelected(selectedPages);
             const selectedPagesInfo = selectedPages.map(nodeId => {
                 const { docid, page } = JSON.parse(nodeId);
@@ -158,46 +160,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         }
     };
 
-    //   const handleSelect1 = (event: any, nodeIds: any) => {
-    //     console.log(`handleSelect - Entered.... ${new Date().getSeconds()}`);
-    //     let selectedpages:any[] = [];
-    //     let selectedothers:any[] = [];
-    //     let selectedNodes:any[] = [];
-    //     for (let n of nodeIds) {
-    //         let _n = JSON.parse(n);
-    //         selectedNodes.push(_n);
-    //         if(_n.page) {
-    //             selectedpages.push(n);
-    //         } else {
-    //             selectedothers.push(n);
-    //         }
-    //     }
-
-    //     if (selectedNodes.length === 1 && Object.keys(selectedNodes[0]).includes("docid")) {
-    //         selectTreeItem(selectedNodes[0].docid, selectedNodes[0].page || 1);
-    //     }
-
-    //     // if new select includes divisions and filenames:
-    //     // 1. remove divisions and filenames from new select
-    //     // 2. join old select and new select
-    //     // else only keep new select
-    //     if(selectedothers.length > 0) {
-    //         selectedpages = [...new Set([...selected, ...selectedpages])];
-    //     }
-
-    //     if(selectedpages.length > PAGE_SELECT_LIMIT) {
-    //         setWarningModalOpen(true);
-    //     } else {
-    //         setSelected(selectedpages);
-    //         let _selectedpages:any[] = selectedpages.map((n: any) => {
-    //             let page = JSON.parse(n)
-    //             delete page.flagid;
-    //             return page
-    //         });
-    //         setSelectedPages(_selectedpages);
-    //     }
-    // };
-
+    
     const addIcons = (itemid: any) => {
         if (itemid.page) { //&& pageFlags) {
             let returnElem = (<>{itemid.flagid.map((id: any) => (
@@ -234,7 +197,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           title={itemid.title || props.label}
 
         //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
-          slots={{endIcon: (_props) => {return addIcons(itemid)}}}
+          slots={{endIcon: (_props: any) => {return addIcons(itemid)}}}
         //   icon={faCircleHalfStroke}
           onContextMenu={(e) => openContextMenu(e, props)}
         //   slotProps={{
@@ -294,48 +257,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
         setDisableHover(true);
     }
 
+  
 
-    return (
-        // <TreeView
-        //     aria-label="file system navigator"
-        //     defaultCollapseIcon={<ExpandMoreIcon />}
-        //     defaultExpandIcon={<ChevronRightIcon />}
-        //     expanded={expanded}
-        //     multiSelect
-        //     selected={selected}
-        //     onNodeToggle={handleToggle}
-        //     onNodeSelect={handleSelect}
-        //     sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-        // >
-        //     {filesForDisplay.length <= 0 && filterBookmark ?
-        //         <div style={{ textAlign: 'center' }}>No page has been book marked.</div>
-        //         :
-        //         filesForDisplay?.map((file: any, index: number) => {
-        //             return (
-        //                 // <Tooltip
-        //                 //     sx={{
-        //                 //         backgroundColor: 'white',
-        //                 //         color: 'rgba(0, 0, 0, 0.87)',
-        //                 //         // boxShadow: theme.shadows[1],
-        //                 //         fontSize: 11
-        //                 //     }}
-        //                 //     title={<>
-        //                 //         Last Modified Date: {new Date(file.attributes.lastmodified).toLocaleString('en-US', { timeZone: 'America/Vancouver' })}
-        //                 //         {file.attachmentof && <><br></br> Attachment of: {file.attachmentof}</>}
-        //                 //     </>}
-        //                 //     placement="bottom-end"
-        //                 //     arrow
-        //                 //     key={file?.documentid}
-        //                 //     disableHoverListener={disableHover}
-        //                 // >
-        //                     <TreeItem nodeId={`{"docid": ${file.documentid}}`} label={file.filename} key={file?.documentid}>
-        //                         {displayFilePages(file)}
-        //                     </TreeItem>
-        //                 // </Tooltip>
-        //             )
-        //         })
-        //     }
-        // </TreeView>
+    return (        
         <>
         {openContextPopup === true && 
             <ContextMenu
@@ -386,6 +310,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           onExpandedItemsChange={handleExpandedItemsChange}
           multiSelect
           apiRef={apiRef}
+                  
           slots={{item: CustomTreeItem}}
         //   slotProps={{item: {ContentProps: {id: 'test'}}}}
           sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
