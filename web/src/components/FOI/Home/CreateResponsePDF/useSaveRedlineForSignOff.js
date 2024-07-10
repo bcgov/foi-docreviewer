@@ -885,7 +885,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         setRedlineStitchInfo(stitchDoc);
         setIsSingleRedlinePackage(res.issingleredlinepackage);
         setRedlineZipperMessage({
-          ministryrequestid: requestid,
+          ministryrequestid: foiministryrequestid,
           category: getzipredlinecategory(layertype),
           attributes: [],
           requestnumber: res.requestnumber,
