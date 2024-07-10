@@ -411,9 +411,13 @@ class documentservice:
                 }
             )
             newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
+            if 'divisions' in payload:
+                newdocattributes["divisions"] = payload["divisions"]
+            if 'rotatedpages' in payload:
+                if 'rotatedpages' not in newdocattributes:
+                    newdocattributes['rotatedpages'] = {}
+                newdocattributes['rotatedpages'].update(payload["rotatedpages"])
             newdocattributes["divisions"] = payload["divisions"]
-            # if payload["personalattributes"] is not None:
-            #     newdocattributes["personalattributes"] = payload["personalattributes"]
             newRows.append(
                 DocumentAttributes(
                     version=docattributes["version"] + 1,

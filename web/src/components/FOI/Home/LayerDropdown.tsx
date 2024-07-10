@@ -45,7 +45,7 @@ const LayerDropdown = ({
         const successCallback = () => {
             store.dispatch(setCurrentLayer(layers.find((l: any) => l.redactionlayerid === layer)));
         }
-        if (layers.find((l: any) => l.redactionlayerid === layer).redactionlayerid === 3) {
+        if (layers.find((l: any) => l.redactionlayerid === layer).name === 'OIPC') {
             createOipcLayer(ministryrequestid, successCallback);
         }
     }
@@ -68,7 +68,7 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.redactionlayerid === 3 && !validoipcreviewlayer} style={{color: "#000000"}}>
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.name === 'OIPC' && !validoipcreviewlayer} style={{color: "#000000"}}>
                     {
                     option.redactionlayerid > 2
                         && option.count === 0

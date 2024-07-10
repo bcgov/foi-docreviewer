@@ -32,7 +32,6 @@ function Home() {
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
-
   const [currentPageInfo, setCurrentPageInfo] = useState({ file: {}, page: 0 });
   const [s3UrlReady, setS3UrlReady] = useState(false);
   const [s3Url, setS3Url] = useState("");
@@ -40,14 +39,12 @@ function Home() {
   const [totalPageCount, setTotalPageCount] = useState(0);
   const [currentDocument, setCurrentDocument] = useState({});
   const [docsForStitcing, setDocsForStitcing] = useState([]);
-  const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
   const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [divisions, setDivisions] = useState([]);
   const [pageFlags, setPageFlags]= useState([]);
-
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -56,7 +53,6 @@ function Home() {
     setS3UrlReady(false);
     let documentObjs = [];
     let totalPageCountVal = 0;
-    let presignedurls = [];
     let deletedDocPages = [];
 
     fetchDeletedDocumentPages(
@@ -145,12 +141,15 @@ function Home() {
 
   }, []);
 
+
+
   const getCurrentDocument = (doclist) => {    
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
   const syncPageFlagsOnAction = (updatedFlags) => {
-    console.log("HOME-Inside syncPageFlagsOnAction!",updatedFlags)
+     
+    selectorRef?.current?.scrollLeftPanelPosition("")       
     setPageFlags(updatedFlags);
   };
 

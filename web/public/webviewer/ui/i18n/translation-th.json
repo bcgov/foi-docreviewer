@@ -8,6 +8,7 @@
     "calibrate": "ปรับเทียบ",
     "cancel": "ยกเลิก",
     "confirm": "ยืนยัน",
+    "currentPageIs": "หน้าปัจจุบันคือ",
     "clear": "ชัดเจน",
     "clearAll": "ลบทั้งหมด",
     "close": "ปิด I",
@@ -71,6 +72,7 @@
     "type": "พิมพ์",
     "upload": "ที่อัพโหลด",
     "link": "ลิงค์",
+    "unlink": "ลบลิงค์",
     "fileAttachmentDownload": "ดาวน์โหลดไฟล์แนบ",
     "prevResult": "ผลลัพธ์ก่อนหน้า",
     "nextResult": "ผลลัพธ์ถัดไป",
@@ -81,6 +83,8 @@
     "exit": "ทางออก",
     "addOption": "เพิ่มตัวเลือก",
     "formFieldEdit": "แก้ไขแบบฟอร์มฟิลด์",
+    "formFieldEditMode": "แก้ไขฟิลด์แบบฟอร์ม",
+    "contentEditMode": "แก้ไขเนื้อหา",
     "viewShortCutKeysFor3D": "ดูปุ่มลัด",
     "markAllRead": "ทำเครื่องหมายทั้งหมดว่าอ่านแล้ว",
     "pageInsertion": "การแทรกหน้า",
@@ -119,8 +123,13 @@
     "showComparison": "แสดงการเปรียบเทียบ",
     "back": "กลับ",
     "clearSignature": "ลายเซ็นที่ชัดเจน",
+    "readOnlySignature": "ลายเซ็นแบบอ่านอย่างเดียวไม่สามารถลบได้",
     "newDocument": "เอกสารใหม่",
-    "sideBySideView": "มุมมองด้านข้าง"
+    "sideBySideView": "มุมมองด้านข้าง",
+    "pageNumberInput": "การป้อนหมายเลขหน้า",
+    "addNewColor": "เพิ่มสีใหม่",
+    "deleteColor": "ลบสีที่เลือก",
+    "copySelectedColor": "คัดลอกสีที่เลือก"
   },
   "annotation": {
     "areaMeasurement": "พื้นที่",
@@ -244,6 +253,8 @@
     "watermarkPanel": "แผงลายน้ำ"
   },
   "message": {
+    "showMore": "แสดงมากขึ้น",
+    "showLess": "แสดงน้อยลง",
     "toolsOverlayNoPresets": "ไม่มีสถานีที่ตั้งไว้",
     "badDocument": "ไม่สามารถโหลดเอกสาร เอกสารเสียหายหรือไม่ถูกต้อง",
     "customPrintPlaceholder": "เช่น. 3, 4-10",
@@ -259,6 +270,7 @@
     "noAttachments": "เอกสารนี้ไม่มีไฟล์แนบ",
     "noResults": "ไม่พบผลลัพธ์.",
     "numResultsFound": "พบผลลัพธ์",
+    "loadError": "เกิดข้อผิดพลาดในการโหลดเอกสาร",
     "notSupported": "ไม่รองรับไฟล์ประเภทนั้น",
     "passwordRequired": "ต้องใช้รหัสผ่าน",
     "enterPasswordPlaceholder": "ใส่รหัสผ่าน",
@@ -279,9 +291,6 @@
     "linkURLorPage": "ลิงค์ URL หรือเพจ",
     "warning": "คำเตือน",
     "svgMalicious": "สคริปต์ SVG ถูกละเว้นเพื่อความปลอดภัย",
-    "enterContentEditingMode": "คุณกำลังจะเข้าสู่โหมดแก้ไขเนื้อหา",
-    "existingAnnotationWarning": "คำอธิบายประกอบที่มีอยู่อาจไม่ตรงกับข้อความหลังจากแก้ไขแล้ว",
-    "changesCannotBeUndone": "การเปลี่ยนแปลงที่ทำขึ้นไม่สามารถยกเลิกได้",
     "doNotShowAgain": "อย่าแสดงให้ฉันเห็นอีก",
     "doNotAskAgain": "อย่าถามอีก",
     "enterReplacementText": "ป้อนข้อความที่คุณต้องการแทนที่",
@@ -290,6 +299,8 @@
     "unpostedComment": "ความคิดเห็นที่ยังไม่ได้โพสต์",
     "lockedLayer": "เลเยอร์ถูกล็อค",
     "layerVisibililtyNoChange": "ระดับการมองเห็นไม่สามารถเปลี่ยนแปลงได้",
+    "noLayers": "เอกสารนี้ไม่มีเลเยอร์",
+    "noSignatureFields": "เอกสารนี้ไม่มีช่องลายเซ็น",
     "untitled": "ไม่มีชื่อ",
     "selectHowToLoadFile": "เลือกวิธีการโหลดเอกสารของคุณ",
     "openFileByUrl": "เปิดไฟล์ตาม URL:",
@@ -361,6 +372,10 @@
     },
     "colorPalette": {
       "colorLabel": "สี"
+    },
+    "colorPalettePicker": {
+      "addColor": "เพิ่มสีใหม่",
+      "selectColor": "เลือกสี"
     },
     "displayMode": {
       "layout": "เค้าโครงหน้า",
@@ -505,6 +520,9 @@
       "count": "นับ",
       "length": "ความยาว"
     },
+    "freeTextOption": {
+      "autoSizeFont": "ปรับขนาดตัวอักษรแบบไดนามิก"
+    },
     "measurementOption": {
       "scale": "มาตราส่วน"
     },
@@ -546,6 +564,10 @@
       "deletionModal": {
         "title": "ลบเนื้อหา",
         "message": "คุณแน่ใจหรือไม่ว่าต้องการลบเนื้อหาที่เลือก สิ่งนี้ไม่สามารถยกเลิกได้"
+      },
+      "digitalSign": {
+        "title": "คำเตือนเอกสารปิดผนึก",
+        "message": "เอกสารนี้ได้รับการลงนามแล้วและไม่สามารถเปลี่ยนแปลงหรือเปลี่ยนแปลงได้"
       }
     },
     "stylePopup": {
@@ -693,6 +715,7 @@
       "redoChange": "ทำซ้ำการเปลี่ยนแปลงคำอธิบายประกอบ",
       "openFile": "เปิดตัวเลือกไฟล์",
       "openSearch": "เปิดการซ้อนทับการค้นหา",
+      "zoomOptions": "ตัวเลือกการซูม",
       "zoomIn": "ขยายเข้า",
       "zoomOut": "ซูมออก",
       "fitScreenWidth": "ปรับเอกสารให้พอดีกับความกว้างของหน้าจอในหน้าจอขนาดเล็ก (< 640px) มิฉะนั้น ให้พอดีกับขนาดดั้งเดิม",
@@ -759,6 +782,9 @@
       "deleteTitle": "ลบสีที่กำหนดเอง",
       "deleteMessage": "ลบสีที่กำหนดเองที่เลือก? จะถูกลบออกจากจานสีของคุณ"
     },
+    "colorPalettePicker": {
+      "deleteTitle": "ลบสีที่กำหนดเอง"
+    },
     "multiDeleteAnnotation": {
       "title": "ลบคำอธิบายประกอบ?",
       "message": "การลบจะลบความคิดเห็น การตอบกลับ และการจัดกลุ่มทั้งหมดออก และไม่สามารถยกเลิกได้\n\n คุณแน่ใจหรือไม่ว่าต้องการลบคำอธิบายประกอบเหล่านี้"
@@ -791,7 +817,7 @@
     "select": "(เอสซี)",
     "signature": "(ส)",
     "squiggly": "(ช)",
-    "image": "(ฉัน)",
+    "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
@@ -1156,6 +1182,22 @@
     "increaseIndent": "เพิ่มการเยื้อง",
     "insertLink": "ใส่ลิงค์",
     "insertImage": "แทรกรูปภาพ",
+    "table": "โต๊ะ",
+    "insertRowAbove": "แทรกแถวด้านบน",
+    "insertRowBelow": "แทรกแถวด้านล่าง",
+    "insertColumnRight": "แทรกคอลัมน์ทางขวา",
+    "insertColumnLeft": "แทรกคอลัมน์ด้านซ้าย",
+    "deleteRow": "ลบแถว",
+    "deleteColumn": "ลบคอลัมน์",
+    "deleteTable": "ลบตาราง",
+    "deleted": "ลบแล้ว:",
+    "added": "เพิ่ม:",
+    "editing": "การแก้ไข",
+    "editingDescription": "แก้ไขเอกสาร",
+    "reviewing": "กำลังทบทวน",
+    "reviewingDescription": "ให้คำแนะนำ",
+    "viewOnly": "สำหรับดูเท่านั้น",
+    "viewOnlyDescription": "ดูโดยไม่มีข้อเสนอแนะ",
     "notSupportedOnMobile": "อุปกรณ์พกพาไม่รองรับการแก้ไข Office"
   },
   "insertPageModal": {
@@ -1247,5 +1289,37 @@
     "dragAndDrop": "ลากและวางไฟล์ของคุณที่นี่",
     "selectFile": "เลือกไฟล์ของคุณที่นี่",
     "or": "หรือ"
+  },
+  "stylePanel": {
+    "headings": {
+      "styles": "สไตล์",
+      "annotation": "คำอธิบายประกอบ",
+      "annotations": "คำอธิบายประกอบ",
+      "tool": "เครื่องมือ",
+      "textStyles": "ลักษณะข้อความ",
+      "currentColor": "สีปัจจุบัน",
+      "customColors": "สีที่กำหนดเอง",
+      "redactionTextLabel": "ป้ายข้อความ",
+      "redactionMarkOutline": "ทำเครื่องหมายโครงร่าง",
+      "redactionFill": "สีปฏิกิริยา",
+      "redactionTextPlaceholder": "ใส่ป้ายกำกับข้อความ",
+      "contentEdit": "แก้ไขเนื้อหา"
+    },
+    "addColorToCustom": "เพิ่มลงในสีที่กำหนดเอง",
+    "noToolSelected": "เลือกเครื่องมือเพื่อดูคุณสมบัติของเครื่องมือ",
+    "noToolStyle": "เครื่องมือไม่มีคุณสมบัติการจัดรูปแบบใดๆ"
+  },
+  "signatureListPanel": {
+    "header": "รายการลายเซ็น",
+    "newSignature": "ลายเซ็นใหม่",
+    "newSignatureAndInitial": "ลายเซ็นใหม่และชื่อย่อใหม่",
+    "signatureList": {
+      "signature": "ลายเซ็น",
+      "initials": "ชื่อย่อ"
+    }
+  },
+  "rubberStampPanel": {
+    "header": "แสตมป์",
+    "standard": "แสตมป์มาตรฐาน"
   }
 }

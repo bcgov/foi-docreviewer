@@ -1,19 +1,4 @@
-import { pageFlagTypes } from "../../../constants/enum";
 
-// export const getStitchedPageNoFromOriginal1 = (docid, page, pageMappedDocs) => {
-//   let stitchedPageNo = 0;
-//   if (docid && pageMappedDocs) {
-//     let doc = pageMappedDocs?.docIdLookup[docid];
-//     // stitchedPageNo = doc?.pageMappings?.[page - 1].stitchedPageNo;
-//     let stitchedPage = doc?.pageMappings?.filter(
-//       (_page) => _page.pageNo === page
-//     );
-//     if (stitchedPage && stitchedPage.length > 0) {
-//       stitchedPageNo = stitchedPage[0].stitchedPageNo;
-//     }
-//   }
-//   return stitchedPageNo;
-// };
 
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   if (!docid || !pageMappedDocs) return 0;
@@ -696,9 +681,7 @@ const getRedactionType = (sectionValue, isFullPage, RedactionTypes) => {
 
 
 export const updatePageFlagOnPage = (updatedDocs, pageFlags) => {
-  // Create a shallow copy of the pageFlags array
   const updatedPageFlags = [...pageFlags];
-  // Create a map from documentid to pageflag object for efficient lookup
   const pageFlagsMap = new Map(
     updatedPageFlags.map((pageFlag) => [pageFlag.documentid, pageFlag])
   );
@@ -715,95 +698,8 @@ export const updatePageFlagOnPage = (updatedDocs, pageFlags) => {
       });
     }
   }
-  console.log("updatedPageFlags:",updatedPageFlags)
   return updatedPageFlags;
 }
-
-
-// export const updatePageFlagOnPage1 = (documentpageflags, pageFlags) => {
-//   const updatedPageFlags = [...pageFlags];
-//   // Create an object to quickly lookup page flags by document id
-//   // const pageFlagsMap = pageFlags.reduce((map, pageFlag) => {
-//   //   map[pageFlag.documentid] = pageFlag;
-//   //   return map;
-//   // }, {});
-//   const pageFlagsMap = new Map(
-//     pageFlags.map((pageFlag) => [pageFlag.documentid, { ...pageFlag }])
-//   );
-//   for (let documentpageflag of documentpageflags) {
-//     let toBeUpdated = pageFlagsMap.get(Number(documentpageflag.documentid));
-
-//     if (toBeUpdated) {
-//       for (let pageFlag of documentpageflag.pageflags) {
-//         let existingNonConsultPage = toBeUpdated.pageflag.find(
-//           (pf) =>
-//             pf.page === pageFlag.page && pf.flagid != pageFlagTypes["Consult"]
-//         );
-//         let existingConsultPage = toBeUpdated.pageflag.find(
-//           (pf) =>
-//             pf.page === pageFlag.page && pf.flagid == pageFlagTypes["Consult"]
-//         );
-//         if (pageFlag.flagid != pageFlagTypes["Consult"]) {
-//           if (existingNonConsultPage) {
-//             if (pageFlag.deleted) {
-//               const indexToRemove = toBeUpdated.pageflag.findIndex(
-//                 (item) =>
-//                   item.page === existingNonConsultPage.page &&
-//                   item.flagid == existingNonConsultPage.flagid
-//               );
-//               if (indexToRemove !== -1)
-//                 toBeUpdated.pageflag.splice(indexToRemove, 1);
-//             } else {
-//               if (existingNonConsultPage.flagid !== pageFlag.flagid) {
-//                 existingNonConsultPage.flagid = pageFlag.flagid;
-//               } else return [];
-//             }
-//           } else {
-//             toBeUpdated.pageflag.push(pageFlag);
-//           }
-//         } else {
-//           if (existingConsultPage) {
-//             if (pageFlag.deleted) {
-//               const indexToRemove = toBeUpdated.pageflag.findIndex(
-//                 (item) =>
-//                   item.page === existingConsultPage.page &&
-//                   item.flagid == existingConsultPage.flagid
-//               );
-//               if (indexToRemove !== -1)
-//                 toBeUpdated.pageflag.splice(indexToRemove, 1);
-//             } else {
-//               if (
-//                 pageFlag.other.length > 0 ||
-//                 pageFlag.programareaid.length > 0
-//               ) {
-//                 existingConsultPage.other = pageFlag.other;
-//                 existingConsultPage.programareaid = pageFlag.programareaid;
-//               } else {
-//                 const indexToRemove = toBeUpdated.pageflag.findIndex(
-//                   (item) =>
-//                     item.page === existingConsultPage.page &&
-//                     item.flagid == existingConsultPage.flagid
-//                 );
-//                 if (indexToRemove !== -1)
-//                   toBeUpdated.pageflag.splice(indexToRemove, 1);
-//               }
-//             }
-//           } else {
-//             toBeUpdated.pageflag.push(pageFlag);
-//           }
-//         }
-//       }
-//     } else {
-//       updatedPageFlags.push({
-//         documentid: documentpageflag.documentid,
-//         documentversion: documentpageflag.version,
-//         pageflag: documentpageflag.pageflags,
-//       });
-//     }
-//   }
-//   return updatedPageFlags;
-// };
-
 
 export const skipDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
   let pageFlagArray = [];

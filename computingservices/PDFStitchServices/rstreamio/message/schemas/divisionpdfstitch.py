@@ -16,6 +16,7 @@ class FileSchema(Schema):
     s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
     lastmodified = fields.Str(data_key="lastmodified",allow_none=False)
     filesize = fields.Number(data_key="filesize")
+    rotatedpages = fields.Dict(data_key="rotatedpages",keys=fields.Int,values=fields.Int,required=False,allow_none=True)
 
 class AttributeSchema(Schema):
 
