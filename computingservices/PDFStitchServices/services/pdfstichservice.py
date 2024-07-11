@@ -76,6 +76,10 @@ class pdfstitchservice(basestitchservice):
                     try:
                         _bytes = BytesIO(self.getpdfbytes(extension.lower(), file, s3credentials))
                         pdf_doc_in = fitz.open(stream=_bytes) #input PDF
+                        if hasattr(file, 'rotatedpages'):
+                            rotatedpages = file.rotatedpages.__dict__
+                            for page in rotatedpages:
+                                pdf_doc_in[int(page)-1].set_rotation(rotatedpages[page])
                         pdf_doc = fitz.open()  # output PDF
                         if pdf_doc_in.is_form_pdf is not False and pdf_doc_in.is_form_pdf > 0:  #check if form field exists, if so convert doc to series of page images & combine to 1 pdf
                             for page in pdf_doc_in:

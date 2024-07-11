@@ -234,9 +234,11 @@ class FOIFlowS3PresignedRedline(Resource):
                         filename_get, file_extension_get = os.path.splitext(
                                         filepath_get
                             )
+                        originalextensions = ['.pdf']
+                        originalextensions.extend(imageextensions)
                         file_extension_get = (
                                         file_extension_get.replace(".", "")
-                                        if file_extension_get.lower() in imageextensions
+                                        if file_extension_get.lower() in originalextensions
                                         else "pdf"
                                 )
 

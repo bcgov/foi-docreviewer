@@ -81,7 +81,6 @@ export const handleRedlineForSignOffClick = (
   updateModalData,
   setRedlineModalOpen
 ) => {
-  console.log("redlinebtn");
   // Save to s3
   updateModalData({
     modalFor: "redline",
@@ -104,7 +103,6 @@ export const handleRedlineForOipcClick = (
   updateModalData,
   setRedlineModalOpen
 ) => {
-  console.log("oipcbtn");
   // Save to s3
   updateModalData({
     modalFor: "oipcreview",
@@ -128,7 +126,6 @@ export const handleFinalPackageClick = (
   updateModalData,
   setRedlineModalOpen
 ) => {
-  console.log("finalbtn");
   updateModalData({
     modalFor: "responsepackage",
     modalTitle: "Create Package for Applicant",
@@ -159,7 +156,6 @@ export const handleFinalPackageClick = (
 };
 
 export const isReadyForSignOff = (documentList, pageFlags) => {
-  console.log("READYFORSIGNOFF");
   let pageFlagArray = [];
   let stopLoop = false;
   if (documentList.length > 0 && documentList.length === pageFlags?.length) {
@@ -206,7 +202,6 @@ export const isReadyForSignOff = (documentList, pageFlags) => {
   return !stopLoop;
 };
 export const isValidRedlineDownload = (pageFlags) => {
-  console.log("isvalidredlinedownload");
   let isvalid = false;
   let pageFlagArray = [];
   if (pageFlags?.length > 0) {

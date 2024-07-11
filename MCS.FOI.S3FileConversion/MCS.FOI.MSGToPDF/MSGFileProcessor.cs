@@ -1,11 +1,12 @@
 using MsgReader.Outlook;
 using MsgReader;
-using Serilog;
+using SerilogNS = Serilog;
 using Syncfusion.HtmlConverter;
 using Syncfusion.Pdf;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
+using static MsgReader.Outlook.Storage;
 
 namespace MCS.FOI.MSGToPDF
 {
@@ -67,10 +68,20 @@ namespace MCS.FOI.MSGToPDF
                                             filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
                                         }
                                         fileNameHash.Add(filename, true);
+
+                                        var lastModified = _attachment.LastModificationTime.ToString();
+                                        var sentOn = _attachment.SentOn.ToString();
+                                        if (!string.IsNullOrEmpty(sentOn))
+                                            lastModified = sentOn;
+                                            
+                                        var attachmentSize = attachmentStream.Length.ToString();
+                                        if (string.IsNullOrEmpty(attachmentSize))
+                                            attachmentSize = attachmentStream.Capacity.ToString();
+
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", attachmentStream.Capacity.ToString());
-                                        attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
+                                        attachmentInfo.Add("size", attachmentSize);
+                                        attachmentInfo.Add("lastmodified", lastModified);
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
                                         attachmentsObj.Add(attachmentStream, attachmentInfo);
                                     }
@@ -109,6 +120,7 @@ namespace MCS.FOI.MSGToPDF
                             var options = RegexOptions.None;
                             var timeout = TimeSpan.FromSeconds(10);
                             var bodyreplaced = Regex.Replace(body, "page:WordSection1;", "", options, timeout);
+                            bodyreplaced = Regex.Replace(bodyreplaced, "</style>", "table {max-width: 800px !important;}</style>", options, timeout);
                             //var bodyreplaced = Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(Regex.Replace(body, "<br.*?>", "<br/>", options, timeout), "<hr.*?>", "<hr/>", options, timeout), "href=\"[^\"]*=[^\"]\"", "", options, timeout).Replace(";=\"\"", "").Replace("<![if !supportAnnotations]>", "").Replace("<![endif]>", ""), "=(?<tagname>(?!utf-8)[\\w|-]+)", "=\"${tagname}\"", options, timeout), "<meta .*?>", "", options, timeout), "<link.*?>", "", options, timeout), "<img src=\"(?!cid).*?>", "", options, timeout);
                             const string rtfInlineObject = "[*[RTFINLINEOBJECT]*]";
                             const string imgString = "<img(.|\\n)*src=\"cid(.|\\n)*?>";
@@ -388,7 +400,7 @@ namespace MCS.FOI.MSGToPDF
                         {
                             string errorMessage = $"Exception occured while coverting a message file, exception :  {e.Message}";
                             message = $"Exception happened while accessing the File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                            Log.Error(message);
+                            SerilogNS.Log.Error(message);
                             Console.WriteLine(message);
                             if (attempt == FailureAttemptCount)
                             {
@@ -401,12 +413,12 @@ namespace MCS.FOI.MSGToPDF
                 else
                 {
                     message = $"SourceStream does not exist!";
-                    Log.Error(message);
+                    SerilogNS.Log.Error(message);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}");
+                SerilogNS.Log.Error($"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}");
                 message = $"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
                 throw;
@@ -441,20 +453,31 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + sender + "</td></tr>");
                 //Recipient Name and Email
                 string recipientName = "";
-                foreach (var recipient in msg.GetEmailRecipients(RecipientType.To, false, false))
+                msg.Recipients?.Where(t => t.Type == RecipientType.To).ToList()?.ForEach(toreceipient =>
                 {
-                    recipientName += recipient;
-                }
+
+                    recipientName += String.Format("{0}, {1}", toreceipient.Email, toreceipient.DisplayName);
+
+                });
+
+
                 string recipientCCName = "";
-                foreach (var recipient in msg.GetEmailRecipients(RecipientType.Cc, false, false))
+                msg.Recipients?.Where(t => t.Type == RecipientType.Cc).ToList()?.ForEach(ccreceipient =>
                 {
-                    recipientCCName += recipient;
-                }
+
+                    recipientCCName += String.Format("{0}, {1}", ccreceipient.Email, ccreceipient.DisplayName);
+
+                });
+
                 string recipientBccName = "";
-                foreach (var recipient in msg.GetEmailRecipients(RecipientType.Bcc, false, false))
+
+                msg.Recipients?.Where(t => t.Type == RecipientType.Bcc).ToList()?.ForEach(bccreceipient =>
                 {
-                    recipientBccName += recipient;
-                }
+
+                    recipientBccName += String.Format("{0}, {1}", bccreceipient.Email, bccreceipient.DisplayName);
+
+                });
+
                 if (!string.IsNullOrEmpty(recipientName))
                 {
                     htmlString.Append(@"<tr>
