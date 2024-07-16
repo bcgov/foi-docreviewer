@@ -3061,7 +3061,7 @@ const Redlining = React.forwardRef(
             totalPageCount += Object.keys(
               pageMappings[doc.documentid]
             ).length;
-            if (!skipDocumentPages) {
+            if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
               totalPageCountIncludeRemoved += doc.pagecount;
             }
           //}
@@ -3253,7 +3253,7 @@ const Redlining = React.forwardRef(
             totalPageCount += Object.keys(
               pageMappings[doc.documentid]
             ).length;
-            if (!skipDocumentPages) {
+            if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
               totalPageCountIncludeRemoved += doc.pagecount;
             }
           }
