@@ -6,7 +6,7 @@ from collections import defaultdict
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        if message.bcgovcode == 'mcf':
+        if message.bcgovcode == 'mcf' and message.category == "responsepackage":
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
