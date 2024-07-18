@@ -97,7 +97,7 @@ const MCFPersonal = ({
     },[MCFPeople])
 
     useEffect(() => {
-      if(MCFVolumes?.volumes) {
+      if(!!MCFFiletypes && MCFVolumes?.volumes) {
         if(MCFFiletypes.filetypes.length > 5) {
           setVolumes(MCFVolumes.volumes.slice(0, 5));
         } else {
