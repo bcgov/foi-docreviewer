@@ -106,7 +106,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     if (childDocList.length == 1) {
       sortedChildDocList = childDocList;
     } else {
-      if (requestInfo.bcgovcode === "MCF") {
+      if (requestInfo?.bcgovcode === "MCF") {
         sortedChildDocList = childDocList.sort(CFDSorting);
       } else {
         sortedChildDocList = childDocList.sort(docSorting);

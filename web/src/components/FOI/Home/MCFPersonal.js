@@ -166,7 +166,7 @@ const MCFPersonal = ({
         _sectionArray.map((section) => {
           if(_keyword && section.name.toLowerCase().includes(_keyword.toLowerCase())) {
             newSectionArray.push(section);
-          } else if(section.divisionid === _selectedSectionValue) {
+          } else if(section.name === _selectedSectionValue) {
             newSectionArray.unshift(section);
           }
         });
@@ -221,6 +221,8 @@ const MCFPersonal = ({
     };
 
     const handleClose = () => {
+      setSearchValue("");
+      setFileTypeSearchValue("");
       setCurrentEditRecord();
       setCurPersonalAttributes({
         person: "",
@@ -232,6 +234,11 @@ const MCFPersonal = ({
       setNewPersonalAttributes();
       setEditTagModalOpen(false);
       setOpenContextPopup(false);
+    };
+
+    const reset = () => {
+      setSearchValue("");
+      setFileTypeSearchValue("");
     };
 
     const handleFileTypeSearchKeywordChange = (keyword) => {
@@ -583,13 +590,13 @@ const MCFPersonal = ({
           <DialogActions>
             <button
               className={`btn-bottom btn-save btn`}
-              onClick={() => updatePersonalAttributes()}
+              onClick={() => {updatePersonalAttributes();reset();}}
             >
               Update for Individual
             </button>
             <button
               className={`btn-bottom btn-save btn`}
-              onClick={() => updatePersonalAttributes(true)}
+              onClick={() => {updatePersonalAttributes(true);reset();}}
             >
               Update for All
             </button>
