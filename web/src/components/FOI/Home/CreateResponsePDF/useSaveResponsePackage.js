@@ -331,9 +331,9 @@ const useSaveResponsePackage = () => {
                   (Object.keys(res.attributes).length > 0 && 'personalattributes' in res.attributes && Object.keys(res.attributes?.personalattributes).length > 0) ? res.attributes.personalattributes: {},
                   res.documentid
                 );
-                // setTimeout(() => {
-                //   window.location.reload(true);
-                // }, 3000);
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 3000);
               },
               (_err) => {
                 console.log(_err);
