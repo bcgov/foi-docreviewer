@@ -31,7 +31,7 @@
     <PackageReference Include="AWSSDK.S3" Version="3.7.101.9" />
 	<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
 	<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-	<PackageReference Include="Npgsql" Version="7.0.0" />
+	<PackageReference Include="Npgsql" Version="7.0.7" />
 	<PackageReference Include="StackExchange.Redis" Version="2.6.70" />
 	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Linux" Version="25.2.7" />
 	<PackageReference Include="Syncfusion.HtmlToPdfConverter.Net.Windows" Version="25.2.7" />
