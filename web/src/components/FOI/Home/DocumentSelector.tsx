@@ -311,12 +311,24 @@ const DocumentSelector = React.memo(
 
 
       const onFilterChange = (filterValue: string) => {
-        setFilesForDisplay(
-          files.filter((file: any) => file.filename.includes(filterValue))
-        );
-        setFilteredFiles(
-          files.filter((file: any) => file.filename.includes(filterValue))
-        );
+        if(requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal"){
+          let filtered = files.filter((file: any) => {
+            const personalAttributes = file.attributes.personalattributes;
+            return Object.values(personalAttributes).some((value: any) => 
+                value.toLowerCase().includes(filterValue.toLowerCase())
+            );
+          })
+          setFilesForDisplay(filtered);
+          setFilteredFiles(filtered);
+        }
+        else{
+          setFilesForDisplay(
+            files.filter((file: any) => file.filename.includes(filterValue))
+          );
+          setFilteredFiles(
+            files.filter((file: any) => file.filename.includes(filterValue))
+          );
+        }
       };
 
     const selectTreeItem = (docid: any, page: number) => {
