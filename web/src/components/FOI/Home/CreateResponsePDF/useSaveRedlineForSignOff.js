@@ -67,7 +67,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [redlineCategory, setRedlineCategory] = useState(false);
   const [filteredComments, setFilteredComments] = useState({});
   const [alreadyStitchedList, setAlreadyStitchedList] = useState([]);
-  const [redlineSinglePackage, setRedlineSinglePackage] = useState(null);
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
@@ -769,7 +768,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           render: `Start saving redline...`,
           isLoading: true,
         });
-        //setRedlineSinglePackage(res.issingleredlinepackage);
         setIsSingleRedlinePackage(res.issingleredlinepackage);
         let stitchDoc = {};
         
@@ -1410,7 +1408,7 @@ const stampPageNumberRedline = async (
       currentDivisionCount++;
       toast.update(toastId.current, {
         render:
-          redlineSinglePackage == "N"
+          isSingleRedlinePackage == "N"
             ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
             : `Saving redline PDF to Object Storage...`,
         isLoading: true,
@@ -1508,7 +1506,7 @@ const stampPageNumberRedline = async (
             stitchObject,
             PDFNet,
             redlineStitchInfo[divisionid]["stitchpages"],
-            redlineSinglePackage
+            isSingleRedlinePackage
           );
         }
         //OIPC - Special Block : End        
@@ -1546,7 +1544,7 @@ const stampPageNumberRedline = async (
                   redlineIncompatabileMappings[divisionid],
                   redlineStitchInfo[divisionid]["s3path"],
                   divisionCountForToast,
-                  redlineSinglePackage
+                  isSingleRedlinePackage
                 );
               },
               (_err) => {
