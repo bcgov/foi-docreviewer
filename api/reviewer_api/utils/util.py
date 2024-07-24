@@ -145,6 +145,6 @@ def is_single_redline_package(bcgovcode, packagetype, requesttype):
             return True
     if REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL not in (None, ""):
         _pkg_ministries_personal = REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL.replace(" ", "").split(',')
-        if bcgovcode.upper() in _pkg_ministries_personal:
+        if bcgovcode.upper() in _pkg_ministries_personal and requesttype.upper() == "PERSONAL":
             return True
     return False
