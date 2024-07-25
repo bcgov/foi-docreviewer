@@ -784,7 +784,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         let documentsObjArr = [];
         let divisionstitchpages = [];
         let divCount = 0;
-        
+        console.log("RES:",res)
         for (let div of res.divdocumentList) {
           divCount++;
           let docCount = 0;
@@ -984,6 +984,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       includenrpages: includeNRPages,
     };
     if (stitchedDocPath) {
+      console.log("stitchedDocPath:",stitchedDocPath)
       const stitchedDocPathArray = stitchedDocPath?.split("/");
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -1007,7 +1008,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        window.location.reload();
+        //window.location.reload();
       });
     }
     return zipServiceMessage;
