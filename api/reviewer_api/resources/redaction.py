@@ -40,6 +40,7 @@ from reviewer_api.schemas.annotationrequest import (
 )
 from reviewer_api.schemas.redline import RedlineSchema
 from reviewer_api.schemas.finalpackage import FinalPackageSchema
+import time
 
 API = Namespace(
     "Document and annotations",
@@ -96,6 +97,7 @@ class AnnotationPagination(Resource):
                 result = redactionservice().getannotationsbyrequest(
                     ministryrequestid, redactionlayer, page, size
                 )
+                time.sleep(40)
                 return result, 200
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + "Invalid Layer"}, 400
         except KeyError as error:
