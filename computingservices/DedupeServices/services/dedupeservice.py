@@ -21,4 +21,4 @@ def processmessage(message):
             documentspagecalculatorproducerservice().producepagecalculatorevent(pagecalculatormessage, _pagecount, pagecalculatorjobid)
     except(Exception) as error:
         print("Exception while processing redis message, func processmessage(p3), Error : {0} ".format(error))
-        recordjobend(message, True, traceback.format_exc())
+        recordjobend(message, True, error.args[0])
