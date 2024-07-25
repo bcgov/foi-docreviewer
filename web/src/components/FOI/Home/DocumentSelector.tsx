@@ -615,9 +615,9 @@ const DocumentSelector = React.memo(
             }
           });
           if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
-            return filteredpages.pages.map((p: any) => {
+            return filteredpages.map((p: any) => {
               return {
-                id: `{"filevolume": ${division}, "docid": ${
+                id: `{"filevolume": "${division}", "docid": ${
                   file.documentid
                 }, "page": ${p}, "flagid": [${getPageFlagIds(
                   file.pageFlag,
