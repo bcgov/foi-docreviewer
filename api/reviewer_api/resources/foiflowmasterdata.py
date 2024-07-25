@@ -172,6 +172,7 @@ class FOIFlowS3PresignedRedline(Resource):
     def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
         try:            
             data = request.get_json()
+            print("data!:",data)
             requesttype = data["requestType"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
@@ -287,6 +288,7 @@ class FOIFlowS3PresignedRedline(Resource):
                             ExpiresIn=3600,
                             HttpMethod="PUT",
                         )
+                        print("s3path_save:",s3path_save)
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
                         
