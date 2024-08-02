@@ -153,6 +153,16 @@ const MCFPersonal = ({
     },[showAllPeople, showAllVolumes])
 
     React.useEffect(() => {
+      if(MCFPeople.people.length > 0 && personalAttributes.person !== "") {
+        setShowAllPeople( MCFPeople.people.filter(p => p.name==personalAttributes.person)[0].sortorder >= 5 );
+      }
+
+      if(MCFVolumes.volumes.length > 0 && personalAttributes.volume !== "") {
+        setShowAllVolumes( MCFVolumes.volumes.filter(v => v.name==personalAttributes.volume)[0].sortorder >= 5 );
+      }
+    },[personalAttributes])
+
+    React.useEffect(() => {
       setAdditionalFileTypes(searchFileTypes(otherFileTypes, fileTypeSearchValue, personalAttributes?.filetype));
     },[fileTypeSearchValue, otherFileTypes, personalAttributes])
 
