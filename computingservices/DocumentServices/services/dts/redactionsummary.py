@@ -100,17 +100,18 @@ class redactionsummary():
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                print("-----------------------Record : ---------------------------", record["documentids"])
-                record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
-                print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
-                      &&& end_page-{end_page}")
-                self.assignfullpagesections(redactionlayerid, mapped_flags)
-                print("\nMapped_flags::",mapped_flags)
-                range_result = self.__calculate_range(mapped_flags, record["documentids"])
-                print("range_result:",range_result)
-                recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
-                print(f"{record['recordname']} :{recordwise_pagecount}")
-                summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
+                if record["documentids"] in pagecounts:
+                    print("-----------------------Record : ---------------------------", record["documentids"])
+                    record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
+                    print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
+                        &&& end_page-{end_page}")
+                    self.assignfullpagesections(redactionlayerid, mapped_flags)
+                    print("\nMapped_flags::",mapped_flags)
+                    range_result = self.__calculate_range(mapped_flags, record["documentids"])
+                    print("range_result:",range_result)
+                    recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
+                    print(f"{record['recordname']} :{recordwise_pagecount}")
+                    summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
 
             print("\n summarydata:",summarydata)
             return {"requestnumber": message.requestnumber, "data": summarydata}
@@ -185,7 +186,7 @@ class redactionsummary():
                 totalpagecount1 += pagecounts[doc_id]
 
         if totalpagecount1 == 0:
-            return [], previous_end_page
+            return [], totalpagecount1, previous_end_page
 
         start_page = previous_end_page + 1
         end_page = previous_end_page + totalpagecount1
