@@ -96,6 +96,14 @@ class annotationservice:
                     sections[layer["name"]] = redactedsections
         return sections
 
+    def getredactedpagebyrequest(self, ministryrequestid):
+        data = AnnotationSection.getredactedpagebyrequest(ministryrequestid)
+        return {"data": data}
+    
+    def getdocumentpageflagbyrequest(self, ministryrequestid):
+        data = AnnotationSection.getdocumentpageflagbyrequest(ministryrequestid)
+        return {"data": data}
+
     def getannotationsections(self, ministryid, redactionlayerid):
         annotationsections = AnnotationSection.get_by_ministryid(ministryid, redactionlayerid)
         return annotationsections

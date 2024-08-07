@@ -274,7 +274,42 @@ class GetSections(Resource):
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+        
+@cors_preflight("GET,OPTIONS")
+@API.route("/documentpage/ministryrequest/<int:ministryrequestid>")
+class GetRedactedDocumentPages(Resource):
+    """get document data"""
 
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(ministryrequestid):
+        try:
+            data = annotationservice().getredactedpagebyrequest(ministryrequestid)
+            return json.dumps(data), 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500       
+
+@cors_preflight("GET,OPTIONS")
+@API.route("/documentpageflags/ministryrequest/<int:ministryrequestid>")
+class GetRedactedPageFlags(Resource):
+    """get document flag data"""
+    
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    def get(ministryrequestid):
+        try:
+            data = annotationservice().getdocumentpageflagbyrequest(ministryrequestid)
+            return json.dumps(data), 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {"status": exception.status_code, "message": exception.message}, 500                
 
 @cors_preflight("GET,OPTIONS")
 @API.route("/account")
