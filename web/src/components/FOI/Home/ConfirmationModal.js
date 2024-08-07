@@ -9,6 +9,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
+import Grid from '@mui/material/Grid';
 //import type { ReactModalProps } from './types';
 
 
@@ -22,7 +23,12 @@ export const ConfirmationModal= ({
     handleIncludeDuplicantePages,
     isDisableNRDuplicate,
     saveDoc,
-    modalData
+    modalData,
+    documentPublicBodies,
+    handleSelectedPublicBodies,
+    selectedPublicBodyIDs,
+    consultApplyRedactions,
+    handleApplyRedactions
 }) => {
 
     return (
@@ -31,7 +37,7 @@ export const ConfirmationModal= ({
       initHeight={300}
       minWidth={600}
       minHeight={250}
-      className={"state-change-dialog" + (modalData?.modalFor == "redline"?" redline-modal":"")}
+      className={"state-change-dialog" + (modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")}
       onRequestClose={cancelRedaction}
       isOpen={redlineModalOpen}
     >
@@ -72,6 +78,61 @@ export const ConfirmationModal= ({
             />
             <label for="duplicate-checkbox">Include Duplicate pages</label>
             </>}
+            {modalData.modalFor === "consult" &&
+              <>
+                <Grid container spacing={0.5}>
+                  {documentPublicBodies?.map((publicBody) => {
+                    return (<>
+                    <Grid item sm={1.5} md={1.5}>
+                      <input
+                        key={publicBody.programareaid}
+                        type="checkbox"
+                        style={{ marginRight: 10 }}
+                        className="redline-checkmark"
+                        id={`${publicBody.bcgovcode}-checkbox`}
+                        value={publicBody.programareaid}
+                        checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
+                        onClick={handleSelectedPublicBodies}
+                      />
+                      <label for={`${publicBody.bcgovcode}-checkbox`}>{publicBody.bcgovcode}</label>
+                    </Grid>
+                    </>)
+                  })}
+                </Grid>
+                <br/>
+                <p>More Options:</p>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
+                  checked={includeNRPages}
+                  onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
+                  checked={includeDuplicatePages}
+                  onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="redaction-checkbox"
+                  checked={consultApplyRedactions}
+                  onChange={handleApplyRedactions}
+                />
+                <label for="redaction-checkbox">Apply Redactions</label>
+              </>}
           </span>
         </DialogContentText>
       </DialogContent>

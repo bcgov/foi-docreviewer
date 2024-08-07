@@ -52,10 +52,12 @@ import {
   createFinalPackageSelection, 
   createOIPCForReviewSelection, 
   createRedlineForSignOffSelection, 
-  createResponsePDFMenu, 
+  createResponsePDFMenu,
+  createConsultPackageSelection, 
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
+  handleConsultPackageClick,
   renderCustomButton,
   isValidRedlineDownload,
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
@@ -148,10 +150,17 @@ const Redlining = React.forwardRef(
       saveRedlineDocument,
       enableSavingOipcRedline,
       enableSavingRedline,
+      enableSavingConsults,
       checkSavingRedline,
       checkSavingOIPCRedline,
+      checkSavingConsults,
       setRedlineCategory,
       setFilteredComments,
+      setSelectedPublicBodyIDs,
+      setConsultApplyRedactions,
+      selectedPublicBodyIDs,
+      documentPublicBodies,
+      consultApplyRedactions
     } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
@@ -206,6 +215,7 @@ const Redlining = React.forwardRef(
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
             const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+            const consultPackageButton = createConsultPackageSelection(document, enableSavingConsults);
             redlineForOipcBtn.onclick = () => {
               handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
             };
@@ -215,9 +225,13 @@ const Redlining = React.forwardRef(
             finalPackageBtn.onclick = () => {
               handleFinalPackageClick(updateModalData, setRedlineModalOpen);
             };
+            consultPackageButton.onClick = () => {
+              handleConsultPackageClick(updateModalData, setRedlineModalOpen, setIncludeDuplicatePages, setIncludeNRPages)
+            };
             menu.appendChild(redlineForOipcBtn);
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
+            menu.appendChild(consultPackageButton);
             parent.appendChild(menu);
 
             //Create render function to render custom Create Reseponse PDF button
@@ -1320,6 +1334,7 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      checkSavingConsults(documentList);
       checkSavingRedline(redlineReadyAndValid, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
@@ -2182,6 +2197,8 @@ const Redlining = React.forwardRef(
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
       setRedlineModalOpen(false);
+      setSelectedPublicBodyIDs([]);
+      setConsultApplyRedactions(false);
     };
   
     const handleIncludeNRPages = (e) => {
@@ -2191,6 +2208,24 @@ const Redlining = React.forwardRef(
     const handleIncludeDuplicantePages = (e) => {
       setIncludeDuplicatePages(e.target.checked);
     };
+
+    const handleApplyRedactions = (e) => {
+      setConsultApplyRedactions(e.target.checked);
+    }
+
+    const handleSelectedPublicBodies = (e) => {
+      const publicBodyId = parseInt(e.target.value);
+      if (selectedPublicBodyIDs.includes(publicBodyId)) {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev.filter(id => id !== publicBodyId)]
+        });
+      }
+      else {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev, publicBodyId]
+        });
+      }
+    }
     
     const saveDoc = () => {
       setRedlineModalOpen(false);
@@ -2202,6 +2237,7 @@ const Redlining = React.forwardRef(
       switch (modalFor) {
         case "oipcreview":
         case "redline":
+        case "consult":
           saveRedlineDocument(
             docInstance,
             modalFor,
@@ -2307,6 +2343,11 @@ const Redlining = React.forwardRef(
           isDisableNRDuplicate={isDisableNRDuplicate}
           saveDoc={saveDoc}
           modalData={modalData}
+          documentPublicBodies={documentPublicBodies}
+          handleSelectedPublicBodies={handleSelectedPublicBodies}
+          selectedPublicBodyIDs={selectedPublicBodyIDs}
+          consultApplyRedactions={consultApplyRedactions}
+          handleApplyRedactions={handleApplyRedactions}
         />
         }
         {messageModalOpen &&

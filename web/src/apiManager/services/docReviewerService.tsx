@@ -4,7 +4,7 @@ import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages,
-  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes
+  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
@@ -295,6 +295,7 @@ export const fetchPageFlagsMasterData = (
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
+        store.dispatch(setPublicBodies(res.data.find((flag: any) => flag.name === 'Consult').programareas));
       } else {
         throw new Error();
       }

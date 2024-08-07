@@ -1,5 +1,13 @@
 import ACTION_CONSTANTS from "./actionConstants";
 
+type PublicBody = {
+    bcgovcode: string,
+    iaocode: string,
+    name: string,
+    isactive: boolean,
+    type: string,
+    programareaid: number
+}
 
 export const setRedactionInfo = (data: any) => (dispatch:any) =>{
     dispatch({
@@ -8,6 +16,12 @@ export const setRedactionInfo = (data: any) => (dispatch:any) =>{
     })
 }
 
+export const setPublicBodies = (data: PublicBody[]) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.SET_PUBLIC_BODIES,
+        payload:data
+    })
+}
 
 export const setIsPageLeftOff = (data: any) => (dispatch:any) =>{
     dispatch({
