@@ -80,7 +80,7 @@ export const ConfirmationModal= ({
             />
             <label for="duplicate-checkbox">Include Duplicate pages</label>
             </>}
-            {modalData.modalFor === "consult" &&
+            {modalData?.modalFor === "consult" &&
               <>
                 <Grid container spacing={0.5}>
                   {documentPublicBodies?.map((publicBody) => {
