@@ -28,7 +28,9 @@ export const ConfirmationModal= ({
     handleSelectedPublicBodies,
     selectedPublicBodyIDs,
     consultApplyRedactions,
-    handleApplyRedactions
+    handleApplyRedactions,
+    consultApplyRedlines,
+    handleApplyRedlines
 }) => {
 
     return (
@@ -124,14 +126,25 @@ export const ConfirmationModal= ({
                 <label for="duplicate-checkbox">Include Duplicate pages</label>
                 <br/>
                 <input
+                    type="checkbox"
+                    style={{ marginRight: 10 }}
+                    className="redline-checkmark"
+                    id="applyredline-checkbox"
+                    checked={consultApplyRedlines}
+                    onChange={handleApplyRedlines}
+                  />
+                  <label for="applyredline-checkbox">Include Redlines</label>
+                  <br/>
+                <input
                   type="checkbox"
                   style={{ marginRight: 10 }}
                   className="redline-checkmark"
                   id="redaction-checkbox"
                   checked={consultApplyRedactions}
                   onChange={handleApplyRedactions}
+                  disabled={!consultApplyRedlines}
                 />
-                <label for="redaction-checkbox">Apply Redactions</label>
+                <label for="redaction-checkbox">Apply Redactions (NR code only)</label>
               </>}
           </span>
         </DialogContentText>

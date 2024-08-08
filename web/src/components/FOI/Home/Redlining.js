@@ -160,7 +160,9 @@ const Redlining = React.forwardRef(
       setConsultApplyRedactions,
       selectedPublicBodyIDs,
       documentPublicBodies,
-      consultApplyRedactions
+      consultApplyRedactions,
+      setConsultApplyRedlines,
+      consultApplyRedlines,
     } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
@@ -2199,6 +2201,7 @@ const Redlining = React.forwardRef(
       setRedlineModalOpen(false);
       setSelectedPublicBodyIDs([]);
       setConsultApplyRedactions(false);
+      setConsultApplyRedlines(false);
     };
   
     const handleIncludeNRPages = (e) => {
@@ -2211,6 +2214,13 @@ const Redlining = React.forwardRef(
 
     const handleApplyRedactions = (e) => {
       setConsultApplyRedactions(e.target.checked);
+    }
+
+    const handleApplyRedlines = (e) => {
+      setConsultApplyRedlines(e.target.checked);
+      if (consultApplyRedactions) {
+        setConsultApplyRedactions(false);
+      }
     }
 
     const handleSelectedPublicBodies = (e) => {
@@ -2348,6 +2358,8 @@ const Redlining = React.forwardRef(
           selectedPublicBodyIDs={selectedPublicBodyIDs}
           consultApplyRedactions={consultApplyRedactions}
           handleApplyRedactions={handleApplyRedactions}
+          handleApplyRedlines={handleApplyRedlines}
+          consultApplyRedlines={consultApplyRedlines}
         />
         }
         {messageModalOpen &&

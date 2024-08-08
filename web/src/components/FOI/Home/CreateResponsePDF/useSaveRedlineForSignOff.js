@@ -72,6 +72,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
   const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
   const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
+  const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
 
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
@@ -89,8 +90,18 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         else {
           for (let doc of divObj.documentlist) {
+            //page to pageFlag mappings logic for consults
+            const pagePageFlagMappings = {};
+            for (let pageFlag of doc.pageFlag) {
+              if (pageFlag.page in pagePageFlagMappings) {
+                pagePageFlagMappings[pageFlag.page].push(pageFlag.flagid);
+              } else {
+                pagePageFlagMappings[pageFlag.page] = [pageFlag.flagid];
+              }
+            }
             for (const flagInfo of doc.pageFlag) {
               if (modalFor == "consult") {
+                const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                 for (let consult of doc.consult) {
                   if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
                     if (
@@ -101,8 +112,12 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                         (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
                       )
                     ) {
-                      if(isvalid == false) {
-                        isvalid = true; 
+                      if(isvalid === false) {
+                        if ((!includeDuplicatePages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Duplicate"])) || (!includeNRPages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Not Responsive"]))) {
+                          isvalid = false;
+                        } else {
+                          isvalid = true; 
+                        }
                       } 
                     }
                   }
@@ -1834,14 +1849,22 @@ const stampPageNumberRedline = async (
         }
         //OIPC - Special Block : End
         
-        //Consults - Redactions Block (Redact S.NR) : Start
+        //Consults - Redlines + Redactions (Redact S.NR) Block : Start
         if(modalFor == "consult") {
+          if (!consultApplyRedlines) {
+            const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
+            const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
+              return annot.name !== "freetext" && annot.name !== 'redact'
+            });
+            xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
+            xfdfString = parser.toString(xmlObj);
+          }
           if (consultApplyRedactions) {
             let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
             await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
           }
         }
-        //Consults - Redactions Block (Redact S.NR) : End
+        //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
         stitchObject
           .getFileData({
@@ -1862,7 +1885,7 @@ const stampPageNumberRedline = async (
               (_res) => {
                 // ######### call another process for zipping and generate download here ##########
                 toast.update(toastId.current, {
-                  render: `Redline PDF saved to Object Storage`,
+                  render: `${modalFor == "consult" ? "Consult" : "Redline"} PDF saved to Object Storage`,
                   type: "success",
                   className: "file-upload-toast",
                   isLoading: false,
@@ -1994,6 +2017,8 @@ const stampPageNumberRedline = async (
     selectedPublicBodyIDs,
     documentPublicBodies,
     consultApplyRedactions,
+    setConsultApplyRedlines,
+    consultApplyRedlines,
   };
 };
 
