@@ -73,13 +73,16 @@ export const CFDSorting = (a, b) => {
     b = b.file;
   }
   if (a.attributes.personalattributes.person !== b.attributes.personalattributes.person) {
-    return (a.attributes.personalattributes.person > b.attributes.personalattributes.person) ? 1 : -1 
+    // return (a.attributes.personalattributes.person > b.attributes.personalattributes.person) ? 1 : -1 
+    return a.attributes.personalattributes.person.localeCompare(b.attributes.personalattributes.person, undefined, {numeric: true, sensitivity: 'base'})
   } else if (a.attributes.personalattributes.filetype !== b.attributes.personalattributes.filetype) {
     return (a.attributes.personalattributes.filetype > b.attributes.personalattributes.filetype) ? 1 : -1 
   } else if (a.attributes.personalattributes.trackingid !== b.attributes.personalattributes.trackingid) {
-    return (a.attributes.personalattributes.trackingid > b.attributes.personalattributes.trackingid) ? 1 : -1 
+    // return (a.attributes.personalattributes.trackingid > b.attributes.personalattributes.trackingid) ? 1 : -1 
+    return a.attributes.personalattributes.trackingid.localeCompare(b.attributes.personalattributes.trackingid, undefined, {numeric: true, sensitivity: 'base'})
   } else if (a.attributes.personalattributes.volume !== b.attributes.personalattributes.volume) {
-    return (a.attributes.personalattributes.volume > b.attributes.personalattributes.volume) ? 1 : -1 
+    // return (a.attributes.personalattributes.volume > b.attributes.personalattributes.volume) ? 1 : -1 
+    return a.attributes.personalattributes.volume.localeCompare(b.attributes.personalattributes.volume, undefined, {numeric: true, sensitivity: 'base'})
   }
   return Date.parse(a.created_at) - Date.parse(b.created_at);
 };
@@ -99,6 +102,8 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     else return _doc.parentid === parentid;
   });
 
+  console.log("childDocList: ", childDocList);
+
   if (childDocList.length === 0) {
     return;
   } else {
@@ -116,6 +121,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     sortedChildDocList.forEach((_doc, _index) => {
       sortDocList(fullDocList, _doc, sortedDocList);
     });
+    console.log("sortedChildDocList: ", sortedChildDocList);
   }
 };
 
