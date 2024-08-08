@@ -102,8 +102,6 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     else return _doc.parentid === parentid;
   });
 
-  console.log("childDocList: ", childDocList);
-
   if (childDocList.length === 0) {
     return;
   } else {
@@ -121,7 +119,6 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     sortedChildDocList.forEach((_doc, _index) => {
       sortDocList(fullDocList, _doc, sortedDocList);
     });
-    console.log("sortedChildDocList: ", sortedChildDocList);
   }
 };
 
