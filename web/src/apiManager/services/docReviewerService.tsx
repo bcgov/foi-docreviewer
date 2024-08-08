@@ -523,7 +523,6 @@ export const fetchPersonalAttributes = (
   httpGETRequest(apiUrlGet, {}, UserService.getToken())
     .then((res:any) => {
       if (res.data) {
-        console.log("fetchPersonalAttributes: ", res.data);
         store.dispatch(setFOIPersonalPeople(res.data) as any);
         store.dispatch(setFOIPersonalFiletypes(res.data) as any);
         store.dispatch(setFOIPersonalVolumes(res.data) as any);

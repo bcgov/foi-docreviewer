@@ -82,7 +82,7 @@ export const CFDSorting = (a, b) => {
     return a.attributes.personalattributes.trackingid.localeCompare(b.attributes.personalattributes.trackingid, undefined, {numeric: true, sensitivity: 'base'})
   } else if (a.attributes.personalattributes.volume !== b.attributes.personalattributes.volume) {
     // return (a.attributes.personalattributes.volume > b.attributes.personalattributes.volume) ? 1 : -1 
-    return a.attributes.personalattributes.volume.localeCompare(b.attributes.personalattributes.volume, undefined, {numeric: true, sensitivity: 'base'})
+    return a.attributes.personalattributes.volume?a.attributes.personalattributes.volume.localeCompare(b.attributes.personalattributes.volume, undefined, {numeric: true, sensitivity: 'base'}) : -1
   }
   return Date.parse(a.created_at) - Date.parse(b.created_at);
 };
