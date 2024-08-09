@@ -22,7 +22,7 @@ from os import getenv
 from reviewer_api.tracer import Tracer
 from reviewer_api.utils.util import  cors_preflight, allowedorigins, getrequiredmemberships
 from reviewer_api.exceptions import BusinessException
-from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema, DocumentDeletedPage
+from reviewer_api.schemas.document import FOIRequestDeleteRecordsSchema, FOIRequestUpdateRecordsSchema, DocumentDeletedPage, FOIRequestUpdateRecordPersonalAttributesSchema
 import json
 import requests
 import logging
@@ -71,8 +71,31 @@ class UpdateDocumentAttributes(Resource):
     def post():
         try:
             payload = request.get_json()
+            # print("payload: ", payload)
             payload = FOIRequestUpdateRecordsSchema().load(payload)
             result = documentservice().updatedocumentattributes(payload, AuthHelper.getuserid())
+            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/document/update/personal')
+class UpdateDocumentPersonalAttributes(Resource):
+    """Add document to deleted list.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post():
+        try:
+            payload = request.get_json()
+            # print("payload personal: ", payload)
+            payload = FOIRequestUpdateRecordPersonalAttributesSchema().load(payload)
+            result = documentservice().updatedocumentpersonalattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
@@ -113,8 +136,8 @@ class GetDocuments(Resource):
                 "outstandingbalance": outstandingbalance,
                 "balancefeeoverrodforrequest": balancefeeoverrodforrequest
             }
-            result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
-            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo}), 200
+            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:

@@ -38,10 +38,14 @@ from reviewer_api.services.radactionservice import redactionservice
 from reviewer_api.services.documentservice import documentservice
 from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES
 
+import requests
+import logging
+
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
 )
 TRACER = Tracer.get_instance()
+CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
 s3host = os.getenv("OSS_S3_HOST")
 s3region = os.getenv("OSS_S3_REGION")
@@ -49,6 +53,8 @@ webviewerlicense = os.getenv("PDFTRON_WEBVIEWER_LICENSE")
 
 imageextensions = [".png", ".jpg", ".jpeg", ".gif"]
 
+requestapiurl = os.getenv("FOI_REQ_MANAGEMENT_API_URL")
+requestapitimeout = os.getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
 
 @cors_preflight("GET,OPTIONS")
 @API.route("/foiflow/oss/presigned/<documentid>")
@@ -166,6 +172,8 @@ class FOIFlowS3PresignedRedline(Resource):
     def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
         try:            
             data = request.get_json()
+            print("data!:",data)
+            requesttype = data["requestType"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
             )
@@ -194,11 +202,16 @@ class FOIFlowS3PresignedRedline(Resource):
                 packagetype = "oipcreview" if layertype == "oipcreview" else "oipcredline"
             if layertype == "consult":
                 packagetype = "consult"
-
+            
+            #check if is single redline package
+            is_single_redline = is_single_redline_package(_bcgovcode, packagetype, requesttype)
+            print("is_single_redline:",is_single_redline)
+            #print("divdocumentList:",data["divdocumentList"])
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
+                    print("filepathlist:" , div["documentlist"][0]["filepath"])
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                    if is_single_redline_package(_bcgovcode, packagetype) == False:
+                    if is_single_redline == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
@@ -259,14 +272,17 @@ class FOIFlowS3PresignedRedline(Resource):
                                     )
                 elif len(div["incompatableList"]) > 0:
                     filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
-                if is_single_redline_package(_bcgovcode, packagetype) and singlepkgpath is None :
+                if is_single_redline and singlepkgpath is None :
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
                         filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                        print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
+                        print("filename1:",filename)
                         filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
                             filepathlist[0],filename, packagetype
                         )
+                        print("filepath_put:",filepath_put)
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -277,10 +293,11 @@ class FOIFlowS3PresignedRedline(Resource):
                             ExpiresIn=3600,
                             HttpMethod="PUT",
                         )
+                        print("s3path_save:",s3path_save)
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
                         
-            if is_single_redline_package(_bcgovcode, packagetype):
+            if is_single_redline:
                 for div in data["divdocumentList"]:
                     if len(div["documentlist"]) > 0:
                         documentlist_copy = div["documentlist"][:]
@@ -299,7 +316,7 @@ class FOIFlowS3PresignedRedline(Resource):
                     
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
-            data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode, packagetype) else "N"
+            data["issingleredlinepackage"] = "Y" if is_single_redline else "N"
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
@@ -378,3 +395,40 @@ class WebveiwerLicense(Resource):
             return json.dumps({"license": webviewerlicense}), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+
+
+@cors_preflight('GET,OPTIONS')
+@API.route('/foiflow/personalattributes/<bcgovcode>')
+class GetPersonalTags(Resource):
+    """Get document list.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def get(bcgovcode):
+        try:
+            attributes = ["people", "filetypes", "volumes", "personaltag"]
+            personalattributes = {}
+
+            for attribute in attributes:
+                response = requests.request(
+                    method='GET',
+                    url= requestapiurl + "/api/foiflow/divisions/" + bcgovcode + "/true/" + attribute,
+                    headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'},
+                    timeout=float(requestapitimeout)
+                )
+                response.raise_for_status()
+                # get request status
+                jsonobj = response.json()
+                personalattributes.update(jsonobj)
+
+            return json.dumps(personalattributes), 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+        except requests.exceptions.HTTPError as err:
+            logging.error("Request Management API returned the following message: {0} - {1}".format(err.response.status_code, err.response.text))
+            return {'status': False, 'message': err.response.text}, err.response.status_code

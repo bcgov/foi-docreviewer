@@ -251,6 +251,7 @@ class documentservice:
                 record["deduplicationstatus"] = dedupe["status"]
                 record["filename"] = dedupe["filename"]
                 record["trigger"] = dedupe["trigger"]
+                record["message"] = dedupe["message"]
         return record
 
     def __updateproperties_old(self, properties, records, record):
@@ -429,6 +430,52 @@ class documentservice:
             )
 
         return DocumentAttributes.update(newRows, oldRows)
+
+    def updatedocumentpersonalattributes(self, payload, userid):
+        """update document attributes"""
+
+        docattributeslist = DocumentAttributes.getdocumentattributesbyid(
+            payload["documentmasterids"]
+        )
+        oldRows = []
+        newRows = []
+        for docattributes in docattributeslist:
+            oldRows.append(
+                {
+                    "attributeid": docattributes["attributeid"],
+                    "version": docattributes["version"],
+                    "documentmasterid": docattributes["documentmasterid"],
+                    "attributes": docattributes["attributes"],
+                    "createdby": docattributes["createdby"],
+                    "created_at": docattributes["created_at"],
+                    "updatedby": userid,
+                    "updated_at": datetime2.now(),
+                    "isactive": False,
+                }
+            )
+            newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
+            if payload["personalattributes"] is not None:
+                #apply change to all
+                if(len(payload["documentmasterids"]) > 1):
+                    if(payload["personalattributes"]["person"] is not None):
+                        newdocattributes["personalattributes"]["person"]=payload["personalattributes"]["person"]
+                    if(payload["personalattributes"]["filetype"] is not None):
+                        newdocattributes["personalattributes"]["filetype"]=payload["personalattributes"]["filetype"]
+                #apply change to individual
+                else:
+                    newdocattributes["personalattributes"] = payload["personalattributes"]
+            newRows.append(
+                DocumentAttributes(
+                    version=docattributes["version"] + 1,
+                    documentmasterid=docattributes["documentmasterid"],
+                    attributes=newdocattributes,
+                    createdby=docattributes["createdby"],
+                    created_at=docattributes["created_at"],
+                    isactive=True,
+                )
+            )
+
+        return DocumentAttributes.update(newRows, oldRows)
     
     
     def getdocuments(self, requestid,bcgovcode):
@@ -438,7 +485,8 @@ class documentservice:
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
         divisions = {div['divisionid']: div for div in divisions_data['divisions']}
-
+        documentdivisionids=set()
+        filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
             for document in self.getdedupestatus(requestid)
@@ -481,12 +529,15 @@ class documentservice:
                 map(lambda d: {"divisionid": d}, documentdivisions)
             )
             document["divisions"] = list(map(lambda d: divisions[d], documentdivisions))
+            documentdivisionids.update(documentdivisions)
+
             # For replaced attachments, change filepath to .pdf instead of original extension
             if "trigger" in document["attributes"] and document["attributes"]["trigger"] == "recordreplace":
                 base_path, current_extension = path.splitext(document["filepath"])
                 document["filepath"] = base_path + ".pdf"
 
-        return [documents[documentid] for documentid in documents]
+        filtered_maps=([item for item in divisions_data['divisions'] if item["divisionid"] in documentdivisionids])
+        return filtered_maps,[documents[documentid] for documentid in documents]
 
     def getdocument(self, documentid):
         return Document.getdocument(documentid)

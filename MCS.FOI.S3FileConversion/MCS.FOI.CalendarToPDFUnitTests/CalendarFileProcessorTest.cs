@@ -39,7 +39,7 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string,string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-cal.ics"), FileMode.Open, FileAccess.Read);
@@ -57,7 +57,7 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-with-attachments.ics"), FileMode.Open, FileAccess.Read);
@@ -78,7 +78,7 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-problematic-calendar.ics"), FileMode.Open, FileAccess.Read);

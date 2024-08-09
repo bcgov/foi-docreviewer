@@ -39,7 +39,7 @@ from reviewer_api.schemas.annotationrequest import (
     SectionSchema,
 )
 from reviewer_api.schemas.redline import RedlineSchema
-from reviewer_api.schemas.finalpackage import FinalPackageSchema
+from reviewer_api.schemas.finalpackage import FinalPackageSchema, MCFFinalPackageSchema
 
 API = Namespace(
     "Document and annotations",
@@ -143,13 +143,14 @@ class SaveAnnotations(Resource):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(
+            pageflagresponse, result = redactionservice().saveannotation(
                 annotationschema, AuthHelper.getuserinfo()
             )
             return {
                 "status": result.success,
                 "message": result.message,
                 "annotationid": result.identifier,
+                "updatedpageflag":pageflagresponse
             }, 201
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
@@ -340,7 +341,12 @@ class SaveFinalPackage(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            finalpackageschema = FinalPackageSchema().load(requestjson)
+            print("\nrequestjson:",requestjson)
+            if(requestjson['bcgovcode'] == "mcf"):
+                finalpackageschema = MCFFinalPackageSchema().load(requestjson) 
+            else:
+                finalpackageschema = FinalPackageSchema().load(requestjson)
+            print("\nfinalpackageschema:",finalpackageschema)
             result = redactionservice().triggerdownloadredlinefinalpackage(
                 finalpackageschema, AuthHelper.getuserinfo()
             )
