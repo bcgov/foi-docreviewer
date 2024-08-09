@@ -109,7 +109,6 @@ function Home() {
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              console.log(requestInfo)
               sortDocList(newDocumentObjs, null, doclist, requestInfo);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
