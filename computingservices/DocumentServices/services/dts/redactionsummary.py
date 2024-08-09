@@ -324,7 +324,7 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"{range_item} were {formatted_sections}" if formatted_sections else range_item})
+                section_list.append({"formatted" :f"{range_item} {formatted_sections}" if formatted_sections else range_item})
         return section_list
 
     
