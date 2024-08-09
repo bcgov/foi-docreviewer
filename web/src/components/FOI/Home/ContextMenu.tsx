@@ -204,8 +204,8 @@ const ContextMenu = ({
         for (let record of filesForDisplay) {
           if(record.attributes?.personalattributes?.person
              && record.attributes?.personalattributes?.person === currentEditRecord.attributes?.personalattributes?.person
-             && record.attributes?.personalattributes?.filetype
-             && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
+            //  && record.attributes?.personalattributes?.filetype
+            //  && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
           ) {
             documentMasterIDs.push(record.documentmasterid);
           }

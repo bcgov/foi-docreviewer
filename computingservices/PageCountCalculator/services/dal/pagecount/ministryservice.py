@@ -11,7 +11,7 @@ class ministryervice:
             cursor = conn.cursor()
             query = '''
                 SELECT recordspagecount
-                FROM public."FOIMinistryRequests" 
+                FROM "FOIMinistryRequests" 
                 WHERE foiministryrequestid = %s::integer AND isactive = true 
                 ORDER BY version DESC LIMIT 1;
             '''
@@ -33,7 +33,7 @@ class ministryervice:
         try:        
             cursor = conn.cursor()
             query = '''
-                    UPDATE public."FOIMinistryRequests" SET recordspagecount = %s::integer, updated_at = %s, updatedby = %s
+                    UPDATE "FOIMinistryRequests" SET recordspagecount = %s::integer, updated_at = %s, updatedby = %s
                     WHERE foiministryrequestid = %s::integer AND isactive = true;
                 '''
             parameters = (pagecount, datetime.now().isoformat(), userid, ministryrequestid,)

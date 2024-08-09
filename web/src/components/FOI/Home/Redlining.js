@@ -2283,7 +2283,7 @@ const Redlining = React.forwardRef(
       return trnCustomData
     }
 
-    const NRID = sections?.find(s => s.section === "Not Responsive")?.id;
+    const NRID = sections?.find(s => s.section === "NR")?.id;
     const blankID = sections?.find(s => s.section === "")?.id;
 
     const sectionIsDisabled = (sectionid) => {

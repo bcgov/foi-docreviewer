@@ -418,7 +418,6 @@ class documentservice:
                 if 'rotatedpages' not in newdocattributes:
                     newdocattributes['rotatedpages'] = {}
                 newdocattributes['rotatedpages'].update(payload["rotatedpages"])
-            newdocattributes["divisions"] = payload["divisions"]
             newRows.append(
                 DocumentAttributes(
                     version=docattributes["version"] + 1,
