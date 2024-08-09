@@ -100,7 +100,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               }
             }
             for (const flagInfo of doc.pageFlag) {
-              if (modalFor == "consult") {
+              if (redlineCategory === "consult") {
                 const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                 for (let consult of doc.consult) {
                   if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
@@ -192,7 +192,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     incompatibleFiles
   ) => {
     let newDocList = [];
-    if (modalFor == "redline" || modalFor == "oipcreview") {
+    if (redlineCategory === "redline" || redlineCategory === "oipcreview") {
       for (let div of divisions) {
         let divDocList = documentList?.filter((doc) =>
           doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
@@ -211,7 +211,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           incompatableList: incompatableList,
         });
       }
-    } else if (modalFor == "consult") {
+    } else if (redlineCategory === "consult") {
       // map documents to publicBodies (Divisions) for consults
       for (let publicBodyId of divisions) {
         let publicBodyDocList = [];
@@ -261,7 +261,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       }
       // sort based on sortorder as the sortorder added based on the LastModified
       prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments), pageMappedDocs);
-    } else if (modalFor == "consult") {
+    } else if (redlineCategory === "consult") {
       prepareRedlinePageMappingByConsult(divisionDocuments);
     } else {
       prepareRedlinePageMappingByDivision(divisionDocuments);
@@ -751,7 +751,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
   };
   const getzipredlinecategory = (layertype) => {
-    if (modalFor == "consult") {
+    if (redlineCategory === "consult") {
       return "consultpackage";
     }
     if (currentLayer.name.toLowerCase() === "oipc") {
@@ -1057,7 +1057,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
     const divisionFilesList = [...documentList, ...incompatibleFiles];
     let divisions;
-    if (modalFor == "consult") {
+    if (redlineCategory === "consult") {
       //Key consult logic, uses preexisting division reldine logic for consults
       divisions = selectedPublicBodyIDs;
     } else {
@@ -1077,7 +1077,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         });
         setIsSingleRedlinePackage(res.issingleredlinepackage);
         let stitchDoc = {};
-        
+
         prepareRedlinePageMapping(
           res['divdocumentList'],
           res.issingleredlinepackage,
@@ -1114,7 +1114,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               if (pageMappedDocs != undefined) {
                 let divisionsdocpages = [];
                 // for consults, no need to filter by division/consult
-                if (modalFor == "consult") {
+                if (redlineCategory === "consult") {
                   Object.values(
                     pageMappedDocs.redlineDocIdLookup
                   )
@@ -1279,12 +1279,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         !readyForSignOff;
     }
   };
-  const checkSavingConsults = (documentList) => {
+  const checkSavingConsults = (documentList, instance) => {
     const publicBodyList = getPublicBodyList(documentList);
     setDocumentPublicBodies(publicBodyList);
     setEnableSavingConsults(
       publicBodyList.length > 0
     );
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
+    }
   }
   const triggerRedlineZipper = (
     divObj,
@@ -1672,7 +1676,7 @@ const stampPageNumberRedline = async (
             sectionStamps[parentRedactionId] =
               annotationpagenumbers[parentRedactionId];
           }
-          if (modalFor == "consult" && sections.some(item => item.section === 'NR')) {
+          if (redlineCategory === "consult" && sections.some(item => item.section === 'NR')) {
             sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
           }
         }
@@ -1798,7 +1802,7 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview" || modalFor == "consult") {  
+          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {  
             await stampPageNumberRedline(
             stitchObject,
             PDFNet,
@@ -1850,7 +1854,7 @@ const stampPageNumberRedline = async (
         //OIPC - Special Block : End
         
         //Consults - Redlines + Redactions (Redact S.NR) Block : Start
-        if(modalFor == "consult") {
+        if(redlineCategory === "consult") {
           if (!consultApplyRedlines) {
             const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
             const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
@@ -1885,7 +1889,7 @@ const stampPageNumberRedline = async (
               (_res) => {
                 // ######### call another process for zipping and generate download here ##########
                 toast.update(toastId.current, {
-                  render: `${modalFor == "consult" ? "Consult" : "Redline"} PDF saved to Object Storage`,
+                  render: `${redlineCategory === "consult" ? "Consult" : "Redline"} PDF saved to Object Storage`,
                   type: "success",
                   className: "file-upload-toast",
                   isLoading: false,

@@ -227,7 +227,7 @@ const Redlining = React.forwardRef(
             finalPackageBtn.onclick = () => {
               handleFinalPackageClick(updateModalData, setRedlineModalOpen);
             };
-            consultPackageButton.onClick = () => {
+            consultPackageButton.onclick = () => {
               handleConsultPackageClick(updateModalData, setRedlineModalOpen, setIncludeDuplicatePages, setIncludeNRPages)
             };
             menu.appendChild(redlineForOipcBtn);
@@ -550,6 +550,7 @@ const Redlining = React.forwardRef(
     }, []);
 
     const updateModalData = (newModalData) => {
+      setRedlineCategory(newModalData.modalFor);
       setModalData(newModalData);
     };
 
@@ -1336,7 +1337,7 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      checkSavingConsults(documentList);
+      checkSavingConsults(documentList, _instance);
       checkSavingRedline(redlineReadyAndValid, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
