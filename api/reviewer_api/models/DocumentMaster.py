@@ -48,7 +48,7 @@ class DocumentMaster(db.Model):
                     and dm.documentmasterid not in (select distinct d.documentmasterid
                         from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
                         and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)
-                    order by da.attributes->>'lastmodified' DESC"""
+                    order by da.attributes->>'lastmodified' DESC, da.attributeid ASC"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 # if row["documentmasterid"] not in deleted:

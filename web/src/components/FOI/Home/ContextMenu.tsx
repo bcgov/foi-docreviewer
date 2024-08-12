@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Popover from "@mui/material/Popover";
 import MenuList from "@mui/material/MenuList";
 import MenuItem from "@mui/material/MenuItem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCirclePlus, faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { savePageFlag } from "../../../apiManager/services/docReviewerService";
+import { savePageFlag, editPersonalAttributes } from "../../../apiManager/services/docReviewerService";
 import ConsultModal from "./ConsultModal";
 import {
   getStitchedPageNoFromOriginal,
@@ -14,6 +14,7 @@ import {
   updatePageFlagOnPage,
 } from "./utils";
 import { useAppSelector } from "../../../hooks/hook";
+import MCFPersonal from "./MCFPersonal";
 import { pageFlagTypes } from "../../../constants/enum";
 
 const ContextMenu = ({
@@ -29,8 +30,34 @@ const ContextMenu = ({
   pageMappedDocs,
   pageFlags,
   syncPageFlagsOnAction,
+  filesForDisplay,
+  activeNode,
+  requestInfo,
+  currentEditRecord,
+  setCurrentEditRecord
 }: any) => {
 
+  const [editTagModalOpen, setEditTagModalOpen] = useState(false);
+  const [divisionModalTagValue, setDivisionModalTagValue] = useState(-1);
+  const [curPersonalAttributes, setCurPersonalAttributes] = useState<any>({
+    person: "",
+    filetype: "",
+    volume: "",
+    trackingid: "",
+    personaltag: "TBD"
+  });
+  const [newPersonalAttributes, setNewPersonalAttributes] = useState<any>();
+  const [disablePageFlags, setDisablePageFlags] = useState(false);
+
+  useEffect(() => {
+    if(currentEditRecord?.attributes?.personalattributes)
+      setCurPersonalAttributes(currentEditRecord.attributes.personalattributes);
+  },[currentEditRecord])
+
+  useEffect(() => {
+    setDisablePageFlags(Object.keys(activeNode).length == 1);
+  },[activeNode])
+  
   const [openModal, setOpenModal] = useState(false);
   const [flagId, setFlagId] = React.useState(0);
   const currentLayer = useAppSelector(
@@ -39,6 +66,10 @@ const ContextMenu = ({
   const validoipcreviewlayer = useAppSelector(
     (state: any) => state.documents?.requestinfo?.validoipcreviewlayer
   );
+
+  const editTags = () => {
+    setEditTagModalOpen(true);
+  }
 
   const openConsultModal = (flagId: number) => {
     setOpenModal(true);
@@ -96,7 +127,7 @@ const ContextMenu = ({
         <div
           className="pageLeftOff"
           style={
-            selectedPages.length !== 1
+            selectedPages.length !== 1 || disablePageFlags
               ? { cursor: "not-allowed", color: "#cfcfcf" }
               : {}
           }
@@ -120,7 +151,7 @@ const ContextMenu = ({
       ) : (
         <>
           <MenuList key={pageFlag?.pageflagid}>
-            <MenuItem>
+            <MenuItem disabled={disablePageFlags}>
               {pageFlag?.name == "Consult" ? (
                 <>
                   <div onClick={() => openConsultModal(pageFlag.pageflagid)}>
@@ -156,6 +187,62 @@ const ContextMenu = ({
     });
   };
 
+  const comparePersonalAttributes = (a: any, b: any) => {
+    return a?.person === b?.person && a?.volume === b?.volume
+              && a?.filetype === b?.filetype
+              && a?.personaltag === b?.personaltag
+              && a?.trackingid === b?.trackingid;
+  };
+
+  const updatePersonalAttributes = (_all = false) => {
+    setEditTagModalOpen(false);
+    setOpenContextPopup(false);
+    var documentMasterIDs = [];
+
+    if(newPersonalAttributes) {
+      if(_all) {
+        for (let record of filesForDisplay) {
+          if(record.attributes?.personalattributes?.person
+             && record.attributes?.personalattributes?.person === currentEditRecord.attributes?.personalattributes?.person
+            //  && record.attributes?.personalattributes?.filetype
+            //  && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
+          ) {
+            documentMasterIDs.push(record.documentmasterid);
+          }
+        }
+      } else {
+        documentMasterIDs.push(currentEditRecord.documentmasterid);
+      }
+      
+      if(currentEditRecord && !comparePersonalAttributes(newPersonalAttributes, curPersonalAttributes)) {
+        editPersonalAttributes(
+          requestId,
+          (data: any) => {
+              if(data.status == true){
+                  console.log("Personal attributes updated")
+              }
+          },
+          (error: any) => console.log(error),
+          {
+            documentmasterids: documentMasterIDs,
+            personalattributes: newPersonalAttributes,
+            ministryrequestid: requestId
+          },
+        );
+  
+        setCurrentEditRecord();
+        setCurPersonalAttributes({
+          person: "",
+          filetype: "",
+          volume: "",
+          trackingid: "",
+          personaltag: "TBD"
+        });
+        setNewPersonalAttributes({});
+      }      
+    }
+  };
+
   return (
     <>
       <Popover
@@ -179,7 +266,22 @@ const ContextMenu = ({
       >
         <div className="pageFlagModal">
           <div className="heading">
-            <div>Export</div>
+            {/* <div>Export</div>
+            <hr className="hrStyle" /> */}
+            <div
+              className={
+                selectedPages.length > 1
+                  ? "editPersonalTagsDisabled"
+                  : "editPersonalTags"
+              }
+              onClick={() => {
+                if(selectedPages.length <= 1) {
+                  editTags()
+                }
+              }}
+            >
+              Edit Tags
+            </div>
             <hr className="hrStyle" />
             <div>Page Flags</div>
           </div>
@@ -197,6 +299,19 @@ const ContextMenu = ({
           programAreaList={getProgramAreas(pageFlagList)}
         />
       )}
+      {(editTagModalOpen && requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") &&
+        <MCFPersonal
+          editTagModalOpen={editTagModalOpen}
+          setEditTagModalOpen={setEditTagModalOpen}
+          setOpenContextPopup={setOpenContextPopup}
+          setNewDivision={setDivisionModalTagValue}
+          curPersonalAttributes={curPersonalAttributes}
+          setNewPersonalAttributes={setNewPersonalAttributes}
+          updatePersonalAttributes={updatePersonalAttributes}
+          setCurrentEditRecord={setCurrentEditRecord}
+          setCurPersonalAttributes={setCurPersonalAttributes}
+        />
+      }
     </>
   );
 };
