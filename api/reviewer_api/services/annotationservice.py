@@ -114,7 +114,7 @@ class annotationservice:
 
 
     def saveannotation(self, annotationschema, userinfo):
-        annots = self.__extractannotfromxml(annotationschema["xml"])
+        annots = self.__extractpolygonannotfromxml(annotationschema) if annotationschema["ispolygon"] else self.__extractannotfromxml(annotationschema["xml"])
         _redactionlayerid = self.__getredactionlayerid(annotationschema)
         if len(annots) < 1:
             return DefaultMethodResult(True, "No valid Annotations found", -1)
@@ -194,6 +194,38 @@ class annotationservice:
                     }
                 )
         return annots
+    
+    def __extractpolygonannotfromxml(self, annotationschema):        
+        xml = parseString(annotationschema['xml'])
+        annotations = xml.getElementsByTagName("annots")[0]
+        annots = []
+        # get stored values from first annot in array
+        annot = annotations.childNodes[0]
+        formatted_utc = self.__converttoutctime(annot)
+        customdata = annot.getElementsByTagName("trn-custom-data")[
+            0
+        ].getAttribute("bytes")
+        customdatadict = json.loads(customdata)
+        if formatted_utc is not None:
+            annot.setAttribute("creationdate", formatted_utc)
+            annot.setAttribute("date", formatted_utc)
+        annots.append(
+            {
+                "name": annotationschema["name"],
+                "page": customdatadict["originalPageNo"],
+                "xml": annotations.toxml().replace('\n', '').replace('\t', '').replace('<annots>', '').replace('</annots>', ''),
+                "sectionsschema": SectionAnnotationSchema().loads(customdata),
+                "docid": customdatadict["docid"],
+                "docversion": customdatadict["docversion"]
+                if "docversion" in customdatadict
+                else 1,
+                "existingid": customdatadict["existingId"]
+                if "existingId" in customdatadict
+                else None,
+            }
+        )
+        return annots
+
 
     def __generateannotationsxml(self, annotations):
         annotationsstring = "".join(annotations)

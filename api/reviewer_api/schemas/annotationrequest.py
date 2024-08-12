@@ -46,6 +46,8 @@ class AnnotationRequest(Schema):
     pageflags = fields.Nested(BulkDocumentPageflagSchema, allow_none=True)
     foiministryrequestid = fields.Int(data_key="foiministryrequestid", allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=True)
+    ispolygon = fields.Bool(data_key="ispolygon", allow_none=True)
+    name = fields.Str(data_key="name", allow_none=True) # name to use in db for polygon redactions
 
 
 # new schemas added for bult delete annotations

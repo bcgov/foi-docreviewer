@@ -147,9 +147,11 @@ export const saveAnnotation = (
   redactionLayer?: number,
   pageFlags?: object,
   sections?: object,
+  isPolygon: boolean = false,
+  name?: string,
 ) => {
   let apiUrlPost: string = `${API.DOCREVIEWER_ANNOTATION}`;
-  let requestJSON = {};
+  let requestJSON: any = {};
   if (sections && pageFlags) {
     requestJSON = {
       "xml": annotation,
@@ -171,6 +173,8 @@ export const saveAnnotation = (
       "redactionlayerid": redactionLayer
     }
   }
+  requestJSON["ispolygon"] = isPolygon;
+  requestJSON["name"] = name;
   httpPOSTRequest({url: apiUrlPost, data: requestJSON, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
