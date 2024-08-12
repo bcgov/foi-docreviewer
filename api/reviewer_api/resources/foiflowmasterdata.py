@@ -172,7 +172,7 @@ class FOIFlowS3PresignedRedline(Resource):
     def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
         try:            
             data = request.get_json()
-            print("data!:",data)
+            # print("data!:",data)
             requesttype = data["requestType"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
@@ -205,11 +205,11 @@ class FOIFlowS3PresignedRedline(Resource):
             
             #check if is single redline package
             is_single_redline = is_single_redline_package(_bcgovcode, packagetype, requesttype)
-            print("is_single_redline:",is_single_redline)
+            # print("is_single_redline:",is_single_redline)
             #print("divdocumentList:",data["divdocumentList"])
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
-                    print("filepathlist:" , div["documentlist"][0]["filepath"])
+                    # print("filepathlist:" , div["documentlist"][0]["filepath"])
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                     if is_single_redline == False:
                         division_name = div["divisionname"]
@@ -276,13 +276,13 @@ class FOIFlowS3PresignedRedline(Resource):
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
                         filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                        print("filepathlist:",filepathlist)
+                        # print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
-                        print("filename1:",filename)
+                        # print("filename1:",filename)
                         filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
                             filepathlist[0],filename, packagetype
                         )
-                        print("filepath_put:",filepath_put)
+                        # print("filepath_put:",filepath_put)
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -293,7 +293,7 @@ class FOIFlowS3PresignedRedline(Resource):
                             ExpiresIn=3600,
                             HttpMethod="PUT",
                         )
-                        print("s3path_save:",s3path_save)
+                        # print("s3path_save:",s3path_save)
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
                         
