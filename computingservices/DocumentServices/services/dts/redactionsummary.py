@@ -25,19 +25,19 @@ class redactionsummary():
 
     def __packaggesummary(self, message, documentids, pageflags, programareas):
         try:
-            print("\nInside __packaggesummary")
+            # print("\nInside __packaggesummary")
             redactionlayerid = self.__getredactionlayerid(message)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
-            print("\ntotalpagecount",totalpagecount)
+            # print("\ntotalpagecount",totalpagecount)
             
             if totalpagecount <=0:
                 return 
             _pageflags = self.__transformpageflags(pageflags)
-            print("\n_pageflags",_pageflags)
+            # print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
@@ -56,7 +56,7 @@ class redactionsummary():
                             pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
                     skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
                 pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
-            print("\n_pageflags1",_pageflags)
+            # print("\n_pageflags1",_pageflags)
             for pageflag in _pageflags:
                 _data = {}
                 if len(pageflag['docpageflags']) > 0:
@@ -89,31 +89,31 @@ class redactionsummary():
 
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
-            print("============>sorted_docpageflags:", sorted_docpageflags)
+            # print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             #print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
             #print("###mapped_flags1:",mapped_flags)
             pagecounts= self.count_pages_per_doc(mapped_flags)
-            print("pagecounts:",pagecounts)
+            # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
                 if record["documentids"][0] in pagecounts:
-                    print("-----------------------Record : ---------------------------", record["documentids"])
+                    # print("-----------------------Record : ---------------------------", record["documentids"])
                     record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
-                    print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
-                        &&& end_page-{end_page}")
+                    # print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
+                    #     &&& end_page-{end_page}")
                     self.assignfullpagesections(redactionlayerid, mapped_flags)
-                    print("\nMapped_flags::",mapped_flags)
+                    # print("\nMapped_flags::",mapped_flags)
                     range_result = self.__calculate_range(mapped_flags, record["documentids"])
-                    print("range_result:",range_result)
+                    # print("range_result:",range_result)
                     recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
-                    print(f"{record['recordname']} :{recordwise_pagecount}")
+                    # print(f"{record['recordname']} :{recordwise_pagecount}")
                     summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
 
-            print("\n summarydata:",summarydata)
+            # print("\n summarydata:",summarydata)
             return {"requestnumber": message.requestnumber, "data": summarydata}
 
         except Exception as error:
@@ -133,17 +133,17 @@ class redactionsummary():
 
         grouped_flags= self.__groupbysections(filtered_mapper)
         ranges = self.__create_ranges(grouped_flags)
-        print("\n ranges:",ranges)
+        # print("\n ranges:",ranges)
         return {"range": f"{min_stitched_page}-{max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
     
 
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
         document_pages= self.get_sorted_original_pages_by_docid(mapped_flags)
-        print("document_pages:",document_pages)
+        # print("document_pages:",document_pages)
         for item in document_pages:
             for doc_id, pages in item.items():
                 docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, doc_id, pages)
-                print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
+                # print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
                 for flag in mapped_flags:
                         if flag['docid'] == doc_id and flag['flagid'] == 3:
                             flag['sections']= self.__get_sections_mcf1(docpagesections, flag['dbpageno'])
@@ -152,7 +152,7 @@ class redactionsummary():
     def __get_sections_mcf1(self, docpagesections, pageno):
         sections = []
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
-        print(f"\n pageno-{pageno}, filtered-{filtered}")
+        # print(f"\n pageno-{pageno}, filtered-{filtered}")
         if filtered:
             for dta in filtered:
                 sections += [x.strip() for x in dta['section'].split(",")] 
@@ -259,7 +259,7 @@ class redactionsummary():
     
        
     def __groupbysections(self, filtered_mapper):
-        print("\n __groupbysections: ", filtered_mapper)
+        # print("\n __groupbysections: ", filtered_mapper)
         # Group by sections
         grouped_flags = defaultdict(list)
         for flag in filtered_mapper:
@@ -267,7 +267,7 @@ class redactionsummary():
             sections_key = tuple(flag['sections']) if 'sections' in flag and flag['sections'] else ('No Section',)
             grouped_flags[sections_key].append(flag)
         grouped_flags = dict(grouped_flags)
-        print("\n grouped_flags:", grouped_flags)
+        # print("\n grouped_flags:", grouped_flags)
         return grouped_flags
 
     
@@ -324,7 +324,7 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"{range_item} {formatted_sections}" if formatted_sections else range_item})
+                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item})
         return section_list
 
     
@@ -420,10 +420,10 @@ class redactionsummary():
     
     
     def __get_sections(self, docpagesections, pageno):
-        print(f"\n pageno-{pageno}, docpagesections-{docpagesections}")
+        # print(f"\n pageno-{pageno}, docpagesections-{docpagesections}")
         sections = []
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
-        print("\n filtered:",filtered)
+        # print("\n filtered:",filtered)
         for dta in filtered:
             sections += [x.strip() for x in dta['section'].split(",")] 
         return list(filter(None, sections))
