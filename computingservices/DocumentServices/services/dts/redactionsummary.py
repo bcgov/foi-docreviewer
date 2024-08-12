@@ -134,7 +134,7 @@ class redactionsummary():
         grouped_flags= self.__groupbysections(filtered_mapper)
         ranges = self.__create_ranges(grouped_flags)
         # print("\n ranges:",ranges)
-        return {"range": f"{min_stitched_page}-{max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
+        return {"range": f"{min_stitched_page} - {max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
     
 
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
