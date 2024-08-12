@@ -266,8 +266,9 @@ const ContextMenu = ({
       >
         <div className="pageFlagModal">
           <div className="heading">
-            {/* <div>Export</div>
-            <hr className="hrStyle" /> */}
+            <div>Export</div>
+            <hr className="hrStyle" />
+            {requestInfo?.bcgovcode === "MCF" && requestInfo?.requesttype === "personal" && (<>
             <div
               className={
                 selectedPages.length > 1
@@ -283,6 +284,7 @@ const ContextMenu = ({
               Edit Tags
             </div>
             <hr className="hrStyle" />
+            </>)}
             <div>Page Flags</div>
           </div>
           {showPageFlagList()}
