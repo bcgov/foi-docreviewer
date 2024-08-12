@@ -71,7 +71,7 @@ function Home() {
       async (data) => {
         setOutstandingBalance(data.requestinfo.outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
-        setDivisions(data.documentDivisions);
+        setDivisions(data.documentdivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
