@@ -65,6 +65,7 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
+import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
   (
@@ -2434,6 +2435,17 @@ const Redlining = React.forwardRef(
           modalData={modalData}
           />
         }
+        <FeeOverrideModal
+          modalData={modalData}
+          cancelRedaction={cancelRedaction}
+          outstandingBalanceModal={outstandingBalanceModal}
+          cancelSaveRedlineDoc={cancelSaveRedlineDoc}
+          isOverride={isOverride}
+          feeOverrideReason={feeOverrideReason}
+          handleOverrideReasonChange={handleOverrideReasonChange}
+          saveDoc={saveDoc}
+          overrideOutstandingBalance={overrideOutstandingBalance}
+        />
       </div>
     );
   }
