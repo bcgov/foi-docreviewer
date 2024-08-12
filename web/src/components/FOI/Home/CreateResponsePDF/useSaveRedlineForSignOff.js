@@ -1091,7 +1091,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         let documentsObjArr = [];
         let divisionstitchpages = [];
         let divCount = 0;
-        console.log("RES:",res)
         for (let div of res.divdocumentList) {
           divCount++;
           let docCount = 0;
