@@ -61,7 +61,7 @@ class redactionsummaryservice():
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
-                    print("\n filename:",filename)
+                    # print("\n filename:",filename)
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
@@ -71,7 +71,7 @@ class redactionsummaryservice():
                         summaryuploaderror= True
                         summaryuploaderrormsg = uploadobj.uploadresponse.text
                     pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
-                    print("\ns3uripath:",uploadobj["documentpath"])
+                    # print("\ns3uripath:",uploadobj["documentpath"])
                     summaryfilestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
             return summaryfilestozip
         except (Exception) as error:
@@ -89,7 +89,7 @@ class redactionsummaryservice():
             _filename = requestnumber+" - "+category
             if divisionname not in (None, ''):
                 _filename = _filename+" - "+divisionname    
-        print("---->",stitchedfilepath+_filename+" - summary.pdf")   
+        # print("---->",stitchedfilepath+_filename+" - summary.pdf")   
         return stitchedfilepath+_filename+" - summary.pdf"
   
     def __get_pageflags(self, category):
