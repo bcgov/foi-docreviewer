@@ -37,6 +37,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     assignIcon,
     pageFlags,
     syncPageFlagsOnAction,
+    requestInfo
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
         [`& .${treeItemClasses.label}`]: {
@@ -57,11 +58,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
     const [openContextPopup, setOpenContextPopup] = useState(false);
     const [disableHover, setDisableHover] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
-
+    const [activeNode, setActiveNode] = useState<any>();
+    const [currentEditRecord, setCurrentEditRecord] = useState();
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
-            
             setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
             apiRef.current?.focusItem(event, pageId)            
@@ -71,10 +72,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
         scrollLeftPanelPosition(event: any)
         {           
             let _lastselected = localStorage.getItem("lastselected")
-            
             if(_lastselected)
            {                 
-                let _docid = JSON.parse(_lastselected)?.docid                
+                let _docid = JSON.parse(_lastselected)?.docid   
                 let docidstring = ''
                 if(_lastselected.indexOf('division')>-1)
                 {
@@ -123,6 +123,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         let selectedOthers = [];
         let selectedNodes = [];
         for (let nodeId of nodeIds) {
+            nodeId = nodeId.replace(/undefined/g, "null");
             let node = JSON.parse(nodeId);
             selectedNodes.push(node);
             if (node.page) {
@@ -173,12 +174,25 @@ const CustomTreeView = React.memo(React.forwardRef(({
     }
 
     const CustomTreeItem = React.forwardRef((props: any, ref: any) => {
-        let itemid = JSON.parse(props.itemId);        
+        
+        // props.itemId = props?.itemId?.replaceAll("undefined", "\"\"");
+        // let itemid = JSON.parse(props?.itemId);
+        //console.log("CustomTreeItem-",props)
+        const derivedItemId = props.itemId?.replaceAll("undefined", "\"\"") ?? "";
+        // Parse the derived itemId
+        let itemid:any;
+        try {
+          itemid = JSON.parse(derivedItemId);
+        } catch (error) {
+          console.error("Invalid JSON in itemId:", error);
+          itemid = derivedItemId; // Fallback to the derived itemId if JSON parsing fails
+        }
+
         return (
         <StyledTreeItem
           ref={ref}
           {...props}
-          title={itemid.title}
+          title={itemid.title || props.label}
 
         //   slots={{endIcon: (_props) => {return CloseSquare(props)}}}
           slots={{endIcon: (_props: any) => {return addIcons(itemid)}}}
@@ -190,17 +204,32 @@ const CustomTreeView = React.memo(React.forwardRef(({
         //     },
         //   }}
         />
-      )
+        )
     });
 
     const openContextMenu = (e: any, props: any) => {
-        if (props.children) return
+        if (props.children && requestInfo.bcgovcode !== "MCF" && requestInfo.requesttype !== "personal") return
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
         if (nodeId === "") {
             nodeId = e.currentTarget.id;
         }
         nodeId = nodeId.substring(nodeId.indexOf('{'));
+        nodeId = nodeId.replace(/undefined/g, "null");
+        
+        //mcf personal
+        let nodeIdJson = JSON.parse(nodeId);
+        if(nodeIdJson.docid) { //popup menu only if docid exist (level 2 tree and children)
+            let currentFiles: any = filesForDisplay.filter((f: any) => {
+                return f.documentid === nodeIdJson.docid;
+            });
+            setCurrentEditRecord(currentFiles[0]);
+
+            setActiveNode(nodeIdJson);
+        } else { //mcf personal level 1 tree item
+            return;
+        }
+
         let selectedNodes: any;
         if (!selected.includes(nodeId)) {
             selectedNodes = [nodeId]
@@ -228,7 +257,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     return (        
         <>
-        {openContextPopup === true &&
+        {openContextPopup === true && 
             <ContextMenu
                 openFOIPPAModal={openFOIPPAModal}
                 requestId={requestid}
@@ -242,6 +271,11 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 pageMappedDocs={pageMappedDocs}
                 pageFlags={pageFlags}
                 syncPageFlagsOnAction={syncPageFlagsOnAction}
+                filesForDisplay={filesForDisplay}
+                activeNode={activeNode}
+                requestInfo={requestInfo}
+                currentEditRecord={currentEditRecord}
+                setCurrentEditRecord={setCurrentEditRecord}
             />
         }
         <Box sx={{ mb: 1 }}>

@@ -100,10 +100,13 @@ const RedactionTypes: RedactionType = {
   "blank": "blank"
 };
 
+const MCFPopularSections = 23
+
 export {
   KCProcessingTeams,
   MINISTRYGROUPS,
   pageFlagTypes,
   RequestStates,
-  RedactionTypes
+  RedactionTypes,
+  MCFPopularSections
 };

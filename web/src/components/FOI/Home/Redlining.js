@@ -1435,7 +1435,7 @@ const Redlining = React.forwardRef(
           let originalPageNo = customData.originalPageNo;
           let mappedDoc = pageMappedDocs?.docIdLookup[entry];
           annot.attributes.page = (
-            mappedDoc.pageMappings.find(
+            mappedDoc?.pageMappings.find(
               (p) => p.pageNo - 1 === Number(originalPageNo)
             )?.stitchedPageNo - 1
           )?.toString();
@@ -2203,6 +2203,7 @@ const Redlining = React.forwardRef(
         case "oipcreview":
         case "redline":
           saveRedlineDocument(
+            docInstance,
             modalFor,
             incompatibleFiles,
             documentList,
@@ -2222,8 +2223,8 @@ const Redlining = React.forwardRef(
           break;
         default:
       }
-      setIncludeDuplicatePages(false);
-      setIncludeNRPages(false);
+      // setIncludeDuplicatePages(false);
+      // setIncludeNRPages(false);
     };
 
     const decodeAstr = (astr) => {
@@ -2235,8 +2236,8 @@ const Redlining = React.forwardRef(
       return trnCustomData
     }
 
-    const NRID = sections?.find(s => s.section === "NR").id;
-    const blankID = sections?.find(s => s.section === "").id;
+    const NRID = sections?.find(s => s.section === "NR")?.id;
+    const blankID = sections?.find(s => s.section === "")?.id;
 
     const sectionIsDisabled = (sectionid) => {
       let isDisabled = false;

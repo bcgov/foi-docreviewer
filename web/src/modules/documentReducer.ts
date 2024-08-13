@@ -41,6 +41,14 @@ const documents = (state = initialState, action:any)=> {
         return {...state, redactionLayers: state.redactionLayers };
     case ACTION_CONSTANTS.SET_DELETED_PAGES:
         return {...state, deletedDocPages: action.payload};
+    case ACTION_CONSTANTS.FOI_PERSONAL_SECTIONS:
+      return { ...state, foiPersonalSections: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_PEOPLE:
+      return { ...state, foiPersonalPeople: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_FILETYPES:
+      return { ...state, foiPersonalFiletypes: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_VOLUMES:
+      return { ...state, foiPersonalVolumes: action.payload };
     default:
       return state;
   }
