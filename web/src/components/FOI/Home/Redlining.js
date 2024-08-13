@@ -266,7 +266,7 @@ const Redlining = React.forwardRef(
             for (let i = 0; i < rects.length; i++) {
               const rectFullyWithinPoly = isRectFullyWithinPolygon(rects[i], polygon);
               if (rectFullyWithinPoly) {
-                createRedactionAnnotation(rects[i]);
+                createRedactionAnnotation(rects[i], polygon);
               }
               if (!rectFullyWithinPoly) {
                 splitRectangle(rects[i], polygon, polyPoints, depth - 1);
@@ -333,9 +333,9 @@ const Redlining = React.forwardRef(
             return isInside;
           }
 
-          const createRedactionAnnotation = (points) => {
+          const createRedactionAnnotation = (points, polygon) => {
             const annot = new Annotations.RedactionAnnotation({
-              PageNumber: documentViewer.getCurrentPage(),
+              PageNumber: polygon.PageNumber,
               Rect: points,
               StrokeColor: new Annotations.Color(255, 0, 0, 1),
               FillColor: new Annotations.Color(255, 255, 255, 1),
