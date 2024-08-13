@@ -9,6 +9,7 @@ import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
   fetchDeletedDocumentPages,
+  fetchPersonalAttributes
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
@@ -26,11 +27,11 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+  const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
-
   const [currentPageInfo, setCurrentPageInfo] = useState({ file: {}, page: 0 });
   const [s3UrlReady, setS3UrlReady] = useState(false);
   const [s3Url, setS3Url] = useState("");
@@ -38,13 +39,14 @@ function Home() {
   const [totalPageCount, setTotalPageCount] = useState(0);
   const [currentDocument, setCurrentDocument] = useState({});
   const [docsForStitcing, setDocsForStitcing] = useState([]);
-  const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
-  const [pageMappedDocs, setPageMappedDocs] = useState([]);
+  const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
   const [outstandingBalance, setOutstandingBalance]= useState(0)
+  const [divisions, setDivisions] = useState([]);
+  const [pageFlags, setPageFlags]= useState([]);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -53,7 +55,6 @@ function Home() {
     setS3UrlReady(false);
     let documentObjs = [];
     let totalPageCountVal = 0;
-    let presignedurls = [];
     let deletedDocPages = [];
 
     fetchDeletedDocumentPages(
@@ -70,6 +71,7 @@ function Home() {
       async (data) => {
         setOutstandingBalance(data.requestinfo.outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
+        setDivisions(data.documentdivisions);
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
@@ -94,8 +96,8 @@ function Home() {
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        let sortedFiles = []
-        sortDocList(_files, null, sortedFiles);
+        // let sortedFiles = []
+        // sortDocList(_files, null, sortedFiles);
         // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
@@ -106,11 +108,12 @@ function Home() {
             totalPageCountVal += filePageCount;
           });
 
-          let doclist = [];
+          let doclist = [];          
+          let requestInfo = data.requestinfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              sortDocList(newDocumentObjs, null, doclist);
+              sortDocList(newDocumentObjs, null, doclist, requestInfo);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
               prepareMapperObj(doclist, deletedDocPages);
@@ -137,11 +140,21 @@ function Home() {
         console.log(error);
       }
     );
+
+
   }, []);
+
+
 
   const getCurrentDocument = (doclist) => {    
     return doclist.find(item => item.file.pagecount > 0);    
   }
+
+  const syncPageFlagsOnAction = (updatedFlags) => {
+     
+    selectorRef?.current?.scrollLeftPanelPosition("")       
+    setPageFlags(updatedFlags);
+  };
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
@@ -162,6 +175,17 @@ function Home() {
       store.dispatch(setCurrentLayer(oipcLayer));
     }
   }, [validoipcreviewlayer, redactionLayers])
+
+  useEffect(() => {
+    if(requestInfo?.bcgovcode && requestInfo.bcgovcode === "MCF"
+          && requestInfo?.requesttype && requestInfo.requesttype === "personal") {
+      fetchPersonalAttributes(
+        requestInfo.bcgovcode, 
+        (error) =>
+          console.log(error)
+      );
+    }
+  }, [requestInfo])
 
   const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
@@ -228,8 +252,8 @@ function Home() {
     redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
-  const scrollLeftPanel = (pageNo) => {
-    selectorRef?.current?.scrollToPage(pageNo);
+  const scrollLeftPanel = (event, pageNo) => {
+    selectorRef?.current?.scrollToPage(event, pageNo);
   };
 
   const closeWarningMessage = () => {
@@ -252,6 +276,9 @@ function Home() {
                 setIndividualDoc={setIndividualDoc}
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
+                divisions={divisions}
+                pageFlags={pageFlags}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -269,11 +296,8 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
@@ -281,6 +305,9 @@ function Home() {
                   scrollLeftPanel={scrollLeftPanel}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
                   outstandingBalance={outstandingBalance}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
+
                 />
               )
             // : <div>Loading</div>
@@ -302,7 +329,7 @@ function Home() {
         className={"state-change-dialog"}
         isOpen={warningModalOpen}
       >
-        <DialogTitle disableTypography id="state-change-dialog-title">
+        <DialogTitle disabletypography="true" id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
           <IconButton className="title-col3" onClick={closeWarningMessage}>
             <i className="dialog-close-button">Close</i>

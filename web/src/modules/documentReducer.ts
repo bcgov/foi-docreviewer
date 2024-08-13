@@ -22,8 +22,8 @@ const documents = (state = initialState, action:any)=> {
       return {...state, sections: action.payload};
     case ACTION_CONSTANTS.SET_REQUEST_NUMBER:
         return {...state, requestnumber: action.payload};  
-    case ACTION_CONSTANTS.SET_PAGE_FLAGS:
-      return {...state, pageFlags: action.payload};
+    // case ACTION_CONSTANTS.SET_PAGE_FLAGS:
+    //   return {...state, pageFlags: action.payload};
     case ACTION_CONSTANTS.SET_DOCUMENT_LIST:
       return {...state, documentList: action.payload};
     case ACTION_CONSTANTS.SET_KEYWORDS:
@@ -44,6 +44,14 @@ const documents = (state = initialState, action:any)=> {
         return {...state, deletedDocPages: action.payload};
     case ACTION_CONSTANTS.SET_PUBLIC_BODIES:
       return {...state, allPublicBodies: action.payload};
+    case ACTION_CONSTANTS.FOI_PERSONAL_SECTIONS:
+      return { ...state, foiPersonalSections: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_PEOPLE:
+      return { ...state, foiPersonalPeople: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_FILETYPES:
+      return { ...state, foiPersonalFiletypes: action.payload };
+    case ACTION_CONSTANTS.FOI_PERSONAL_VOLUMES:
+      return { ...state, foiPersonalVolumes: action.payload };
     default:
       return state;
   }

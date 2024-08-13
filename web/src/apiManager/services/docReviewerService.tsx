@@ -1,13 +1,14 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
-import { setRedactionInfo, setIsPageLeftOff, setSections, setPageFlags,
+import { setRedactionInfo, setIsPageLeftOff, setSections, 
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages,
-  setPublicBodies
+  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
+import { pageFlagTypes } from "../../constants/enum";
 
 
 export const fetchDocuments = (
@@ -76,12 +77,13 @@ export const fetchAnnotationsByPagination = (
   size: number,
   callback: any,
   errorCallback: any,
-  redactionlayer: string = "redline"
+  redactionlayer: string = "redline",
+  timeout: number = 60000
 ) => {
   
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
@@ -331,30 +333,31 @@ export const fetchPageFlag = (
   foiministryrquestid: string,
   redactionlayer: string,
   documentids: Array<any>,  
-  //callback: any,
+  callback: any,
   errorCallback: any
 ) => {
-  let apiUrlGet: string = replaceUrl(
-    API.DOCREVIEWER_GET_PAGEFLAGS,
-    "<requestid>",
-    foiministryrquestid
-  ) + "/" +  redactionlayer;
-  
-  httpGETRequest(apiUrlGet, {documentids: documentids}, UserService.getToken())
+
+    let requestjson={"documentids":documentids}
+    let apiUrlPost: string = replaceUrl(
+      API.DOCREVIEWER_GET_PAGEFLAGS,
+      "<requestid>",
+      foiministryrquestid
+    ) + "/" +  redactionlayer;
+    httpPOSTRequest({url: apiUrlPost, data: requestjson, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
-      if (res.data || res.data === "") {
-        store.dispatch(setPageFlags(res.data) as any);
+      if (res.data) {
+        callback(res.data);
         /** Checking if BOOKMARK set for package */
         let bookmarkedDoc= res.data?.filter((element:any) => {
-          return element?.pageflag?.some((obj: any) =>(obj.flagid === 8));
+          return element?.pageflag?.some((obj: any) =>(obj.flagid === pageFlagTypes["Page Left Off"]));
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
       } else {
-        throw new Error();
+        throw new Error("Error while triggering download redline");
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in fetching pageflags for a document");
+      errorCallback("Error in triggering download redline:",error);
     });
 };
 
@@ -508,5 +511,53 @@ export const fetchDeletedDocumentPages = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching deleted pages:",error);
+    });
+};
+
+export const fetchPersonalAttributes = (
+  bcgovcode: string,
+  errorCallback: any
+) => {
+  let apiUrlGet: string = `${API.FOI_GET_PERSONALTAG}/${bcgovcode}`
+  
+  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+    .then((res:any) => {
+      if (res.data) {
+        store.dispatch(setFOIPersonalPeople(res.data) as any);
+        store.dispatch(setFOIPersonalFiletypes(res.data) as any);
+        store.dispatch(setFOIPersonalVolumes(res.data) as any);
+        store.dispatch(setFOIPersonalSections(res.data) as any);
+        // callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in fetching personal attributes");
+    });
+};
+
+export const editPersonalAttributes = (
+  foiministryrquestid: string,
+  callback: any,
+  errorCallback: any,
+  data?: any
+) => {
+  let apiUrlPost: string = replaceUrl(
+    API.DOCREVIEWER_EDIT_PERSONAL_ATTRIBUTES,
+    "<requestid>",
+    foiministryrquestid
+  )
+  httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error(`Error while editing personal attributes for requestid ${foiministryrquestid}`);
+      }
+    })
+    .catch((error:any) => {
+      errorCallback("Error in editing personal attributes");
     });
 };
