@@ -204,24 +204,32 @@ const Redlining = React.forwardRef(
           instance.UI.registerTool({ toolName: "PolygonRedactCreateTool", toolObject: polyRedactTool, buttonImage: polygonRedactToolBase64, });
 
           polyRedactTool.addEventListener("annotationAdded", (annot) => {
-            createRedactedPolygon(annot);
+            var start = new Date();
+            createRedactedPolygon(annot, start);
             // annotationManager.applyRedactions(polyRedactTool.redactionAnnotations);
             // polyRedactTool.redactionAnnotations = [];
+            console.log("polygon time: " + (new Date() - start) + "ms");
             annotationManager.deleteAnnotation(annot)
-            setModalOpen(true);
+            console.log("delete time: " + (new Date() - start) + "ms");
+            setModalOpen(true);            
+            console.log("modal time: " + (new Date() - start) + "ms");
           })
 
-          const createRedactedPolygon = (polygon) => {
+          const createRedactedPolygon = (polygon, start) => {
             const polyPoints = polygon.getPath();
+            console.log("path time: " + (new Date() - start) + "ms");
             const largestRectangle = getPolygonBoundingRectangle(polyPoints);
-            const depth = 6;
+            console.log("bound time: " + (new Date() - start) + "ms");
+            const depth = 5;
     
             const rectFullyWithinPoly = isRectFullyWithinPolygon(largestRectangle, polygon);
+            console.log("within time: " + (new Date() - start) + "ms");
             if (rectFullyWithinPoly) {
               return;
             }
     
             splitRectangle(largestRectangle, polygon, polyPoints, depth);
+            console.log("split time: " + (new Date() - start) + "ms");
           }
     
           const splitRectangle = (rectangle, polygon, polyPoints, depth) => {
