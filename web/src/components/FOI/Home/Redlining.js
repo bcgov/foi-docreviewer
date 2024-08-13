@@ -2147,6 +2147,7 @@ const Redlining = React.forwardRef(
             annotation.setCustomData("docid", `${displayedDoc.docid}`);
             annotation.setCustomData("docversion", `${displayedDoc.docversion}`);
           }
+          docViewer.getToolMode().redactionAnnotations = []
         } else {
           for (let name of newRedaction.names) {
             annotationList.push(annotManager.getAnnotationById(name));
@@ -2315,6 +2316,9 @@ const Redlining = React.forwardRef(
           );
         }
         setNewRedaction(null)
+      }
+      if (docViewer.getToolMode().name === 'PolygonRedactCreateTool') {
+        annotManager.deleteAnnotations(docViewer.getToolMode().redactionAnnotations)
       }
       setEditAnnot(null);
     };
