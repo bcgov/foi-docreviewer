@@ -614,12 +614,14 @@ const MCFPersonal = ({
             <button
               className={`btn-bottom btn-save btn`}
               onClick={() => {updatePersonalAttributes();reset();}}
+              disabled={disableSave}
             >
               Update for Individual
             </button>
             <button
               className={`btn-bottom btn-save btn`}
               onClick={() => {updatePersonalAttributes(true);reset();}}
+              disabled={disableSave}
             >
               Update for All
             </button>
