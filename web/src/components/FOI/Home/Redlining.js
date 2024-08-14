@@ -2327,6 +2327,7 @@ const Redlining = React.forwardRef(
       }
       if (docViewer.getToolMode().name === 'PolygonRedactCreateTool') {
         annotManager.deleteAnnotations(docViewer.getToolMode().redactionAnnotations)
+        docViewer.getToolMode().redactionAnnotations = [];
       }
       setEditAnnot(null);
     };
