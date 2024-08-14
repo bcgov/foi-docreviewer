@@ -220,7 +220,7 @@ const Redlining = React.forwardRef(
             console.log("path time: " + (new Date() - start) + "ms");
             const largestRectangle = getPolygonBoundingRectangle(polyPoints);
             console.log("bound time: " + (new Date() - start) + "ms");
-            const depth = 5;
+            const depth = 6;
     
             const rectFullyWithinPoly = isRectFullyWithinPolygon(largestRectangle, polygon);
             console.log("within time: " + (new Date() - start) + "ms");
@@ -2327,6 +2327,7 @@ const Redlining = React.forwardRef(
       }
       if (docViewer.getToolMode().name === 'PolygonRedactCreateTool') {
         annotManager.deleteAnnotations(docViewer.getToolMode().redactionAnnotations)
+        docViewer.getToolMode().redactionAnnotations = [];
       }
       setEditAnnot(null);
     };
