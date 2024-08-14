@@ -26,7 +26,7 @@ const MCFPersonal = ({
     setEditTagModalOpen,
     setOpenContextPopup,
     setNewDivision,
-    // tagValue,
+    comparePersonalAttributes,
     curPersonalAttributes,
     setNewPersonalAttributes,
     updatePersonalAttributes,
@@ -69,10 +69,23 @@ const MCFPersonal = ({
     const [fileTypeSearchValue, setFileTypeSearchValue] = useState("");
     const [additionalFileTypes, setAdditionalFileTypes] = useState([]);
     const [showAdditionalFileTypes, setShowAdditionalFileTypes] = useState(false);
+    const [disableSave, setDisableSave] = useState(false);
 
     useEffect(() => {
       setPersonalAttributes(curPersonalAttributes);
     },[curPersonalAttributes])
+
+    useEffect(() => {
+      setDisableSave(
+        personalAttributes?.person === undefined
+         || personalAttributes?.person === ""
+         || personalAttributes?.filetype === undefined
+         || personalAttributes?.filetype === ""
+         || personalAttributes?.trackingid === undefined
+         || personalAttributes?.trackingid === ""
+         || comparePersonalAttributes(personalAttributes, curPersonalAttributes)
+        );
+    },[personalAttributes])
 
     useEffect(() => {
       if(MCFSections?.sections) {
@@ -601,12 +614,14 @@ const MCFPersonal = ({
             <button
               className={`btn-bottom btn-save btn`}
               onClick={() => {updatePersonalAttributes();reset();}}
+              disabled={disableSave}
             >
               Update for Individual
             </button>
             <button
               className={`btn-bottom btn-save btn`}
               onClick={() => {updatePersonalAttributes(true);reset();}}
+              disabled={disableSave}
             >
               Update for All
             </button>
