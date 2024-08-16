@@ -4,6 +4,7 @@ import "../../../styles.scss";
 import "../App.scss";
 import DocumentSelector from "./DocumentSelector";
 import Redlining from "./Redlining";
+import Redlining2 from "./Redlining2";
 import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
@@ -24,7 +25,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 
-function Home() {
+function Home({polygonv2 = false}) {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
@@ -287,6 +288,27 @@ function Home() {
               currentPageInfo?.page > 0 &&
               s3UrlReady &&
               s3Url && (
+                polygonv2 ? 
+                
+                <Redlining2
+                  ref={redliningRef}
+                  user={user}
+                  requestid={foiministryrequestid}
+                  docsForStitcing={docsForStitcing}
+                  currentDocument={currentDocument}
+                  individualDoc={individualDoc}
+                  pageMappedDocs={pageMappedDocs}
+                  setIsStitchingLoaded={setIsStitchingLoaded}
+                  isStitchingLoaded={isStitchingLoaded}
+                  incompatibleFiles={incompatibleFiles}
+                  setWarningModalOpen={setWarningModalOpen}
+                  scrollLeftPanel={scrollLeftPanel}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
+
+                />  
+                
+                :
                 <Redlining
                   ref={redliningRef}
                   user={user}
@@ -303,7 +325,7 @@ function Home() {
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
 
-                />
+                />                
               )
             // : <div>Loading</div>
           }

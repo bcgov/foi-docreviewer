@@ -31,6 +31,7 @@ function PrivateRoute(props: any) {
             <ToastContainer theme="colored"/>
             <Routes>
               <Route path="/foi/:foiministryrequestid" element={<Home />}/>
+              <Route path="/foipolygonv2/:foiministryrequestid" element={<Home polygonv2={true}/>}/>
             </Routes>
           <Footer /></> : null}
     </>
