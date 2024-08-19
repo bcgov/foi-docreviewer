@@ -84,6 +84,7 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
+    const alpha = 0.6;
 
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
@@ -995,6 +996,7 @@ const Redlining = React.forwardRef(
                     `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
+                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, alpha);
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -1447,6 +1449,7 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
+            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, alpha);
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
