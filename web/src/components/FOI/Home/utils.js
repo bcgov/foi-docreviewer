@@ -783,6 +783,9 @@ export const skipNRDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
 
 export const findNROrDuplicatePageFlag = (pageFlags, docObj, pageFlagTypes) => {
   const docPageFlags = pageFlags.find(pageFlagObj => pageFlagObj.documentid === docObj.docid);
+  if (!docPageFlags) {
+    return false;
+  }
   for (let pageFlag of docPageFlags.pageflag) {
     if ((pageFlag.page === docObj.page && pageFlag.flagid === pageFlagTypes["Duplicate"]) || (pageFlag.page === docObj.page && pageFlag.flagid === pageFlagTypes["Not Responsive"])) {
       return pageFlag;
