@@ -307,6 +307,7 @@ const ContextMenu = ({
           setEditTagModalOpen={setEditTagModalOpen}
           setOpenContextPopup={setOpenContextPopup}
           setNewDivision={setDivisionModalTagValue}
+          comparePersonalAttributes={comparePersonalAttributes}
           curPersonalAttributes={curPersonalAttributes}
           setNewPersonalAttributes={setNewPersonalAttributes}
           updatePersonalAttributes={updatePersonalAttributes}
