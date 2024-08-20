@@ -134,7 +134,7 @@ class redactionsummary():
         grouped_flags= self.__groupbysections(filtered_mapper)
         ranges = self.__create_ranges(grouped_flags)
         # print("\n ranges:",ranges)
-        return {"range": f"{min_stitched_page}-{max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
+        return {"range": f"{min_stitched_page} - {max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
     
 
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
@@ -191,7 +191,7 @@ class redactionsummary():
         start_page = previous_end_page + 1
         end_page = previous_end_page + totalpagecount1
 
-        range_string = f"{start_page}-{end_page}" if totalpagecount1 > 1 else f"{start_page}"
+        range_string = f"{start_page} - {end_page}" if totalpagecount1 > 1 else f"{start_page}"
         result = {
             "recordname": record['recordname'].upper(),
             "range": range_string,
@@ -287,14 +287,14 @@ class redactionsummary():
                     if start == prev:
                         range_list.append(f"{start}")
                     else:
-                        range_list.append(f"{start}-{prev}")
+                        range_list.append(f"{start} - {prev}")
                     start = page
                     prev = page
             # Add the last range
             if start == prev:
                 range_list.append(f"{start}")
             else:
-                range_list.append(f"{start}-{prev}")
+                range_list.append(f"{start} - {prev}")
             # Save the range list for the current sections_key
             ranges[sections_key] = range_list
         return ranges

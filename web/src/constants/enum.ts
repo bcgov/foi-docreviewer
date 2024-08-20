@@ -100,7 +100,7 @@ const RedactionTypes: RedactionType = {
   "blank": "blank"
 };
 
-const MCFPopularSections = 23
+const MCFPopularSections = 21
 
 export {
   KCProcessingTeams,
