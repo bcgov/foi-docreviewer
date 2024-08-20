@@ -109,7 +109,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     if (childDocList.length == 1) {
       sortedChildDocList = childDocList;
     } else {
-      if (requestInfo?.bcgovcode === "MCF") {
+      if (requestInfo?.bcgovcode === "MCF" && requestInfo?.requesttype === "personal") {
         sortedChildDocList = childDocList.sort(CFDSorting);
       } else {
         sortedChildDocList = childDocList.sort(docSorting);
@@ -424,7 +424,8 @@ const constructPageFlagsForDelete = (
   exisitngAnnotations,
   displayedDoc,
   pageFlagTypes,
-  redactionType
+  redactionType,
+  pageFlags
 ) => {
   let pagesToUpdate = {};
   let found = false;
@@ -435,7 +436,16 @@ const constructPageFlagsForDelete = (
     (_annotation) =>
       _annotation.getCustomData("trn-redaction-type") == "fullPage"
   );
-  // full page redaction is always have first priority
+  // NR / Duplicate pageflags takes the first precedence / priority
+  const foundNROrDuplicateFlagObj = findNROrDuplicatePageFlag(pageFlags, displayedDoc, pageFlagTypes);
+  if (foundNROrDuplicateFlagObj) {
+    return {
+      docid: displayedDoc?.docid,
+      page: displayedDoc?.page,
+      flagid: foundNROrDuplicateFlagObj.flagid
+    };
+  }
+  // full page redaction is the next priority / precedence
   if (fullPageRedaction.length > 0) {
     const fullPageSectionsStr = fullPageRedaction[0].getCustomData("sections");
     const fullPageSectionValue = getSectionValue(fullPageSectionsStr);
@@ -503,14 +513,24 @@ const constructPageFlagsForAddOrEdit = (
   annotationsInfo,
   exisitngAnnotations,
   displayedDoc,
-  pageFlagTypes
+  pageFlagTypes,
+  pageFlags
 ) => {
   let pagesToUpdate = {};
   const foundBlank = ["", "  "].includes(annotationsInfo.section);
   const foundNR = annotationsInfo.section == "NR";
   // section with a valid number found
   const foundValidSection = !["", "  ", "NR"].includes(annotationsInfo.section);
-  // add/edit - fullPage takes the precedence
+  // add/edit - NR / Duplicate pageflags takes the first precedence
+  const foundNROrDuplicateFlagObj = findNROrDuplicatePageFlag(pageFlags, displayedDoc, pageFlagTypes);
+  if (foundNROrDuplicateFlagObj) {
+    return {
+      docid: displayedDoc?.docid,
+      page: displayedDoc?.page,
+      flagid: foundNROrDuplicateFlagObj.flagid
+    };
+  }
+  // add/edit - fullPage takes the next precedence
   if (annotationsInfo?.redactiontype === "fullPage") {
     // addition of full page redaction with blank code return "In Progress" page flag.
     if (foundBlank) {
@@ -627,12 +647,14 @@ export const constructPageFlags = (
   pageMappedDocs,
   pageFlagTypes,
   RedactionTypes,
-  action = ""
+  action = "",
+  pageFlags = []
 ) => {
-  // 1. always withheld in full takes precedence
-  // 2. then, partial disclosure
-  // 3. then, NR (full disclosure)
-  // 4. lastly, BLANK (in progress)
+  // 1. NR/Dup pageflag takes precedence. If that page flag is applied, no annots made can adjust pageflag
+  // 2. then, withheld in full takes precedence
+  // 3. then, partial disclosure
+  // 4. then, NR (full disclosure)
+  // 5. lastly, BLANK (in progress)
   const displayedDoc =
     pageMappedDocs.stitchedPageLookup[Number(annotationsInfo.stitchpage) + 1];
   // get exisitng FreeText annotations on the page
@@ -646,7 +668,8 @@ export const constructPageFlags = (
       annotationsInfo,
       _exisitngAnnotations,
       displayedDoc,
-      pageFlagTypes
+      pageFlagTypes,
+      pageFlags
     );
   } else if (action === "delete") {
     const redactionType = getRedactionType(
@@ -658,14 +681,16 @@ export const constructPageFlags = (
       _exisitngAnnotations,
       displayedDoc,
       pageFlagTypes,
-      redactionType
+      redactionType,
+      pageFlags
     );
   } else {
     return constructPageFlagsForAddOrEdit(
       annotationsInfo,
       _exisitngAnnotations,
       displayedDoc,
-      pageFlagTypes
+      pageFlagTypes,
+      pageFlags,
     );
   }
 };
@@ -754,4 +779,16 @@ export const skipNRDocument = (documentPageFlags, pagecount, pageFlagTypes) => {
 
   }
   return skipdocument;
+}
+
+export const findNROrDuplicatePageFlag = (pageFlags, docObj, pageFlagTypes) => {
+  const docPageFlags = pageFlags.find(pageFlagObj => pageFlagObj.documentid === docObj.docid);
+  if (!docPageFlags) {
+    return false;
+  }
+  for (let pageFlag of docPageFlags.pageflag) {
+    if ((pageFlag.page === docObj.page && pageFlag.flagid === pageFlagTypes["Duplicate"]) || (pageFlag.page === docObj.page && pageFlag.flagid === pageFlagTypes["Not Responsive"])) {
+      return pageFlag;
+    }
+  }
 }
