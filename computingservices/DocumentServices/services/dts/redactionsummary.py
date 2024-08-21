@@ -2,6 +2,7 @@ from services.dal.documentpageflag import documentpageflag
 from rstreamio.message.schemas.redactionsummary import get_in_summary_object,get_in_summarypackage_object
 import json
 from collections import defaultdict
+import traceback
 
 class redactionsummary():
 
@@ -25,48 +26,54 @@ class redactionsummary():
 
     def __packaggesummary(self, message, documentids, pageflags, programareas):
         try:
-            # print("\nInside __packaggesummary")
+            print("\nInside __packaggesummary")
             redactionlayerid = self.__getredactionlayerid(message)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
-            # print("\ntotalpagecount",totalpagecount)
+            print("\n __packaggesummary stitchedpagedata",stitchedpagedata)
+            print("\n __packaggesummary totalpagecount",totalpagecount)
             
             if totalpagecount <=0:
                 return 
             _pageflags = self.__transformpageflags(pageflags)
-            # print("\n_pageflags",_pageflags)
+            print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
             pagecount = 0
-            for docid in ordereddocids:
-                if docid in documentids:
-                    docdeletedpages = deletedpages[docid] if docid in deletedpages else []
-                    docpageflag = docpageflags[docid]
-                    for pageflag in _pageflags:
-                        filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
-                        if len(filteredpages) > 0:
-                            originalpagenos = [pg['originalpageno'] for pg in filteredpages]
-                            docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
-                            docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                            pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
-                    skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
-                pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
-            # print("\n_pageflags1",_pageflags)
-            for pageflag in _pageflags:
-                _data = {}
-                if len(pageflag['docpageflags']) > 0:
+            try:
+                for docid in ordereddocids:
+                    if docid in documentids:
+                        docdeletedpages = deletedpages[docid] if docid in deletedpages else []
+                        docpageflag = docpageflags[docid]
+                        for pageflag in _pageflags:
+                            filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
+                            if len(filteredpages) > 0:
+                                originalpagenos = [pg['originalpageno'] for pg in filteredpages]
+                                docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
+                                docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
+                                pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                        skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
+                    pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
+                print("\n_pageflags1",_pageflags)
+                for pageflag in _pageflags:
                     _data = {}
-                    _data["flagname"] = pageflag["header"].upper()
-                    _data["pagecount"] = len(pageflag['docpageflags'])  
-                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
-                    summarydata.append(_data)
+                    if len(pageflag['docpageflags']) > 0:
+                        _data = {}
+                        _data["flagname"] = pageflag["header"].upper()
+                        _data["pagecount"] = len(pageflag['docpageflags'])  
+                        _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
+                        summarydata.append(_data)
+            except (Exception) as err:
+                traceback.print_exc()
+                print('error occured in __packaggesummary redaction dts service: ', err)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
+            traceback.print_exc()
             print('error occured in redaction dts service: ', error)
 
 
@@ -117,7 +124,7 @@ class redactionsummary():
             return {"requestnumber": message.requestnumber, "data": summarydata}
 
         except Exception as error:
-            print('Error occurred in redaction dts service: ', error)
+            print('CFD Error occurred in redaction dts service: ', error)
 
 
     def __calculate_range(self, mapped_flags, docids):
