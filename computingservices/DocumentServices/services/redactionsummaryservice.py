@@ -13,6 +13,7 @@ class redactionsummaryservice():
     def processmessage(self,incomingmessage):
         summaryfilestozip = []
         message = get_in_redactionsummary_msg(incomingmessage)
+        print('\n 1. get_in_redactionsummary_msg is : {0}'.format(message))
         try:
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
@@ -23,22 +24,22 @@ class redactionsummaryservice():
                 documenttypename= 'CFD_responsepackage_redaction_summary'
             else:
                 documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
-            #print('documenttypename', documenttypename)
+            print('\n 2. documenttypename', documenttypename)
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
             programareas = documentpageflag().get_all_programareas()
             messageattributes= json.loads(message.attributes)
-            #print("\nmessageattributes:",messageattributes)
+            print("\n 3. messageattributes:",messageattributes)
             divisiondocuments = get_in_summary_object(summarymsg).pkgdocuments
-            #print("\n divisiondocuments:",divisiondocuments)
+            print("\n 4. divisiondocuments:",divisiondocuments)
             for entry in divisiondocuments:
                 #print("\n entry:",entry)
                 if 'documentids' in entry and len(entry['documentids']) > 0 :
-                    # print("\n entry['divisionid']:",entry['divisionid'])
+                    print("\n 5. entry['divisionid']:",entry['divisionid'])
                     divisionid = entry['divisionid']
                     documentids = entry['documentids']
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
-                    #print("formattedsummary", formattedsummary)
+                    print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                     divisioname = None
@@ -58,7 +59,7 @@ class redactionsummaryservice():
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
-                    # print("\n filename:",filename)
+                    print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
@@ -72,6 +73,7 @@ class redactionsummaryservice():
                     summaryfilestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
             return summaryfilestozip
         except (Exception) as error:
+            traceback.print_exc()
             print('error occured in redaction summary service: ', error)
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
