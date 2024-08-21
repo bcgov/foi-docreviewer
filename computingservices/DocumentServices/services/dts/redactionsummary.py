@@ -42,6 +42,7 @@ class redactionsummary():
             print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            print("\n docpageflags",docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
             pagecount = 0
@@ -49,16 +50,18 @@ class redactionsummary():
                 for docid in ordereddocids:
                     if docid in documentids:
                         docdeletedpages = deletedpages[docid] if docid in deletedpages else []
-                        docpageflag = docpageflags[docid]
-                        for pageflag in _pageflags:
-                            filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
-                            if len(filteredpages) > 0:
-                                originalpagenos = [pg['originalpageno'] for pg in filteredpages]
-                                docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
-                                docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                                pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
-                        skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
-                    pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
+                        if docpageflags is not None and docid in docpageflags.keys():
+                            docpageflag = docpageflags[docid]
+                            for pageflag in _pageflags:
+                                filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
+                                if len(filteredpages) > 0:
+                                    originalpagenos = [pg['originalpageno'] for pg in filteredpages]
+                                    docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
+                                    docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
+                                    pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                            skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
+                    if stitchedpagedata is not None:        
+                        pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
                 print("\n_pageflags1",_pageflags)
                 for pageflag in _pageflags:
                     _data = {}
