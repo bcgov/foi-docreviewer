@@ -2162,27 +2162,29 @@ const Redlining = React.forwardRef(
       if (!newRedaction) return;
       const astrType = decodeAstr(newRedaction.astr)['trn-redaction-type'] || '';
       const hasFullPageRedaction = astrType === "fullPage";
-      // logic to alert the user that a withheld in full pageflag/redaction was applied to a page with a duplicate or nr pageflag.
-      const pageFlagsMap = new Map();
-      for (let docPageFlags of pageFlags) {
-        pageFlagsMap.set(docPageFlags.documentid, docPageFlags.pageflag);
-      }
-      let NROrDuplicateFlag = false;
-      for (let pageObj of pageSelections) {
-        if (NROrDuplicateFlag) {
-          break;
+      // logic to alert the user that a withheld in full pageflag/redaction was applied to a page with an existing duplicate or nr pageflag.
+      let hasNROrDuplicateFlag = false;
+      if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] || hasFullPageRedaction) {
+        const pageFlagsMap = new Map();
+        for (let docPageFlags of pageFlags) {
+          pageFlagsMap.set(docPageFlags.documentid, docPageFlags.pageflag);
         }
-        const pageFlagList = pageFlagsMap.get(pageObj.docid);
-        if (pageFlagList) {
-          for (let flagObj of pageFlagList) {
-            if (flagObj.page === pageObj.page && (flagObj.flagid === pageFlagTypes["Not Responsive"] || flagObj.flagid === pageFlagTypes["Duplicate"])) {
-              NROrDuplicateFlag = true;
-              break;
+        for (let pageObj of pageSelections) {
+          if (hasNROrDuplicateFlag) {
+            break;
+          }
+          const pageFlagList = pageFlagsMap.get(pageObj.docid);
+          if (pageFlagList) {
+            for (let flagObj of pageFlagList) {
+              if (flagObj.page === pageObj.page && (flagObj.flagid === pageFlagTypes["Not Responsive"] || flagObj.flagid === pageFlagTypes["Duplicate"])) {
+                hasNROrDuplicateFlag = true;
+                break;
+              }
             }
           }
         }
       }
-      setPageSelectionsContainNRDup(NROrDuplicateFlag);
+      setPageSelectionsContainNRDup(hasNROrDuplicateFlag);
 
       if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
         setWarningModalOpen(true);
@@ -2191,7 +2193,7 @@ const Redlining = React.forwardRef(
         saveRedaction();
       } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
         setModalOpen(true);
-      } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && NROrDuplicateFlag) {
+      } else if (hasNROrDuplicateFlag) {
         setModalOpen(true);
         setMessageModalForNrDuplicatePriority();
       } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
