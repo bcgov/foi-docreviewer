@@ -128,12 +128,12 @@ const useSaveResponsePackage = () => {
   //   return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
   // };
 
-  const prepareresponseredlinesummarylist = (documentlist, bcgovcode) => {
+  const prepareresponseredlinesummarylist = (documentlist, bcgovcode, requestType) => {
     let summarylist = [];
     let alldocuments = [];
     console.log("\ndocumentlist:", documentlist);
     let sorteddocids = [];
-    if (bcgovcode?.toLowerCase() === 'mcf') {
+    if (bcgovcode?.toLowerCase() === 'mcf' && requestType == "personal") {
       let labelGroups = {};
       let alldocids = [];
   
@@ -212,7 +212,8 @@ const useSaveResponsePackage = () => {
     _instance,
     documentList,
     pageMappedDocs,
-    pageFlags
+    pageFlags,
+    requestType
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
@@ -231,7 +232,7 @@ const useSaveResponsePackage = () => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
-        zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
+        zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode, requestType)
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
@@ -291,6 +292,16 @@ const useSaveResponsePackage = () => {
           annotationList: filteredAnnotations,
           widgets: true,
         });
+
+        // Get the root bookmark
+        let rootBookmark = await doc.GetFirstBookmark();
+      
+        // Check if the root bookmark is valid
+        if (await rootBookmark.isValid()) {
+          await rootBookmark.delete(); // This deletes the entire bookmark tree
+        }
+
+
         /** apply redaction and save to s3 - xfdfString is needed to display
          * the freetext(section name) on downloaded file.*/
         doc
