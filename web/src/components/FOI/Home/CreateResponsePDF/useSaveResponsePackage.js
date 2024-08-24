@@ -33,7 +33,10 @@ const useSaveResponsePackage = () => {
 
         let _docmain = _docViwer.getDocument();
         doc = await _docmain.getPDFDoc();
-
+        
+        let docinfo = await doc.getDocInfo();
+        docinfo.setTitle(requestnumber + " - Response Package");
+        
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
           // lock the document before a write operation
@@ -262,6 +265,15 @@ const useSaveResponsePackage = () => {
         }   
         const { PDFNet } = _instance.Core;
         PDFNet.initialize();
+        
+        // remove bookmarks
+        var pdfdoc = await doc.getPDFDoc()
+        var bookmark = await pdfdoc.getFirstBookmark();
+        while (bookmark && await bookmark.isValid()) {
+          bookmark.delete();
+          bookmark = await pdfdoc.getFirstBookmark();
+        }
+        
         await stampPageNumberResponse(documentViewer, PDFNet);
         toast.update(toastID, {
           render: "Saving section stamps...",
