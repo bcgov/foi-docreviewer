@@ -293,15 +293,6 @@ const useSaveResponsePackage = () => {
           widgets: true,
         });
 
-        // Get the root bookmark
-        let rootBookmark = await doc.GetFirstBookmark();
-      
-        // Check if the root bookmark is valid
-        if (await rootBookmark.isValid()) {
-          await rootBookmark.delete(); // This deletes the entire bookmark tree
-        }
-
-
         /** apply redaction and save to s3 - xfdfString is needed to display
          * the freetext(section name) on downloaded file.*/
         doc
