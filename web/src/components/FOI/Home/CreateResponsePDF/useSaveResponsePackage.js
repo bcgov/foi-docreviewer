@@ -36,6 +36,7 @@ const useSaveResponsePackage = () => {
         
         let docinfo = await doc.getDocInfo();
         docinfo.setTitle(requestnumber + " - Response Package");
+        docinfo.setAuthor("");
         
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
