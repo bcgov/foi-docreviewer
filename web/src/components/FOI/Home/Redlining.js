@@ -99,6 +99,7 @@ const Redlining = React.forwardRef(
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+    const requestType = useAppSelector((state) => state.documents?.requestinfo?.requesttype);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
     
@@ -2269,7 +2270,8 @@ const Redlining = React.forwardRef(
             docInstance,
             documentList,
             pageMappedDocs,
-            pageFlags
+            pageFlags,
+            requestType
           );
           break;
         default:
