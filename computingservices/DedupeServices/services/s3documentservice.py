@@ -12,6 +12,8 @@ from io import BytesIO
 from html import escape
 import hashlib
 import uuid
+import boto3
+from botocore.config import Config
 from re import sub
 import fitz
 from utils import (
@@ -174,8 +176,29 @@ def gets3documenthashcode(producermessage):
                     }
                 )
                 saveresponse.raise_for_status()
-        fitz_reader.close()
         
+        # clear metadata
+        writer = fitz.open()
+        writer.insert_pdf(fitz_reader)
+        client = boto3.client('s3',config=Config(signature_version='s3v4'),
+            endpoint_url='https://{0}/'.format(dedupe_s3_host),
+            aws_access_key_id= s3_access_key_id,
+            aws_secret_access_key= s3_secret_access_key,
+            region_name= dedupe_s3_region
+        )
+        response = client.copy_object(
+            CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
+            Bucket=filepath.split("/")[3], # Destination bucket
+            Key= "/".join(filepath.split("/")[3:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
+        )
+        response = requests.put(
+		 	filepath,
+		 	data=writer.tobytes(),
+		 	auth=auth
+        )
+        
+        fitz_reader.close()
+
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
