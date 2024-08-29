@@ -91,12 +91,12 @@ export const ConfirmationModal= ({
                         type="checkbox"
                         style={{ marginRight: 10 }}
                         className="redline-checkmark"
-                        id={`${publicBody.bcgovcode}-checkbox`}
+                        id={`${publicBody.iaocode}-checkbox`}
                         value={publicBody.programareaid}
                         checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
                         onClick={handleSelectedPublicBodies}
                       />
-                      <label for={`${publicBody.bcgovcode}-checkbox`}>{publicBody.bcgovcode}</label>
+                      <label for={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
                     </Grid>
                     </>)
                   })}

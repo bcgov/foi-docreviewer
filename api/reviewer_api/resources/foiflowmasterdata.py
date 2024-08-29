@@ -219,7 +219,7 @@ class FOIFlowS3PresignedRedline(Resource):
                         )
                         if packagetype == "consult":
                             filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
-                                filepathlist[0], division_name, packagetype
+                                filepathlist[0], division_name, 'Consult'
                             )
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
