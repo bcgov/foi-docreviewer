@@ -7,11 +7,12 @@ import traceback
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        if message.bcgovcode == 'mcf' and message.category == "responsepackage":
+        _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
+        if _ismcfpersonalrequest and message.category == "responsepackage":
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if message.category == "responsepackage" and message.bcgovcode != 'mcf':
+        if message.category == "responsepackage" and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']

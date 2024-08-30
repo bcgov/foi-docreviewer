@@ -11,6 +11,7 @@ class zippingservice():
     def preparemessageforzipperservice(self,summaryfiles, message):
         try:
             msgjson= json.loads(message)
+            msgjson.pop('requesttype', None)
             if summaryfiles and len(summaryfiles) > 0:                
                 filestozip_list = json.loads(msgjson['filestozip'])+summaryfiles
             else:
