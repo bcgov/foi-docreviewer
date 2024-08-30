@@ -201,7 +201,7 @@ def gets3documenthashcode(producermessage):
             copyresponse = client.copy_object(
                 CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
                 Bucket=filepath.split("/")[3], # Destination bucket
-                Key= "/".join(filepath.split("/")[3:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
+                Key= "/".join(filepath.split("/")[4:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
             )
             uploadresponse = requests.put(
                 filepath,
