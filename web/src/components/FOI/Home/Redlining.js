@@ -2241,7 +2241,7 @@ const Redlining = React.forwardRef(
     }
 
     const handleSelectedPublicBodies = (e) => {
-      const publicBodyId = parseInt(e.target.value);
+      let publicBodyId = !isNaN(parseInt(e.target.value)) ? parseInt(e.target.value) : e.target.value;
       if (selectedPublicBodyIDs.includes(publicBodyId)) {
         setSelectedPublicBodyIDs((prev) => {
           return [...prev.filter(id => id !== publicBodyId)]

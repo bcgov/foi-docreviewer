@@ -103,7 +103,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               if (redlineCategory === "consult") {
                 const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                 for (let consult of doc.consult) {
-                  if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                     if (
                       (
                       flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid !== pageFlagTypes["Not Responsive"]) ||
@@ -212,7 +212,9 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         });
       }
     } else if (redlineCategory === "consult") {
-      // map documents to publicBodies (Divisions) for consults
+      // map documents to publicBodies and custom public bodies (treated as Divisions) for consults package.
+      // Consult Package logic will treat publicbodies (program areas + custom consults) as DIVISIONS and will incorporate the existing division mapping  + redline logic to generate the consult package
+      console.log("DIV", divisions)
       for (let publicBodyId of divisions) {
         let publicBodyDocList = [];
         documentList.forEach((doc) => {
@@ -225,6 +227,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 }
               })
             });
+            for (let consult of doc.consult) {
+              for (let customPublicBody of consult.other) {
+                if (customPublicBody === publicBodyId) {
+                  programareaids.add(customPublicBody);
+                }
+              }
+            }
           }
           for (let programareaid of programareaids) {
             if (programareaid === publicBodyId) {
@@ -233,18 +242,22 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           }
         })
         publicBodyDocList = sortBySortOrder(publicBodyDocList);
+        console.log("sorteddoclist",publicBodyDocList )
 
         let incompatableList = [];
 
-        const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId)
+        // Custom public bodies/consults do not exist in allPublicBodies data (BE program area data) and are stored as simple strings with pageflag data (in other array attribute).
+        // Therefore, if publicBodyInfo cannot be found in allPublicBodies, the publicbody is a custom one and we will create its 'divison' data in the FE with a random unique id (date.now()), and its publicBodyID (which is its name as a string) for consult package creation purposes
+        const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId);
         newDocList.push({
-          divisionid: publicBodyId,
-          divisionname: publicBodyInfo.name,
+          divisionid: publicBodyInfo ? publicBodyInfo.programareaid : Date.now(),
+          divisionname: publicBodyInfo ? publicBodyInfo.name : publicBodyId,
           documentlist: publicBodyDocList,
           incompatableList: incompatableList,
         })
       }
     }
+    console.log("newdoclist", newDocList)
     return newDocList;
   };
   const prepareRedlinePageMapping = (
@@ -552,7 +565,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               for (let flagInfo of pageFlagsOnPage) {
                 let hasConsult = false;
                   for (let consult of doc.consult) {
-                    if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                       hasConsult = true;
                       break;
                     }
@@ -630,7 +643,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               // Check if the page has relevant consult flag, if not remove the page
               let hasConsult = false;
               for (let consult of doc.consult) {
-                if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                   hasConsult = true;
                   break;
                 }
@@ -1020,23 +1033,39 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           for (let pageflag of doc['pageFlag']) {
             if ('programareaid' in pageflag) {
               for (let programareaid of pageflag['programareaid']) {
-                publicBodyIdList.push(programareaid)
+                publicBodyIdList.push(programareaid);
+              }
+            }
+            // Logic to include custom consults/public bodies as they are stored in another array (other) and not with programareaids
+            if ('other' in pageflag) {
+              for (let customPublicBody of pageflag['other']) {
+                publicBodyIdList.push(customPublicBody);
               }
             }
           }
         }
       }
-      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)]
+      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)];
       return getPublicBodyObjs(filteredPublicBodyIdList);
     }
   }
   const getPublicBodyObjs = (publicBodyIDList) => {
     const publicBodies = [];
-    for (const publicBody of allPublicBodies) {
-      if (publicBodyIDList.includes(publicBody.programareaid)) {
+    for (let publicBodyId of publicBodyIDList) {
+      const publicBody = allPublicBodies.find(publicBody => publicBody.programareaid === publicBodyId);
+      if (publicBody) {
         publicBodies.push(publicBody);
+      } else {
+        // Custom public bodies/consults will not exist in allPublicBodies data (BE data for program areas) as they are not stored in the BE as programe areas (but rather as basic pageflags)
+        const customPublicBody = {
+          name: publicBodyId,
+          programareaid: null,
+          iaocode: publicBodyId
+        };
+        publicBodies.push(customPublicBody);
       }
     }
+    console.log("pubbodies", publicBodies)
     return publicBodies;
   }
 

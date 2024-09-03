@@ -87,13 +87,13 @@ export const ConfirmationModal= ({
                     return (<>
                     <Grid item sm={1.5} md={1.5}>
                       <input
-                        key={publicBody.programareaid}
+                        key={publicBody.programareaid ? publicBody.programareaid : publicBody.name}
                         type="checkbox"
                         style={{ marginRight: 10 }}
                         className="redline-checkmark"
                         id={`${publicBody.iaocode}-checkbox`}
-                        value={publicBody.programareaid}
-                        checked={selectedPublicBodyIDs.includes(publicBody.programareaid)}
+                        value={publicBody.programareaid ? publicBody.programareaid : publicBody.name}
+                        checked={publicBody.programareaid ? selectedPublicBodyIDs.includes(publicBody.programareaid) : selectedPublicBodyIDs.includes(publicBody.name)}
                         onClick={handleSelectedPublicBodies}
                       />
                       <label for={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
