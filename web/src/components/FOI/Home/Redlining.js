@@ -233,7 +233,8 @@ const Redlining = React.forwardRef(
               handleRedlineForSignOffClick(updateModalData, setRedlineModalOpen);
             };
             finalPackageBtn.onclick = () => {
-              handleFinalPackageClick(updateModalData, setRedlineModalOpen);
+              handleFinalPackageClick(updateModalData, setRedlineModalOpen, outstandingBalance, 
+                isBalanceFeeOverrode,setOutstandingBalanceModal,setIsOverride);
             };
             consultPackageButton.onclick = () => {
               handleConsultPackageClick(updateModalData, setRedlineModalOpen, setIncludeDuplicatePages, setIncludeNRPages)
@@ -2219,6 +2220,12 @@ const Redlining = React.forwardRef(
       setSelectedPublicBodyIDs([]);
       setConsultApplyRedactions(false);
       setConsultApplyRedlines(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setOutstandingBalanceModal(false)
+        setIsOverride(false)
+      }
+      else
+        setRedlineModalOpen(false);
     };
   
     const handleIncludeNRPages = (e) => {
@@ -2283,7 +2290,8 @@ const Redlining = React.forwardRef(
             docInstance,
             documentList,
             pageMappedDocs,
-            pageFlags
+            pageFlags,
+            feeOverrideReason
           );
           break;
         default:

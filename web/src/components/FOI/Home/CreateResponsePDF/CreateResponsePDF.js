@@ -139,35 +139,55 @@ export const handleRedlineForOipcClick = (
 
 export const handleFinalPackageClick = (
   updateModalData,
-  setRedlineModalOpen
+  setRedlineModalOpen,
+  outstandingBalance,
+  isBalanceFeeOverrode,
+  setOutstandingBalanceModal,
+  setIsOverride
 ) => {
-  updateModalData({
-    modalFor: "responsepackage",
-    modalTitle: "Create Package for Applicant",
-    modalMessage: [
-    "This should only be done when all redactions are finalized and ready to ",
-    <b key="bold1">
-      <i>be</i>
-    </b>,
-    " sent to the ",
-    <b key="bold2">
-      <i>Applicant</i>
-    </b>,
-    ". This will ",
-    <b key="bold3">
-      <i>permanently</i>
-    </b>,
-    " apply the redactions and automatically create page stamps.",
-    <br key="break1" />,
-    <br key="break2" />,
-    <span key="modalDescription2">
-      When you create the response package, your web browser page
-      will automatically refresh
-    </span>,
-  ],
-    modalButtonLabel: "Create Applicant Package"
-  });
-  setRedlineModalOpen(true);
+
+    if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+      updateModalData({
+        modalFor: "responsepackage",
+        modalTitle: "Create Package for Applicant",
+        modalMessage:[
+        "There is an outstanding balance of fees, please cancel to resolve, or click override to proceed",
+        ],
+        modalButtonLabel: "Override"
+    });
+      setOutstandingBalanceModal(true);
+      setIsOverride(false)
+    }
+    else{
+      // Download
+      updateModalData({
+        modalFor: "responsepackage",
+        modalTitle: "Create Package for Applicant",
+        modalMessage: [
+        "This should only be done when all redactions are finalized and ready to ",
+        <b key="bold1">
+          <i>be</i>
+        </b>,
+        " sent to the ",
+        <b key="bold2">
+          <i>Applicant</i>
+        </b>,
+        ". This will ",
+        <b key="bold3">
+          <i>permanently</i>
+        </b>,
+        " apply the redactions and automatically create page stamps.",
+        <br key="break1" />,
+        <br key="break2" />,
+        <span key="modalDescription2">
+          When you create the response package, your web browser page
+          will automatically refresh
+        </span>,
+      ],
+        modalButtonLabel: "Create Applicant Package"
+      });
+      setRedlineModalOpen(true);
+    }
 };
 
 export const handleConsultPackageClick = (
