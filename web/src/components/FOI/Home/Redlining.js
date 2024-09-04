@@ -224,7 +224,8 @@ const Redlining = React.forwardRef(
               handleRedlineForSignOffClick(updateModalData, setRedlineModalOpen);
             };
             finalPackageBtn.onclick = () => {
-              handleFinalPackageClick(updateModalData, setRedlineModalOpen);
+              handleFinalPackageClick(updateModalData, setRedlineModalOpen, outstandingBalance, 
+                isBalanceFeeOverrode,setOutstandingBalanceModal,setIsOverride);
             };
             menu.appendChild(redlineForOipcBtn);
             menu.appendChild(redlineForSignOffBtn);
@@ -2283,6 +2284,10 @@ const Redlining = React.forwardRef(
 
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
+      setRedlineModalOpen(false);
+      setSelectedPublicBodyIDs([]);
+      setConsultApplyRedactions(false);
+      setConsultApplyRedlines(false);
       if(outstandingBalance > 0 && !isBalanceFeeOverrode){
         setOutstandingBalanceModal(false)
         setIsOverride(false)

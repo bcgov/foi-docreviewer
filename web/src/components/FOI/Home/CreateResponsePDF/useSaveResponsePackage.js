@@ -217,7 +217,8 @@ const useSaveResponsePackage = () => {
     documentList,
     pageMappedDocs,
     pageFlags,
-    requestType
+    requestType,
+    feeOverrideReason
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
@@ -228,7 +229,8 @@ const useSaveResponsePackage = () => {
       bcgovcode: "",
       summarydocuments: {} ,
       redactionlayerid: currentLayer.redactionlayerid,
-      requesttype: requestType
+      requesttype: requestType,
+      pdfstitchjobattributes:{"feeoverridereason":""}
     };
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
@@ -238,6 +240,7 @@ const useSaveResponsePackage = () => {
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
         zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode, requestType)
+        zipServiceMessage.pdfstitchjobattributes= {"feeoverridereason":feeOverrideReason}
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
