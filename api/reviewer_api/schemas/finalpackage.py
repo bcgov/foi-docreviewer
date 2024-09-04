@@ -57,3 +57,4 @@ class MCFFinalPackageSchema(Schema):
     )
     summarydocuments = fields.Nested(MCFSummarySchema, allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
+    pdfstitchjobattributes = fields.Nested(FeeOverrideSchema, allow_none=True, many=False)
