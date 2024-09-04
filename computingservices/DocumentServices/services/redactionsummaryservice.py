@@ -20,7 +20,8 @@ class redactionsummaryservice():
             #Condition for handling oipcredline category
             bcgovcode= message.bcgovcode
             category = message.category 
-            if bcgovcode == 'mcf' and category == 'responsepackage':
+            requesttype = message.requesttype
+            if bcgovcode == 'mcf' and requesttype == 'personal' and category == 'responsepackage':
                 documenttypename= 'CFD_responsepackage_redaction_summary'
             else:
                 documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
