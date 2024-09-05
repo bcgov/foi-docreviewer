@@ -114,11 +114,11 @@ def __zipfilesandupload(_message, s3credentials):
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
                     _formattedbytes = None
-                    if(filename == "{0}.pdf".format(_message.requestnumber)):
-                        try:                           
-                            _formattedbytes = __removesensitivecontent(_docbytes)                           
-                        except Exception:
-                            print(traceback.format_exc())
+                    
+                    try:                           
+                        _formattedbytes = __removesensitivecontent(_docbytes)                           
+                    except Exception:
+                        print(traceback.format_exc())
                     zip.writestr(
                         filename, _docbytes if _formattedbytes is None else _formattedbytes
                     )
