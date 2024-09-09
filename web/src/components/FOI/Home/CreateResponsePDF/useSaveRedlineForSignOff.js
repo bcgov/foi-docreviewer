@@ -214,7 +214,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     } else if (redlineCategory === "consult") {
       // map documents to publicBodies and custom public bodies (treated as Divisions) for consults package.
       // Consult Package logic will treat publicbodies (program areas + custom consults) as DIVISIONS and will incorporate the existing division mapping  + redline logic to generate the consult package
-      console.log("DIV", divisions)
       for (let publicBodyId of divisions) {
         let publicBodyDocList = [];
         documentList.forEach((doc) => {
@@ -242,7 +241,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           }
         })
         publicBodyDocList = sortBySortOrder(publicBodyDocList);
-        console.log("sorteddoclist",publicBodyDocList )
 
         let incompatableList = [];
 
@@ -257,7 +255,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         })
       }
     }
-    console.log("newdoclist", newDocList)
     return newDocList;
   };
   const prepareRedlinePageMapping = (
@@ -813,6 +810,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
+      setTotalStitchList(stitchlist)
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -849,7 +847,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-              applyRotations(docObj, doc.attributes.rotatedpages)
+              // applyRotations(docObj, doc.attributes.rotatedpages)
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1065,7 +1063,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         publicBodies.push(customPublicBody);
       }
     }
-    console.log("pubbodies", publicBodies)
     return publicBodies;
   }
 
@@ -1349,7 +1346,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       includenrpages: includeNRPages,
     };
     if (stitchedDocPath) {
-      console.log("stitchedDocPath:",stitchedDocPath)
       const stitchedDocPathArray = stitchedDocPath?.split("/");
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -1830,14 +1826,6 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {  
-            await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
-            );
-          }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
@@ -1847,14 +1835,6 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory === "redline") {
-            await addWatermarkToRedline(
-              stitchObject,
-              redlineWatermarkPageMapping,
-              key
-            );
-          }
-          
           let string = await stitchObject.extractXFDF()
 
           let xmlObj = parser.parseFromString(string.xfdfString);
@@ -1897,6 +1877,32 @@ const stampPageNumberRedline = async (
           }
         }
         //Consults - Redlines + Redactions (Redact S.NR) Block : End
+        
+        // Rotate pages
+        for (const [key, value] of Object.entries(totalStitchList)) {
+          let documentlist = totalStitchList[key];
+          if(documentlist.length > 0) {
+            for (let doc of documentlist) {
+              applyRotations(stitchObject, doc.attributes.rotatedpages)
+            }
+          }
+        }
+        // Stamp and apply watermark
+        if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
+          await stampPageNumberRedline(
+            stitchObject,
+            PDFNet,
+            redlineStitchInfo[divisionid]["stitchpages"],
+            isSingleRedlinePackage
+          );
+        }
+        if (redlineCategory === "redline" || redlineCategory === "consult") {
+          await addWatermarkToRedline(
+            stitchObject,
+            redlineWatermarkPageMapping,
+            key
+          );
+        }
 
         stitchObject
           .getFileData({
@@ -1955,9 +1961,16 @@ const stampPageNumberRedline = async (
       }
     }
   };
+
+  const applyRotations = (document, rotatedpages) => {
+    for (let page in rotatedpages) {            
+      let existingrotation = document.getPageRotation(page);     
+      let rotation = (rotatedpages[page] - existingrotation + 360) / 90;
+      document.rotatePages([page], rotation);
+    }
+  }
   
   useEffect(() => {
-
     if (
       redlineStitchObject &&
       redlineDocumentAnnotations &&
