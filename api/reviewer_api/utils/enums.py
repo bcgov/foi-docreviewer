@@ -35,6 +35,7 @@ class MinistryTeamWithKeycloackGroup(Enum):
     AGR = "AGR Ministry Team"
     AG = "AG Ministry Team"
     BRD = "BRD Ministry Team"
+    CAF = "CAF Ministry Team"
     CAS = "CAS Ministry Team"
     CITZ = "CITZ Ministry Team"
     CLB = "CLB Ministry Team"
