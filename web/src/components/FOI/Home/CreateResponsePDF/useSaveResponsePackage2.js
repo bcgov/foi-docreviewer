@@ -263,7 +263,9 @@ const useSaveResponsePackage = () => {
         });
         for (const annot of annotList) {
           if (annot.Subject === 'Polygon' && annot.getCustomData('isPolygonRedaction') === 'true') {
+            console.log("creating redaction on page no." + annot.PageNumber)
             createRedactedPolygon(annot, _instance)
+            console.log("finished redaction on page no." + annot.PageNumber)
             annotationManager.deleteAnnotation(annot);
           }
         }
