@@ -214,6 +214,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     } else if (redlineCategory === "consult") {
       // map documents to publicBodies and custom public bodies (treated as Divisions) for consults package.
       // Consult Package logic will treat publicbodies (program areas + custom consults) as DIVISIONS and will incorporate the existing division mapping  + redline logic to generate the consult package
+      console.log("DIV", divisions)
       for (let publicBodyId of divisions) {
         let publicBodyDocList = [];
         documentList.forEach((doc) => {
@@ -241,6 +242,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           }
         })
         publicBodyDocList = sortBySortOrder(publicBodyDocList);
+        console.log("sorteddoclist",publicBodyDocList )
 
         let incompatableList = [];
 
@@ -255,6 +257,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         })
       }
     }
+    console.log("newdoclist", newDocList)
     return newDocList;
   };
   const prepareRedlinePageMapping = (
@@ -817,6 +820,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         // added this vopy variable for validating the first document of a division with NR/Duplicate
         let docCountCopy = 0;
         let division = key;
+        console.log("stitchlist", stitchlist)
         let documentlist = stitchlist[key];
         if (redlineSinglePkg == "N") {
           toast.update(toastId.current, {
@@ -1063,6 +1067,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         publicBodies.push(customPublicBody);
       }
     }
+    console.log("pubbodies", publicBodies)
     return publicBodies;
   }
 
@@ -1369,7 +1374,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        window.location.reload();
+        // window.location.reload();
       });
     }
     return zipServiceMessage;
@@ -1775,6 +1780,30 @@ const stampPageNumberRedline = async (
     }
     for (const rect of rects) {
       let height = docViewer.getPageHeight(rect.vpageno);
+      let x1 = rect.recto.x1
+      let y1 = rect.recto.y1
+      let x2 = rect.recto.x2
+      let y2 = rect.recto.y2
+      console.log("coords", x1,y1,x2,y2)
+      // const sectionAnnotation = rect.sectionAnnotation;
+      // // let quad = sectionAnnotation.getQuads()[0];
+      // // let rect = new docInstance.Core.Math.Rect(quad.x1, quad.y3, quad.x2, quad.y2);
+      // const doc = docViewer.getDocument();
+      // // const pageInfo = doc.getPageInfo(sectionAnnotation.PageNumber);
+      // // const pageMatrix = doc.getPageMatrix(sectionAnnotation.PageNumber);
+      // const pageRotation = doc.getPageRotation(sectionAnnotation.PageNumber);
+      // // _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 9) + "pt";
+      // sectionAnnotation.Rotation = 0; // reset rotation before resizing
+      // // _annot.fitText(pageInfo, pageMatrix, pageRotation);
+      // let annotrect = sectionAnnotation.getRect();
+      // annotrect.x2 = Math.ceil(annotrect.x2);
+      // sectionAnnotation.setRect(annotrect);
+      // if (pageRotation === 180) {
+      //   x1 = x2 - sectionAnnotation.Width
+      //   y1 =  y2 - sectionAnnotation.Height
+      //   rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(x1,height-y1,x2,height-y2)), false, ''));
+      //   sectionAnnotation.Rotation = pageRotation;
+      // } else {
       rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
     }
     if (rarr.length > 0) {
@@ -1796,6 +1825,7 @@ const stampPageNumberRedline = async (
   }, [initDocViewer]);
 
   const StitchAndUploadDocument = async () => {
+    console.log("STITCH AND UPLOAD YE")
     const { PDFNet } = docInstance.Core;
     const downloadType = "pdf";
     let currentDivisionCount = 0;
@@ -1810,8 +1840,8 @@ const stampPageNumberRedline = async (
         isLoading: true,
         autoClose: 5000,
       });
-
         let divisionid = key;
+        console.log("redlinepageMappings", redlinepageMappings)
         let stitchObject = redlineStitchObject[key];
         if (stitchObject == null) {
           triggerRedlineZipper(
@@ -1826,6 +1856,14 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
+          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
+            await stampPageNumberRedline(
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
+            );
+          }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
@@ -1835,6 +1873,14 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
+          if (redlineCategory === "redline") { // WATER MARK CONSULTS?
+            await addWatermarkToRedline(
+              stitchObject,
+              redlineWatermarkPageMapping,
+              key
+            );
+          }
+
           let string = await stitchObject.extractXFDF()
 
           let xmlObj = parser.parseFromString(string.xfdfString);
@@ -1844,65 +1890,50 @@ const stampPageNumberRedline = async (
             annotsObj[0].children = annotsObj[0].children.concat(annots.children)
           } else {
             xmlObj.children.push(annots)
-          }          
-
+          }
           let xfdfString = parser.toString(xmlObj);
-
-        //OIPC - Special Block (Redact S.14) : Begin
-        if(redlineCategory === "oipcreview") {
-          let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-          await applyRedactionsToRedlinesBySection(s14_sectionStamps, PDFNet, stitchObject);
-          await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
-          );
-        }
-        //OIPC - Special Block : End
-        
-        //Consults - Redlines + Redactions (Redact S.NR) Block : Start
-        if(redlineCategory === "consult") {
-          if (!consultApplyRedlines) {
-            const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
-            const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
-              return annot.name !== "freetext" && annot.name !== 'redact'
-            });
-            xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
-            xfdfString = parser.toString(xmlObj);
+          
+          //Apply Redactions (if any)
+          //OIPC - Special Block (Redact S.14) : Begin
+          if(redlineCategory === "oipcreview") {
+            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+            await applyRedactionsToRedlinesBySection(s14_sectionStamps, PDFNet, stitchObject);
+            await stampPageNumberRedline(
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
+            );
           }
-          if (consultApplyRedactions) {
-            let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
-          }
-        }
-        //Consults - Redlines + Redactions (Redact S.NR) Block : End
-        
-        // Rotate pages
-        for (const [key, value] of Object.entries(totalStitchList)) {
-          let documentlist = totalStitchList[key];
-          if(documentlist.length > 0) {
-            for (let doc of documentlist) {
-              applyRotations(stitchObject, doc.attributes.rotatedpages)
+          //OIPC - Special Block : End
+          
+          //Consults - Redlines + Redactions (Redact S.NR) Block : Start
+          if(redlineCategory === "consult") {
+            if (!consultApplyRedlines) {
+              const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
+              const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
+                return annot.name !== "freetext" && annot.name !== 'redact'
+              });
+              xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
+              xfdfString = parser.toString(xmlObj);
+            }
+            if (consultApplyRedactions) {
+              let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+              await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
             }
           }
-        }
-        // Stamp and apply watermark
-        if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
-          await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
-          );
-        }
-        if (redlineCategory === "redline" || redlineCategory === "consult") {
-          await addWatermarkToRedline(
-            stitchObject,
-            redlineWatermarkPageMapping,
-            key
-          );
-        }
+          //Consults - Redlines + Redactions (Redact S.NR) Block : End
+
+          // Rotate pages
+          console.log("totalStithclist", totalStitchList)
+          for (const doc of totalStitchList[divisionid]) {
+            let documentlist = totalStitchList[divisionid];
+            let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
+            if(documentlist.length > 0) {
+              console.log("doc2", doc)
+              applyRotations(stitchObject, doc, divDocPageMappings);
+            }
+          }
 
         stitchObject
           .getFileData({
@@ -1962,11 +1993,30 @@ const stampPageNumberRedline = async (
     }
   };
 
-  const applyRotations = (document, rotatedpages) => {
-    for (let page in rotatedpages) {            
-      let existingrotation = document.getPageRotation(page);     
-      let rotation = (rotatedpages[page] - existingrotation + 360) / 90;
-      document.rotatePages([page], rotation);
+  const applyRotations = (document, doc, divDocPageMappings) => {
+    const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
+    const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
+    const rotatedStitchedPages = {};
+    console.log("NEW LINE")
+    console.log("docPageMappings", docPageMappings)
+    console.log("rotatedObj", rotatedpages)
+    if (rotatedpages) {
+      for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
+        let rotation = rotatedpages[originalPage];
+        console.log("BANG", stitchedPage, rotation)
+        if (rotation) {
+          rotatedStitchedPages[stitchedPage] = rotation;
+        }
+      }
+      console.log("NEW", rotatedStitchedPages)
+      for (let page in rotatedStitchedPages) {
+        let existingrotation = document.getPageRotation(page);
+        console.log("page", page, existingrotation) 
+        console.log('rootatedpages', rotatedStitchedPages[page]    )
+        let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
+        console.log("rotation", rotation)
+        document.rotatePages([page], rotation);
+      }
     }
   }
   
