@@ -262,6 +262,10 @@ const useSaveResponsePackage = () => {
           isLoading: true,
         });
         for (const annot of annotList) {
+          console.log(annot.Subject)
+          console.log(annot.Subject=== 'Polygon')
+          console.log(annot.getCustomData('isPolygonRedaction'))
+          console.log(annot.getCustomData('isPolygonRedaction')=== 'true')
           if (annot.Subject === 'Polygon' && annot.getCustomData('isPolygonRedaction') === 'true') {
             console.log("creating redaction on page no." + annot.PageNumber)
             createRedactedPolygon(annot, _instance)
