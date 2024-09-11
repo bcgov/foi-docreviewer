@@ -400,9 +400,10 @@ const useSaveResponsePackage = () => {
     splitRectangle(largestRectangle, polygon, polyPoints, depth, instance);
 
     const annot = new instance.Core.Annotations.RedactionAnnotation({
-      PageNumber: 1,
+      PageNumber: polygon.PageNumber,
       Quads: quads,
       StrokeColor: new instance.Core.Annotations.Color(255, 0, 0, 1),
+      FillColor: new instance.Core.Annotations.Color(255, 255, 255, 1),
       IsText: true,
     });
 
