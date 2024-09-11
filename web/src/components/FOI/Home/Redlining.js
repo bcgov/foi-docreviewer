@@ -234,9 +234,10 @@ const Redlining = React.forwardRef(
             splitRectangle(largestRectangle, polygon, polyPoints, depth);
             console.log("split time: " + (new Date() - start) + "ms");
             const annot = new Annotations.RedactionAnnotation({
-              PageNumber: 1,
+              PageNumber: polygon.PageNumber,
               Quads: quads,
-              StrokeColor: new Annotations.Color(255, 0, 0, 1),
+              StrokeColor: new instance.Core.Annotations.Color(255, 0, 0, 1),
+              FillColor: new instance.Core.Annotations.Color(255, 255, 255, 1),
               IsText: true,
             });
     
