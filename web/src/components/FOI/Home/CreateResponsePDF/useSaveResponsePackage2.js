@@ -9,6 +9,9 @@ import {
 import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
+import {
+  POLYGON_REDACTION_APPROX_DEPTH
+} from "../../../../constants/constants";
 
 const useSaveResponsePackage = () => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -382,10 +385,12 @@ const useSaveResponsePackage = () => {
 
   //polygon redact functions
 
+  let quads = [];
+
   const createRedactedPolygon = (polygon, instance) => {
     const polyPoints = polygon.getPath();
     const largestRectangle = getPolygonBoundingRectangle(polyPoints);
-    const depth = 6;
+    const depth = POLYGON_REDACTION_APPROX_DEPTH;
 
     const rectFullyWithinPoly = isRectFullyWithinPolygon(largestRectangle, polygon);
     if (rectFullyWithinPoly) {
@@ -393,6 +398,17 @@ const useSaveResponsePackage = () => {
     }
 
     splitRectangle(largestRectangle, polygon, polyPoints, depth, instance);
+
+    const annot = new instance.Core.Annotations.RedactionAnnotation({
+      PageNumber: 1,
+      Quads: quads,
+      StrokeColor: new instance.Core.Annotations.Color(255, 0, 0, 1),
+      IsText: true,
+    });
+
+    instance.Core.annotationManager.addAnnotation(annot);
+    instance.Core.annotationManager.redrawAnnotation(annot);
+    quads = []
   }
 
   const splitRectangle = (rectangle, polygon, polyPoints, depth, instance) => {
@@ -437,7 +453,16 @@ const useSaveResponsePackage = () => {
     for (let i = 0; i < rects.length; i++) {
       const rectFullyWithinPoly = isRectFullyWithinPolygon(rects[i], polygon);
       if (rectFullyWithinPoly) {
-        createRedactionAnnotation(rects[i], polygon, instance);
+        // createRedactionAnnotation(rects[i], polygon, instance);
+        // convert Rect to Quad
+        const padding = 2
+        const quad = new instance.Core.Annotations.Quad(
+          rects[i].x1 - padding, rects[i].y1 -padding,
+          rects[i].x2 + padding, rects[i].y1 - padding, 
+          rects[i].x2 + padding, rects[i].y2 + padding, 
+          rects[i].x1 - padding, rects[i].y2 + padding
+        );
+        quads.push(quad);
       }
       if (!rectFullyWithinPoly) {
         splitRectangle(rects[i], polygon, polyPoints, depth - 1, instance);

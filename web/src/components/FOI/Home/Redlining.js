@@ -27,6 +27,7 @@ import {
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
+  POLYGON_REDACTION_APPROX_DEPTH
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -203,9 +204,11 @@ const Redlining = React.forwardRef(
           polyRedactTool.redactionAnnotations = [];
           instance.UI.registerTool({ toolName: "PolygonRedactCreateTool", toolObject: polyRedactTool, buttonImage: polygonRedactToolBase64, });
 
-          polyRedactTool.addEventListener("annotationAdded", (annot) => {
+          let quads = [];
+
+          polyRedactTool.addEventListener("annotationAdded", async (annot) => {
             var start = new Date();
-            createRedactedPolygon(annot, start);
+            await createRedactedPolygon(annot, start);
             // annotationManager.applyRedactions(polyRedactTool.redactionAnnotations);
             // polyRedactTool.redactionAnnotations = [];
             console.log("polygon time: " + (new Date() - start) + "ms");
@@ -215,12 +218,12 @@ const Redlining = React.forwardRef(
             console.log("modal time: " + (new Date() - start) + "ms");
           })
 
-          const createRedactedPolygon = (polygon, start) => {
+          const createRedactedPolygon = async (polygon, start) => {
             const polyPoints = polygon.getPath();
             console.log("path time: " + (new Date() - start) + "ms");
             const largestRectangle = getPolygonBoundingRectangle(polyPoints);
             console.log("bound time: " + (new Date() - start) + "ms");
-            const depth = 6;
+            const depth = POLYGON_REDACTION_APPROX_DEPTH;
     
             const rectFullyWithinPoly = isRectFullyWithinPolygon(largestRectangle, polygon);
             console.log("within time: " + (new Date() - start) + "ms");
@@ -230,6 +233,24 @@ const Redlining = React.forwardRef(
     
             splitRectangle(largestRectangle, polygon, polyPoints, depth);
             console.log("split time: " + (new Date() - start) + "ms");
+            const annot = new Annotations.RedactionAnnotation({
+              PageNumber: 1,
+              Quads: quads,
+              StrokeColor: new Annotations.Color(255, 0, 0, 1),
+              IsText: true,
+            });
+    
+            // annotationManager.addAnnotation(annot);
+            // annotationManager.redrawAnnotation(annot);
+            // await annotationManager.applyRedactions([annot]);
+            annot.NoMove = true;
+            annot.NoResize = true;
+            annot.Author = user?.name || user?.preferred_username || ""
+    
+            annotationManager.addAnnotation(annot);
+            annotationManager.redrawAnnotation(annot);
+            polyRedactTool.redactionAnnotations.push(annot);
+            quads = [];
           }
     
           const splitRectangle = (rectangle, polygon, polyPoints, depth) => {
@@ -274,7 +295,16 @@ const Redlining = React.forwardRef(
             for (let i = 0; i < rects.length; i++) {
               const rectFullyWithinPoly = isRectFullyWithinPolygon(rects[i], polygon);
               if (rectFullyWithinPoly) {
-                createRedactionAnnotation(rects[i], polygon);
+                // createRedactionAnnotation(rects[i], polygon);
+                // convert Rect to Quad
+                const padding = 2
+                const quad = new Annotations.Quad(
+                  rects[i].x1 - padding, rects[i].y1 -padding,
+                  rects[i].x2 + padding, rects[i].y1 - padding, 
+                  rects[i].x2 + padding, rects[i].y2 + padding, 
+                  rects[i].x1 - padding, rects[i].y2 + padding
+                );
+                quads.push(quad);
               }
               if (!rectFullyWithinPoly) {
                 splitRectangle(rects[i], polygon, polyPoints, depth - 1);
