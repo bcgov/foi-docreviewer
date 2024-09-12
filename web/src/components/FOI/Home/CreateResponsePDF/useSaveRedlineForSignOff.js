@@ -103,7 +103,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               if (redlineCategory === "consult") {
                 const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                 for (let consult of doc.consult) {
-                  if (consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                     if (
                       (
                       flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid !== pageFlagTypes["Not Responsive"]) ||
@@ -212,7 +212,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         });
       }
     } else if (redlineCategory === "consult") {
-      // map documents to publicBodies (Divisions) for consults
+      // map documents to publicBodies and custom public bodies (treated as Divisions) for consults package.
+      // Consult Package logic will treat publicbodies (program areas + custom consults) as DIVISIONS and will incorporate the existing division mapping  + redline logic to generate the consult package
       for (let publicBodyId of divisions) {
         let publicBodyDocList = [];
         documentList.forEach((doc) => {
@@ -225,6 +226,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 }
               })
             });
+            for (let consult of doc.consult) {
+              for (let customPublicBody of consult.other) {
+                if (customPublicBody === publicBodyId) {
+                  programareaids.add(customPublicBody);
+                }
+              }
+            }
           }
           for (let programareaid of programareaids) {
             if (programareaid === publicBodyId) {
@@ -236,10 +244,12 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
         let incompatableList = [];
 
-        const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId)
+        // Custom public bodies/consults do not exist in allPublicBodies data (BE program area data) and are stored as simple strings with pageflag data (in other array attribute).
+        // Therefore, if publicBodyInfo cannot be found in allPublicBodies, the publicbody is a custom one and we will create its 'divison' data in the FE with a random unique id (date.now()), and its publicBodyID (which is its name as a string) for consult package creation purposes
+        const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId);
         newDocList.push({
-          divisionid: publicBodyId,
-          divisionname: publicBodyInfo.name,
+          divisionid: publicBodyInfo ? publicBodyInfo.programareaid : Date.now(),
+          divisionname: publicBodyInfo ? publicBodyInfo.name : publicBodyId,
           documentlist: publicBodyDocList,
           incompatableList: incompatableList,
         })
@@ -552,7 +562,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               for (let flagInfo of pageFlagsOnPage) {
                 let hasConsult = false;
                   for (let consult of doc.consult) {
-                    if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                       hasConsult = true;
                       break;
                     }
@@ -580,12 +590,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             for (let flagInfo of notConsultPageFlagsOnPage) {
               if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
                 if(includeDuplicatePages) {
-                  duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                  pageMappings[doc.documentid][flagInfo.page] =
-                    pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                      pageMappings[doc.documentid][flagInfo.page] =
+                        pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
                 } else {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   if (!skipDocumentPages && !skipOnlyDuplicateDocument) {
@@ -597,12 +611,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
               } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
                 if(includeNRPages) {
-                  NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                  pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                      pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
                 } else {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   if (!skipDocumentPages && !skipOnlyNRDocument) {
@@ -612,12 +630,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                   }
                 }
               } else if (flagInfo.flagid == pageFlagTypes["In Progress"]) {
-                NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                for (let consult of doc.consult) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                    NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  }
+                }
               } else {
                 if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                   pageMappings[doc.documentid][flagInfo.page] =
@@ -630,7 +652,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               // Check if the page has relevant consult flag, if not remove the page
               let hasConsult = false;
               for (let consult of doc.consult) {
-                if (consult.page == flagInfo.page && consult.programareaid.includes(divObj.divisionid)) {
+                if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
                   hasConsult = true;
                   break;
                 }
@@ -800,6 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
+      setTotalStitchList(stitchlist)
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -836,7 +859,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-              applyRotations(docObj, doc.attributes.rotatedpages)
+              // applyRotations(docObj, doc.attributes.rotatedpages)
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1020,21 +1043,36 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           for (let pageflag of doc['pageFlag']) {
             if ('programareaid' in pageflag) {
               for (let programareaid of pageflag['programareaid']) {
-                publicBodyIdList.push(programareaid)
+                publicBodyIdList.push(programareaid);
+              }
+            }
+            // Logic to include custom consults/public bodies as they are stored in another array (other) and not with programareaids
+            if ('other' in pageflag) {
+              for (let customPublicBody of pageflag['other']) {
+                publicBodyIdList.push(customPublicBody);
               }
             }
           }
         }
       }
-      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)]
+      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)];
       return getPublicBodyObjs(filteredPublicBodyIdList);
     }
   }
   const getPublicBodyObjs = (publicBodyIDList) => {
     const publicBodies = [];
-    for (const publicBody of allPublicBodies) {
-      if (publicBodyIDList.includes(publicBody.programareaid)) {
+    for (let publicBodyId of publicBodyIDList) {
+      const publicBody = allPublicBodies.find(publicBody => publicBody.programareaid === publicBodyId);
+      if (publicBody) {
         publicBodies.push(publicBody);
+      } else {
+        // Custom public bodies/consults will not exist in allPublicBodies data (BE data for program areas) as they are not stored in the BE as programe areas (but rather as basic pageflags)
+        const customPublicBody = {
+          name: publicBodyId,
+          programareaid: null,
+          iaocode: publicBodyId
+        };
+        publicBodies.push(customPublicBody);
       }
     }
     return publicBodies;
@@ -1320,7 +1358,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       includenrpages: includeNRPages,
     };
     if (stitchedDocPath) {
-      console.log("stitchedDocPath:",stitchedDocPath)
       const stitchedDocPathArray = stitchedDocPath?.split("/");
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -1785,7 +1822,6 @@ const stampPageNumberRedline = async (
         isLoading: true,
         autoClose: 5000,
       });
-
         let divisionid = key;
         let stitchObject = redlineStitchObject[key];
         if (stitchObject == null) {
@@ -1801,12 +1837,12 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {  
+          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
             await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
             );
           }
           if (
@@ -1818,56 +1854,64 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory === "redline") {
+          if (redlineCategory === "redline" || redlineCategory === "consult") {
             await addWatermarkToRedline(
               stitchObject,
               redlineWatermarkPageMapping,
               key
             );
           }
-          
-          let string = await stitchObject.extractXFDF()
 
+          let string = await stitchObject.extractXFDF();
           let xmlObj = parser.parseFromString(string.xfdfString);
           let annots = parser.parseFromString('<annots>' + formattedAnnotationXML + '</annots>');
-          let annotsObj = xmlObj.getElementsByTagName('annots')
+          let annotsObj = xmlObj.getElementsByTagName('annots');
           if (annotsObj.length > 0) {
-            annotsObj[0].children = annotsObj[0].children.concat(annots.children)
+            annotsObj[0].children = annotsObj[0].children.concat(annots.children);
           } else {
-            xmlObj.children.push(annots)
-          }          
+            xmlObj.children.push(annots);
+          }
 
           let xfdfString = parser.toString(xmlObj);
+          
+          //Apply Redactions (if any)
+          //OIPC - Special Block (Redact S.14) : Begin
+          if(redlineCategory === "oipcreview") {
+            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+            await applyRedactionsToRedlinesBySection(s14_sectionStamps, PDFNet, stitchObject);
+            await stampPageNumberRedline(
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
+            );
+          }
+          //OIPC - Special Block : End
+          //Consults - Redlines + Redactions (Redact S.NR) Block : Start
+          if(redlineCategory === "consult") {
+            if (!consultApplyRedlines) {
+              const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
+              const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
+                return annot.name !== "freetext" && annot.name !== 'redact'
+              });
+              xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
+              xfdfString = parser.toString(xmlObj);
+            }
+            if (consultApplyRedactions) {
+              let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+              await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
+            }
+          }
+          //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
-        //OIPC - Special Block (Redact S.14) : Begin
-        if(redlineCategory === "oipcreview") {
-          let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-          await applyRedactionsToRedlinesBySection(s14_sectionStamps, PDFNet, stitchObject);
-          await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
-          );
-        }
-        //OIPC - Special Block : End
-        
-        //Consults - Redlines + Redactions (Redact S.NR) Block : Start
-        if(redlineCategory === "consult") {
-          if (!consultApplyRedlines) {
-            const publicbodyAnnotList = xmlObj.getElementsByTagName('annots')[0]['children'];
-            const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
-              return annot.name !== "freetext" && annot.name !== 'redact'
-            });
-            xmlObj.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
-            xfdfString = parser.toString(xmlObj);
+          // Rotate pages
+          for (const doc of totalStitchList[divisionid]) {
+            let documentlist = totalStitchList[divisionid];
+            let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
+            if(documentlist.length > 0) {
+              applyRotations(stitchObject, doc, divDocPageMappings);
+            }
           }
-          if (consultApplyRedactions) {
-            let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-            await applyRedactionsToRedlinesBySection(nr_sectionStamps, PDFNet, stitchObject);
-          }
-        }
-        //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
         stitchObject
           .getFileData({
@@ -1926,9 +1970,27 @@ const stampPageNumberRedline = async (
       }
     }
   };
+
+  const applyRotations = (document, doc, divDocPageMappings) => {
+    const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
+    const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
+    const rotatedStitchedPages = {};
+    if (rotatedpages) {
+      for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
+        let rotation = rotatedpages[originalPage];
+        if (rotation) {
+          rotatedStitchedPages[stitchedPage] = rotation;
+        }
+      }
+      for (let page in rotatedStitchedPages) {
+        let existingrotation = document.getPageRotation(page);
+        let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
+        document.rotatePages([page], rotation);
+      }
+    }
+  }
   
   useEffect(() => {
-
     if (
       redlineStitchObject &&
       redlineDocumentAnnotations &&
