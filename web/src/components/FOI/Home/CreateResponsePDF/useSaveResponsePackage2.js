@@ -262,6 +262,7 @@ const useSaveResponsePackage = () => {
           isLoading: true,
         });
         for (const annot of annotList) {
+          console.log(annot.PageNumber)
           console.log(annot.Subject)
           console.log(annot.Subject=== 'Polygon')
           console.log(annot.getCustomData('isPolygonRedaction'))
