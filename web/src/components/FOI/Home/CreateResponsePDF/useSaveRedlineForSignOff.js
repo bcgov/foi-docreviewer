@@ -590,12 +590,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             for (let flagInfo of notConsultPageFlagsOnPage) {
               if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
                 if(includeDuplicatePages) {
-                  duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                  pageMappings[doc.documentid][flagInfo.page] =
-                    pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                      pageMappings[doc.documentid][flagInfo.page] =
+                        pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
                 } else {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   if (!skipDocumentPages && !skipOnlyDuplicateDocument) {
@@ -607,12 +611,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
               } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
                 if(includeNRPages) {
-                  NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                  pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                    totalPageCount -
-                    pagesToRemoveEachDoc.length;
+                      pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
                 } else {
                   pagesToRemoveEachDoc.push(flagInfo.page);
                   if (!skipDocumentPages && !skipOnlyNRDocument) {
@@ -622,12 +630,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                   }
                 }
               } else if (flagInfo.flagid == pageFlagTypes["In Progress"]) {
-                NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
+                for (let consult of doc.consult) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                    NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
-                pageMappings[doc.documentid][flagInfo.page] =
-                  pageIndex +
-                  totalPageCount -
-                  pagesToRemoveEachDoc.length;
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  }
+                }
               } else {
                 if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
                   pageMappings[doc.documentid][flagInfo.page] =
@@ -1825,9 +1837,32 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
+          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
+            await stampPageNumberRedline(
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
+            );
+          }
+          if (
+            redlinepageMappings["pagestoremove"][divisionid] &&
+            redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
+              stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
+          ) {
+            await stitchObject.removePages(
+              redlinepageMappings["pagestoremove"][divisionid]
+            );
+          }
+          if (redlineCategory === "redline" || redlineCategory === "consult") {
+            await addWatermarkToRedline(
+              stitchObject,
+              redlineWatermarkPageMapping,
+              key
+            );
+          }
 
           let string = await stitchObject.extractXFDF();
-
           let xmlObj = parser.parseFromString(string.xfdfString);
           let annots = parser.parseFromString('<annots>' + formattedAnnotationXML + '</annots>');
           let annotsObj = xmlObj.getElementsByTagName('annots');
@@ -1876,31 +1911,6 @@ const stampPageNumberRedline = async (
             if(documentlist.length > 0) {
               applyRotations(stitchObject, doc, divDocPageMappings);
             }
-          }
-
-          if(redlineCategory !== "oipcreview" || redlineCategory === "consult") {
-            await stampPageNumberRedline(
-              stitchObject,
-              PDFNet,
-              redlineStitchInfo[divisionid]["stitchpages"],
-              isSingleRedlinePackage
-            );
-          }
-          if (
-            redlinepageMappings["pagestoremove"][divisionid] &&
-            redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
-              stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
-          ) {
-            await stitchObject.removePages(
-              redlinepageMappings["pagestoremove"][divisionid]
-            );
-          }
-          if (redlineCategory === "redline" || redlineCategory === "consult") {
-            await addWatermarkToRedline(
-              stitchObject,
-              redlineWatermarkPageMapping,
-              key
-            );
           }
 
         stitchObject
