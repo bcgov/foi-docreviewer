@@ -261,7 +261,8 @@ const useSaveResponsePackage = () => {
           render: "Handling polygon redactions...",
           isLoading: true,
         });
-        for (const annot of annotList) {
+        const polygonRedactions = annotList.filter(a => a.Subject === 'Polygon' && a.getCustomData('isPolygonRedaction') === 'true')
+        for (const annot of polygonRedactions) {
           console.log(annot.PageNumber)
           console.log(annot.Subject)
           console.log(annot.Subject=== 'Polygon')
