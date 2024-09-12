@@ -235,7 +235,7 @@ const useSaveResponsePackage = () => {
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
         zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
-        let annotList = annotationManager.getAnnotationsList();
+        const annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
         let pagesToRemove = [];
