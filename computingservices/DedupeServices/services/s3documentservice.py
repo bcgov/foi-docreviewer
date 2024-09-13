@@ -12,8 +12,11 @@ from io import BytesIO
 from html import escape
 import hashlib
 import uuid
+import boto3
+from botocore.config import Config
 from re import sub
 import fitz
+import PyPDF2
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -173,9 +176,40 @@ def gets3documenthashcode(producermessage):
                         "Content-Type": "application/json",
                     }
                 )
-                saveresponse.raise_for_status()
+                saveresponse.raise_for_status()        
         fitz_reader.close()
         
+        # clear metadata
+        reader2 = PyPDF2.PdfReader(BytesIO(response.content))
+        # Check if metadata exists.
+        if reader2.metadata is not None:
+            # Create a new PDF file without metadata.
+            writer = PyPDF2.PdfWriter()
+            # Copy pages from the original PDF to the new PDF.
+            for page_num in range(len(reader.pages)):
+                page = reader2.pages[page_num]                
+                writer.add_page(page)        
+            #writer.remove_links() # to remove comments.
+            buffer = BytesIO()
+            writer.write(buffer)
+            client = boto3.client('s3',config=Config(signature_version='s3v4'),
+                endpoint_url='https://{0}/'.format(dedupe_s3_host),
+                aws_access_key_id= s3_access_key_id,
+                aws_secret_access_key= s3_secret_access_key,
+                region_name= dedupe_s3_region
+            )
+            copyresponse = client.copy_object(
+                CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
+                Bucket=filepath.split("/")[3], # Destination bucket
+                Key= "/".join(filepath.split("/")[4:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
+            )
+            uploadresponse = requests.put(
+                filepath,
+                data=buffer.getvalue(),
+                auth=auth
+            )
+            uploadresponse.raise_for_status()
+
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
