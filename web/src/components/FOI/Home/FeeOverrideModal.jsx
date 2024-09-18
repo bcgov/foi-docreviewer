@@ -72,7 +72,7 @@ const FeeOverrideModal = ({
           </button>
         )}
         {isOverride && (
-          <button className="btn-bottom btn-save btn" onClick={saveDoc}>
+          <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={feeOverrideReason.length == 0 ? true : false}>
             Continue
           </button>
         )}
