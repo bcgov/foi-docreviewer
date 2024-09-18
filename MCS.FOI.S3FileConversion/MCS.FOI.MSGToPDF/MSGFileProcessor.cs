@@ -73,7 +73,7 @@ namespace MCS.FOI.MSGToPDF
                                         var sentOn = _attachment.SentOn.ToString();
                                         if (!string.IsNullOrEmpty(sentOn))
                                             lastModified = sentOn;
-                                            
+
                                         var attachmentSize = attachmentStream.Length.ToString();
                                         if (string.IsNullOrEmpty(attachmentSize))
                                             attachmentSize = attachmentStream.Capacity.ToString();
@@ -155,7 +155,7 @@ namespace MCS.FOI.MSGToPDF
                                 var startAt = 0;
                                 foreach (var inlineAttachment in inlineAttachments.OrderBy(m =>
                                 {
-                                    int pos = (int) m.GetType().GetProperty("RenderingPosition").GetValue(m, null);
+                                    int pos = (int)m.GetType().GetProperty("RenderingPosition").GetValue(m, null);
                                     if (pos > -1)
                                     {
                                         return pos;
@@ -168,7 +168,7 @@ namespace MCS.FOI.MSGToPDF
                                         return match.Index;
                                     }
                                 }))
-                                {                                    
+                                {
                                     if (rtfInline)
                                     {
                                         if (!inlineAttachment.GetType().FullName.ToLower().Contains("message"))
@@ -212,26 +212,26 @@ namespace MCS.FOI.MSGToPDF
                                             if (width > maxSize && width >= height)
                                             {
                                                 float scale = maxSize / width;
-                                                width = (int) (width * scale);
-                                                height = (int) (height * scale);
+                                                width = (int)(width * scale);
+                                                height = (int)(height * scale);
                                             }
                                             if (height > maxSize)
                                             {
                                                 float scale = maxSize / height;
-                                                width = (int) (width * scale);
-                                                height = (int) (height * scale);
+                                                width = (int)(width * scale);
+                                                height = (int)(height * scale);
                                             }
                                             string widthString = string.Empty;
                                             string heightString = string.Empty;
                                             if (width > 0)
                                             {
-                                                widthString = " width =\"" + width +"\"";
+                                                widthString = " width =\"" + width + "\"";
                                             }
                                             if (height > 0)
                                             {
                                                 heightString = " height =\"" + height + "\"";
                                             }
-                                            string imgReplacementString = "<img "+ widthString + heightString + " style =\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
+                                            string imgReplacementString = "<img " + widthString + heightString + " style =\"margin: 1px;\" src=\"data:" + _inlineAttachment.MimeType + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>";
                                             bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, Int32.MaxValue, startAt);
                                             startAt = match.Index + imgReplacementString.Length;
                                         }
@@ -255,7 +255,7 @@ namespace MCS.FOI.MSGToPDF
                             if (!string.IsNullOrEmpty(attachmentsList))
                             {
 
-                            htmlString += (@"<tr>
+                                htmlString += (@"<tr>
                             <td><b>Attachments: </b></td>
                             <td>" + attachmentsList.Remove(attachmentsList.Length - 2, 2) + "</td></tr>");
                             }
@@ -265,7 +265,8 @@ namespace MCS.FOI.MSGToPDF
                             if (bodyreplaced.Substring(0, 4) == "<div")
                             {
                                 bodyreplaced = htmlString + bodyreplaced;
-                            } else
+                            }
+                            else
                             {
                                 var bodyStart = Regex.Match(bodyreplaced, "<body.*?>");
                                 bodyreplaced = bodyreplaced.Insert(bodyStart.Index + bodyStart.Length, htmlString);
@@ -519,12 +520,20 @@ namespace MCS.FOI.MSGToPDF
                             <td><b>Subject: </b></td>
                             <td>" + msg.Subject + "</td></tr>");
 
+                DateTime sentDate = Convert.ToDateTime(msg.SentOn);
+                if (TimeZone.CurrentTimeZone.StandardName != "Pacific Standard Time")
+                {
+
+                    sentDate = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(sentDate, "Pacific Standard Time");
+
+                }
+
                 //Message Sent On timestamp
                 htmlString.Append(@"<tr>
                             <td><b>Sent: </b></td>
-                            <td>" + msg.SentOn + "</td></tr>");
+                            <td>" + sentDate + "</td></tr>");
 
-                
+
 
                 //Message body
                 //string message = @"" + msg.BodyText?.Replace("\n", "<span style='display: block;margin-bottom: 1em;'></span>").Replace("&lt;br&gt;", "<span style='display: block;margin-bottom: 1em;'></span>")?.Replace("&lt;br/&gt;", "<span style='display: block;margin-bottom: 1em;'></span>");

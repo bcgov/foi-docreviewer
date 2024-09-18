@@ -140,6 +140,7 @@ const Redlining = React.forwardRef(
     const [pagesRemoved, setPagesRemoved] = useState([]);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
+    const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -2179,13 +2180,48 @@ const Redlining = React.forwardRef(
           </div>,
         ],
       });
-      setMessageModalOpen(true)
+      setMessageModalOpen(true);
+    }
+
+    const setMessageModalForNrDuplicatePriority = () => {
+      updateModalData({
+        modalTitle: "Selected page(s) currently have NR or Duplicate flag applied",
+        modalMessage: [
+            <ul>
+              <li className="modal-message-list-item">Please note, your redaction(s) have been applied on your selected page(s). However, to flag your selected page(s) as Withheld In Full, you must first change your selected page(s) flags to In Progress.</li>
+              <li className="modal-message-list-item">After your selected page(s) are flagged as In Progress you may proceed to mark them as Withheld in Full.</li>
+            </ul>
+        ],
+      });
     }
 
     useEffect(() => {
       if (!newRedaction) return;
       const astrType = decodeAstr(newRedaction.astr)['trn-redaction-type'] || '';
       const hasFullPageRedaction = astrType === "fullPage";
+      // logic to alert the user that a withheld in full pageflag/redaction was applied to a page with an existing duplicate or nr pageflag.
+      let hasNROrDuplicateFlag = false;
+      if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] || hasFullPageRedaction) {
+        const pageFlagsMap = new Map();
+        for (let docPageFlags of pageFlags) {
+          pageFlagsMap.set(docPageFlags.documentid, docPageFlags.pageflag);
+        }
+        for (let pageObj of pageSelections) {
+          if (hasNROrDuplicateFlag) {
+            break;
+          }
+          const pageFlagList = pageFlagsMap.get(pageObj.docid);
+          if (pageFlagList) {
+            for (let flagObj of pageFlagList) {
+              if (flagObj.page === pageObj.page && (flagObj.flagid === pageFlagTypes["Not Responsive"] || flagObj.flagid === pageFlagTypes["Duplicate"])) {
+                hasNROrDuplicateFlag = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      setPageSelectionsContainNRDup(hasNROrDuplicateFlag);
 
       if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
         setWarningModalOpen(true);
@@ -2194,6 +2230,9 @@ const Redlining = React.forwardRef(
         saveRedaction();
       } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
         setModalOpen(true);
+      } else if (hasNROrDuplicateFlag) {
+        setModalOpen(true);
+        setMessageModalForNrDuplicatePriority();
       } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
         setMessageModalForNotResponsive();
       } else if (hasFullPageRedaction) {
@@ -2338,6 +2377,8 @@ const Redlining = React.forwardRef(
             handleSectionSelected={handleSectionSelected}
             editRedacts={editRedacts}
             saveRedactions={saveRedactions}
+            pageSelectionsContainNRDup={pageSelectionsContainNRDup}
+            setMessageModalOpen={setMessageModalOpen}
             saveDisabled={saveDisabled}
             saveRedaction={saveRedaction}
             defaultSections={defaultSections}

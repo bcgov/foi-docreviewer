@@ -32,7 +32,9 @@ export const FOIPPASectionsModal= ({
     saveRedaction,
     defaultSections,
     saveDefaultSections,
-    clearDefaultSections
+    clearDefaultSections,
+    pageSelectionsContainNRDup,
+    setMessageModalOpen
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
@@ -101,6 +103,15 @@ export const FOIPPASectionsModal= ({
           return b.count - a.count;
         }
       };
+
+      const handleSelectCodes = () => {
+        if (editRedacts) {
+          saveRedactions();
+        } else {
+          saveRedaction();
+        }
+        pageSelectionsContainNRDup ? setMessageModalOpen(true) : setMessageModalOpen(false);
+      }
       
 
     return(
@@ -187,7 +198,7 @@ export const FOIPPASectionsModal= ({
           <DialogActions className="foippa-modal-actions">
             <button
               className={`btn-bottom btn-save btn`}
-              onClick={editRedacts ? saveRedactions : saveRedaction}
+              onClick={handleSelectCodes}
               disabled={saveDisabled}
             >
               Select Code(s)
