@@ -147,11 +147,11 @@ namespace MCS.FOI.CalendarToPDF
 
                         string organizer = string.Empty;
                         //Organizer Name and Email
-                        if (e.Organizer != null)
+                        if (e.Organizer?.Value != null)
                         {
                             try
                             {
-                                organizer = e.Organizer.CommonName + "(" + e.Organizer.Value.AbsoluteUri + ")";
+                                organizer = e.Organizer?.CommonName + "(" + e.Organizer?.Value.AbsoluteUri + ")";
                             }
                             catch
                             {
@@ -182,7 +182,7 @@ namespace MCS.FOI.CalendarToPDF
                         //Meeting created timestamp
                         htmlString.Append(@"<tr>
                         <td><b>Sent: </b></td>
-                        <td>" + GetPSTTime(e.DtStamp.Date) + "</td></tr>");
+                        <td>" + e.DtStamp.Value + "</td></tr>");
 
                         //Priority
                         htmlString.Append(@"<tr>
@@ -192,12 +192,12 @@ namespace MCS.FOI.CalendarToPDF
                         //Meeting Start Timestamp
                         htmlString.Append(@"<tr>
                         <td><b>Start Time: </b></td>
-                        <td>" + GetPSTTime(e.DtStart.Value) + "</td></tr>");
+                        <td>" + e.DtStart.Value + "</td></tr>");
 
                         //Meeting End Timestamp
                         htmlString.Append(@"<tr>
                         <td><b>End Time: </b></td>
-                        <td>" + GetPSTTime(e.DtEnd.Value) + "</td></tr>");
+                        <td>" + e.DtEnd.Value + "</td></tr>");
                         //Meeting Message
                         string message = @"" + e.Description?.Replace("\n", "<br>");
                         message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");

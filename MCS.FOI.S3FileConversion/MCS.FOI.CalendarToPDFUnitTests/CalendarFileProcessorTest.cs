@@ -85,7 +85,7 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
             Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
-            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-problematic-calendar.ics"), FileMode.Open, FileAccess.Read);
+            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-with-attachments.ics"), FileMode.Open, FileAccess.Read);
 
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(testFile);
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
@@ -93,7 +93,7 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
             (isProcessed, message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             Assert.IsTrue(isProcessed == true, $"Calendar to PDF Conversion failed");
 
-            SaveStreamAsFile(getSourceFolder(), output, "result_test-problematic-calendar.pdf");
+            SaveStreamAsFile(getSourceFolder(), output, "result_test-with-attachmentsr.pdf");
         }
 
             private string getSourceFolder()
