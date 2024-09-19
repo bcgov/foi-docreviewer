@@ -50,6 +50,8 @@ namespace MCS.FOI.MSGToPDF.UnitTests
             msgFileProcessor.FailureAttemptCount = 10;
             (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             Assert.IsTrue(converted == true, $"MSG to PDF Conversion failed for {testFile}");
+
+            SaveStreamAsFile(getSourceFolder(), output, "result_simple-test-msg-file.pdf");
         }
 
         [TestMethod]
@@ -68,7 +70,7 @@ namespace MCS.FOI.MSGToPDF.UnitTests
             (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             Assert.IsTrue(converted == true, $"MSG to PDF Conversion failed for {testFile}");
 
-            SaveStreamAsFile(getSourceFolder(), output, "result.pdf");
+            SaveStreamAsFile(getSourceFolder(), output, "result_Test-MSG-File-with-Attachments.pdf");
 
             bool isAttachmentsExists = attachments.Count == 3;
             Assert.IsTrue(isAttachmentsExists, $"MSG PDF file does not exists {testFile}");
