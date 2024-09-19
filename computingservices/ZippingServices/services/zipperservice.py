@@ -116,8 +116,10 @@ def __zipfilesandupload(_message, s3credentials):
                     _formattedbytes = None
                     
                     try:                           
-                        _formattedbytes = __removesensitivecontent(_docbytes)                           
+                        _formattedbytes = __removesensitivecontent(_docbytes)
+                        print("_formattedbytes length is {0}".format(len(_formattedbytes)))                           
                     except Exception:
+                        print("error happened while removing sensitive content of {0} ".format(filename))
                         print(traceback.format_exc())
                     #added a space to try out code merge on git. 18-Sept-2024    
                     zip.writestr(
