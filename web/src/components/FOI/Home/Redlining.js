@@ -1373,6 +1373,8 @@ const Redlining = React.forwardRef(
             }
           },
         });
+        docViewer.refreshAll();
+        docViewer.updateView();
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
