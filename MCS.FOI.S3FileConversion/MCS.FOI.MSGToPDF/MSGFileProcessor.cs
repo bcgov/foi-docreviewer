@@ -521,6 +521,10 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.Subject + "</td></tr>");
 
                 DateTime sentDate = Convert.ToDateTime(msg.SentOn);
+                if(sentDate == DateTime.MinValue)
+                {
+                    sentDate = Convert.ToDateTime(msg.CreationTime);
+                }
                 if (TimeZone.CurrentTimeZone.StandardName != "Pacific Standard Time")
                 {
 
