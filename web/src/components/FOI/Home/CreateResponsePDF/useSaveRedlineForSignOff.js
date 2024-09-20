@@ -1492,9 +1492,10 @@ const stampPageNumberRedline = async (
               
             
           }
+          const doc = await stitchObject.getPDFDoc();
           for (const rect of rects) {
             let height = docViewer.getPageHeight(rect.vpageno);
-            let pageRotation = docViewer.getDocument()?.getPageRotation(rect.vpageno);
+            let pageRotation = doc?.getPageRotation(rect.vpageno);
             let pageWidth = docViewer.getPageWidth(rect.vpageno);
             /**Fix for oipc redline displaying s.14 marked page content partially  */
             let adjustedRect = await getAdjustedRedactionCoordinates(pageRotation, rect.recto, PDFNet,pageWidth, height);
@@ -1506,7 +1507,7 @@ const stampPageNumberRedline = async (
             app.redaction_overlay = true;
             app.border = false;
             app.show_redacted_content_regions = false;
-            const doc = await stitchObject.getPDFDoc();
+            // const doc = await stitchObject.getPDFDoc();
             await PDFNet.Redactor.redact(doc, rarr, app);
           }
           await stampPageNumberRedline(
