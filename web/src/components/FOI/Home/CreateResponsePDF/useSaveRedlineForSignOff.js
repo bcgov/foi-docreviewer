@@ -1494,7 +1494,7 @@ const stampPageNumberRedline = async (
           }
           for (const rect of rects) {
             let height = docViewer.getPageHeight(rect.vpageno);
-            let pageRotation = stitchObject?.getPageRotation(rect.vpageno);
+            let pageRotation = stitchObject?.getPageRotation(rect.pageno);
             let pageWidth = docViewer.getPageWidth(rect.vpageno);
             /**Fix for oipc redline displaying s.14 marked page content partially  */
             let adjustedRect = await getAdjustedRedactionCoordinates(pageRotation, rect.recto, PDFNet,pageWidth, height);
