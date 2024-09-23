@@ -16,6 +16,7 @@ import {
 import { useAppSelector } from "../../../hooks/hook";
 import MCFPersonal from "./MCFPersonal";
 import { pageFlagTypes } from "../../../constants/enum";
+import { errorToast } from "../../../helper/helper";
 
 const ContextMenu = ({
   openFOIPPAModal,
@@ -105,7 +106,10 @@ const ContextMenu = ({
                   syncPageFlagsOnAction(updatedPageFlags);
             }
         },
-        (error: any) => console.log(error),
+        (error: any) => {
+          console.log(error)
+          errorToast('Failed to update page flags.', { autoClose: false });
+        },
         payload
       );
     }
@@ -222,7 +226,10 @@ const ContextMenu = ({
                   console.log("Personal attributes updated")
               }
           },
-          (error: any) => console.log(error),
+          (error: any) => {
+            console.log(error)
+            errorToast('Failed to update personal attributes.', { autoClose: false });
+          },
           {
             documentmasterids: documentMasterIDs,
             personalattributes: newPersonalAttributes,

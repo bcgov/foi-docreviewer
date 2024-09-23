@@ -9,6 +9,8 @@ import { setRedactionInfo, setIsPageLeftOff, setSections,
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
 import { pageFlagTypes } from "../../constants/enum";
+import { errorToast } from "../../helper/helper";
+import { toast } from "react-toastify";
 
 
 export const fetchDocuments = (
@@ -44,6 +46,7 @@ export const fetchDocuments = (
     })
     .catch((error:any) => {
       console.log(error);
+      errorToast('Error in fetching documents for a request.', { autoClose: false });
       errorCallback("Error in fetching documents for a request");
     });
 };
@@ -93,6 +96,7 @@ export const fetchAnnotationsByPagination = (
       }
     })
     .catch((error:any) => {
+    errorToast("Error in fetching annotations for a document).", {autoClose: false});
       errorCallback("Error in fetching annotations for a document");
     });
 };
@@ -534,6 +538,7 @@ export const fetchPersonalAttributes = (
     })
     .catch((error:any) => {
       console.log(error);
+      errorToast('Error in fetching personal attributes.', { autoClose: false });
       errorCallback("Error in fetching personal attributes");
     });
 };

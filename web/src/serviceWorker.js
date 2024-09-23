@@ -1,6 +1,7 @@
 // This optional code is used to register a service worker.
 // register() is not called by default.
 
+import { errorToast } from "./helper/helper";
 // This lets the app load faster on subsequent visits in production, and gives
 // it offline capabilities. However, it also means that developers (and users)
 // will only see deployed updates on subsequent visits to a page, after all the
@@ -96,6 +97,7 @@ function registerValidSW(swUrl, config) {
     })
     .catch(error => {
       console.error('Error during service worker registration:', error);
+      errorToast('Failed to register service worker.', { autoClose: false });
     });
 }
 
@@ -123,6 +125,7 @@ function checkValidServiceWorker(swUrl, config) {
       }
     })
     .catch(() => {
+      errorToast('No internet connection found. App is running in offline mode.', { autoClose: false });
       console.log(
         'No internet connection found. App is running in offline mode.'
       );
@@ -137,6 +140,7 @@ export function unregister() {
       })
       .catch(error => {
         console.error(error.message);
+        errorToast('Failed to unregister service worker.', { autoClose: false });
       });
   }
 }

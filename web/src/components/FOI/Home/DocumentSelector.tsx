@@ -28,6 +28,7 @@ import { getStitchedPageNoFromOriginal } from "./utils";
 import { pageFlagTypes } from "../../../constants/enum";
 import Popover from "@mui/material/Popover";
 import CustomTreeView from "./CustomTreeView";
+import { errorToast } from "../../../helper/helper";
 
 const DocumentSelector = React.memo(
   React.forwardRef(
@@ -149,7 +150,10 @@ const DocumentSelector = React.memo(
           requestid,
           currentLayer.name.toLowerCase(),
           (data: any) => setPageData(data),
-          (error: any) => console.log(error)
+          (error: any) => {
+            console.log(error)
+            errorToast('Failed to fetch page flag data.', { autoClose: false });
+          }
         );
       }, [currentLayer]);
 

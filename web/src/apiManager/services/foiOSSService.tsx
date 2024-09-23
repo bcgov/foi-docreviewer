@@ -5,6 +5,7 @@ import {
 } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
+import { errorToast } from "../../helper/helper";
 
 export const getFOIS3DocumentPreSignedUrl = (
     documentid: number,
@@ -95,6 +96,7 @@ export const saveFilesinS3 = (
             },
             (err: any) => {
                 console.log(err);
+                errorToast(`Failed to save a file to storage service.`, { autoClose: false });
                 errorCallback(err);
             }
         )

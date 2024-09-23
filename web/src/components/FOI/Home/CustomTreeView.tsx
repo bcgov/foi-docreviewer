@@ -24,6 +24,7 @@ import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 import { styled } from "@mui/material/styles";
 import {PAGE_FLAGS} from '../../../constants/PageFlags';
 import _ from "lodash";
+import { errorToast } from '../../../helper/helper';
 
 const CustomTreeView = React.memo(React.forwardRef(({
     items,
@@ -185,6 +186,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
           itemid = JSON.parse(derivedItemId);
         } catch (error) {
           console.error("Invalid JSON in itemId:", error);
+          errorToast('Invalid JSON in itemId.', { autoClose: false });
           itemid = derivedItemId; // Fallback to the derived itemId if JSON parsing fails
         }
 

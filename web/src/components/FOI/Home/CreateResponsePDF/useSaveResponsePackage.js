@@ -72,6 +72,7 @@ const useSaveResponsePackage = () => {
         });
       } catch (err) {
         console.log(err);
+        errorToast('Failed to stamp page numbers.', { autoClose: false });
         throw err;
       }
     }
@@ -108,6 +109,7 @@ const useSaveResponsePackage = () => {
     zipServiceMessage.attributes.push(zipDocObj);
     triggerDownloadFinalPackage(zipServiceMessage, (error) => {
       console.log(error);
+      errorToast('Failed to trigger final package download.', { autoClose: false });
     });
   };
   // const prepareresponseredlinesummarylist = (documentlist) => {
@@ -371,6 +373,7 @@ const useSaveResponsePackage = () => {
       },
       (error) => {
         console.log("Error fetching document:", error);
+        errorToast('Failed to fetch document.', { autoClose: false });
       }
     );
   };

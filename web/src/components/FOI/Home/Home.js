@@ -60,8 +60,10 @@ function Home() {
       (deletedPages) => {
         deletedDocPages = deletedPages;
       }, 
-      (error) =>
+      (error) => {
         console.log(error)
+        errorToast('Failed to fetch deleted document pages.', { autoClose: false });
+      }
     );
 
     fetchDocuments(
@@ -128,12 +130,14 @@ function Home() {
             },
             (error) => {
               console.log(error);
+              errorToast('Failed to get storage service presigned URL.', { autoClose: false });
             }
           );
         }
       },
       (error) => {
         console.log(error);
+        errorToast('Failed to fetch documents.', { autoClose: false });
       }
     );
 
@@ -160,7 +164,10 @@ function Home() {
         let currentLayer = redline;
         store.dispatch(setCurrentLayer(currentLayer));
       },
-      (error) => console.log(error)
+      (error) => {
+        console.log(error)
+        errorToast('Failed to fetch redaction layer information.', { autoClose: false });
+      }
     );
   }, [])
 
@@ -177,8 +184,10 @@ function Home() {
           && requestInfo?.requesttype && requestInfo.requesttype === "personal") {
       fetchPersonalAttributes(
         requestInfo.bcgovcode, 
-        (error) =>
+        (error) => {
           console.log(error)
+          errorToast('Failed to fetch personal attributes.', { autoClose: false });
+        }
       );
     }
   }, [requestInfo])

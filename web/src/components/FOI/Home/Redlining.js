@@ -166,9 +166,14 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
-        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
-        let response = await fetchPDFTronLicense(null, (error) =>
+        fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => {
           console.log(error)
+          errorToast('Failed to fetch sections.', { autoClose: false });
+        });
+        let response = await fetchPDFTronLicense(null, (error) => {
+          console.log(error)
+          errorToast('Failed to fetch proper license.', { autoClose: false });
+        }
         );
         WebViewer(
           {
@@ -363,6 +368,7 @@ const Redlining = React.forwardRef(
 
             fetchAnnotationsInfo(requestid, currentLayer.name.toLowerCase(), (error) => {
               console.log("Error:", error);
+              errorToast('Failed to fetch annotation info.', { autoClose: false });
             });
           });
 
@@ -612,6 +618,7 @@ const Redlining = React.forwardRef(
           },
           (error) => {
             console.log(error);
+            errorToast('Failed to delete document pages.', { autoClose: false });
           },
         );        
     }
@@ -729,6 +736,7 @@ const Redlining = React.forwardRef(
               },
               (error) => {
                 console.log("Error:", error);
+                errorToast('Failed to fetch annotations.', { autoClose: false });
               },
               currentLayer.name.toLowerCase(),
               BIG_HTTP_GET_TIMEOUT
@@ -740,7 +748,10 @@ const Redlining = React.forwardRef(
               (data) => {
                 syncPageFlagsOnAction(data)
               },
-              (error) => console.log(error)
+              (error) => {
+                console.log(error)
+                errorToast('Failed to fetch page flags.', { autoClose: false });
+              }
             );
           }
         }
@@ -901,12 +912,16 @@ const Redlining = React.forwardRef(
                         //   (error) => console.log(error)
                         // );
                       }, 
-                      (error) => console.log('error: ', error),
+                      (error) => {
+                        console.log('error: ', error)
+                        errorToast('Failed to save page flags.', { autoClose: false });
+                      },
                       validObj
                     )
                   },
                   (error) => {
                     console.log(error);
+                    errorToast('Failed to delete annotation.', { autoClose: false });
                   }
                 );
               }
@@ -925,6 +940,7 @@ const Redlining = React.forwardRef(
                   },
                   (error) => {
                     console.log(error);
+                    errorToast('Failed to delete redaction.', { autoClose: false });
                   }
                 );
               }
@@ -1078,6 +1094,7 @@ const Redlining = React.forwardRef(
                   },
                   (error) => {
                     console.log(error);
+                    errorToast('Failed to save annotation.', { autoClose: false });
                   },
                   currentLayer.redactionlayerid,
                   validObj,
@@ -1124,6 +1141,7 @@ const Redlining = React.forwardRef(
                     },
                     (error) => {
                       console.log(error);
+                      errorToast('Failed to save annotation.', { autoClose: false });
                     },
                     currentLayer.redactionlayerid,
                     null
@@ -1158,6 +1176,7 @@ const Redlining = React.forwardRef(
                     },
                     (error) => {
                       console.log(error);
+                      errorToast('Failed to save annotation.', { autoClose: false });
                     },
                     currentLayer.redactionlayerid,
                     null
@@ -1400,6 +1419,7 @@ const Redlining = React.forwardRef(
             })
             .catch((error) => {
               console.error("An error occurred during page insertion:", error);
+              errorToast('An error occurred during page insertion.', { autoClose: false });
             });
           setstichedfiles((_arr) => [..._arr, filerow]);
         }
@@ -1703,6 +1723,7 @@ const Redlining = React.forwardRef(
           },
           (error) => {
             console.log(error);
+            errorToast('Failed to save annotation.', { autoClose: false });
           },
           currentLayer.redactionlayerid,
           validObj,
@@ -1818,6 +1839,7 @@ const Redlining = React.forwardRef(
                 (data) => {},
                 (error) => {
                   console.log(error);
+                  errorToast('Failed to save annotation.', { autoClose: false });
                 },
                 currentLayer.redactionlayerid,
                 null,
@@ -1862,6 +1884,7 @@ const Redlining = React.forwardRef(
                 },
                 (error) => {
                   console.log(error);
+                  errorToast('Failed to save annotation.', { autoClose: false });
                 },
                 currentLayer.redactionlayerid,
                 validObj,
@@ -2003,6 +2026,7 @@ const Redlining = React.forwardRef(
           },
           (error) => {
             console.log(error);
+            errorToast('Failed to save annotation.', { autoClose: false });
           },
           currentLayer.redactionlayerid,
           null

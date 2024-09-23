@@ -60,6 +60,7 @@ const initKeycloak = (store, ...rest) => {
     })
     .catch((error) => {
       console.log(error);
+      errorToast('Failed to authenticate keycloak.', { autoClose: false });
     });
 };
 let refreshInterval;
@@ -74,6 +75,7 @@ const refreshToken = (store) => {
         })
         .catch((error) => {
           console.log(error);
+          errorToast('Failed to update authentication token.', { autoClose: false });
           userLogout();
         });
   }, tokenRefreshInterval);

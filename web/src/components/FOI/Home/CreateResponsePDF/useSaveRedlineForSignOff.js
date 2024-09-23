@@ -22,6 +22,7 @@ import {
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 import XMLParser from "react-xml-parser";
+import { errorToast } from "../../../../helper/helper";
 
 const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -718,6 +719,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         });
       } catch (error) {
         console.error("An error occurred during create document:", error);
+        errorToast('An error occurred during document creation.', { autoClose: false });
         // Handle any errors that occurred during the asynchronous operations
       }
     }
@@ -913,6 +915,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       },
       (error) => {
         console.log("Error fetching document:", error);
+        errorToast('Failed to retrieve presigned URL.', { autoClose: false });
       },
       layertype,
       currentLayer.name.toLowerCase()
@@ -1009,6 +1012,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
+        errorToast('Failed to trigger redline download.', { autoClose: false });
         window.location.reload();
       });
     }
@@ -1070,6 +1074,7 @@ const stampPageNumberRedline = async (
         }
       } catch (err) {
         console.log(err);
+        errorToast('Failed to stamp pages.', { autoClose: false });
         throw err;
       }
     };
@@ -1383,11 +1388,13 @@ const stampPageNumberRedline = async (
             .then(() => {})
             .catch((error) => {
               console.error("An error occurred during page insertion:", error);
+              errorToast('An error occurred during page insertion.', { autoClose: false });
             });
           setAlreadyStitchedList((_arr) => [..._arr, filerow]);
           setstichedfilesForRedline(stichedfilesForRedline);
         } catch (error) {
           console.error("An error occurred during page insertion:", error);
+          errorToast('An error occurred during page insertion.', { autoClose: false });
         }
       }
     }
