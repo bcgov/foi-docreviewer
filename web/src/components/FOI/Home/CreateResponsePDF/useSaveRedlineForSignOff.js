@@ -822,7 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      // setTotalStitchList(stitchlist); //if you want to the solution to applyrotations at end of redline process uncomment this
+      // setTotalStitchList(stitchlist); //if you want to apply the solution to applyrotations at end of redline process uncomment this
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
