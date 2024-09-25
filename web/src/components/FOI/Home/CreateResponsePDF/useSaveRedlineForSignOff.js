@@ -822,7 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      setTotalStitchList(stitchlist)
+      // setTotalStitchList(stitchlist); //if you want to rotate pages at end of redline process
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -859,7 +859,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-              // applyRotations(docObj, doc.attributes.rotatedpages)
+              applyRotations(docObj, doc.attributes.rotatedpages)
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1905,14 +1905,14 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
-          // Rotate pages
-          for (const doc of totalStitchList[divisionid]) {
-            let documentlist = totalStitchList[divisionid];
-            let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
-            if(documentlist.length > 0) {
-              applyRotations(stitchObject, doc, divDocPageMappings);
-            }
-          }
+          // Rotate pages - After all redline work is completed
+          // for (const doc of totalStitchList[divisionid]) {
+          //   let documentlist = totalStitchList[divisionid];
+          //   let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
+          //   if(documentlist.length > 0) {
+          //     applyRotations(stitchObject, doc, divDocPageMappings);
+          //   }
+          // }
 
         stitchObject
           .getFileData({
@@ -1972,24 +1972,24 @@ const stampPageNumberRedline = async (
     }
   };
 
-  const applyRotations = (document, doc, divDocPageMappings) => {
-    const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
-    const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
-    const rotatedStitchedPages = {};
-    if (rotatedpages) {
-      for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
-        let rotation = rotatedpages[originalPage];
-        if (rotation) {
-          rotatedStitchedPages[stitchedPage] = rotation;
-        }
-      }
-      for (let page in rotatedStitchedPages) {
-        let existingrotation = document.getPageRotation(page);
-        let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
-        document.rotatePages([page], rotation);
-      }
-    }
-  }
+  // const applyRotations = (document, doc, divDocPageMappings) => {
+  //   const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
+  //   const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
+  //   const rotatedStitchedPages = {};
+  //   if (rotatedpages) {
+  //     for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
+  //       let rotation = rotatedpages[originalPage];
+  //       if (rotation) {
+  //         rotatedStitchedPages[stitchedPage] = rotation;
+  //       }
+  //     }
+  //     for (let page in rotatedStitchedPages) {
+  //       let existingrotation = document.getPageRotation(page);
+  //       let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
+  //       document.rotatePages([page], rotation);
+  //     }
+  //   }
+  // }
   
   useEffect(() => {
     if (
