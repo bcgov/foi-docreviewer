@@ -822,7 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      // setTotalStitchList(stitchlist); //if you want to rotate pages at end of redline process
+      // setTotalStitchList(stitchlist); //if you want to applyrotations at end of redline process uncomment this
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -859,7 +859,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-              applyRotations(docObj, doc.attributes.rotatedpages)
+
+              // NOTE: applying rotations to records/documents for redlines is turned off per biz. If uncommented, bugs related to redline redactions (s14, NR etc) not being applied and in turn data breachs can occur
+              // applyRotations(docObj, doc.attributes.rotatedpages)
+
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1910,7 +1913,7 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
-          // Rotate pages - After all redline work is completed
+          // Rotate pages - applyrotations after all redline processes (redline applying, stamping, removing pages etc) are completed
           // for (const doc of totalStitchList[divisionid]) {
           //   let documentlist = totalStitchList[divisionid];
           //   let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
