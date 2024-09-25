@@ -1788,7 +1788,12 @@ const stampPageNumberRedline = async (
     }
     for (const rect of rects) {
       let height = docViewer.getPageHeight(rect.vpageno);
-      rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+      let pageRotation = stitchObject?.getPageRotation(rect.pageno);
+      let pageWidth = docViewer.getPageWidth(rect.vpageno);
+      /**Fix for oipc redline displaying s.14 marked page content partially  */
+      let adjustedRect = await getAdjustedRedactionCoordinates(pageRotation, rect.recto, PDFNet,pageWidth, height);
+      //rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+      rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, adjustedRect, false, ''));
     }
     if (rarr.length > 0) {
       const app = {};
@@ -1990,6 +1995,34 @@ const stampPageNumberRedline = async (
   //     }
   //   }
   // }
+
+  const getAdjustedRedactionCoordinates = async(pageRotation, recto, PDFNet,pageWidth,pageHeight) => {
+    let x1 = recto.x1;
+    let y1 = recto.y1;
+    let x2 = recto.x2;
+    let y2 = recto.y2;
+    // Adjust Y-coordinates to account for the flipped Y-axis in PDF
+    y1 = pageHeight - y1;
+    y2 = pageHeight - y2;  
+    // Adjust for page rotation (90, 180, 270 degrees)
+    switch (pageRotation) {
+      case 90:
+        [x1, y1] = [y1, x1];
+        [x2, y2] = [y2, x2];
+        break;
+      case 180:
+        x1 = pageWidth - x1;
+        y1 = pageHeight - y1;
+        x2 = pageWidth - x2;
+        y2 = pageHeight - y2;
+        break;
+      case 270:
+        [x1, y1] = [pageHeight - y1, x1];
+        [x2, y2] = [pageHeight - y2, x2];
+        break;
+    }  
+    return await PDFNet.Rect.init(x1, y1, x2, y2);
+  }
   
   useEffect(() => {
     if (
