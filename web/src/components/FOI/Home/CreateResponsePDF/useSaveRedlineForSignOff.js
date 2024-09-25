@@ -822,7 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      setTotalStitchList(stitchlist)
+      // setTotalStitchList(stitchlist); //if you want to apply the solution to applyrotations at end of redline process uncomment this
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -859,7 +859,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
+
+              // NOTE: applying rotations to records/documents for redlines is turned off per biz. If uncommented, bugs related to redline redactions (s14, NR etc) not being applied and in turn data breachs can occur
               // applyRotations(docObj, doc.attributes.rotatedpages)
+
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1788,7 +1791,12 @@ const stampPageNumberRedline = async (
     }
     for (const rect of rects) {
       let height = docViewer.getPageHeight(rect.vpageno);
-      rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+      let pageRotation = stitchObject?.getPageRotation(rect.pageno);
+      let pageWidth = docViewer.getPageWidth(rect.vpageno);
+      /**Fix for oipc redline displaying s.14 marked page content partially  */
+      let adjustedRect = await getAdjustedRedactionCoordinates(pageRotation, rect.recto, PDFNet,pageWidth, height);
+      //rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, (await PDFNet.Rect.init(rect.recto.x1,height-rect.recto.y1,rect.recto.x2,height-rect.recto.y2)), false, ''));
+      rarr.push(await PDFNet.Redactor.redactionCreate(rect.pageno, adjustedRect, false, ''));
     }
     if (rarr.length > 0) {
       const app = {};
@@ -1905,14 +1913,14 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
-          // Rotate pages
-          for (const doc of totalStitchList[divisionid]) {
-            let documentlist = totalStitchList[divisionid];
-            let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
-            if(documentlist.length > 0) {
-              applyRotations(stitchObject, doc, divDocPageMappings);
-            }
-          }
+          // Rotate pages - applyrotations after all redline processes (redline applying, stamping, removing pages etc) are completed. This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
+          // for (const doc of totalStitchList[divisionid]) {
+          //   let documentlist = totalStitchList[divisionid];
+          //   let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
+          //   if(documentlist.length > 0) {
+          //     applyRotations(stitchObject, doc, divDocPageMappings);
+          //   }
+          // }
 
         stitchObject
           .getFileData({
@@ -1972,23 +1980,52 @@ const stampPageNumberRedline = async (
     }
   };
 
-  const applyRotations = (document, doc, divDocPageMappings) => {
-    const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
-    const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
-    const rotatedStitchedPages = {};
-    if (rotatedpages) {
-      for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
-        let rotation = rotatedpages[originalPage];
-        if (rotation) {
-          rotatedStitchedPages[stitchedPage] = rotation;
-        }
-      }
-      for (let page in rotatedStitchedPages) {
-        let existingrotation = document.getPageRotation(page);
-        let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
-        document.rotatePages([page], rotation);
-      }
-    }
+  // This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
+  // const applyRotations = (document, doc, divDocPageMappings) => {
+  //   const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
+  //   const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
+  //   const rotatedStitchedPages = {};
+  //   if (rotatedpages) {
+  //     for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
+  //       let rotation = rotatedpages[originalPage];
+  //       if (rotation) {
+  //         rotatedStitchedPages[stitchedPage] = rotation;
+  //       }
+  //     }
+  //     for (let page in rotatedStitchedPages) {
+  //       let existingrotation = document.getPageRotation(page);
+  //       let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
+  //       document.rotatePages([page], rotation);
+  //     }
+  //   }
+  // }
+
+  const getAdjustedRedactionCoordinates = async(pageRotation, recto, PDFNet,pageWidth,pageHeight) => {
+    let x1 = recto.x1;
+    let y1 = recto.y1;
+    let x2 = recto.x2;
+    let y2 = recto.y2;
+    // Adjust Y-coordinates to account for the flipped Y-axis in PDF
+    y1 = pageHeight - y1;
+    y2 = pageHeight - y2;  
+    // Adjust for page rotation (90, 180, 270 degrees)
+    switch (pageRotation) {
+      case 90:
+        [x1, y1] = [y1, x1];
+        [x2, y2] = [y2, x2];
+        break;
+      case 180:
+        x1 = pageWidth - x1;
+        y1 = pageHeight - y1;
+        x2 = pageWidth - x2;
+        y2 = pageHeight - y2;
+        break;
+      case 270:
+        [x1, y1] = [pageHeight - y1, x1];
+        [x2, y2] = [pageHeight - y2, x2];
+        break;
+    }  
+    return await PDFNet.Rect.init(x1, y1, x2, y2);
   }
   
   useEffect(() => {

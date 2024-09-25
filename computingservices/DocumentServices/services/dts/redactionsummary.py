@@ -7,6 +7,11 @@ import traceback
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
+        def removeduplicateandnr(pageflag):
+            if pageflag['name'] != 'Duplicate' and pageflag['name'] != 'Not Responsive':
+                return True
+            return False
+        pageflags = list(filter(removeduplicateandnr, pageflags))
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
         if _ismcfpersonalrequest and message.category == "responsepackage":
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
