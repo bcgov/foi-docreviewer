@@ -133,7 +133,7 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
     current_page = []
     for comment in comments:
         print("\n Each comment:",comment)
-        if 'page' in comment and 'text' in comment:
+        if 'text' in comment:
             comment_text = f"{comment['text']}"
             #comment_text = f"Page {comment['page']}: {comment['text']}\n"
             # Wrap the text to fit within the page width
@@ -143,11 +143,6 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
                 if len(current_page) >= lines_per_page:
                     pages.append(current_page)
                     current_page = []   
-        # if len(current_page) >= lines_per_page:
-        #     pages.append(current_page)
-        #     #pages.append(comment_text)
-        #     current_page = []
-
     if current_page:  # Add any remaining comments to the last page
         pages.append(current_page)    
     print("pages-split_comments_to_pages:",pages)
@@ -206,11 +201,17 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
         for page_num in range(len(reader.pages)):
             page = reader2.pages[page_num]                
             try:
-                pagecount, writer= _flattenannotations(page, page_num, writer, reader2, pagecount)
+                #Function to get all comments type annotations & copy it to a new page
+                pagecount, writer= createpagesforcomments(page, page_num, writer, reader2, pagecount)
             except Exception as e:
-                print(f"Error in flatenning pdf: {e}")
+                print(f"Error in creating new page with comment annotations: {e}")
         buffer = BytesIO()
         writer.write(buffer)
+        try:
+            # Now, flatten the PDF content using the __flattenfitz function
+            flattened_buffer = __flattenfitz(buffer.getvalue())
+        except Exception as e:
+            print(f"Error in flatenning pdf: {e}")
 
         client = boto3.client('s3',config=Config(signature_version='s3v4'),
             endpoint_url='https://{0}/'.format(dedupe_s3_host),
@@ -225,14 +226,30 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
         )
         uploadresponse = requests.put(
             filepath,
-            data=buffer.getvalue(),
+            data= flattened_buffer.getvalue(), #buffer.getvalue(),
             auth=auth
         )
         uploadresponse.raise_for_status()
+
     return pagecount
 
+def __flattenfitz(docbytesarr):
+    doc = fitz.open(stream=BytesIO(docbytesarr))
+    out = fitz.open()  # output PDF
+    for page in doc:
+        w, h = page.rect.br  # page width / height taken from bottom right point coords
+        outpage = out.new_page(width=w, height=h)  # out page has same dimensions
+        pix = page.get_pixmap(dpi=150)  # set desired resolution
+        outpage.insert_image(page.rect, pixmap=pix)
+
+    # Saving the flattened PDF to a buffer
+    buffer = BytesIO()
+    out.save(buffer, garbage=3, deflate=True)
+    buffer.seek(0)  # Reset the buffer to the beginning
+    return buffer
+
 def __renderannotationsascontent(annotation_obj, subtype, c, updated_annotations):
-    if subtype == "/Highlight":
+    if subtype in ["/Highlight", "/Squiggly"]:
         rect = annotation_obj[NameObject("/Rect")]
         x1, y1, x2, y2 = [float(coord) for coord in rect]
         # Extract the highlight color from the /C key
@@ -249,8 +266,47 @@ def __renderannotationsascontent(annotation_obj, subtype, c, updated_annotations
             c.setFillAlpha(opacity)  # Set transparency
         # Use setFillAlpha to apply the opacity
         c.setFillColor(Color(r, g, b))  
-        c.rect(x1, y1, x2 - x1, y2 - y1, stroke=0, fill=1)    
-    elif subtype == "/Underline":
+        c.rect(x1, y1, x2 - x1, y2 - y1, stroke=0, fill=1)   
+    elif subtype == "/FreeText":
+        rect = annotation_obj[NameObject("/Rect")]
+        x1, y1, x2, y2 = [float(coord) for coord in rect]
+        # Check if it's a callout annotation (look for the /IT and /L properties)
+        if "/IT" in annotation_obj and annotation_obj[NameObject("/IT")] == "/FreeTextCallout":
+            # Draw the leader line (usually stored in /L)
+            if "/L" in annotation_obj:
+                leader_line = annotation_obj[NameObject("/L")]
+                lx1, ly1, lx2, ly2 = [float(coord) for coord in leader_line]
+
+                # Draw the leader line
+                c.setStrokeColor(Color(1, 0, 0))  # Set the color for the callout leader line
+                c.setLineWidth(1.5)
+                c.line(lx1, ly1, lx2, ly2)  # Draw the line from start to end points
+
+            # Draw the text inside the box defined by /Rect
+            c.setFillColor(Color(0, 0, 0))  # Set the color for the text (black)
+            c.setFont("Helvetica", 10)
+            c.drawString(x1 + 5, y2 - 10, annotation_obj.get("/Contents", ""))  # Adjust text placement
+
+            # Draw the callout box
+            c.setStrokeColor(Color(1, 0, 0))  # Set stroke color for the box (red)
+            c.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)  # Draw rectangle around the text
+
+        # For generic /FreeText (non-callout) annotations
+        else:
+            c.setFillColor(Color(0, 0, 0))  # Set the color for the text (black)
+            c.setFont("Helvetica", 10)
+            c.drawString(x1 + 5, y2 - 10, annotation_obj.get("/Contents", ""))  # Draw the text
+
+
+    # elif subtype == "/StrikeOut":
+    #     rect = annotation_obj[NameObject("/Rect")]
+    #     if len(rect) == 4:
+    #         x1, y1, x2, y2 = [float(coord) for coord in rect]
+    #         c.setStrokeColor(Color(1, 0, 0))  # Default red color
+    #         c.setLineWidth(2)
+    #         c.line(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2)
+     
+    elif subtype in ["/Underline", "/StrikeOut"]:
         # Handle Underline Annotations
         rect = annotation_obj.get("/Rect", [0, 0, 0, 0])
         x1, y1, x2, y2 = [float(coord) for coord in rect]
@@ -258,17 +314,60 @@ def __renderannotationsascontent(annotation_obj, subtype, c, updated_annotations
         color = annotation_obj.get("/C", [1, 1, 0])
         r, g, b = [float(c) for c in color]
         c.setStrokeColor(Color(r, g, b))
-        c.line(x1, y1 - 2, x2, y1 - 2)  # Draw a line just below the text position
+        c.line(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2)
+        #c.line(x1, y1 - 2, x2, y1 - 2)  # Draw a line just below the text position
 
-    elif subtype == "/Square" and "/C" in annotation_obj:
+    elif subtype in ["/Square"] and "/C" in annotation_obj:
         # Handle Sticky Note Annotations (often drawn as squares with color)
         rect = annotation_obj.get("/Rect", [0, 0, 0, 0])
         x1, y1, x2, y2 = [float(coord) for coord in rect]
-
         sticky_note_color = annotation_obj.get("/C", [1, 1, 0])
         r, g, b = [float(c) for c in sticky_note_color]
         c.setFillColor(Color(r, g, b))
         c.rect(x1, y1, x2 - x1, y2 - y1, fill=1, stroke=0)
+
+    elif subtype == "/Circle":
+        rect = annotation_obj[NameObject("/Rect")]
+        x1, y1, x2, y2 = [float(coord) for coord in rect]
+        radius_x = (x2 - x1) / 2
+        radius_y = (y2 - y1) / 2
+        # Extract the border color from the /C key (defaults to black if /C is missing)
+        if "/C" in annotation_obj:
+            border_color = annotation_obj[NameObject("/C")]
+            r, g, b = [float(c) for c in border_color]  # Extract RGB values
+        c.setStrokeColor(Color(r, g, b))
+        c.setLineWidth(2)
+        c.ellipse(x1, y1, x2, y2, stroke=1, fill=0) 
+
+    # Caret Annotations (insertion caret)
+    elif subtype == "/Caret":
+        rect = annotation_obj[NameObject("/Rect")]
+        x1, y1, x2, y2 = [float(coord) for coord in rect]
+        color = annotation_obj.get("/C", [1, 1, 0])
+        r, g, b = [float(c) for c in color]
+        c.setStrokeColor(Color(r, g, b))
+        c.line(x1, y1, x2, y2)  # Draw caret (insertion point)
+    # Stamp Annotations (visual stamp)
+    elif subtype == "/Stamp":
+        rect = annotation_obj[NameObject("/Rect")]
+        x1, y1, x2, y2 = [float(coord) for coord in rect]
+
+        # Try drawing at the top of the rectangle, slightly above
+        stamp_name = annotation_obj.get("/Name", "Stamp")
+
+        # Debugging: Print stamp name and coordinates
+        print(f"Stamp Name: {stamp_name}")
+        print(f"x1: {x1}, y2 + 10: {y2 + 10}")
+
+        # Set font (fallback to Helvetica if BC-Sans is not registered)
+        try:
+            c.setFont("BC-Sans", 12)
+        except:
+            c.setFont("Helvetica", 12)  # Fallback if BC-Sans is not available
+
+        # Draw the stamp name
+        c.drawString(x1, y2 + 10, f"[Stamp: {stamp_name}]")
+
 
     elif subtype == "/Ink" and "/InkList" in annotation_obj:
         # Handle Ink Annotations
@@ -294,39 +393,48 @@ def __renderannotationsascontent(annotation_obj, subtype, c, updated_annotations
                 for i in range(2, len(points), 2):
                     path.lineTo(points[i], points[i + 1])  # Connect the points
         c.drawPath(path, stroke=1)
+    elif subtype in ["/Polygon", "/PolyLine"]:
+        path = c.beginPath()
+        c.setLineWidth(2)
+        if "/C" in annotation_obj:
+            line_color = annotation_obj[NameObject("/C")]
+            r, g, b = [float(c) for c in line_color]
+        else:
+            r, g, b = 0, 0, 0  # Default black
+        c.setStrokeColor(Color(r, g, b))
+        vertices = annotation_obj[NameObject("/Vertices")]
+        path.moveTo(vertices[0], vertices[1])
+        for i in range(2, len(vertices), 2):
+            path.lineTo(vertices[i], vertices[i + 1])
+        if subtype == "/Polygon":
+            path.lineTo(vertices[0], vertices[1])  # Close the polygon
+        c.drawPath(path, stroke=1)
+
 
     if subtype != "/Widget":
         annotation_obj = DictionaryObject()
     updated_annotations.append(annotation_obj)
     return updated_annotations, c
 
-def __rendercommentsonnewpage(comments,reader2,pagecount,writer):
+def __rendercommentsonnewpage(comments,pagecount,writer,parameters):
     try:
         comments_pdf = BytesIO()
-        parameters = get_parameters_for_numbering(reader2)
-        font = parameters.get("font")
-        size = parameters.get("size")
         c = canvas.Canvas(comments_pdf, pagesize=letter)
-        original_width_of_pages = parameters.get("original_width_of_pages")
-        original_height_of_pages = parameters.get("original_height_of_pages")
-        number_of_pages = parameters.get("number_of_pages")
-        lastpagenumber = number_of_pages - 1
-        font_size = size[lastpagenumber]
-        lastpagewidth = original_width_of_pages[lastpagenumber]
-        lastpageheight = original_height_of_pages[lastpagenumber]
-        currentpagesize = (lastpagewidth, lastpageheight)
+        font = parameters.get("font")
+        font_size = parameters.get("fontsize")       
+        width = parameters.get("width")
+        height = parameters.get("height")
+        currentpagesize = (width, height)
         comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
         for comment_page in comment_pages:
             text = c.beginText(40, 750)
             text.setFont(font, font_size)
             for line in comment_page:
                 text.textLine(line)
-
             c.setPageSize(currentpagesize)
             c.drawText(text)
             c.showPage()
             pagecount += 1
-
         c.save()
         comments_pdf.seek(0)
         comments_pdf_reader = PyPDF2.PdfReader(comments_pdf)
@@ -335,29 +443,26 @@ def __rendercommentsonnewpage(comments,reader2,pagecount,writer):
     except Exception as e:
         print(f"Error in rendering comments on new page in pdf: {e}")
 
-def _flattenannotations(page, page_num, writer, reader2, pagecount):
+def createpagesforcomments(page, page_num, writer, reader2, pagecount):
     # Check if the page contains annotations
     if "/Annots" in page:
         comments = []
-        updated_annotations = ArrayObject()
         annotations = page["/Annots"]
         # Create a new PDF overlay with reportlab to draw annotation content
         annotation_overlay = BytesIO()
         c = canvas.Canvas(annotation_overlay, pagesize=letter)
+        pagenum=page_num + 1
         for annot in annotations:
             annotation_obj = annot.get_object()
             subtype = annotation_obj["/Subtype"]
             print("\nAnnotation Object:", annotation_obj)
             #Flatten comments - collect all the annots
-            if "/Contents" in annotation_obj:
+            if subtype == "/Text" and "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
                 comments.append({
-                    'page': page_num + 1,
+                    'page': pagenum,#page_num + 1,
                     'text': comment
                 })
-            # Handle different types of annotations (Text, Highlight, Ink)
-            updated_annotations, c =__renderannotationsascontent(annotation_obj, subtype, c, updated_annotations)      
-        page[NameObject("/Annots")] = updated_annotations
         # Finalize annotation overlay for the page
         c.save()
         annotation_overlay.seek(0)
@@ -366,13 +471,12 @@ def _flattenannotations(page, page_num, writer, reader2, pagecount):
         if len(overlay_pdf.pages) > 0:
             overlay_page = overlay_pdf.pages[0]
             page.merge_page(overlay_page)
-        else:
-            print("Overlay PDF has no pages.")
         writer.add_page(page)
         if comments:
-            # If there are comments, create an additional page for them
             try:
-                pagecount,writer=__rendercommentsonnewpage(comments,reader2,pagecount,writer)
+                parameters = get_page_properties(reader2, page_num)
+                # If there are comments, create an additional page for them
+                pagecount,writer=__rendercommentsonnewpage(comments,pagecount,writer,parameters)
             except Exception as e:
                 print(f"Error in rendering comments on new page in pdf: {e}")
     else:
@@ -486,16 +590,20 @@ def gets3documenthashcode(producermessage):
     return (sig.hexdigest(), pagecount)
 
 
-def get_parameters_for_numbering(original_pdf, font="BC-Sans") -> dict:
+def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
     """Setting parameters for numbering"""
-
-    width_of_pages, height_of_pages, fontsize = get_original_pdf_page_details(original_pdf)
+    width = original_pdf.pages[pagenum].mediabox.width  
+    height = original_pdf.pages[pagenum].mediabox.height
+    if height < 450:
+        fontsize=10
+    else:
+        fontsize=12
     return {
-        "original_width_of_pages": width_of_pages,
-        "original_height_of_pages": height_of_pages,
-        "size": fontsize,
+        "width": width,
+        "height": height,
+        "fontsize": fontsize,
         "font": font,
-        "number_of_pages": len(original_pdf.pages),
+        "numberofpages": len(original_pdf.pages),
     }
 
 def get_original_pdf_page_details(original_pdf):
@@ -511,7 +619,7 @@ def get_original_pdf_page_details(original_pdf):
         if height < 450:
             fontsize.append(10)
         else:
-            fontsize.append(14)
+            fontsize.append(12)
 
     return width_of_pages, height_of_pages, fontsize
 
