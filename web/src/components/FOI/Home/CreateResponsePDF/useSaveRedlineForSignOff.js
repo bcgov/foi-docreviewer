@@ -822,7 +822,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      // setTotalStitchList(stitchlist); //if you want to applyrotations at end of redline process uncomment this
+      // setTotalStitchList(stitchlist); //if you want to the solution to applyrotations at end of redline process uncomment this
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -1913,7 +1913,7 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
 
-          // Rotate pages - applyrotations after all redline processes (redline applying, stamping, removing pages etc) are completed
+          // Rotate pages - applyrotations after all redline processes (redline applying, stamping, removing pages etc) are completed. This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
           // for (const doc of totalStitchList[divisionid]) {
           //   let documentlist = totalStitchList[divisionid];
           //   let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
@@ -1980,6 +1980,7 @@ const stampPageNumberRedline = async (
     }
   };
 
+  // This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
   // const applyRotations = (document, doc, divDocPageMappings) => {
   //   const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
   //   const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
