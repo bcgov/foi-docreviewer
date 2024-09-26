@@ -12,8 +12,11 @@ from io import BytesIO
 from html import escape
 import hashlib
 import uuid
+import boto3
+from botocore.config import Config
 from re import sub
 import fitz
+import PyPDF2
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -24,6 +27,22 @@ from utils import (
     request_management_api,
     file_conversion_types
 )
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import letter
+import os
+
+# Get the directory of the current Python file (inside the 'service' folder)
+service_folder_path = os.path.dirname(os.path.abspath(__file__))
+# Navigate to the parent directory (common folder)
+common_folder_path = os.path.dirname(service_folder_path)
+# Construct the path to the 'utils' folder & get the path to the 'BCSans-Bold.ttf' font file inside the 'utils' folder
+utils_folder_path = os.path.join(common_folder_path, "utils")
+font_path = os.path.join(utils_folder_path, "fonts", "BCSans-Regular_2f.ttf")
+pdfmetrics.registerFont(TTFont('BC-Sans', font_path))
+
 
 def __getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
@@ -92,6 +111,190 @@ def _generate_file_attachments(producermessage, reader, auth):
                     # attachment = _prepareattachment(producermessage, data, s3uripath, file)
                     # file_attachments.append(attachment)
     return file_attachments
+
+# New function to split comments into pages
+def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
+    pages = []
+    current_page = []
+    for comment in comments:
+        print("\n Each comment:",comment)
+        if 'text' in comment:
+            comment_text = f"{comment['text']}"
+            #comment_text = f"Page {comment['page']}: {comment['text']}\n"
+            # Wrap the text to fit within the page width
+            wrapped_lines = wrap_text(comment_text, width=500, font=font, font_size=font_size, canvas=canvas)
+            for line in wrapped_lines:
+                current_page.append(line)
+                if len(current_page) >= lines_per_page:
+                    pages.append(current_page)
+                    current_page = []   
+    if current_page:  # Add any remaining comments to the last page
+        pages.append(current_page)    
+    print("pages-split_comments_to_pages:",pages)
+    return pages
+
+
+def wrap_text(text, width, font, font_size, canvas):
+    """
+    This function wraps text into lines based on the available width.
+    """
+    wrapped_lines = []
+    line = ""    
+    text_width = canvas.stringWidth(text, font, font_size)
+    if text_width <= width:
+        line = text
+    else:
+        words = text.split(" ")
+        for word in words:
+            # Check the width of the line with the current word
+            line_width = canvas.stringWidth(line + word + " ", font, font_size)
+            if line_width <= width:
+                line += word + " "
+            else:
+                #If the word doesn't fit, append the current line and start a new one
+                if line:
+                    print("line::",line)
+                    wrapped_lines.append(line)  # Append current line
+                line = ""  # Reset line
+                # Handle long words that need to be broken up
+                while canvas.stringWidth(word, font, font_size) > width:
+                    # Find the largest part of the word that fits within the width
+                    for i in range(1, len(word) + 1):
+                        part = word[:i]
+                        if canvas.stringWidth(part, font, font_size) > width:
+                            # Append the part that fits and continue with the remaining part
+                            wrapped_lines.append(word[:i - 1])  # Add the part that fits
+                            word = word[i - 1:]  # Remaining part of the word
+                            break
+                # Add the remaining part of the word to the line
+                line = word + " "
+    # Append the last line
+    if line:
+        wrapped_lines.append(line)
+    return wrapped_lines
+
+def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth):
+    # clear metadata
+    reader2 = PyPDF2.PdfReader(BytesIO(response.content))
+    # Check if metadata exists.
+    if reader2.metadata is not None:
+        # Create a new PDF file without metadata.
+        writer = PyPDF2.PdfWriter()
+        # Copy pages from the original PDF to the new PDF.
+        for page_num in range(len(reader.pages)):
+            page = reader2.pages[page_num]                
+            try:
+                #Function to get all comments type annotations & copy it to a new page
+                pagecount, writer= createpagesforcomments(page, page_num, writer, reader2, pagecount)
+            except Exception as e:
+                print(f"Error in creating new page with comment annotations: {e}")
+        buffer = BytesIO()
+        writer.write(buffer)
+        try:
+            # Now, flatten the PDF content using the __flattenfitz function
+            flattened_buffer = __flattenfitz(buffer.getvalue())
+        except Exception as e:
+            print(f"Error in flatenning pdf: {e}")
+
+        client = boto3.client('s3',config=Config(signature_version='s3v4'),
+            endpoint_url='https://{0}/'.format(dedupe_s3_host),
+            aws_access_key_id= s3_access_key_id,
+            aws_secret_access_key= s3_secret_access_key,
+            region_name= dedupe_s3_region
+        )
+        copyresponse = client.copy_object(
+            CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
+            Bucket=filepath.split("/")[3], # Destination bucket
+            Key= "/".join(filepath.split("/")[4:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
+        )
+        uploadresponse = requests.put(
+            filepath,
+            data= flattened_buffer.getvalue(), #buffer.getvalue(),
+            auth=auth
+        )
+        uploadresponse.raise_for_status()
+    return pagecount
+
+def __flattenfitz(docbytesarr):
+    doc = fitz.open(stream=BytesIO(docbytesarr))
+    out = fitz.open()  # output PDF
+    for page in doc:
+        w, h = page.rect.br  # page width / height taken from bottom right point coords
+        outpage = out.new_page(width=w, height=h)  # out page has same dimensions
+        pix = page.get_pixmap(dpi=150)  # set desired resolution
+        outpage.insert_image(page.rect, pixmap=pix)
+    # Saving the flattened PDF to a buffer
+    buffer = BytesIO()
+    out.save(buffer, garbage=3, deflate=True)
+    buffer.seek(0)  # Reset the buffer to the beginning
+    return buffer
+
+def __rendercommentsonnewpage(comments,pagecount,writer,parameters):
+    try:
+        comments_pdf = BytesIO()
+        c = canvas.Canvas(comments_pdf, pagesize=letter)
+        font = parameters.get("font")
+        font_size = parameters.get("fontsize")       
+        width = parameters.get("width")
+        height = parameters.get("height")
+        currentpagesize = (width, height)
+        comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
+        for comment_page in comment_pages:
+            text = c.beginText(40, 750)
+            text.setFont(font, font_size)
+            for line in comment_page:
+                text.textLine(line)
+            c.setPageSize(currentpagesize)
+            c.drawText(text)
+            c.showPage()
+            pagecount += 1
+        c.save()
+        comments_pdf.seek(0)
+        comments_pdf_reader = PyPDF2.PdfReader(comments_pdf)
+        writer.add_page(comments_pdf_reader.pages[0])  # Add comments as a new page
+        return pagecount,writer
+    except Exception as e:
+        print(f"Error in rendering comments on new page in pdf: {e}")
+
+def createpagesforcomments(page, page_num, writer, reader2, pagecount):
+    # Check if the page contains annotations
+    if "/Annots" in page:
+        comments = []
+        annotations = page["/Annots"]
+        # Create a new PDF overlay with reportlab to draw annotation content
+        annotation_overlay = BytesIO()
+        c = canvas.Canvas(annotation_overlay, pagesize=letter)
+        pagenum=page_num + 1
+        for annot in annotations:
+            annotation_obj = annot.get_object()
+            subtype = annotation_obj["/Subtype"]
+            #print("\nAnnotation Object:", annotation_obj)
+            #Flatten comments - collect all the annots
+            if subtype == "/Text" and "/Contents" in annotation_obj:
+                comment = annotation_obj["/Contents"]
+                comments.append({
+                    'page': pagenum,#page_num + 1,
+                    'text': comment
+                })
+        # Finalize annotation overlay for the page
+        c.save()
+        annotation_overlay.seek(0)
+        # Merge the overlay (annotations rendered as static) onto the original PDF page
+        overlay_pdf = PyPDF2.PdfReader(annotation_overlay)
+        if len(overlay_pdf.pages) > 0:
+            overlay_page = overlay_pdf.pages[0]
+            page.merge_page(overlay_page)
+        writer.add_page(page)
+        if comments:
+            try:
+                parameters = get_page_properties(reader2, page_num)
+                # If there are comments, create an additional page for them
+                pagecount,writer=__rendercommentsonnewpage(comments,pagecount,writer,parameters)
+            except Exception as e:
+                print(f"Error in rendering comments on new page in pdf: {e}")
+    else:
+        writer.add_page(page)
+    return pagecount, writer
 
 def gets3documenthashcode(producermessage):
     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
@@ -173,9 +376,14 @@ def gets3documenthashcode(producermessage):
                         "Content-Type": "application/json",
                     }
                 )
-                saveresponse.raise_for_status()
+                saveresponse.raise_for_status()   
         fitz_reader.close()
-        
+        # clear metadata
+        try:
+            pagecount= _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth)
+        except Exception as e:
+            print(f"Exception while clearing metadata/flattening: {e}")
+               
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(
@@ -193,3 +401,22 @@ def gets3documenthashcode(producermessage):
         sig.update(line)
 
     return (sig.hexdigest(), pagecount)
+
+
+def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
+    """Getting parameters of previous page for new page"""
+    width = original_pdf.pages[pagenum].mediabox.width  
+    height = original_pdf.pages[pagenum].mediabox.height
+    if height < 450:
+        fontsize=10
+    else:
+        fontsize=12
+    return {
+        "width": width,
+        "height": height,
+        "fontsize": fontsize,
+        "font": font,
+        "numberofpages": len(original_pdf.pages),
+    }
+
+

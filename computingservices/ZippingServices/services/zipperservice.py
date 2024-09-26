@@ -16,6 +16,7 @@ import json
 import traceback
 import PyPDF2
 
+
 def processmessage(message):
     try:
         s3credentials = getcredentialsbybcgovcode(message.bcgovcode)
@@ -143,6 +144,22 @@ def __zipfilesandupload(_message, s3credentials):
         raise
     finally:
         zipped_bytes = None
+
+def __removesensitivecontent(documentbytes):
+    # clear metadata
+    reader2 = PyPDF2.PdfReader(BytesIO(documentbytes))
+    # Check if metadata exists.
+    if reader2.metadata is not None:
+        # Create a new PDF file without metadata.
+        writer = PyPDF2.PdfWriter()
+        # Copy pages from the original PDF to the new PDF.
+        for page_num in range(len(reader2.pages)):
+            page = reader2.pages[page_num]                
+            writer.add_page(page)        
+        #writer.remove_links() # to remove comments.
+        buffer = BytesIO()
+        writer.write(buffer)
+        return buffer.getvalue()
 
 
 def __getzipfilepath(foldername, filename):

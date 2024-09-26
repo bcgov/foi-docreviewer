@@ -84,6 +84,7 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
+    const alpha = 0.6;
 
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
@@ -98,6 +99,7 @@ const Redlining = React.forwardRef(
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+    const requestType = useAppSelector((state) => state.documents?.requestinfo?.requesttype);
     const viewer = useRef(null);
     const [documentList, setDocumentList] = useState([]);
     
@@ -862,7 +864,7 @@ const Redlining = React.forwardRef(
                       docversion: displayedDoc.docversion,
                       isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete");
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags);
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -929,7 +931,7 @@ const Redlining = React.forwardRef(
               let individualPageNo;
 
               await removeRedactAnnotationDocContent(annotations);
-
+              
               if (annotations[0].Subject === "Redact") {
                 let pageSelectionList = [...pageSelections];
                 annots[0].children?.forEach((annotatn, i) => {
@@ -995,6 +997,7 @@ const Redlining = React.forwardRef(
                     `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
+                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, alpha);
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -1025,7 +1028,7 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add");
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags);
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -1426,6 +1429,9 @@ const Redlining = React.forwardRef(
       let username = docViewer?.getAnnotationManager()?.getCurrentUser();
       for (const entry in annotData) {
         let xml = parser.parseFromString(annotData[entry]);
+        // import redactions first, free text later, so translucent redaction won't cover free text
+        let xmlAnnotsChildren_redaction = [];
+        let xmlAnnotsChildren_others = [];
         for (let annot of xml.getElementsByTagName("annots")[0].children) {
           let txt = domParser.parseFromString(
             annot.getElementsByTagName("trn-custom-data")[0].attributes.bytes,
@@ -1439,6 +1445,12 @@ const Redlining = React.forwardRef(
               (p) => p.pageNo - 1 === Number(originalPageNo)
             )?.stitchedPageNo - 1
           )?.toString();
+          if(annot.attributes.subject === "Redact") {
+            xmlAnnotsChildren_redaction.push(annot);
+          } else {
+            xmlAnnotsChildren_others.push(annot);
+          }
+          xml.getElementsByTagName("annots")[0].children = [...xmlAnnotsChildren_redaction, ...xmlAnnotsChildren_others];
         }
         xml = parser.toString(xml);
         const _annotations = await annotManager.importAnnotations(xml);
@@ -1447,6 +1459,7 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
+            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, alpha);
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
@@ -1603,7 +1616,7 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
+        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -1784,7 +1797,7 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit");
+              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -2218,7 +2231,8 @@ const Redlining = React.forwardRef(
             docInstance,
             documentList,
             pageMappedDocs,
-            pageFlags
+            pageFlags,
+            requestType
           );
           break;
         default:
