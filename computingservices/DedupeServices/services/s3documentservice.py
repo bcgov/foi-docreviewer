@@ -29,35 +29,20 @@ from utils import (
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
-from reportlab.lib import colors
-from reportlab.lib.colors import Color
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib import utils
+from reportlab.lib.pagesizes import letter
 import os
-import textwrap
-from PyPDF2.generic import ArrayObject, NameObject, TextStringObject, DictionaryObject, NumberObject, FloatObject
 
 # Get the directory of the current Python file (inside the 'service' folder)
 service_folder_path = os.path.dirname(os.path.abspath(__file__))
-
 # Navigate to the parent directory (common folder)
 common_folder_path = os.path.dirname(service_folder_path)
-
-# Construct the path to the 'utils' folder
+# Construct the path to the 'utils' folder & get the path to the 'BCSans-Bold.ttf' font file inside the 'utils' folder
 utils_folder_path = os.path.join(common_folder_path, "utils")
-
-# Now get the path to the 'BCSans-Bold.ttf' font file inside the 'utils' folder
 font_path = os.path.join(utils_folder_path, "fonts", "BCSans-Regular_2f.ttf")
-
-print(f"Font path: {font_path}")
-
 pdfmetrics.registerFont(TTFont('BC-Sans', font_path))
-textcolor=colors.HexColor("#38598A")
-aw, ah = A4
-lw, lh = letter
+
 
 def __getcredentialsbybcgovcode(bcgovcode):
     _conn = getdbconnection()
@@ -181,13 +166,11 @@ def wrap_text(text, width, font, font_size, canvas):
                             wrapped_lines.append(word[:i - 1])  # Add the part that fits
                             word = word[i - 1:]  # Remaining part of the word
                             break
-
                 # Add the remaining part of the word to the line
                 line = word + " "
     # Append the last line
     if line:
         wrapped_lines.append(line)
-    print("\nwrapped_lines:",wrapped_lines)
     return wrapped_lines
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth):
@@ -230,7 +213,6 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
             auth=auth
         )
         uploadresponse.raise_for_status()
-
     return pagecount
 
 def __flattenfitz(docbytesarr):
@@ -241,180 +223,11 @@ def __flattenfitz(docbytesarr):
         outpage = out.new_page(width=w, height=h)  # out page has same dimensions
         pix = page.get_pixmap(dpi=150)  # set desired resolution
         outpage.insert_image(page.rect, pixmap=pix)
-
     # Saving the flattened PDF to a buffer
     buffer = BytesIO()
     out.save(buffer, garbage=3, deflate=True)
     buffer.seek(0)  # Reset the buffer to the beginning
     return buffer
-
-def __renderannotationsascontent(annotation_obj, subtype, c, updated_annotations):
-    if subtype in ["/Highlight", "/Squiggly"]:
-        rect = annotation_obj[NameObject("/Rect")]
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        # Extract the highlight color from the /C key
-        if "/C" in annotation_obj:
-            highlight_color = annotation_obj.get("/C", [1, 1, 0])
-            r, g, b = [float(c) for c in highlight_color]
-            # Normalize RGB values if needed
-            r = min(max(r, 0), 1)
-            g = min(max(g, 0), 1)
-            b = min(max(b, 0), 1)
-        # Extract the opacity (if available)
-        if "/CA" in annotation_obj:
-            opacity = float(annotation_obj.get("/CA", 1.0))  # Opacity value
-            c.setFillAlpha(opacity)  # Set transparency
-        # Use setFillAlpha to apply the opacity
-        c.setFillColor(Color(r, g, b))  
-        c.rect(x1, y1, x2 - x1, y2 - y1, stroke=0, fill=1)   
-    elif subtype == "/FreeText":
-        rect = annotation_obj[NameObject("/Rect")]
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        # Check if it's a callout annotation (look for the /IT and /L properties)
-        if "/IT" in annotation_obj and annotation_obj[NameObject("/IT")] == "/FreeTextCallout":
-            # Draw the leader line (usually stored in /L)
-            if "/L" in annotation_obj:
-                leader_line = annotation_obj[NameObject("/L")]
-                lx1, ly1, lx2, ly2 = [float(coord) for coord in leader_line]
-
-                # Draw the leader line
-                c.setStrokeColor(Color(1, 0, 0))  # Set the color for the callout leader line
-                c.setLineWidth(1.5)
-                c.line(lx1, ly1, lx2, ly2)  # Draw the line from start to end points
-
-            # Draw the text inside the box defined by /Rect
-            c.setFillColor(Color(0, 0, 0))  # Set the color for the text (black)
-            c.setFont("Helvetica", 10)
-            c.drawString(x1 + 5, y2 - 10, annotation_obj.get("/Contents", ""))  # Adjust text placement
-
-            # Draw the callout box
-            c.setStrokeColor(Color(1, 0, 0))  # Set stroke color for the box (red)
-            c.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)  # Draw rectangle around the text
-
-        # For generic /FreeText (non-callout) annotations
-        else:
-            c.setFillColor(Color(0, 0, 0))  # Set the color for the text (black)
-            c.setFont("Helvetica", 10)
-            c.drawString(x1 + 5, y2 - 10, annotation_obj.get("/Contents", ""))  # Draw the text
-
-
-    # elif subtype == "/StrikeOut":
-    #     rect = annotation_obj[NameObject("/Rect")]
-    #     if len(rect) == 4:
-    #         x1, y1, x2, y2 = [float(coord) for coord in rect]
-    #         c.setStrokeColor(Color(1, 0, 0))  # Default red color
-    #         c.setLineWidth(2)
-    #         c.line(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2)
-     
-    elif subtype in ["/Underline", "/StrikeOut"]:
-        # Handle Underline Annotations
-        rect = annotation_obj.get("/Rect", [0, 0, 0, 0])
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        c.setLineWidth(1)
-        color = annotation_obj.get("/C", [1, 1, 0])
-        r, g, b = [float(c) for c in color]
-        c.setStrokeColor(Color(r, g, b))
-        c.line(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2)
-        #c.line(x1, y1 - 2, x2, y1 - 2)  # Draw a line just below the text position
-
-    elif subtype in ["/Square"] and "/C" in annotation_obj:
-        # Handle Sticky Note Annotations (often drawn as squares with color)
-        rect = annotation_obj.get("/Rect", [0, 0, 0, 0])
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        sticky_note_color = annotation_obj.get("/C", [1, 1, 0])
-        r, g, b = [float(c) for c in sticky_note_color]
-        c.setFillColor(Color(r, g, b))
-        c.rect(x1, y1, x2 - x1, y2 - y1, fill=1, stroke=0)
-
-    elif subtype == "/Circle":
-        rect = annotation_obj[NameObject("/Rect")]
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        radius_x = (x2 - x1) / 2
-        radius_y = (y2 - y1) / 2
-        # Extract the border color from the /C key (defaults to black if /C is missing)
-        if "/C" in annotation_obj:
-            border_color = annotation_obj[NameObject("/C")]
-            r, g, b = [float(c) for c in border_color]  # Extract RGB values
-        c.setStrokeColor(Color(r, g, b))
-        c.setLineWidth(2)
-        c.ellipse(x1, y1, x2, y2, stroke=1, fill=0) 
-
-    # Caret Annotations (insertion caret)
-    elif subtype == "/Caret":
-        rect = annotation_obj[NameObject("/Rect")]
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-        color = annotation_obj.get("/C", [1, 1, 0])
-        r, g, b = [float(c) for c in color]
-        c.setStrokeColor(Color(r, g, b))
-        c.line(x1, y1, x2, y2)  # Draw caret (insertion point)
-    # Stamp Annotations (visual stamp)
-    elif subtype == "/Stamp":
-        rect = annotation_obj[NameObject("/Rect")]
-        x1, y1, x2, y2 = [float(coord) for coord in rect]
-
-        # Try drawing at the top of the rectangle, slightly above
-        stamp_name = annotation_obj.get("/Name", "Stamp")
-
-        # Debugging: Print stamp name and coordinates
-        print(f"Stamp Name: {stamp_name}")
-        print(f"x1: {x1}, y2 + 10: {y2 + 10}")
-
-        # Set font (fallback to Helvetica if BC-Sans is not registered)
-        try:
-            c.setFont("BC-Sans", 12)
-        except:
-            c.setFont("Helvetica", 12)  # Fallback if BC-Sans is not available
-
-        # Draw the stamp name
-        c.drawString(x1, y2 + 10, f"[Stamp: {stamp_name}]")
-
-
-    elif subtype == "/Ink" and "/InkList" in annotation_obj:
-        # Handle Ink Annotations
-        inklist = annotation_obj.get("/InkList", [])
-        # Create a Path object for the ink strokes
-        path = c.beginPath()
-        color = annotation_obj.get("/C", [1, 1, 0])
-        r, g, b = [float(c) for c in color]
-        c.setStrokeColor(Color(r,g,b))
-        c.setLineWidth(2)
-        # Use Bezier curves to smooth the ink paths
-        for stroke in inklist:
-            points = list(map(float, stroke))
-            if len(points) >= 4:
-                path.moveTo(points[0], points[1])  # Move to the first point
-                for i in range(2, len(points) - 2, 2):
-                    # Draw a smooth curve using Bezier
-                    x0, y0 = points[i], points[i + 1]
-                    x1, y1 = points[i + 2], points[i + 3]
-                    path.curveTo(x0, y0, x0, y0, x1, y1)
-            else:
-                path.moveTo(points[0], points[1])  # Start point
-                for i in range(2, len(points), 2):
-                    path.lineTo(points[i], points[i + 1])  # Connect the points
-        c.drawPath(path, stroke=1)
-    elif subtype in ["/Polygon", "/PolyLine"]:
-        path = c.beginPath()
-        c.setLineWidth(2)
-        if "/C" in annotation_obj:
-            line_color = annotation_obj[NameObject("/C")]
-            r, g, b = [float(c) for c in line_color]
-        else:
-            r, g, b = 0, 0, 0  # Default black
-        c.setStrokeColor(Color(r, g, b))
-        vertices = annotation_obj[NameObject("/Vertices")]
-        path.moveTo(vertices[0], vertices[1])
-        for i in range(2, len(vertices), 2):
-            path.lineTo(vertices[i], vertices[i + 1])
-        if subtype == "/Polygon":
-            path.lineTo(vertices[0], vertices[1])  # Close the polygon
-        c.drawPath(path, stroke=1)
-
-
-    if subtype != "/Widget":
-        annotation_obj = DictionaryObject()
-    updated_annotations.append(annotation_obj)
-    return updated_annotations, c
 
 def __rendercommentsonnewpage(comments,pagecount,writer,parameters):
     try:
@@ -455,7 +268,7 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount):
         for annot in annotations:
             annotation_obj = annot.get_object()
             subtype = annotation_obj["/Subtype"]
-            print("\nAnnotation Object:", annotation_obj)
+            #print("\nAnnotation Object:", annotation_obj)
             #Flatten comments - collect all the annots
             if subtype == "/Text" and "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
@@ -591,7 +404,7 @@ def gets3documenthashcode(producermessage):
 
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
-    """Setting parameters for numbering"""
+    """Getting parameters of previous page for new page"""
     width = original_pdf.pages[pagenum].mediabox.width  
     height = original_pdf.pages[pagenum].mediabox.height
     if height < 450:
@@ -606,153 +419,4 @@ def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
         "numberofpages": len(original_pdf.pages),
     }
 
-def get_original_pdf_page_details(original_pdf):
-    width_of_pages = []
-    height_of_pages = []
-    fontsize = []
-    
-    for index in range(len(original_pdf.pages)):
-        width = original_pdf.pages[index].mediabox.width  
-        height = original_pdf.pages[index].mediabox.height
-        width_of_pages.append(width)        
-        height_of_pages.append(height)
-        if height < 450:
-            fontsize.append(10)
-        else:
-            fontsize.append(12)
 
-    return width_of_pages, height_of_pages, fontsize
-
-
-
-# def gets3documenthashcode(producermessage):
-#     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
-#     s3_access_key_id = s3credentials.s3accesskey
-#     s3_secret_access_key = s3credentials.s3secretkey
-#     auth = AWSRequestsAuth(
-#         aws_access_key=s3_access_key_id,
-#         aws_secret_access_key=s3_secret_access_key,
-#         aws_host=dedupe_s3_host,
-#         aws_region=dedupe_s3_region,
-#         aws_service=dedupe_s3_service,
-#     )
-
-#     pagecount = 1
-#     _filename, extension = path.splitext(producermessage.filename)
-#     filepath = producermessage.s3filepath
-#     producermessage.attributes = json.loads(producermessage.attributes)
-#     if extension.lower() not in [".pdf"] and not (
-#         producermessage.attributes.get("isattachment", False)
-#         and producermessage.trigger == "recordreplace"
-#     ):
-#         filepath = path.splitext(filepath)[0] + extension
-#     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
-#     reader = None
-
-#     if extension.lower() in [".pdf"] or (
-#         producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
-#         ):
-#         reader = PdfReader(BytesIO(response.content))
-        
-#         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
-#         pagecount = len(reader.pages)
-#         attachments = []
-#         if reader.attachments:
-#             if "/Collection" in reader.trailer["/Root"]:
-#                 producermessage.attributes["isportfolio"] = True
-#             else:
-#                 # Placeholder logic to handle pdf attachments+embedds. Once resources available to revise feature, and extract attachments + embedds into one new parent PDF, this error handling will be removed.
-#                 raise Exception("PDF contains attachments and/or embedded files. File must be manually fixed and replaced")
-            
-#                 # Old logic to extract attached files. Uncomment when new feature to save pdf embedds + attachemnts as one file is started.
-#                 # producermessage.attributes["hasattachment"] = True
-#             for name in reader.attachments:
-#                 s3uripath = (
-#                     path.splitext(filepath)[0]
-#                     + "/"
-#                     + "{0}{1}".format(uuid.uuid4(), path.splitext(name)[1])
-#                 )
-#                 data = b"".join(reader.attachments[name])
-#                 uploadresponse = requests.put(s3uripath, data=data, auth=auth)
-#                 uploadresponse.raise_for_status()
-#                 attachment = _prepareattachment(producermessage, data, s3uripath, name)
-#                 attachments.append(attachment)
-#             saveresponse = requests.post(
-#                 request_management_api
-#                 + "/api/foirecord/-1/ministryrequest/"
-#                 + producermessage.ministryrequestid,
-#                 data=json.dumps({"records": attachments}),
-#                 headers={
-#                     "Authorization": producermessage.usertoken,
-#                     "Content-Type": "application/json",
-#                 },
-#             )
-#             saveresponse.raise_for_status()
-
-#         # New logic to extract embedded file attachments (classified under annotations in the PDF) from pages in PDF
-#         # Before looping of pdf pages started; confirm if annotations exist in the pdf using pyMuPdf library (fitz)
-#         fitz_reader = fitz.open(stream=BytesIO(response.content), filetype="pdf")
-#         if (fitz_reader.has_annots()):
-#             file_attachments = _generate_file_attachments(producermessage, reader, auth)
-#             if (len(file_attachments) > 0):
-#                 saveresponse = requests.post(
-#                     request_management_api
-#                     + "/api/foirecord/-1/ministryrequest/"
-#                     + producermessage.ministryrequestid,
-#                     data=json.dumps({"records": file_attachments}),
-#                     headers={
-#                         "Authorization": producermessage.usertoken,
-#                         "Content-Type": "application/json",
-#                     }
-#                 )
-#                 saveresponse.raise_for_status()        
-#         fitz_reader.close()
-        
-#         # clear metadata
-#         reader2 = PyPDF2.PdfReader(BytesIO(response.content))
-#         # Check if metadata exists.
-#         if reader2.metadata is not None:
-#             # Create a new PDF file without metadata.
-#             writer = PyPDF2.PdfWriter()
-#             # Copy pages from the original PDF to the new PDF.
-#             for page_num in range(len(reader.pages)):
-#                 page = reader2.pages[page_num]                
-#                 writer.add_page(page)        
-#             #writer.remove_links() # to remove comments.
-#             buffer = BytesIO()
-#             writer.write(buffer)
-#             client = boto3.client('s3',config=Config(signature_version='s3v4'),
-#                 endpoint_url='https://{0}/'.format(dedupe_s3_host),
-#                 aws_access_key_id= s3_access_key_id,
-#                 aws_secret_access_key= s3_secret_access_key,
-#                 region_name= dedupe_s3_region
-#             )
-#             copyresponse = client.copy_object(
-#                 CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
-#                 Bucket=filepath.split("/")[3], # Destination bucket
-#                 Key= "/".join(filepath.split("/")[4:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
-#             )
-#             uploadresponse = requests.put(
-#                 filepath,
-#                 data=buffer.getvalue(),
-#                 auth=auth
-#             )
-#             uploadresponse.raise_for_status()
-
-#     elif extension.lower() in file_conversion_types:
-#         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
-#         pdfresponseofconverted = requests.get(
-#             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
-#         )
-#         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
-#         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
-#         pagecount = len(reader.pages)
-
-#     if reader:
-#         BytesIO().close()
-#         reader.stream.close()
-#     sig = hashlib.sha1()
-#     for line in response.iter_lines():
-#         sig.update(line)
-
-#     return (sig.hexdigest(), pagecount)
