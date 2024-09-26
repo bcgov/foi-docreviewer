@@ -33,7 +33,11 @@ const useSaveResponsePackage = () => {
 
         let _docmain = _docViwer.getDocument();
         doc = await _docmain.getPDFDoc();
-
+        
+        let docinfo = await doc.getDocInfo();
+        docinfo.setTitle(requestnumber + ".pdf");
+        docinfo.setAuthor("");
+        
         // Run PDFNet methods with memory management
         await PDFNet.runWithCleanup(async () => {
           // lock the document before a write operation
@@ -128,12 +132,12 @@ const useSaveResponsePackage = () => {
   //   return { sorteddocuments: sorteddocids, pkgdocuments: summarylist };
   // };
 
-  const prepareresponseredlinesummarylist = (documentlist, bcgovcode) => {
+  const prepareresponseredlinesummarylist = (documentlist, bcgovcode, requestType) => {
     let summarylist = [];
     let alldocuments = [];
     console.log("\ndocumentlist:", documentlist);
     let sorteddocids = [];
-    if (bcgovcode?.toLowerCase() === 'mcf') {
+    if (bcgovcode?.toLowerCase() === 'mcf' && requestType == "personal") {
       let labelGroups = {};
       let alldocids = [];
   
@@ -212,7 +216,8 @@ const useSaveResponsePackage = () => {
     _instance,
     documentList,
     pageMappedDocs,
-    pageFlags
+    pageFlags,
+    requestType
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
@@ -223,6 +228,7 @@ const useSaveResponsePackage = () => {
       bcgovcode: "",
       summarydocuments: {} ,
       redactionlayerid: currentLayer.redactionlayerid,
+      requesttype: requestType
     };
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
@@ -231,7 +237,7 @@ const useSaveResponsePackage = () => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
-        zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode)
+        zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode, requestType)
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
@@ -261,6 +267,15 @@ const useSaveResponsePackage = () => {
         }   
         const { PDFNet } = _instance.Core;
         PDFNet.initialize();
+        
+        // remove bookmarks
+        var pdfdoc = await doc.getPDFDoc()
+        var bookmark = await pdfdoc.getFirstBookmark();
+        while (bookmark && await bookmark.isValid()) {
+          bookmark.delete();
+          bookmark = await pdfdoc.getFirstBookmark();
+        }
+        
         await stampPageNumberResponse(documentViewer, PDFNet);
         toast.update(toastID, {
           render: "Saving section stamps...",
@@ -291,6 +306,7 @@ const useSaveResponsePackage = () => {
           annotationList: filteredAnnotations,
           widgets: true,
         });
+
         /** apply redaction and save to s3 - xfdfString is needed to display
          * the freetext(section name) on downloaded file.*/
         doc
@@ -360,8 +376,8 @@ const useSaveResponsePackage = () => {
   };
   const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
-    setEnableSavingFinal(true)
-    //setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
+    //setEnableSavingFinal(true)
+    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("final_package").disabled =

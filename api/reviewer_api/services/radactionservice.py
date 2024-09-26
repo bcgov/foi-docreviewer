@@ -145,7 +145,8 @@ class redactionservice:
             "finaloutput": to_json(""),
             "attributes": to_json(messageschema["attributes"]),
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
-            "redactionlayerid": json.dumps(messageschema["redactionlayerid"])
+            "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
+            "requesttype": messageschema["requesttype"],
         }
         return _message
 
