@@ -264,7 +264,12 @@ const useSaveResponsePackage = () => {
         /**must apply redactions before removing pages*/
         if (pagesToRemove.length > 0) {
           await doc.removePages(pagesToRemove);
-        }   
+        }      
+        doc.setWatermark({          
+          diagonal: {
+            text: ''
+          }
+        })
         const { PDFNet } = _instance.Core;
         PDFNet.initialize();
         
