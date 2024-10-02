@@ -96,7 +96,7 @@ export const fetchAnnotationsByPagination = (
       }
     })
     .catch((error:any) => {
-    errorToast("Error in fetching annotations for a document).", {autoClose: false});
+    errorToast("Error in fetching annotations for a document.", {autoClose: false});
       errorCallback("Error in fetching annotations for a document");
     });
 };
