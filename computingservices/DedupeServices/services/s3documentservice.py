@@ -180,9 +180,10 @@ def wrap_text(text, width, font, font_size, canvas):
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
     print("#Inside _clearmetadata!")
     # clear metadata
-    reader2 = PyPDF2.PdfReader(BytesIO(response.content))    
+    reader2 = PyPDF2.PdfReader(BytesIO(response.content)) 
+    _hasannotations = has_annotations(reader)   
     # Check if metadata exists.
-    if reader2.metadata is not None:
+    if reader2.metadata is not None or _hasannotations:
         print("\n#MEtadata!")
         # Create a new PDF file without metadata.
         writer = PyPDF2.PdfWriter()
@@ -198,7 +199,10 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
         writer.write(buffer)
         try:
             # Now, flatten the PDF content using the __flattenfitz function
-            flattened_buffer = __flattenfitz(buffer.getvalue())
+            if _hasannotations:
+                flattened_buffer = __flattenfitz(buffer.getvalue())
+            else:
+                flattened_buffer = buffer
         except Exception as e:
             print(f"Error in flatenning pdf: {e}")
 
@@ -278,12 +282,10 @@ def __flattenfitz(docbytesarr):
                 if annot.type[0] == 8:  # Highlight annotations
                     # Create a slightly larger rect to ensure the highlight covers the text
                     #print(f'x0={annot_rect.x0}, y0={annot_rect.y0} , x1={annot_rect.x}, y1={annot_rect.y1}')
-                    print("Ann:",annot_rect.x0)
                     expanded_rect = fitz.Rect(
                         annot_rect.x0 - 1, annot_rect.y0 - 1, 
                         annot_rect.x1 + 1, annot_rect.y1 + 1
-                    )
-                    
+                    ) 
                     # Render the annotation (highlight) as an image
                     annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)                  
                     # Burn the annotation (highlight) into the page with adjusted rect
@@ -355,6 +357,16 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
         return pagecount,writer
     except Exception as e:
         print(f"Error in rendering comments on new page in pdf: {e}")
+
+def has_annotations(reader):
+    """
+    Check if the PDF has any annotations.
+    """
+    for page_num in range(len(reader.pages)):
+        page = reader.pages[page_num]
+        if "/Annots" in page:
+            return True
+    return False
 
 def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
     # Check if the page contains annotations
