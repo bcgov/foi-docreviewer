@@ -28,7 +28,6 @@ from utils import (
     dedupe_s3_env,
     request_management_api,
     file_conversion_types,
-    pstformat
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -36,6 +35,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 import os
+from decimal import Decimal
 
 # Get the directory of the current Python file (inside the 'service' folder)
 service_folder_path = os.path.dirname(os.path.abspath(__file__))
@@ -117,65 +117,73 @@ def _generate_file_attachments(producermessage, reader, auth):
 
 # New function to split comments into pages
 def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
-    pages = []
-    current_page = []
-    for comment in comments:
-        print("\n Each comment:",comment)
-        if 'text' in comment:
-            comment_text = f"{comment['text']}"
-            #comment_text = f"Page {comment['page']}: {comment['text']}\n"
-            # Wrap the text to fit within the page width
-            wrapped_lines = wrap_text(comment_text, width=500, font=font, font_size=font_size, canvas=canvas)
-            for line in wrapped_lines:
-                current_page.append({'pageno': comment['page'], 'text':line, 'commentnumber':comment['commentnumbypage'],
-                                     'author':comment['author'], 'subject':comment['subject'], 'creationdate':comment['creationdate']})
-                if len(current_page) >= lines_per_page:
-                    pages.append(current_page)
-                    current_page = []   
-    if current_page:  # Add any remaining comments to the last page
-        pages.append(current_page)    
-    print("pages-split_comments_to_pages:",pages)
-    return pages
+    
+    try:
+        pages = []
+        current_page = []
+        for comment in comments:
+            print("\n Each comment:",comment)
+            if 'text' in comment:
+                comment_text = f"{comment['text']}"
+                #comment_text = f"Page {comment['page']}: {comment['text']}\n"
+                # Wrap the text to fit within the page width
+                wrapped_lines = wrap_text(comment_text, width=500, font=font, font_size=font_size, canvas=canvas)
+                for line in wrapped_lines:
+                    current_page.append({'pageno': comment['page'], 'text':line, 'commentnumber':comment['commentnumbypage'],
+                                        'author':comment['author'], 'subject':comment['subject'], 'creationdate':comment['creationdate']})
+                    if len(current_page) >= lines_per_page:
+                        pages.append(current_page)
+                        current_page = []   
+        if current_page:  # Add any remaining comments to the last page
+            pages.append(current_page)    
+        print("pages-split_comments_to_pages:",pages)
+        return pages
+    except Exception as e:
+        print(f"Error in splitting comments by pages: {e}")
+
 
 
 def wrap_text(text, width, font, font_size, canvas):
     """
     This function wraps text into lines based on the available width.
     """
-    wrapped_lines = []
-    line = ""    
-    text_width = canvas.stringWidth(text, font, font_size)
-    if text_width <= width:
-        line = text
-    else:
-        words = text.split(" ")
-        for word in words:
-            # Check the width of the line with the current word
-            line_width = canvas.stringWidth(line + word + " ", font, font_size)
-            if line_width <= width:
-                line += word + " "
-            else:
-                #If the word doesn't fit, append the current line and start a new one
-                if line:
-                    print("line::",line)
-                    wrapped_lines.append(line)  # Append current line
-                line = ""  # Reset line
-                # Handle long words that need to be broken up
-                while canvas.stringWidth(word, font, font_size) > width:
-                    # Find the largest part of the word that fits within the width
-                    for i in range(1, len(word) + 1):
-                        part = word[:i]
-                        if canvas.stringWidth(part, font, font_size) > width:
-                            # Append the part that fits and continue with the remaining part
-                            wrapped_lines.append(word[:i - 1])  # Add the part that fits
-                            word = word[i - 1:]  # Remaining part of the word
-                            break
-                # Add the remaining part of the word to the line
-                line = word + " "
-    # Append the last line
-    if line:
-        wrapped_lines.append(line)
-    return wrapped_lines
+    try:
+        wrapped_lines = []
+        line = ""    
+        text_width = canvas.stringWidth(text, font, font_size)
+        if text_width <= width:
+            line = text
+        else:
+            words = text.split(" ")
+            for word in words:
+                # Check the width of the line with the current word
+                line_width = canvas.stringWidth(line + word + " ", font, font_size)
+                if line_width <= width:
+                    line += word + " "
+                else:
+                    #If the word doesn't fit, append the current line and start a new one
+                    if line:
+                        print("line::",line)
+                        wrapped_lines.append(line)  # Append current line
+                    line = ""  # Reset line
+                    # Handle long words that need to be broken up
+                    while canvas.stringWidth(word, font, font_size) > width:
+                        # Find the largest part of the word that fits within the width
+                        for i in range(1, len(word) + 1):
+                            part = word[:i]
+                            if canvas.stringWidth(part, font, font_size) > width:
+                                # Append the part that fits and continue with the remaining part
+                                wrapped_lines.append(word[:i - 1])  # Add the part that fits
+                                word = word[i - 1:]  # Remaining part of the word
+                                break
+                    # Add the remaining part of the word to the line
+                    line = word + " "
+        # Append the last line
+        if line:
+            wrapped_lines.append(line)
+        return wrapped_lines
+    except Exception as e:
+        print(f"Error in wrapping the text comments in each page: {e}")
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
     print("#Inside _clearmetadata!")
@@ -197,12 +205,11 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
                 print(f"Error in creating new page with comment annotations: {e}")
         buffer = BytesIO()
         writer.write(buffer)
+        flattened_buffer = buffer
         try:
             # Now, flatten the PDF content using the __flattenfitz function
             if _hasannotations:
                 flattened_buffer = __flattenfitz(buffer.getvalue())
-            else:
-                flattened_buffer = buffer
         except Exception as e:
             print(f"Error in flatenning pdf: {e}")
 
@@ -313,19 +320,30 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
         title_font_size = parameters.get("title_fontsize", font_size + 4)    
         width = parameters.get("width")
         height = parameters.get("height")
+        rotation= parameters.get("rotation")
+        print("rotation:",rotation)
+        #set standard A4 size for new page if page have rotation
+        if rotation not in [0, 360]:
+            width=612
+            height=792
         currentpagesize = (width, height)
+        print("\ncurrentpagesize:",currentpagesize)
+        title_height=height-40
         comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
         for comment_page in comment_pages:
+            print("\ncomment_page:",comment_page)
             c.setFont(font, title_font_size)
-            c.drawString(40, 780, f"Summary of Comments on {filename}")
+            #c.setFont("Helvetica", 12)
+            c.drawString(40, title_height, f"Summary of Comments on {filename}")
             # Draw a line left to right under the title
             c.setLineWidth(2)
-            c.line(40, 770, width - 40, 770)
-            c.drawString(40, 750, f"Page: {comment_page[0]['pageno']}")
-            c.line(40, 740, width - 40, 740)
-            text = c.beginText(40, 715)
+            c.line(40, title_height-10, width - 40, title_height-10)
+            c.drawString(40, title_height-25, f"Page: {comment_page[0]['pageno']}")
+            c.line(40, title_height-30, width - 40, title_height-30)
+            text = c.beginText(40, title_height-45)
             text.setFont(font, font_size)
             for line in comment_page:
+                print("\nLine:",line)
                 number = line['commentnumber']
                 text_content = line['text']
                 author = line.get('author', 'N/A') 
@@ -343,10 +361,10 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
                 current_y = text.getY() 
                 line_y = current_y + 10
                 c.setLineWidth(1)
-                c.line(40, line_y, 550, line_y)
+                c.line(40, line_y, width-45, line_y)
                 text.textLine(text_content)
                 text.textLine('')
-            c.setPageSize(currentpagesize)
+                c.setPageSize(currentpagesize)
             c.drawText(text)
             c.showPage()
             pagecount += 1
@@ -389,7 +407,7 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 subject = annotation_obj["/Subj"]
                 annotationdate=annotation_obj["/CreationDate"]
                 print(f'annotationdate:{annotationdate} , comment:{comment}')
-                creationdate= __converttoutctime(annotationdate) 
+                creationdate= __converttoPST(annotationdate) 
                 comments.append({
                     'page': page_num + 1,
                     'text': comment,
@@ -529,7 +547,6 @@ def gets3documenthashcode(producermessage):
         try:
             filenamewithextension=_filename+extension.lower()
             pagecount= _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filenamewithextension)
-            print("\n#No MEtadata!")
         except Exception as e:
             print(f"Exception while clearing metadata/flattening: {e}")
                
@@ -554,8 +571,9 @@ def gets3documenthashcode(producermessage):
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
     """Getting parameters of previous page for new page"""
-    width = original_pdf.pages[pagenum].mediabox.width  
-    height = original_pdf.pages[pagenum].mediabox.height
+    width = get_dimension_value(original_pdf.pages[pagenum].mediabox.width)  
+    height = get_dimension_value(original_pdf.pages[pagenum].mediabox.height)
+    rotation = original_pdf.pages[pagenum].get("/Rotate")
     fontsize=10
     return {
         "width": width,
@@ -563,31 +581,23 @@ def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
         "fontsize": fontsize,
         "font": font,
         "numberofpages": len(original_pdf.pages),
+        "rotation":rotation
     }
 
-def __converttoutctime(creationdate):
+def get_dimension_value(value):
+    return float(value) if isinstance(value, (Decimal, float)) else value
+
+def __converttoPST(creationdate):
     original_timestamp = creationdate
     # Extract date and time components from the timestamp
     timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
-    timestamp_str = timestamp_str.replace("'", ":")  # Replace single quotes    
+    timestamp_str = timestamp_str.replace("'", ":")    
     if timestamp_str.endswith(":"):
         timestamp_str = timestamp_str[:-1]   
     # Parse the timestamp into a datetime object
-    timestamp_utc = maya.parse(timestamp_str).datetime().astimezone(pytz.UTC)   
-    # Format the UTC time in the desired readable format
+    timestamp_utc = maya.parse(timestamp_str).datetime(to_timezone='America/Vancouver', naive=False) 
     formatted_utc = timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p")  # Adjust format for output
-    return formatted_utc
+    return formatted_utc + " PST"
 
-# def __converttoutctime(creationdate):
-#     original_timestamp = creationdate
-#     # Extract date and time components from the timestamp
-#     timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
-#     timestamp_str = timestamp_str.replace("'", ":")  # Replace single quotes
-#     if timestamp_str.endswith(":"):
-#         timestamp_str = timestamp_str[:-1]
-#     timestamp_utc = maya.parse(timestamp_str).datetime().astimezone(pytz.UTC)
-#     # Format the UTC time in the same format as the original timestamp
-#     formatted_utc = "D:" + timestamp_utc.strftime("%Y/%m/%d %H%M%S")
-#     return formatted_utc
 
 
