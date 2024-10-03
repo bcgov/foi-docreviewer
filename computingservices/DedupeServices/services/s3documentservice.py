@@ -17,6 +17,8 @@ from botocore.config import Config
 from re import sub
 import fitz
 import PyPDF2
+import maya
+import pytz
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -25,7 +27,8 @@ from utils import (
     dedupe_s3_service,
     dedupe_s3_env,
     request_management_api,
-    file_conversion_types
+    file_conversion_types,
+    pstformat
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -124,7 +127,8 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
             # Wrap the text to fit within the page width
             wrapped_lines = wrap_text(comment_text, width=500, font=font, font_size=font_size, canvas=canvas)
             for line in wrapped_lines:
-                current_page.append(line)
+                current_page.append({'pageno': comment['page'], 'text':line, 'commentnumber':comment['commentnumbypage'],
+                                     'author':comment['author'], 'subject':comment['subject'], 'creationdate':comment['creationdate']})
                 if len(current_page) >= lines_per_page:
                     pages.append(current_page)
                     current_page = []   
@@ -173,19 +177,21 @@ def wrap_text(text, width, font, font_size, canvas):
         wrapped_lines.append(line)
     return wrapped_lines
 
-def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth):
+def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
+    print("#Inside _clearmetadata!")
     # clear metadata
-    reader2 = PyPDF2.PdfReader(BytesIO(response.content))
+    reader2 = PyPDF2.PdfReader(BytesIO(response.content))    
     # Check if metadata exists.
     if reader2.metadata is not None:
+        print("\n#MEtadata!")
         # Create a new PDF file without metadata.
         writer = PyPDF2.PdfWriter()
         # Copy pages from the original PDF to the new PDF.
         for page_num in range(len(reader.pages)):
-            page = reader2.pages[page_num]                
+            page = reader2.pages[page_num]   
             try:
                 #Function to get all comments type annotations & copy it to a new page
-                pagecount, writer= createpagesforcomments(page, page_num, writer, reader2, pagecount)
+                pagecount, writer= createpagesforcomments(page, page_num, writer, reader2, pagecount,filename)
             except Exception as e:
                 print(f"Error in creating new page with comment annotations: {e}")
         buffer = BytesIO()
@@ -215,35 +221,129 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
         uploadresponse.raise_for_status()
     return pagecount
 
+
+# def __flattenfitz1(docbytesarr):
+#     doc = fitz.open(stream=BytesIO(docbytesarr))
+#     out = fitz.open()  # output PDF
+#     for page_num in range(len(doc)):
+#         page = doc[page_num]
+#         w, h = page.rect.br  # page width and height
+#         # Create a new page in the output document with the same size
+#         outpage = out.new_page(width=w, height=h)
+#         # Render the page text (keeping it searchable)
+#         outpage.show_pdf_page(page.rect, doc, page_num)
+#         # Manually process each annotation
+#         annot = page.first_annot
+#         while annot:
+#             try:
+#                 annot_rect = annot.rect  # Get the annotation's rectangle
+#                 # Check for invalid annotation dimensions (zero width/height)
+#                 if annot_rect.width <= 0 or annot_rect.height <= 0:
+#                     print(f"Skipping annotation on page {page_num + 1}: Invalid annotation dimensions.")
+#                     annot = annot.next  # Move to the next annotation
+#                     continue  # Skip invalid annotation
+#                 # Render the annotation area as an image and burn it into the page
+#                 annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)  # Render annotation as pixmap
+#                 outpage.insert_image(annot_rect, pixmap=annot_pix)  # Burn annotation into the page
+#             except Exception as e:
+#                 print(f"Error processing annotation on page {page_num + 1}: {e}")
+#             annot = annot.next  # Move to the next annotation
+#     # Saving the flattened PDF to a buffer
+#     buffer = BytesIO()
+#     out.save(buffer, garbage=3, deflate=True)
+#     buffer.seek(0)  # Reset the buffer to the beginning
+#     return buffer
+
 def __flattenfitz(docbytesarr):
     doc = fitz.open(stream=BytesIO(docbytesarr))
     out = fitz.open()  # output PDF
-    for page in doc:
-        w, h = page.rect.br  # page width / height taken from bottom right point coords
-        outpage = out.new_page(width=w, height=h)  # out page has same dimensions
-        pix = page.get_pixmap(dpi=150)  # set desired resolution
-        outpage.insert_image(page.rect, pixmap=pix)
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        w, h = page.rect.br  # page width and height
+        # Create a new page in the output document with the same size
+        outpage = out.new_page(width=w, height=h)
+        # Render the page text (keeping it searchable)
+        outpage.show_pdf_page(page.rect, doc, page_num)
+        # Manually process each annotation
+        annot = page.first_annot
+        while annot:
+            try:
+                annot_rect = annot.rect  # Get the annotation's rectangle
+                # Check for invalid annotation dimensions (zero width/height)
+                if annot_rect.width <= 0 or annot_rect.height <= 0:
+                    print(f"Skipping annotation on page {page_num + 1}: Invalid annotation dimensions.")
+                    annot = annot.next  # Move to the next annots & skip invalid ones
+                    continue
+                # Handle specific case of highlight annotations
+                if annot.type[0] == 8:  # Highlight annotations
+                    # Create a slightly larger rect to ensure the highlight covers the text
+                    #print(f'x0={annot_rect.x0}, y0={annot_rect.y0} , x1={annot_rect.x}, y1={annot_rect.y1}')
+                    print("Ann:",annot_rect.x0)
+                    expanded_rect = fitz.Rect(
+                        annot_rect.x0 - 1, annot_rect.y0 - 1, 
+                        annot_rect.x1 + 1, annot_rect.y1 + 1
+                    )
+                    
+                    # Render the annotation (highlight) as an image
+                    annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)                  
+                    # Burn the annotation (highlight) into the page with adjusted rect
+                    outpage.insert_image(expanded_rect, pixmap=annot_pix)
+                else:
+                    # For other types of annotations, use the original rect
+                    annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)
+                    outpage.insert_image(annot_rect, pixmap=annot_pix)  # Burn annotation
+            except Exception as e:
+                print(f"Error processing annotation on page {page_num + 1}: {e}")
+            annot = annot.next  # Move to the next annotation
     # Saving the flattened PDF to a buffer
     buffer = BytesIO()
     out.save(buffer, garbage=3, deflate=True)
     buffer.seek(0)  # Reset the buffer to the beginning
     return buffer
 
-def __rendercommentsonnewpage(comments,pagecount,writer,parameters):
+
+def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
     try:
         comments_pdf = BytesIO()
         c = canvas.Canvas(comments_pdf, pagesize=letter)
         font = parameters.get("font")
-        font_size = parameters.get("fontsize")       
+        font_size = parameters.get("fontsize")   
+        title_font_size = parameters.get("title_fontsize", font_size + 4)    
         width = parameters.get("width")
         height = parameters.get("height")
         currentpagesize = (width, height)
         comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
         for comment_page in comment_pages:
-            text = c.beginText(40, 750)
+            c.setFont(font, title_font_size)
+            c.drawString(40, 780, f"Summary of Comments on {filename}")
+            # Draw a line left to right under the title
+            c.setLineWidth(2)
+            c.line(40, 770, width - 40, 770)
+            c.drawString(40, 750, f"Page: {comment_page[0]['pageno']}")
+            c.line(40, 740, width - 40, 740)
+            text = c.beginText(40, 715)
             text.setFont(font, font_size)
             for line in comment_page:
-                text.textLine(line)
+                number = line['commentnumber']
+                text_content = line['text']
+                author = line.get('author', 'N/A') 
+                subject= line["subject"]
+                creationdate = line.get('creationdate', 'N/A')
+                # Define fixed widths for the columns
+                number_column_width = 10
+                subject_column_width = 20
+                creationdate_column_width = 10
+                formatted_line = (f"Number: {str(number):<{number_column_width}}"
+                      f"Author: {author:<{number_column_width}}"
+                      f"Subject: {subject:<{subject_column_width}}"
+                      f"Date: {creationdate:<{creationdate_column_width}}")
+                text.textLine(formatted_line)
+                current_y = text.getY() 
+                line_y = current_y + 10
+                c.setLineWidth(1)
+                c.line(40, line_y, 550, line_y)
+                text.textLine(text_content)
+                text.textLine('')
             c.setPageSize(currentpagesize)
             c.drawText(text)
             c.showPage()
@@ -256,26 +356,60 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters):
     except Exception as e:
         print(f"Error in rendering comments on new page in pdf: {e}")
 
-def createpagesforcomments(page, page_num, writer, reader2, pagecount):
+def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
     # Check if the page contains annotations
     if "/Annots" in page:
+        print("Annotations here!!")
         comments = []
         annotations = page["/Annots"]
         # Create a new PDF overlay with reportlab to draw annotation content
         annotation_overlay = BytesIO()
         c = canvas.Canvas(annotation_overlay, pagesize=letter)
-        pagenum=page_num + 1
+        annot_num = 1  # Start numbering annotations
         for annot in annotations:
             annotation_obj = annot.get_object()
-            subtype = annotation_obj["/Subtype"]
-            #print("\nAnnotation Object:", annotation_obj)
-            #Flatten comments - collect all the annots
-            if subtype == "/Text" and "/Contents" in annotation_obj:
+            #subtype = annotation_obj["/Subtype"]
+            print("\nAnnotation Object:", annotation_obj)
+            #Flatten comments - collect all the annots with content
+            if "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
+                author = annotation_obj["/T"]
+                subject = annotation_obj["/Subj"]
+                annotationdate=annotation_obj["/CreationDate"]
+                print(f'annotationdate:{annotationdate} , comment:{comment}')
+                creationdate= __converttoutctime(annotationdate) 
                 comments.append({
-                    'page': pagenum,#page_num + 1,
-                    'text': comment
+                    'page': page_num + 1,
+                    'text': comment,
+                    'commentnumbypage':annot_num,
+                    'author':author,
+                    'subject':subject,
+                    'creationdate':creationdate
                 })
+                if "/Rect" in annotation_obj:
+                    annot_rect = annotation_obj["/Rect"]
+                    # Rectangle coordinates, format: [x1, y1, x2, y2]
+                    number_x = float(annot_rect[2]) + 5  # Slightly to the right of the annotation
+                    number_y = float(annot_rect[3]) - 5  # Slightly above the annotation
+                    # Define the size of the box
+                    box_width = 10 
+                    box_height = 10
+                    # Calculate position of box to centre the number
+                    box_x = number_x - (box_width / 2)  
+                    box_y = number_y - (box_height / 2)
+                    # Draw box around the number
+                    c.rect(box_x, box_y, box_width, box_height, stroke=1, fill=0)
+                    c.setFont("BC-Sans", 8)
+                    text = str(annot_num)                 
+                    # Get text width and height for centering
+                    text_width = c.stringWidth(text, "BC-Sans", 8)
+                    text_height = 8
+                    # Center the number horizontally and vertically within the box
+                    text_x = box_x + (box_width - text_width) / 2
+                    text_y = box_y + (box_height - text_height) / 2 + 2
+                    # Draw the number
+                    c.drawString(text_x, text_y, text)
+                    annot_num += 1  # Increment the annotation number
         # Finalize annotation overlay for the page
         c.save()
         annotation_overlay.seek(0)
@@ -289,10 +423,11 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount):
             try:
                 parameters = get_page_properties(reader2, page_num)
                 # If there are comments, create an additional page for them
-                pagecount,writer=__rendercommentsonnewpage(comments,pagecount,writer,parameters)
+                pagecount,writer=__rendercommentsonnewpage(comments,pagecount,writer,parameters,filename)
             except Exception as e:
                 print(f"Error in rendering comments on new page in pdf: {e}")
     else:
+        print("**NO Annotations here!!")
         writer.add_page(page)
     return pagecount, writer
 
@@ -380,7 +515,9 @@ def gets3documenthashcode(producermessage):
         fitz_reader.close()
         # clear metadata
         try:
-            pagecount= _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth)
+            filenamewithextension=_filename+extension.lower()
+            pagecount= _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filenamewithextension)
+            print("\n#No MEtadata!")
         except Exception as e:
             print(f"Exception while clearing metadata/flattening: {e}")
                
@@ -407,10 +544,7 @@ def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
     """Getting parameters of previous page for new page"""
     width = original_pdf.pages[pagenum].mediabox.width  
     height = original_pdf.pages[pagenum].mediabox.height
-    if height < 450:
-        fontsize=10
-    else:
-        fontsize=12
+    fontsize=10
     return {
         "width": width,
         "height": height,
@@ -418,5 +552,30 @@ def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
         "font": font,
         "numberofpages": len(original_pdf.pages),
     }
+
+def __converttoutctime(creationdate):
+    original_timestamp = creationdate
+    # Extract date and time components from the timestamp
+    timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
+    timestamp_str = timestamp_str.replace("'", ":")  # Replace single quotes    
+    if timestamp_str.endswith(":"):
+        timestamp_str = timestamp_str[:-1]   
+    # Parse the timestamp into a datetime object
+    timestamp_utc = maya.parse(timestamp_str).datetime().astimezone(pytz.UTC)   
+    # Format the UTC time in the desired readable format
+    formatted_utc = timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p")  # Adjust format for output
+    return formatted_utc
+
+# def __converttoutctime(creationdate):
+#     original_timestamp = creationdate
+#     # Extract date and time components from the timestamp
+#     timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
+#     timestamp_str = timestamp_str.replace("'", ":")  # Replace single quotes
+#     if timestamp_str.endswith(":"):
+#         timestamp_str = timestamp_str[:-1]
+#     timestamp_utc = maya.parse(timestamp_str).datetime().astimezone(pytz.UTC)
+#     # Format the UTC time in the same format as the original timestamp
+#     formatted_utc = "D:" + timestamp_utc.strftime("%Y/%m/%d %H%M%S")
+#     return formatted_utc
 
 
