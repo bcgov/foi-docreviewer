@@ -1,12 +1,14 @@
 package main
 
 import (
-	"awsdocextractservices/redisservices"
 	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/gocraft/work"
+
+	"awsdocextractservices/redisservices"
+	"awsdocextractservices/s3services"
 )
 
 type FOIMessageContext struct {
@@ -16,6 +18,7 @@ type FOIMessageContext struct {
 	documents3uri     string
 	filename          string
 	attributes        map[string]string
+	s3bucket          string
 }
 
 func main() {
@@ -43,12 +46,17 @@ func DocumentExtract(job *work.Job) error {
 	// Extract arguments:
 	ministryrequestID := job.ArgInt64("ministryrequestID")
 	requestnumber := job.ArgString("requestnumber")
+	documents3uri := job.ArgString("documents3uri")
 	if err := job.ArgError(); err != nil {
 		return err
 	}
 	fmt.Println(fmt.Sprintf("Document extraction for : request number %s, for ministry request Id %d", requestnumber, ministryrequestID))
 	// Go ahead and send the email...
 	// sendEmailTo(addr, subject)
+
+	if documents3uri != "" {
+		s3services.GetFilefroms3(documents3uri)
+	}
 
 	return nil
 }
