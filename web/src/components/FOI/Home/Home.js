@@ -70,7 +70,7 @@ function Home() {
       parseInt(foiministryrequestid),
       async (data, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
-        setOutstandingBalance(outstandingbalance)
+        setOutstandingBalance(data.requestinfo.outstandingbalance)
         setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")

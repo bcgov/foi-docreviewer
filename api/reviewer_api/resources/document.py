@@ -127,7 +127,8 @@ class GetDocuments(Resource):
             balancefeeoverrodforrequest = jobrecordservice().isbalancefeeoverrodforrequest(requestid)
             outstandingbalance=0
             if 'cfrfee' in jsonobj and 'feedata' in jsonobj['cfrfee'] and "balanceDue" in jsonobj['cfrfee']['feedata']:
-                outstandingbalance= jsonobj['cfrfee']['feedata']["balanceDue"]
+                outstandingbalancestr= jsonobj['cfrfee']['feedata']["balanceDue"]
+                outstandingbalance = float(outstandingbalancestr)
             requestinfo = {
                 "bcgovcode": jsonobj["bcgovcode"],
                 "requesttype": jsonobj["requestType"],

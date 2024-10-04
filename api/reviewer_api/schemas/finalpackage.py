@@ -33,6 +33,7 @@ class FinalPackageSchema(Schema):
     summarydocuments = fields.Nested(SummarySchema, allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
     requesttype = fields.Str(data_key="requesttype", allow_none=False)
+    pdfstitchjobattributes = fields.Nested(FeeOverrideSchema, allow_none=True, many=False)
 
 class SummaryRecordSchema(Schema):
     recordname = fields.Str(data_key="recordname", allow_none=True)
