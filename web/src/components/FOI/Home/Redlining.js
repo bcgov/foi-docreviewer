@@ -2286,9 +2286,6 @@ const Redlining = React.forwardRef(
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
       setRedlineModalOpen(false);
-      setSelectedPublicBodyIDs([]);
-      setConsultApplyRedactions(false);
-      setConsultApplyRedlines(false);
       if(outstandingBalance > 0 && !isBalanceFeeOverrode){
         setOutstandingBalanceModal(false)
         setIsOverride(false)
@@ -2391,6 +2388,13 @@ const Redlining = React.forwardRef(
       }
       return isDisabled
     }
+
+    const overrideOutstandingBalance = () => {
+      setIsOverride(true)
+    }
+    const handleOverrideReasonChange = (event) => {
+      setFeeOverrideReason(event.target.value);
+    };
 
     return (
       <div>
