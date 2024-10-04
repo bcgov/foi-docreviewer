@@ -7,6 +7,7 @@ import (
 
 	"github.com/gocraft/work"
 
+	"awsdocextractservices/awsservices"
 	"awsdocextractservices/redisservices"
 	"awsdocextractservices/s3services"
 )
@@ -55,7 +56,10 @@ func DocumentExtract(job *work.Job) error {
 	// sendEmailTo(addr, subject)
 
 	if documents3uri != "" {
-		s3services.GetFilefroms3(documents3uri)
+		filebytes := s3services.GetFilefroms3(documents3uri, "test123-protected")
+
+		awsservices.Extractdocumentcontent(filebytes)
+
 	}
 
 	return nil

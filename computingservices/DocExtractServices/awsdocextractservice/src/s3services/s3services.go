@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,21 +44,21 @@ func viperEnvVariable(key string) string {
 	return value
 }
 
-func GetFilefroms3(s3fileurl string) []byte {
+func GetFilefroms3(s3relativefileurl string, bucketname string) []byte {
 	// Define S3-compatible storage endpoint and credentials
 	s3Endpoint := viperEnvVariable("s3endpoint") // Update with your S3-compatible endpoint
-	accessKey := viperEnvVariable("accesskey")
-	secretKey := viperEnvVariable("secretkey")
-	bucketName := "/test123-protected/"
-	objectKey := "/test-event-2022/potluck-23-mar-2022.pdf"
-	region := "us-east-1" // e.g., "us-east-1"
-
+	accessKey := viperEnvVariable("s3accesskey")
+	secretKey := viperEnvVariable("s3secretkey")
+	bucketName := "/" + bucketname + "/"
+	objectKey := s3relativefileurl
+	region := viperEnvVariable("s3region") // e.g., "us-east-1"
+	s3forcepathstyle, _ := strconv.ParseBool(viperEnvVariable("s3forcepathstyle"))
 	// Set up a session with the S3-compatible storage
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(region),
 		Endpoint:         aws.String(s3Endpoint),
 		Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
-		S3ForcePathStyle: aws.Bool(true), //ABIN: THIS IS VERY IMPORTANT to override AWS S3 style.
+		S3ForcePathStyle: aws.Bool(s3forcepathstyle), //ABIN: THIS IS VERY IMPORTANT to override AWS S3 style.
 	})
 	if err != nil {
 		fmt.Println("Failed to create S3 session:", err)
