@@ -1491,13 +1491,6 @@ const stampPageNumberRedline = async (
           let doc = docViewer.getDocument();
           await annotationManager.applyRedactions(s14annots);
 
-          await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
-          );
-
           /** apply redaction and save to s3 - newXfdfString is needed to display
            * the freetext(section name) on downloaded file.*/
           doc
@@ -1519,7 +1512,14 @@ const stampPageNumberRedline = async (
                 /**must apply redactions before removing pages*/
                 if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
                   await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
-                }  
+                }
+
+                await stampPageNumberRedline(
+                  docObj,
+                  PDFNet,
+                  redlineStitchInfo[divisionid]["stitchpages"],
+                  isSingleRedlinePackage
+                );
 
                 docObj.getFileData({
                   // saves the document with annotations in it
