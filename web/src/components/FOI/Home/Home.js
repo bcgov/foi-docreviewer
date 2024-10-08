@@ -45,6 +45,8 @@ function Home() {
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [divisions, setDivisions] = useState([]);
   const [pageFlags, setPageFlags]= useState([]);
+  const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
+  const [outstandingBalance, setOutstandingBalance]= useState(0)
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -66,17 +68,19 @@ function Home() {
 
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data, documentDivisions, _requestInfo) => {
+      async (documents, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
+        setOutstandingBalance(_requestInfo.outstandingbalance)
+        setIsBalanceFeeOverrode(_requestInfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
           return fileExt
         }
         // New code added to get the incompatable files for download redline
-        // data has all the files including incompatable ones
+        // documents has all the files including incompatable ones
         // _files has all files except incompatable ones
-        const _incompatableFiles = data.filter(
+        const _incompatableFiles = documents.filter(
           (d) => {
             const isPdfFile = getFileExt(d.filepath) === "pdf"
             if (isPdfFile) {
@@ -87,7 +91,7 @@ function Home() {
           }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.filter((d) => {
+        const _files = documents.filter((d) => {
           const isPdfFile = getFileExt(d.filepath) === "pdf"
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
@@ -301,7 +305,8 @@ function Home() {
                   scrollLeftPanel={scrollLeftPanel}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
-
+                  isBalanceFeeOverrode={isBalanceFeeOverrode}
+                  outstandingBalance={outstandingBalance}
                 />
               )
             // : <div>Loading</div>
