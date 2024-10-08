@@ -9,7 +9,6 @@ import (
 
 	"awsdocextractservices/awsservices"
 	"awsdocextractservices/redisservices"
-	"awsdocextractservices/s3services"
 )
 
 type FOIMessageContext struct {
@@ -48,17 +47,20 @@ func DocumentExtract(job *work.Job) error {
 	ministryrequestID := job.ArgInt64("ministryrequestID")
 	requestnumber := job.ArgString("requestnumber")
 	documents3uri := job.ArgString("documents3uri")
+	filename := job.ArgString("filename")
+
 	if err := job.ArgError(); err != nil {
 		return err
 	}
-	fmt.Println(fmt.Sprintf("Document extraction for : request number %s, for ministry request Id %d", requestnumber, ministryrequestID))
+	fmt.Println(fmt.Sprintf("Document extraction for : request number %s, for ministry request Id %d, file name %s", requestnumber, ministryrequestID, filename))
 	// Go ahead and send the email...
 	// sendEmailTo(addr, subject)
 
 	if documents3uri != "" {
-		filebytes := s3services.GetFilefroms3(documents3uri, "test123-protected")
+		//filebytes := s3services.GetFilefroms3(documents3uri, "test123-protected")
 
-		awsservices.Extractdocumentcontent(filebytes)
+		//awsservices.Extractdocumentcontent(filebytes)
+		awsservices.ExtractdocumentcontentAsync(filename)
 
 	}
 
