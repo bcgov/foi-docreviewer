@@ -186,13 +186,13 @@ def wrap_text(text, width, font, font_size, canvas):
         print(f"Error in wrapping the text comments in each page: {e}")
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
-    print("#Inside _clearmetadata!")
+    print("\nInside clear Metadata!")
     # clear metadata
     reader2 = PyPDF2.PdfReader(BytesIO(response.content)) 
     _hasannotations = has_annotations(reader)   
     # Check if metadata exists.
     if reader2.metadata is not None or _hasannotations:
-        print("\n#MEtadata!")
+        print("\n#Metadata!")
         # Create a new PDF file without metadata.
         writer = PyPDF2.PdfWriter()
         # Copy pages from the original PDF to the new PDF.
@@ -265,19 +265,34 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
 #     buffer.seek(0)  # Reset the buffer to the beginning
 #     return buffer
 
+
 def __flattenfitz(docbytesarr):
-    doc = fitz.open(stream=BytesIO(docbytesarr))
+    print("\n__flattenfitz")
+    doc = fitz.open(stream=BytesIO(docbytesarr), filetype="pdf")
+    print("\ndoc:",doc)
     out = fitz.open()  # output PDF
     for page_num in range(len(doc)):
-        page = doc[page_num]
+        #page = doc[page_num]
+        page = doc.load_page(page_num) 
+        print("\nPage:",page)
+        widget_exist = page.first_widget is not None
         w, h = page.rect.br  # page width and height
         # Create a new page in the output document with the same size
         outpage = out.new_page(width=w, height=h)
+        print("\noutpage:",outpage)
         # Render the page text (keeping it searchable)
         outpage.show_pdf_page(page.rect, doc, page_num)
+        #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
+        print("\nannot",annot)
+        if widget_exist:
+            print("\nwidget_exist:",widget_exist)
+            pix = page.get_pixmap(dpi=150)  # set desired resolution
+            outpage.insert_image(page.rect, pixmap=pix)
+
         while annot:
+            print("\nWhile Annot!")
             try:
                 annot_rect = annot.rect  # Get the annotation's rectangle
                 # Check for invalid annotation dimensions (zero width/height)
@@ -389,7 +404,6 @@ def has_annotations(reader):
 def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
     # Check if the page contains annotations
     if "/Annots" in page:
-        print("Annotations here!!")
         comments = []
         annotations = page["/Annots"]
         # Create a new PDF overlay with reportlab to draw annotation content
@@ -399,14 +413,14 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
         for annot in annotations:
             annotation_obj = annot.get_object()
             #subtype = annotation_obj["/Subtype"]
-            print("\nAnnotation Object:", annotation_obj)
+            #print("\nAnnotation Object:", annotation_obj)
             #Flatten comments - collect all the annots with content
             if "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
                 author = annotation_obj["/T"]
                 subject = annotation_obj["/Subj"]
                 annotationdate=annotation_obj["/CreationDate"]
-                print(f'annotationdate:{annotationdate} , comment:{comment}')
+                #print(f'annotationdate:{annotationdate} , comment:{comment}')
                 creationdate= __converttoPST(annotationdate) 
                 comments.append({
                     'page': page_num + 1,
@@ -419,8 +433,8 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 if "/Rect" in annotation_obj:
                     annot_rect = annotation_obj["/Rect"]
                     # Rectangle coordinates, format: [x1, y1, x2, y2]
-                    number_x = float(annot_rect[2]) + 5  # Slightly to the right of the annotation
-                    number_y = float(annot_rect[3]) - 5  # Slightly above the annotation
+                    number_x = float(annot_rect[2].get_object()) + 5  # Slightly to the right of the annotation
+                    number_y = float(annot_rect[3].get_object()) - 5  # Slightly above the annotation
                     # Define the size of the box
                     box_width = 10 
                     box_height = 10
@@ -457,7 +471,7 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
             except Exception as e:
                 print(f"Error in rendering comments on new page in pdf: {e}")
     else:
-        print("**NO Annotations here!!")
+        #print("**NO Annotations here!!")
         writer.add_page(page)
     return pagecount, writer
 
