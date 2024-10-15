@@ -218,7 +218,7 @@ const useSaveResponsePackage = () => {
     pageMappedDocs,
     pageFlags,
     feeOverrideReason,
-    requestType
+    requestType,
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {

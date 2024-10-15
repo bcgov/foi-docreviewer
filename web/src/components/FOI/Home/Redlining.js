@@ -86,7 +86,7 @@ const Redlining = React.forwardRef(
       isBalanceFeeOverrode,
       outstandingBalance,
       pageFlags, 
-      syncPageFlagsOnAction
+      syncPageFlagsOnAction,
     },
     ref
   ) => {
@@ -142,14 +142,15 @@ const Redlining = React.forwardRef(
     const [modalData, setModalData] = useState(null);
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
-    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
-    const [isOverride, setIsOverride]= useState(false);
-    const [feeOverrideReason, setFeeOverrideReason]= useState("");
 
     const [pagesRemoved, setPagesRemoved] = useState([]);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
+    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
+    const [isOverride, setIsOverride]= useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");
+    
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -2379,7 +2380,7 @@ const Redlining = React.forwardRef(
             pageMappedDocs,
             pageFlags,
             feeOverrideReason,
-            requestType
+            requestType,
           );
           break;
         default:

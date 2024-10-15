@@ -7,11 +7,6 @@ import traceback
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        def removeduplicateandnr(pageflag):
-            if pageflag['name'] != 'Duplicate' and pageflag['name'] != 'Not Responsive':
-                return True
-            return False
-        pageflags = list(filter(removeduplicateandnr, pageflags))
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
         if _ismcfpersonalrequest and message.category == "responsepackage":
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
@@ -77,6 +72,14 @@ class redactionsummary():
                         _data["pagecount"] = len(pageflag['docpageflags'])  
                         _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
                         summarydata.append(_data)
+                #remove duplicate and NR for oipc review redline
+                def removeduplicateandnr(pageflag):
+                    if pageflag['flagname'].lower() != 'duplicate' and pageflag['flagname'].lower() != 'not responsive':
+                        return True
+                    return False
+                if message.category == "oipcreviewredline":
+                    print("\n removing duplicate and not responsive pages from summary")
+                    summarydata = list(filter(removeduplicateandnr, summarydata))
             except (Exception) as err:
                 traceback.print_exc()
                 print('error occured in __packaggesummary redaction dts service: ', err)
@@ -456,7 +459,7 @@ class redactionsummary():
 
     def __get_skippagenos(self, _docpageflags, category):
         skippages = []
-        if category in ['responsepackage', 'CFD_responsepackage']:
+        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline']:
            for x in _docpageflags:
                if x['flagid'] in (5,6) and x['page'] not in skippages:
                    skippages.append(x['page'])
@@ -464,7 +467,7 @@ class redactionsummary():
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category in ["responsepackage", 'CFD_responsepackage']:  
+        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline']:
             skipcount =  self.__calculateskipcount(pageno, skippages)     
         skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
         return (pageno+totalpages)-skipcount

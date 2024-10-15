@@ -1845,7 +1845,7 @@ const stampPageNumberRedline = async (
               key
             );
           }
-
+          
           let string = await stitchObject.extractXFDF();
 
           // for redline - formatted annots
@@ -1856,10 +1856,10 @@ const stampPageNumberRedline = async (
             annotsObj[0].children = annotsObj[0].children.concat(annots.children);
           } else {
             xmlObj.children.push(annots);
-          }
+          }       
           let xfdfString = parser.toString(xmlObj);
 
-          // for oipc review + consults - re-apply annots after redaction - annots only no widgets/form fields
+          // for oipc review - re-apply annots after redaction - annots only no widgets/form fields
           let xmlObj1 = parser.parseFromString(string.xfdfString);
           xmlObj1.children = [];
           xmlObj1.children.push(annots);
@@ -1893,7 +1893,6 @@ const stampPageNumberRedline = async (
                 if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
                   await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
                 }
-                
                 await stampPageNumberRedline(
                   docObj,
                   PDFNet,
