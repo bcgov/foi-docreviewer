@@ -1838,7 +1838,7 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory === "redline" || redlineCategory === "consult") {
+          if (redlineCategory === "redline") {
             await addWatermarkToRedline(
               stitchObject,
               redlineWatermarkPageMapping,
@@ -1957,6 +1957,7 @@ const stampPageNumberRedline = async (
           //OIPC - Special Block : End
           //Consults - Redlines + Redactions (Redact S.NR) Block : Start
           if(redlineCategory === "consult") {
+            let doc = docViewer.getDocument();
             if (!consultApplyRedlines) {
               const publicbodyAnnotList = xmlObj1.getElementsByTagName('annots')[0]['children'];
               const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
@@ -1967,92 +1968,96 @@ const stampPageNumberRedline = async (
             }
             if (consultApplyRedactions) {
               let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              let doc = docViewer.getDocument();
               await applyRedactionsToRedlinesBySection(nr_sectionStamps);
-              /** apply redaction and save to s3 - newXfdfString is needed to display
-               * the freetext(section name) on downloaded file.*/
-              doc
-              .getFileData({
-                // export the document to arraybuffer
-                // xfdfString: xfdfString,
-                downloadType: downloadType,
-                flatten: true,
-              })
-              .then(async (_data) => {
-                const _arr = new Uint8Array(_data);
-                const _blob = new Blob([_arr], { type: "application/pdf" });
+            }
+            /** apply redaction and save to s3 - newXfdfString is needed to display
+            * the freetext(section name) on downloaded file.*/
+            doc
+            .getFileData({
+              // export the document to arraybuffer
+              // xfdfString: xfdfString,
+              downloadType: downloadType,
+              flatten: true,
+            })
+            .then(async (_data) => {
+              const _arr = new Uint8Array(_data);
+              const _blob = new Blob([_arr], { type: "application/pdf" });
 
-                await docInstance?.Core.createDocument(_data, {
-                  loadAsPDF: true,
-                  useDownloader: false, // Added to fix BLANK page issue
-                }).then( async (docObj) => {
+              await docInstance?.Core.createDocument(_data, {
+                loadAsPDF: true,
+                useDownloader: false, // Added to fix BLANK page issue
+              }).then( async (docObj) => {
 
-                  /**must apply redactions before removing pages*/
-                  if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
-                    await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
-                  }
+                /**must apply redactions before removing pages*/
+                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
+                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                }
 
-                  await stampPageNumberRedline(
-                    docObj,
-                    PDFNet,
-                    redlineStitchInfo[divisionid]["stitchpages"],
-                    isSingleRedlinePackage
+                await stampPageNumberRedline(
+                  docObj,
+                  PDFNet,
+                  redlineStitchInfo[divisionid]["stitchpages"],
+                  isSingleRedlinePackage
+                );
+                await addWatermarkToRedline(
+                  docObj,
+                  redlineWatermarkPageMapping,
+                  key
+                );
+
+                docObj.getFileData({
+                  // saves the document with annotations in it
+                  xfdfString: xfdfString1,
+                  downloadType: downloadType,
+                  flatten: true,
+                })
+                .then(async (__data) => {
+                  const __arr = new Uint8Array(__data);
+                  const __blob = new Blob([__arr], { type: "application/pdf" });
+
+                  saveFilesinS3(
+                    { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                    __blob,
+                    (_res) => {
+                      // ######### call another process for zipping and generate download here ##########
+                      toast.update(toastId.current, {
+                        render: `Consult PDF saved to Object Storage`,
+                        type: "success",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true,
+                      });
+                      triggerRedlineZipper(
+                        redlineIncompatabileMappings[divisionid],
+                        redlineStitchInfo[divisionid]["s3path"],
+                        divisionCountForToast,
+                        isSingleRedlinePackage
+                      );
+                    },
+                    (_err) => {
+                      console.log(_err);
+                      toast.update(toastId.current, {
+                        render: "Failed to save redline pdf to Object Storage",
+                        type: "error",
+                        className: "file-upload-toast",
+                        isLoading: false,
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        closeButton: true,
+                      });
+                    }
                   );
-
-                  docObj.getFileData({
-                    // saves the document with annotations in it
-                    xfdfString: xfdfString1,
-                    downloadType: downloadType,
-                    flatten: true,
-                  })
-                  .then(async (__data) => {
-                    const __arr = new Uint8Array(__data);
-                    const __blob = new Blob([__arr], { type: "application/pdf" });
-
-                    saveFilesinS3(
-                      { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                      __blob,
-                      (_res) => {
-                        // ######### call another process for zipping and generate download here ##########
-                        toast.update(toastId.current, {
-                          render: `Consult PDF saved to Object Storage`,
-                          type: "success",
-                          className: "file-upload-toast",
-                          isLoading: false,
-                          autoClose: 3000,
-                          hideProgressBar: true,
-                          closeOnClick: true,
-                          pauseOnHover: true,
-                          draggable: true,
-                          closeButton: true,
-                        });
-                        triggerRedlineZipper(
-                          redlineIncompatabileMappings[divisionid],
-                          redlineStitchInfo[divisionid]["s3path"],
-                          divisionCountForToast,
-                          isSingleRedlinePackage
-                        );
-                      },
-                      (_err) => {
-                        console.log(_err);
-                        toast.update(toastId.current, {
-                          render: "Failed to save redline pdf to Object Storage",
-                          type: "error",
-                          className: "file-upload-toast",
-                          isLoading: false,
-                          autoClose: 3000,
-                          hideProgressBar: true,
-                          closeOnClick: true,
-                          pauseOnHover: true,
-                          draggable: true,
-                          closeButton: true,
-                        });
-                      }
-                    );
-                  });
                 });
               });
-            }
+            });
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
 

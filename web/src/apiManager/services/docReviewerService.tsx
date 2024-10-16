@@ -36,7 +36,7 @@ export const fetchDocuments = (
         store.dispatch(setRequestNumber(res.data.requestnumber) as any);
         store.dispatch(setRequestStatus(res.data.requeststatuslabel) as any);
         store.dispatch(setRequestInfo(res.data.requestinfo) as any);
-        callback(res.data);
+        callback(res.data.documents, res.data.documentdivisions, res.data.requestinfo);
       } else {
         throw new Error();
       }
