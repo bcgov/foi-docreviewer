@@ -657,7 +657,7 @@ const Redlining = React.forwardRef(
           ]);
         })
         .catch((error) => {
-          errorToast(`There is an issue with the file ${filerow.file.filename}. Your request may not load. Please resolve the issue with this file to load the request properly.`, {autoClose: false});
+          errorToast(`There is an issue with the file ${filerow.file.filename}. Your request may not load. Please resolve the issue with this file in the Records tab to load the request properly.`, {autoClose: false});
           console.error(`Error: ${JSON.stringify(error)}`);
           });;
       });
