@@ -635,6 +635,13 @@ const Redlining = React.forwardRef(
             useDownloader: false, // Added to fix BLANK page issue
             loadAsPDF: true, // Added to fix jpeg/pdf stitiching issue #2941
         }).then(async (newDoc) => {
+          // Uncomment below to show an error message for converted XFA-based PDFs
+          // newDoc.loadPageText(1).then((text) => {
+          //   if (text.includes("If this message is not eventually replaced by the proper contents of the document, your PDF")) {
+          //     errorToast(`There is an issue with the file ${filerow.file.filename}. Your request may not load. Please resolve the issue with this file to load the request properly.`, {autoClose: false});
+          //   }
+          // }
+          // )
           applyRotations(newDoc, filerow.file.attributes.rotatedpages);
           setpdftronDocObjects((_arr) => [
             ..._arr,
@@ -648,7 +655,11 @@ const Redlining = React.forwardRef(
               totalsetcount: slicedsetofdoclist.length,
             },
           ]);
-        });
+        })
+        .catch((error) => {
+          errorToast(`There is an issue with the file ${filerow.file.filename}. Your request may not load. Please resolve the issue with this file to load the request properly.`, {autoClose: false});
+          console.error(`Error: ${JSON.stringify(error)}`);
+          });;
       });
     };
 
