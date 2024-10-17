@@ -1798,7 +1798,7 @@ const stampPageNumberRedline = async (
     const divisionCountForToast = Object.keys(redlineStitchObject).length;
 
     let pagesOfEachDivisions = {};
-    let pagesOfOtherDivisions = {};
+    // let pagesOfOtherDivisions = {};
     //get page numbers of each division
     Object.keys(redlineStitchInfo).forEach((_div) => {
       pagesOfEachDivisions[_div] = [];
@@ -1806,19 +1806,7 @@ const stampPageNumberRedline = async (
         pagesOfEachDivisions[_div].push(pageinfo["stitchedPageNo"]); 
       });
     });
-
-    //get page numbers that not belongs to the division
-    for (const [key, value] of Object.entries(pagesOfEachDivisions)) {
-      pagesOfOtherDivisions[key] = [];
-      for(const [_div, _pageNumbers] of Object.entries(pagesOfEachDivisions)) {
-        if(_div !== key) {
-          pagesOfOtherDivisions[key] = [...new Set([...pagesOfOtherDivisions[key], ..._pageNumbers])];
-        }
-      }
-    }
-    for(const [_div, _pageNumbers] of Object.entries(pagesOfEachDivisions)) {
-      pagesOfOtherDivisions[_div] = pagesOfOtherDivisions[_div].filter((_pageNum) => {return !_pageNumbers.includes(_pageNum)})
-    }
+    console.log("pagesOfEachDivisions: ", pagesOfEachDivisions);
 
     for (const [key, value] of Object.entries(redlineStitchObject)) {
       currentDivisionCount++;
@@ -2019,8 +2007,15 @@ const stampPageNumberRedline = async (
                 loadAsPDF: true,
                 useDownloader: false, // Added to fix BLANK page issue
               }).then( async (docObj) => {
-                if (pagesOfOtherDivisions[key].length > 0) {
-                  await docObj.removePages(pagesOfOtherDivisions[key]);
+
+                let pagesNotBelongsToThisDivision = [];
+                for(let i=1; i <= docObj.getPageCount(); i++) {
+                  if(!pagesOfEachDivisions[key].includes(i))
+                    pagesNotBelongsToThisDivision.push(i);
+                }
+
+                if(pagesNotBelongsToThisDivision.length > 0) {
+                  await docObj.removePages(pagesNotBelongsToThisDivision);
                 }
 
                 /**must apply redactions before removing pages*/
