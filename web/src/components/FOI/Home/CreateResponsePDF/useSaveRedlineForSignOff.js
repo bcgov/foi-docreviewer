@@ -1846,7 +1846,6 @@ const stampPageNumberRedline = async (
             redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
               stitchObject?.getPageCount() > redlinepageMappings["pagestoremove"][divisionid].length
           ) {
-            console.log("REDLINE REMOVE", redlinepageMappings["pagestoremove"][divisionid])
             await stitchObject.removePages(
               redlinepageMappings["pagestoremove"][divisionid]
             );
@@ -1884,7 +1883,7 @@ const stampPageNumberRedline = async (
             let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
             let doc = docViewer.getDocument();
             await applyRedactionsToRedlinesBySection(s14_sectionStamps);
-            console.log("s14_sectionStamps", s14_sectionStamps)
+            // console.log("s14_sectionStamps", s14_sectionStamps)
             /** apply redaction and save to s3 - newXfdfString is needed to display
              * the freetext(section name) on downloaded file.*/
             doc
@@ -1974,17 +1973,17 @@ const stampPageNumberRedline = async (
             let doc = docViewer.getDocument();
             if (!consultApplyRedlines) {
               const publicbodyAnnotList = xmlObj1.getElementsByTagName('annots')[0]['children'];
-              console.log("publicbodyAnnotList", publicbodyAnnotList)
+              // console.log("publicbodyAnnotList", publicbodyAnnotList)
               const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
                 return annot.name !== "freetext" && annot.name !== 'redact'
               });
-              console.log("filteredPublicbodyAnnotList", filteredPublicbodyAnnotList)
+              // console.log("filteredPublicbodyAnnotList", filteredPublicbodyAnnotList)
               xmlObj1.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
               xfdfString1 = parser.toString(xmlObj1);
             }
             if (consultApplyRedactions) {
               let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              console.log("nr_sectionStamps", nr_sectionStamps)
+              // console.log("nr_sectionStamps", nr_sectionStamps)
               await applyRedactionsToRedlinesBySection(nr_sectionStamps);
             }
             /** apply redaction and save to s3 - newXfdfString is needed to display
@@ -2018,18 +2017,18 @@ const stampPageNumberRedline = async (
                   await docObj.removePages(pagesNotBelongsToThisDivision);
                 }
 
-                /**must apply redactions before removing pages*/
-                console.log("CONSULT REMOVE", redlinepageMappings["pagestoremove"][divisionid])
-                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
-                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
-                }
-
                 await stampPageNumberRedline(
                   docObj,
                   PDFNet,
                   redlineStitchInfo[divisionid]["stitchpages"],
                   isSingleRedlinePackage
                 );
+
+                /**must apply redactions before removing pages*/
+                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
+                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                }
+
                 // await addWatermarkToRedline(
                 //   docObj,
                 //   redlineWatermarkPageMapping,
