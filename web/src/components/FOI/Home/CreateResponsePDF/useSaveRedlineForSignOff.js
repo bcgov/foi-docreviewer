@@ -74,7 +74,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
   const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
 
-
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
 

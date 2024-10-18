@@ -1374,8 +1374,9 @@ const Redlining = React.forwardRef(
             // Hence being able to leverage those properties
             let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
             let doc = pageFlags.find(d => d.documentid === originalPage.docid);
-            let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
-            if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
+            let pageFlagsOnPage = doc?.pageflag?.filter(f => f.page === originalPage.page);
+            let NrOrDupeFlag = pageFlagsOnPage.find(pageFlagItem => pageFlagItem.flagid === pageFlagTypes["Duplicate"] || pageFlagItem.flagid === pageFlagTypes["Not Responsive"]);
+            if (NrOrDupeFlag?.flagid === pageFlagTypes["Duplicate"]) {
               ctx.fillStyle = "#ff0000";
               ctx.font = "20pt Arial";
               ctx.globalAlpha = 0.4;
@@ -1387,7 +1388,7 @@ const Redlining = React.forwardRef(
               ctx.restore();
             }
     
-            if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+            if (NrOrDupeFlag?.flagid === pageFlagTypes["Not Responsive"]) {
               ctx.fillStyle = "#ff0000";
               ctx.font = "20pt Arial";
               ctx.globalAlpha = 0.4;
