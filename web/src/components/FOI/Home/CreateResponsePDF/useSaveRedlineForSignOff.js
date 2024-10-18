@@ -90,7 +90,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         else {
           for (let doc of divObj.documentlist) {
-            //page to pageFlag mappings logic for consults
+            //page to pageFlag mappings logic used for consults
             const pagePageFlagMappings = {};
             for (let pageFlag of doc.pageFlag) {
               if (pageFlag.page in pagePageFlagMappings) {
@@ -822,7 +822,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       let divCount = 0;
       const noofdivision = Object.keys(stitchlist).length;
       let stitchedDocObj = null;
-      // setTotalStitchList(stitchlist); //if you want to apply the solution to applyrotations at end of redline process uncomment this
       for (const [key, value] of Object.entries(stitchlist)) {
         divCount++;
         let docCount = 0;
@@ -859,10 +858,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-
-              // NOTE: applying rotations to records/documents for redlines is turned off per biz. If uncommented, bugs related to redline redactions (s14, NR etc) not being applied and in turn data breachs can occur
-              applyRotations(docObj, doc.attributes.rotatedpages)
-
+              applyRotations(docObj, doc.attributes.rotatedpages);
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -1385,7 +1381,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        // window.location.reload();
+        window.location.reload();
       });
     }
     return zipServiceMessage;
@@ -1797,8 +1793,8 @@ const stampPageNumberRedline = async (
     let currentDivisionCount = 0;
     const divisionCountForToast = Object.keys(redlineStitchObject).length;
 
+    //Consult Package page removal logic
     let pagesOfEachDivisions = {};
-    // let pagesOfOtherDivisions = {};
     //get page numbers of each division
     Object.keys(redlineStitchInfo).forEach((_div) => {
       pagesOfEachDivisions[_div] = [];
@@ -1806,7 +1802,6 @@ const stampPageNumberRedline = async (
         pagesOfEachDivisions[_div].push(pageinfo["stitchedPageNo"]); 
       });
     });
-    console.log("pagesOfEachDivisions: ", pagesOfEachDivisions);
 
     for (const [key, value] of Object.entries(redlineStitchObject)) {
       currentDivisionCount++;
@@ -1850,7 +1845,7 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory === "redline") {
+          if (redlineCategory !== "oipcreview" || redlineCategory !== "consult") {
             await addWatermarkToRedline(
               stitchObject,
               redlineWatermarkPageMapping,
@@ -1883,7 +1878,6 @@ const stampPageNumberRedline = async (
             let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
             let doc = docViewer.getDocument();
             await applyRedactionsToRedlinesBySection(s14_sectionStamps);
-            // console.log("s14_sectionStamps", s14_sectionStamps)
             /** apply redaction and save to s3 - newXfdfString is needed to display
              * the freetext(section name) on downloaded file.*/
             doc
@@ -1973,17 +1967,14 @@ const stampPageNumberRedline = async (
             let doc = docViewer.getDocument();
             if (!consultApplyRedlines) {
               const publicbodyAnnotList = xmlObj1.getElementsByTagName('annots')[0]['children'];
-              // console.log("publicbodyAnnotList", publicbodyAnnotList)
               const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
                 return annot.name !== "freetext" && annot.name !== 'redact'
               });
-              // console.log("filteredPublicbodyAnnotList", filteredPublicbodyAnnotList)
               xmlObj1.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
               xfdfString1 = parser.toString(xmlObj1);
             }
             if (consultApplyRedactions) {
               let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              // console.log("nr_sectionStamps", nr_sectionStamps)
               await applyRedactionsToRedlinesBySection(nr_sectionStamps);
             }
             /** apply redaction and save to s3 - newXfdfString is needed to display
@@ -1999,14 +1990,12 @@ const stampPageNumberRedline = async (
               const _arr = new Uint8Array(_data);
               const _blob = new Blob([_arr], { type: "application/pdf" });
 
-              //LOOP HERE
-              // loop through each of the divisons/consults that exist, in the loop remove the pages that belong to other divisions find those pages to remove. which pages belong to other divisons
-
               await docInstance?.Core.createDocument(_data, {
                 loadAsPDF: true,
                 useDownloader: false, // Added to fix BLANK page issue
               }).then( async (docObj) => {
 
+                // Consult Pacakge page removal of pages that are not in this division
                 let pagesNotBelongsToThisDivision = [];
                 for(let i=1; i <= docObj.getPageCount(); i++) {
                   if(!pagesOfEachDivisions[key].includes(i))
@@ -2024,16 +2013,11 @@ const stampPageNumberRedline = async (
                   isSingleRedlinePackage
                 );
 
+                //Consult Pacakge page removal of NR and DUPE
                 /**must apply redactions before removing pages*/
                 if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
                   await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
                 }
-
-                // await addWatermarkToRedline(
-                //   docObj,
-                //   redlineWatermarkPageMapping,
-                //   key
-                // );
 
                 docObj.getFileData({
                   // saves the document with annotations in it
@@ -2090,16 +2074,6 @@ const stampPageNumberRedline = async (
             });
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
-
-          // Rotate pages - applyrotations after all redline processes (redline applying, stamping, removing pages etc) are completed. This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
-          // for (const doc of totalStitchList[divisionid]) {
-          //   let documentlist = totalStitchList[divisionid];
-          //   let divDocPageMappings = redlinepageMappings["divpagemappings"][divisionid];
-          //   if(documentlist.length > 0) {
-          //     applyRotations(stitchObject, doc, divDocPageMappings);
-          //   }
-          // }
-
         else {
         stitchObject
           .getFileData({
@@ -2160,25 +2134,33 @@ const stampPageNumberRedline = async (
     }
   };
 
-  // This is a solution/option to apply the rotation of pages to redline pacakges (consults, oipc etc) without losing redactions and causing data breach of data that should be redacted. 
-  // const applyRotations = (document, doc, divDocPageMappings) => {
-  //   const docPageMappings = divDocPageMappings[doc.documentid]; // {origPage: stitchedPage, origPage: stitchedPage} -> {2: 1, 3:2, 4:3}
-  //   const rotatedpages = doc.attributes.rotatedpages; // {origPage: rotation. origPage: rotations} -> {4: 180}
-  //   const rotatedStitchedPages = {};
-  //   if (rotatedpages) {
-  //     for (let [originalPage, stitchedPage] of Object.entries(docPageMappings)) {
-  //       let rotation = rotatedpages[originalPage];
-  //       if (rotation) {
-  //         rotatedStitchedPages[stitchedPage] = rotation;
-  //       }
-  //     }
-  //     for (let page in rotatedStitchedPages) {
-  //       let existingrotation = document.getPageRotation(page);
-  //       let rotation = (rotatedStitchedPages[page] - existingrotation + 360) / 90;
-  //       document.rotatePages([page], rotation);
-  //     }
-  //   }
-  // }
+  const getAdjustedRedactionCoordinates = async(pageRotation, recto, PDFNet,pageWidth,pageHeight) => {
+    let x1 = recto.x1;
+    let y1 = recto.y1;
+    let x2 = recto.x2;
+    let y2 = recto.y2;
+    // Adjust Y-coordinates to account for the flipped Y-axis in PDF
+    y1 = pageHeight - y1;
+    y2 = pageHeight - y2;  
+    // Adjust for page rotation (90, 180, 270 degrees)
+    switch (pageRotation) {
+      case 90:
+        [x1, y1] = [y1, x1];
+        [x2, y2] = [y2, x2];
+        break;
+      case 180:
+        x1 = pageWidth - x1;
+        y1 = pageHeight - y1;
+        x2 = pageWidth - x2;
+        y2 = pageHeight - y2;
+        break;
+      case 270:
+        [x1, y1] = [pageHeight - y1, x1];
+        [x2, y2] = [pageHeight - y2, x2];
+        break;
+    }  
+    return await PDFNet.Rect.init(x1, y1, x2, y2);
+  }
   
   useEffect(() => {
     if (
@@ -2190,7 +2172,6 @@ const stampPageNumberRedline = async (
       StitchAndUploadDocument();
     }
   }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
-  
   
   useEffect(() => {
     if (
