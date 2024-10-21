@@ -1745,17 +1745,6 @@ const stampPageNumberRedline = async (
       }
     }
   };
-  const applyRedactionsToRedlinesBySection = async (appliedSectionStamps) => {
-    let annotationManager = docInstance?.Core.annotationManager;
-    let annots = [];
-    for (const [key, value] of Object.entries(appliedSectionStamps)) {
-      let sectionAnnotation = annotationManager.getAnnotationById(key);
-      if (sectionAnnotation.Subject === "Redact") {
-        annots.push(sectionAnnotation);
-      }
-    }
-    await annotationManager.applyRedactions(annots);
-  }
 
   //useEffects to keep docInstance and docViewer state up to date with Redlining.js
   useEffect(() => {
@@ -1806,14 +1795,13 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if (redlineCategory !== "oipcreview" || redlineCategory !== "consult") {
+          if (redlineCategory === "redline") {
             await stampPageNumberRedline(
               stitchObject,
               PDFNet,
               redlineStitchInfo[divisionid]["stitchpages"],
               isSingleRedlinePackage
             );
-          }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
@@ -1823,7 +1811,6 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory !== "oipcreview" || redlineCategory !== "consult") {
             await addWatermarkToRedline(
               stitchObject,
               redlineWatermarkPageMapping,
@@ -1853,95 +1840,106 @@ const stampPageNumberRedline = async (
           //Apply Redactions (if any)
           //OIPC - Special Block (Redact S.14) : Begin
           if(redlineCategory === "oipcreview") {
+            let annotationManager = docInstance?.Core.annotationManager;
             let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+            let s14annots = [];
+            for (const [key, value] of Object.entries(s14_sectionStamps)) {
+              let s14annoation = annotationManager.getAnnotationById(key);
+                  if ( s14annoation.Subject === "Redact") { 
+                    s14annots.push(s14annoation);
+                  }
+            }
+  
             let doc = docViewer.getDocument();
-            await applyRedactionsToRedlinesBySection(s14_sectionStamps);
+            await annotationManager.applyRedactions(s14annots);
+  
             /** apply redaction and save to s3 - newXfdfString is needed to display
              * the freetext(section name) on downloaded file.*/
             doc
-            .getFileData({
-              // export the document to arraybuffer
-              // xfdfString: xfdfString,
-              downloadType: downloadType,
-              flatten: true,
-            })
-            .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], { type: "application/pdf" });
-
-              await docInstance?.Core.createDocument(_data, {
-                loadAsPDF: true,
-                useDownloader: false, // Added to fix BLANK page issue
-              }).then( async (docObj) => {
-
-                /**must apply redactions before removing pages*/
-                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
-                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
-                }
-                await stampPageNumberRedline(
-                  docObj,
-                  PDFNet,
-                  redlineStitchInfo[divisionid]["stitchpages"],
-                  isSingleRedlinePackage
-                );
-
-                docObj.getFileData({
-                  // saves the document with annotations in it
-                  xfdfString: xfdfString1,
-                  downloadType: downloadType,
-                  flatten: true,
-                })
-                .then(async (__data) => {
-                  const __arr = new Uint8Array(__data);
-                  const __blob = new Blob([__arr], { type: "application/pdf" });
-
-                  saveFilesinS3(
-                    { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                    __blob,
-                    (_res) => {
-                      // ######### call another process for zipping and generate download here ##########
-                      toast.update(toastId.current, {
-                        render: `Redline PDF saved to Object Storage`,
-                        type: "success",
-                        className: "file-upload-toast",
-                        isLoading: false,
-                        autoClose: 3000,
-                        hideProgressBar: true,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        closeButton: true,
-                      });
-                      triggerRedlineZipper(
-                        redlineIncompatabileMappings[divisionid],
-                        redlineStitchInfo[divisionid]["s3path"],
-                        divisionCountForToast,
-                        isSingleRedlinePackage
-                      );
-                    },
-                    (_err) => {
-                      console.log(_err);
-                      toast.update(toastId.current, {
-                        render: "Failed to save redline pdf to Object Storage",
-                        type: "error",
-                        className: "file-upload-toast",
-                        isLoading: false,
-                        autoClose: 3000,
-                        hideProgressBar: true,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        closeButton: true,
-                      });
-                    }
+              .getFileData({
+                // export the document to arraybuffer
+                // xfdfString: xfdfString,
+                downloadType: downloadType,
+                flatten: true,
+              })
+              .then(async (_data) => {
+                const _arr = new Uint8Array(_data);
+                const _blob = new Blob([_arr], { type: "application/pdf" });
+  
+                await docInstance?.Core.createDocument(_data, {
+                  loadAsPDF: true,
+                  useDownloader: false, // Added to fix BLANK page issue
+                }).then( async (docObj) => {
+  
+                  /**must apply redactions before removing pages*/
+                  if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
+                    await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                  }
+  
+                  await stampPageNumberRedline(
+                    docObj,
+                    PDFNet,
+                    redlineStitchInfo[divisionid]["stitchpages"],
+                    isSingleRedlinePackage
                   );
+  
+                  docObj.getFileData({
+                    // saves the document with annotations in it
+                    xfdfString: xfdfString1,
+                    downloadType: downloadType,
+                    flatten: true,
+                  })
+                  .then(async (__data) => {
+                    const __arr = new Uint8Array(__data);
+                    const __blob = new Blob([__arr], { type: "application/pdf" });
+  
+                    saveFilesinS3(
+                      { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                      __blob,
+                      (_res) => {
+                        // ######### call another process for zipping and generate download here ##########
+                        toast.update(toastId.current, {
+                          render: `Redline PDF saved to Object Storage`,
+                          type: "success",
+                          className: "file-upload-toast",
+                          isLoading: false,
+                          autoClose: 3000,
+                          hideProgressBar: true,
+                          closeOnClick: true,
+                          pauseOnHover: true,
+                          draggable: true,
+                          closeButton: true,
+                        });
+                        triggerRedlineZipper(
+                          redlineIncompatabileMappings[divisionid],
+                          redlineStitchInfo[divisionid]["s3path"],
+                          divisionCountForToast,
+                          isSingleRedlinePackage
+                        );
+                      },
+                      (_err) => {
+                        console.log(_err);
+                        toast.update(toastId.current, {
+                          render: "Failed to save redline pdf to Object Storage",
+                          type: "error",
+                          className: "file-upload-toast",
+                          isLoading: false,
+                          autoClose: 3000,
+                          hideProgressBar: true,
+                          closeOnClick: true,
+                          pauseOnHover: true,
+                          draggable: true,
+                          closeButton: true,
+                        });
+                      }
+                    );
+                  });
                 });
               });
-            });
           }
           //OIPC - Special Block : End
           //Consults - Redlines + Redactions (Redact S.NR) Block : Start
-          if(redlineCategory === "consult") {
+          else if (redlineCategory === "consult") {
             let doc = docViewer.getDocument();
             if (!consultApplyRedlines) {
               const publicbodyAnnotList = xmlObj1.getElementsByTagName('annots')[0]['children'];
@@ -1952,8 +1950,16 @@ const stampPageNumberRedline = async (
               xfdfString1 = parser.toString(xmlObj1);
             }
             if (consultApplyRedactions) {
+              let annotationManager = docInstance?.Core.annotationManager;
               let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-              await applyRedactionsToRedlinesBySection(nr_sectionStamps);
+              let nrAnnots = [];
+              for (const [key, value] of Object.entries(nr_sectionStamps)) {
+                let nrAnnotation = annotationManager.getAnnotationById(key);
+                    if (nrAnnotation.Subject === "Redact") { 
+                      nrAnnots.push(nrAnnotation);
+                    }
+              }
+              await annotationManager.applyRedactions(nrAnnots);
             }
             /** apply redaction and save to s3 - newXfdfString is needed to display
             * the freetext(section name) on downloaded file.*/
