@@ -383,7 +383,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     });
   };
 
-
   const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
     let removepages = {};
     let pageMappings = {};
@@ -763,7 +762,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     return "redline";
   };
 
-
   const prepareredlinesummarylist = (stitchDocuments) => {
     let summarylist = [];
     let alldocuments = [];
@@ -871,7 +869,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
               requestStitchObject[division] = stitchedDocObj;
             }
-          
         }
         } else {
           if (incompatableList[division]["incompatibleFiles"].length > 0) {
@@ -889,12 +886,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
       }
   };
-  
-  
-  
-  
-  
-  
   
   const stitchSingleDivisionRedlineExport = async (
     _instance,
@@ -1057,7 +1048,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
     return publicBodies;
   }
-
 
   const saveRedlineDocument = async (
     _instance,
