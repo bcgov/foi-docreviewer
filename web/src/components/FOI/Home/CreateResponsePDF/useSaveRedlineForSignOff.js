@@ -508,10 +508,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     let pagesToRemove = [];
     let totalPageCount = 0;
     let totalPageCountIncludeRemoved = 0;
-    let duplicateWatermarkPages = {};
-    let duplicateWatermarkPagesEachDiv = [];
-    let NRWatermarksPages = {};
-    let NRWatermarksPagesEachDiv = [];
     for (let divObj of divisionDocuments) {
       // sort based on sortorder as the sortorder added based on the LastModified
       for (let doc of sortBySortOrder(divObj.documentlist)) {
@@ -591,8 +587,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 if(includeDuplicatePages) {
                   for (let consult of doc.consult) {
                     if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
-                      duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
                       pageMappings[doc.documentid][flagInfo.page] =
                         pageIndex +
                         totalPageCount -
@@ -612,8 +606,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 if(includeNRPages) {
                   for (let consult of doc.consult) {
                     if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
-                      NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
                       pageMappings[doc.documentid][flagInfo.page] =
                       pageIndex +
                         totalPageCount -
@@ -631,8 +623,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               } else if (flagInfo.flagid == pageFlagTypes["In Progress"]) {
                 for (let consult of doc.consult) {
                   if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
-                    NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
-
                     pageMappings[doc.documentid][flagInfo.page] =
                       pageIndex +
                       totalPageCount -
@@ -682,11 +672,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       }
       divPageMappings[divObj.divisionid] = pageMappings;
       removepages[divObj.divisionid] = pagesToRemove;
-      duplicateWatermarkPages[divObj.divisionid] = duplicateWatermarkPagesEachDiv;
-      NRWatermarksPages[divObj.divisionid] = NRWatermarksPagesEachDiv;
       pagesToRemove = [];
-      duplicateWatermarkPagesEachDiv = [];
-      NRWatermarksPagesEachDiv = [];
       totalPageCount = 0;
       totalPageCountIncludeRemoved = 0;
       pageMappings = {}
@@ -696,10 +682,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       'divpagemappings': divPageMappings,
       'pagemapping': pageMappings,
       'pagestoremove': removepages
-    });
-    setRedlineWatermarkPageMapping({
-      'duplicatewatermark': duplicateWatermarkPages,
-      'NRwatermark': NRWatermarksPages
     });
   }
 
@@ -1194,9 +1176,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                   );
                 }
               }
-              // if (docCount == div.documentlist.length) {
-                
-              // }
             }
           }
           if (
@@ -1827,7 +1806,7 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview" || redlineCategory !== "consult") {
+          if (redlineCategory !== "oipcreview" || redlineCategory !== "consult") {
             await stampPageNumberRedline(
               stitchObject,
               PDFNet,
@@ -1994,7 +1973,7 @@ const stampPageNumberRedline = async (
                 useDownloader: false, // Added to fix BLANK page issue
               }).then( async (docObj) => {
 
-                // Consult Pacakge page removal of pages that are not in this division
+                // Consult Pacakge page removal of pages that are not in this division (will leave consult/division specific pages in docObj to be removed by redlinepagemappings pagestoremove below)
                 let pagesNotBelongsToThisDivision = [];
                 for(let i=1; i <= docObj.getPageCount(); i++) {
                   if(!pagesOfEachDivisions[key].includes(i))
@@ -2012,7 +1991,7 @@ const stampPageNumberRedline = async (
                   isSingleRedlinePackage
                 );
 
-                //Consult Pacakge page removal of NR and DUPE
+                //Consult Pacakge page removal of pages/documents associated with divison/consult
                 /**must apply redactions before removing pages*/
                 if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
                   await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
