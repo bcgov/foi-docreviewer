@@ -517,6 +517,9 @@ const constructPageFlagsForAddOrEdit = (
   pageFlags
 ) => {
   let pagesToUpdate = {};
+  if (annotationsInfo.section === undefined) {
+    return getValidObject(pagesToUpdate); // non redaction annotations do not need page flags automatically applied
+  }
   const foundBlank = ["", "  "].includes(annotationsInfo.section);
   const foundNR = annotationsInfo.section == "NR";
   // section with a valid number found
