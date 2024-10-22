@@ -161,6 +161,7 @@ class redactionservice:
             "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
             "feeoverridereason":feeoverridereason,
             "requesttype": messageschema["requesttype"],
+            "feeoverridereason":feeoverridereason
         }
         return _message
 

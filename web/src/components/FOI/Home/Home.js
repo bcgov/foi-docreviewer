@@ -43,10 +43,10 @@ function Home() {
   const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
-  const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
-  const [outstandingBalance, setOutstandingBalance]= useState(0)
   const [divisions, setDivisions] = useState([]);
   const [pageFlags, setPageFlags]= useState([]);
+  const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
+  const [outstandingBalance, setOutstandingBalance]= useState(0);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -68,19 +68,19 @@ function Home() {
 
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data) => {
-        setOutstandingBalance(data.requestinfo.outstandingbalance)
-        setIsBalanceFeeOverrode(data.requestinfo.balancefeeoverrodforrequest)
-        setDivisions(data.documentdivisions);
+      async (documents, documentDivisions, _requestInfo) => {
+        setDivisions(documentDivisions);
+        setOutstandingBalance(_requestInfo.outstandingbalance)
+        setIsBalanceFeeOverrode(_requestInfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
           return fileExt
         }
         // New code added to get the incompatable files for download redline
-        // data has all the files including incompatable ones
+        // documents has all the files including incompatable ones
         // _files has all files except incompatable ones
-        const _incompatableFiles = data.documents.filter(
+        const _incompatableFiles = documents.filter(
           (d) => {
             const isPdfFile = getFileExt(d.filepath) === "pdf"
             if (isPdfFile) {
@@ -91,7 +91,7 @@ function Home() {
           }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.documents.filter((d) => {
+        const _files = documents.filter((d) => {
           const isPdfFile = getFileExt(d.filepath) === "pdf"
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
@@ -109,7 +109,7 @@ function Home() {
           });
 
           let doclist = [];          
-          let requestInfo = data.requestinfo;
+          let requestInfo = _requestInfo.requestinfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
@@ -307,7 +307,6 @@ function Home() {
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
-
                 />
               )
             // : <div>Loading</div>
