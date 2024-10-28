@@ -164,8 +164,8 @@ const getFullnameTeamList = () => {
 };
 
 
-const errorToast = (errorMessage: any) => {
-  return toast.error(errorMessage, {
+const errorToast = (errorMessage: any, options?: any) => {
+  const defaultOptions = {
     position: "top-right",
     autoClose: 3000,
     hideProgressBar: true,
@@ -173,7 +173,8 @@ const errorToast = (errorMessage: any) => {
     pauseOnHover: true,
     draggable: true,
     progress: undefined,
-  });
+  }
+  return toast.error(errorMessage, { ...defaultOptions, ...options });
 };
 
 export {
