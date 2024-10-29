@@ -150,7 +150,7 @@ export const ConfirmationModal= ({
         </DialogContentText>
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
-        <button className="btn-bottom btn-save btn" onClick={saveDoc}>
+        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={selectedPublicBodyIDs.length < 1}>
           {modalData?.modalButtonLabel}
         </button>
         <button
