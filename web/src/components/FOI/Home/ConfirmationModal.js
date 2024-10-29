@@ -32,6 +32,7 @@ export const ConfirmationModal= ({
     consultApplyRedlines,
     handleApplyRedlines
 }) => {
+    let disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
 
     return (
       <ReactModal
@@ -150,7 +151,7 @@ export const ConfirmationModal= ({
         </DialogContentText>
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
-        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={selectedPublicBodyIDs.length < 1}>
+        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton}>
           {modalData?.modalButtonLabel}
         </button>
         <button
