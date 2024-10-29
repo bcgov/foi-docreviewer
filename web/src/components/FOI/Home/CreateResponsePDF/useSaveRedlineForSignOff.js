@@ -34,6 +34,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
+  const allPublicBodies = useAppSelector((state) => state.documents?.allPublicBodies);
   const toastId = React.useRef(null);
   const { foiministryrequestid } = useParams();
 
@@ -67,6 +68,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [redlineCategory, setRedlineCategory] = useState(false);
   const [filteredComments, setFilteredComments] = useState({});
   const [alreadyStitchedList, setAlreadyStitchedList] = useState([]);
+  const [enableSavingConsults, setEnableSavingConsults] = useState(false);
+  const [selectedPublicBodyIDs, setSelectedPublicBodyIDs] = useState([]);
+  const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
+  const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
+  const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
@@ -83,9 +89,41 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         else {
           for (let doc of divObj.documentlist) {
+            //page to pageFlag mappings logic used for consults
+            const pagePageFlagMappings = {};
+            for (let pageFlag of doc.pageFlag) {
+              if (pageFlag.page in pagePageFlagMappings) {
+                pagePageFlagMappings[pageFlag.page].push(pageFlag.flagid);
+              } else {
+                pagePageFlagMappings[pageFlag.page] = [pageFlag.flagid];
+              }
+            }
             for (const flagInfo of doc.pageFlag) {
+              if (redlineCategory === "consult") {
+                const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
+                for (let consult of doc.consult) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                    if (
+                      (
+                      flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid !== pageFlagTypes["Not Responsive"]) ||
+                      (
+                        (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
+                        (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])
+                      )
+                    ) {
+                      if(isvalid === false) {
+                        if ((!includeDuplicatePages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Duplicate"])) || (!includeNRPages && pageFlagsOnPage.some((flagId) => flagId === pageFlagTypes["Not Responsive"]))) {
+                          isvalid = false;
+                        } else {
+                          isvalid = true; 
+                        }
+                      } 
+                    }
+                  }
+                }
+              }
               // Added condition to handle Duplicate/NR clicked for Redline for Sign off Modal
-              if (
+              else if (
                   (flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) ||
                   (
                     (includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) ||
@@ -153,21 +191,68 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     incompatibleFiles
   ) => {
     let newDocList = [];
-    for (let div of divisions) {
-      let divDocList = documentList?.filter((doc) =>
-        doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
-      );
-      // sort based on sortorder as the sortorder added based on the LastModified
-      divDocList = sortBySortOrder(divDocList);
-      let incompatableList = incompatibleFiles.filter((doc) =>
-        doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
-      );
-      newDocList.push({
-        divisionid: div.divisionid,
-        divisionname: div.name,
-        documentlist: divDocList,
-        incompatableList: incompatableList,
-      });
+    if (redlineCategory === "redline" || redlineCategory === "oipcreview") {
+      for (let div of divisions) {
+        let divDocList = documentList?.filter((doc) =>
+          doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
+        );
+
+        // sort based on sortorder as the sortorder added based on the LastModified
+        divDocList = sortBySortOrder(divDocList);
+
+        let incompatableList = incompatibleFiles.filter((doc) =>
+          doc.divisions.map((d) => d.divisionid).includes(div.divisionid)
+        );
+        newDocList.push({
+          divisionid: div.divisionid,
+          divisionname: div.name,
+          documentlist: divDocList,
+          incompatableList: incompatableList,
+        });
+      }
+    } else if (redlineCategory === "consult") {
+      // map documents to publicBodies and custom public bodies (treated as Divisions) for consults package.
+      // Consult Package logic will treat publicbodies (program areas + custom consults) as DIVISIONS and will incorporate the existing division mapping  + redline logic to generate the consult package
+      for (let publicBodyId of divisions) {
+        let publicBodyDocList = [];
+        documentList.forEach((doc) => {
+          let programareaids = new Set();
+          if (doc.consult && doc.consult.length) {
+            doc.consult.forEach((consult) => {
+              consult.programareaid.forEach((programareaid) => {
+                if (programareaid === publicBodyId) {
+                  programareaids.add(programareaid);
+                }
+              })
+            });
+            for (let consult of doc.consult) {
+              for (let customPublicBody of consult.other) {
+                if (customPublicBody === publicBodyId) {
+                  programareaids.add(customPublicBody);
+                }
+              }
+            }
+          }
+          for (let programareaid of programareaids) {
+            if (programareaid === publicBodyId) {
+              publicBodyDocList.push({...doc})
+            }
+          }
+        })
+        publicBodyDocList = sortBySortOrder(publicBodyDocList);
+
+        let incompatableList = [];
+
+        // Custom public bodies/consults do not exist in allPublicBodies data (BE program area data) and are stored as simple strings with pageflag data (in other array attribute).
+        // Therefore, if publicBodyInfo cannot be found in allPublicBodies, the publicbody is a custom one and we will create its 'divison' data in the FE with a random unique id (date.now()), and its publicBodyID (which is its name as a string) for consult package creation purposes
+        const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId);
+        newDocList.push({
+          divisionid: publicBodyInfo ? publicBodyInfo.programareaid : Date.now(),
+          divisionname: publicBodyInfo ? publicBodyInfo.name : publicBodyId,
+          documentlist: publicBodyDocList,
+          incompatableList: incompatableList,
+        })
+      }
     }
     return newDocList;
   };
@@ -185,6 +270,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       }
       // sort based on sortorder as the sortorder added based on the LastModified
       prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments), pageMappedDocs);
+    } else if (redlineCategory === "consult") {
+      prepareRedlinePageMappingByConsult(divisionDocuments);
     } else {
       prepareRedlinePageMappingByDivision(divisionDocuments);
     }
@@ -295,7 +382,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       'NRwatermark': NRWatermarksPages
     });
   };
-
 
   const prepareRedlinePageMappingByDivision = (divisionDocuments) => {
     let removepages = {};
@@ -414,11 +500,197 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     });
   }
 
+  const prepareRedlinePageMappingByConsult = (divisionDocuments) => {
+    let removepages = {};
+    let pageMappings = {};
+    let divPageMappings = {};
+    let pagesToRemove = [];
+    let totalPageCount = 0;
+    let totalPageCountIncludeRemoved = 0;
+    for (let divObj of divisionDocuments) {
+      // sort based on sortorder as the sortorder added based on the LastModified
+      for (let doc of sortBySortOrder(divObj.documentlist)) {
+        if (doc.pagecount > 0) {
+          let pagesToRemoveEachDoc = [];
+          pageMappings[doc.documentid] = {};
+          let pageIndex = 1;
+          //gather pages that need to be removed
+          doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
+          let skipDocumentPages = false;
+          let skipOnlyDuplicateDocument = false;
+          let skipOnlyNRDocument = false;
+          if (!includeDuplicatePages && !includeNRPages) {
+            skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          }
+          else if (!includeDuplicatePages) {
+            skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          }
+          else if (!includeNRPages) {
+            skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          }
+
+          // for consults, go through all pages
+          for (const page of doc.pages) {
+            //find pageflags for this page
+            const pageFlagsOnPage = doc.pageFlag.filter((pageFlag) => {
+              return pageFlag.page === page;
+            })
+            const notConsultPageFlagsOnPage = pageFlagsOnPage.filter((pageFlag) => {
+              return pageFlag.flagid !== pageFlagTypes["Consult"];
+            })
+
+            // if the page has no pageflags, remove it
+            if (pageFlagsOnPage.length == 0) {
+              pagesToRemoveEachDoc.push(page);
+              if (!skipDocumentPages) {
+                pagesToRemove.push(
+                  pageIndex + totalPageCountIncludeRemoved
+                );
+              }
+              pageIndex ++;
+            }
+
+            //differences in pagemapping for consults begin here
+            //for pages with only consult flags, remove if page doesn't belong to current consult body
+            if (pageFlagsOnPage.length > 0 && notConsultPageFlagsOnPage.length == 0) {
+              for (let flagInfo of pageFlagsOnPage) {
+                let hasConsult = false;
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      hasConsult = true;
+                      break;
+                    }
+                  }
+                  if (!hasConsult) {
+                    if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
+                      pagesToRemoveEachDoc.push(flagInfo.page);
+                      if(!skipDocumentPages) {
+                        delete pageMappings[doc.documentid][flagInfo.page];
+                        pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
+                      }
+                    }
+                  } else {
+                    // add page as it will match the curent publicBody / division id
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  }
+                }
+              pageIndex ++;
+            }
+
+            // if the page does have pageflags, process it
+            for (let flagInfo of notConsultPageFlagsOnPage) {
+              if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
+                if(includeDuplicatePages) {
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      pageMappings[doc.documentid][flagInfo.page] =
+                        pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+                  if (!skipDocumentPages && !skipOnlyDuplicateDocument) {
+                    pagesToRemove.push(
+                      pageIndex + totalPageCountIncludeRemoved
+                    );
+                  }
+                }
+
+              } else if (flagInfo.flagid == pageFlagTypes["Not Responsive"]) {
+                if(includeNRPages) {
+                  for (let consult of doc.consult) {
+                    if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                      pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                        totalPageCount -
+                        pagesToRemoveEachDoc.length;
+                    }
+                  }
+                } else {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+                  if (!skipDocumentPages && !skipOnlyNRDocument) {
+                    pagesToRemove.push(
+                      pageIndex + totalPageCountIncludeRemoved
+                    );
+                  }
+                }
+              } else if (flagInfo.flagid == pageFlagTypes["In Progress"]) {
+                for (let consult of doc.consult) {
+                  if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                    pageMappings[doc.documentid][flagInfo.page] =
+                      pageIndex +
+                      totalPageCount -
+                      pagesToRemoveEachDoc.length;
+                  }
+                }
+              } else {
+                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                  pageMappings[doc.documentid][flagInfo.page] =
+                    pageIndex +
+                    totalPageCount -
+                    pagesToRemoveEachDoc.length;
+                }
+              }
+
+              // Check if the page has relevant consult flag, if not remove the page
+              let hasConsult = false;
+              for (let consult of doc.consult) {
+                if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
+                  hasConsult = true;
+                  break;
+                }
+              }
+              if (!hasConsult) {
+                if (!pagesToRemoveEachDoc.includes(flagInfo.page)) {
+                  pagesToRemoveEachDoc.push(flagInfo.page);
+                  if(!skipDocumentPages) {
+                    delete pageMappings[doc.documentid][flagInfo.page];
+                    pagesToRemove.push(pageIndex + totalPageCountIncludeRemoved)
+                  }
+                }
+              }
+              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                pageIndex ++;
+              }
+            }
+          }
+          //End of pageMappingsByConsults
+
+          totalPageCount += Object.keys(
+            pageMappings[doc.documentid]
+          ).length;
+          if (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument) {
+            totalPageCountIncludeRemoved += doc.pagecount;
+          }
+        }
+      }
+      divPageMappings[divObj.divisionid] = pageMappings;
+      removepages[divObj.divisionid] = pagesToRemove;
+      pagesToRemove = [];
+      totalPageCount = 0;
+      totalPageCountIncludeRemoved = 0;
+      pageMappings = {}
+    }
+
+    setRedlinepageMappings({
+      'divpagemappings': divPageMappings,
+      'pagemapping': pageMappings,
+      'pagestoremove': removepages
+    });
+  }
 
   const prepareRedlineIncompatibleMapping = (redlineAPIResponse) => {
     let divIncompatableMapping = {};
     let incompatibleFiles = [];
     let divCounter = 0;
+    if (redlineAPIResponse.consultdocumentlist) {
+      redlineAPIResponse.divdocumentList = redlineAPIResponse.consultdocumentlist
+    }
 
     for (let divObj of redlineAPIResponse.divdocumentList) {
       divCounter++;
@@ -443,6 +715,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           });
           incompatibleFiles = incompatibleFiles.concat(divIncompatableFiles);
       }
+      if (divObj.publicBody && !divObj.divisionid) divObj.divisionid = divObj.publicBody;
       if (redlineAPIResponse.issingleredlinepackage == "Y") {
         if (divCounter == redlineAPIResponse.divdocumentList.length) {
           incompatableObj["divisionid"] = "0";
@@ -480,12 +753,14 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     }
   };
   const getzipredlinecategory = (layertype) => {
+    if (redlineCategory === "consult") {
+      return "consultpackage";
+    }
     if (currentLayer.name.toLowerCase() === "oipc") {
       return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
     }
     return "redline";
   };
-
 
   const prepareredlinesummarylist = (stitchDocuments) => {
     let summarylist = [];
@@ -562,7 +837,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then(async (docObj) => {
-              applyRotations(docObj, doc.attributes.rotatedpages)
+              applyRotations(docObj, doc.attributes.rotatedpages);
               //if (isIgnoredDocument(doc, docObj.getPageCount(), divisionDocuments) == false) {
                 docCountCopy++;
                 docCount++;
@@ -594,7 +869,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             if (docCount == documentlist.length && redlineSinglePkg == "N" ) {
               requestStitchObject[division] = stitchedDocObj;
             }
-          
         }
         } else {
           if (incompatableList[division]["incompatibleFiles"].length > 0) {
@@ -612,12 +886,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
       }
   };
-  
-  
-  
-  
-  
-  
   
   const stitchSingleDivisionRedlineExport = async (
     _instance,
@@ -738,7 +1006,48 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     });
     return sortedList;
   };
-
+  const getPublicBodyList = (documentList) => {
+    let publicBodyIdList = [];
+    if (documentList?.length > 0) {
+      for (const doc of documentList) {
+        if ('pageFlag' in doc) {
+          for (let pageflag of doc['pageFlag']) {
+            if ('programareaid' in pageflag) {
+              for (let programareaid of pageflag['programareaid']) {
+                publicBodyIdList.push(programareaid);
+              }
+            }
+            // Logic to include custom consults/public bodies as they are stored in another array (other) and not with programareaids
+            if ('other' in pageflag) {
+              for (let customPublicBody of pageflag['other']) {
+                publicBodyIdList.push(customPublicBody);
+              }
+            }
+          }
+        }
+      }
+      const filteredPublicBodyIdList = [...new Set(publicBodyIdList)];
+      return getPublicBodyObjs(filteredPublicBodyIdList);
+    }
+  }
+  const getPublicBodyObjs = (publicBodyIDList) => {
+    const publicBodies = [];
+    for (let publicBodyId of publicBodyIDList) {
+      const publicBody = allPublicBodies.find(publicBody => publicBody.programareaid === publicBodyId);
+      if (publicBody) {
+        publicBodies.push(publicBody);
+      } else {
+        // Custom public bodies/consults will not exist in allPublicBodies data (BE data for program areas) as they are not stored in the BE as programe areas (but rather as basic pageflags)
+        const customPublicBody = {
+          name: publicBodyId,
+          programareaid: null,
+          iaocode: publicBodyId
+        };
+        publicBodies.push(customPublicBody);
+      }
+    }
+    return publicBodies;
+  }
 
   const saveRedlineDocument = async (
     _instance,
@@ -755,7 +1064,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     });
 
     const divisionFilesList = [...documentList, ...incompatibleFiles];
-    const divisions = getDivisionsForSaveRedline(divisionFilesList);
+    let divisions;
+    if (redlineCategory === "consult") {
+      //Key consult logic, uses preexisting division reldine logic for consults
+      divisions = selectedPublicBodyIDs;
+    } else {
+      divisions = getDivisionsForSaveRedline(divisionFilesList);
+    }
     const divisionDocuments = getDivisionDocumentMappingForRedline(divisions, documentList, incompatibleFiles);
     const documentids = documentList.map((obj) => obj.documentid);
     getFOIS3DocumentRedlinePreSignedUrl(
@@ -770,7 +1085,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         });
         setIsSingleRedlinePackage(res.issingleredlinepackage);
         let stitchDoc = {};
-        
+
         prepareRedlinePageMapping(
           res['divdocumentList'],
           res.issingleredlinepackage,
@@ -784,7 +1099,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         let documentsObjArr = [];
         let divisionstitchpages = [];
         let divCount = 0;
-        // console.log("RES:",res)
         for (let div of res.divdocumentList) {
           divCount++;
           let docCount = 0;
@@ -805,9 +1119,29 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
               } 
               if (pageMappedDocs != undefined) {
-                let divisionsdocpages = Object.values(
-                  pageMappedDocs.redlineDocIdLookup
-                )
+                let divisionsdocpages = [];
+                // for consults, no need to filter by division/consult
+                if (redlineCategory === "consult") {
+                  Object.values(
+                    pageMappedDocs.redlineDocIdLookup
+                  )
+                  .forEach((obj) => {
+                    divisionsdocpages = Object.values(
+                      pageMappedDocs.redlineDocIdLookup
+                    )
+                      .filter((obj) => {
+                        return obj.docId == doc.documentid;
+                      })
+                      .map((obj) => {
+                        if (res.issingleredlinepackage == "Y" || (!skipDocumentPages && !skipOnlyDuplicateDocument && !skipOnlyNRDocument)) {
+                          return obj.pageMappings;
+                        }
+                      });
+                  })
+                } else {
+                  divisionsdocpages = Object.values(
+                    pageMappedDocs.redlineDocIdLookup
+                  )
                   .filter((obj) => {
                     return obj.division.includes(div.divisionid) && obj.docId == doc.documentid;
                   })
@@ -816,6 +1150,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                       return obj.pageMappings;
                     }
                   });
+                }
                 if (divisionsdocpages[0]) {
                   divisionsdocpages.forEach(function (_arr) {
                     _arr.forEach(function (value) {
@@ -831,9 +1166,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                   );
                 }
               }
-              // if (docCount == div.documentlist.length) {
-                
-              // }
             }
           }
           if (
@@ -919,7 +1251,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     );
   };
   
-  
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
     const validRedlineStatus = [
       RequestStates["Records Review"],
@@ -933,7 +1264,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         !redlineReadyAndValid || !validRedlineStatus;
     }
   };
-
   const checkSavingOIPCRedline = (
     oipcRedlineReadyAndValid,
     instance,
@@ -954,6 +1284,17 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         !readyForSignOff;
     }
   };
+  const checkSavingConsults = (documentList, instance) => {
+    const publicBodyList = getPublicBodyList(documentList);
+    setDocumentPublicBodies(publicBodyList);
+    setEnableSavingConsults(
+      publicBodyList.length > 0
+    );
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
+    }
+  }
   const triggerRedlineZipper = (
     divObj,
     stitchedDocPath,
@@ -985,7 +1326,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       includenrpages: includeNRPages,
     };
     if (stitchedDocPath) {
-      // console.log("stitchedDocPath:",stitchedDocPath)
       const stitchedDocPathArray = stitchedDocPath?.split("/");
       let fileName =
         stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
@@ -1336,9 +1676,12 @@ const stampPageNumberRedline = async (
             .replace(/&quot;/g, '"')
             .replace(/\\/g, "");
           let sections = getAnnotationSections(annot);
-          if (sections.some((item) => item.section === "s. 14")) {
+          if (redlineCategory === "oipcreview" && sections.some((item) => item.section === "s. 14")) {
             sectionStamps[parentRedactionId] =
               annotationpagenumbers[parentRedactionId];
+          }
+          if (redlineCategory === "consult" && sections.some(item => item.section === 'NR')) {
+            sectionStamps[parentRedactionId] = annotationpagenumbers[parentRedactionId];
           }
         }
       }
@@ -1406,17 +1749,27 @@ const stampPageNumberRedline = async (
     const downloadType = "pdf";
     let currentDivisionCount = 0;
     const divisionCountForToast = Object.keys(redlineStitchObject).length;
+
+    //Consult Package page removal logic
+    let pagesOfEachDivisions = {};
+    //get page numbers of each division
+    Object.keys(redlineStitchInfo).forEach((_div) => {
+      pagesOfEachDivisions[_div] = [];
+      redlineStitchInfo[_div]["stitchpages"].forEach((pageinfo) => {
+        pagesOfEachDivisions[_div].push(pageinfo["stitchedPageNo"]); 
+      });
+    });
+
     for (const [key, value] of Object.entries(redlineStitchObject)) {
       currentDivisionCount++;
       toast.update(toastId.current, {
         render:
           isSingleRedlinePackage == "N"
-            ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
+            ? `Saving redline PDF for ${divisionCountForToast} ${redlineCategory === "consult" ? "consultees" : "divisions"} to Object Storage...`
             : `Saving redline PDF to Object Storage...`,
         isLoading: true,
         autoClose: 5000,
       });
-
         let divisionid = key;
         let stitchObject = redlineStitchObject[key];
         if (stitchObject == null) {
@@ -1432,14 +1785,13 @@ const stampPageNumberRedline = async (
             redlinepageMappings["divpagemappings"][divisionid],
             redlineStitchInfo[divisionid]["documentids"]
           );
-          if(redlineCategory !== "oipcreview") {  
+          if (redlineCategory === "redline") {
             await stampPageNumberRedline(
-            stitchObject,
-            PDFNet,
-            redlineStitchInfo[divisionid]["stitchpages"],
-            isSingleRedlinePackage
+              stitchObject,
+              PDFNet,
+              redlineStitchInfo[divisionid]["stitchpages"],
+              isSingleRedlinePackage
             );
-          }
           if (
             redlinepageMappings["pagestoremove"][divisionid] &&
             redlinepageMappings["pagestoremove"][divisionid].length > 0 &&
@@ -1449,7 +1801,6 @@ const stampPageNumberRedline = async (
               redlinepageMappings["pagestoremove"][divisionid]
             );
           }
-          if (redlineCategory === "redline") {
             await addWatermarkToRedline(
               stitchObject,
               redlineWatermarkPageMapping,
@@ -1462,12 +1813,12 @@ const stampPageNumberRedline = async (
           // for redline - formatted annots
           let xmlObj = parser.parseFromString(string.xfdfString);
           let annots = parser.parseFromString('<annots>' + formattedAnnotationXML + '</annots>');
-          let annotsObj = xmlObj.getElementsByTagName('annots')
+          let annotsObj = xmlObj.getElementsByTagName('annots');
           if (annotsObj.length > 0) {
-            annotsObj[0].children = annotsObj[0].children.concat(annots.children)
+            annotsObj[0].children = annotsObj[0].children.concat(annots.children);
           } else {
-            xmlObj.children.push(annots)
-          }          
+            xmlObj.children.push(annots);
+          }       
           let xfdfString = parser.toString(xmlObj);
 
           // for oipc review - re-apply annots after redaction - annots only no widgets/form fields
@@ -1475,25 +1826,134 @@ const stampPageNumberRedline = async (
           xmlObj1.children = [];
           xmlObj1.children.push(annots);
           let xfdfString1 = parser.toString(xmlObj1);
-
-        //OIPC - Special Block (Redact S.14) : Begin
-        if(redlineCategory === "oipcreview") {
-          let annotationManager = docInstance?.Core.annotationManager;
-          let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
-          let s14annots = [];
-          for (const [key, value] of Object.entries(s14_sectionStamps)) {
-            let s14annoation = annotationManager.getAnnotationById(key);
-                if ( s14annoation.Subject === "Redact") { 
-                  s14annots.push(s14annoation);
-                }
+          
+          //Apply Redactions (if any)
+          //OIPC - Special Block (Redact S.14) : Begin
+          if(redlineCategory === "oipcreview") {
+            let annotationManager = docInstance?.Core.annotationManager;
+            let s14_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+            let s14annots = [];
+            for (const [key, value] of Object.entries(s14_sectionStamps)) {
+              let s14annoation = annotationManager.getAnnotationById(key);
+                  if ( s14annoation.Subject === "Redact") { 
+                    s14annots.push(s14annoation);
+                  }
+            }
+  
+            let doc = docViewer.getDocument();
+            await annotationManager.applyRedactions(s14annots);
+  
+            /** apply redaction and save to s3 - newXfdfString is needed to display
+             * the freetext(section name) on downloaded file.*/
+            doc
+              .getFileData({
+                // export the document to arraybuffer
+                // xfdfString: xfdfString,
+                downloadType: downloadType,
+                flatten: true,
+              })
+              .then(async (_data) => {
+                const _arr = new Uint8Array(_data);
+                const _blob = new Blob([_arr], { type: "application/pdf" });
+  
+                await docInstance?.Core.createDocument(_data, {
+                  loadAsPDF: true,
+                  useDownloader: false, // Added to fix BLANK page issue
+                }).then( async (docObj) => {
+  
+                  /**must apply redactions before removing pages*/
+                  if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
+                    await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                  }
+  
+                  await stampPageNumberRedline(
+                    docObj,
+                    PDFNet,
+                    redlineStitchInfo[divisionid]["stitchpages"],
+                    isSingleRedlinePackage
+                  );
+  
+                  docObj.getFileData({
+                    // saves the document with annotations in it
+                    xfdfString: xfdfString1,
+                    downloadType: downloadType,
+                    flatten: true,
+                  })
+                  .then(async (__data) => {
+                    const __arr = new Uint8Array(__data);
+                    const __blob = new Blob([__arr], { type: "application/pdf" });
+  
+                    saveFilesinS3(
+                      { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                      __blob,
+                      (_res) => {
+                        // ######### call another process for zipping and generate download here ##########
+                        toast.update(toastId.current, {
+                          render: `Redline PDF saved to Object Storage`,
+                          type: "success",
+                          className: "file-upload-toast",
+                          isLoading: false,
+                          autoClose: 3000,
+                          hideProgressBar: true,
+                          closeOnClick: true,
+                          pauseOnHover: true,
+                          draggable: true,
+                          closeButton: true,
+                        });
+                        triggerRedlineZipper(
+                          redlineIncompatabileMappings[divisionid],
+                          redlineStitchInfo[divisionid]["s3path"],
+                          divisionCountForToast,
+                          isSingleRedlinePackage
+                        );
+                      },
+                      (_err) => {
+                        console.log(_err);
+                        toast.update(toastId.current, {
+                          render: "Failed to save redline pdf to Object Storage",
+                          type: "error",
+                          className: "file-upload-toast",
+                          isLoading: false,
+                          autoClose: 3000,
+                          hideProgressBar: true,
+                          closeOnClick: true,
+                          pauseOnHover: true,
+                          draggable: true,
+                          closeButton: true,
+                        });
+                      }
+                    );
+                  });
+                });
+              });
           }
-
-          let doc = docViewer.getDocument();
-          await annotationManager.applyRedactions(s14annots);
-
-          /** apply redaction and save to s3 - newXfdfString is needed to display
-           * the freetext(section name) on downloaded file.*/
-          doc
+          //OIPC - Special Block : End
+          //Consults - Redlines + Redactions (Redact S.NR) Block : Start
+          else if (redlineCategory === "consult") {
+            let doc = docViewer.getDocument();
+            if (!consultApplyRedlines) {
+              const publicbodyAnnotList = xmlObj1.getElementsByTagName('annots')[0]['children'];
+              const filteredPublicbodyAnnotList = publicbodyAnnotList.filter((annot) => {
+                return annot.name !== "freetext" && annot.name !== 'redact'
+              });
+              xmlObj1.getElementsByTagName('annots')[0].children = filteredPublicbodyAnnotList;
+              xfdfString1 = parser.toString(xmlObj1);
+            }
+            if (consultApplyRedactions) {
+              let annotationManager = docInstance?.Core.annotationManager;
+              let nr_sectionStamps = await annotationSectionsMapping(xfdfString, formattedAnnotationXML);
+              let nrAnnots = [];
+              for (const [key, value] of Object.entries(nr_sectionStamps)) {
+                let nrAnnotation = annotationManager.getAnnotationById(key);
+                    if (nrAnnotation.Subject === "Redact") { 
+                      nrAnnots.push(nrAnnotation);
+                    }
+              }
+              await annotationManager.applyRedactions(nrAnnots);
+            }
+            /** apply redaction and save to s3 - newXfdfString is needed to display
+            * the freetext(section name) on downloaded file.*/
+            doc
             .getFileData({
               // export the document to arraybuffer
               // xfdfString: xfdfString,
@@ -1509,9 +1969,15 @@ const stampPageNumberRedline = async (
                 useDownloader: false, // Added to fix BLANK page issue
               }).then( async (docObj) => {
 
-                /**must apply redactions before removing pages*/
-                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
-                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                // Consult Pacakge page removal of pages that are not in this division (will leave consult/division specific pages in docObj to be removed by redlinepagemappings pagestoremove below)
+                let pagesNotBelongsToThisDivision = [];
+                for(let i=1; i <= docObj.getPageCount(); i++) {
+                  if(!pagesOfEachDivisions[key].includes(i))
+                    pagesNotBelongsToThisDivision.push(i);
+                }
+
+                if(pagesNotBelongsToThisDivision.length > 0) {
+                  await docObj.removePages(pagesNotBelongsToThisDivision);
                 }
 
                 await stampPageNumberRedline(
@@ -1520,6 +1986,12 @@ const stampPageNumberRedline = async (
                   redlineStitchInfo[divisionid]["stitchpages"],
                   isSingleRedlinePackage
                 );
+
+                //Consult Pacakge page removal of pages/documents associated with divison/consult
+                /**must apply redactions before removing pages*/
+                if (redlinepageMappings["pagestoremove"][divisionid].length > 0) {
+                  await docObj.removePages(redlinepageMappings["pagestoremove"][divisionid]);
+                }
 
                 docObj.getFileData({
                   // saves the document with annotations in it
@@ -1537,7 +2009,7 @@ const stampPageNumberRedline = async (
                     (_res) => {
                       // ######### call another process for zipping and generate download here ##########
                       toast.update(toastId.current, {
-                        render: `Redline PDF saved to Object Storage`,
+                        render: `Consult PDF saved to Object Storage`,
                         type: "success",
                         className: "file-upload-toast",
                         isLoading: false,
@@ -1574,9 +2046,10 @@ const stampPageNumberRedline = async (
                 });
               });
             });
-        //OIPC - Special Block : End        
-        } else {
-          stitchObject
+          }
+          //Consults - Redlines + Redactions (Redact S.NR) Block : End
+        else {
+        stitchObject
           .getFileData({
             // saves the document with annotations in it
             xfdfString: xfdfString,
@@ -1664,7 +2137,6 @@ const stampPageNumberRedline = async (
   }
   
   useEffect(() => {
-
     if (
       redlineStitchObject &&
       redlineDocumentAnnotations &&
@@ -1674,7 +2146,6 @@ const stampPageNumberRedline = async (
       StitchAndUploadDocument();
     }
   }, [redlineDocumentAnnotations, redlineStitchObject, redlineStitchInfo]);
-  
   
   useEffect(() => {
     if (
@@ -1745,10 +2216,19 @@ const stampPageNumberRedline = async (
     saveRedlineDocument,
     enableSavingOipcRedline,
     enableSavingRedline,
+    enableSavingConsults,
     checkSavingRedline,
     checkSavingOIPCRedline,
+    checkSavingConsults,
     setRedlineCategory,
     setFilteredComments,
+    setSelectedPublicBodyIDs,
+    setConsultApplyRedactions,
+    selectedPublicBodyIDs,
+    documentPublicBodies,
+    consultApplyRedactions,
+    setConsultApplyRedlines,
+    consultApplyRedlines,
   };
 };
 

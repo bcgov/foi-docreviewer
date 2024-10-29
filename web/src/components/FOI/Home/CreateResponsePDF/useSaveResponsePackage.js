@@ -217,8 +217,8 @@ const useSaveResponsePackage = () => {
     documentList,
     pageMappedDocs,
     pageFlags,
+    feeOverrideReason,
     requestType,
-    feeOverrideReason
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
@@ -229,8 +229,8 @@ const useSaveResponsePackage = () => {
       bcgovcode: "",
       summarydocuments: {} ,
       redactionlayerid: currentLayer.redactionlayerid,
-      requesttype: requestType,
-      pdfstitchjobattributes:{"feeoverridereason":""}
+      pdfstitchjobattributes:{"feeoverridereason":""},
+      requesttype: requestType
     };
     getResponsePackagePreSignedUrl(
       foiministryrequestid,

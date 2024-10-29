@@ -59,6 +59,21 @@ export const createFinalPackageSelection = (document, enableSave) => {
   return finalPackageBtn;
 };
 
+export const createConsultPackageSelection = (document, enableSave)  => {
+  const consultPackageButton = document.createElement("button");
+  consultPackageButton.textContent = "Consult Public Body";
+  consultPackageButton.id = "consult_package";
+  consultPackageButton.className = "consult_package";
+  consultPackageButton.style.backgroundColor = "transparent";
+  consultPackageButton.style.border = "none";
+  consultPackageButton.style.padding = "8px 8px 8px 10px";
+  consultPackageButton.style.cursor = "pointer";
+  consultPackageButton.style.alignItems = "left";
+  consultPackageButton.disabled = !enableSave;
+
+  return consultPackageButton;
+}
+
 export const renderCustomButton = (document, menu) => {
   const menuBtn = document.createElement("button");
   menuBtn.textContent = "Create Response PDF";
@@ -174,6 +189,30 @@ export const handleFinalPackageClick = (
       setRedlineModalOpen(true);
     }
 };
+
+export const handleConsultPackageClick = (
+  updateModalData,
+  setRedlineModalOpen,
+  setIncludeDuplicatePages,
+  setIncludeNRPages
+) => {
+  updateModalData({
+    modalFor: "consult",
+    modalTitle: "Consult Public Body",
+    modalMessage: [
+      "Are you sure you want to create a consult package? A PDF will be created for each public body selected, and your web browser will automatically refresh after package creation.",
+      <br key="lineBreak1" />,
+      <br key="lineBreak2" />,
+      <span key="modalDescription1">
+        Select one or more public bodies you wish to create a consult package for:
+      </span>,
+    ],
+    modalButtonLabel: "Create Consult"
+  });
+  setIncludeDuplicatePages(true);
+  setIncludeNRPages(true);
+  setRedlineModalOpen(true);
+}
 
 export const isReadyForSignOff = (documentList, pageFlags) => {
   let pageFlagArray = [];
