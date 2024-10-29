@@ -133,7 +133,7 @@ export const ConfirmationModal= ({
                     checked={consultApplyRedlines}
                     onChange={handleApplyRedlines}
                   />
-                  <label for="applyredline-checkbox">Include Redlines</label>
+                  <label for="applyredline-checkbox">Include Transparent Redactions (Redlines)</label>
                   <br/>
                 <input
                   type="checkbox"

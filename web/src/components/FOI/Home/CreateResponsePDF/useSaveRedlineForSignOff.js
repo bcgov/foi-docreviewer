@@ -1765,7 +1765,7 @@ const stampPageNumberRedline = async (
       toast.update(toastId.current, {
         render:
           isSingleRedlinePackage == "N"
-            ? `Saving redline PDF for ${divisionCountForToast} divisions to Object Storage...`
+            ? `Saving redline PDF for ${divisionCountForToast} ${redlineCategory === "consult" ? "consultees" : "divisions"} to Object Storage...`
             : `Saving redline PDF to Object Storage...`,
         isLoading: true,
         autoClose: 5000,
