@@ -159,6 +159,7 @@ class redactionservice:
             "attributes": to_json(messageschema["attributes"]),
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
             "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
+            "feeoverridereason":feeoverridereason,
             "requesttype": messageschema["requesttype"],
             "feeoverridereason":feeoverridereason
         }

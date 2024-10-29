@@ -46,7 +46,7 @@ function Home() {
   const [divisions, setDivisions] = useState([]);
   const [pageFlags, setPageFlags]= useState([]);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
-  const [outstandingBalance, setOutstandingBalance]= useState(0)
+  const [outstandingBalance, setOutstandingBalance]= useState(0);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -109,7 +109,7 @@ function Home() {
           });
 
           let doclist = [];          
-          let requestInfo = _requestInfo;
+          let requestInfo = _requestInfo.requestinfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
@@ -303,10 +303,10 @@ function Home() {
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
-                  pageFlags={pageFlags}
-                  syncPageFlagsOnAction={syncPageFlagsOnAction}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
                   outstandingBalance={outstandingBalance}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
                 />
               )
             // : <div>Loading</div>
