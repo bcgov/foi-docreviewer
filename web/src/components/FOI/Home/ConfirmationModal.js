@@ -10,8 +10,8 @@ import DialogTitle from "@mui/material/DialogTitle";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import Grid from '@mui/material/Grid';
+import { Tooltip } from '@mui/material';
 //import type { ReactModalProps } from './types';
-
 
 export const ConfirmationModal= ({
     cancelRedaction,
@@ -86,18 +86,20 @@ export const ConfirmationModal= ({
                 <Grid container spacing={0.5}>
                   {documentPublicBodies?.map((publicBody) => {
                     return (<>
-                    <Grid item sm={1.5} md={1.5}>
+                    <Grid item sm={1.5} md={1.5} style={{overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis"}}>
                       <input
                         key={publicBody.programareaid ? publicBody.programareaid : publicBody.name}
                         type="checkbox"
-                        style={{ marginRight: 10 }}
+                        style={{ marginRight: 10, fontSize: "small"}}
                         className="redline-checkmark"
                         id={`${publicBody.iaocode}-checkbox`}
                         value={publicBody.programareaid ? publicBody.programareaid : publicBody.name}
                         checked={publicBody.programareaid ? selectedPublicBodyIDs.includes(publicBody.programareaid) : selectedPublicBodyIDs.includes(publicBody.name)}
                         onClick={handleSelectedPublicBodies}
                       />
-                      <label for={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
+                      <Tooltip title={publicBody.iaocode} enterDelay={1000}>
+                        <label style={{display: "inline", fontSize: "small" }} for={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
+                      </Tooltip>
                     </Grid>
                     </>)
                   })}
