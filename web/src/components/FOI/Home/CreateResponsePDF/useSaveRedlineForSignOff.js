@@ -1956,7 +1956,6 @@ const stampPageNumberRedline = async (
             doc
             .getFileData({
               // export the document to arraybuffer
-              // xfdfString: xfdfString,
               downloadType: downloadType,
               flatten: true,
             })
@@ -1997,7 +1996,7 @@ const stampPageNumberRedline = async (
                   // saves the document with annotations in it
                   xfdfString: xfdfString1,
                   downloadType: downloadType,
-                  flatten: true,
+                  // flatten: true,
                 })
                 .then(async (__data) => {
                   const __arr = new Uint8Array(__data);
