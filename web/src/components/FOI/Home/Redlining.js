@@ -636,7 +636,12 @@ const Redlining = React.forwardRef(
               totalsetcount: slicedsetofdoclist.length,
             },
           ]);
-        });
+        })
+        .catch((error) => {
+          errorToast(`There is an issue with the file ${filerow.file.filename}. Your request may not load. Please resolve the issue with this file in the Records tab to load the request properly.
+            Be advised, this file name may have a different file extension in the Records tab, and may not show the file as being in error.`, {autoClose: false});
+          console.error(`Error: ${JSON.stringify(error)}`);
+          });
       });
     };
 
