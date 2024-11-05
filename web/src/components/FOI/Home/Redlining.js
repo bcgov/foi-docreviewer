@@ -27,6 +27,7 @@ import {
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
+  REDLINE_OPACITY,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -64,6 +65,7 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
+import Switch from "@mui/material/Switch";
 
 const Redlining = React.forwardRef(
   (
@@ -84,6 +86,7 @@ const Redlining = React.forwardRef(
     },
     ref
   ) => {
+    const alpha = REDLINE_OPACITY;
 
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
@@ -159,6 +162,27 @@ const Redlining = React.forwardRef(
       enableSavingFinal,
     } = useSaveResponsePackage();
 
+    const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
+
+    useEffect(() => {
+      if (annotManager) {
+        let annotations = annotManager.getAnnotationsList();
+        for (let annotation of annotations) {
+          if (annotation.Subject === 'Redact') {
+            annotation.FillDisplayColor = new docInstance.Core.Annotations.Color(
+              255,
+              255,
+              255,
+              isRedlineOpaque ? alpha : 0
+            );
+            annotManager.redrawAnnotation(annotation)
+          }
+        }
+        localStorage.setItem('isRedlineOpaque', isRedlineOpaque)
+      }
+
+    }, [isRedlineOpaque])
+
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
@@ -191,6 +215,7 @@ const Redlining = React.forwardRef(
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
+          instance.UI.enableNoteSubmissionWithEnter();
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
@@ -230,6 +255,38 @@ const Redlining = React.forwardRef(
               header.headers.default.length - 3,
               0,
               newCustomElement
+            );
+
+            
+            const opacityToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      setIsRedlineOpaque(e.target.checked)
+                    } 
+                  }
+                  defaultChecked={isRedlineOpaque}
+                  id="isRedlineOpaqueToggle"
+                >
+                </input>
+                <label 
+                  for="isRedlineOpaqueToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Toggle Opacity
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 4,
+              0,
+              opacityToggle
             );
           });
 
@@ -1000,6 +1057,7 @@ const Redlining = React.forwardRef(
                     `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
+                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -1338,6 +1396,40 @@ const Redlining = React.forwardRef(
       if (docInstance && documentList.length > 0) {
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
+        docViewer.setWatermark({
+          // Draw custom watermark in middle of the document
+          custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+            // ctx is an instance of CanvasRenderingContext2D
+            // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+            // Hence being able to leverage those properties
+            let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+            let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+            let pageFlag = doc.pageflag.find(f => f.page === originalPage.page);
+            if (pageFlag.flagid === pageFlagTypes["Duplicate"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+    
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("DUPLICATE", 0, 0);
+              ctx.restore();
+            }
+    
+            if (pageFlag.flagid === pageFlagTypes["Not Responsive"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+    
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("NOT RESPONSIVE", 0, 0);
+              ctx.restore();
+            }
+          },
+        });
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
@@ -1452,6 +1544,7 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
+            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
@@ -2283,7 +2376,6 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        {/* { modalOpen && */}
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
@@ -2299,7 +2391,6 @@ const Redlining = React.forwardRef(
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
           />
-        {/* } */}
         {redlineModalOpen && 
           <ConfirmationModal 
           cancelRedaction={cancelRedaction}
