@@ -13,6 +13,7 @@ class documentpageflagservice:
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
         layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        print("layerids:",layerids)
         pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
         return self.__removedeletedpages(requestid, pageflags)
     
@@ -21,7 +22,8 @@ class documentpageflagservice:
         return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
     def getdocumentpageflags(self, requestid, redactionlayerid, documentid=None, version=None):
-        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayer)
         pageflag = DocumentPageflag.getpageflag(requestid, documentid, version, layerids)
         if pageflag not in (None, {}):
             return pageflag["pageflag"], pageflag["attributes"]
@@ -40,7 +42,8 @@ class documentpageflagservice:
 
 
     def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
-        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayer)
         return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
     def removebookmark(self, requestid, redactionlayerid, userinfo, documentids):
@@ -61,14 +64,20 @@ class documentpageflagservice:
         return DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids)    
 
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
+        print("@@@@")
         docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
+        print("1111")
         for pageflag in pageflags:
+            print("2",pageflag)
             if self.__isbookmark(pageflag) == True:
                 self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
             docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+            print("3",docpgattributes)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
         __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+        print("4",__docpgattributes)
         __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
+        print("5",__docpageflags)
         return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
     async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
@@ -76,9 +85,12 @@ class documentpageflagservice:
 
     def bulksavepageflag(self, requestid, data, userinfo):
         results = []
+        print("Inside bulksavepageflag!!!!!!!!",userinfo)
         for entry in data["documentpageflags"]:
             try:
+                print("started",entry)
                 result = self.bulksavedocumentpageflag(requestid, entry["documentid"],entry["version"],entry["pageflags"],entry["redactionlayerid"],userinfo)
+                print("6-result",result)
                 results.append(
                     {
                         "documentid": entry["documentid"],
@@ -108,6 +120,7 @@ class documentpageflagservice:
                 if attributes not in (None, {}) and "publicbody" in attributes
                 else []
             )
+            print("handlepublicbody:")
             publicbody = set(map(lambda x: x["name"], publicbody))
             publicbody.update(data["other"])
             return {"publicbody": list(map(lambda x: {"name": x}, publicbody))}

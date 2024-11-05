@@ -166,9 +166,19 @@ function Home() {
 
   //useEffect to manage and apply oipc layer to current layer
   useEffect(() => {
-    const oipcLayer = redactionLayers.find((layer) => layer.name === "OIPC")
-    if(validoipcreviewlayer && oipcLayer?.count > 0) {
-      store.dispatch(setCurrentLayer(oipcLayer));
+    /** TODO: CHECK with SARAH for OI Analyst group details!
+     * ADD condition for valid OIlayer exists check as well
+     */
+    const oiLayer = redactionLayers.find((layer) => layer.name === "Open Info")
+    if(user && user?.groups?.includes("/OI Team") && oiLayer?.count > 0){
+      store.dispatch(setCurrentLayer(oiLayer));
+
+    }
+    else{
+      const oipcLayer = redactionLayers.find((layer) => layer.name === "OIPC")
+      if(validoipcreviewlayer && oipcLayer?.count > 0) {
+        store.dispatch(setCurrentLayer(oipcLayer));
+      }
     }
   }, [validoipcreviewlayer, redactionLayers])
 

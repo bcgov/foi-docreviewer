@@ -100,6 +100,22 @@ li.modal-message-list-item {
   color: black;
 }
 
+
+#oi-redaction-code-modal-title {
+  font-family: "BCSans-Bold", sans-serif!important;
+  padding: 25px 30px 10px 30px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#oi-redaction-code-modal-title .MuiIconButton-root {
+  background-color: #036 ;
+  color: white;
+  border-radius: unset;
+}
+
 .dialog-close-button {
   display: none;
 }

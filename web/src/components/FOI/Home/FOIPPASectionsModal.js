@@ -32,11 +32,18 @@ export const FOIPPASectionsModal= ({
     saveRedaction,
     defaultSections,
     saveDefaultSections,
-    clearDefaultSections
+    clearDefaultSections,
+    currentLayer
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
     const [modalSortAsc, setModalSortAsc] = useState(true);
+
+    const isOILayerSelected = () => {
+      if(currentLayer.name.toLowerCase() === "open info")
+        return true;
+      return false;
+    }
 
     const AntSwitch = styled(Switch)(({ theme }) => ({
         width: 28,
@@ -104,8 +111,8 @@ export const FOIPPASectionsModal= ({
       
 
     return(
-
-         <ReactModal
+        !isOILayerSelected() ? (
+          <ReactModal
           initWidth={650}
           initHeight={700}
           minWidth={400}
@@ -214,8 +221,72 @@ export const FOIPPASectionsModal= ({
               Cancel
             </button>
           </DialogActions>
-        </ReactModal> 
-    )
+          </ReactModal> 
+        ): (
+          <ReactModal
+          initWidth={650}
+          initHeight={700}
+          minWidth={400}
+          minHeight={200}
+          top={15}
+          className={"state-change-dialog"}
+          onRequestClose={cancelRedaction}
+          isOpen={modalOpen}
+        >
+          <DialogTitle disabletypography="true" id="oi-redaction-code-modal-title">
+            <h2 className="state-change-header">OI Redaction codes</h2>
+            <IconButton className="title-col3" onClick={cancelRedaction}>
+              <i className="dialog-close-button">Close</i>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent className={"dialog-content-nomargin"}>
+            <DialogContentText
+              id="state-change-dialog-description"
+              component={"span"}
+            >
+            <div style={{ overflowY: "scroll" }}>
+              <List className="section-list">
+                {sections?.sort(compareValues).map((section, index) => (
+                  <ListItem key={"list-item" + section.id}>
+                    <input
+                      type="checkbox"
+                      className="section-checkbox"
+                      key={"section-checkbox" + section.id}
+                      id={"section" + section.id}
+                      data-sectionid={section.id}
+                      onChange={handleSectionSelected}
+                      disabled={sectionIsDisabled(section.id)}
+                      defaultChecked={selectedSections.includes(section.id)}
+                    />
+                    <label
+                      key={"list-label" + section.id}
+                      className="check-item"
+                    >
+                      {section.section}
+                    </label>
+                  </ListItem>
+                ))}
+              </List>
+            </div>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions className="foippa-modal-actions">
+            <button
+              className={`btn-bottom btn-save btn`}
+              onClick={editRedacts ? saveRedactions : saveRedaction}
+              disabled={saveDisabled}
+            >
+              Select Code(s)
+            </button>
+            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+              Cancel
+            </button>
+          </DialogActions>
+          </ReactModal> 
+      )
+    );
+
 
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import TextField from "@mui/material/TextField";
 import MenuItem from '@mui/material/MenuItem';
 import { useAppSelector } from '../../../hooks/hook';
-import { setCurrentLayer } from "../../../actions/documentActions";
+import { setCurrentLayer, incrementLayerCount } from "../../../actions/documentActions";
 import { store } from "../../../services/StoreService";
 import { faCirclePlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -29,6 +29,7 @@ const LayerDropdown = ({
         let selectedlayerid = e.target.value;
         setLayer(selectedlayerid);
         let layer = layers.find((l: any) => l.redactionlayerid === selectedlayerid)
+        console.log("Selected layer:",layer)
         if (e.target.value > 2 && layer.count === 0) {
             setOpenModal(true);
         } else {
@@ -47,6 +48,10 @@ const LayerDropdown = ({
         }
         if (layers.find((l: any) => l.redactionlayerid === layer).name === 'OIPC') {
             createOipcLayer(ministryrequestid, successCallback);
+        }
+        else if( layers.find((l: any) => l.redactionlayerid === layer).name === 'Open Info' ){
+            store.dispatch(incrementLayerCount(layer) as any);
+            successCallback();
         }
     }
 
@@ -68,7 +73,8 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.name === 'OIPC' && !validoipcreviewlayer} style={{color: "#000000"}}>
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.name === 'OIPC' && !validoipcreviewlayer} 
+                        style={{color: "#000000"}}>
                     {
                     option.redactionlayerid > 2
                         && option.count === 0

@@ -401,7 +401,7 @@ const getSectionArray = (sectionsStr) => {
 };
 const getSectionValue = (sectionsStr) => {
   const sectionArray = getSectionArray(sectionsStr);
-  return sectionArray[0].section;
+  return sectionArray[0]?.section;
 };
 
 export const getJoinedSections = (sectionsStr) => {
