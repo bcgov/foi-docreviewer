@@ -65,6 +65,7 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
+import Switch from "@mui/material/Switch";
 
 const Redlining = React.forwardRef(
   (
@@ -161,6 +162,27 @@ const Redlining = React.forwardRef(
       enableSavingFinal,
     } = useSaveResponsePackage();
 
+    const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
+
+    useEffect(() => {
+      if (annotManager) {
+        let annotations = annotManager.getAnnotationsList();
+        for (let annotation of annotations) {
+          if (annotation.Subject === 'Redact') {
+            annotation.FillDisplayColor = new docInstance.Core.Annotations.Color(
+              255,
+              255,
+              255,
+              isRedlineOpaque ? alpha : 0
+            );
+            annotManager.redrawAnnotation(annotation)
+          }
+        }
+        localStorage.setItem('isRedlineOpaque', isRedlineOpaque)
+      }
+
+    }, [isRedlineOpaque])
+
     useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
@@ -233,6 +255,38 @@ const Redlining = React.forwardRef(
               header.headers.default.length - 3,
               0,
               newCustomElement
+            );
+
+            
+            const opacityToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      setIsRedlineOpaque(e.target.checked)
+                    } 
+                  }
+                  defaultChecked={isRedlineOpaque}
+                  id="isRedlineOpaqueToggle"
+                >
+                </input>
+                <label 
+                  for="isRedlineOpaqueToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Toggle Opacity
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 4,
+              0,
+              opacityToggle
             );
           });
 
@@ -1003,6 +1057,7 @@ const Redlining = React.forwardRef(
                     `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
+                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -1489,6 +1544,7 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
+            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
@@ -2320,7 +2376,6 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        {/* { modalOpen && */}
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
@@ -2336,7 +2391,6 @@ const Redlining = React.forwardRef(
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
           />
-        {/* } */}
         {redlineModalOpen && 
           <ConfirmationModal 
           cancelRedaction={cancelRedaction}
