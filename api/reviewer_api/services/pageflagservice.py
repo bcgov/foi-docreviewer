@@ -35,6 +35,8 @@ class pageflagservice:
                 entry["programareas"] = programareas
                 if data not in (None, []):
                     entry["others"] = self.__getadditionlflags(data)
+                else:
+                    entry["others"] = []
         return pageflags
     
     def __getadditionlflags(self, data):

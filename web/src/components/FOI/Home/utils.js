@@ -124,8 +124,7 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
 
 export const getProgramAreas = (pageFlagList) => {
   let consult = pageFlagList.find((pageFlag) => pageFlag.name === "Consult");
-  return (({ others, programareas }) =>
-    others ? { others, programareas } : { others: [], programareas })(consult);
+  return {others: consult.others, programareas: consult.programareas};
 };
 
 // Helper function to sort files by lastmodified date
