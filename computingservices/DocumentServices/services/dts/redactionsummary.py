@@ -2,15 +2,17 @@ from services.dal.documentpageflag import documentpageflag
 from rstreamio.message.schemas.redactionsummary import get_in_summary_object,get_in_summarypackage_object
 import json
 from collections import defaultdict
+import traceback
 
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
-        if message.bcgovcode == 'mcf':
+        _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
+        if _ismcfpersonalrequest and message.category == "responsepackage":
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if message.category == "responsepackage" and message.bcgovcode != 'mcf':
+        if message.category == "responsepackage" and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
@@ -32,7 +34,8 @@ class redactionsummary():
             ordereddocids = summaryobject.sorteddocuments
             stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
-            print("\ntotalpagecount",totalpagecount)
+            print("\n __packaggesummary stitchedpagedata",stitchedpagedata)
+            print("\n __packaggesummary totalpagecount",totalpagecount)
             
             if totalpagecount <=0:
                 return 
@@ -40,33 +43,49 @@ class redactionsummary():
             print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            print("\n docpageflags",docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
             pagecount = 0
-            for docid in ordereddocids:
-                if docid in documentids:
-                    docdeletedpages = deletedpages[docid] if docid in deletedpages else []
-                    docpageflag = docpageflags[docid]
-                    for pageflag in _pageflags:
-                        filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
-                        if len(filteredpages) > 0:
-                            originalpagenos = [pg['originalpageno'] for pg in filteredpages]
-                            docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
-                            docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                            pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
-                    skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
-                pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
-            print("\n_pageflags1",_pageflags)
-            for pageflag in _pageflags:
-                _data = {}
-                if len(pageflag['docpageflags']) > 0:
+            try:
+                for docid in ordereddocids:
+                    if docid in documentids:
+                        docdeletedpages = deletedpages[docid] if docid in deletedpages else []
+                        if docpageflags is not None and docid in docpageflags.keys():
+                            docpageflag = docpageflags[docid]
+                            for pageflag in _pageflags:
+                                filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
+                                if len(filteredpages) > 0:
+                                    originalpagenos = [pg['originalpageno'] for pg in filteredpages]
+                                    docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
+                                    docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
+                                    pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                            skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
+                    if stitchedpagedata is not None:        
+                        pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
+                print("\n_pageflags1",_pageflags)
+                for pageflag in _pageflags:
                     _data = {}
-                    _data["flagname"] = pageflag["header"].upper()
-                    _data["pagecount"] = len(pageflag['docpageflags'])  
-                    _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
-                    summarydata.append(_data)
+                    if len(pageflag['docpageflags']) > 0:
+                        _data = {}
+                        _data["flagname"] = pageflag["header"].upper()
+                        _data["pagecount"] = len(pageflag['docpageflags'])  
+                        _data["sections"] = self.__format_redaction_summary(pageflag["description"], pageflag['docpageflags'], message.category)
+                        summarydata.append(_data)
+                #remove duplicate and NR for oipc review redline
+                def removeduplicateandnr(pageflag):
+                    if pageflag['flagname'].lower() != 'duplicate' and pageflag['flagname'].lower() != 'not responsive':
+                        return True
+                    return False
+                if message.category == "oipcreviewredline":
+                    print("\n removing duplicate and not responsive pages from summary")
+                    summarydata = list(filter(removeduplicateandnr, summarydata))
+            except (Exception) as err:
+                traceback.print_exc()
+                print('error occured in __packaggesummary redaction dts service: ', err)
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
+            traceback.print_exc()
             print('error occured in redaction dts service: ', error)
 
 
@@ -89,34 +108,35 @@ class redactionsummary():
 
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
-            print("============>sorted_docpageflags:", sorted_docpageflags)
+            # print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             #print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
             #print("###mapped_flags1:",mapped_flags)
             pagecounts= self.count_pages_per_doc(mapped_flags)
-            print("pagecounts:",pagecounts)
+            # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                print("-----------------------Record : ---------------------------", record["documentids"])
-                record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
-                print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
-                      &&& end_page-{end_page}")
-                self.assignfullpagesections(redactionlayerid, mapped_flags)
-                print("\nMapped_flags::",mapped_flags)
-                range_result = self.__calculate_range(mapped_flags, record["documentids"])
-                print("range_result:",range_result)
-                recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
-                print(f"{record['recordname']} :{recordwise_pagecount}")
-                summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
+                if record["documentids"][0] in pagecounts:
+                    # print("-----------------------Record : ---------------------------", record["documentids"])
+                    record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
+                    # print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
+                    #     &&& end_page-{end_page}")
+                    self.assignfullpagesections(redactionlayerid, mapped_flags)
+                    # print("\nMapped_flags::",mapped_flags)
+                    range_result = self.__calculate_range(mapped_flags, record["documentids"])
+                    # print("range_result:",range_result)
+                    recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
+                    # print(f"{record['recordname']} :{recordwise_pagecount}")
+                    summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
 
-            print("\n summarydata:",summarydata)
+            # print("\n summarydata:",summarydata)
             return {"requestnumber": message.requestnumber, "data": summarydata}
 
         except Exception as error:
-            print('Error occurred in redaction dts service: ', error)
+            print('CFD Error occurred in redaction dts service: ', error)
 
 
     def __calculate_range(self, mapped_flags, docids):
@@ -132,17 +152,17 @@ class redactionsummary():
 
         grouped_flags= self.__groupbysections(filtered_mapper)
         ranges = self.__create_ranges(grouped_flags)
-        print("\n ranges:",ranges)
-        return {"range": f"{min_stitched_page}-{max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
+        # print("\n ranges:",ranges)
+        return {"range": f"{min_stitched_page} - {max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
     
 
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
         document_pages= self.get_sorted_original_pages_by_docid(mapped_flags)
-        print("document_pages:",document_pages)
+        # print("document_pages:",document_pages)
         for item in document_pages:
             for doc_id, pages in item.items():
                 docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, doc_id, pages)
-                print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
+                # print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
                 for flag in mapped_flags:
                         if flag['docid'] == doc_id and flag['flagid'] == 3:
                             flag['sections']= self.__get_sections_mcf1(docpagesections, flag['dbpageno'])
@@ -151,7 +171,7 @@ class redactionsummary():
     def __get_sections_mcf1(self, docpagesections, pageno):
         sections = []
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
-        print(f"\n pageno-{pageno}, filtered-{filtered}")
+        # print(f"\n pageno-{pageno}, filtered-{filtered}")
         if filtered:
             for dta in filtered:
                 sections += [x.strip() for x in dta['section'].split(",")] 
@@ -185,12 +205,12 @@ class redactionsummary():
                 totalpagecount1 += pagecounts[doc_id]
 
         if totalpagecount1 == 0:
-            return [], previous_end_page
+            return [], totalpagecount1, previous_end_page
 
         start_page = previous_end_page + 1
         end_page = previous_end_page + totalpagecount1
 
-        range_string = f"{start_page}-{end_page}" if totalpagecount1 > 1 else f"{start_page}"
+        range_string = f"{start_page} - {end_page}" if totalpagecount1 > 1 else f"{start_page}"
         result = {
             "recordname": record['recordname'].upper(),
             "range": range_string,
@@ -258,7 +278,7 @@ class redactionsummary():
     
        
     def __groupbysections(self, filtered_mapper):
-        print("\n __groupbysections: ", filtered_mapper)
+        # print("\n __groupbysections: ", filtered_mapper)
         # Group by sections
         grouped_flags = defaultdict(list)
         for flag in filtered_mapper:
@@ -266,7 +286,7 @@ class redactionsummary():
             sections_key = tuple(flag['sections']) if 'sections' in flag and flag['sections'] else ('No Section',)
             grouped_flags[sections_key].append(flag)
         grouped_flags = dict(grouped_flags)
-        print("\n grouped_flags:", grouped_flags)
+        # print("\n grouped_flags:", grouped_flags)
         return grouped_flags
 
     
@@ -286,14 +306,14 @@ class redactionsummary():
                     if start == prev:
                         range_list.append(f"{start}")
                     else:
-                        range_list.append(f"{start}-{prev}")
+                        range_list.append(f"{start} - {prev}")
                     start = page
                     prev = page
             # Add the last range
             if start == prev:
                 range_list.append(f"{start}")
             else:
-                range_list.append(f"{start}-{prev}")
+                range_list.append(f"{start} - {prev}")
             # Save the range list for the current sections_key
             ranges[sections_key] = range_list
         return ranges
@@ -323,7 +343,7 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"{range_item} were {formatted_sections}" if formatted_sections else range_item})
+                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item})
         return section_list
 
     
@@ -419,10 +439,10 @@ class redactionsummary():
     
     
     def __get_sections(self, docpagesections, pageno):
-        print(f"\n pageno-{pageno}, docpagesections-{docpagesections}")
+        # print(f"\n pageno-{pageno}, docpagesections-{docpagesections}")
         sections = []
         filtered = [x for x in docpagesections if x['pageno'] == pageno]   
-        print("\n filtered:",filtered)
+        # print("\n filtered:",filtered)
         for dta in filtered:
             sections += [x.strip() for x in dta['section'].split(",")] 
         return list(filter(None, sections))
@@ -439,7 +459,7 @@ class redactionsummary():
 
     def __get_skippagenos(self, _docpageflags, category):
         skippages = []
-        if category in ['responsepackage', 'CFD_responsepackage']:
+        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline']:
            for x in _docpageflags:
                if x['flagid'] in (5,6) and x['page'] not in skippages:
                    skippages.append(x['page'])
@@ -447,7 +467,7 @@ class redactionsummary():
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category in ["responsepackage", 'CFD_responsepackage']:  
+        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline']:
             skipcount =  self.__calculateskipcount(pageno, skippages)     
         skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
         return (pageno+totalpages)-skipcount

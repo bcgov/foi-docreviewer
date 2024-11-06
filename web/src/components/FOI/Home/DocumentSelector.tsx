@@ -80,7 +80,24 @@ const DocumentSelector = React.memo(
               (f: any) => f.documentid === lookup.docid
             );
             let pageId, newExpandedItems;
-            if (organizeBy === "lastmodified") {
+            if(requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal"){
+              let label = file.attributes.personalattributes.person + ' - ' + file.attributes.personalattributes.filetype;
+              if (file.attributes.personalattributes.trackingid) {
+                  label += ' - ' + file.attributes.personalattributes.trackingid;
+              }
+              if (file.attributes.personalattributes.volume) {
+                  label += ' - ' + file.attributes.personalattributes.volume;
+              }
+              pageId = `{"filevolume": "${label}", "docid": ${file.documentid}, "page": ${
+                  lookup.page
+              }, "flagid": [${getPageFlagIds(file.pageFlag, lookup.page)}], "title": "${getFlagName(file, lookup.page)}"}`;
+
+              newExpandedItems = [
+                  '{"filevolume": "' + label + '"}',
+                  '{"filevolume": "' + label + '", "docid": ' + lookup.docid + '}'
+              ];
+            }
+            else if (organizeBy === "lastmodified") {
               pageId = `{"docid": ${file.documentid}, "page": ${
                 lookup.page
               }, "flagid": [${getPageFlagIds(
@@ -106,7 +123,6 @@ const DocumentSelector = React.memo(
                   "}",
               ];
             }
-            
             treeRef?.current?.scrollToPage(event, newExpandedItems, pageId);
             
           },
@@ -311,12 +327,24 @@ const DocumentSelector = React.memo(
 
 
       const onFilterChange = (filterValue: string) => {
-        setFilesForDisplay(
-          files.filter((file: any) => file.filename.includes(filterValue))
-        );
-        setFilteredFiles(
-          files.filter((file: any) => file.filename.includes(filterValue))
-        );
+        if(requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal"){
+          let filtered = files.filter((file: any) => {
+            const personalAttributes = file.attributes.personalattributes;
+            return Object.values(personalAttributes).some((value: any) => 
+                value.toLowerCase().includes(filterValue.toLowerCase())
+            );
+          })
+          setFilesForDisplay(filtered);
+          setFilteredFiles(filtered);
+        }
+        else{
+          setFilesForDisplay(
+            files.filter((file: any) => file.filename.includes(filterValue))
+          );
+          setFilteredFiles(
+            files.filter((file: any) => file.filename.includes(filterValue))
+          );
+        }
       };
 
     const selectTreeItem = (docid: any, page: number) => {
@@ -586,7 +614,20 @@ const DocumentSelector = React.memo(
               });
             }
           });
-          if (organizeBy === "lastmodified") {
+          if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
+            return filteredpages.map((p: any) => {
+              return {
+                id: `{"filevolume": "${division}", "docid": ${
+                  file.documentid
+                }, "page": ${p}, "flagid": [${getPageFlagIds(
+                  file.pageFlag,
+                  p
+                )}], "title": "${getFlagName(file, p)}"}`,
+                label: getPageLabel(file, p),
+              };
+            });
+          }
+          else if (organizeBy === "lastmodified") {
             return filteredpages.map((p: any) => {
               return {
                 id: `{"docid": ${
@@ -623,33 +664,46 @@ const DocumentSelector = React.memo(
           //     }
           // }
         } else {
-          if (organizeBy === "lastmodified") {
-            return file.pages.map((p: any) => {
-              return {
-                id: `{"docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          } else {
-            return file.pages.map((p: any) => {
-              return {
-                id: `{"division": ${division?.divisionid}, "docid": ${
-                  file.documentid
-                }, "page": ${p}, "flagid": [${getPageFlagIds(
-                  file.pageFlag,
-                  p
-                )}], "title": "${getFlagName(file, p)}"}`,
-                label: getPageLabel(file, p),
-              };
-            });
-          }
+            if (requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") {
+              return file.pages.map((p: any) => {
+                return {
+                  id: `{"filevolume": "${division}", "docid": ${
+                    file.documentid
+                  }, "page": ${p}, "flagid": [${getPageFlagIds(
+                    file.pageFlag,
+                    p
+                  )}], "title": "${getFlagName(file, p)}"}`,
+                  label: getPageLabel(file, p),
+                };
+              });
+            }
+            else if (organizeBy === "lastmodified") {
+              return file.pages.map((p: any) => {
+                return {
+                  id: `{"docid": ${
+                    file.documentid
+                  }, "page": ${p}, "flagid": [${getPageFlagIds(
+                    file.pageFlag,
+                    p
+                  )}], "title": "${getFlagName(file, p)}"}`,
+                  label: getPageLabel(file, p),
+                };
+              });
+            } else {
+              return file.pages.map((p: any) => {
+                return {
+                  id: `{"division": ${division?.divisionid}, "docid": ${
+                    file.documentid
+                  }, "page": ${p}, "flagid": [${getPageFlagIds(
+                    file.pageFlag,
+                    p
+                  )}], "title": "${getFlagName(file, p)}"}`,
+                  label: getPageLabel(file, p),
+                };
+              });
+            }
         }
-    }
+      }
 
       const getTreeItems = () => {
         if (pageFlags) {
@@ -674,9 +728,9 @@ const DocumentSelector = React.memo(
                         index = tree.length - 1
                     }
                     tree[index].children.push({
-                        id: `{"docid": ${file.documentid}}`,
+                        id: `{"filevolume": "${label}", "docid": ${file.documentid}}`,
                         label: (file.attributes.personalattributes.personaltag || 'TBD') + ' (' + file.pages.length + ')',
-                        children: getFilePages(file)
+                        children: getFilePages(file, label)
                     })
                 }
                 return tree;

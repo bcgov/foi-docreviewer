@@ -199,45 +199,47 @@ const ContextMenu = ({
     setOpenContextPopup(false);
     var documentMasterIDs = [];
 
-    if(_all) {
-      for (let record of filesForDisplay) {
-        if(record.attributes?.personalattributes?.person
-           && record.attributes?.personalattributes?.person === currentEditRecord.attributes?.personalattributes?.person
-           && record.attributes?.personalattributes?.filetype
-           && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
-        ) {
-          documentMasterIDs.push(record.documentmasterid);
+    if(newPersonalAttributes) {
+      if(_all) {
+        for (let record of filesForDisplay) {
+          if(record.attributes?.personalattributes?.person
+             && record.attributes?.personalattributes?.person === currentEditRecord.attributes?.personalattributes?.person
+            //  && record.attributes?.personalattributes?.filetype
+            //  && record.attributes?.personalattributes?.filetype === currentEditRecord.attributes?.personalattributes?.filetype
+          ) {
+            documentMasterIDs.push(record.documentmasterid);
+          }
         }
+      } else {
+        documentMasterIDs.push(currentEditRecord.documentmasterid);
       }
-    } else {
-      documentMasterIDs.push(currentEditRecord.documentmasterid);
-    }
-    
-    if(currentEditRecord && !comparePersonalAttributes(newPersonalAttributes, curPersonalAttributes)) {
-      editPersonalAttributes(
-        requestId,
-        (data: any) => {
-            if(data.status == true){
-                console.log("Personal attributes updated")
-            }
-        },
-        (error: any) => console.log(error),
-        {
-          documentmasterids: documentMasterIDs,
-          personalattributes: newPersonalAttributes,
-          ministryrequestid: requestId
-        },
-      );
-
-      setCurrentEditRecord();
-      setCurPersonalAttributes({
-        person: "",
-        filetype: "",
-        volume: "",
-        trackingid: "",
-        personaltag: "TBD"
-      });
-      setNewPersonalAttributes({});
+      
+      if(currentEditRecord && !comparePersonalAttributes(newPersonalAttributes, curPersonalAttributes)) {
+        editPersonalAttributes(
+          requestId,
+          (data: any) => {
+              if(data.status == true){
+                  console.log("Personal attributes updated")
+              }
+          },
+          (error: any) => console.log(error),
+          {
+            documentmasterids: documentMasterIDs,
+            personalattributes: newPersonalAttributes,
+            ministryrequestid: requestId
+          },
+        );
+  
+        setCurrentEditRecord();
+        setCurPersonalAttributes({
+          person: "",
+          filetype: "",
+          volume: "",
+          trackingid: "",
+          personaltag: "TBD"
+        });
+        setNewPersonalAttributes({});
+      }      
     }
   };
 
@@ -266,12 +268,12 @@ const ContextMenu = ({
           <div className="heading">
             <div>Export</div>
             <hr className="hrStyle" />
+            {requestInfo?.bcgovcode === "MCF" && requestInfo?.requesttype === "personal" && (<>
             <div
-              className="editPersonalTags"
-              style={
+              className={
                 selectedPages.length > 1
-                  ? { cursor: "not-allowed", color: "#cfcfcf" }
-                  : {}
+                  ? "editPersonalTagsDisabled"
+                  : "editPersonalTags"
               }
               onClick={() => {
                 if(selectedPages.length <= 1) {
@@ -282,6 +284,7 @@ const ContextMenu = ({
               Edit Tags
             </div>
             <hr className="hrStyle" />
+            </>)}
             <div>Page Flags</div>
           </div>
           {showPageFlagList()}
@@ -304,6 +307,7 @@ const ContextMenu = ({
           setEditTagModalOpen={setEditTagModalOpen}
           setOpenContextPopup={setOpenContextPopup}
           setNewDivision={setDivisionModalTagValue}
+          comparePersonalAttributes={comparePersonalAttributes}
           curPersonalAttributes={curPersonalAttributes}
           setNewPersonalAttributes={setNewPersonalAttributes}
           updatePersonalAttributes={updatePersonalAttributes}

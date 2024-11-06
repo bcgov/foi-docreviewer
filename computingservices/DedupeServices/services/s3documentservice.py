@@ -12,7 +12,11 @@ from io import BytesIO
 from html import escape
 import hashlib
 import uuid
+import boto3
+from botocore.config import Config
 from re import sub
+import fitz
+import PyPDF2
 from utils import (
     gets3credentialsobject,
     getdedupeproducermessage,
@@ -48,6 +52,49 @@ def __getcredentialsbybcgovcode(bcgovcode):
             print("Database connection closed.")
 
     return s3cred
+
+def _prepareattachment(producermessage, data, s3uripath, file_name):
+    attachment = {
+        "filename": escape(sub("<[0-9]+>", "", file_name, 1)),
+        "s3uripath": s3uripath,
+        "attributes": deepcopy(producermessage.attributes),
+    }
+    attachment["attributes"]["filesize"] = len(data)
+    attachment["attributes"][
+        "parentpdfmasterid"
+    ] = producermessage.documentmasterid
+    attachment["attributes"].pop("batch")
+    attachment["attributes"].pop("extension")
+    attachment["attributes"].pop("incompatible")
+    return attachment
+
+def _generate_file_attachments(producermessage, reader, auth):
+    file_attachments = []
+    for page in reader.pages:
+        if "/Annots" in page:
+            annotations = page["/Annots"]
+            for annotation in annotations:
+                subtype = annotation.get_object()["/Subtype"]
+                if subtype == "/FileAttachment":
+                    # Placeholder logic to handle pdf attachments+embedds. Once resources available to revise feature, and extract attachments + embedds into one new parent PDF, this error handling will be removed.
+                    raise Exception("PDF contains attachments and/or embedded files. File must be manually fixed and replaced")
+
+                    # Old logic to extract embedded files. Uncomment when new feature to save pdf embedds + attachemnts as one file is started.
+                    # producermessage.attributes["hasattachment"] = True
+                    # fileobj = annotation.get_object()["/FS"]
+                    # file = fileobj["/F"]
+                    # data = fileobj["/EF"]["/F"].get_data()
+                    # # data = BytesIO(data).getvalue()
+                    # s3uripath = (
+                    #     path.splitext(producermessage.s3filepath)[0]
+                    #     + "/"
+                    #     + "{0}{1}".format(uuid.uuid4(), path.splitext(file)[1])
+                    # )
+                    # uploadresponse = requests.put(s3uripath, data=data, auth=auth)
+                    # uploadresponse.raise_for_status()
+                    # attachment = _prepareattachment(producermessage, data, s3uripath, file)
+                    # file_attachments.append(attachment)
+    return file_attachments
 
 def gets3documenthashcode(producermessage):
     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
@@ -85,7 +132,11 @@ def gets3documenthashcode(producermessage):
             if "/Collection" in reader.trailer["/Root"]:
                 producermessage.attributes["isportfolio"] = True
             else:
-                producermessage.attributes["hasattachment"] = True
+                # Placeholder logic to handle pdf attachments+embedds. Once resources available to revise feature, and extract attachments + embedds into one new parent PDF, this error handling will be removed.
+                raise Exception("PDF contains attachments and/or embedded files. File must be manually fixed and replaced")
+            
+                # Old logic to extract attached files. Uncomment when new feature to save pdf embedds + attachemnts as one file is started.
+                # producermessage.attributes["hasattachment"] = True
             for name in reader.attachments:
                 s3uripath = (
                     path.splitext(filepath)[0]
@@ -95,18 +146,7 @@ def gets3documenthashcode(producermessage):
                 data = b"".join(reader.attachments[name])
                 uploadresponse = requests.put(s3uripath, data=data, auth=auth)
                 uploadresponse.raise_for_status()
-                attachment = {
-                    "filename": escape(sub("<[0-9]+>", "", name, 1)),
-                    "s3uripath": s3uripath,
-                    "attributes": deepcopy(producermessage.attributes),
-                }
-                attachment["attributes"]["filesize"] = len(data)
-                attachment["attributes"][
-                    "parentpdfmasterid"
-                ] = producermessage.documentmasterid
-                attachment["attributes"].pop("batch")
-                attachment["attributes"].pop("extension")
-                attachment["attributes"].pop("incompatible")
+                attachment = _prepareattachment(producermessage, data, s3uripath, name)
                 attachments.append(attachment)
             saveresponse = requests.post(
                 request_management_api
@@ -119,6 +159,57 @@ def gets3documenthashcode(producermessage):
                 },
             )
             saveresponse.raise_for_status()
+
+        # New logic to extract embedded file attachments (classified under annotations in the PDF) from pages in PDF
+        # Before looping of pdf pages started; confirm if annotations exist in the pdf using pyMuPdf library (fitz)
+        fitz_reader = fitz.open(stream=BytesIO(response.content), filetype="pdf")
+        if (fitz_reader.has_annots()):
+            file_attachments = _generate_file_attachments(producermessage, reader, auth)
+            if (len(file_attachments) > 0):
+                saveresponse = requests.post(
+                    request_management_api
+                    + "/api/foirecord/-1/ministryrequest/"
+                    + producermessage.ministryrequestid,
+                    data=json.dumps({"records": file_attachments}),
+                    headers={
+                        "Authorization": producermessage.usertoken,
+                        "Content-Type": "application/json",
+                    }
+                )
+                saveresponse.raise_for_status()        
+        fitz_reader.close()
+        
+        # clear metadata
+        reader2 = PyPDF2.PdfReader(BytesIO(response.content))
+        # Check if metadata exists.
+        if reader2.metadata is not None:
+            # Create a new PDF file without metadata.
+            writer = PyPDF2.PdfWriter()
+            # Copy pages from the original PDF to the new PDF.
+            for page_num in range(len(reader.pages)):
+                page = reader2.pages[page_num]                
+                writer.add_page(page)        
+            #writer.remove_links() # to remove comments.
+            buffer = BytesIO()
+            writer.write(buffer)
+            client = boto3.client('s3',config=Config(signature_version='s3v4'),
+                endpoint_url='https://{0}/'.format(dedupe_s3_host),
+                aws_access_key_id= s3_access_key_id,
+                aws_secret_access_key= s3_secret_access_key,
+                region_name= dedupe_s3_region
+            )
+            copyresponse = client.copy_object(
+                CopySource="/" + "/".join(filepath.split("/")[3:]), # /Bucket-name/path/filename
+                Bucket=filepath.split("/")[3], # Destination bucket
+                Key= "/".join(filepath.split("/")[4:])[:-4] + 'ORIGINAL' + '.pdf' # Destination path/filename
+            )
+            uploadresponse = requests.put(
+                filepath,
+                data=buffer.getvalue(),
+                auth=auth
+            )
+            uploadresponse.raise_for_status()
+
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
         pdfresponseofconverted = requests.get(

@@ -8,7 +8,8 @@ const initialState = {
     "description": "Redline",
     // "sortorder": 1,
     // "count": 0
-  }
+  },
+  allPublicBodies: [],
 }
 
 const documents = (state = initialState, action:any)=> {
@@ -41,6 +42,8 @@ const documents = (state = initialState, action:any)=> {
         return {...state, redactionLayers: state.redactionLayers };
     case ACTION_CONSTANTS.SET_DELETED_PAGES:
         return {...state, deletedDocPages: action.payload};
+    case ACTION_CONSTANTS.SET_PUBLIC_BODIES:
+      return {...state, allPublicBodies: action.payload};
     case ACTION_CONSTANTS.FOI_PERSONAL_SECTIONS:
       return { ...state, foiPersonalSections: action.payload };
     case ACTION_CONSTANTS.FOI_PERSONAL_PEOPLE:

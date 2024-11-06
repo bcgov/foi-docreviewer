@@ -63,7 +63,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
-            
             setExpandedItems([...new Set(expandedItems.concat(newExpandedItems))]);
             await new Promise(resolve => setTimeout(resolve, 400)); // wait for expand animation to finish
             apiRef.current?.focusItem(event, pageId)            
@@ -73,10 +72,9 @@ const CustomTreeView = React.memo(React.forwardRef(({
         scrollLeftPanelPosition(event: any)
         {           
             let _lastselected = localStorage.getItem("lastselected")
-            
             if(_lastselected)
            {                 
-                let _docid = JSON.parse(_lastselected)?.docid                
+                let _docid = JSON.parse(_lastselected)?.docid   
                 let docidstring = ''
                 if(_lastselected.indexOf('division')>-1)
                 {
@@ -126,7 +124,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
         let selectedNodes = [];
         for (let nodeId of nodeIds) {
             nodeId = nodeId.replace(/undefined/g, "null");
-            console.log("nodeId:",nodeId)
             let node = JSON.parse(nodeId);
             selectedNodes.push(node);
             if (node.page) {
@@ -180,6 +177,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
         
         // props.itemId = props?.itemId?.replaceAll("undefined", "\"\"");
         // let itemid = JSON.parse(props?.itemId);
+        //console.log("CustomTreeItem-",props)
         const derivedItemId = props.itemId?.replaceAll("undefined", "\"\"") ?? "";
         // Parse the derived itemId
         let itemid:any;
@@ -211,7 +209,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     const openContextMenu = (e: any, props: any) => {
         if (props.children && requestInfo.bcgovcode !== "MCF" && requestInfo.requesttype !== "personal") return
-        // console.log("contextmenu")
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
         if (nodeId === "") {
@@ -227,7 +224,6 @@ const CustomTreeView = React.memo(React.forwardRef(({
                 return f.documentid === nodeIdJson.docid;
             });
             setCurrentEditRecord(currentFiles[0]);
-            // console.log("selected file: ", currentFiles[0]);
 
             setActiveNode(nodeIdJson);
         } else { //mcf personal level 1 tree item

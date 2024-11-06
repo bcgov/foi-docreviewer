@@ -251,6 +251,7 @@ class documentservice:
                 record["deduplicationstatus"] = dedupe["status"]
                 record["filename"] = dedupe["filename"]
                 record["trigger"] = dedupe["trigger"]
+                record["message"] = dedupe["message"]
         return record
 
     def __updateproperties_old(self, properties, records, record):
@@ -417,7 +418,6 @@ class documentservice:
                 if 'rotatedpages' not in newdocattributes:
                     newdocattributes['rotatedpages'] = {}
                 newdocattributes['rotatedpages'].update(payload["rotatedpages"])
-            newdocattributes["divisions"] = payload["divisions"]
             newRows.append(
                 DocumentAttributes(
                     version=docattributes["version"] + 1,
