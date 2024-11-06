@@ -30,7 +30,7 @@ class Summary(Schema):
 
 class RedactionSummaryMessage(object):
     def __init__(self, jobid, requestid, ministryrequestid, category, requestnumber, 
-                 bcgovcode, createdby, filestozip, finaloutput, attributes, summarydocuments ,redactionlayerid,requesttype) -> None:
+                 bcgovcode, createdby, filestozip, finaloutput, attributes, summarydocuments ,redactionlayerid, requesttype, feeoverridereason) -> None:
         self.jobid = jobid
         self.requestid = requestid
         self.ministryrequestid = ministryrequestid
@@ -43,7 +43,9 @@ class RedactionSummaryMessage(object):
         self.attributes = attributes
         self.summarydocuments = summarydocuments
         self.redactionlayerid = redactionlayerid
+        self.feeoverridereason = feeoverridereason
         self.requesttype = requesttype
+        self.feeoverridereason = feeoverridereason
 
 
 def get_in_redactionsummary_msg(producer_json): 

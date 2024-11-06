@@ -57,15 +57,25 @@ namespace MCS.FOI.MSGToPDF
                                     var _attachment = (Storage.Message)attachment;
                                     var filename = _attachment.FileName;
                                     var extension = Path.GetExtension(filename);
+                                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
                                         _attachment.Save(attachmentStream);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-
+                                        
+                                        // If the filename already exists, increment the duplicate count to create a unique filename
                                         if (fileNameHash.ContainsKey(filename))
                                         {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                            int duplicateCount = 1; // Initialize the duplicate count
+                                            string newFilename;
+                                            
+                                            // Loop until a unique filename is found
+                                            do
+                                            {
+                                                newFilename = baseFilename + duplicateCount.ToString() + extension;
+                                                duplicateCount++;
+                                            } while (fileNameHash.ContainsKey(newFilename));
+                                            filename = newFilename;
                                         }
                                         fileNameHash.Add(filename, true);
 
@@ -91,19 +101,27 @@ namespace MCS.FOI.MSGToPDF
                                     var _attachment = (Storage.Attachment)attachment;
                                     var filename = _attachment.FileName;
                                     var extension = Path.GetExtension(filename);
-
+                                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
                                         attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
-
+                                        
+                                        // If the filename already exists, increment the duplicate count to create a unique filename
                                         if (fileNameHash.ContainsKey(filename))
                                         {
-
-                                            filename = Path.GetFileNameWithoutExtension(filename) + '1' + extension;
+                                            int duplicateCount = 1;  // Initialize the duplicate count
+                                            string newFilename;
+                                            // Loop until a unique filename is found
+                                            do
+                                            {
+                                                newFilename = baseFilename + '-' +duplicateCount.ToString() + extension;
+                                                duplicateCount++;
+                                            } while (fileNameHash.ContainsKey(newFilename));
+                                            filename = newFilename; // Set the unique filename
                                         }
                                         fileNameHash.Add(filename, true);
-                                        attachmentInfo.Add("filename", _attachment.FileName);
+                                        attachmentInfo.Add("filename", filename);
                                         attachmentInfo.Add("s3filename", filename);
                                         attachmentInfo.Add("cid", _attachment.ContentId);
                                         attachmentInfo.Add("size", _attachment.Data.Length.ToString());
@@ -521,6 +539,10 @@ namespace MCS.FOI.MSGToPDF
                             <td>" + msg.Subject + "</td></tr>");
 
                 DateTime sentDate = Convert.ToDateTime(msg.SentOn);
+                if(sentDate == DateTime.MinValue)
+                {
+                    sentDate = Convert.ToDateTime(msg.CreationTime);
+                }
                 if (TimeZone.CurrentTimeZone.StandardName != "Pacific Standard Time")
                 {
 

@@ -145,6 +145,12 @@ li.modal-message-list-item {
   height: calc(100% - 198px);
 }
 
+.modal-content{
+  padding: 20px 30px !important;
+  overflow-y: visible !important;
+  height: calc(100% - 198px);
+}
+
 .section-list{
   >li:nth-child(odd) {
     background-color: #E5EAEF;
@@ -220,6 +226,10 @@ li.modal-message-list-item {
 
 .redline-modal {
   min-height: 350px !important;
+}
+
+.consult-modal {
+  min-height: 600px !important;
 }
 
 .redline-checkmark {
