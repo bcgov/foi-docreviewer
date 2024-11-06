@@ -439,6 +439,107 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def getredactedpagebyrequest(cls, ministryrequestid):
+            mapping = []
+            try:
+                sql = """
+                SELECT d.foiministryrequestid, d.documentmasterid, d.pagecount, dp.pageflag, dp.created_at from public."Documents" d
+                JOIN public."DocumentMaster" dm ON dm.documentmasterid = d.documentmasterid AND dm.ministryrequestid = :ministryrequestid
+                LEFT JOIN public."DocumentDeleted" dd ON dm.filepath ILIKE dd.filepath || '%' AND dd.ministryrequestid = dm.ministryrequestid
+                LEFT JOIN public."DocumentPageflags" dp ON dp.documentid = d.documentid
+                WHERE (dd.deleted IS NULL OR dd.deleted = FALSE)
+                """
+                rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
+
+                for row in rs:
+                    pageflags = row["pageflag"]
+                    if isinstance(pageflags, str):
+                        try:
+                            pageflags = json.loads(pageflags)
+                        except json.JSONDecodeError as ex:
+                            print(f"JSON decode error for pageflag: {ex}")
+                            pageflags = []
+
+                    # Convert created_at to desired format
+                    created_at_str = row["created_at"].strftime("%Y-%m-%d %H:%M:%S") if row["created_at"] else None
+
+                    mapping.append(
+                        {
+                            "foiministryrequestid": row["foiministryrequestid"],
+                            "documentmasterid": row["documentmasterid"],
+                            "pagecount": row["pagecount"],
+                            "foiministryrequestid": row["foiministryrequestid"],
+                            "pageflag": pageflags,
+                            "created_at": created_at_str,
+                        }
+                    )
+            except Exception as ex:
+                logging.error(ex)
+            finally:
+                db.session.close() 
+            return mapping 
+    
+    @classmethod
+    def getdocumentpageflagbyrequest(cls, ministryrequestid):
+        mapping = []
+        try:
+            sql = """
+            WITH pageflag_data AS (
+                SELECT 
+                    jsonb_array_elements(pageflag::jsonb) AS pageflag_item,
+                    created_at
+                FROM public."DocumentPageflags"
+                WHERE foiministryrequestid = :ministryrequestid
+            ),
+            program_area_pages AS (
+                SELECT 
+                    (jsonb_array_elements(pageflag_item->'programareaid')::text)::int AS consultation_number,
+                    (pageflag_item->>'page')::int AS consultation_page_count,
+                    created_at AS consultation_date
+                FROM 
+                    pageflag_data
+            ),
+            aggregated_pages AS (
+                SELECT 
+                    consultation_number,
+                    SUM(consultation_page_count) AS consultation_page_count,
+                    MIN(consultation_date) AS consultation_date
+                FROM 
+                    program_area_pages
+                GROUP BY 
+                    consultation_number
+            )
+            SELECT 
+                pa.name AS consultation_name,
+                ap.consultation_page_count,
+                ap.consultation_date
+            FROM 
+                aggregated_pages ap
+            JOIN 
+                public."ProgramAreas" pa ON ap.consultation_number = pa.programareaid
+            ORDER BY 
+                consultation_name;
+            """
+            rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
+
+            for row in rs:
+                consultation_name = row["consultation_name"]
+                consultation_page_count = row["consultation_page_count"]
+                consultation_date = row["consultation_date"].strftime("%Y-%m-%d %H:%M:%S") if row["consultation_date"] else None
+
+                mapping.append(
+                    {
+                        "consultation_name": consultation_name,
+                        "consultation_page_count": consultation_page_count,
+                        "consultation_date": consultation_date,
+                    }
+                )
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+        return mapping
 
 class AnnotationSectionSchema(ma.Schema):
     class Meta:
