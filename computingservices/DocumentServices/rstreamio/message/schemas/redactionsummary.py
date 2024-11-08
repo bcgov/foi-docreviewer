@@ -43,7 +43,6 @@ class RedactionSummaryMessage(object):
         self.attributes = attributes
         self.summarydocuments = summarydocuments
         self.redactionlayerid = redactionlayerid
-        self.feeoverridereason = feeoverridereason
         self.requesttype = requesttype
         self.feeoverridereason = feeoverridereason
 
