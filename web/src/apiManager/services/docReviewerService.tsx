@@ -9,7 +9,7 @@ import { setRedactionInfo, setIsPageLeftOff, setSections,
 import { store } from "../../services/StoreService";
 import { number } from "yargs";
 import { pageFlagTypes } from "../../constants/enum";
-import { errorToast } from "../../helper/helper";
+
 
 export const fetchDocuments = (
   foiministryrequestid: number,
@@ -44,7 +44,6 @@ export const fetchDocuments = (
     .catch((error:any) => {
       console.log(error);
       errorCallback("Error in fetching documents for a request");
-      errorToast('Error in fetching documents for a request.', { autoClose: false });
     });
 };
 
@@ -69,7 +68,6 @@ export const saveRotateDocumentPage = (
     })
     .catch((error:any) => {
       errorCallback("Error in saving rotated page");
-      errorToast('Error in saving rotated page.', { autoClose: false });
     });
 };
 
@@ -95,7 +93,6 @@ export const fetchAnnotationsByPagination = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching annotations for a document");
-      errorToast('Error in fetching annotations for a document.', { autoClose: false });
     });
 };
 
@@ -117,8 +114,7 @@ export const fetchDocumentAnnotations = (
       }
     })
     .catch((error:any) => {
-      if (errorCallback) errorCallback("Error in fetching annotations for a document");
-      errorToast('Error in fetching annotations for a document.', { autoClose: false });
+      errorCallback("Error in fetching annotations for a document");
     });
 };
 export const fetchAnnotationsInfo = (
@@ -139,7 +135,6 @@ export const fetchAnnotationsInfo = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching annotations for a document");
-      errorToast('Error in fetching annotations for a document.', { autoClose: false });
     });
 };
 
@@ -188,7 +183,6 @@ export const saveAnnotation = (
     })
     .catch((error:any) => {
       errorCallback("Error in saving an annotation");
-      errorToast('Error in saving an annotation.', { autoClose: false });
     });
 };
 
@@ -212,7 +206,6 @@ httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '
     })
     .catch((error:any) => {
       errorCallback("Error in deleting annotations");
-      errorToast('Error in deleting annotations.', { autoClose: false });
     });
 };
 
@@ -236,7 +229,6 @@ export const createOipcLayer= (
     .catch((error:any) => {
       if (errorCallback) {
         errorCallback("Error while copying annotations to OIPC layer");
-        errorToast('Error while copying annotations to OIPC layer.', { autoClose: false });
       } else {
         throw new Error(`Error while copying annotations to OIPC layer`);
       }
@@ -262,7 +254,6 @@ export const deleteRedaction = (
     })
     .catch((error:any) => {
       errorCallback("Error in deleting redactions");
-      errorToast('Error in deleting redactions.', { autoClose: false });
     });
 };
 
@@ -283,8 +274,7 @@ export const fetchSections = (
       }
     })
     .catch((error:any) => {
-      if (errorCallback) errorCallback("Error in fetching sections for a document");
-      errorToast('Error in fetching sections for a document.', { autoClose: false });
+      errorCallback("Error in fetching annotations for a document");
     });
 }
 
@@ -311,7 +301,6 @@ export const fetchPageFlagsMasterData = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching pageflags master data");
-      errorToast('Error in fetching pageflags master data.', { autoClose: false });
     });
 };
 
@@ -337,7 +326,6 @@ export const savePageFlag = (
     })
     .catch((error:any) => {
       errorCallback("Error in saving an page flag");
-      errorToast('Error in saving a page flag.', { autoClose: false });
     });
 };
 
@@ -365,12 +353,11 @@ export const fetchPageFlag = (
         })
         store.dispatch(setIsPageLeftOff(bookmarkedDoc?.length >0) as any);
       } else {
-        throw new Error("Error while fetching page flags");
+        throw new Error("Error while triggering download redline");
       }
     })
     .catch((error:any) => {
-      errorCallback("Error in fetching page flags:",error);
-      errorToast('Error in fetching page flags.', { autoClose: false });
+      errorCallback("Error in triggering download redline:",error);
     });
 };
 
@@ -389,7 +376,6 @@ export const fetchKeywordsMasterData = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching keywords master data:",error);
-      errorToast('Error in fetching keywords master data.', { autoClose: false });
     });
 };
 
@@ -409,7 +395,6 @@ export const fetchRedactionLayerMasterData = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching layers master data:",error);
-      errorToast('Error in fetching redaction layers master data.', { autoClose: false });
     });
 };
 
@@ -433,8 +418,7 @@ export const triggerDownloadRedlines = (
     }
   })
   .catch((error:any) => {
-    if (errorCallback) errorCallback("Error in triggering download redline:",error);
-    errorToast('Error in triggering download redline.', { autoClose: false });
+    errorCallback("Error in triggering download redline:",error);
   });
 };
 
@@ -453,8 +437,7 @@ export const triggerDownloadFinalPackage = (
     }
   })
   .catch((error:any) => {
-    if (errorCallback) errorCallback("Error in triggering download final package:",error);
-    errorToast('Error in triggering download final package.', { autoClose: false });
+    errorCallback("Error in triggering download final package:",error);
   });
 };
 
@@ -474,7 +457,6 @@ export const fetchPDFTronLicense = (
   })
   .catch((error:any) => {
     errorCallback("Error in fetching PDFTronLicense:",error);
-    errorToast('Error in fetching PDFTronLicense.', { autoClose: false });
     return "";
   });
   return response;
@@ -496,7 +478,6 @@ export const deleteDocumentPages = (
 httpPOSTRequest({url: apiUrlPost, data: pagesDeleted, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
-        throw new Error();
         callback(res.data);
       } else {
         throw new Error(`Error while deleting document pages for (requestid# ${requestid})`);            
@@ -504,7 +485,6 @@ httpPOSTRequest({url: apiUrlPost, data: pagesDeleted, token: UserService.getToke
     })
     .catch((error:any) => {
       errorCallback("Error in deleting document pages");
-      errorToast('Error in deleting document pages.', { autoClose: false });
     });
 };
 
@@ -531,7 +511,6 @@ export const fetchDeletedDocumentPages = (
     })
     .catch((error:any) => {
       errorCallback("Error in fetching deleted pages:",error);
-      errorToast('Error in fetching deleted pages.', { autoClose: false });
     });
 };
 
@@ -556,7 +535,6 @@ export const fetchPersonalAttributes = (
     .catch((error:any) => {
       console.log(error);
       errorCallback("Error in fetching personal attributes");
-      errorToast('Error in fetching personal attributes.', { autoClose: false });
     });
 };
 
@@ -581,6 +559,5 @@ export const editPersonalAttributes = (
     })
     .catch((error:any) => {
       errorCallback("Error in editing personal attributes");
-      errorToast('Error in editing personal attributes.', { autoClose: false });
     });
 };
