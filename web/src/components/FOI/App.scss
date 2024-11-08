@@ -82,6 +82,7 @@
 
 li.modal-message-list-item {
   margin: 6px 0;
+  font-size: 15px;
 }
 
 #state-change-dialog-title .MuiIconButton-root {
@@ -140,6 +141,12 @@ li.modal-message-list-item {
 
 .dialog-content-nomargin{
   padding: 0px 30px !important;
+  overflow-y: visible !important;
+  height: calc(100% - 198px);
+}
+
+.modal-content{
+  padding: 20px 30px !important;
   overflow-y: visible !important;
   height: calc(100% - 198px);
 }
@@ -219,6 +226,10 @@ li.modal-message-list-item {
 
 .redline-modal {
   min-height: 350px !important;
+}
+
+.consult-modal {
+  min-height: 600px !important;
 }
 
 .redline-checkmark {

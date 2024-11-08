@@ -26,7 +26,7 @@ const MCFPersonal = ({
     setEditTagModalOpen,
     setOpenContextPopup,
     setNewDivision,
-    // tagValue,
+    comparePersonalAttributes,
     curPersonalAttributes,
     setNewPersonalAttributes,
     updatePersonalAttributes,
@@ -69,16 +69,29 @@ const MCFPersonal = ({
     const [fileTypeSearchValue, setFileTypeSearchValue] = useState("");
     const [additionalFileTypes, setAdditionalFileTypes] = useState([]);
     const [showAdditionalFileTypes, setShowAdditionalFileTypes] = useState(false);
+    const [disableSave, setDisableSave] = useState(false);
 
     useEffect(() => {
       setPersonalAttributes(curPersonalAttributes);
     },[curPersonalAttributes])
 
     useEffect(() => {
+      setDisableSave(
+        personalAttributes?.person === undefined
+         || personalAttributes?.person === ""
+         || personalAttributes?.filetype === undefined
+         || personalAttributes?.filetype === ""
+         || personalAttributes?.trackingid === undefined
+         || personalAttributes?.trackingid === ""
+         || comparePersonalAttributes(personalAttributes, curPersonalAttributes)
+        );
+    },[personalAttributes])
+
+    useEffect(() => {
       if(MCFSections?.sections) {
         if(MCFSections.sections.length > MCFPopularSections-1) {
           setTagList(MCFSections.sections.slice(0, MCFPopularSections-1));
-          setOtherTagList(MCFSections.sections.slice(MCFPopularSections));
+          setOtherTagList(MCFSections.sections.slice(MCFPopularSections-1));
         } else {
           setTagList(MCFSections.sections);
           setOtherTagList([]);
@@ -97,7 +110,7 @@ const MCFPersonal = ({
     },[MCFPeople])
 
     useEffect(() => {
-      if(MCFVolumes?.volumes) {
+      if(!!MCFFiletypes && MCFVolumes?.volumes) {
         if(MCFFiletypes.filetypes.length > 5) {
           setVolumes(MCFVolumes.volumes.slice(0, 5));
         } else {
@@ -109,8 +122,8 @@ const MCFPersonal = ({
     useEffect(() => {
       if(MCFFiletypes?.filetypes) {
         if(MCFFiletypes.filetypes.length > 6) {
-          setFileTypes(MCFFiletypes.filetypes.slice(0, 6));
-          setOtherFileTypes(MCFFiletypes.filetypes.slice(6, MCFFiletypes.filetypes.length))
+          setFileTypes(MCFFiletypes.filetypes.slice(0, 8));
+          setOtherFileTypes(MCFFiletypes.filetypes.slice(8, MCFFiletypes.filetypes.length))
         } else {
           setFileTypes(MCFFiletypes.filetypes);
           setOtherFileTypes([])
@@ -153,6 +166,16 @@ const MCFPersonal = ({
     },[showAllPeople, showAllVolumes])
 
     React.useEffect(() => {
+      if(MCFPeople.people.length > 0 && personalAttributes.person !== "") {
+        setShowAllPeople( MCFPeople.people.filter(p => p.name==personalAttributes.person)[0]?.sortorder >= 5 );
+      }
+
+      if(MCFVolumes.volumes.length > 0 && personalAttributes.volume !== "") {
+        setShowAllVolumes( MCFVolumes.volumes.filter(v => v.name==personalAttributes.volume)[0]?.sortorder >= 5 );
+      }
+    },[personalAttributes])
+
+    React.useEffect(() => {
       setAdditionalFileTypes(searchFileTypes(otherFileTypes, fileTypeSearchValue, personalAttributes?.filetype));
     },[fileTypeSearchValue, otherFileTypes, personalAttributes])
 
@@ -166,7 +189,7 @@ const MCFPersonal = ({
         _sectionArray.map((section) => {
           if(_keyword && section.name.toLowerCase().includes(_keyword.toLowerCase())) {
             newSectionArray.push(section);
-          } else if(section.divisionid === _selectedSectionValue) {
+          } else if(section.name === _selectedSectionValue) {
             newSectionArray.unshift(section);
           }
         });
@@ -221,6 +244,8 @@ const MCFPersonal = ({
     };
 
     const handleClose = () => {
+      setSearchValue("");
+      setFileTypeSearchValue("");
       setCurrentEditRecord();
       setCurPersonalAttributes({
         person: "",
@@ -232,6 +257,11 @@ const MCFPersonal = ({
       setNewPersonalAttributes();
       setEditTagModalOpen(false);
       setOpenContextPopup(false);
+    };
+
+    const reset = () => {
+      setSearchValue("");
+      setFileTypeSearchValue("");
     };
 
     const handleFileTypeSearchKeywordChange = (keyword) => {
@@ -583,13 +613,15 @@ const MCFPersonal = ({
           <DialogActions>
             <button
               className={`btn-bottom btn-save btn`}
-              onClick={() => updatePersonalAttributes()}
+              onClick={() => {updatePersonalAttributes();reset();}}
+              disabled={disableSave}
             >
               Update for Individual
             </button>
             <button
               className={`btn-bottom btn-save btn`}
-              onClick={() => updatePersonalAttributes(true)}
+              onClick={() => {updatePersonalAttributes(true);reset();}}
+              disabled={disableSave}
             >
               Update for All
             </button>

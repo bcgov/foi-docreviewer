@@ -35,6 +35,7 @@ class MinistryTeamWithKeycloackGroup(Enum):
     AGR = "AGR Ministry Team"
     AG = "AG Ministry Team"
     BRD = "BRD Ministry Team"
+    CAF = "CAF Ministry Team"
     CAS = "CAS Ministry Team"
     CITZ = "CITZ Ministry Team"
     CLB = "CLB Ministry Team"
@@ -73,7 +74,8 @@ class MinistryTeamWithKeycloackGroup(Enum):
     ECC = "ECC Ministry Team"
     JED = "JED Ministry Team"
     COR = "COR Ministry Team"
-    HSG = "HSG Ministry Team"
+    HSG = "HSG Ministry Team",
+    LSB = "LSB Ministry Team"
 
     @staticmethod
     def list():

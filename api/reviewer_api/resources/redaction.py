@@ -231,7 +231,7 @@ class AnnotationMetadata(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    @auth.require
+    #@auth.require
     def get(ministryrequestid, redactionlayer):
         try:
             result = redactionservice().getannotationinfobyrequest(ministryrequestid, redactionlayer)
@@ -342,7 +342,7 @@ class SaveFinalPackage(Resource):
         try:
             requestjson = request.get_json()
             print("\nrequestjson:",requestjson)
-            if(requestjson['bcgovcode'] == "mcf"):
+            if(requestjson['bcgovcode'] == "mcf" and requestjson['requesttype'] == "personal"):
                 finalpackageschema = MCFFinalPackageSchema().load(requestjson) 
             else:
                 finalpackageschema = FinalPackageSchema().load(requestjson)

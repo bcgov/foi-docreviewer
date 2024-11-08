@@ -172,7 +172,8 @@ class FOIFlowS3PresignedRedline(Resource):
     def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
         try:            
             data = request.get_json()
-            requesttype = data["divdocumentList"]
+            # print("data!:",data)
+            requesttype = data["requestType"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["divdocumentList"][0]["documentlist"][0]["filepath"].split("/")[3]
             )
@@ -199,17 +200,27 @@ class FOIFlowS3PresignedRedline(Resource):
             packagetype = "redline"
             if redactionlayer == "oipc":
                 packagetype = "oipcreview" if layertype == "oipcreview" else "oipcredline"
-
+            if layertype == "consult":
+                packagetype = "consult"
+            
+            #check if is single redline package
+            is_single_redline = is_single_redline_package(_bcgovcode, packagetype, requesttype)
+            # print("is_single_redline:",is_single_redline)
+            #print("divdocumentList:",data["divdocumentList"])
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
+                    # print("filepathlist:" , div["documentlist"][0]["filepath"])
                     filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                    if is_single_redline_package(_bcgovcode, packagetype, requesttype) == False:
+                    if is_single_redline == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
                             filepathlist[0], division_name, packagetype
                         )
-
+                        if packagetype == "consult":
+                            filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
+                                filepathlist[0], division_name, 'Consult'
+                            )
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -261,14 +272,17 @@ class FOIFlowS3PresignedRedline(Resource):
                                     )
                 elif len(div["incompatableList"]) > 0:
                     filepathlist = div["incompatableList"][0]["filepath"].split("/")[4:]
-                if is_single_redline_package(_bcgovcode, packagetype, requesttype) and singlepkgpath is None :
+                if is_single_redline and singlepkgpath is None :
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
                         filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                        # print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
+                        # print("filename1:",filename)
                         filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
                             filepathlist[0],filename, packagetype
                         )
+                        # print("filepath_put:",filepath_put)
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
                             Params={
@@ -279,10 +293,11 @@ class FOIFlowS3PresignedRedline(Resource):
                             ExpiresIn=3600,
                             HttpMethod="PUT",
                         )
+                        # print("s3path_save:",s3path_save)
                         singlepkgpath = s3path_save
                         data["s3path_save"] = s3path_save
                         
-            if is_single_redline_package(_bcgovcode, packagetype, requesttype):
+            if is_single_redline:
                 for div in data["divdocumentList"]:
                     if len(div["documentlist"]) > 0:
                         documentlist_copy = div["documentlist"][:]
@@ -301,7 +316,7 @@ class FOIFlowS3PresignedRedline(Resource):
                     
             data["requestnumber"] = filepathlist[0]
             data["bcgovcode"] = _bcgovcode
-            data["issingleredlinepackage"] = "Y" if is_single_redline_package(_bcgovcode, packagetype, requesttype) else "N"
+            data["issingleredlinepackage"] = "Y" if is_single_redline else "N"
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500

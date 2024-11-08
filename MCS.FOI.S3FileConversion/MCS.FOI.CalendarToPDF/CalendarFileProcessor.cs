@@ -147,14 +147,22 @@ namespace MCS.FOI.CalendarToPDF
 
                         string organizer = string.Empty;
                         //Organizer Name and Email
-                        if (e.Organizer != null)
+                        if (e.Organizer?.Value != null)
                         {
-                            organizer = e.Organizer.CommonName + "(" + e.Organizer.Value.AbsoluteUri + ")";
+                            try
+                            {
+                                organizer = e.Organizer?.CommonName + "(" + e.Organizer?.Value.AbsoluteUri + ")";
+                            }
+                            catch
+                            {
+
+                                organizer = @"Unknown Organizer";
+                            }
 
                         }
                         else
                         {
-                            organizer = @"Unknown Organizer(mailto:unknownorganizer@calendar.google.com)";
+                            organizer = @"Unknown Organizer(mailto:unknownorganizer@calendar.bcgov.ca)";
                         }
                         htmlString.Append(@"<tr>
                         <td><b>From: </b></td>
@@ -174,7 +182,7 @@ namespace MCS.FOI.CalendarToPDF
                         //Meeting created timestamp
                         htmlString.Append(@"<tr>
                         <td><b>Sent: </b></td>
-                        <td>" + e.DtStamp.Date + "</td></tr>");
+                        <td>" + e.DtStamp.Value + "</td></tr>");
 
                         //Priority
                         htmlString.Append(@"<tr>
@@ -184,12 +192,12 @@ namespace MCS.FOI.CalendarToPDF
                         //Meeting Start Timestamp
                         htmlString.Append(@"<tr>
                         <td><b>Start Time: </b></td>
-                        <td>" + e.DtStart.Date + "</td></tr>");
+                        <td>" + e.DtStart.Value + "</td></tr>");
 
                         //Meeting End Timestamp
                         htmlString.Append(@"<tr>
                         <td><b>End Time: </b></td>
-                        <td>" + e.DtEnd.Date + "</td></tr>");
+                        <td>" + e.DtEnd.Value + "</td></tr>");
                         //Meeting Message
                         string message = @"" + e.Description?.Replace("\n", "<br>");
                         message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
@@ -242,6 +250,22 @@ namespace MCS.FOI.CalendarToPDF
             }
 
         }
+
+
+        private  DateTime GetPSTTime(DateTime _timetoconvert)
+        {
+            DateTime converteddate = _timetoconvert;
+            if (TimeZone.CurrentTimeZone.StandardName != "Pacific Standard Time" || _timetoconvert.Kind == DateTimeKind.Utc )
+            {
+
+                converteddate = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(converteddate, "Pacific Standard Time");
+
+            }
+
+            return converteddate;
+        }
+
+
 
         /// <summary>
         /// Converts HTML string to PDF using syncfution library and blink engine
