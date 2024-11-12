@@ -15,11 +15,14 @@ class redactionsummaryservice():
         message = get_in_redactionsummary_msg(incomingmessage)
         print('\n 1. get_in_redactionsummary_msg is : {0}'.format(message))
         try:
+            category = message.category 
+            #Condition to handle consults packaages (no summary files to be created)
+            if category == "consultpackage": 
+                return summaryfilestozip
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
             #Condition for handling oipcredline category
             bcgovcode= message.bcgovcode
-            category = message.category 
             requesttype = message.requesttype
             if bcgovcode == 'mcf' and requesttype == 'personal' and category == 'responsepackage':
                 documenttypename= 'CFD_responsepackage_redaction_summary'

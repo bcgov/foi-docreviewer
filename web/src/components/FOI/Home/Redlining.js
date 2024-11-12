@@ -27,6 +27,7 @@ import {
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
+  REDLINE_OPACITY,
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -52,10 +53,12 @@ import {
   createFinalPackageSelection, 
   createOIPCForReviewSelection, 
   createRedlineForSignOffSelection, 
-  createResponsePDFMenu, 
+  createResponsePDFMenu,
+  createConsultPackageSelection, 
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
+  handleConsultPackageClick,
   renderCustomButton,
   isValidRedlineDownload,
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
@@ -64,6 +67,7 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
+import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
   (
@@ -79,12 +83,14 @@ const Redlining = React.forwardRef(
       incompatibleFiles,
       setWarningModalOpen,
       scrollLeftPanel,
+      isBalanceFeeOverrode,
+      outstandingBalance,
       pageFlags, 
-      syncPageFlagsOnAction
+      syncPageFlagsOnAction,
     },
     ref
   ) => {
-    const alpha = 0.6;
+    const alpha = REDLINE_OPACITY;
 
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
@@ -136,9 +142,15 @@ const Redlining = React.forwardRef(
     const [modalData, setModalData] = useState(null);
     const [enableRedactionPanel, setEnableRedactionPanel] = useState(false);
     const [clickRedactionPanel, setClickRedactionPanel] = useState(false);
+
     const [pagesRemoved, setPagesRemoved] = useState([]);
     const [redlineModalOpen, setRedlineModalOpen] = useState(false);
     const [isDisableNRDuplicate, setIsDisableNRDuplicate] = useState(false);
+    const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
+    const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
+    const [isOverride, setIsOverride]= useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");   
+    const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -150,10 +162,19 @@ const Redlining = React.forwardRef(
       saveRedlineDocument,
       enableSavingOipcRedline,
       enableSavingRedline,
+      enableSavingConsults,
       checkSavingRedline,
       checkSavingOIPCRedline,
+      checkSavingConsults,
       setRedlineCategory,
       setFilteredComments,
+      setSelectedPublicBodyIDs,
+      setConsultApplyRedactions,
+      selectedPublicBodyIDs,
+      documentPublicBodies,
+      consultApplyRedactions,
+      setConsultApplyRedlines,
+      consultApplyRedlines,
     } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
@@ -193,6 +214,7 @@ const Redlining = React.forwardRef(
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
+          instance.UI.enableNoteSubmissionWithEnter();
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
@@ -208,6 +230,7 @@ const Redlining = React.forwardRef(
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
             const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+            const consultPackageButton = createConsultPackageSelection(document, enableSavingConsults);
             redlineForOipcBtn.onclick = () => {
               handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
             };
@@ -215,11 +238,16 @@ const Redlining = React.forwardRef(
               handleRedlineForSignOffClick(updateModalData, setRedlineModalOpen);
             };
             finalPackageBtn.onclick = () => {
-              handleFinalPackageClick(updateModalData, setRedlineModalOpen);
+              handleFinalPackageClick(updateModalData, setRedlineModalOpen, outstandingBalance, 
+                isBalanceFeeOverrode,setOutstandingBalanceModal,setIsOverride);
+            };
+            consultPackageButton.onclick = () => {
+              handleConsultPackageClick(updateModalData, setRedlineModalOpen, setIncludeDuplicatePages, setIncludeNRPages)
             };
             menu.appendChild(redlineForOipcBtn);
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
+            menu.appendChild(consultPackageButton);
             parent.appendChild(menu);
 
             //Create render function to render custom Create Reseponse PDF button
@@ -536,6 +564,7 @@ const Redlining = React.forwardRef(
     }, []);
 
     const updateModalData = (newModalData) => {
+      setRedlineCategory(newModalData.modalFor);
       setModalData(newModalData);
     };
 
@@ -1293,6 +1322,9 @@ const Redlining = React.forwardRef(
         annotManager.addAnnotations(newAnnots);
         annotManager.drawAnnotationsFromList(newAnnots);
       },
+      triggerSetWatermarks() {
+        setWatermarks();
+      }
     }));
 
     const disableNRDuplicate = () => {
@@ -1323,6 +1355,7 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      checkSavingConsults(documentList, _instance);
       checkSavingRedline(redlineReadyAndValid, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
@@ -1336,6 +1369,43 @@ const Redlining = React.forwardRef(
       if (docInstance && documentList.length > 0) {
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
+        docViewer?.setWatermark({
+          // Draw custom watermark in middle of the document
+          custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+            // ctx is an instance of CanvasRenderingContext2D
+            // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+            // Hence being able to leverage those properties
+            let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+            let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+            let pageFlagsOnPage = doc?.pageflag?.filter(f => f.page === originalPage.page);
+            let NrOrDupeFlag = pageFlagsOnPage?.find(pageFlagItem => pageFlagItem.flagid === pageFlagTypes["Duplicate"] || pageFlagItem.flagid === pageFlagTypes["Not Responsive"]);
+            if (NrOrDupeFlag?.flagid === pageFlagTypes["Duplicate"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+    
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("DUPLICATE", 0, 0);
+              ctx.restore();
+            }
+    
+            if (NrOrDupeFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+    
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("NOT RESPONSIVE", 0, 0);
+              ctx.restore();
+            }
+          },
+        });
+        docViewer?.refreshAll();
+        docViewer?.updateView();
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
@@ -1345,6 +1415,52 @@ const Redlining = React.forwardRef(
         }
       };
     }, [pageFlags, isStitchingLoaded]);
+
+    useEffect(() => {      
+      if (docInstance && documentList.length > 0 && !isWatermarkSet) {
+        setWatermarks();
+        setIsWatermarkSet(true)
+      }
+    }, [pageFlags, isStitchingLoaded, isWatermarkSet]);
+
+    const setWatermarks = () => {
+      docViewer?.setWatermark({
+        // Draw custom watermark in middle of the document
+        custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+          // ctx is an instance of CanvasRenderingContext2D
+          // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+          // Hence being able to leverage those properties
+          let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+          let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+          let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
+          if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+  
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("DUPLICATE", 0, 0);
+            ctx.restore();
+          }
+  
+          if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+  
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("NOT RESPONSIVE", 0, 0);
+            ctx.restore();
+          }
+        },
+      });
+      docViewer.refreshAll();
+      docViewer.updateView();
+    }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
       for (let filerow of pdftronDocObjs) {
@@ -2095,8 +2211,14 @@ const Redlining = React.forwardRef(
     }, [deleteQueue, newRedaction]);
 
     const cancelRedaction = () => {
-      setModalOpen(false);
-      setMessageModalOpen(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setIsOverride(false)
+        setOutstandingBalanceModal(false)
+      }
+      else{
+        setModalOpen(false);
+        setMessageModalOpen(false);
+      }
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -2143,13 +2265,48 @@ const Redlining = React.forwardRef(
           </div>,
         ],
       });
-      setMessageModalOpen(true)
+      setMessageModalOpen(true);
+    }
+
+    const setMessageModalForNrDuplicatePriority = () => {
+      updateModalData({
+        modalTitle: "Selected page(s) currently have NR or Duplicate flag applied",
+        modalMessage: [
+            <ul>
+              <li className="modal-message-list-item">Please note, your redaction(s) have been applied on your selected page(s). However, to flag your selected page(s) as Withheld In Full, you must first change your selected page(s) flags to In Progress.</li>
+              <li className="modal-message-list-item">After your selected page(s) are flagged as In Progress you may proceed to mark them as Withheld in Full.</li>
+            </ul>
+        ],
+      });
     }
 
     useEffect(() => {
       if (!newRedaction) return;
       const astrType = decodeAstr(newRedaction.astr)['trn-redaction-type'] || '';
       const hasFullPageRedaction = astrType === "fullPage";
+      // logic to alert the user that a withheld in full pageflag/redaction was applied to a page with an existing duplicate or nr pageflag.
+      let hasNROrDuplicateFlag = false;
+      if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] || hasFullPageRedaction) {
+        const pageFlagsMap = new Map();
+        for (let docPageFlags of pageFlags) {
+          pageFlagsMap.set(docPageFlags.documentid, docPageFlags.pageflag);
+        }
+        for (let pageObj of pageSelections) {
+          if (hasNROrDuplicateFlag) {
+            break;
+          }
+          const pageFlagList = pageFlagsMap.get(pageObj.docid);
+          if (pageFlagList) {
+            for (let flagObj of pageFlagList) {
+              if (flagObj.page === pageObj.page && (flagObj.flagid === pageFlagTypes["Not Responsive"] || flagObj.flagid === pageFlagTypes["Duplicate"])) {
+                hasNROrDuplicateFlag = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      setPageSelectionsContainNRDup(hasNROrDuplicateFlag);
 
       if (newRedaction.names?.length > REDACTION_SELECT_LIMIT) {
         setWarningModalOpen(true);
@@ -2158,6 +2315,9 @@ const Redlining = React.forwardRef(
         saveRedaction();
       } else if (defaultSections.length == 0 && !hasFullPageRedaction) {
         setModalOpen(true);
+      } else if (hasNROrDuplicateFlag) {
+        setModalOpen(true);
+        setMessageModalForNrDuplicatePriority();
       } else if (selectedPageFlagId === pageFlagTypes["Withheld in Full"] && defaultSections.length > 0) {
         setMessageModalForNotResponsive();
       } else if (hasFullPageRedaction) {
@@ -2195,6 +2355,15 @@ const Redlining = React.forwardRef(
     const cancelSaveRedlineDoc = () => {
       disableNRDuplicate();
       setRedlineModalOpen(false);
+      setSelectedPublicBodyIDs([]);
+      setConsultApplyRedactions(false);
+      setConsultApplyRedlines(false);
+      if(outstandingBalance > 0 && !isBalanceFeeOverrode){
+        setOutstandingBalanceModal(false)
+        setIsOverride(false)
+      }
+      else
+        setRedlineModalOpen(false);
     };
   
     const handleIncludeNRPages = (e) => {
@@ -2204,8 +2373,35 @@ const Redlining = React.forwardRef(
     const handleIncludeDuplicantePages = (e) => {
       setIncludeDuplicatePages(e.target.checked);
     };
+
+    const handleApplyRedactions = (e) => {
+      setConsultApplyRedactions(e.target.checked);
+    }
+
+    const handleApplyRedlines = (e) => {
+      setConsultApplyRedlines(e.target.checked);
+      if (consultApplyRedactions) {
+        setConsultApplyRedactions(false);
+      }
+    }
+
+    const handleSelectedPublicBodies = (e) => {
+      let publicBodyId = !isNaN(parseInt(e.target.value)) ? parseInt(e.target.value) : e.target.value;
+      if (selectedPublicBodyIDs.includes(publicBodyId)) {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev.filter(id => id !== publicBodyId)]
+        });
+      }
+      else {
+        setSelectedPublicBodyIDs((prev) => {
+          return [...prev, publicBodyId]
+        });
+      }
+    }
     
     const saveDoc = () => {
+      setIsOverride(false)
+      setOutstandingBalanceModal(false)
       setRedlineModalOpen(false);
       setRedlineSaving(true);
       let modalFor= modalData? modalData.modalFor : ""
@@ -2215,6 +2411,7 @@ const Redlining = React.forwardRef(
       switch (modalFor) {
         case "oipcreview":
         case "redline":
+        case "consult":
           saveRedlineDocument(
             docInstance,
             modalFor,
@@ -2232,7 +2429,8 @@ const Redlining = React.forwardRef(
             documentList,
             pageMappedDocs,
             pageFlags,
-            requestType
+            feeOverrideReason,
+            requestType,
           );
           break;
         default:
@@ -2289,6 +2487,13 @@ const Redlining = React.forwardRef(
       return isDisabled
     }
 
+    const overrideOutstandingBalance = () => {
+      setIsOverride(true)
+    }
+    const handleOverrideReasonChange = (event) => {
+      setFeeOverrideReason(event.target.value);
+    };
+    
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
@@ -2302,6 +2507,8 @@ const Redlining = React.forwardRef(
             handleSectionSelected={handleSectionSelected}
             editRedacts={editRedacts}
             saveRedactions={saveRedactions}
+            pageSelectionsContainNRDup={pageSelectionsContainNRDup}
+            setMessageModalOpen={setMessageModalOpen}
             saveDisabled={saveDisabled}
             saveRedaction={saveRedaction}
             defaultSections={defaultSections}
@@ -2321,6 +2528,13 @@ const Redlining = React.forwardRef(
           isDisableNRDuplicate={isDisableNRDuplicate}
           saveDoc={saveDoc}
           modalData={modalData}
+          documentPublicBodies={documentPublicBodies}
+          handleSelectedPublicBodies={handleSelectedPublicBodies}
+          selectedPublicBodyIDs={selectedPublicBodyIDs}
+          consultApplyRedactions={consultApplyRedactions}
+          handleApplyRedactions={handleApplyRedactions}
+          handleApplyRedlines={handleApplyRedlines}
+          consultApplyRedlines={consultApplyRedlines}
         />
         }
         {messageModalOpen &&
@@ -2330,6 +2544,17 @@ const Redlining = React.forwardRef(
           modalData={modalData}
           />
         }
+        <FeeOverrideModal
+          modalData={modalData}
+          cancelRedaction={cancelRedaction}
+          outstandingBalanceModal={outstandingBalanceModal}
+          cancelSaveRedlineDoc={cancelSaveRedlineDoc}
+          isOverride={isOverride}
+          feeOverrideReason={feeOverrideReason}
+          handleOverrideReasonChange={handleOverrideReasonChange}
+          saveDoc={saveDoc}
+          overrideOutstandingBalance={overrideOutstandingBalance}
+        />
       </div>
     );
   }

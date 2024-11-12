@@ -100,7 +100,7 @@ const ConsultModal = ({
             </DialogTitle>
             <DialogContent>
                 <DialogContentText id="consult-modal-description" component={'span'}>
-                    <div style={{textAlign: "left", marginLeft: 25}}>Select one or more Ministry you with the send the selected page(s) to for consult.</div>
+                    <div style={{textAlign: "left", marginLeft: 25}}>Select one or more public bodies you wish to consult with on the selected page(s).</div>
                     <div className="consult-modal-ministries-list">
                         {programAreaList.programareas?.map((programArea: any, index: number) => (
                             <label  id={"lbl"+programArea.iaocode}  key={index} className="check-item">
@@ -140,7 +140,7 @@ const ConsultModal = ({
                         ))}
                     </div>
 
-                    <div style={{textAlign: "left", marginLeft: 25}}>If you do not see the name of the Ministry you would like to send for consult above please type it below.</div>
+                    <div style={{textAlign: "left", marginLeft: 25}}>If you do not see the name of the public body you wish to consult with, please type it below.</div>
                     <div className={`other-pb-modal-message`}>
                         <TextField
                             id="new-public-body"

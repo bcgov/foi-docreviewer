@@ -217,7 +217,8 @@ const useSaveResponsePackage = () => {
     documentList,
     pageMappedDocs,
     pageFlags,
-    requestType
+    feeOverrideReason,
+    requestType,
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
@@ -228,6 +229,7 @@ const useSaveResponsePackage = () => {
       bcgovcode: "",
       summarydocuments: {} ,
       redactionlayerid: currentLayer.redactionlayerid,
+      pdfstitchjobattributes:{"feeoverridereason":""},
       requesttype: requestType
     };
     getResponsePackagePreSignedUrl(
@@ -238,10 +240,11 @@ const useSaveResponsePackage = () => {
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
         zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode, requestType)
+        zipServiceMessage.pdfstitchjobattributes= {"feeoverridereason":feeOverrideReason}
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        let pagesToRemove = [];
+        var pagesToRemove = [];
         for (const infoForEachDoc of pageFlags) {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
@@ -264,7 +267,12 @@ const useSaveResponsePackage = () => {
         /**must apply redactions before removing pages*/
         if (pagesToRemove.length > 0) {
           await doc.removePages(pagesToRemove);
-        }   
+        }      
+        doc.setWatermark({          
+          diagonal: {
+            text: ''
+          }
+        })
         const { PDFNet } = _instance.Core;
         PDFNet.initialize();
         
@@ -281,6 +289,28 @@ const useSaveResponsePackage = () => {
           render: "Saving section stamps...",
           isLoading: true,
         });
+        // remove withheld in full pages after page stamp has been applied
+        pagesToRemove = [];
+        for (const infoForEachDoc of pageFlags) {
+          for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            /** pageflag duplicate or not responsive */
+            if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
+              pagesToRemove.push(
+                getStitchedPageNoFromOriginal(
+                  infoForEachDoc.documentid,
+                  pageFlagsForEachDoc.page,
+                  pageMappedDocs
+                )
+              );
+            }
+          }
+        }
+
+        if (pagesToRemove.length > 0) {
+          await doc.removePages(pagesToRemove);
+        }
+
+
         /**Fixing section cutoff issue in response pkg-
          * (For showing section names-freetext annotations are
          * added once redactions are applied in the annotationChangedHandler)
