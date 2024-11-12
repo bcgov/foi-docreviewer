@@ -20,5 +20,6 @@ const API = {
     DOCREVIEWER_DOCUMENT_PAGE_DELETE:`${DOCREVIEWER_BASE_API_URL}/api/document/ministryrequest/<ministryrequestid>/deletedpages`,
     FOI_GET_PERSONALTAG:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/personalattributes`,
     DOCREVIEWER_EDIT_PERSONAL_ATTRIBUTES:`${DOCREVIEWER_BASE_API_URL}/api/document/update/personal`,
+    FOI_GET_S3DOCUMENT_PRESIGNEDURL_PUBLICATION_PACKAGE:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/oss/presigned/publicationpackage`,
 };
 export default API;

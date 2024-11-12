@@ -12,9 +12,16 @@ from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 class documentpageflagservice:    
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
-        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        
+        if redactionlayerservice().isopeninfolayer(redactionlayer):
+            layerids.append(redactionlayerservice().getdefaultredactionlayerid())
+        else:
+            layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+            #layerids.append(redactionlayerservice().getdefaultredactionlayerid())       
         print("layerids:",layerids)
+        print("documentids:",documentids)
         pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
+        print("pageflags:",pageflags)
         return self.__removedeletedpages(requestid, pageflags)
     
     def getpublicbody(self, requestid, redactionlayer):
@@ -64,20 +71,20 @@ class documentpageflagservice:
         return DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids)    
 
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
-        print("@@@@")
-        docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
-        print("1111")
-        for pageflag in pageflags:
-            print("2",pageflag)
-            if self.__isbookmark(pageflag) == True:
-                self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
-            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
-            print("3",docpgattributes)
-            docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-        __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
-        print("4",__docpgattributes)
-        __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
-        print("5",__docpageflags)
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        #Empty pageflag added to persist OI layer creation &
+        #to tackle the layer count. OI Layer doesn't have any pageflags!!
+        isopeninfolayer= redactionlayerservice().isopeninfolayer(redactionlayer['name'])       
+        __docpageflags, __docpgattributes = [],None
+        if isopeninfolayer == False:
+            docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
+            for pageflag in pageflags:
+                if self.__isbookmark(pageflag) == True:
+                    self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
+                docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+                docpageflags = self.__createnewpageflag(docpageflags, pageflag)
+            __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+            __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
         return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
     async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
@@ -85,12 +92,9 @@ class documentpageflagservice:
 
     def bulksavepageflag(self, requestid, data, userinfo):
         results = []
-        print("Inside bulksavepageflag!!!!!!!!",userinfo)
         for entry in data["documentpageflags"]:
             try:
-                print("started",entry)
                 result = self.bulksavedocumentpageflag(requestid, entry["documentid"],entry["version"],entry["pageflags"],entry["redactionlayerid"],userinfo)
-                print("6-result",result)
                 results.append(
                     {
                         "documentid": entry["documentid"],

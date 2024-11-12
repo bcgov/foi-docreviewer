@@ -920,22 +920,23 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   };
   
   
-  const checkSavingRedline = (redlineReadyAndValid, instance) => {
+  const checkSavingRedline = (redlineReadyAndValid, isOILayerSelected, instance) => {
     const validRedlineStatus = [
       RequestStates["Records Review"],
       RequestStates["Ministry Sign Off"],
       RequestStates["Peer Review"],
     ].includes(requestStatus);
-    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus);
+    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus && !isOILayerSelected);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
-        !redlineReadyAndValid || !validRedlineStatus;
+        !redlineReadyAndValid || !validRedlineStatus || isOILayerSelected;
     }
   };
 
   const checkSavingOIPCRedline = (
     oipcRedlineReadyAndValid,
+    isOILayerSelected,
     instance,
     readyForSignOff
   ) => {
@@ -944,14 +945,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       RequestStates["Ministry Sign Off"],
     ].includes(requestStatus);
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid && validOIPCRedlineStatus
+      oipcRedlineReadyAndValid && validOIPCRedlineStatus && !isOILayerSelected
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_oipc").disabled =
         !oipcRedlineReadyAndValid ||
         !validOIPCRedlineStatus ||
-        !readyForSignOff;
+        !readyForSignOff || 
+        isOILayerSelected;
     }
   };
   const triggerRedlineZipper = (

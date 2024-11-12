@@ -13,11 +13,13 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from "@mui/material/IconButton";
-import { createOipcLayer } from "../../../apiManager/services/docReviewerService";
+import { createOipcLayer, savePageFlag } from "../../../apiManager/services/docReviewerService";
+import {createPageFlagPayload} from "./utils";
 
 const LayerDropdown = ({
     ministryrequestid,
     validoipcreviewlayer,
+    requestInfo
 }: any) => {
 
     const layers = useAppSelector((state: any) => state.documents?.redactionLayers);
@@ -51,6 +53,35 @@ const LayerDropdown = ({
         }
         else if( layers.find((l: any) => l.redactionlayerid === layer).name === 'Open Info' ){
             store.dispatch(incrementLayerCount(layer) as any);
+            /**saving pageflag value- {flagid: 0, page: 0, deleted: false} will 
+             * get saved as {} in B.E. This is to make the OI layer persist  & increment the layer count value
+             * as layer count is calculated based on the pageflag row count for request in db.
+             */
+            let payload = {
+                documentpageflags: [] as Array<{
+                  documentid: number;
+                  version: number;
+                  pageflags: object;
+                  redactionlayerid: number;
+                }>,
+              };
+              payload.documentpageflags.push({
+                documentid: 1,
+                version: 1,
+                pageflags: [{flagid: 0, page: 0, deleted: false}],
+                redactionlayerid: layer,
+              });
+            savePageFlag(
+                ministryrequestid,
+                0,
+                (data: any) => {
+                    if(data.status != true){
+                        console.log("success")
+                    }
+                },
+                (error: any) => console.log(error),
+                payload
+              );
             successCallback();
         }
     }
@@ -58,6 +89,19 @@ const LayerDropdown = ({
     const handleModalCancel = (e: any) => {
         setOpenModal(false);
         setLayer(currentLayer.redactionlayerid)
+    }
+
+    const isLayerDisabled = (option: any) => {
+
+        if (option.name === 'OIPC' && !validoipcreviewlayer)
+            return true;
+        /**To Do : After Aman's work get the proper state field and value 
+         * and update the condition for OI
+         */
+        // else if(option.name === 'Open Info' && !['Publication Review'].includes(requestInfo.requeststate))
+        //     return true;
+        return false;
+
     }
 
     return (
@@ -73,7 +117,7 @@ const LayerDropdown = ({
                 variant="outlined"
             >                
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={option.name === 'OIPC' && !validoipcreviewlayer} 
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={isLayerDisabled(option)} 
                         style={{color: "#000000"}}>
                     {
                     option.redactionlayerid > 2

@@ -56,9 +56,11 @@ import {
   handleFinalPackageClick, 
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
+  handlePublicationPackageClick,
   renderCustomButton,
   isValidRedlineDownload,
-  isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+  isReadyForSignOff,
+  createPublicationPackageSelection } from "./CreateResponsePDF/CreateResponsePDF";
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
 import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
@@ -163,6 +165,8 @@ const Redlining = React.forwardRef(
       saveResponsePackage,
       checkSavingFinalPackage,
       enableSavingFinal,
+      checkSavingPublicationPackage,
+      enablePublication
     } = useSaveResponsePackage();
 
     useEffect(() => {
@@ -229,6 +233,13 @@ const Redlining = React.forwardRef(
             menu.appendChild(redlineForOipcBtn);
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
+            if (currentLayerRef.current.name.toLowerCase() === "open info" && user && user?.groups?.includes("/OI Team")){
+              const publicationPackageBtn= createPublicationPackageSelection(document, enablePublication)
+              publicationPackageBtn.onclick = () => {
+                handlePublicationPackageClick(updateModalData, setRedlineModalOpen)
+              }
+              menu.appendChild(publicationPackageBtn);
+            }
             parent.appendChild(menu);
 
             //Create render function to render custom Create Reseponse PDF button
@@ -874,9 +885,9 @@ const Redlining = React.forwardRef(
                       docversion: displayedDoc.docversion,
                       isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = currentLayer.name.toLowerCase() != "open info" ?
+                    const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
                       constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags)
-                      :{};
+                      //:{};
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -1040,9 +1051,9 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = currentLayer.name.toLowerCase() != "open info" ?
+                  const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
                     constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags)
-                    :{};
+                    //:{};
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -1336,10 +1347,12 @@ const Redlining = React.forwardRef(
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
+      const isOILayerSelected = currentLayer.name.toLowerCase() == "open info" ? true : false;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      checkSavingRedline(redlineReadyAndValid, _instance);
-      checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
-      checkSavingFinalPackage(redlineReadyAndValid, _instance);
+      checkSavingRedline(redlineReadyAndValid, isOILayerSelected, _instance);
+      checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
+      checkSavingFinalPackage(redlineReadyAndValid, isOILayerSelected, _instance);
+      checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance);
     };
 
     //useEffect to handle validation of Response Package downloads
@@ -1643,9 +1656,9 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagsUpdated = currentLayer.name.toLowerCase() != "open info" ?
+        const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
           constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
-          :{};
+          //:{};
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -1826,9 +1839,9 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagsUpdated = currentLayer.name.toLowerCase() != "open info" ?
+              const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
                 constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
-                :{};
+                //:{};
               if (pageFlagsUpdated) {
                 pageFlagObj.push(pageFlagsUpdated);
               }
@@ -2265,6 +2278,7 @@ const Redlining = React.forwardRef(
           );
           break;
         case "responsepackage":
+        case "publicationpackage":
           saveResponsePackage(
             docViewer,
             annotManager,
@@ -2272,7 +2286,8 @@ const Redlining = React.forwardRef(
             documentList,
             pageMappedDocs,
             pageFlags,
-            requestType
+            requestType,
+            modalFor
           );
           break;
         default:

@@ -24,6 +24,13 @@ class redactionlayerservice:
                 return layer["redactionlayerid"]
         return 0
     
+    def isopeninfolayer(self, name):
+        _name = self.__normalise(name)
+        if _name == 'openinfo':
+            return True
+        return False
+
+    
     def getredactionlayer(self, name):
         _name = self.__normalise(name)
         layers = self.getall()
