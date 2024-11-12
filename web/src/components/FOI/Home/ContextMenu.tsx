@@ -95,14 +95,14 @@ const ContextMenu = ({
       savePageFlag(
         requestId,
         flagId,
-        (data: any) => {
+        (data: any, flagid: number) => {
             if(data.status == true){
                 const updatedPageFlags = updatePageFlagOnPage(
                     data.updatedpageflag,
                     pageFlags
                 );
                 if(updatedPageFlags?.length > 0)
-                  syncPageFlagsOnAction(updatedPageFlags);
+                  syncPageFlagsOnAction(updatedPageFlags, [pageFlagTypes["Duplicate"], pageFlagTypes["Not Responsive"]].includes(flagid));
             }
         },
         (error: any) => console.log(error),

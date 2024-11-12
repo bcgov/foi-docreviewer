@@ -231,7 +231,7 @@ class AnnotationMetadata(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    @auth.require
+    #@auth.require
     def get(ministryrequestid, redactionlayer):
         try:
             result = redactionservice().getannotationinfobyrequest(ministryrequestid, redactionlayer)

@@ -102,3 +102,5 @@ computingservices/ZippingServices/env/*
 openshift/templates/zippingservice/zipper.env
 *.locenv
 
+MCS.FOI.S3FileConversion/MCS.FOI.MSGToPDFUnitTests/SourceFiles/result_*.pdf
+MCS.FOI.S3FileConversion/MCS.FOI.CalendarToPDFUnitTests/SourceFiles/result_*.pdf
