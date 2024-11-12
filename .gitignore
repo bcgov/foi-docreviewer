@@ -106,3 +106,4 @@ MCS.FOI.S3FileConversion/MCS.FOI.MSGToPDFUnitTests/SourceFiles/result_*.pdf
 MCS.FOI.S3FileConversion/MCS.FOI.CalendarToPDFUnitTests/SourceFiles/result_*.pdf
 computingservices/DocExtractServices/awsdocextractservice/*/*.exe
 
+computingservices/DocExtractServices/awsdocextractservice/src/.aws/credentials

@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
+	"strconv"
 
 	"github.com/gocraft/work"
 
 	"awsdocextractservices/awsservices"
-	"awsdocextractservices/redisservices"
 )
 
 type FOIMessageContext struct {
@@ -23,24 +21,36 @@ type FOIMessageContext struct {
 
 func main() {
 
-	redisPool := redisservices.GetFOIRedisConnectionPool()
-
-	pool := work.NewWorkerPool(FOIMessageContext{}, 10, "foi_documentextract_namespace", redisPool)
-
-	pool.Job("document_extract", DocumentExtract)
-
-	// Start processing jobs
-	pool.Start()
-
-	// Wait for a signal to quit:
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, os.Kill)
-	<-signalChan
-
-	// Stop the pool
-	pool.Stop()
+	for count := 1; count <= 5; count++ {
+		filename := strconv.Itoa(count) + ".pdf"
+		fmt.Println("Processing File " + filename)
+		awsservices.ExtractdocumentcontentAsync(filename)
+		fmt.Println("Processing completed of " + filename)
+		fmt.Println("########################\n")
+	}
 
 }
+
+// func main() {
+
+// 	redisPool := redisservices.GetFOIRedisConnectionPool()
+
+// 	pool := work.NewWorkerPool(FOIMessageContext{}, 10, "foi_documentextract_namespace", redisPool)
+
+// 	pool.Job("document_extract", DocumentExtract)
+
+// 	// Start processing jobs
+// 	pool.Start()
+
+// 	// Wait for a signal to quit:
+// 	signalChan := make(chan os.Signal, 1)
+// 	signal.Notify(signalChan, os.Interrupt, os.Kill)
+// 	<-signalChan
+
+// 	// Stop the pool
+// 	pool.Stop()
+
+// }
 
 func DocumentExtract(job *work.Job) error {
 	// Extract arguments:
