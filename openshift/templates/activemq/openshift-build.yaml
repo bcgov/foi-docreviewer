@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: openshift-activemq
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${IMAGE_NAMESPACE_TAG}
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/abin-aot/openshift-activemq.git
+      type: Git
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+            - name: ACTIVEMQ_ADMIN_LOGIN
+              value: ${ACTIVEMQ_ADMIN_LOGIN}  # Set the admin password for the ActiveMQ web console
+            - name: ACTIVEMQ_ADMIN_PASSWORD
+              value: ${ACTIVEMQ_ADMIN_PASSWORD}
+    successfulBuildsHistoryLimit: 5
+    triggers:
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+  spec:
+    lookupPolicy:
+      local: false
+
+
+
+
+parameters:
+- name: ACTIVEMQ_ADMIN_LOGIN
+  displayname: ACTIVEMQ_ADMIN_LOGIN
+  required: true
+- name: ACTIVEMQ_ADMIN_PASSWORD
+  displayname: ACTIVEMQ_ADMIN_PASSWORD
+  required: true
+- name: IMAGE_NAMESPACE
+  displayname: IMAGE_NAMESPACE
+  required: true
+- name: IMAGE_NAMESPACE_TAG
+  displayname: IMAGE_NAMESPACE_TAG
+  required: true
+
