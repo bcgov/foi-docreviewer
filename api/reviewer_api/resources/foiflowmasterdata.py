@@ -325,14 +325,14 @@ class FOIFlowS3PresignedRedline(Resource):
 
 
 @cors_preflight("POST,OPTIONS")
-@API.route("/foiflow/oss/presigned/responsepackage/<int:ministryrequestid>")
+@API.route("/foiflow/oss/presigned/<int:ministryrequestid>/<redactionlayer>")
 class FOIFlowS3PresignedResponsePackage(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid):
+    def post(ministryrequestid, redactionlayer="responsepackage"):
         try:
             data = request.get_json()
             documentmapper = redactionservice().getdocumentmapper(
@@ -356,8 +356,8 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
-            filepath_put = "{0}/responsepackage/{1}.pdf".format(
-                filepathlist[0], filename
+            filepath_put = "{0}/{2}/{1}.pdf".format(
+                filepathlist[0], filename, redactionlayer
             )
 
             # filename_put, file_extension_put = os.path.splitext(filepath_put)

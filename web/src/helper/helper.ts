@@ -176,6 +176,18 @@ const errorToast = (errorMessage: any) => {
   });
 };
 
+const warningToast = (warningMessage: any) => {
+  return toast.warn(warningMessage, {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+  });
+};
+
 export {
   replaceUrl,
   isMinistryCoordinator,
@@ -190,4 +202,5 @@ export {
   isIntakeTeam,
   encrypt,
   decrypt,
+  warningToast
 };

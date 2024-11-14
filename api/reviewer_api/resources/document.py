@@ -133,7 +133,8 @@ class GetDocuments(Resource):
                 "requesttype": jsonobj["requestType"],
                 "validoipcreviewlayer": documentservice().validate_oipcreviewlayer(jsonobj, requestid),
                 "outstandingbalance": outstandingbalance,
-                "balancefeeoverrodforrequest": balancefeeoverrodforrequest
+                "balancefeeoverrodforrequest": balancefeeoverrodforrequest,
+                "requeststate":jsonobj["currentState"]
             }
             documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
