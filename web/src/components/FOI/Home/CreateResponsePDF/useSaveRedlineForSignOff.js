@@ -1287,15 +1287,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         isOILayerSelected;
     }
   };
-  const checkSavingConsults = (documentList, instance) => {
+  const checkSavingConsults = (documentList, isOILayerSelected, instance) => {
     const publicBodyList = getPublicBodyList(documentList);
     setDocumentPublicBodies(publicBodyList);
     setEnableSavingConsults(
-      publicBodyList.length > 0
+      publicBodyList.length > 0 || !isOILayerSelected
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
-      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0) || isOILayerSelected;
     }
   }
   const triggerRedlineZipper = (
