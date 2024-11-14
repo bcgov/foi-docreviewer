@@ -29,7 +29,7 @@ import {
   BIG_HTTP_GET_TIMEOUT,
   REDLINE_OPACITY,
 } from "../../../constants/constants";
-import { errorToast } from "../../../helper/helper";
+import { errorToast, warningToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
 import { pageFlagTypes, RedactionTypes } from "../../../constants/enum";
 import {
@@ -59,9 +59,11 @@ import {
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
   handleConsultPackageClick,
+  handlePublicationPackageClick,
   renderCustomButton,
   isValidRedlineDownload,
-  isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+  isReadyForSignOff,
+  createPublicationPackageSelection } from "./CreateResponsePDF/CreateResponsePDF";
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
 import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
@@ -69,6 +71,8 @@ import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
 import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
+import { toast } from "react-toastify";
+
 
 const Redlining = React.forwardRef(
   (
@@ -103,7 +107,9 @@ const Redlining = React.forwardRef(
       (state) => state.documents?.redactionInfo
     );
     const sections = useSelector((state) => state.documents?.sections);
-    const currentLayer = useSelector((state) => state.documents?.currentLayer);
+    const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
+    // Create a ref to store currentLayer
+    const currentLayerRef = useRef(currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     const requestType = useAppSelector((state) => state.documents?.requestinfo?.requesttype);
@@ -181,6 +187,8 @@ const Redlining = React.forwardRef(
       saveResponsePackage,
       checkSavingFinalPackage,
       enableSavingFinal,
+      checkSavingPublicationPackage,
+      enablePublication
     } = useSaveResponsePackage();
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
@@ -203,6 +211,11 @@ const Redlining = React.forwardRef(
       }
 
     }, [isRedlineOpaque])
+
+    useEffect(() => {
+      currentLayerRef.current = currentLayer;
+    }, [currentLayer]);
+
 
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -270,6 +283,13 @@ const Redlining = React.forwardRef(
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
             menu.appendChild(consultPackageButton);
+            if (currentLayerRef.current.name.toLowerCase() === "open info" && user && user?.groups?.includes("/OI Team")){
+              const publicationPackageBtn= createPublicationPackageSelection(document, enablePublication)
+              publicationPackageBtn.onclick = () => {
+                handlePublicationPackageClick(updateModalData, setRedlineModalOpen)
+              }
+              menu.appendChild(publicationPackageBtn);
+            }
             parent.appendChild(menu);
 
             //Create render function to render custom Create Reseponse PDF button
@@ -333,7 +353,7 @@ const Redlining = React.forwardRef(
             type: "customElement",
             title: "Edit",
             render: () => (
-              <Edit instance={instance} editAnnotation={editAnnotation} />
+              <Edit instance={instance} editAnnotation={editAnnotation}/>
             ),
           });
           setDocInstance(instance);
@@ -766,6 +786,7 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
+            fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
             fetchAnnotationsByPagination(
               requestid,
               1,
@@ -947,7 +968,9 @@ const Redlining = React.forwardRef(
                       docversion: displayedDoc.docversion,
                       isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags);
+                    const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                      constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags)
+                      //:{};
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -1111,7 +1134,9 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags);
+                  const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                    constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags)
+                    //:{};
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -1405,11 +1430,16 @@ const Redlining = React.forwardRef(
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
+      const isOILayerSelected = currentLayer.name.toLowerCase() == "open info" ? true : false;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
       checkSavingConsults(documentList, _instance);
       checkSavingRedline(redlineReadyAndValid, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
+      checkSavingRedline(redlineReadyAndValid, isOILayerSelected, _instance);
+      checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
+      checkSavingFinalPackage(redlineReadyAndValid, isOILayerSelected, _instance);
+      checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance);
     };
 
     //useEffect to handle validation of Response Package downloads
@@ -1590,12 +1620,25 @@ const Redlining = React.forwardRef(
           annotManager.redrawAnnotation(_annotation);
 
           annotManager.setPermissionCheckCallback((author, _annotation) => {
-            if (_annotation.Subject !== "Redact" && author !== username) {
+            console.log("Permission check!")
+            let annotationLayerId=_annotation.getCustomData('redactionlayerid')?
+                  parseInt(_annotation.getCustomData('redactionlayerid')):null
+            console.log(annotationLayerId)
+            const updatedLayer = currentLayerRef.current;
+            if ((_annotation.Subject !== "Redact" && author !== username) ||
+              updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId!= undefined && 
+              annotationLayerId != updatedLayer.redactionlayerid) {
               _annotation.NoResize = true;
             }
-            if (author !== username) {
+            if (author !== username || (updatedLayer?.name?.toLowerCase() === "open info" && 
+              annotationLayerId!= undefined && annotationLayerId != updatedLayer.redactionlayerid)) {
               _annotation.LockedContents = true;
             }
+            if (updatedLayer?.name?.toLowerCase() === "open info" && 
+            annotationLayerId!= undefined && annotationLayerId != updatedLayer.redactionlayerid) {
+            _annotation.Locked = true;
+            _annotation.NoDelete = true;
+          }
             return true;
           });
         });
@@ -1737,7 +1780,9 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
+        const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+          constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
+          //:{};
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -1918,10 +1963,12 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
-                  if (pageFlagsUpdated) {
-                    pageFlagObj.push(pageFlagsUpdated);
-                  }
+              const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
+                //:{};
+              if (pageFlagsUpdated) {
+                pageFlagObj.push(pageFlagsUpdated);
+              }
               let pageFlagData = {};
               if (isObjectNotEmpty(pageFlagObj)) {
                 pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
@@ -2139,19 +2186,27 @@ const Redlining = React.forwardRef(
       _annot.NoMove = true;
       return _annot;
     };
-
+    const toastId = React.useRef(null);
     const editAnnotation = (annotationManager, selectedAnnot) => {
+      const updatedLayer = currentLayerRef.current;
       selectedAnnot.then((astr) => {
         //parse annotation xml
         let jObj = parser.parseFromString(astr); // Assume xmlText contains thesetEditRedacts example XML
-        let annots = jObj.getElementsByTagName("annots");
-        let annot = annots[0].children[0];
-        setEditAnnot({
-          pages: annot.attributes.page,
-          names: [annot.attributes.name],
-          astr: astr,
-          type: annot.name,
-        });
+        const trnCustomData = decodeAstr(astr)
+        let annotationLayerId= parseInt(trnCustomData["redactionlayerid"])
+        if (updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId != updatedLayer.redactionlayerid){
+          warningToast("Changes to existing severing and flags can not be made.")
+        }
+        else{
+          let annots = jObj.getElementsByTagName("annots");
+          let annot = annots[0].children[0];
+          setEditAnnot({
+            pages: annot.attributes.page,
+            names: [annot.attributes.name],
+            astr: astr,
+            type: annot.name,
+          });
+        }
       });
       setAnnotManager(annotationManager);
     };
@@ -2337,6 +2392,7 @@ const Redlining = React.forwardRef(
 
     const handleSectionSelected = (e) => {
       let sectionID = e.target.getAttribute("data-sectionid");
+      console.log("sectionID:",sectionID)
       let newSelectedSections;
       if (e.target.checked) {
         newSelectedSections = [...selectedSections, Number(sectionID)];
@@ -2427,6 +2483,7 @@ const Redlining = React.forwardRef(
           );
           break;
         case "responsepackage":
+        case "publicationpackage":
           saveResponsePackage(
             docViewer,
             annotManager,
@@ -2436,6 +2493,7 @@ const Redlining = React.forwardRef(
             pageFlags,
             feeOverrideReason,
             requestType,
+            modalFor
           );
           break;
         default:
@@ -2518,6 +2576,7 @@ const Redlining = React.forwardRef(
             defaultSections={defaultSections}
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
+            currentLayer={currentLayerRef?.current}
           />
         {redlineModalOpen && 
           <ConfirmationModal 

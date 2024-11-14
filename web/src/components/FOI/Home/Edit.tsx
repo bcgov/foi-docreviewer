@@ -1,5 +1,6 @@
 import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-line.svg";
 
+
   const disableMultiSelectEdit = (_selectedAnnotations: any) => {
     if (_selectedAnnotations && _selectedAnnotations.length > 0) {
       return _selectedAnnotations.some(
@@ -47,7 +48,7 @@ import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-l
   //END: Bulk Edit using Multi Select Option
 
 
-  const Edit = ({instance, editAnnotation}: any) => {
+  const Edit = ({instance, editAnnotation, currentLayer}: any) => {
     let _selectedAnnotations = instance?.Core?.annotationManager.getSelectedAnnotations();
     const disableEdit = _selectedAnnotations.some(
       (obj: any) =>
@@ -67,7 +68,8 @@ import { ReactComponent as EditLogo } from "../../../assets/images/icon-pencil-l
             instance?.Core?.annotationManager.exportAnnotations({
               annotationList: _selectedRedaction,
               useDisplayAuthor: true,
-            })
+            }),
+            currentLayer
           );
         }}
         disabled={disableEdit}

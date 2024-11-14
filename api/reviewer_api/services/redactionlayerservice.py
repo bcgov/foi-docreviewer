@@ -17,11 +17,19 @@ class redactionlayerservice:
     
     def getredactionlayerid(self, name):
         _name = self.__normalise(name)
+        print("\nName:",_name)
         layers = RedactionLayer.getlayers()
         for layer in layers:
             if (self.__normalise(layer['name']) == _name):
                 return layer["redactionlayerid"]
         return 0
+    
+    def isopeninfolayer(self, name):
+        _name = self.__normalise(name)
+        if _name == 'openinfo':
+            return True
+        return False
+
     
     def getredactionlayer(self, name):
         _name = self.__normalise(name)
@@ -33,7 +41,13 @@ class redactionlayerservice:
     
     def getmappedredactionlayers(self, redactionlayer):     
         mpxlayers = []  
+        print("redactionlayer:",redactionlayer)
+        if redactionlayer['name'] == 'Open Info':
+            defaultlayerid = self.getdefaultredactionlayerid()
+            if redactionlayer["redactionlayerid"] != defaultlayerid:
+                mpxlayers.append(defaultlayerid)
         mpxlayers.append(redactionlayer["redactionlayerid"])
+        print("mpxlayers:",mpxlayers)
         return mpxlayers
 
     def validateredactionlayer(self, name, ministryrequestid):
@@ -48,5 +62,8 @@ class redactionlayerservice:
         _name = name.replace(' ', '')
         _name = _name.lower()
         return _name
+    
+    def getredactionlayerbyid(self, layerid):
+        return RedactionLayer.getredactionlayerbyid(layerid)
     
     

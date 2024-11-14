@@ -51,10 +51,15 @@ class redactionservice:
     def saveannotation(self, annotationschema, userinfo):
         pageflagresponse= None
         result = annotationservice().saveannotation(annotationschema, userinfo)
+        redactionlayer=redactionlayerservice().getredactionlayerbyid(annotationschema['redactionlayerid'])
+        #Condition to ignore saving pageflags to db for OI layer
+        #whenever a redaction is made.
+        openinfolayer= redactionlayerservice().isopeninfolayer(redactionlayer['name'])
         if (
             result.success == True
             and "pageflags" in annotationschema
             and annotationschema["pageflags"] is not None
+            and openinfolayer == False
         ):
             foiministryrequestid = None
             if "foiministryrequestid" in annotationschema:

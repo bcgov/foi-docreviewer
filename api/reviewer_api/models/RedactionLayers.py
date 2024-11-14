@@ -59,6 +59,23 @@ class RedactionLayer(db.Model):
         finally:
             db.session.close()
 
+
+    @classmethod
+    def getredactionlayerbyid(cls,layerid):
+        try:
+            layer_schema = RedactionLayerSchema(many=False)
+            query = (
+                db.session.query(RedactionLayer)
+                .filter_by(isactive=True, redactionlayerid=layerid)
+                .order_by(RedactionLayer.sortorder.desc())
+                .first()
+            )
+            return layer_schema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
     @classmethod
     def getlayers(cls):
         try:

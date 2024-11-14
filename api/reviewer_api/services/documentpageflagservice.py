@@ -12,8 +12,16 @@ from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 class documentpageflagservice:    
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
-        layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+        
+        if redactionlayerservice().isopeninfolayer(redactionlayer):
+            layerids.append(redactionlayerservice().getdefaultredactionlayerid())
+        else:
+            layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
+            #layerids.append(redactionlayerservice().getdefaultredactionlayerid())       
+        print("layerids:",layerids)
+        print("documentids:",documentids)
         pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
+        print("pageflags:",pageflags)
         return self.__removedeletedpages(requestid, pageflags)
     
     def getpublicbody(self, requestid, redactionlayer):
@@ -21,7 +29,8 @@ class documentpageflagservice:
         return DocumentPageflag.getpublicbody_by_request(requestid, redactionlayerid)
 
     def getdocumentpageflags(self, requestid, redactionlayerid, documentid=None, version=None):
-        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayer)
         pageflag = DocumentPageflag.getpageflag(requestid, documentid, version, layerids)
         if pageflag not in (None, {}):
             return pageflag["pageflag"], pageflag["attributes"]
@@ -40,7 +49,8 @@ class documentpageflagservice:
 
 
     def getdocumentpageflagsbydocids(self, requestid, redactionlayerid, documentids):
-        layerids = redactionlayerservice().getmappedredactionlayers({"redactionlayerid": redactionlayerid})
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        layerids = redactionlayerservice().getmappedredactionlayers(redactionlayer)
         return DocumentPageflag.getpageflagsbydocids(requestid, documentids, layerids)
 
     def removebookmark(self, requestid, redactionlayerid, userinfo, documentids):
@@ -61,14 +71,20 @@ class documentpageflagservice:
         return DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids)    
 
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
-        docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
-        for pageflag in pageflags:
-            if self.__isbookmark(pageflag) == True:
-                self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
-            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
-            docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-        __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
-        __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
+        redactionlayer= redactionlayerservice().getredactionlayerbyid(redactionlayerid)
+        #Empty pageflag added to persist OI layer creation &
+        #to tackle the layer count. OI Layer doesn't have any pageflags!!
+        isopeninfolayer= redactionlayerservice().isopeninfolayer(redactionlayer['name'])       
+        __docpageflags, __docpgattributes = [],None
+        if isopeninfolayer == False:
+            docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
+            for pageflag in pageflags:
+                if self.__isbookmark(pageflag) == True:
+                    self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
+                docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+                docpageflags = self.__createnewpageflag(docpageflags, pageflag)
+            __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+            __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
         return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
     async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
@@ -108,6 +124,7 @@ class documentpageflagservice:
                 if attributes not in (None, {}) and "publicbody" in attributes
                 else []
             )
+            print("handlepublicbody:")
             publicbody = set(map(lambda x: x["name"], publicbody))
             publicbody.update(data["other"])
             return {"publicbody": list(map(lambda x: {"name": x}, publicbody))}

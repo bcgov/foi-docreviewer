@@ -843,6 +843,7 @@ const DocumentSelector = React.memo(
                 <LayerDropdown
                   ministryrequestid={requestid}
                   validoipcreviewlayer={requestInfo.validoipcreviewlayer}
+                  requestInfo={requestInfo}
                 />
               </div>
             </div>
@@ -1011,6 +1012,7 @@ const DocumentSelector = React.memo(
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   requestInfo={requestInfo}
+                  currentLayer={currentLayer}
                 />
               )
             }

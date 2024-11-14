@@ -37,7 +37,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
     assignIcon,
     pageFlags,
     syncPageFlagsOnAction,
-    requestInfo
+    requestInfo,
+    currentLayer
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
         [`& .${treeItemClasses.label}`]: {
@@ -257,7 +258,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     return (        
         <>
-        {openContextPopup === true && 
+        {openContextPopup === true && currentLayer.name.toLowerCase() !="open info" &&
             <ContextMenu
                 openFOIPPAModal={openFOIPPAModal}
                 requestId={requestid}
