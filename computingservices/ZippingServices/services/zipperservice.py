@@ -173,20 +173,3 @@ def __getzipfilepath(foldername, filename):
         if foldername is not None
         else filename + ".zip"
     )
-
-
-def __removesensitivecontent(documentbytes):
-    # clear metadata
-    reader2 = PyPDF2.PdfReader(BytesIO(documentbytes))
-    # Check if metadata exists.
-    if reader2.metadata is not None:
-        # Create a new PDF file without metadata.
-        writer = PyPDF2.PdfWriter()
-        # Copy pages from the original PDF to the new PDF.
-        for page_num in range(len(reader2.pages)):
-            page = reader2.pages[page_num]                
-            writer.add_page(page)        
-        #writer.remove_links() # to remove comments.
-        buffer = BytesIO()
-        writer.write(buffer)
-        return buffer.getvalue()
