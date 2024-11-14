@@ -1432,10 +1432,7 @@ const Redlining = React.forwardRef(
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const isOILayerSelected = currentLayer.name.toLowerCase() == "open info" ? true : false;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      checkSavingConsults(documentList, _instance);
-      checkSavingRedline(redlineReadyAndValid, _instance);
-      checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
-      checkSavingFinalPackage(redlineReadyAndValid, _instance);
+      checkSavingConsults(documentList, isOILayerSelected, _instance);
       checkSavingRedline(redlineReadyAndValid, isOILayerSelected, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, isOILayerSelected, _instance);
