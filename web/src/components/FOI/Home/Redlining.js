@@ -218,8 +218,10 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
+          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
+            StrokeColor: new Annotations.Color(255, 205, 69)
+          });
           const UIEvents = instance.UI.Events;
-   
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -297,9 +299,6 @@ const Redlining = React.forwardRef(
               .setStyles({
                 FillColor: new Annotations.Color(255, 255, 255),
               });
-          });
-          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
-            StrokeColor: new Annotations.Color(255, 205, 69), 
           });
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
