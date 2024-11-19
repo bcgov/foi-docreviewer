@@ -298,6 +298,9 @@ const Redlining = React.forwardRef(
                 FillColor: new Annotations.Color(255, 255, 255),
               });
           });
+          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
+            StrokeColor: new Annotations.Color(255, 205, 69), 
+          });
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             //Search Document Logic (for multi-keyword search and etc)
