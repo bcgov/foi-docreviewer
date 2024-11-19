@@ -218,8 +218,10 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
+          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
+            StrokeColor: new Annotations.Color(255, 205, 69)
+          });
           const UIEvents = instance.UI.Events;
-   
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
