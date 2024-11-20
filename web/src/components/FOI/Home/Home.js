@@ -109,7 +109,7 @@ function Home() {
           });
 
           let doclist = [];          
-          let requestInfo = _requestInfo.requestinfo;
+          let requestInfo = _requestInfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
