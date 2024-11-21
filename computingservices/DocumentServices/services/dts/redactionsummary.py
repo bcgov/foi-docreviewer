@@ -411,7 +411,10 @@ class redactionsummary():
             range_start = currentpg["stitchedpageno"] if range_start == 0 else range_start   
             range_consults = currentpg["consults"]        
             skipconsult  = True if category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage') else False
-            if currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"])):
+            if (currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] 
+                and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"]))
+                and currentpg["sections"] == nextpg["sections"]
+            ):
                 range_sections.extend(nextpg["sections"])
                 range_end = nextpg["stitchedpageno"]
             else:
