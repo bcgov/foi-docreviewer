@@ -97,6 +97,7 @@ class annotationservice:
         return sections
 
     def getannotationsections(self, ministryid, redactionlayerid):
+        print("ministryid:",ministryid, "redactionlayerid:",redactionlayerid)
         annotationsections = AnnotationSection.get_by_ministryid(ministryid, redactionlayerid)
         return annotationsections
 
