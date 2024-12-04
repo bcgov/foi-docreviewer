@@ -289,19 +289,18 @@ const useSaveResponsePackage = () => {
           render: "Saving section stamps...",
           isLoading: true,
         });
+        // update page mappings
+        for (var page of pagesToRemove) {
+          delete pageMappedDocs.stitchedPageLookup[page]
+        }
+        var updatedPageMapping = Object.entries(pageMappedDocs.stitchedPageLookup)
         // remove withheld in full pages after page stamp has been applied
         pagesToRemove = [];
         for (const infoForEachDoc of pageFlags) {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
-            /** pageflag duplicate or not responsive */
             if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
-              pagesToRemove.push(
-                getStitchedPageNoFromOriginal(
-                  infoForEachDoc.documentid,
-                  pageFlagsForEachDoc.page,
-                  pageMappedDocs
-                )
-              );
+              var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
+              pagesToRemove.push(pageToRemove);
             }
           }
         }
