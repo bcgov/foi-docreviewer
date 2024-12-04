@@ -1424,8 +1424,8 @@ const Redlining = React.forwardRef(
           }
         },
       });
-      docViewer.refreshAll();
-      docViewer.updateView();
+      docViewer?.refreshAll();
+      docViewer?.updateView();
     }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
