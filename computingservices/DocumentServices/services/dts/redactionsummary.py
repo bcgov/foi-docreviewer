@@ -125,9 +125,9 @@ class redactionsummary():
                     # print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
                     #     &&& end_page-{end_page}")
                     self.assignfullpagesections(redactionlayerid, mapped_flags)
-                    print("\nMapped_flags::",mapped_flags)
+                    # print("\nMapped_flags::",mapped_flags)
                     range_result = self.__calculate_range(mapped_flags, record["documentids"])
-                    print("range_result:",range_result)
+                    # print("range_result:",range_result)
                     recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
                     # print(f"{record['recordname']} :{recordwise_pagecount}")
                     summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
