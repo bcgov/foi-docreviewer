@@ -2,6 +2,7 @@ import logging
 from utils import redisstreamdb, notification_stream_key
 from rstreamio.message.schemas.notification import NotificationPublishSchema
 from models import dedupeproducermessage
+from datetime import datetime
 
 import json
 
@@ -17,6 +18,7 @@ class redisstreamwriter:
             notification_msg.errorflag = self.__booltostr(error)
             notification_msg.ministryrequestid = message.ministryrequestid
             notification_msg.createdby = message.createdby
+            notification_msg.createdat = datetime.now().strftime("%m/%d/%Y, %H:%M:%S.%f")
             notification_msg.batch = message.batch
             #Additional execution parameters : Begin
             

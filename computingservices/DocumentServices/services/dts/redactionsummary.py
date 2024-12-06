@@ -119,7 +119,7 @@ class redactionsummary():
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                if record["documentids"][0] in pagecounts:
+                if len(set(record["documentids"]).intersection(set(pagecounts.keys()))) > 0:
                     # print("-----------------------Record : ---------------------------", record["documentids"])
                     record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
                     # print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
@@ -411,7 +411,10 @@ class redactionsummary():
             range_start = currentpg["stitchedpageno"] if range_start == 0 else range_start   
             range_consults = currentpg["consults"]        
             skipconsult  = True if category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage') else False
-            if currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"])):
+            if (currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] 
+                and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"]))
+                and currentpg["sections"] == nextpg["sections"]
+            ):
                 range_sections.extend(nextpg["sections"])
                 range_end = nextpg["stitchedpageno"]
             else:
