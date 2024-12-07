@@ -1436,9 +1436,7 @@ const Redlining = React.forwardRef(
     }, [pageFlags, isStitchingLoaded]);
 
     useEffect(() => {      
-      console.log("inside use effect")
       if (docInstance && documentList.length > 0 && !isWatermarkSet) {
-        console.log("inside if condition")
         setWatermarks();
         setIsWatermarkSet(true)
       }
@@ -1446,48 +1444,44 @@ const Redlining = React.forwardRef(
 
 
     const setWatermarks = () => {
-      console.log("inside set watermarks")
-      console.log(pageFlags)
-      docViewer?.setWatermark({
-        // Draw custom watermark in middle of the document
-        custom: (ctx, pageNumber, pageWidth, pageHeight) => {
-          // ctx is an instance of CanvasRenderingContext2D
-          // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
-          // Hence being able to leverage those properties
-          let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
-          let doc = pageFlags.find(d => d.documentid === originalPage.docid);
-          let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
-          console.log("inside watermark fn")
-          console.log(originalPage)
-          console.log(doc)
-          console.log(pageFlag)
-          if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
-            ctx.fillStyle = "#ff0000";
-            ctx.font = "20pt Arial";
-            ctx.globalAlpha = 0.4;
-
-            ctx.save();
-            ctx.translate(pageWidth / 2, pageHeight / 2);
-            ctx.rotate(-Math.PI / 4);
-            ctx.fillText("DUPLICATE", 0, 0);
-            ctx.restore();
-          }
-
-          if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
-            ctx.fillStyle = "#ff0000";
-            ctx.font = "20pt Arial";
-            ctx.globalAlpha = 0.4;
-
-            ctx.save();
-            ctx.translate(pageWidth / 2, pageHeight / 2);
-            ctx.rotate(-Math.PI / 4);
-            ctx.fillText("NOT RESPONSIVE", 0, 0);
-            ctx.restore();
-          }
-        },
-      });
-      docViewer?.refreshAll();
-      docViewer?.updateView();
+      if (docViewer && pageMappedDocs && pageFlags) {
+        docViewer.setWatermark({
+          // Draw custom watermark in middle of the document
+          custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+            // ctx is an instance of CanvasRenderingContext2D
+            // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+            // Hence being able to leverage those properties
+            let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+            let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+            let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
+            if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+  
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("DUPLICATE", 0, 0);
+              ctx.restore();
+            }
+  
+            if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+              ctx.fillStyle = "#ff0000";
+              ctx.font = "20pt Arial";
+              ctx.globalAlpha = 0.4;
+  
+              ctx.save();
+              ctx.translate(pageWidth / 2, pageHeight / 2);
+              ctx.rotate(-Math.PI / 4);
+              ctx.fillText("NOT RESPONSIVE", 0, 0);
+              ctx.restore();
+            }
+          },
+        });
+        docViewer.refreshAll();
+        docViewer.updateView();
+      }
     }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
