@@ -95,7 +95,7 @@ const ContextMenu = ({
       savePageFlag(
         requestId,
         flagId,
-        (data: any, flagid: number) => {
+        (data: any) => {
             if(data.status == true){
                 const updatedPageFlags = updatePageFlagOnPage(
                     data.updatedpageflag,
