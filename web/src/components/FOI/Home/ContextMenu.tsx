@@ -102,7 +102,7 @@ const ContextMenu = ({
                     pageFlags
                 );
                 if(updatedPageFlags?.length > 0)
-                  syncPageFlagsOnAction(updatedPageFlags, [pageFlagTypes["Duplicate"], pageFlagTypes["Not Responsive"]].includes(flagid));
+                  syncPageFlagsOnAction(updatedPageFlags, [pageFlagTypes["Duplicate"], pageFlagTypes["Not Responsive"]].includes(flagId));
             }
         },
         (error: any) => console.log(error),
