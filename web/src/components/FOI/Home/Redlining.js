@@ -150,8 +150,7 @@ const Redlining = React.forwardRef(
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
     const [isOverride, setIsOverride]= useState(false);
-    const [feeOverrideReason, setFeeOverrideReason]= useState("");   
-    const [isWatermarkSet, setIsWatermarkSet] = useState(false);
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -1425,6 +1424,7 @@ const Redlining = React.forwardRef(
       if (docInstance && documentList.length > 0) {
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
+        setWatermarks();
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
@@ -1434,13 +1434,6 @@ const Redlining = React.forwardRef(
         }
       };
     }, [pageFlags, isStitchingLoaded]);
-
-    useEffect(() => {      
-      if (docInstance && documentList.length > 0 && !isWatermarkSet) {
-        setWatermarks();
-        setIsWatermarkSet(true)
-      }
-    }, [pageFlags, isStitchingLoaded, isWatermarkSet]);
 
 
     const setWatermarks = () => {
