@@ -8,6 +8,7 @@ import (
 	redislib "OpenInfoServices/lib/queue"
 	oiservices "OpenInfoServices/services"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -263,7 +264,7 @@ func main() {
 		}
 
 	case "test":
-		//----- put testing script here -----
+		//----- put testing script here for manual test -----
 
 		// test unpublish
 		// Connect DB
@@ -307,5 +308,11 @@ func main() {
 	default:
 		fmt.Println("Unknown parameter. Please use 'dequeue', 'enqueueforpublish', 'sitemap' or 'enqueueforunpublish'")
 	}
+}
 
+func JoinStr(a string, b string) (string, error) {
+	if a == "" || b == "" {
+		return "", errors.New("empty string")
+	}
+	return a + b, nil
 }
