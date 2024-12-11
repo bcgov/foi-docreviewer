@@ -150,7 +150,8 @@ const Redlining = React.forwardRef(
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
     const [isOverride, setIsOverride]= useState(false);
-    const [feeOverrideReason, setFeeOverrideReason]= useState("");
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");   
+    const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -1424,7 +1425,6 @@ const Redlining = React.forwardRef(
       if (docInstance && documentList.length > 0) {
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
-        setWatermarks();
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
@@ -1435,46 +1435,51 @@ const Redlining = React.forwardRef(
       };
     }, [pageFlags, isStitchingLoaded]);
 
+    useEffect(() => {      
+      if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
+        setWatermarks();
+        setIsWatermarkSet(true)
+      }
+    }, [pageFlags, isStitchingLoaded, isWatermarkSet]);
+
 
     const setWatermarks = () => {
-      if (docViewer && pageMappedDocs && pageFlags) {
-        docViewer.setWatermark({
-          // Draw custom watermark in middle of the document
-          custom: (ctx, pageNumber, pageWidth, pageHeight) => {
-            // ctx is an instance of CanvasRenderingContext2D
-            // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
-            // Hence being able to leverage those properties
-            let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
-            let doc = pageFlags.find(d => d.documentid === originalPage.docid);
-            let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
-            if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
-              ctx.fillStyle = "#ff0000";
-              ctx.font = "20pt Arial";
-              ctx.globalAlpha = 0.4;
-  
-              ctx.save();
-              ctx.translate(pageWidth / 2, pageHeight / 2);
-              ctx.rotate(-Math.PI / 4);
-              ctx.fillText("DUPLICATE", 0, 0);
-              ctx.restore();
-            }
-  
-            if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
-              ctx.fillStyle = "#ff0000";
-              ctx.font = "20pt Arial";
-              ctx.globalAlpha = 0.4;
-  
-              ctx.save();
-              ctx.translate(pageWidth / 2, pageHeight / 2);
-              ctx.rotate(-Math.PI / 4);
-              ctx.fillText("NOT RESPONSIVE", 0, 0);
-              ctx.restore();
-            }
-          },
-        });
-        docViewer.refreshAll();
-        docViewer.updateView();
-      }
+      docViewer.setWatermark({
+        // Draw custom watermark in middle of the document
+        custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+          // ctx is an instance of CanvasRenderingContext2D
+          // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+          // Hence being able to leverage those properties
+          let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+          let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+          let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
+          if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("DUPLICATE", 0, 0);
+            ctx.restore();
+          }
+
+          if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("NOT RESPONSIVE", 0, 0);
+            ctx.restore();
+          }
+        },
+      });
+      docViewer.refreshAll();
+      docViewer.updateView();
     }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
