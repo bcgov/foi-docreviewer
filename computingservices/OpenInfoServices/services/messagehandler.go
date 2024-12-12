@@ -14,9 +14,13 @@ import (
 )
 
 const (
-	dateformat       = "2006-01-02"
-	dateformat_month = "01"
-	dateformat_year  = "2006"
+	dateformat                   = "2006-01-02"
+	dateformat_month             = "01"
+	dateformat_year              = "2006"
+	openstatus_ready             = "ready"
+	openstatus_ready_message     = "ready for crawling"
+	openstatus_unpublish         = "unpublished"
+	openstatus_unpublish_message = "entry removed from sitemap"
 )
 
 type OpenInfoMessage struct {
@@ -96,7 +100,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	awslib.CopyS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/")
 
 	// Update open info status in DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, "ready", "ready for publishing")
+	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, openstatus_ready, openstatus_ready_message)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return
@@ -144,7 +148,7 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	}
 
 	// Update unpublish status to DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, "unpublished", "entry removed from sitemap")
+	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, openstatus_unpublish, openstatus_unpublish_message)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return

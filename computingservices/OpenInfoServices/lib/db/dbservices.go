@@ -3,6 +3,8 @@ package dbservice
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -10,7 +12,7 @@ import (
 
 const (
 	dateformat           = "2006-01-02"
-	openstate_ready      = "Ready for Publishing"
+	openstate_ready      = "Ready to Publish"
 	openstate_unpublish  = "Unpublish"
 	openstatus_ready     = "ready"
 	openstatus_unpublish = "unpublished"
@@ -48,14 +50,39 @@ func Conn(dsn string) (*sql.DB, error) {
 
 func UpdateOIRecordStatus(db *sql.DB, openinfoid int, publishingstatus string, message string) error {
 
-	qry := `
-		UPDATE public."OpenInfoPublishing"
-		SET
-			publishingstatus = $1,
-			message = $2
-		WHERE openinfoid = $3;
-	`
-	_, err := db.Exec(qry, publishingstatus, message, openinfoid)
+	// Begin a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("Error beginning transaction: %v", err)
+	}
+
+	// Step 1: Set previous versions' isactive to false
+	_, err = tx.Exec(`UPDATE public."FOIOpenInformationRequests" SET isactive = false, updated_at = $2, updatedby = 'publishingservice' WHERE foiopeninforequestid = $1 AND isactive = true`, openinfoid, time.Now())
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error updating previous versions: %v", err)
+	}
+
+	// Step 2: Insert a new version of the record
+	_, err = tx.Exec(`
+        INSERT INTO public."FOIOpenInformationRequests" (foiopeninforequestid, version, foiministryrequest_id, foiministryrequestversion_id, oipublicationstatus_id, oiexemption_id, oiassignedto, oiexemptionapproved, pagereference, iaorationale, oifeedback, publicationdate, isactive, copyrightsevered, created_at, updated_at, createdby, updatedby, processingstatus, processingmessage, sitemap_pages, oistatusid)
+        SELECT foiopeninforequestid, version + 1, foiministryrequest_id, foiministryrequestversion_id, oipublicationstatus_id, oiexemption_id, oiassignedto, oiexemptionapproved, pagereference, iaorationale, oifeedback, publicationdate, true, copyrightsevered, $2, NULL, 'publishingservice', 'publishingservice', '$3', '$4', sitemap_pages, oistatusid
+        FROM public."FOIOpenInformationRequests"
+        WHERE foiopeninforequestid = $1 AND isactive = false
+        ORDER BY version DESC
+        LIMIT 1
+    `, openinfoid, time.Now(), publishingstatus, message)
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error inserting new version: %v", err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Fatalf("Error committing transaction: %v", err)
+	}
+
 	return err
 }
 
@@ -70,11 +97,11 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 
 	qry := fmt.Sprintf(`
 		SELECT
-			oi.openinfoid,
-			oi.foiministryrequestid,
+			oi.foiopeninforequestid,
+			mr.foiministryrequestid,
 			mr.axisrequestid,
 			mr.description,
-			oi.published_date,
+			oi.publicationdate,
 			pa.name as contributor,
 			ac.name as applicant_type,
 			COALESCE((fee.feedata->>'amountpaid')::Numeric, 0) as fees,
@@ -92,8 +119,9 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		) latest_payment on mr.foiministryrequestid = latest_payment.ministryrequestid
 		LEFT JOIN public."FOIRequestCFRFees" fee on mr.foiministryrequestid = fee.ministryrequestid 
 			and latest_payment.max_version = fee.version and mr.version = fee.ministryrequestversion
-		INNER JOIN public."OpenInfoPublishing" oi on mr.foiministryrequestid = oi.foiministryrequestid
-		WHERE oi.openinfostate = '%s' and oi.published_date < '%s' and oi.publishingstatus is NULL and mr.isactive = TRUE
+		INNER JOIN public."FOIOpenInformationRequests" oi on mr.foiministryrequestid = oi.foiministryrequest_id and oi.isactive = TRUE
+		INNER JOIN public."OpenInformationStatuses" oistatus on oi.oistatusid = oistatus.oistatusid
+		WHERE oistatus.name = '%s' and oi.publicationdate < '%s' and oi.processingstatus is NULL and mr.isactive = TRUE
 	`, openstate_ready, tomorrow.Format(dateformat))
 
 	rows, err := db.Query(qry)
@@ -137,11 +165,11 @@ func GetOIRecordsForPublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 
 	qry := fmt.Sprintf(`
 		SELECT
-			oi.openinfoid,
-			oi.foiministryrequestid,
+			oi.foiopeninforequestid,
+			mr.foiministryrequestid,
 			mr.axisrequestid,
 			mr.description,
-			oi.published_date,
+			oi.publicationdate,
 			pa.name as contributor,
 			ac.name as applicant_type,
 			COALESCE((fee.feedata->>'amountpaid')::Numeric, 0) as fees,
@@ -157,8 +185,8 @@ func GetOIRecordsForPublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		) latest_payment on mr.foiministryrequestid = latest_payment.ministryrequestid
 		LEFT JOIN public."FOIRequestCFRFees" fee on mr.foiministryrequestid = fee.ministryrequestid 
 			and latest_payment.max_version = fee.version and mr.version = fee.ministryrequestversion
-		INNER JOIN public."OpenInfoPublishing" oi on mr.foiministryrequestid = oi.foiministryrequestid
-		WHERE oi.publishingstatus = '%s' and mr.isactive = TRUE
+		INNER JOIN public."FOIOpenInformationRequests" oi on mr.foiministryrequestid = oi.foiministryrequest_id and oi.isactive = TRUE
+		WHERE oi.processingstatus = '%s' and mr.isactive = TRUE
 	`, openstatus_ready)
 
 	rows, err := db.Query(qry)
@@ -199,13 +227,14 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 
 	qry := fmt.Sprintf(`
 		SELECT
-			oi.openinfoid,
+			oi.foiopeninforequestid,
 			mr.axisrequestid,
 			oi.sitemap_pages,
 			'unpublish' as type
-		FROM public."OpenInfoPublishing" oi
-		INNER JOIN public."FOIMinistryRequests" mr on oi.foiministryrequestid = mr.foiministryrequestid and mr.isactive = TRUE
-		WHERE openinfostate = '%s' and publishingstatus != '%s'
+		FROM public."FOIOpenInformationRequests" oi
+		INNER JOIN public."FOIMinistryRequests" mr on oi.foiministryrequest_id = mr.foiministryrequestid and mr.isactive = TRUE
+		INNER JOIN public."OpenInformationStatuses" oistatus on oi.oistatusid = oistatus.oistatusid
+		WHERE oistatus.name = '%s' and oi.processingstatus != '%s' and oi.isactive = TRUE
 	`, openstate_unpublish, openstatus_unpublish)
 
 	rows, err := db.Query(qry)
@@ -238,15 +267,46 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 
 func UpdateOIRecordState(db *sql.DB, openinfoid int, publishingstatus string, message string, state string, sitemap_pages string) error {
 
-	qry := `
-		UPDATE public."OpenInfoPublishing"
-		SET
-			publishingstatus = $1,
-			message = $2,
-			openinfostate = $3,
-			sitemap_pages = $4
-		WHERE openinfoid = $5;
-	`
-	_, err := db.Exec(qry, publishingstatus, message, state, sitemap_pages, openinfoid)
+	// Begin a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("Error beginning transaction: %v", err)
+	}
+
+	// Retrieve oipublicationstatus_id based on oistatus
+	var oistatusid int
+	err = tx.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1`, state).Scan(&oistatusid)
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error retrieving oistatusid: %v", err)
+	}
+
+	// Step 1: Set previous versions' isactive to false
+	_, err = tx.Exec(`UPDATE public."FOIOpenInformationRequests" SET isactive = false, updated_at = $2, updatedby = 'publishingservice' WHERE foiopeninforequestid = $1 AND isactive = true`, openinfoid, time.Now())
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error updating previous versions: %v", err)
+	}
+
+	// Step 2: Insert a new version of the record
+	_, err = tx.Exec(`
+        INSERT INTO public."FOIOpenInformationRequests" (foiopeninforequestid, version, foiministryrequest_id, foiministryrequestversion_id, oipublicationstatus_id, oiexemption_id, oiassignedto, oiexemptionapproved, pagereference, iaorationale, oifeedback, publicationdate, isactive, copyrightsevered, created_at, updated_at, createdby, updatedby, processingstatus, processingmessage, sitemap_pages, oistatusid)
+        SELECT foiopeninforequestid, version + 1, foiministryrequest_id, foiministryrequestversion_id, oipublicationstatus_id, oiexemption_id, oiassignedto, oiexemptionapproved, pagereference, iaorationale, oifeedback, publicationdate, true, copyrightsevered, $2, NULL, 'publishingservice', NULL, '$3', '$4', '$5', $6
+        FROM public."FOIOpenInformationRequests"
+        WHERE foiopeninforequestid = $1 AND isactive = false
+        ORDER BY version DESC
+        LIMIT 1
+    `, openinfoid, time.Now(), publishingstatus, message, sitemap_pages, strconv.Itoa(oistatusid))
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error inserting new version: %v", err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Fatalf("Error committing transaction: %v", err)
+	}
+
 	return err
 }
