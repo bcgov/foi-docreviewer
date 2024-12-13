@@ -2235,10 +2235,8 @@ const Redlining = React.forwardRef(
         setIsOverride(false)
         setOutstandingBalanceModal(false)
       }
-      else{
-        setModalOpen(false);
-        setMessageModalOpen(false);
-      }
+      setModalOpen(false);
+      setMessageModalOpen(false);
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
