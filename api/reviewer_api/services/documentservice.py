@@ -429,7 +429,7 @@ class documentservice:
                 )
             )
 
-        return DocumentAttributes.update(newRows, oldRows)
+        return DocumentAttributes.update(newRows, payload["documentmasterids"])
 
     def updatedocumentpersonalattributes(self, payload, userid):
         """update document attributes"""
@@ -475,7 +475,7 @@ class documentservice:
                 )
             )
 
-        return DocumentAttributes.update(newRows, oldRows)
+        return DocumentAttributes.update(newRows, payload["documentmasterids"])
     
     
     def getdocuments(self, requestid,bcgovcode):
