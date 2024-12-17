@@ -45,7 +45,7 @@ func main() {
 	// Convert the string to an integer
 	sitemaplimit, strerr := strconv.Atoi(envtool.GetEnv("SITEMAP_PAGES_LIMIT", "5000"))
 	if strerr != nil {
-		log.Fatalf("Error converting string to int: %v", strerr)
+		log.Printf("Error converting string to int for SITEMAP_PAGES_LIMIT, will use default value: %v", strerr)
 		sitemaplimit = 5000
 	}
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -76,7 +76,8 @@ func main() {
 				if err == redis.Nil {
 					fmt.Println("No messages in queue")
 				} else {
-					log.Fatalf("could not read message from queue: %v", err)
+					// log.Fatalf("could not read message from queue: %v", err)
+					log.Printf("could not read message from queue: %v", err)
 				}
 				time.Sleep(1 * time.Second)
 				continue
@@ -87,14 +88,14 @@ func main() {
 			var msg oiservices.OpenInfoMessage
 			err = json.Unmarshal([]byte(message), &msg)
 			if err != nil {
-				log.Fatalf("could not parse json string: %v", err)
-				return
+				log.Printf("could not parse json string: %v", err)
+				continue
 			}
 
 			fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
 			fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
 			fmt.Printf("published_date: %s\n", msg.Published_date)
-			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees)
+			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles)
 
 			if msg.Type == "publish" {
 				oiservices.Publish(msg, db)
@@ -129,7 +130,7 @@ func main() {
 		queueName := queue
 
 		for _, item := range records {
-			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
+			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Additionalfiles)
 
 			jsonData, err := json.Marshal(item)
 			if err != nil {
@@ -256,7 +257,7 @@ func main() {
 
 		// Update openinfo table status & sitemap_pages file name to DB
 		for _, item := range records {
-			err = dbservice.UpdateOIRecordState(db, item.Openinfoid, "published", "added to sitemap", "Published", item.Sitemap_pages)
+			err = dbservice.UpdateOIRecordState(db, item.Foiministryrequestid, "published", "added to sitemap", "Published", item.Sitemap_pages)
 			if err != nil {
 				log.Fatalf("%v", err)
 				return

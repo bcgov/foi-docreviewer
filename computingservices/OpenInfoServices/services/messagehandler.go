@@ -24,17 +24,18 @@ const (
 )
 
 type OpenInfoMessage struct {
-	Openinfoid           int     `json:"openinfoid"`
-	Foiministryrequestid int     `json:"foiministryrequestid"`
-	Axisrequestid        string  `json:"axisrequestid"`
-	Description          string  `json:"description"`
-	Published_date       string  `json:"published_date"`
-	Contributor          string  `json:"contributor"`
-	Applicant_type       string  `json:"applicant_type"`
-	Fees                 float32 `json:"fees"`
-	BCgovcode            string  `json:"bcgovcode"`
-	Type                 string  `json:"type"`
-	Sitemap_pages        string  `json:"sitemap_pages"`
+	Openinfoid           int                     `json:"openinfoid"`
+	Foiministryrequestid int                     `json:"foiministryrequestid"`
+	Axisrequestid        string                  `json:"axisrequestid"`
+	Description          string                  `json:"description"`
+	Published_date       string                  `json:"published_date"`
+	Contributor          string                  `json:"contributor"`
+	Applicant_type       string                  `json:"applicant_type"`
+	Fees                 float32                 `json:"fees"`
+	BCgovcode            string                  `json:"bcgovcode"`
+	Type                 string                  `json:"type"`
+	Sitemap_pages        string                  `json:"sitemap_pages"`
+	AdditionalFiles      []awslib.AdditionalFile `json:"additionalfiles"`
 }
 
 func Publish(msg OpenInfoMessage, db *sql.DB) {
@@ -46,7 +47,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 
 	// Get file info from s3 bucket folder
 	var result awslib.ScanResult
-	result, err := awslib.ScanS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", s3url+oibucket+"/"+oiprefix+msg.Axisrequestid+"/")
+	result, err := awslib.ScanS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", s3url+oibucket+"/"+oiprefix+msg.Axisrequestid+"/", msg.AdditionalFiles)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return
@@ -97,10 +98,10 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	}
 
 	// Copy files to open info bucket
-	awslib.CopyS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/")
+	awslib.CopyS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", msg.AdditionalFiles)
 
 	// Update open info status in DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, openstatus_ready, openstatus_ready_message)
+	err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_ready, openstatus_ready_message)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return
@@ -117,38 +118,40 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 		return
 	}
 
-	// Remove entry from sitemap_pages_.xml
+	if msg.Sitemap_pages != "" {
+		// Remove entry from sitemap_pages_.xml
 
-	// 1. get the last sitemap_page from s3
-	prefix := envtool.GetEnv("SITEMAP_PREFIX", "")
-	urlset := awslib.ReadSiteMapPageS3(destBucket, prefix, msg.Sitemap_pages)
+		// 1. get the last sitemap_page from s3
+		prefix := envtool.GetEnv("SITEMAP_PREFIX", "")
+		urlset := awslib.ReadSiteMapPageS3(destBucket, prefix, msg.Sitemap_pages)
 
-	// 2. find the index of the target entry
-	index := -1
-	for i, item := range urlset.Urls {
-		if strings.Contains(item.Loc, msg.Axisrequestid) {
-			index = i
-			break
+		// 2. find the index of the target entry
+		index := -1
+		for i, item := range urlset.Urls {
+			if strings.Contains(item.Loc, msg.Axisrequestid) {
+				index = i
+				break
+			}
+		}
+
+		// 3. remove entry from the array
+		if index != -1 {
+			urlset.Urls = append(urlset.Urls[:index], urlset.Urls[index+1:]...)
+			fmt.Println("Entry removed:", msg.Axisrequestid)
+		} else {
+			fmt.Println("Entry not found", msg.Axisrequestid)
+		}
+
+		// 4. save sitemap_pages_.xml
+		err = awslib.SaveSiteMapPageS3(destBucket, prefix, msg.Sitemap_pages, urlset)
+		if err != nil {
+			log.Fatalf("failed to save "+msg.Sitemap_pages+": %v", err)
+			return
 		}
 	}
 
-	// 3. remove entry from the array
-	if index != -1 {
-		urlset.Urls = append(urlset.Urls[:index], urlset.Urls[index+1:]...)
-		fmt.Println("Entry removed:", msg.Axisrequestid)
-	} else {
-		fmt.Println("Entry not found", msg.Axisrequestid)
-	}
-
-	// 4. save sitemap_pages_.xml
-	err = awslib.SaveSiteMapPageS3(destBucket, prefix, msg.Sitemap_pages, urlset)
-	if err != nil {
-		log.Fatalf("failed to save "+msg.Sitemap_pages+": %v", err)
-		return
-	}
-
 	// Update unpublish status to DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Openinfoid, openstatus_unpublish, openstatus_unpublish_message)
+	err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_unpublish, openstatus_unpublish_message)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return

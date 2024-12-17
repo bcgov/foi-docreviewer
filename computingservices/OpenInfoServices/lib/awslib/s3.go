@@ -8,6 +8,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -46,6 +48,12 @@ type Url struct {
 type UrlSet struct {
 	XMLName xml.Name `xml:"urlset"`
 	Urls    []Url    `xml:"url"`
+}
+
+type AdditionalFile struct {
+	Additionalfileid int    `json:"additionalfileid"`
+	Filename         string `json:"filename"`
+	S3uripath        string `json:"s3uripath"`
 }
 
 type resolverV2 struct{}
@@ -90,7 +98,7 @@ func CreateS3Client() *s3.Client {
 	})
 }
 
-func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string) (ScanResult, error) {
+func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, filemappings []AdditionalFile) (ScanResult, error) {
 	bucket := openInfoBucket //"dev-openinfopub"
 	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket
 
@@ -119,12 +127,16 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string) (Sca
 	for _, item := range resp.Contents {
 
 		filePath = *item.Key
-
-		// fmt.Printf("Name: %s, Size: %d bytes\n", filePath, *item.Size)
+		// fmt.Printf("*item.Key %v\n", *item.Key)
 
 		// Get the file name
-		base := filepath.Base(filePath)
+		base := path.Base(filePath)
+		originalFileName, found := getOriginalName(filemappings, base)
+		if found {
+			base = originalFileName
+		}
 		// fmt.Printf("Base %s\n", base)
+		// fmt.Printf("Name: %s, Size: %d bytes\n", filePath, *item.Size)
 
 		// Find response letters
 		patternResponseLetter := "Response_Letter_*.pdf"
@@ -164,7 +176,7 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string) (Sca
 	return Result, errors
 }
 
-func CopyS3(sourceBucket string, sourcePrefix string) {
+func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalFile) {
 	// bucket := "dev-openinfopub"
 	bucket := sourceBucket
 	prefix := sourcePrefix
@@ -185,8 +197,18 @@ func CopyS3(sourceBucket string, sourcePrefix string) {
 	// Copy each object to the destination bucket
 	for _, item := range resp.Contents {
 		sourceKey := *item.Key
+
+		// Get the file name
+		base := path.Base(sourceKey)
+		originalFileName, found := getOriginalName(filemappings, base)
+		if found {
+			base = originalFileName
+		}
+		// fmt.Printf("Base %s\n", base)
+		// fmt.Printf("Name: %s, Size: %d bytes\n", filePath, *item.Size)
+
 		// destKey := destPrefix + sourceKey[len(prefix):]
-		destKey := destPrefix + sourceKey
+		destKey := destPrefix + strings.ReplaceAll(sourceKey, path.Base(sourceKey), base)
 
 		_, err := svc.CopyObject(context.TODO(), &s3.CopyObjectInput{
 			Bucket:     aws.String(destBucket),
@@ -368,4 +390,27 @@ func contains(arr []string, str string) bool {
 		}
 	}
 	return false
+}
+
+// Get Original Filename
+func getOriginalName(filemappings []AdditionalFile, key string) (string, bool) {
+	for _, item := range filemappings {
+		// Parse the URL
+		parsedURL, err := url.Parse(item.S3uripath)
+		if err != nil {
+			fmt.Printf("Error parsing URL: %v\n", err)
+			continue
+		}
+
+		// Extract the path
+		urlPath := parsedURL.Path
+
+		// Get the base (last segment) of the path
+		base := path.Base(urlPath)
+
+		if base == key {
+			return item.Filename, true
+		}
+	}
+	return "", false
 }
