@@ -457,10 +457,9 @@ class documentservice:
             if payload["personalattributes"] is not None:
                 #apply change to all
                 if(len(payload["documentmasterids"]) > 1):
-                    if(payload["personalattributes"]["person"] is not None):
-                        newdocattributes["personalattributes"]["person"]=payload["personalattributes"]["person"]
-                    if(payload["personalattributes"]["filetype"] is not None):
-                        newdocattributes["personalattributes"]["filetype"]=payload["personalattributes"]["filetype"]
+                    for attribute in payload["personalattributes"]:
+                        if(payload["personalattributes"][attribute] is not None and len(payload["personalattributes"][attribute]) > 0):
+                            newdocattributes["personalattributes"][attribute]=payload["personalattributes"][attribute]
                 #apply change to individual
                 else:
                     newdocattributes["personalattributes"] = payload["personalattributes"]
