@@ -40,14 +40,12 @@ var (
 	oiprefix      string
 	sitemapprefix string
 	sitemaplimit  int
-
-	env string
 )
 
 func main() {
 
 	//Only enable when running locally for using .env
-	// setEnvForLocal(".env")
+	setEnvForLocal(".env")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide a parameter: dequeue, enqueue, sitemap or unpublish")
@@ -56,7 +54,7 @@ func main() {
 
 	host, port, user, password, dbname = myconfig.GetDB()
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	env, queue = myconfig.GetOthers()
+	_, queue = myconfig.GetOthers()
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
