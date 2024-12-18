@@ -2,9 +2,9 @@ package oiservices
 
 import (
 	// "encoding/xml"
+	myconfig "OpenInfoServices/config"
 	"OpenInfoServices/lib/awslib"
 	dbservice "OpenInfoServices/lib/db"
-	envtool "OpenInfoServices/lib/env"
 	"OpenInfoServices/lib/files"
 	"database/sql"
 	"fmt"
@@ -38,12 +38,23 @@ type OpenInfoMessage struct {
 	AdditionalFiles      []awslib.AdditionalFile `json:"additionalfiles"`
 }
 
+var (
+	//S3
+	s3url         string
+	oibucket      string
+	oiprefix      string
+	sitemapprefix string
+	sitemaplimit  int
+
+	env string
+)
+
 func Publish(msg OpenInfoMessage, db *sql.DB) {
 
-	env := envtool.GetEnv("OI_S3_ENV", "dev")
-	s3url := "https://" + envtool.GetEnv("OI_S3_HOST", "") + "/"
-	oibucket := envtool.GetEnv("OI_S3_ENV", "dev") + "-" + envtool.GetEnv("OI_S3_BUCKET", "")
-	oiprefix := envtool.GetEnv("OI_PREFIX", "")
+	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	env, _ = myconfig.GetOthers()
+
+	oibucket := env + "-" + oibucket
 
 	// Get file info from s3 bucket folder
 	var result awslib.ScanResult
@@ -110,8 +121,12 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 
 func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	// Remove folder from s3
-	destBucket := envtool.GetEnv("OI_S3_ENV", "dev") + "-" + envtool.GetEnv("OI_S3_BUCKET", "")
-	destPrefix := envtool.GetEnv("OI_PREFIX", "")
+
+	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	env, _ = myconfig.GetOthers()
+
+	destBucket := env + "-" + oibucket
+	destPrefix := oiprefix
 	err := awslib.RemoveFolderFromS3(destBucket, destPrefix+msg.Axisrequestid+"/") // Add a trailing slash to delete the folder
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -122,7 +137,7 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 		// Remove entry from sitemap_pages_.xml
 
 		// 1. get the last sitemap_page from s3
-		prefix := envtool.GetEnv("SITEMAP_PREFIX", "")
+		prefix := sitemapprefix
 		urlset := awslib.ReadSiteMapPageS3(destBucket, prefix, msg.Sitemap_pages)
 
 		// 2. find the index of the target entry

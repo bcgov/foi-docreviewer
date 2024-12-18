@@ -1,7 +1,7 @@
 package redislib
 
 import (
-	envtool "OpenInfoServices/lib/env"
+	myconfig "OpenInfoServices/config"
 	"context"
 	"fmt"
 	"log"
@@ -11,9 +11,11 @@ import (
 
 // Initialize a Redis client
 func CreateRedisClient() *redis.Client {
+	queuehost, queueport, queuepassword := myconfig.GetRedis()
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     envtool.GetEnv("OI_REDIS_HOST", "localhost") + ":" + envtool.GetEnv("OI_REDIS_PORT", "6379"),
-		Password: envtool.GetEnv("OI_REDIS_PASSWORD", ""),
+		Addr:     queuehost + ":" + queueport,
+		Password: queuepassword,
 		DB:       0, // Use default DB
 	})
 	return rdb

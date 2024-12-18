@@ -2,9 +2,9 @@ package main
 
 import (
 	// "encoding/xml"
+	myconfig "OpenInfoServices/config"
 	"OpenInfoServices/lib/awslib"
 	dbservice "OpenInfoServices/lib/db"
-	envtool "OpenInfoServices/lib/env"
 	redislib "OpenInfoServices/lib/queue"
 	oiservices "OpenInfoServices/services"
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -22,32 +23,41 @@ const (
 	dateformat = "2006-01-02"
 )
 
+var (
+	//DB
+	host     string
+	port     string
+	user     string
+	password string
+	dbname   string
+
+	//Redis
+	queue string
+
+	//S3
+	s3url         string
+	oibucket      string
+	oiprefix      string
+	sitemapprefix string
+	sitemaplimit  int
+
+	env string
+)
+
 func main() {
+
+	//Only enable when running locally for using .env
+	// setEnvForLocal(".env")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide a parameter: dequeue, enqueue, sitemap or unpublish")
 		return
 	}
 
-	// Set env from .env file for local testing
-	// envtool.SetEnvFromFile()
+	host, port, user, password, dbname = myconfig.GetDB()
+	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	env, queue = myconfig.GetOthers()
 
-	host := envtool.GetEnv("FOI_DB_HOST", "")
-	port := envtool.GetEnv("FOI_DB_PORT", "")
-	user := envtool.GetEnv("FOI_DB_USER", "")
-	password := envtool.GetEnv("FOI_DB_PASSWORD", "")
-	dbname := envtool.GetEnv("FOI_DB_NAME", "")
-	queue := envtool.GetEnv("OI_QUEUE_NAME", "OpenInfoQueue")
-	s3url := "https://" + envtool.GetEnv("OI_S3_HOST", "") + "/"
-	oibucket := envtool.GetEnv("OI_S3_ENV", "dev") + "-" + envtool.GetEnv("OI_S3_BUCKET", "")
-	oiprefix := envtool.GetEnv("OI_PREFIX", "")
-	sitemapprefix := envtool.GetEnv("SITEMAP_PREFIX", "")
-	// Convert the string to an integer
-	sitemaplimit, strerr := strconv.Atoi(envtool.GetEnv("SITEMAP_PAGES_LIMIT", "5000"))
-	if strerr != nil {
-		log.Printf("Error converting string to int for SITEMAP_PAGES_LIMIT, will use default value: %v", strerr)
-		sitemaplimit = 5000
-	}
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
@@ -316,4 +326,16 @@ func JoinStr(a string, b string) (string, error) {
 		return "", errors.New("empty string")
 	}
 	return a + b, nil
+}
+
+func setEnvForLocal(path string) {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		log.Fatalf("failed to get absolute path: %v", err)
+	}
+
+	err = os.Setenv("ENVFILE_PATH", absolutePath)
+	if err != nil {
+		log.Fatalf("failed to set environment variable: %v", err)
+	}
 }

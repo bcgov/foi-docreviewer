@@ -1,7 +1,7 @@
 package awslib
 
 import (
-	envtool "OpenInfoServices/lib/env"
+	myconfig "OpenInfoServices/config"
 	"OpenInfoServices/lib/files"
 	"bytes"
 	"context"
@@ -18,6 +18,19 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
+)
+
+var (
+	//S3
+	s3url         string
+	oibucket      string
+	oiprefix      string
+	sitemapprefix string
+	sitemaplimit  int
+	region        string
+	accessKey     string
+	secretKey     string
+	s3host        string
 )
 
 type ScanResult struct {
@@ -71,15 +84,10 @@ func (*resolverV2) ResolveEndpoint(ctx context.Context, params s3.EndpointParame
 // CreateS3Client creates and returns an S3 client
 func CreateS3Client() *s3.Client {
 
-	// Replace with your AWS region, bucket name, and folder prefix
-	region := envtool.GetEnv("OI_S3_REGION", "us-east-1")
-
-	// Replace with your AWS access key and secret key
-	accessKey := envtool.GetEnv("OI_ACCESS_KEY", "")
-	secretKey := envtool.GetEnv("OI_SECRET_KEY", "")
+	region, accessKey, secretKey, s3host := myconfig.GetS3()
 
 	// Replace with your custom endpoint
-	customEndpoint := "https://" + envtool.GetEnv("OI_S3_HOST", "") + "/"
+	customEndpoint := "https://" + s3host + "/"
 
 	// Load the AWS configuration with credentials
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
@@ -177,11 +185,14 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 }
 
 func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalFile) {
+	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	env, _ := myconfig.GetOthers()
+
 	// bucket := "dev-openinfopub"
 	bucket := sourceBucket
 	prefix := sourcePrefix
-	destBucket := envtool.GetEnv("OI_S3_ENV", "") + "-" + envtool.GetEnv("OI_S3_BUCKET", "")
-	destPrefix := envtool.GetEnv("OI_PREFIX", "")
+	destBucket := env + "-" + oibucket
+	destPrefix := oiprefix
 
 	svc := CreateS3Client()
 
