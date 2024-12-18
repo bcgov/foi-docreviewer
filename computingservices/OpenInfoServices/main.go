@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	dateformat = "2006-01-02"
+	dateformat                 = "2006-01-02"
+	openstatus_sitemap         = "ready for crawling"
+	openstatus_sitemap_message = "sitemap ready"
 )
 
 var (
@@ -40,12 +42,15 @@ var (
 	oiprefix      string
 	sitemapprefix string
 	sitemaplimit  int
+
+	//Others
+	env string
 )
 
 func main() {
 
 	//Only enable when running locally for using .env
-	setEnvForLocal(".env")
+	// setEnvForLocal(".env")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide a parameter: dequeue, enqueue, sitemap or unpublish")
@@ -54,7 +59,7 @@ func main() {
 
 	host, port, user, password, dbname = myconfig.GetDB()
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	_, queue = myconfig.GetOthers()
+	env, queue = myconfig.GetOthers()
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -201,7 +206,7 @@ func main() {
 		}
 
 		// Get the last sitemap_page from s3
-		destBucket := oibucket
+		destBucket := env + "-" + oibucket
 		destPrefix := sitemapprefix
 
 		sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
@@ -265,7 +270,7 @@ func main() {
 
 		// Update openinfo table status & sitemap_pages file name to DB
 		for _, item := range records {
-			err = dbservice.UpdateOIRecordState(db, item.Foiministryrequestid, "published", "added to sitemap", "Published", item.Sitemap_pages)
+			err = dbservice.UpdateOIRecordState(db, item.Foiministryrequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages)
 			if err != nil {
 				log.Fatalf("%v", err)
 				return

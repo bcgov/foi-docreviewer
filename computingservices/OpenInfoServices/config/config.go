@@ -36,7 +36,11 @@ var (
 
 	env string
 
-	once sync.Once
+	onceDB     sync.Once
+	onceRedis  sync.Once
+	onceS3     sync.Once
+	onceS3Path sync.Once
+	onceOthers sync.Once
 )
 
 // use viper package to read .env file
@@ -96,7 +100,7 @@ func loadConfigS3Path() {
 	s3url = "https://" + getEnv("OI_S3_HOST") + "/"
 	oibucket = getEnv("OI_S3_BUCKET")
 	oiprefix = getEnv("OI_PREFIX")
-	sitemapprefix = getEnv("OI_QUEUE_NAME")
+	sitemapprefix = getEnv("SITEMAP_PREFIX")
 
 	var strerr error
 	sitemaplimit, strerr = strconv.Atoi(getEnv("SITEMAP_PAGES_LIMIT"))
@@ -122,30 +126,30 @@ func getEnv(key string) string {
 
 // GetDB retrieves the database variables with lazy initialization
 func GetDB() (string, string, string, string, string) {
-	once.Do(loadConfigDB) // Ensures loadConfig is called only once
+	onceDB.Do(loadConfigDB) // Ensures loadConfig is called only once
 	return host, port, user, password, dbname
 }
 
 // GetRedis retrieves the redis variables with lazy initialization
 func GetRedis() (string, string, string) {
-	once.Do(loadConfigRedis) // Ensures loadConfig is called only once
+	onceRedis.Do(loadConfigRedis) // Ensures loadConfig is called only once
 	return queuehost, queueport, queuepassword
 }
 
 // GetS3 retrieves the S3 variables with lazy initialization
 func GetS3() (string, string, string, string) {
-	once.Do(loadConfigS3) // Ensures loadConfig is called only once
+	onceS3.Do(loadConfigS3) // Ensures loadConfig is called only once
 	return region, accessKey, secretKey, s3host
 }
 
 // GetS3 retrieves the S3 variables with lazy initialization
 func GetS3Path() (string, string, string, string, int) {
-	once.Do(loadConfigS3Path) // Ensures loadConfig is called only once
+	onceS3Path.Do(loadConfigS3Path) // Ensures loadConfig is called only once
 	return s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit
 }
 
 // GetS3 retrieves the S3 variables with lazy initialization
 func GetOthers() (string, string) {
-	once.Do(loadConfigOther) // Ensures loadConfig is called only once
+	onceOthers.Do(loadConfigOther) // Ensures loadConfig is called only once
 	return env, queue
 }

@@ -17,8 +17,8 @@ const (
 	dateformat                   = "2006-01-02"
 	dateformat_month             = "01"
 	dateformat_year              = "2006"
-	openstatus_ready             = "ready"
-	openstatus_ready_message     = "ready for crawling"
+	openstatus_ready             = "ready for sitemap"
+	openstatus_ready_message     = "html ready"
 	openstatus_unpublish         = "unpublished"
 	openstatus_unpublish_message = "entry removed from sitemap"
 )
@@ -44,14 +44,13 @@ var (
 	oibucket      string
 	oiprefix      string
 	sitemapprefix string
-	sitemaplimit  int
 
 	env string
 )
 
 func Publish(msg OpenInfoMessage, db *sql.DB) {
 
-	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
 	env, _ = myconfig.GetOthers()
 
 	oibucket := env + "-" + oibucket
@@ -122,7 +121,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	// Remove folder from s3
 
-	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
+	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
 	env, _ = myconfig.GetOthers()
 
 	destBucket := env + "-" + oibucket
