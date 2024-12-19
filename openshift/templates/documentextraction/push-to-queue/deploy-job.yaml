@@ -1,0 +1,127 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "${NAME}-build-template"
+  creationTimestamp: 
+objects:
+- kind: CronJob
+  apiVersion: batch/v1
+  metadata:
+    name: ${NAME}
+    namespace: fc7a67-dev
+  spec:
+    successfulJobsHistoryLimit: 1
+    failedJobsHistoryLimit: 1
+    schedule: '*/5 * * * *'
+    timeZone: 'America/Vancouver'
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            # volumes:
+            #   - name: foi-docreviewer-bkup-pvc
+            #     persistentVolumeClaim:
+            #       claimName: foi-docreviewer-bkup-pvc
+            containers:
+              - name: ${NAME}:${TAG_NAME}
+                namespace: ${IMAGE_NAMESPACE}
+                image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${NAME}:latest
+                # volumeMounts:
+                #   - name: ab-bkup-pvc
+                #     mountPath: /backups/
+                args:
+                env:
+                  - name: DOCREVIEWER_DB_HOST
+                    valueFrom:
+                      secretKeyRef:
+                        name: "${SECRETS}"
+                        key: DOCREVIEWER_DB_HOST
+                  - name: DOCREVIEWER_DB_NAME
+                    valueFrom:
+                      secretKeyRef:
+                        name: "${SECRETS}"
+                        key: DOCREVIEWER_DB_NAME
+                  - name: DOCREVIEWER_DB_USER
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_USER
+                  - name: DOCREVIEWER_DB_PASSWORD
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_PASSWORD
+                  - name: DOCREVIEWER_DB_PORT
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_PORT
+                  - name: FOI_DB_HOST
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: FOI_DB_HOST
+                  - name: FOI_DB_NAME
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: FOI_DB_NAME
+                  - name: FOI_DB_USER
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: FOI_DB_USER
+                  - name: FOI_DB_PASSWORD
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: FOI_DB_PASSWORD
+                  - name: FOI_DB_PORT
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: FOI_DB_PORT
+                  - name: ACTIVEMQ_USERNAME
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: ACTIVEMQ_USERNAME
+                  - name: ACTIVEMQ_PASSWORD
+                    valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: ACTIVEMQ_PASSWORD
+                  - name: ACTIVEMQ_DESTINATION
+                    value: ${ACTIVEMQ_DESTINATION}
+                  - name: REQUEST_STATUS
+                    value: ${REQUEST_STATUS}
+                  - name: REQUEST_LIMIT
+                    value: ${REQUEST_LIMIT}
+            restartPolicy: OnFailure
+parameters:
+- name: NAME
+  displayName: Name
+  description: The name assigned to all of the resources defined in this template.
+  required: true
+  value: docextraction-queue-scheduler
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  required: true
+  description: The namespace of the OpenShift project containing the imagestream for the application.
+  value: fc7a67-dev
+- name: TAG_NAME
+  displayName: Environment TAG name
+  description: The TAG name for this environment, e.g., dev, test, prod
+  value: dev
+  required: true
+- name: SECRETS
+  displayName: QueueScheduler Secrets
+  description: Name of secrets for all docextraction-queue-scheduler values
+  required: true
+  value: docextractionqueuescheduler-secret
+- name: ACTIVEMQ_DESTINATION
+  required: true
+- name: REQUEST_STATUS
+  required: true
+- name: REQUEST_LIMIT
+  required: true
