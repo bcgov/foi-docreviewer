@@ -84,8 +84,10 @@ class redactionsummaryservice():
         
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
-        if category in ('responsepackage', 'openinfo'):
+        if category in 'responsepackage':
             _filename = requestnumber
+        elif category == 'openinfo':
+            return "Redaction_Summary_" + requestnumber + ".pdf"
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'
         else:
