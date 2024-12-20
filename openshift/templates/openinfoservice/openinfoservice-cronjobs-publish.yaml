@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: openinfo-publish-job-rook
-            image: d106d6-tools/reviewer-openinfoservice:dev-rook
+            image: image-registry.openshift-image-registry.svc:5000/d106d6-tools/reviewer-openinfoservice:dev-rook
             args: ["enqueueforpublish"]
             envFrom:
             - secretRef:
