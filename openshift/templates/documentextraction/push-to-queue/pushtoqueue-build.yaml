@@ -29,18 +29,18 @@ objects:
       type: Docker
       dockerStrategy:
         dockerfilePath: "${DOCKER_FILE_PATH}"
-        pullSecret: 
-          name: artifactory-creds
+        # pullSecret: 
+        #   name: artifacts-pull-default-jmhvkc
       # type: Source
       # sourceStrategy:
       #   from:
       #     kind: ImageStreamTag
       #     namespace: openshift
       #     name: 'python:3.8-ubi7'
-      output:
-        to:
-          kind: ImageStreamTag
-          name: "${NAME}:${OUTPUT_IMAGE_TAG}"
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${NAME}:${OUTPUT_IMAGE_TAG}"
 parameters:
 - name: NAME
   displayName: Name

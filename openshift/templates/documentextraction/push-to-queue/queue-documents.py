@@ -2,7 +2,7 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 import logging
-import request
+import requests
 
 load_dotenv()
 
@@ -106,13 +106,13 @@ def fetchdocumentsforextraction():
         parameters = (request_ids)
         cursor.execute(query, parameters)
         result = cursor.fetchall()
-        requests=[]
+        requestsforextraction=[]
         for row in result:
-            request= formatdocumentsrequest(row, requestresults)
-            requests.append(request)
-        print("Requests for extraction:",requests)
+            requestsforextraction.append(formatdocumentsrequest(row, requestresults))
+            requests.append(requestsforextraction)
+        print("Requests for extraction:",requestsforextraction)
         #call activemq POST api
-        pushdocstoactivemq(requests)
+        pushdocstoactivemq(requestsforextraction)
         #return requests
     except Exception as error:
         logging.error("Error in fetchdocumentsforextraction")
@@ -124,7 +124,7 @@ def fetchdocumentsforextraction():
             conn.close()
 
 
-def pushdocstoactivemq(requests):
+def pushdocstoactivemq(requestsforextraction):
     url = "https://activemq-fc7a67-dev.apps.gold.devops.gov.bc.ca/api/message"
     username = ACTIVEMQ_USERNAME
     password = ACTIVEMQ_PASSWORD
@@ -133,7 +133,7 @@ def pushdocstoactivemq(requests):
     }
     try:
         #Activemq POST request
-        response = requests.post(url, auth=(username, password), params=params, json=requests)
+        response = requests.post(url, auth=(username, password), params=params, json=requestsforextraction)
         if response.status_code == 200:
             print("Success:", response.json())
         else:
