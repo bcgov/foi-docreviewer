@@ -67,6 +67,7 @@ type AdditionalFile struct {
 	Additionalfileid int    `json:"additionalfileid"`
 	Filename         string `json:"filename"`
 	S3uripath        string `json:"s3uripath"`
+	Isactive         bool   `json:"isactive"`
 }
 
 type resolverV2 struct{}
@@ -139,8 +140,11 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 
 		// Get the file name
 		base := path.Base(filePath)
-		originalFileName, found := getOriginalName(filemappings, base)
+		originalFileName, found, isactive := getOriginalName(filemappings, base)
 		if found {
+			if !isactive { // Skip over the deleted files (isactive = false)
+				continue
+			}
 			base = originalFileName
 		}
 		// fmt.Printf("Base %s\n", base)
@@ -211,8 +215,11 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 
 		// Get the file name
 		base := path.Base(sourceKey)
-		originalFileName, found := getOriginalName(filemappings, base)
+		originalFileName, found, isactive := getOriginalName(filemappings, base)
 		if found {
+			if !isactive { // Skip over the deleted files (isactive = false)
+				continue
+			}
 			base = originalFileName
 		}
 		// fmt.Printf("Base %s\n", base)
@@ -404,7 +411,7 @@ func contains(arr []string, str string) bool {
 }
 
 // Get Original Filename
-func getOriginalName(filemappings []AdditionalFile, key string) (string, bool) {
+func getOriginalName(filemappings []AdditionalFile, key string) (string, bool, bool) {
 	for _, item := range filemappings {
 		// Parse the URL
 		parsedURL, err := url.Parse(item.S3uripath)
@@ -420,8 +427,8 @@ func getOriginalName(filemappings []AdditionalFile, key string) (string, bool) {
 		base := path.Base(urlPath)
 
 		if base == key {
-			return item.Filename, true
+			return item.Filename, true, item.Isactive
 		}
 	}
-	return "", false
+	return "", false, true
 }

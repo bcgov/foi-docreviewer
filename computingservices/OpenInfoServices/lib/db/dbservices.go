@@ -24,6 +24,7 @@ type AdditionalFile struct {
 	Additionalfileid int
 	Filename         string
 	S3uripath        string
+	Isactive         bool
 }
 
 type OpenInfoRecord struct {
@@ -119,7 +120,8 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 			'publish' as type,
 			oifiles.additionalfileid,
 			oifiles.filename,
-			oifiles.s3uripath
+			oifiles.s3uripath,
+			oifiles.isactive
 		FROM public."FOIMinistryRequests" mr
 		INNER JOIN public."FOIRequests" r on mr.foirequest_id = r.foirequestid and mr.foirequestversion_id = r.version
 		INNER JOIN public."ProgramAreas" pa on mr.programareaid = pa.programareaid
@@ -149,6 +151,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		var openinfoid, foiministryrequestid, additionalfileid sql.NullInt64
 		var axisrequestid, description, published_date, contributor, applicant_type, bcgovcode, sitemap_pages, queuetype, filename, s3uripath sql.NullString
 		var fees sql.NullFloat64
+		var isactive bool
 
 		// err := rows.Scan(
 		// 	&record.Openinfoid,
@@ -178,6 +181,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 			&additionalfileid,
 			&filename,
 			&s3uripath,
+			&isactive,
 		)
 		if err != nil {
 			return records, fmt.Errorf("failed to retrieve query result for prepublish: %w", err)
@@ -205,6 +209,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 					Additionalfileid: int(additionalfileid.Int64),
 					Filename:         filename.String,
 					S3uripath:        s3uripath.String,
+					Isactive:         isactive,
 				})
 			}
 		}
