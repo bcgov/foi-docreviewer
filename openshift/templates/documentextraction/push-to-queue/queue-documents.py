@@ -56,13 +56,21 @@ def getrequestswithstatus():
         parameters = (REQUEST_STATUS, REQUEST_LIMIT)
         cursor.execute(query, parameters)
         result = cursor.fetchall()
-        return result
+        cursor.close()
+        if result is not None:
+            requestsforextraction = []
+            for entry in result:
+                requestsforextraction.append({"foiministryrequestid": entry[0], "version": entry[1], "axisrequestid": entry[2],
+                                  "requesttype": entry[3], "receiveddate": entry[4]})
+                return requestsforextraction
+        return None
     except Exception as error:
         logging.error("Error in getrequestswithstatus")
         logging.error(error)
         raise
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
         if conn is not None:
             conn.close()
 
@@ -70,56 +78,63 @@ def getrequestswithstatus():
 def fetchdocumentsforextraction():
     try:
         requestresults = getrequestswithstatus()
-        request_ids = [item["id"] for item in requestresults]
-        conn = getdocreviewerdbconnection()
-        cursor = conn.cursor()
-        query = '''
-            SELECT d.foiministryrequestid, d.documentid, d.documentmasterid , d.filename, dm.filepath
-            FROM public."Documents" d
-            INNER JOIN "DocumentMaster" dm 
-                ON d.documentmasterid = dm.documentmasterid
-            WHERE
-                d.foiministryrequestid IN :%s
-                AND EXISTS (
-                            SELECT 1
-                            FROM "DocumentHashCodes" dhc
-                            INNER JOIN public."Documents" d2 
-                                ON dhc.documentid = d2.documentid
-                            WHERE d2.statusid IN (
-                                SELECT statusid
-                                FROM "DocumentStatus" 
-                                WHERE "name" IN ('new', 'failed')
-                            )
-                            AND d2.documentid= d.documentid
-                            GROUP BY dhc.rank1hash, d2.documentid, dhc.created_at
-                            HAVING dhc.created_at = MIN(dhc.created_at)
-                )
-                AND  NOT EXISTS (
-                        SELECT 1
-                        FROM "DocumentDeleted" dd
-                        WHERE dm.filepath LIKE dd.filepath || '%' 
-                        AND (dm.filepath IS NOT NULL AND dd.deleted IS TRUE)
+        print("requestresults:",requestresults)
+        if requestresults is not None:
+            request_ids = [item["foiministryrequestid"] for item in requestresults]
+            conn = getdocreviewerdbconnection()
+            cursor = conn.cursor()
+            query = '''
+                SELECT d.foiministryrequestid, d.documentid, d.documentmasterid , d.filename, dm.filepath
+                FROM public."Documents" d
+                INNER JOIN "DocumentMaster" dm 
+                    ON d.documentmasterid = dm.documentmasterid
+                WHERE
+                    d.foiministryrequestid IN :%s
+                    AND EXISTS (
+                                SELECT 1
+                                FROM "DocumentHashCodes" dhc
+                                INNER JOIN public."Documents" d2 
+                                    ON dhc.documentid = d2.documentid
+                                WHERE d2.statusid IN (
+                                    SELECT statusid
+                                    FROM "DocumentStatus" 
+                                    WHERE "name" IN ('new', 'failed')
+                                )
+                                AND d2.documentid= d.documentid
+                                GROUP BY dhc.rank1hash, d2.documentid, dhc.created_at
+                                HAVING dhc.created_at = MIN(dhc.created_at)
                     )
-                GROUP BY d.foiministryrequestid, d.documentid, d.documentmasterid , d.filename, dm.filepath
-                ORDER BY d.foiministryrequestid; 
-        '''
-        parameters = (request_ids)
-        cursor.execute(query, parameters)
-        result = cursor.fetchall()
-        requestsforextraction=[]
-        for row in result:
-            requestsforextraction.append(formatdocumentsrequest(row, requestresults))
-            requests.append(requestsforextraction)
-        print("Requests for extraction:",requestsforextraction)
-        #call activemq POST api
-        pushdocstoactivemq(requestsforextraction)
-        #return requests
+                    AND  NOT EXISTS (
+                            SELECT 1
+                            FROM "DocumentDeleted" dd
+                            WHERE dm.filepath LIKE dd.filepath || '%' 
+                            AND (dm.filepath IS NOT NULL AND dd.deleted IS TRUE)
+                        )
+                    GROUP BY d.foiministryrequestid, d.documentid, d.documentmasterid , d.filename, dm.filepath
+                    ORDER BY d.foiministryrequestid; 
+            '''
+            parameters = (request_ids)
+            cursor.execute(query, parameters)
+            result = cursor.fetchall()
+            cursor.close()
+            requestsforextraction=[]
+            for row in result:
+                requestsforextraction.append(formatdocumentsrequest(row, requestresults))
+                requests.append(requestsforextraction)
+            print("Requests for extraction:",requestsforextraction)
+            logging.info("Pushing requests to queue for extraction!")
+            #call activemq POST api
+            activemqresponse= pushdocstoactivemq(requestsforextraction)
+            return activemqresponse
+        logging.info("No requests found for document extraction!")
+        return requestresults
     except Exception as error:
         logging.error("Error in fetchdocumentsforextraction")
         logging.error(error)
         raise
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
         if conn is not None:
             conn.close()
 
@@ -138,6 +153,7 @@ def pushdocstoactivemq(requestsforextraction):
             print("Success:", response.json())
         else:
             print(f"Error: {response.status_code}, {response.text}")
+        return response
     except requests.exceptions.RequestException as e:
         print(f"Activemq request failed: {e}")
 
@@ -162,6 +178,7 @@ def formatdocumentsrequest(document,requestdetails):
             }
         ]
     }
+
 
 if __name__ == "__main__":
     fetchdocumentsforextraction()
