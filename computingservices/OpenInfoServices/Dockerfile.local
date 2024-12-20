@@ -11,4 +11,3 @@ WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/templates/ ./templates/.
 ENTRYPOINT ["./main"]
-CMD ["dequeue"]

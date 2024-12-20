@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openinfo-sitemap-rook
+spec:
+  schedule: "*/30 * * * *"  # Runs every 30 minutes
+  timeZone: America/Vancouver
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: openinfo-sitemap-job-rook
+            image: d106d6-tools/reviewer-openinfoservice:dev-rook
+            args: ["sitemap"]
+            envFrom:
+            - secretRef:
+                name: openinfo-secret-rook  # Reference to the secret containing env variables
+            imagePullPolicy: Always
+          restartPolicy: OnFailure

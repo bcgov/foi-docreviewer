@@ -52,6 +52,7 @@ objects:
         - name: "${APP_NAME}"
           image: "${APP_NAME}"
           imagePullPolicy: Always
+          args: ["dequeue"]
           env:
             - name: FOI_DB_USER
               valueFrom:
@@ -188,9 +189,9 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: dev
+  value: dev-rook
 - name: SECRETS
   displayName: OpenInfo Secrets
   description: Name of secrets for all openinfoservice values
   required: true
-  value: openinfoservice-secret
+  value: openinfo-secret-rook
