@@ -144,6 +144,41 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: SITEMAP_PAGES_LIMIT
+            - name: KEYCLOAK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_URL_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_URL_REALM
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_CLIENT_ID
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_CLIENT_SECRET
+            - name: KEYCLOAK_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_USER
+            - name: KEYCLOAK_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_PASS
+            - name: FOIFLOW_BASE_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOIFLOW_BASE_API_URL
           resources:
             requests:
               cpu: "50m"
