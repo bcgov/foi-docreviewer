@@ -190,7 +190,7 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 
 func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalFile) {
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	env, _ := myconfig.GetOthers()
+	env, _, _ := myconfig.GetOthers()
 
 	// bucket := "dev-openinfopub"
 	bucket := sourceBucket

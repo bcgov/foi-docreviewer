@@ -34,13 +34,24 @@ var (
 	secretKey     string
 	s3host        string
 
-	env string
+	//Keycloak
+	keycloakurl          string
+	keycloakrealm        string
+	keycloakclientid     string
+	keycloakclientsecret string
+	keycloakuser         string
+	keycloakpassword     string
 
-	onceDB     sync.Once
-	onceRedis  sync.Once
-	onceS3     sync.Once
-	onceS3Path sync.Once
-	onceOthers sync.Once
+	//Other
+	env        string
+	foiflowapi string
+
+	onceDB       sync.Once
+	onceRedis    sync.Once
+	onceS3       sync.Once
+	onceS3Path   sync.Once
+	onceKeycloak sync.Once
+	onceOthers   sync.Once
 )
 
 // use viper package to read .env file
@@ -110,9 +121,19 @@ func loadConfigS3Path() {
 	}
 }
 
+func loadConfigKeycloak() {
+	keycloakurl = getEnv("KEYCLOAK_URL")
+	keycloakrealm = getEnv("KEYCLOAK_URL_REALM")
+	keycloakclientid = getEnv("KEYCLOAK_CLIENT_ID")
+	keycloakclientsecret = getEnv("KEYCLOAK_CLIENT_SECRET")
+	keycloakuser = getEnv("KEYCLOAK_USER")
+	keycloakpassword = getEnv("KEYCLOAK_PASS")
+}
+
 func loadConfigOther() {
 	env = getEnv("OI_S3_ENV")
 	queue = getEnv("OI_QUEUE_NAME")
+	foiflowapi = getEnv("FOIFLOW_BASE_API_URL")
 }
 
 // Helper function to get environment variables
@@ -148,8 +169,14 @@ func GetS3Path() (string, string, string, string, int) {
 	return s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit
 }
 
+// GetKeycloak retrieves the Keycloak variables with lazy initialization
+func GetKeycloak() (string, string, string, string, string, string) {
+	onceKeycloak.Do(loadConfigKeycloak) // Ensures loadConfig is called only once
+	return keycloakurl, keycloakrealm, keycloakclientid, keycloakclientsecret, keycloakuser, keycloakpassword
+}
+
 // GetS3 retrieves the S3 variables with lazy initialization
-func GetOthers() (string, string) {
+func GetOthers() (string, string, string) {
 	onceOthers.Do(loadConfigOther) // Ensures loadConfig is called only once
-	return env, queue
+	return env, queue, foiflowapi
 }

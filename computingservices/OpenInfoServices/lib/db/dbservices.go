@@ -1,6 +1,7 @@
 package dbservice
 
 import (
+	httpservice "OpenInfoServices/lib/http"
 	"database/sql"
 	"fmt"
 	"log"
@@ -40,6 +41,7 @@ type OpenInfoRecord struct {
 	Sitemap_pages        string
 	Type                 string
 	Additionalfiles      []AdditionalFile
+	Foirequestid         int
 }
 
 func Conn(dsn string) (*sql.DB, error) {
@@ -109,6 +111,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		SELECT
 			oi.foiopeninforequestid,
 			mr.foiministryrequestid,
+			r.foirequestid,
 			mr.axisrequestid,
 			mr.description,
 			oi.publicationdate,
@@ -148,7 +151,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 
 	oiRecordsMap := make(map[int]*OpenInfoRecord)
 	for rows.Next() {
-		var openinfoid, foiministryrequestid, additionalfileid sql.NullInt64
+		var openinfoid, foiministryrequestid, foirequestid, additionalfileid sql.NullInt64
 		var axisrequestid, description, published_date, contributor, applicant_type, bcgovcode, sitemap_pages, queuetype, filename, s3uripath sql.NullString
 		var fees sql.NullFloat64
 		var isactive bool
@@ -169,6 +172,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		err := rows.Scan(
 			&openinfoid,
 			&foiministryrequestid,
+			&foirequestid,
 			&axisrequestid,
 			&description,
 			&published_date,
@@ -187,11 +191,12 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 			return records, fmt.Errorf("failed to retrieve query result for prepublish: %w", err)
 		}
 
-		if openinfoid.Valid && foiministryrequestid.Valid && axisrequestid.Valid && description.Valid && published_date.Valid && contributor.Valid && applicant_type.Valid && fees.Valid && bcgovcode.Valid && sitemap_pages.Valid && queuetype.Valid {
+		if openinfoid.Valid && foiministryrequestid.Valid && foirequestid.Valid && axisrequestid.Valid && description.Valid && published_date.Valid && contributor.Valid && applicant_type.Valid && fees.Valid && bcgovcode.Valid && sitemap_pages.Valid && queuetype.Valid {
 			if _, ok := oiRecordsMap[int(foiministryrequestid.Int64)]; !ok {
 				oiRecordsMap[int(foiministryrequestid.Int64)] = &OpenInfoRecord{
 					Openinfoid:           int(openinfoid.Int64),
 					Foiministryrequestid: int(foiministryrequestid.Int64),
+					Foirequestid:         int(foirequestid.Int64),
 					Axisrequestid:        axisrequestid.String,
 					Description:          description.String,
 					Published_date:       published_date.String,
@@ -238,6 +243,7 @@ func GetOIRecordsForPublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		SELECT
 			oi.foiopeninforequestid,
 			mr.foiministryrequestid,
+			r.foirequestid,
 			mr.axisrequestid,
 			mr.description,
 			oi.publicationdate,
@@ -270,6 +276,7 @@ func GetOIRecordsForPublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		err := rows.Scan(
 			&record.Openinfoid,
 			&record.Foiministryrequestid,
+			&record.Foirequestid,
 			&record.Axisrequestid,
 			&record.Description,
 			&record.Published_date,
@@ -337,7 +344,7 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 	return records, nil
 }
 
-func UpdateOIRecordState(db *sql.DB, foiministryrequestid int, publishingstatus string, message string, sitemap_pages string) error {
+func UpdateOIRecordState(db *sql.DB, foiflowapi string, foiministryrequestid int, foirequestid int, publishingstatus string, message string, sitemap_pages string, oistatusid int) error {
 
 	// Begin a transaction
 	tx, err := db.Begin()
@@ -380,7 +387,37 @@ func UpdateOIRecordState(db *sql.DB, foiministryrequestid int, publishingstatus 
 		log.Fatalf("Error committing transaction: %v", err)
 	}
 
+	// Update request state in FOIMinistryRequests
+	// endpoint
+	section := "oistatusid"
+	endpoint := fmt.Sprintf("%s/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, foirequestid, foiministryrequestid, section)
+
+	// payload
+	payload := map[string]int{"oistatusid": oistatusid}
+	_, err = httpservice.HttpPost(endpoint, payload)
+
 	return err
+}
+
+func GetFoirequestID(db *sql.DB, foiministryrequestid int) (int, error) {
+
+	// Query to get foirequestid
+	var foirequestid int
+	query := `
+		SELECT foirequest_id
+		FROM public."FOIMinistryRequests"
+		WHERE foiministryrequestid=$1
+		ORDER BY version DESC
+		LIMIT 1
+	`
+
+	// Execute the query
+	err := db.QueryRow(query, foiministryrequestid).Scan(&foirequestid)
+	if err != nil {
+		return 0, fmt.Errorf("failed to retrieve foirequestid: %w", err)
+	}
+
+	return foirequestid, err
 }
 
 func LogError(db *sql.DB, foiministryrequestid int, publishingstatus string, message string) error {

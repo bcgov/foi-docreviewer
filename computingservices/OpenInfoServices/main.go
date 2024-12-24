@@ -5,6 +5,7 @@ import (
 	myconfig "OpenInfoServices/config"
 	"OpenInfoServices/lib/awslib"
 	dbservice "OpenInfoServices/lib/db"
+	httpservice "OpenInfoServices/lib/http"
 	redislib "OpenInfoServices/lib/queue"
 	oiservices "OpenInfoServices/services"
 	"encoding/json"
@@ -23,6 +24,7 @@ const (
 	dateformat                 = "2006-01-02"
 	openstatus_sitemap         = "ready for crawling"
 	openstatus_sitemap_message = "sitemap ready"
+	oistatus_published         = "Published"
 )
 
 var (
@@ -44,7 +46,8 @@ var (
 	sitemaplimit  int
 
 	//Others
-	env string
+	env        string
+	foiflowapi string
 )
 
 func main() {
@@ -59,7 +62,7 @@ func main() {
 
 	host, port, user, password, dbname = myconfig.GetDB()
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	env, queue = myconfig.GetOthers()
+	env, queue, foiflowapi = myconfig.GetOthers()
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -268,9 +271,16 @@ func main() {
 			}
 		}
 
+		// Retrieve oipublicationstatus_id based on oistatus
+		var oistatusid int
+		err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_published).Scan(&oistatusid)
+		if err != nil {
+			log.Fatalf("Error retrieving oistatusid: %v", err)
+		}
+
 		// Update openinfo table status & sitemap_pages file name to DB
 		for _, item := range records {
-			err = dbservice.UpdateOIRecordState(db, item.Foiministryrequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages)
+			err = dbservice.UpdateOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
 			if err != nil {
 				log.Fatalf("%v", err)
 				return
@@ -280,42 +290,73 @@ func main() {
 	case "test":
 		//----- put testing script here for manual test -----
 
-		// test unpublish
-		// Connect DB
-		db, err1 := dbservice.Conn(dsn)
+		// ======== test unpublish
+		// // Connect DB
+		// db, err1 := dbservice.Conn(dsn)
+		// if err1 != nil {
+		// 	log.Fatalf("%v", err1)
+		// 	return
+		// }
+		// defer db.Close()
+
+		// // Create a Redis client
+		// rdb := redislib.CreateRedisClient()
+		// // Define the queue name
+		// queueName := queue
+
+		// // Subscribe to the queue and read messages
+		// message, err := redislib.ReadMessage(rdb, queueName)
+		// if err != nil {
+		// 	log.Fatalf("%v", err)
+		// 	return
+		// }
+
+		// fmt.Printf("Message read from queue: %s\n", message)
+
+		// var msg oiservices.OpenInfoMessage
+		// err = json.Unmarshal([]byte(message), &msg)
+		// if err != nil {
+		// 	log.Fatalf("could not parse json string: %v", err)
+		// 	return
+		// }
+
+		// fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
+		// fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
+		// fmt.Printf("published_date: %s\n", msg.Published_date)
+		// fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees)
+
+		// oiservices.Unpublish(msg, db)
+
+		// ========== test http
+		// // Connect DB
+		// db, err0 := dbservice.Conn(dsn)
+		// if err0 != nil {
+		// 	log.Fatalf("%v", err0)
+		// 	return
+		// }
+		// defer db.Close()
+
+		// fid, err := dbservice.GetFoirequestID(db, 1)
+		// if err != nil {
+		// 	log.Fatalf("Error: %v", err)
+		// }
+		// fmt.Printf("FOIRequestID: %d\n", fid)
+
+		endpoint1 := fmt.Sprintf("%s/api/foiflow/programareas", foiflowapi)
+		getResponse, err1 := httpservice.HttpGet(endpoint1)
 		if err1 != nil {
-			log.Fatalf("%v", err1)
-			return
+			log.Fatalf("Failed to make GET call: %v", err1)
 		}
-		defer db.Close()
+		fmt.Printf("GET Response: %s\n", getResponse)
 
-		// Create a Redis client
-		rdb := redislib.CreateRedisClient()
-		// Define the queue name
-		queueName := queue
-
-		// Subscribe to the queue and read messages
-		message, err := redislib.ReadMessage(rdb, queueName)
-		if err != nil {
-			log.Fatalf("%v", err)
-			return
-		}
-
-		fmt.Printf("Message read from queue: %s\n", message)
-
-		var msg oiservices.OpenInfoMessage
-		err = json.Unmarshal([]byte(message), &msg)
-		if err != nil {
-			log.Fatalf("could not parse json string: %v", err)
-			return
-		}
-
-		fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
-		fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
-		fmt.Printf("published_date: %s\n", msg.Published_date)
-		fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees)
-
-		oiservices.Unpublish(msg, db)
+		// section := "oistatusid"
+		// endpoint2 := fmt.Sprintf("%s/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, 1, 1, section)
+		// postPayload := map[string]int{"oistatusid": 4}
+		// postResponse, err2 := httpservice.HttpPost(endpoint2, postPayload)
+		// if err2 != nil {
+		// 	log.Fatalf("Failed to make POST call: %v", err2)
+		// }
+		// fmt.Printf("POST Response: %s\n", postResponse)
 
 		//----- test script end -----
 
