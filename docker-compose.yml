@@ -317,6 +317,45 @@ services:
         - FOI_DB_PORT=${FOI_DB_PORT}
         - FOI_DB_USER=${FOI_DB_USER}
         - FOI_DB_PASSWORD=${FOI_DB_PASSWORD}
+
+  foi-docreviewer-openinfoservice:
+      container_name: foi-docreviewer-openinfoservice
+      build:
+        context: ./computingservices/OpenInfoServices
+        dockerfile: Dockerfile.local
+      image: docrevieweropeninfoserviceimage
+      stdin_open: true
+      tty: true
+      networks:
+        services-network:
+          aliases:
+            - docrevieweropeninfoservice     
+      environment:
+        - FOI_DB_USER=${FOI_DB_USER}
+        - FOI_DB_PASSWORD=${FOI_DB_PASSWORD}
+        - FOI_DB_NAME=${FOI_DB_NAME}
+        - FOI_DB_HOST=${FOI_DB_HOST}
+        - FOI_DB_PORT=${FOI_DB_PORT}
+        - OI_REDIS_HOST=${OI_REDIS_HOST}
+        - OI_REDIS_PORT=${OI_REDIS_PORT}
+        - OI_REDIS_PASSWORD=${OI_REDIS_PASSWORD}
+        - OI_QUEUE_NAME=${OI_QUEUE_NAME}
+        - OI_S3_ENV=${OI_S3_ENV}
+        - OI_S3_HOST=${OI_S3_HOST}
+        - OI_S3_REGION=${OI_S3_REGION}
+        - OI_S3_BUCKET=${OI_S3_BUCKET}        
+        - OI_ACCESS_KEY=${OI_ACCESS_KEY}
+        - OI_SECRET_KEY=${OI_SECRET_KEY}
+        - OI_PREFIX=${OI_PREFIX}
+        - SITEMAP_PREFIX=${SITEMAP_PREFIX}
+        - SITEMAP_PAGES_LIMIT=${SITEMAP_PAGES_LIMIT}
+        - KEYCLOAK_URL=${KEYCLOAK_URL}
+        - KEYCLOAK_URL_REALM=${KEYCLOAK_URL_REALM}
+        - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+        - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}        
+        - KEYCLOAK_USER=${KEYCLOAK_USER}
+        - KEYCLOAK_PASS=${KEYCLOAK_PASS}
+        - FOIFLOW_BASE_API_URL=${FOIFLOW_BASE_API_URL}
 volumes:
   dbdata:
 networks:
