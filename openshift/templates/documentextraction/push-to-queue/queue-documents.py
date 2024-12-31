@@ -160,15 +160,14 @@ def fetchdocumentsforextraction():
             cursor.close()
             if result is not None:
                 requestsforextraction=[]
-                print("result:",result)
                 for entry in result:
                     row={"foiministryrequestid": entry[0], "documents": entry[1]}
                     requestsforextraction.append(formatdocumentsrequest(row, requestresults))
-                print("Requests for extraction:",requestsforextraction)
+                #print("Requests for extraction:",requestsforextraction)
                 logging.info("Pushing requests to queue for extraction!")
                 #call activemq POST api
-                # activemqresponse= pushdocstoactivemq(requestsforextraction)
-                # return activemqresponse
+                activemqresponse= pushdocstoactivemq(requestsforextraction)
+                return activemqresponse
             else:
                 logging.info("No documents found for extraction!")
         logging.info("No requests found for document extraction!")
@@ -209,11 +208,10 @@ def formatdocumentsrequest(request,requestdetails):
             }
         )
     return {
-        "RequestID": request_detail[0]["axisrequestid"],
+        "RequestNumber": request_detail[0]["axisrequestid"],
         "RequestType": request_detail[0]["requesttype"],
         "ReceivedDate": request_detail[0]["receiveddate"].isoformat(),
         "MinistryRequestID": request_detail[0]["foiministryrequestid"],
-        "RequestVersion": request_detail[0]["version"],
         "Documents": formatted_documents
     }
 
@@ -227,11 +225,13 @@ def pushdocstoactivemq(requestsforextraction):
     try:
         if requestsforextraction is not None:
             formattedjson= formatbatch(requestsforextraction)
+            print("\n\nFINAL JSON:", formattedjson)
             #Activemq POST request
             response = requests.post(url, auth=(username, password), params=params, json=formattedjson)
             if response.status_code == 200:
                 print("Success:", response.text)
                 #Update Documents status to pushedtoqueue
+                #updatedocumentsstatus(requestsforextraction)
             else:
                 print(f"Error: {response.status_code}, {response.text}")
             return response
@@ -242,14 +242,36 @@ def pushdocstoactivemq(requestsforextraction):
 
 def formatbatch(requestsforextraction):
     return {
-        "BatchID": generatebatchid(),
-        "Date": datetime.now(),
+        "BatchID": str(uuid.uuid4()),
+        "Date": datetime.now().isoformat(),
         "Requests": requestsforextraction
     }
 
-def generatebatchid(prefix="BATCH"):
-    random_number = str(uuid.uuid4().int)[:4]
-    return f"{prefix}{random_number}"
+def updatedocumentsstatus(requestsforextraction):
+    try:
+        document_ids = []
+        for request in requestsforextraction["Requests"]:
+            for document in request["Documents"]:
+                document_ids.append(document["DocumentID"])
+        print("Extracted Document IDs:", document_ids)
+        conn = getdocreviewerdbconnection()
+        cursor = conn.cursor()
+        cursor.execute('''update "Documents" SET statusid = (SELECT statusid
+		              FROM "DocumentStatus" 
+		              WHERE "name" = 'pushedtoqueue') WHERE documentid IN %s''',
+            (tuple(document_ids)))
+        conn.commit()
+        cursor.close()
+    except(Exception) as error:
+        print("Exception while executing func updateredactionstatus (p8), Error : {0} ".format(error))
+        raise
+    finally:
+        if conn is not None:
+            conn.close() 
+
+# def generatebatchid(prefix="BATCH"):
+#     random_number = str(uuid.uuid4().int)[:4]
+#     return f"{prefix}{random_number}"
 
 
 if __name__ == "__main__":
