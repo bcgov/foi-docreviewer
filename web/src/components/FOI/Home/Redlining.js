@@ -1436,7 +1436,7 @@ const Redlining = React.forwardRef(
     }, [pageFlags, isStitchingLoaded]);
 
     useEffect(() => {      
-      if (docInstance && documentList.length > 0 && !isWatermarkSet) {
+      if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
         setWatermarks();
         setIsWatermarkSet(true)
       }
@@ -1444,7 +1444,7 @@ const Redlining = React.forwardRef(
 
 
     const setWatermarks = () => {
-      docViewer?.setWatermark({
+      docViewer.setWatermark({
         // Draw custom watermark in middle of the document
         custom: (ctx, pageNumber, pageWidth, pageHeight) => {
           // ctx is an instance of CanvasRenderingContext2D
@@ -1478,8 +1478,8 @@ const Redlining = React.forwardRef(
           }
         },
       });
-      docViewer?.refreshAll();
-      docViewer?.updateView();
+      docViewer.refreshAll();
+      docViewer.updateView();
     }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
@@ -2235,10 +2235,8 @@ const Redlining = React.forwardRef(
         setIsOverride(false)
         setOutstandingBalanceModal(false)
       }
-      else{
-        setModalOpen(false);
-        setMessageModalOpen(false);
-      }
+      setModalOpen(false);
+      setMessageModalOpen(false);
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
