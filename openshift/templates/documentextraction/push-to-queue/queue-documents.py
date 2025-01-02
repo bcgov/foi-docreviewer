@@ -1,0 +1,281 @@
+import psycopg2
+import os
+from dotenv import load_dotenv
+import logging
+import requests
+import uuid
+from datetime import datetime
+
+load_dotenv()
+
+DOCREVIEWER_DB_HOST = os.getenv('DOCREVIEWER_DB_HOST')
+DOCREVIEWER_DB_NAME = os.getenv('DOCREVIEWER_DB_NAME') 
+DOCREVIEWER_DB_USER= os.getenv('DOCREVIEWER_DB_USER') 
+DOCREVIEWER_DB_PASSWORD= os.getenv('DOCREVIEWER_DB_PASSWORD') 
+DOCREVIEWER_DB_PORT= os.getenv('DOCREVIEWER_DB_PORT')
+FOI_DB_HOST = os.getenv('FOI_DB_HOST')
+FOI_DB_NAME = os.getenv('FOI_DB_NAME') 
+FOI_DB_USER= os.getenv('FOI_DB_USER') 
+FOI_DB_PASSWORD= os.getenv('FOI_DB_PASSWORD') 
+FOI_DB_PORT= os.getenv('FOI_DB_PORT')
+REQUEST_STATUS =  os.getenv('REQUEST_STATUS', "Records Review")
+REQUEST_LIMIT =  os.getenv('REQUEST_LIMIT', 3)
+ACTIVEMQ_USERNAME=os.getenv('ACTIVEMQ_USERNAME')
+ACTIVEMQ_PASSWORD=os.getenv('ACTIVEMQ_PASSWORD')
+ACTIVEMQ_DESTINATION=  os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
+
+
+def getdocreviewerdbconnection():
+    conn = psycopg2.connect(
+        host=DOCREVIEWER_DB_HOST,
+        database=DOCREVIEWER_DB_NAME,
+        user=DOCREVIEWER_DB_USER,
+        password=DOCREVIEWER_DB_PASSWORD,port=DOCREVIEWER_DB_PORT)
+    return conn
+
+def getfoidbconnection():
+    conn = psycopg2.connect(
+        host=FOI_DB_HOST,
+        database=FOI_DB_NAME,
+        user=FOI_DB_USER,
+        password=FOI_DB_PASSWORD,port=FOI_DB_PORT)
+    return conn
+
+
+def getrequestswithstatus():
+    conn = getfoidbconnection()
+    try:
+        cursor = conn.cursor()
+        query = '''
+            SELECT DISTINCT ON (fmr.foiministryrequestid) 
+            fmr.foiministryrequestid, 
+            fmr.version, 
+            fmr.axisrequestid, 
+            fr.requesttype, 
+            fr.receiveddate,
+            (SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'DivisionID', sub_fmd.divisionid,
+                    'Name', pad.name
+                )
+            )
+            FROM (
+                SELECT DISTINCT fmd.divisionid
+                FROM "FOIMinistryRequestDivisions" fmd
+                WHERE fmd.foiministryrequest_id = fmr.foiministryrequestid
+            ) sub_fmd
+            LEFT JOIN "ProgramAreaDivisions" pad 
+            ON sub_fmd.divisionid = pad.divisionid
+            ) AS division
+            FROM "FOIMinistryRequests" fmr
+            JOIN "FOIRequestStatuses" frs 
+                ON fmr.requeststatusid = frs.requeststatusid
+            JOIN "FOIRequests" fr 
+                ON fmr.foiministryrequestid = fr.foirequestid 
+                AND fmr.version = fr.version
+            WHERE fmr."isactive" = true 
+            AND frs."name" = %s
+            ORDER BY fmr.foiministryrequestid, fmr.version DESC
+            LIMIT %s::integer;
+        '''
+        parameters = (REQUEST_STATUS, REQUEST_LIMIT)
+        cursor.execute(query, parameters)
+        result = cursor.fetchall()
+        cursor.close()
+        if result is not None:
+            requestsforextraction = []
+            for entry in result:
+                requestsforextraction.append({"foiministryrequestid": entry[0], "version": entry[1], "axisrequestid": entry[2],
+                                  "requesttype": entry[3], "receiveddate": entry[4], "divisions": entry[5]})
+            return requestsforextraction
+        return None
+    except Exception as error:
+        logging.error("Error in getrequestswithstatus")
+        logging.error(error)
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+def fetchdocumentsforextraction():
+    try:
+        requestresults = getrequestswithstatus()
+        #print("requestresults:",requestresults)
+        if requestresults is not None:
+            request_ids = [item["foiministryrequestid"] for item in requestresults]
+            print("request_ids:",request_ids)
+            conn = getdocreviewerdbconnection()
+            cursor = conn.cursor()
+            query = '''
+                SELECT d.foiministryrequestid,     
+                JSON_AGG(
+                    JSON_BUILD_OBJECT(
+                        'documentid', d.documentid, 
+                        'filename', d.filename, 
+                        'created_at', d.created_at, 
+                        'filepath', dm.filepath, 
+                        'attributes', da.attributes
+                    )
+                ) AS documents
+                FROM "Documents" d
+                INNER JOIN "DocumentMaster" dm 
+                ON d.documentmasterid = dm.documentmasterid
+                LEFT JOIN "DocumentAttributes" da 
+                ON (dm.processingparentid IS NOT NULL AND dm.processingparentid = da.documentmasterid)
+                OR (dm.processingparentid IS NULL AND dm.documentmasterid = da.documentmasterid)
+                WHERE d.foiministryrequestid IN %s
+                AND EXISTS (
+                    SELECT 1 FROM "DocumentHashCodes" dhc
+                    WHERE dhc.documentid = d.documentid
+                    AND dhc.created_at = (
+                        SELECT MIN(dhc_inner.created_at)
+                        FROM "DocumentHashCodes" dhc_inner
+                        WHERE dhc_inner.documentid = d.documentid
+                    )
+                )
+                AND EXISTS (
+                    SELECT 1 FROM "DocumentStatus" ds
+                    WHERE ds.statusid = d.statusid
+                    AND ds.name IN ('new', 'failed')
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM "DocumentDeleted" dd
+                    WHERE dm.filepath LIKE dd.filepath || %s
+                    AND dd.deleted IS TRUE
+                )
+                GROUP BY 
+                    d.foiministryrequestid
+                ORDER BY 
+                    d.foiministryrequestid;
+            '''
+            parameters = (tuple(request_ids), '%')
+            # print("\nparameters:",parameters)
+            # print("\nQuery:",query)
+            cursor.execute(query, parameters)
+            result = cursor.fetchall()
+            #breakpoint()
+            cursor.close()
+            if result is not None:
+                requestsforextraction=[]
+                for entry in result:
+                    row={"foiministryrequestid": entry[0], "documents": entry[1]}
+                    requestsforextraction.append(formatdocumentsrequest(row, requestresults))
+                #print("Requests for extraction:",requestsforextraction)
+                logging.info("Pushing requests to queue for extraction!")
+                #call activemq POST api
+                activemqresponse= pushdocstoactivemq(requestsforextraction)
+                return activemqresponse
+            else:
+                logging.info("No documents found for extraction!")
+        logging.info("No requests found for document extraction!")
+        return None
+    except Exception as error:
+        logging.error("Error in fetchdocumentsforextraction")
+        logging.error(error)
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+def formatdocumentsrequest(request,requestdetails):
+    #print("\n\nrequest:",request)
+    #print("requestdetails:",requestdetails)
+    request_detail = [item for item in requestdetails if item["foiministryrequestid"] == request["foiministryrequestid"]]
+    #print("request_detail:",request_detail)
+    formatted_documents=[]
+    for document in request["documents"]:
+        filename = document["filename"]
+        fileextension = os.path.splitext(document["filename"])[1].lower()
+        if fileextension not in [".png", ".jpg", ".jpeg", ".gif"]:
+            filename = os.path.splitext(filename)[0] + ".pdf"
+        request_divisions= request_detail[0]["divisions"]
+        documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
+        #print("\ndocumentdivision:",documentdivision)
+        formatted_documents.append(
+             {
+                "DocumentID": document["documentid"],
+                "DocumentName": filename ,
+                "DocumentType": fileextension[1:].upper(),
+                "CreatedDate": document["created_at"],
+                "DocumentS3URL":document["filepath"],
+                "Divisions": documentdivision
+            }
+        )
+    return {
+        "RequestNumber": request_detail[0]["axisrequestid"],
+        "RequestType": request_detail[0]["requesttype"],
+        "ReceivedDate": request_detail[0]["receiveddate"].isoformat(),
+        "MinistryRequestID": request_detail[0]["foiministryrequestid"],
+        "Documents": formatted_documents
+    }
+
+def pushdocstoactivemq(requestsforextraction):
+    url = "https://activemq-fc7a67-dev.apps.gold.devops.gov.bc.ca/api/message"
+    username = ACTIVEMQ_USERNAME
+    password = ACTIVEMQ_PASSWORD
+    params = {
+    "destination": "queue://"+ACTIVEMQ_DESTINATION
+    }
+    try:
+        if requestsforextraction is not None:
+            formattedjson= formatbatch(requestsforextraction)
+            print("\n\nFINAL JSON:", formattedjson)
+            #Activemq POST request
+            response = requests.post(url, auth=(username, password), params=params, json=formattedjson)
+            if response.status_code == 200:
+                print("Success:", response.text)
+                #Update Documents status to pushedtoqueue
+                #updatedocumentsstatus(requestsforextraction)
+            else:
+                print(f"Error: {response.status_code}, {response.text}")
+            return response
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Activemq request failed: {e}")
+
+
+def formatbatch(requestsforextraction):
+    return {
+        "BatchID": str(uuid.uuid4()),
+        "Date": datetime.now().isoformat(),
+        "Requests": requestsforextraction
+    }
+
+def updatedocumentsstatus(requestsforextraction):
+    try:
+        document_ids = []
+        for request in requestsforextraction["Requests"]:
+            for document in request["Documents"]:
+                document_ids.append(document["DocumentID"])
+        print("Extracted Document IDs:", document_ids)
+        conn = getdocreviewerdbconnection()
+        cursor = conn.cursor()
+        cursor.execute('''update "Documents" SET statusid = (SELECT statusid
+		              FROM "DocumentStatus" 
+		              WHERE "name" = 'pushedtoqueue') WHERE documentid IN %s''',
+            (tuple(document_ids)))
+        conn.commit()
+        cursor.close()
+    except(Exception) as error:
+        print("Exception while executing func updateredactionstatus (p8), Error : {0} ".format(error))
+        raise
+    finally:
+        if conn is not None:
+            conn.close() 
+
+# def generatebatchid(prefix="BATCH"):
+#     random_number = str(uuid.uuid4().int)[:4]
+#     return f"{prefix}{random_number}"
+
+
+if __name__ == "__main__":
+    fetchdocumentsforextraction()
+    
+
+
