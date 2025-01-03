@@ -12,16 +12,14 @@ from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 class documentpageflagservice:    
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
-        print("메롱","requestid:",requestid, "redactionlayer:",redactionlayer, "documentids:",documentids)
+
         if redactionlayerservice().isopeninfolayer(redactionlayer):
             layerids.append(redactionlayerservice().getdefaultredactionlayerid())
         else:
             layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
             #layerids.append(redactionlayerservice().getdefaultredactionlayerid())       
-        print("layerids:",layerids)
-        print("documentids:",documentids)
+
         pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
-        print("pageflags:",pageflags)
         return self.__removedeletedpages(requestid, pageflags)
     
     def get_total_pages_by_ministryrequest_openinfo(self, ministryrequestids):
