@@ -356,6 +356,8 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
+            if redactionlayer == "openinfo":
+                filename = "Response_Package_" + filename
             filepath_put = "{0}/{2}/{1}.pdf".format(
                 filepathlist[0], filename, redactionlayer
             )

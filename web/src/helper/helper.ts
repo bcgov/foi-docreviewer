@@ -60,6 +60,12 @@ const isIntakeTeam = (userGroups: any) => {
   );
 };
 
+const isOITeam = (userGroups : any) => {
+  return (
+    userGroups?.map((userGroup : any) => userGroup.replace("/", "")).indexOf("OI Team") !== -1
+  );
+}
+
 const encrypt = (obj: any) => {
   return CryptoJS.AES.encrypt(
     JSON.stringify(obj),
@@ -202,5 +208,6 @@ export {
   isIntakeTeam,
   encrypt,
   decrypt,
-  warningToast
+  warningToast,
+  isOITeam
 };
