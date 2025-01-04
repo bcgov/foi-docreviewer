@@ -12,17 +12,28 @@ from reviewer_api.utils.enums import RedactionPageFlagIDMapping
 class documentpageflagservice:    
     def getpageflags_by_requestid_docids(self, requestid, redactionlayer, documentids):
         layerids = []
-        
+
         if redactionlayerservice().isopeninfolayer(redactionlayer):
             layerids.append(redactionlayerservice().getdefaultredactionlayerid())
         else:
             layerids.append(redactionlayerservice().getredactionlayerid(redactionlayer))
             #layerids.append(redactionlayerservice().getdefaultredactionlayerid())       
-        print("layerids:",layerids)
-        print("documentids:",documentids)
+
         pageflags = DocumentPageflag.getpageflag_by_request_documentids(requestid, layerids, documentids)
-        print("pageflags:",pageflags)
         return self.__removedeletedpages(requestid, pageflags)
+    
+    def get_total_pages_by_ministryrequest_openinfo(self, ministryrequestids):
+        layerid = 4  # openinfo layer id
+
+        result = DocumentPageflag.get_pageflag_count_by_requestids(
+            requestid=ministryrequestids,
+            redactionlayerid=layerid
+        )
+
+        if not result:
+            return None
+
+        return result
     
     def getpublicbody(self, requestid, redactionlayer):
         redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
