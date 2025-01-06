@@ -53,6 +53,7 @@ def getrequestswithstatus():
             fmr.axisrequestid, 
             fr.requesttype, 
             fr.receiveddate,
+            pa.iaocode AS programareacode,
             (SELECT JSON_AGG(
                 JSON_BUILD_OBJECT(
                     'DivisionID', sub_fmd.divisionid,
@@ -73,6 +74,8 @@ def getrequestswithstatus():
             JOIN "FOIRequests" fr 
                 ON fmr.foiministryrequestid = fr.foirequestid 
                 AND fmr.version = fr.version
+            LEFT JOIN "ProgramAreas" pa 
+    	        ON fmr.programareaid = pa.programareaid
             WHERE fmr."isactive" = true 
             AND frs."name" = %s
             ORDER BY fmr.foiministryrequestid, fmr.version DESC
@@ -86,7 +89,7 @@ def getrequestswithstatus():
             requestsforextraction = []
             for entry in result:
                 requestsforextraction.append({"foiministryrequestid": entry[0], "version": entry[1], "axisrequestid": entry[2],
-                                  "requesttype": entry[3], "receiveddate": entry[4], "divisions": entry[5]})
+                                  "requesttype": entry[3], "receiveddate": entry[4], "programareacode":entry[5], "divisions": entry[6]})
             return requestsforextraction
         return None
     except Exception as error:
@@ -212,6 +215,8 @@ def formatdocumentsrequest(request,requestdetails):
         "RequestType": request_detail[0]["requesttype"],
         "ReceivedDate": request_detail[0]["receiveddate"].isoformat(),
         "MinistryRequestID": request_detail[0]["foiministryrequestid"],
+        "MinistryCode":request_detail[0]["programareacode"],
+        "RequestMiscInfo":"",
         "Documents": formatted_documents
     }
 
