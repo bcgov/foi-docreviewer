@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
@@ -232,12 +233,24 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 			Bucket:     aws.String(destBucket),
 			CopySource: aws.String(bucket + "/" + sourceKey),
 			Key:        aws.String(destKey),
+			ACL:        types.ObjectCannedACLPublicRead,
 		})
 		if err != nil {
 			log.Fatalf("unable to copy item %q, %v", sourceKey, err)
 		}
 
 		fmt.Printf("Copied %s to %s\n", sourceKey, destKey)
+
+		// // Ensure the copied object is publicly readable
+		// _, err = svc.PutObjectAcl(context.TODO(), &s3.PutObjectAclInput{
+		// 	Bucket: aws.String(destBucket),
+		// 	Key:    aws.String(destKey),
+		// 	ACL:    types.ObjectCannedACLPublicRead,
+		// })
+		// if err != nil {
+		// 	fmt.Println("Error setting object ACL:", err)
+		// 	return
+		// }
 	}
 
 	fmt.Println("All files copied successfully!")
@@ -254,6 +267,30 @@ func SaveFileS3(openInfoBucket string, openInfoPrefix string, filename string, b
 		Bucket: aws.String(bucket),
 		Key:    aws.String(prefix + filename),
 		Body:   bytes.NewReader(buf),
+	})
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+	} else {
+		fmt.Println("File uploaded successfully!")
+	}
+
+	return err
+}
+
+func SaveXMLS3(openInfoBucket string, openInfoPrefix string, filename string, buf []byte) error {
+	bucket := openInfoBucket //"dev-openinfopub"
+	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket
+
+	svc := CreateS3Client()
+
+	// Upload the HTML content to S3
+	_, err := svc.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:             aws.String(bucket),
+		Key:                aws.String(prefix + filename),
+		Body:               bytes.NewReader(buf),
+		ContentType:        aws.String("application/xml"),
+		ContentDisposition: aws.String("inline"),
+		ACL:                types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
 		fmt.Println("Error uploading file:", err)
@@ -324,7 +361,7 @@ func SaveSiteMapIndexS3(openInfoBucket string, openInfoPrefix string, filename s
 	updatedXML = append(xmlHeader, updatedXML...)
 	updatedXML = bytes.Replace(updatedXML, []byte("<sitemapindex>"), []byte("<sitemapindex"+string(xmlns)+">"), 1)
 
-	return SaveFileS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
+	return SaveXMLS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
 }
 
 func SaveSiteMapPageS3(openInfoBucket string, openInfoPrefix string, filename string, updatedurlset UrlSet) error {
@@ -340,7 +377,7 @@ func SaveSiteMapPageS3(openInfoBucket string, openInfoPrefix string, filename st
 	updatedXML = append(xmlHeader, updatedXML...)
 	updatedXML = bytes.Replace(updatedXML, []byte("<urlset>"), []byte("<urlset"+string(xmlns)+">"), 1)
 
-	return SaveFileS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
+	return SaveXMLS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
 }
 
 func RemoveFromS3(openInfoBucket string, openInfoPrefix string) error {
