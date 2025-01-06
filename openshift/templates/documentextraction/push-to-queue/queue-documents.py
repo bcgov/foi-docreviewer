@@ -236,7 +236,7 @@ def pushdocstoactivemq(requestsforextraction):
             if response.status_code == 200:
                 print("Success:", response.text)
                 #Update Documents status to pushedtoqueue
-                #updatedocumentsstatus(requestsforextraction)
+                updatedocumentsstatus(requestsforextraction)
             else:
                 print(f"Error: {response.status_code}, {response.text}")
             return response
@@ -268,7 +268,7 @@ def updatedocumentsstatus(requestsforextraction):
         conn.commit()
         cursor.close()
     except(Exception) as error:
-        print("Exception while executing func updateredactionstatus (p8), Error : {0} ".format(error))
+        print("Exception while executing func updateredactionstatus, Error : {0} ".format(error))
         raise
     finally:
         if conn is not None:
