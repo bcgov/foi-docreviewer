@@ -1,4 +1,4 @@
-from utils import getdbconnection
+from utils import getdbconnection, getfoidbconnection
 import logging
 import json
 
@@ -225,6 +225,8 @@ class documentpageflag:
                 select redactionlayerid  
                 from "DocumentPageflags" 
                 where foiministryrequestid = %s::integer
+                and redactionlayerid != 4 
+                --openinfo layer is excluded latest redaction layer because it always uses the normal redaction summary
                 order by created_at desc limit 1;
             '''
             cursor.execute(query, (ministryrequestid,))
