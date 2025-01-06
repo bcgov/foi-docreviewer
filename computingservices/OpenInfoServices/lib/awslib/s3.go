@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
@@ -232,12 +233,24 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 			Bucket:     aws.String(destBucket),
 			CopySource: aws.String(bucket + "/" + sourceKey),
 			Key:        aws.String(destKey),
+			ACL:        types.ObjectCannedACLPublicRead,
 		})
 		if err != nil {
 			log.Fatalf("unable to copy item %q, %v", sourceKey, err)
 		}
 
 		fmt.Printf("Copied %s to %s\n", sourceKey, destKey)
+
+		// // Ensure the copied object is publicly readable
+		// _, err = svc.PutObjectAcl(context.TODO(), &s3.PutObjectAclInput{
+		// 	Bucket: aws.String(destBucket),
+		// 	Key:    aws.String(destKey),
+		// 	ACL:    types.ObjectCannedACLPublicRead,
+		// })
+		// if err != nil {
+		// 	fmt.Println("Error setting object ACL:", err)
+		// 	return
+		// }
 	}
 
 	fmt.Println("All files copied successfully!")
@@ -277,6 +290,7 @@ func SaveXMLS3(openInfoBucket string, openInfoPrefix string, filename string, bu
 		Body:               bytes.NewReader(buf),
 		ContentType:        aws.String("application/xml"),
 		ContentDisposition: aws.String("inline"),
+		ACL:                types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
 		fmt.Println("Error uploading file:", err)
