@@ -264,6 +264,29 @@ func SaveFileS3(openInfoBucket string, openInfoPrefix string, filename string, b
 	return err
 }
 
+func SaveXMLS3(openInfoBucket string, openInfoPrefix string, filename string, buf []byte) error {
+	bucket := openInfoBucket //"dev-openinfopub"
+	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket
+
+	svc := CreateS3Client()
+
+	// Upload the HTML content to S3
+	_, err := svc.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:             aws.String(bucket),
+		Key:                aws.String(prefix + filename),
+		Body:               bytes.NewReader(buf),
+		ContentType:        aws.String("application/xml"),
+		ContentDisposition: aws.String("inline"),
+	})
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+	} else {
+		fmt.Println("File uploaded successfully!")
+	}
+
+	return err
+}
+
 func GetFileFromS3(openInfoBucket string, openInfoPrefix string, filename string) *s3.GetObjectOutput {
 	bucket := openInfoBucket //"dev-openinfopub"
 	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket
@@ -324,7 +347,7 @@ func SaveSiteMapIndexS3(openInfoBucket string, openInfoPrefix string, filename s
 	updatedXML = append(xmlHeader, updatedXML...)
 	updatedXML = bytes.Replace(updatedXML, []byte("<sitemapindex>"), []byte("<sitemapindex"+string(xmlns)+">"), 1)
 
-	return SaveFileS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
+	return SaveXMLS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
 }
 
 func SaveSiteMapPageS3(openInfoBucket string, openInfoPrefix string, filename string, updatedurlset UrlSet) error {
@@ -340,7 +363,7 @@ func SaveSiteMapPageS3(openInfoBucket string, openInfoPrefix string, filename st
 	updatedXML = append(xmlHeader, updatedXML...)
 	updatedXML = bytes.Replace(updatedXML, []byte("<urlset>"), []byte("<urlset"+string(xmlns)+">"), 1)
 
-	return SaveFileS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
+	return SaveXMLS3(openInfoBucket, openInfoPrefix, filename, updatedXML)
 }
 
 func RemoveFromS3(openInfoBucket string, openInfoPrefix string) error {
