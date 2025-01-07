@@ -246,7 +246,7 @@ func main() {
 			}
 
 			url := awslib.Url{
-				Loc:     s3url + destBucket + "/" + oiprefix + item.Axisrequestid + "/" + item.Axisrequestid + ".html",
+				Loc:     s3url + destBucket + "/" + oiprefix + item.Axisrequestid + "/openinfo/" + item.Axisrequestid + ".html",
 				LastMod: lastMod,
 			}
 			urlset.Urls = append(urlset.Urls, url)
