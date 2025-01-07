@@ -5,9 +5,11 @@ import (
 	"OpenInfoServices/lib/files"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/xml"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -92,7 +94,12 @@ func CreateS3Client() *s3.Client {
 	customEndpoint := "https://" + s3host + "/"
 
 	// Load the AWS configuration with credentials
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithHTTPClient(client),
 		config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
