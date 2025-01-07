@@ -83,7 +83,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 			{Name: "timestamp", Content: fmt.Sprintf("%d", unixTimestamp)},
 			{Name: "dc.contributor", Content: msg.Contributor},
 			{Name: "recorduid", Content: msg.Axisrequestid},
-			{Name: "recordurl", Content: s3url + oibucket + "/" + oiprefix + msg.Axisrequestid + "/" + msg.Axisrequestid + ".html"},
+			{Name: "recordurl", Content: s3url + oibucket + "/" + oiprefix + msg.Axisrequestid + "/openinfo/" + msg.Axisrequestid + ".html"},
 			{Name: "month", Content: now.Format(dateformat_month)},
 			{Name: "year", Content: now.Format(dateformat_year)},
 			{Name: "letter", Content: result.LetterNames},
