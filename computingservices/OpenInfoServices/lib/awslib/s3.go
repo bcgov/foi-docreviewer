@@ -312,7 +312,7 @@ func SaveXMLS3(openInfoBucket string, openInfoPrefix string, filename string, bu
 	if err != nil {
 		fmt.Println("Error uploading file:", err)
 	} else {
-		fmt.Println("File uploaded successfully!")
+		fmt.Println("XML File uploaded successfully!")
 	}
 
 	return err
