@@ -17,7 +17,7 @@ const (
 	openstate_unpublish     = "Unpublish"
 	oirequesttype_publish   = "Publish"
 	oirequesttype_unpublish = "Unpublish Request"
-	openstatus_ready        = "ready"
+	openstatus_ready        = "ready for sitemap"
 	openstatus_unpublish    = "unpublished"
 )
 
