@@ -192,6 +192,7 @@ func main() {
 		}
 
 	case "sitemap":
+		fmt.Println("sitemap")
 
 		// Connect DB
 		db, err1 := dbservice.Conn(dsn)
@@ -277,6 +278,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error retrieving oistatusid: %v", err)
 		}
+
+		fmt.Println("??")
 
 		// Update openinfo table status & sitemap_pages file name to DB
 		for _, item := range records {
