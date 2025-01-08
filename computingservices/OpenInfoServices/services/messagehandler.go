@@ -58,7 +58,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 
 	// Get file info from s3 bucket folder
 	var result awslib.ScanResult
-	result, err := awslib.ScanS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", s3url+oibucket+"/"+oiprefix+msg.Axisrequestid+"/", msg.AdditionalFiles)
+	result, err := awslib.ScanS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", s3url+oibucket+"/"+oiprefix+msg.Axisrequestid+"/openinfo/", msg.AdditionalFiles)
 	if err != nil {
 		log.Fatalf("%v", err)
 		return
