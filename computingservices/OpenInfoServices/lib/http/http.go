@@ -15,6 +15,14 @@ type KeycloakTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+func getHttpClient() *http.Client {
+	// Create a custom transport with TLS verification disabled
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return &http.Client{Transport: tr}
+}
+
 func getBearerToken() (string, error) {
 	keycloakurl, keycloakrealm, keycloakclientid, keycloakclientsecret, keycloakuser, keycloakpassword := myconfig.GetKeycloak()
 
@@ -28,12 +36,7 @@ func getBearerToken() (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Create a custom transport with TLS verification disabled
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-
+	client := getHttpClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -72,7 +75,7 @@ func HttpPost(endpoint string, payload map[string]int) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 
-	client := &http.Client{}
+	client := getHttpClient()
 	resp, err3 := client.Do(req)
 	if err3 != nil {
 		return nil, err3
@@ -104,7 +107,7 @@ func HttpGet(endpoint string) ([]byte, error) {
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 
-	client := &http.Client{}
+	client := getHttpClient()
 	resp, err2 := client.Do(req)
 	if err2 != nil {
 		return nil, err2
