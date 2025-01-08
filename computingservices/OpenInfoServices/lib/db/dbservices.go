@@ -390,7 +390,7 @@ func UpdateOIRecordState(db *sql.DB, foiflowapi string, foiministryrequestid int
 	// Update request state in FOIMinistryRequests
 	// endpoint
 	section := "oistatusid"
-	endpoint := fmt.Sprintf("%s/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, foirequestid, foiministryrequestid, section)
+	endpoint := fmt.Sprintf("%s/api/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, foirequestid, foiministryrequestid, section)
 	fmt.Println(endpoint)
 
 	// payload
