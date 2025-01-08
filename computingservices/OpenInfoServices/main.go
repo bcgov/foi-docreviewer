@@ -223,7 +223,7 @@ func main() {
 		lastMod := now.Format(dateformat)
 
 		fmt.Printf("Records: %v\n", records)
-		time.Sleep(60 * time.Second)
+		// time.Sleep(60 * time.Second)
 
 		// Insert to XML
 		for i, item := range records {
@@ -282,8 +282,6 @@ func main() {
 			log.Fatalf("Error retrieving oistatusid: %v", err)
 		}
 
-		fmt.Println("??")
-
 		// Update openinfo table status & sitemap_pages file name to DB
 		for _, item := range records {
 			err = dbservice.UpdateOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
@@ -293,6 +291,7 @@ func main() {
 			}
 		}
 
+		fmt.Println("sitemap end")
 	case "test":
 		//----- put testing script here for manual test -----
 
