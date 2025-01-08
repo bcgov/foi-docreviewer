@@ -222,6 +222,9 @@ func main() {
 		now := time.Now()
 		lastMod := now.Format(dateformat)
 
+		fmt.Printf("Records: %v\n", records)
+		time.Sleep(60 * time.Second)
+
 		// Insert to XML
 		for i, item := range records {
 			fmt.Printf("main - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
