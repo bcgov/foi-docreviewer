@@ -286,7 +286,7 @@ func main() {
 		for _, item := range records {
 			err = dbservice.UpdateOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
 			if err != nil {
-				log.Fatalf("%v", err)
+				log.Fatalf("failed to update OI state: %v", err)
 				return
 			}
 		}
