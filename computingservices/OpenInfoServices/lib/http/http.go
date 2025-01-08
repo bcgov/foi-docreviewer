@@ -28,7 +28,12 @@ func getBearerToken() (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	client := &http.Client{}
+	// Create a custom transport with TLS verification disabled
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -67,12 +72,7 @@ func HttpPost(endpoint string, payload map[string]int) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 
-	// Create a custom transport with TLS verification disabled
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-
+	client := &http.Client{}
 	resp, err3 := client.Do(req)
 	if err3 != nil {
 		return nil, err3
