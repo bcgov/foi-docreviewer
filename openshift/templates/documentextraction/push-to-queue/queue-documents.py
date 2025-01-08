@@ -78,10 +78,9 @@ def getrequestswithstatus():
     	        ON fmr.programareaid = pa.programareaid
             WHERE fmr."isactive" = true 
             AND frs."name" = %s
-            ORDER BY fmr.foiministryrequestid, fmr.version DESC
-            LIMIT %s::integer;
+            ORDER BY fmr.foiministryrequestid, fmr.version DESC;
         '''
-        parameters = (REQUEST_STATUS, REQUEST_LIMIT)
+        parameters = (REQUEST_STATUS,)
         cursor.execute(query, parameters)
         result = cursor.fetchall()
         cursor.close()
@@ -162,15 +161,17 @@ def fetchdocumentsforextraction():
             #breakpoint()
             cursor.close()
             if result is not None:
-                requestsforextraction=[]
+                requestswithdocs=[]
                 for entry in result:
-                    row={"foiministryrequestid": entry[0], "documents": entry[1]}
-                    requestsforextraction.append(formatdocumentsrequest(row, requestresults))
+                    #print("\n\nDOCSS:",entry[1])
+                    if entry[1]:
+                        row={"foiministryrequestid": entry[0], "documents": entry[1]}
+                        print("\n\nROW:::",row)
+                        requestswithdocs.append(row)
+                        #requestsforextraction.append(formatdocumentsrequest(row, requestresults))
+                return requestresults, requestswithdocs
                 #print("Requests for extraction:",requestsforextraction)
-                logging.info("Pushing requests to queue for extraction!")
-                #call activemq POST api
-                activemqresponse= pushdocstoactivemq(requestsforextraction)
-                return activemqresponse
+                logging.info("No documents to queue for extraction!")
             else:
                 logging.info("No documents found for extraction!")
         logging.info("No requests found for document extraction!")
@@ -186,39 +187,70 @@ def fetchdocumentsforextraction():
             conn.close()
 
 
-def formatdocumentsrequest(request,requestdetails):
-    #print("\n\nrequest:",request)
-    #print("requestdetails:",requestdetails)
-    request_detail = [item for item in requestdetails if item["foiministryrequestid"] == request["foiministryrequestid"]]
-    #print("request_detail:",request_detail)
-    formatted_documents=[]
-    for document in request["documents"]:
-        filename = document["filename"]
-        fileextension = os.path.splitext(document["filename"])[1].lower()
-        if fileextension not in [".png", ".jpg", ".jpeg", ".gif"]:
-            filename = os.path.splitext(filename)[0] + ".pdf"
-        request_divisions= request_detail[0]["divisions"]
-        documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
-        #print("\ndocumentdivision:",documentdivision)
-        formatted_documents.append(
-             {
-                "DocumentID": document["documentid"],
-                "DocumentName": filename ,
-                "DocumentType": fileextension[1:].upper(),
-                "CreatedDate": document["created_at"],
-                "DocumentS3URL":document["filepath"],
-                "Divisions": documentdivision
-            }
-        )
-    return {
-        "RequestNumber": request_detail[0]["axisrequestid"],
-        "RequestType": request_detail[0]["requesttype"],
-        "ReceivedDate": request_detail[0]["receiveddate"].isoformat(),
-        "MinistryRequestID": request_detail[0]["foiministryrequestid"],
-        "MinistryCode":request_detail[0]["programareacode"],
-        "RequestMiscInfo":"",
-        "Documents": formatted_documents
-    }
+def formatdocumentsrequest(requestswithdocs,requestdetails):
+    limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
+    print("\n\nlimited_requestdetails:",limited_requestdetails)
+    #print("\n\nrequestdetails:",requestdetails)
+    formatted_requests=[]
+    for request in limited_requestdetails:
+        requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
+        print("\n\nrequestdocuments:",requestdocuments)
+        formatted_documents=[]
+        for document in requestdocuments[0]["documents"]:
+            filename = document["filename"]
+            fileextension = os.path.splitext(document["filename"])[1].lower()
+            if fileextension not in [".png", ".jpg", ".jpeg", ".gif"]:
+                filename = os.path.splitext(filename)[0] + ".pdf"
+            request_divisions= request["divisions"]
+            documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
+            #print("\ndocumentdivision:",documentdivision)
+            formatted_documents.append(
+                {
+                    "DocumentID": document["documentid"],
+                    "DocumentName": filename ,
+                    "DocumentType": fileextension[1:].upper(),
+                    "CreatedDate": document["created_at"],
+                    "DocumentS3URL":document["filepath"],
+                    "Divisions": documentdivision
+                }
+            )
+        formatted_requests.append({
+            "RequestNumber": request["axisrequestid"],
+            "RequestType": request["requesttype"],
+            "ReceivedDate": request["receiveddate"].isoformat(),
+            "MinistryRequestID": request["foiministryrequestid"],
+            "MinistryCode":request["programareacode"],
+            "RequestMiscInfo":"",
+            "Documents": formatted_documents
+        })
+    return formatted_requests
+
+def sortandlimitrequests(requestswithdocs, requestdetails):
+    request_limit= int(REQUEST_LIMIT)
+    valid_request_ids = {item["foiministryrequestid"] for item in requestswithdocs}
+    # Sort the requestdetails by 'receiveddate' in descending order
+    sorted_requestdetails = sorted(
+        requestdetails, 
+        key=lambda x: x["receiveddate"], 
+        reverse=True
+    )
+    filtered_requestdetails = [
+        item for item in sorted_requestdetails if item["foiministryrequestid"] in valid_request_ids
+    ]
+    # Limit top most recent requests according to the limit given
+    limited_requestdetails = filtered_requestdetails[:request_limit]
+    return limited_requestdetails
+
+def fetchandqueuedocsforextraction():
+    requestresults, requestswithdocs= fetchdocumentsforextraction()
+    if requestswithdocs:
+        requestsforextraction= formatdocumentsrequest(requestswithdocs, requestresults)
+        #print("\n\nRequestsforextraction:",requestsforextraction)
+        logging.info("Pushing requests to queue for extraction!")
+        #call activemq POST api
+        activemqresponse= pushdocstoactivemq(requestsforextraction)
+        return activemqresponse
+
 
 def pushdocstoactivemq(requestsforextraction):
     url = "https://activemq-fc7a67-dev.apps.gold.devops.gov.bc.ca/api/message"
@@ -228,7 +260,7 @@ def pushdocstoactivemq(requestsforextraction):
     "destination": "queue://"+ACTIVEMQ_DESTINATION
     }
     try:
-        if requestsforextraction is not None:
+        if requestsforextraction:
             formattedjson= formatbatch(requestsforextraction)
             print("\n\nFINAL JSON:", formattedjson)
             #Activemq POST request
@@ -255,8 +287,8 @@ def formatbatch(requestsforextraction):
 def updatedocumentsstatus(requestsforextraction):
     try:
         document_ids = []
-        for request in requestsforextraction["Requests"]:
-            for document in request["Documents"]:
+        for request in requestsforextraction:
+            for document in request.get("Documents", []):
                 document_ids.append(document["DocumentID"])
         print("Extracted Document IDs:", document_ids)
         conn = getdocreviewerdbconnection()
@@ -264,7 +296,7 @@ def updatedocumentsstatus(requestsforextraction):
         cursor.execute('''update "Documents" SET statusid = (SELECT statusid
 		              FROM "DocumentStatus" 
 		              WHERE "name" = 'pushedtoqueue') WHERE documentid IN %s''',
-            (tuple(document_ids)))
+            (tuple(document_ids),))
         conn.commit()
         cursor.close()
     except(Exception) as error:
@@ -280,7 +312,7 @@ def updatedocumentsstatus(requestsforextraction):
 
 
 if __name__ == "__main__":
-    fetchdocumentsforextraction()
+    fetchandqueuedocsforextraction()
     
 
 
