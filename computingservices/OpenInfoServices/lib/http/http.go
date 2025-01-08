@@ -3,6 +3,7 @@ package httpservice
 import (
 	myconfig "OpenInfoServices/config"
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -66,7 +67,12 @@ func HttpPost(endpoint string, payload map[string]int) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 
-	client := &http.Client{}
+	// Create a custom transport with TLS verification disabled
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
 	resp, err3 := client.Do(req)
 	if err3 != nil {
 		return nil, err3

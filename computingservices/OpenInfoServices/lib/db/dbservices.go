@@ -288,7 +288,7 @@ func GetOIRecordsForPublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 			return records, fmt.Errorf("failed to retrieve query result: %w", err)
 		}
 		records = append(records, record)
-		fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", record.Axisrequestid, record.Description, record.Published_date, record.Contributor, record.Applicant_type, record.Fees)
+		fmt.Printf("DB service - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", record.Axisrequestid, record.Description, record.Published_date, record.Contributor, record.Applicant_type, record.Fees)
 	}
 
 	err = rows.Err()

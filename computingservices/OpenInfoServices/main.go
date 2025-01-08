@@ -224,7 +224,7 @@ func main() {
 
 		// Insert to XML
 		for i, item := range records {
-			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
+			fmt.Printf("main - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
 
 			// Save sitemap_pages_.xml which reached 5000 limit
 			if len(urlset.Urls) >= sitemaplimit {
