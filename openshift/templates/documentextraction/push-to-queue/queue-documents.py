@@ -84,13 +84,13 @@ def getrequestswithstatus():
         cursor.execute(query, parameters)
         result = cursor.fetchall()
         cursor.close()
-        if result is not None:
+        if result:
             requestsforextraction = []
             for entry in result:
                 requestsforextraction.append({"foiministryrequestid": entry[0], "version": entry[1], "axisrequestid": entry[2],
                                   "requesttype": entry[3], "receiveddate": entry[4], "programareacode":entry[5], "divisions": entry[6]})
             return requestsforextraction
-        return None
+        return []
     except Exception as error:
         logging.error("Error in getrequestswithstatus")
         logging.error(error)
@@ -106,7 +106,7 @@ def fetchdocumentsforextraction():
     try:
         requestresults = getrequestswithstatus()
         #print("requestresults:",requestresults)
-        if requestresults is not None:
+        if requestresults:
             request_ids = [item["foiministryrequestid"] for item in requestresults]
             print("request_ids:",request_ids)
             conn = getdocreviewerdbconnection()
@@ -158,9 +158,10 @@ def fetchdocumentsforextraction():
             # print("\nQuery:",query)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
+            print("DOCUMENTS RESULT:",result)
             #breakpoint()
             cursor.close()
-            if result is not None:
+            if result:
                 requestswithdocs=[]
                 for entry in result:
                     #print("\n\nDOCSS:",entry[1])
@@ -173,9 +174,10 @@ def fetchdocumentsforextraction():
                 #print("Requests for extraction:",requestsforextraction)
                 logging.info("No documents to queue for extraction!")
             else:
+                print("No documents found for extraction!")
                 logging.info("No documents found for extraction!")
         logging.info("No requests found for document extraction!")
-        return None
+        return requestresults, []
     except Exception as error:
         logging.error("Error in fetchdocumentsforextraction")
         logging.error(error)
