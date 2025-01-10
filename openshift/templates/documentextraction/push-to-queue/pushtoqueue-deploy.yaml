@@ -12,7 +12,7 @@ objects:
     spec:
       successfulJobsHistoryLimit: 1
       failedJobsHistoryLimit: 1
-      schedule: "*/5 * * * *"
+      schedule: "*/10 * * * *"
       timeZone: "America/Vancouver"
       jobTemplate:
         spec:
