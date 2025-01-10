@@ -194,7 +194,7 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
-        print("\n\nrequestdocuments:",requestdocuments)
+        print("\n\nrequest:",request)
         formatted_documents=[]
         for document in requestdocuments[0]["documents"]:
             filename = document["filename"]
@@ -202,14 +202,19 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
             if fileextension not in [".png", ".jpg", ".jpeg", ".gif"]:
                 filename = os.path.splitext(filename)[0] + ".pdf"
             request_divisions= request["divisions"]
-            documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
+            print("\nREQUEST_DIVISIONS:",request_divisions)
+            print("\nDOCUMENT_DIVISIONS:",document["attributes"]["divisions"][0])
+            if request_divisions and document["attributes"]["divisions"][0]:
+                documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
+            else:
+                documentdivision = {'DivisionID': 0,'Name': ""}
             #print("\ndocumentdivision:",documentdivision)
             formatted_documents.append(
                 {
                     "DocumentID": document["documentid"],
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
-                    "CreatedDate": document["created_at"],
+                    "CreatedDate": convert_date_string_dynamic_preserve_time(document["created_at"]),
                     "DocumentS3URL":document["filepath"],
                     "Divisions": documentdivision
                 }
@@ -217,13 +222,37 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
         formatted_requests.append({
             "RequestNumber": request["axisrequestid"],
             "RequestType": request["requesttype"],
-            "ReceivedDate": request["receiveddate"].isoformat(),
-            "MinistryRequestID": request["foiministryrequestid"],
+            "ReceivedDate": convert_datetime_dynamic(request["receiveddate"],"receiveddate"),
+            "MinistryRequestID": str(request["foiministryrequestid"]),
             "MinistryCode":request["programareacode"],
             "RequestMiscInfo":"",
             "Documents": formatted_documents
         })
+        print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
+
+def convert_datetime_dynamic(date_obj,datefield):
+    # Example logic: Set to the 1st day of the next month
+    if date_obj.month == 12:
+        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+    else:
+        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
+    if datefield == "receiveddate":
+        result= updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        result= updated_date.strftime("%Y-%m-%dT%H:%M:%S")
+    return result
+
+def convert_date_string_dynamic_preserve_time(input_date_str):
+    date_obj = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
+    # Example logic: Increment the month and reset the day to 1
+    if date_obj.month == 12:
+        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+    else:
+        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
+    return updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 
 def sortandlimitrequests(requestswithdocs, requestdetails):
     request_limit= int(REQUEST_LIMIT)
@@ -268,7 +297,7 @@ def pushdocstoactivemq(requestsforextraction):
             if response.status_code == 200:
                 print("Success:", response.text)
                 #Update Documents status to pushedtoqueue
-                updatedocumentsstatus(requestsforextraction)
+                #updatedocumentsstatus(requestsforextraction)
             else:
                 print(f"Error: {response.status_code}, {response.text}")
             return response
@@ -280,7 +309,7 @@ def pushdocstoactivemq(requestsforextraction):
 def formatbatch(requestsforextraction):
     return {
         "BatchID": str(uuid.uuid4()),
-        "Date": datetime.now().isoformat(),
+        "Date": convert_datetime_dynamic(datetime.now(),"batchdate"),
         "Requests": requestsforextraction
     }
 
