@@ -1,0 +1,95 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "${NAME}-build-template"
+  creationTimestamp:
+objects:
+  - kind: CronJob
+    apiVersion: batch/v1
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 1
+      schedule: "*/5 * * * *"
+      timeZone: "America/Vancouver"
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              # volumes:
+              #   - name: foi-docreviewer-bkup-pvc
+              #     persistentVolumeClaim:
+              #       claimName: foi-docreviewer-bkup-pvc
+              containers:
+                - name: ${NAME}
+                  namespace: ${IMAGE_NAMESPACE}
+                  image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${NAME}:latest
+                  # volumeMounts:
+                  #   - name: ab-bkup-pvc
+                  #     mountPath: /backups/
+                  args:
+                  env:
+                    - name: DOCREVIEWER_DB_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_HOST
+                    - name: DOCREVIEWER_DB_NAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_NAME
+                    - name: DOCREVIEWER_DB_USER
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_USER
+                    - name: DOCREVIEWER_DB_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_PASSWORD
+                    - name: DOCREVIEWER_DB_PORT
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: DOCREVIEWER_DB_PORT
+                    - name: SOLR_ENDPOINT
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: SOLR_ENDPOINT
+                    - name: SOLR_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: SOLR_USERNAME                          
+                    - name: SOLR_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${SECRETS}"
+                          key: SOLR_PASSWORD 
+              restartPolicy: OnFailure
+parameters:
+  - name: NAME
+    displayName: Name
+    description: The name assigned to all of the resources defined in this template.
+    required: true
+    value: removedocssolr-cronjob
+  - name: NAMESPACE
+    displayName: Namespace
+    required: true
+    description: The namespace of the OpenShift project.
+    value: d106d6-dev
+  - name: IMAGE_NAMESPACE
+    displayName: Image Namespace
+    required: true
+    description: The namespace of the OpenShift project containing the imagestream for the application.
+    value: d106d6-tools
+  - name: SECRETS
+    displayName: removefromsolr_cronjob_secrets
+    description: Name of secrets for all removefromsolr_cronjob values
+    required: true
+    value: removefromsolr_cronjob_secrets
