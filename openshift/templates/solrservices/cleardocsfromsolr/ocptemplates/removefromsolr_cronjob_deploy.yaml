@@ -1,5 +1,5 @@
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "${NAME}-build-template"
   creationTimestamp:
@@ -25,7 +25,7 @@ objects:
               containers:
                 - name: ${NAME}
                   namespace: ${IMAGE_NAMESPACE}
-                  image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${NAME}:latest
+                  image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${IMAGE_NAME}:dev
                   # volumeMounts:
                   #   - name: ab-bkup-pvc
                   #     mountPath: /backups/
@@ -77,7 +77,7 @@ parameters:
     displayName: Name
     description: The name assigned to all of the resources defined in this template.
     required: true
-    value: removedocssolr-cronjob
+    value: removedocssolrcronjob
   - name: NAMESPACE
     displayName: Namespace
     required: true
@@ -88,8 +88,13 @@ parameters:
     required: true
     description: The namespace of the OpenShift project containing the imagestream for the application.
     value: d106d6-tools
+  - name: IMAGE_NAME
+    displayName: Image Name
+    required: true
+    description: The name of the remove solr build image
+    value: removedocssolrcronjob    
   - name: SECRETS
     displayName: removefromsolr_cronjob_secrets
     description: Name of secrets for all removefromsolr_cronjob values
     required: true
-    value: removefromsolr_cronjob_secrets
+    value: removefromsolrcronjobsecrets
