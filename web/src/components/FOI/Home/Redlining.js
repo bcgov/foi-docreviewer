@@ -357,21 +357,19 @@ const Redlining = React.forwardRef(
           });
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
+            let params = new URLSearchParams(window?.location?.search);
+            console.log("\nparams:",params)
+            let crossTextSearchKeywords = params?.get("query");
+            console.log("\ncrossTextSearchKeywords:",crossTextSearchKeywords)
+            if(crossTextSearchKeywords?.length >0){
+              instance.UI.searchTextFull(crossTextSearchKeywords, {
+                regex: true
+              });
+            }
             //Search Document Logic (for multi-keyword search and etc)
             const originalSearch = instance.UI.searchTextFull;
             //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
             instance.UI.overrideSearchExecution((searchPattern, options) => {
-              let params = new URLSearchParams(window?.location?.search);
-              console.log("\nparams:",params)
-              let crossTextSearchKeywords = params?.get("query");
-              console.log("\ncrossTextSearchKeywords:",crossTextSearchKeywords)
-              if(crossTextSearchKeywords?.length >0){
-                if (!searchPattern) {
-                  searchPattern = crossTextSearchKeywords.join("|");
-                } else {
-                  searchPattern = `${searchPattern}|${crossTextSearchKeywords.join("|")}`;
-                }
-              }
               options.ambientString=true;
               if (searchPattern.includes("|")) {
                 options.regex = true;
