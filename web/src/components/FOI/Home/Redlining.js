@@ -361,9 +361,9 @@ const Redlining = React.forwardRef(
             const originalSearch = instance.UI.searchTextFull;
             //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
             instance.UI.overrideSearchExecution((searchPattern, options) => {
-              const params = new URLSearchParams(window.location.search);
+              let params = new URLSearchParams(window?.location?.search);
               console.log("\nparams:",params)
-              let crossTextSearchKeywords = params.get("query");
+              let crossTextSearchKeywords = params?.get("query");
               console.log("\ncrossTextSearchKeywords:",crossTextSearchKeywords)
               if(crossTextSearchKeywords?.length >0){
                 if (!searchPattern) {
