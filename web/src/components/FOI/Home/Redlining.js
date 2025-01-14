@@ -184,6 +184,7 @@ const Redlining = React.forwardRef(
     } = useSaveResponsePackage();
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
+  
 
     useEffect(() => {
       if (annotManager) {
@@ -360,6 +361,17 @@ const Redlining = React.forwardRef(
             const originalSearch = instance.UI.searchTextFull;
             //const pipeDelimittedRegexString = "/\w+(\|\w+)*/g"
             instance.UI.overrideSearchExecution((searchPattern, options) => {
+              const params = new URLSearchParams(window.location.search);
+              console.log("\nparams:",params)
+              let crossTextSearchKeywords = params.get("query");
+              console.log("\ncrossTextSearchKeywords:",crossTextSearchKeywords)
+              if(crossTextSearchKeywords?.length >0){
+                if (!searchPattern) {
+                  searchPattern = crossTextSearchKeywords.join("|");
+                } else {
+                  searchPattern = `${searchPattern}|${crossTextSearchKeywords.join("|")}`;
+                }
+              }
               options.ambientString=true;
               if (searchPattern.includes("|")) {
                 options.regex = true;
