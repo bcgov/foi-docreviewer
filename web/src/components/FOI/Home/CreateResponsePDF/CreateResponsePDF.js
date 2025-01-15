@@ -45,7 +45,6 @@ export const createOIPCForReviewSelection = (document, enableSave) => {
 };
 
 export const createFinalPackageSelection = (document, enableSave) => {
-  console.log("enableSave in createFinalPackageSelection:",enableSave)
   const finalPackageBtn = document.createElement("button");
   finalPackageBtn.textContent = "Final Package for Applicant";
   finalPackageBtn.id = "final_package";
@@ -76,7 +75,6 @@ export const createConsultPackageSelection = (document, enableSave)  => {
 }
 
 export const createPublicationPackageSelection = (document, enableSave) => {
-  console.log("enableSave in createPublicationPackageSelection",enableSave)
   const publicationPackageBtn = document.createElement("button");
   publicationPackageBtn.textContent = "Create Publication Package";
   publicationPackageBtn.id = "publication_package";
