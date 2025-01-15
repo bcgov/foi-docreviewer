@@ -360,9 +360,10 @@ const Redlining = React.forwardRef(
             let params = new URLSearchParams(window?.location?.search);
             console.log("\nparams:",params)
             let crossTextSearchKeywords = params?.get("query");
-            console.log("\ncrossTextSearchKeywords:",crossTextSearchKeywords)
             if(crossTextSearchKeywords?.length >0){
-              instance.UI.searchTextFull(crossTextSearchKeywords, {
+              const formattedKeywords = crossTextSearchKeywords?.replace(/,/g, "|");
+              console.log("\nformattedKeywords:",formattedKeywords)
+              instance.UI.searchTextFull(formattedKeywords, {
                 regex: true
               });
             }
