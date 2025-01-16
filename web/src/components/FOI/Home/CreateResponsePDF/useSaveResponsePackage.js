@@ -397,12 +397,12 @@ const useSaveResponsePackage = () => {
     }
   };
 
-  const checkSavingPublicationPackage = (redlineReadyAndValid, isOILayerSelected, instance) =>{
+  const checkSavingPublicationPackage = (redlineReadyAndValid, isOILayerSelected, instance, isOITeam) =>{
     setEnablePublication(redlineReadyAndValid && isOILayerSelected)
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("publication_package").disabled =
-        !redlineReadyAndValid || !isOILayerSelected;
+        !redlineReadyAndValid || !isOILayerSelected || !isOITeam;
     }
   }
 
