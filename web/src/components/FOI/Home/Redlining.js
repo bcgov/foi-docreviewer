@@ -1173,7 +1173,7 @@ const Redlining = React.forwardRef(
                   requestid,
                   astr,
                   (data) => {
-                    if(data.status == true){
+                    if(data.status == true && data.updatedpageflag){
                       const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
                       if(updatedPageFlags?.length > 0)
                         syncPageFlagsOnAction(updatedPageFlags);
@@ -2479,7 +2479,7 @@ const Redlining = React.forwardRef(
           );
           break;
         case "responsepackage":
-        case "publicationpackage":
+        case "openinfo":
           saveResponsePackage(
             docViewer,
             annotManager,
