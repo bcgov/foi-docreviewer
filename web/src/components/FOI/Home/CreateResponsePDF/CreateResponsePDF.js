@@ -235,7 +235,7 @@ export const handlePublicationPackageClick = (
   setRedlineModalOpen
 ) => {
   updateModalData({
-    modalFor: "publicationpackage",
+    modalFor: "openinfo",
     modalTitle: "Create Publication Package",
     modalMessage: [
     "Are you sure you want to create the publication package?",
