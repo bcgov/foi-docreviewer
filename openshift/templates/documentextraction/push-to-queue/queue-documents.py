@@ -47,38 +47,45 @@ def getrequestswithstatus():
     try:
         cursor = conn.cursor()
         query = '''
-            SELECT DISTINCT ON (fmr.foiministryrequestid) 
-            fmr.foiministryrequestid, 
-            fmr.version, 
-            fmr.axisrequestid, 
-            fr.requesttype, 
-            fr.receiveddate,
-            pa.iaocode AS programareacode,
-            (SELECT JSON_AGG(
-                JSON_BUILD_OBJECT(
-                    'DivisionID', sub_fmd.divisionid,
-                    'Name', pad.name
+                SELECT DISTINCT ON (fmr.foiministryrequestid) 
+                    fmr.foiministryrequestid, 
+                    fmr.version, 
+                    fmr.axisrequestid, 
+                    fr.requesttype, 
+                    fr.receiveddate,
+                    pa.iaocode AS programareacode,
+                    (SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'DivisionID', sub_fmd.divisionid,
+                            'Name', pad.name
+                        )
+                    )
+                    FROM (
+                        SELECT DISTINCT fmd.divisionid
+                        FROM "FOIMinistryRequestDivisions" fmd
+                        WHERE fmd.foiministryrequest_id = fmr.foiministryrequestid
+                    ) sub_fmd
+                    LEFT JOIN "ProgramAreaDivisions" pad 
+                    ON sub_fmd.divisionid = pad.divisionid
+                    ) AS division
+                FROM "FOIMinistryRequests" fmr
+                JOIN "FOIRequestStatuses" frs 
+                    ON fmr.requeststatusid = frs.requeststatusid
+                JOIN "FOIRequests" fr 
+                    ON fmr.foiministryrequestid = fr.foirequestid 
+                    AND fmr.version = fr.version
+                LEFT JOIN "ProgramAreas" pa 
+                    ON fmr.programareaid = pa.programareaid
+                WHERE fmr."isactive" = true 
+                AND EXISTS (
+                    SELECT 1
+                    FROM "FOIMinistryRequests" fm2
+                    INNER JOIN "FOIRequestStatuses" fs2 
+                        ON fm2.requeststatusid = fs2.requeststatusid
+                    WHERE fm2.foiministryrequestid = fmr.foiministryrequestid
+                    AND fs2."name" = %s
                 )
-            )
-            FROM (
-                SELECT DISTINCT fmd.divisionid
-                FROM "FOIMinistryRequestDivisions" fmd
-                WHERE fmd.foiministryrequest_id = fmr.foiministryrequestid
-            ) sub_fmd
-            LEFT JOIN "ProgramAreaDivisions" pad 
-            ON sub_fmd.divisionid = pad.divisionid
-            ) AS division
-            FROM "FOIMinistryRequests" fmr
-            JOIN "FOIRequestStatuses" frs 
-                ON fmr.requeststatusid = frs.requeststatusid
-            JOIN "FOIRequests" fr 
-                ON fmr.foiministryrequestid = fr.foirequestid 
-                AND fmr.version = fr.version
-            LEFT JOIN "ProgramAreas" pa 
-    	        ON fmr.programareaid = pa.programareaid
-            WHERE fmr."isactive" = true 
-            AND frs."name" = %s
-            ORDER BY fmr.foiministryrequestid, fmr.version DESC;
+                ORDER BY fmr.foiministryrequestid, fmr.version DESC;
         '''
         parameters = (REQUEST_STATUS,)
         cursor.execute(query, parameters)
