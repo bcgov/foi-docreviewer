@@ -1,6 +1,29 @@
 # Step 1: Use the official Golang image as the builder
 FROM golang:1.22 as builder
 
+
+ARG AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST
+ARG AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT
+ARG AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME
+ARG AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME
+ARG AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD
+ARG AZDOCEXTRACT_LISTENING_PORT
+ARG AZDOCEXTRACT_API_SECRET
+ARG AZDOCEXTRACT_ALLOWED_ORIGINS
+
+ENV AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST ${AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST}
+ENV AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT ${AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT}
+ENV AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME ${AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME}
+ENV AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME ${AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME}
+ENV AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD ${AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD}
+ENV AZDOCEXTRACT_LISTENING_PORT ${AZDOCEXTRACT_LISTENING_PORT}
+ENV AZDOCEXTRACT_API_SECRET ${AZDOCEXTRACT_API_SECRET}
+ENV AZDOCEXTRACT_ALLOWED_ORIGINS ${AZDOCEXTRACT_ALLOWED_ORIGINS}
+
+
+# Create a directory for the application
+RUN mkdir -p /app
+
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -14,19 +37,19 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o main .
+RUN go build -o azuredocextractapi .
 
 # Step 2: Use a minimal image for the final container
-FROM alpine:latest
+#FROM alpine:latest
 
-# Set up working directory
-WORKDIR /root/
+# # Set up working directory
+# WORKDIR /root/
 
-# Copy the compiled binary from the builder stage
-COPY --from=builder /app/main .
+# # Copy the compiled binary from the builder stage
+# COPY --from=builder /app/azuredocextractapi .
 
 # Expose the port your API will run on (default 8080 in most examples)
-EXPOSE 8080
+EXPOSE 62863
 
 # Command to run the API
-CMD ["./main"]
+CMD ["./azuredocextractapi"]

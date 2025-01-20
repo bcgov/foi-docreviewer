@@ -43,7 +43,7 @@ func main() {
 	// Apply middleware to check for custom header
 	router.Use(customHeaderMiddleware)
 
-	apilistenPort, err := strconv.Atoi(utils.ViperEnvVariable("LISTENING_PORT"))
+	apilistenPort, err := strconv.Atoi(utils.ViperEnvVariable("AZDOCEXTRACT_LISTENING_PORT"))
 	if err != nil {
 		fmt.Println("Error converting string to int:", err)
 		return
@@ -57,7 +57,8 @@ func main() {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", utils.ViperEnvVariable("AllowedOrigins")) // Allow all origins or specify a domain
+		allowedorigins := utils.ViperEnvVariable("AZDOCEXTRACT_ALLOWED_ORIGINS")
+		w.Header().Set("Access-Control-Allow-Origin", allowedorigins) // Allow all origins or specify a domain
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -77,7 +78,7 @@ func customHeaderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for the custom header
 		headerValue := r.Header.Get("X-FOI-Extraction-Secret")
-		if headerValue == "" || headerValue != utils.ViperEnvVariable("API_SECRET") {
+		if headerValue == "" || headerValue != utils.ViperEnvVariable("AZDOCEXTRACT_API_SECRET") {
 			http.Error(w, "Missing or invalid custom header", http.StatusForbidden)
 			return
 		}

@@ -52,9 +52,9 @@ func (db *DB) insertextractiondata(extractionJob types.ExtractionJob) (int64, er
 func UpdateExtractionJob(extractionJob types.ExtractionJob) (int64, error) {
 	// Replace with your PostgreSQL connection string
 	dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		utils.ViperEnvVariable("FOIDOCREVIEWER_DB_HOST"), utils.ViperEnvVariable("FOIDOCREVIEWER_DB_PORT"),
-		utils.ViperEnvVariable("FOIDOCREVIEWER_DB_USERNAME"), utils.ViperEnvVariable("FOIDOCREVIEWER_DB_PASSWORD"),
-		utils.ViperEnvVariable("FOIDOCREVIEWER_DB_NAME"),
+		utils.ViperEnvVariable("AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST"), utils.ViperEnvVariable("AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT"),
+		utils.ViperEnvVariable("AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME"), utils.ViperEnvVariable("AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD"),
+		utils.ViperEnvVariable("AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME"),
 	)
 
 	// Initialize the database connection
