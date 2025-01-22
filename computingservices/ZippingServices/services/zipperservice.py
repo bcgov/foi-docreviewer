@@ -113,16 +113,18 @@ def __zipfilesandupload(_message, s3credentials):
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
                     _formattedbytes = None
+                    _filename, extension = path.splitext(fileobj["s3uripath"])
                     
-                    try:                           
-                        _formattedbytes = __removesensitivecontent(_docbytes)
-                        if _formattedbytes is not None:
-                            print("_formattedbytes length is {0}".format(len(_formattedbytes)))
-                        else:
-                           print("_formattedbytes is none")                                
-                    except Exception:
-                        print("error happened while removing sensitive content of {0} ".format(filename))
-                        print(traceback.format_exc())
+                    if extension == '.pdf':
+                        try:
+                            _formattedbytes = __removesensitivecontent(_docbytes)
+                            if _formattedbytes is not None:
+                                print("_formattedbytes length is {0}".format(len(_formattedbytes)))
+                            else:
+                                print("_formattedbytes is none")                                
+                        except Exception:
+                            print("error happened while removing sensitive content of {0} ".format(filename))
+                            print(traceback.format_exc())
                     #added a space to try out code merge on git. 18-Sept-2024    
                     zip.writestr(
                         filename, _docbytes if _formattedbytes is None else _formattedbytes
