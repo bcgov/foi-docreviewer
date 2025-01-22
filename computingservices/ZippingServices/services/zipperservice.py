@@ -15,6 +15,7 @@ from .notificationservice import notificationservice
 import json
 import traceback
 import PyPDF2
+from os import path
 
 def processmessage(message):
     try:
