@@ -137,6 +137,7 @@ class redactionsummary():
 
         except Exception as error:
             print('CFD Error occurred in redaction dts service: ', error)
+            traceback.print_exc()
 
 
     def __calculate_range(self, mapped_flags, docids):
