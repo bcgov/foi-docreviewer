@@ -341,8 +341,12 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item})
-        return section_list
+                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item, 
+                                     "page_no": self.__getrangenumber(range_item) if '-' in range_item else int(range_item)})
+        
+        section_list.sort(key=lambda x: x['page_no'])
+        formatted_section_list = [{"formatted":item['formatted']} for item in section_list]
+        return formatted_section_list
 
     
     def __getredactionlayerid(self, message):
