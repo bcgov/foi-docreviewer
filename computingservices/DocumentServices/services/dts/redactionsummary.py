@@ -119,8 +119,8 @@ class redactionsummary():
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                if len(set(record["documentids"]).intersection(set(pagecounts.keys()))) > 0:
-                    for document_id in record["documentids"]:
+                for document_id in record["documentids"]:
+                    if document_id in (set(pagecounts.keys())):
                         # print("-----------------------Record : ---------------------------", record["documentids"])
                         record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
