@@ -417,9 +417,9 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
             #Flatten comments - collect all the annots with content
             if "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
-                author = annotation_obj["/T"]
-                subject = annotation_obj["/Subj"]
-                annotationdate=annotation_obj["/CreationDate"]
+                author = annotation_obj["/T"] if "/T" in annotation_obj else ""
+                subject = annotation_obj["/Subj"] if "/Subj" in annotation_obj else ""
+                annotationdate=annotation_obj["/CreationDate"] if "/CreationDate" in annotation_obj else ""
                 #print(f'annotationdate:{annotationdate} , comment:{comment}')
                 creationdate= __converttoPST(annotationdate) 
                 comments.append({
