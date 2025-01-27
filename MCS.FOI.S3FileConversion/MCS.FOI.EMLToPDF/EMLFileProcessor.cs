@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Primitives;
 using MsgReader;
 using MsgReader.Helpers;
 using MsgReader.Outlook;
@@ -38,10 +39,10 @@ namespace MCS.FOI.EMLToPDF
         public EMLFileProcessor() { }
 
 
-        public EMLFileProcessor(Stream sourceStream, string destinationPath, string fileName)
+        public EMLFileProcessor(Stream sourceStream)
         {
-            this.DestinationPath = destinationPath;
-            this.MSGFileName = fileName;
+            //this.DestinationPath = destinationPath;
+            //this.MSGFileName = fileName;
             this.SourceStream = sourceStream;
 
         }
@@ -69,25 +70,25 @@ namespace MCS.FOI.EMLToPDF
                         var attachments = msg.Attachments;
                         foreach (Object attachment in attachments)
                         {
-                            var type = attachment.GetType().FullName;
-                            if (type.ToLower().Contains("message"))
-                            {
-                                var file = (MsgReader.Mime.MessagePart)attachment;
-                                problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                problematicFiles.Add(file.FileName, file);
+                            //var type = attachment.GetType().FullName;
+                            //if (type.ToLower().Contains("message"))
+                            //{
+                            //    var file = (MsgReader.Mime.MessagePart)attachment;
+                            //    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                            //    problematicFiles.Add(file.FileName, file);
 
-                            }
-                            else
-                            {
-                                var file = (Storage.Attachment)attachment;
-                                if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
-                                {
-                                    problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
-                                    problematicFiles.Add(file.FileName, file);
+                            //}
+                            //else
+                            //{
+                            //    var file = (Storage.Attachment)attachment;
+                            //    if (file.FileName.ToLower().Contains(".xls") || file.FileName.ToLower().Contains(".ics") || file.FileName.ToLower().Contains(".msg"))
+                            //    {
+                            //        problematicFiles = problematicFiles == null ? new Dictionary<string, Object>() : problematicFiles;
+                            //        problematicFiles.Add(file.FileName, file);
 
-                                }
+                            //    }
 
-                            }
+                            //}
                         }
 
                         if (problematicFiles != null)
@@ -122,7 +123,8 @@ namespace MCS.FOI.EMLToPDF
                             moved = true;
                             message = string.Concat($"{cnt} problematic files moved", outputpath);
                         }
-                        (output, document) = ConvertHTMLtoPDF(htmlString, output, attachmentList);
+                        bool isConverted;
+                        (output, isConverted) = ConvertHTMLtoPDF(htmlString, output);
                         break;
                     }
                     catch(Exception e)
@@ -162,14 +164,14 @@ namespace MCS.FOI.EMLToPDF
             try
             {
                 StringBuilder htmlString = new StringBuilder();
-                htmlString.Append(@"
-                            <html>
-                                <head>
-                                </head>
-                                <body style='border: 50px solid white;'>
-                                    ");
+                //htmlString.Append(@"
+                //            <html>
+                //                <head>
+                //                </head>
+                //                <body style='border: 50px solid white;'>
+                //                    ");
 
-                htmlString.Append(@"<div class='header style='padding:2% 0 2% 0; border-top:5px solid white; border-bottom: 5px solid white;'><table style='border: 5px; padding: 0; font-size:20px;'>");
+                htmlString.Append(@"<table style=""font-family: Times New Roman; font-size: 12pt;"">");
                 
                 string sender = string.Empty;
                 var emailHeader = msg.Headers;
@@ -232,6 +234,9 @@ namespace MCS.FOI.EMLToPDF
                                 <td><b>Priority: </b></td>
                                 <td>" + emailHeader.Importance + "</td></tr>");
                 }
+                htmlString.Append(@"
+                                    </table><br/>
+                                </div>");
                 //Message body
                 string message = "";
                 if (!msg.MessagePart.IsMultiPart)
@@ -239,28 +244,30 @@ namespace MCS.FOI.EMLToPDF
                     message = @"" + msg.TextBody.GetBodyAsText().Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br>");
                     message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
                     message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
-                    htmlString.Append(@"<tr>
-                                <td><b>Message Body: </b></td>
-                                </tr>
-                                <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                    //htmlString.Append(@"<tr>
+                    //            <td><b>Message Body: </b></td>
+                    //            </tr>
+                    //            <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                    htmlString.Append(message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>"));
                 }
                 else
                 {
                     var body = msg.HtmlBody.GetBodyAsText();
                     message = @"" + body;
-                    message = message.Replace("<html>","<br>").Replace("</html>", "<br>");
+                    message = message.Replace(" < html>","<br>").Replace("</html>", "<br>");
                     message = message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>");
                     message = message.Replace("&lt;a", "<a").Replace("&lt;/a&gt;", "</a>");
-                    htmlString.Append(@"<tr>
-                                <td><b>Message Body: </b></td>
-                                </tr>
-                                <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                    //htmlString.Append(@"<tr>
+                    //            <td><b>Message Body: </b></td>
+                    //            </tr>
+                    //            <tr><td></td><td>" + message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>") + "</td></tr>");
+                    htmlString.Append(message.Replace("&lt;br&gt;", "<br>").Replace("&lt;br/&gt;", "<br/>"));
                 }
                 
                 
-                htmlString.Append(@"
-                                    </table>
-                                </div>");
+                //htmlString.Append(@"
+                //                    </table>
+                //                </div>");
 
                 htmlString.Append(@"</body></html>");
                 return htmlString.ToString();
@@ -274,54 +281,36 @@ namespace MCS.FOI.EMLToPDF
             }
         }
 
-        private (MemoryStream, PdfDocument) ConvertHTMLtoPDF(string strHTML, MemoryStream output, PdfAttachmentCollection attachmentList)
+        private (MemoryStream, bool) ConvertHTMLtoPDF(string strHTML, MemoryStream output)
         {
             bool isConverted;
-            FileStream fileStream = null;
-            PdfDocument document = new PdfDocument();
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
-                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.WebKit);
-                WebKitConverterSettings webKitConverterSettings = new WebKitConverterSettings() { EnableHyperLink = true };
-                //Point to the webkit based on the platform the application is running
-                webKitConverterSettings.WebKitPath = HTMLtoPdfWebkitPath;
-                //Assign WebKit converter settings to HTML converter
-                htmlConverter.ConverterSettings = webKitConverterSettings;
-                htmlConverter.ConverterSettings.Margin.All = 25;
-                htmlConverter.ConverterSettings.EnableHyperLink = true;
-                htmlConverter.ConverterSettings.PdfPageSize = PdfPageSize.A4;
+                HtmlToPdfConverter htmlConverter = new HtmlToPdfConverter(HtmlRenderingEngine.Blink);
+                BlinkConverterSettings settings = new BlinkConverterSettings();
+                //Set command line arguments to run without sandbox.
+                settings.CommandLineArguments.Add("--no-sandbox");
+                settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                settings.Scale = 1.0F;
+                htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
-                document = htmlConverter.Convert(strHTML, "");
-
-                CreateOutputFolder();
-                string outputPath = Path.Combine(DestinationPath, $"{Path.GetFileNameWithoutExtension(MSGFileName)}.pdf");
-                fileStream = new FileStream(outputPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-
+                PdfDocument document = htmlConverter.Convert(strHTML, "");
                 //Save and close the PDF document 
-                document.Save(fileStream);
-                for (int i = 0; i < attachmentList.Count; i++)
-                {
-                    document.Attachments.Add(attachmentList[i]);
-                }
                 document.Save(output);
                 document.Close(true);
-                
                 isConverted = true;
+
             }
             catch (Exception ex)
             {
                 isConverted = false;
-                string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
+                string error = $"Exception Occured while coverting file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
                 Console.WriteLine(error);
                 throw;
             }
-            finally
-            {
-                if (fileStream != null)
-                    fileStream.Dispose();
-            }
-            return (output, document);
+
+            return (output, isConverted);
         }
 
 

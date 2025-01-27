@@ -7,6 +7,7 @@ using MCS.FOI.DocToPDF;
 using MCS.FOI.PPTToPDF;
 using MCS.FOI.ExcelToPDF;
 using MCS.FOI.MSGToPDF;
+using MCS.FOI.EMLToPDF;
 using MCS.FOI.S3FileConversion.Utilities;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
@@ -29,6 +30,7 @@ namespace MCS.FOI.S3FileConversion
         DocFileProcessor docFileProcessor = null;
         PptFileProcessor pptFileProcessor = null;
         MSGFileProcessor msgFileProcessor = null;
+        EMLFileProcessor emlFileProcessor = null;
         CalendarFileProcessor calendarFileProcessor = null;
         List<Dictionary<string, string>> returnAttachments = null;
         public S3Handler() { }
@@ -87,6 +89,9 @@ namespace MCS.FOI.S3FileConversion
                                 break;
                             case ".msg":                                
                                 (output, attachments) = ConvertMSGFiles(responseStream);
+                                break;
+                            case ".eml":
+                                output = ConvertEMLFiles(responseStream);
                                 break;
                             case ".doc":
                             case ".docx":
@@ -219,6 +224,18 @@ namespace MCS.FOI.S3FileConversion
             };
             var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             return (output, attachments);
+        }
+
+        private Stream ConvertEMLFiles(Stream input)
+        {
+            emlFileProcessor = new EMLFileProcessor(input)
+            {
+                IsSinglePDFOutput = false,
+                WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+            };
+            var (converted, message, output, attachments) = emlFileProcessor.ConvertToPDF();
+            return attachments;
         }
 
 
