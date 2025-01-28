@@ -315,6 +315,51 @@ class DocumentPageflag(db.Model):
         return pageflags
 
     @classmethod
+    def get_pageflag_count_by_requestids(cls, requestid, redactionlayerid):
+        try:
+            # Return empty dict if requestids is empty or None
+            if not requestid:
+                logging.error("RequestIDs is empty or None")
+                return {}
+            sql = """
+                select dp.foiministryrequestid, count(distinct dp.documentid) as page_count
+                from "DocumentPageflags" dp
+                where dp.foiministryrequestid in :requestid
+                and dp.redactionlayerid = :redactionlayerid
+                group by dp.foiministryrequestid
+                order by dp.foiministryrequestid;
+            """
+            
+            rs = db.session.execute(
+                text(sql),
+                {
+                    "requestid": tuple(requestid),
+                    "redactionlayerid": redactionlayerid 
+                }
+            )
+
+            result = {}
+            rows = rs.fetchall()
+
+            # Return empty dict if no results found
+            if not rows:
+                return {}
+
+            # Process results if exists
+            for row in rows:
+                count = row["page_count"]
+                result[row["foiministryrequestid"]] = None if count == 0 else count
+
+            return result
+
+        except Exception as ex:
+            logging.error(f"Error in get_pageflag_count_by_requestids: {str(ex)}")
+            db.session.close()
+            raise ex
+        finally:
+            db.session.close()
+
+    @classmethod
     def getpublicbody_by_request(cls, _foiministryrequestid, _redactionlayerid):
         pageflags = []
         try:

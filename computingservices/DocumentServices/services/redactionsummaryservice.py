@@ -24,10 +24,10 @@ class redactionsummaryservice():
             #Condition for handling oipcredline category
             bcgovcode= message.bcgovcode
             requesttype = message.requesttype
-            if bcgovcode == 'mcf' and requesttype == 'personal' and category == 'responsepackage':
+            if bcgovcode == 'mcf' and requesttype == 'personal' and category in ('responsepackage', 'openinfo'):
                 documenttypename= 'CFD_responsepackage_redaction_summary'
             else:
-                documenttypename= category+"_redaction_summary" if category == 'responsepackage' else "redline_redaction_summary"
+                documenttypename= "responsepackage_redaction_summary" if category in ('responsepackage', 'openinfo') else "redline_redaction_summary"
             print('\n 2. documenttypename', documenttypename)
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
@@ -49,11 +49,11 @@ class redactionsummaryservice():
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
-                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None
+                        divisioname=(next(item for item in messageattributes if item['divisionid'] == divisionid))['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'openinfo') else None
                         
                     else:
                         filesobj= messageattributes[0]['files'][0]
-                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
+                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'openinfo') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename'] 
@@ -84,8 +84,10 @@ class redactionsummaryservice():
         
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
-        if category == 'responsepackage':
+        if category in 'responsepackage':
             _filename = requestnumber
+        elif category == 'openinfo':
+            return "Redaction_Summary_" + requestnumber + ".pdf"
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'
         else:
@@ -96,7 +98,7 @@ class redactionsummaryservice():
         return stitchedfilepath+_filename+" - summary.pdf"
   
     def __get_pageflags(self, category):
-        if category == "responsepackage":            
+        if category in ("responsepackage", "openinfo"):            
             return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
         return documentpageflag().get_all_pageflags(['Consult'])
         

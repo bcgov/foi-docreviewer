@@ -283,13 +283,11 @@ const Redlining = React.forwardRef(
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
             menu.appendChild(consultPackageButton);
-            if (currentLayerRef.current.name.toLowerCase() === "open info" && user && user?.groups?.includes("/OI Team")){
-              const publicationPackageBtn= createPublicationPackageSelection(document, enablePublication)
-              publicationPackageBtn.onclick = () => {
-                handlePublicationPackageClick(updateModalData, setRedlineModalOpen)
-              }
-              menu.appendChild(publicationPackageBtn);
+            const publicationPackageBtn= createPublicationPackageSelection(document, enablePublication);
+            publicationPackageBtn.onclick = () => {
+              handlePublicationPackageClick(updateModalData, setRedlineModalOpen)
             }
+            menu.appendChild(publicationPackageBtn);
             parent.appendChild(menu);
 
             //Create render function to render custom Create Reseponse PDF button
@@ -994,7 +992,7 @@ const Redlining = React.forwardRef(
                       (data) => {
                         if(data.status == true){
                           const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag, pageFlags)
-                          if(updatedPageFlags?.length > 0)
+                          if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                             syncPageFlagsOnAction(updatedPageFlags);
                         }
                         // fetchPageFlag(
@@ -1175,9 +1173,9 @@ const Redlining = React.forwardRef(
                   requestid,
                   astr,
                   (data) => {
-                    if(data.status == true){
+                    if(data.status == true && data.updatedpageflag){
                       const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                      if(updatedPageFlags?.length > 0)
+                      if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                         syncPageFlagsOnAction(updatedPageFlags);
                     }
                   },
@@ -1432,11 +1430,12 @@ const Redlining = React.forwardRef(
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const isOILayerSelected = currentLayer.name.toLowerCase() == "open info" ? true : false;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      const isOITeam = user && user?.groups?.includes("/OI Team");
       checkSavingConsults(documentList, isOILayerSelected, _instance);
       checkSavingRedline(redlineReadyAndValid, isOILayerSelected, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, isOILayerSelected, _instance);
-      checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance);
+      checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance, isOITeam);
     };
 
     //useEffect to handle validation of Response Package downloads
@@ -1817,7 +1816,7 @@ const Redlining = React.forwardRef(
             setPageSelections([]);
             if(data.status == true){
               const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-              if(updatedPageFlags?.length > 0)
+              if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                 syncPageFlagsOnAction(updatedPageFlags);
             }       
             // fetchPageFlag(
@@ -1978,7 +1977,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   if(data.status == true){
                     const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                    if(updatedPageFlags?.length > 0)
+                    if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                       syncPageFlagsOnAction(updatedPageFlags);
                   }
                   // fetchPageFlag(
@@ -2480,7 +2479,7 @@ const Redlining = React.forwardRef(
           );
           break;
         case "responsepackage":
-        case "publicationpackage":
+        case "openinfo":
           saveResponsePackage(
             docViewer,
             annotManager,

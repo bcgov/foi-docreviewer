@@ -239,7 +239,7 @@ const useSaveResponsePackage = () => {
       documentList[0],
       downloadPackageType,
       async (res) => {
-        const toastID = downloadPackageType == "publicationpackage" ?
+        const toastID = downloadPackageType == "openinfo" ?
           toast.loading("Start generating publication package..."): toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
@@ -397,12 +397,12 @@ const useSaveResponsePackage = () => {
     }
   };
 
-  const checkSavingPublicationPackage = (redlineReadyAndValid, isOILayerSelected, instance) =>{
+  const checkSavingPublicationPackage = (redlineReadyAndValid, isOILayerSelected, instance, isOITeam) =>{
     setEnablePublication(redlineReadyAndValid && isOILayerSelected)
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("publication_package").disabled =
-        !redlineReadyAndValid || !isOILayerSelected;
+        !redlineReadyAndValid || !isOILayerSelected || !isOITeam;
     }
   }
 
