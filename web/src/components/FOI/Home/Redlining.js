@@ -994,7 +994,7 @@ const Redlining = React.forwardRef(
                       (data) => {
                         if(data.status == true){
                           const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag, pageFlags)
-                          if(updatedPageFlags?.length > 0)
+                          if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                             syncPageFlagsOnAction(updatedPageFlags);
                         }
                         // fetchPageFlag(
@@ -1177,7 +1177,7 @@ const Redlining = React.forwardRef(
                   (data) => {
                     if(data.status == true){
                       const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                      if(updatedPageFlags?.length > 0)
+                      if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                         syncPageFlagsOnAction(updatedPageFlags);
                     }
                   },
@@ -1817,7 +1817,7 @@ const Redlining = React.forwardRef(
             setPageSelections([]);
             if(data.status == true){
               const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-              if(updatedPageFlags?.length > 0)
+              if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                 syncPageFlagsOnAction(updatedPageFlags);
             }       
             // fetchPageFlag(
@@ -1978,7 +1978,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   if(data.status == true){
                     const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                    if(updatedPageFlags?.length > 0)
+                    if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                       syncPageFlagsOnAction(updatedPageFlags);
                   }
                   // fetchPageFlag(
