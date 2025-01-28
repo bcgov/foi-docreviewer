@@ -244,8 +244,12 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 			contentType = "application/pdf"
 		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".docx") {
 			contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".doc") {
+			contentType = "application/msword"
 		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".xlsx") {
 			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".xls") {
+			contentType = "application/vnd.ms-excel"
 		} else {
 			// Set default content type or leave it unset
 			contentType = "application/octet-stream"
