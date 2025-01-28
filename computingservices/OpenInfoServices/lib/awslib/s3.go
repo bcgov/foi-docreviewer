@@ -294,6 +294,28 @@ func SaveFileS3(openInfoBucket string, openInfoPrefix string, filename string, b
 	return err
 }
 
+func SaveHTMLS3(openInfoBucket string, openInfoPrefix string, filename string, buf []byte) error {
+	bucket := openInfoBucket //"dev-openinfopub"
+	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket
+
+	svc := CreateS3Client()
+
+	// Upload the HTML content to S3
+	_, err := svc.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(prefix + filename),
+		Body:        bytes.NewReader(buf),
+		ContentType: aws.String("text/html"),
+	})
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+	} else {
+		fmt.Println("File uploaded successfully!")
+	}
+
+	return err
+}
+
 func SaveXMLS3(openInfoBucket string, openInfoPrefix string, filename string, buf []byte) error {
 	bucket := openInfoBucket //"dev-openinfopub"
 	prefix := openInfoPrefix //"poc/packages/HSG_2024_40515/" // Folder prefix in the bucket

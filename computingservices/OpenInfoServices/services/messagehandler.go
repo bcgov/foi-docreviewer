@@ -102,7 +102,7 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	}
 
 	buf := files.CreateHTML(variables)
-	err = awslib.SaveFileS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", msg.Axisrequestid+".html", buf.Bytes())
+	err = awslib.SaveHTMLS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", msg.Axisrequestid+".html", buf.Bytes())
 	if err != nil {
 		log.Fatalf("%v", err)
 		return
