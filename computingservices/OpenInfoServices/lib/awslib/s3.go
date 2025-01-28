@@ -240,17 +240,24 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 		var contentType string
 		if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".html") {
 			contentType = "text/html"
+		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".pdf") {
+			contentType = "application/pdf"
+		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".docx") {
+			contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".xlsx") {
+			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 		} else {
 			// Set default content type or leave it unset
 			contentType = "application/octet-stream"
 		}
 
 		_, err := svc.CopyObject(context.TODO(), &s3.CopyObjectInput{
-			Bucket:      aws.String(destBucket),
-			CopySource:  aws.String(bucket + "/" + sourceKey),
-			Key:         aws.String(destKey),
-			ACL:         types.ObjectCannedACLPublicRead,
-			ContentType: aws.String(contentType),
+			Bucket:            aws.String(destBucket),
+			CopySource:        aws.String(bucket + "/" + sourceKey),
+			Key:               aws.String(destKey),
+			ACL:               types.ObjectCannedACLPublicRead,
+			ContentType:       aws.String(contentType),
+			MetadataDirective: types.MetadataDirectiveReplace,
 		})
 		if err != nil {
 			log.Fatalf("unable to copy item %q, %v", sourceKey, err)
