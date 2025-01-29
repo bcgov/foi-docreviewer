@@ -115,16 +115,17 @@ def __zipfilesandupload(_message, s3credentials):
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
                     _formattedbytes = None
                     _filename, extension = path.splitext(fileobj["s3uripath"])
-                    
-                    try:                           
-                        _formattedbytes = __removesensitivecontent(_docbytes)
-                        if _formattedbytes is not None:
-                            print("_formattedbytes length is {0}".format(len(_formattedbytes)))
-                        else:
-                           print("_formattedbytes is none")                                
-                    except Exception:
-                        print("error happened while removing sensitive content of {0} ".format(filename))
-                        print(traceback.format_exc())
+
+                    if extension.lower() == '.pdf':
+                        try:                           
+                            _formattedbytes = __removesensitivecontent(_docbytes)
+                            if _formattedbytes is not None:
+                                print("_formattedbytes length is {0}".format(len(_formattedbytes)))
+                            else:
+                               print("_formattedbytes is none")                                
+                        except Exception:
+                            print("error happened while removing sensitive content of {0} ".format(filename))
+                            print(traceback.format_exc())
                     #added a space to try out code merge on git. 18-Sept-2024    
                     zip.writestr(
                         filename, _docbytes if _formattedbytes is None else _formattedbytes
@@ -176,19 +177,3 @@ def __getzipfilepath(foldername, filename):
         else filename + ".zip"
     )
 
-
-def __removesensitivecontent(documentbytes):
-    # clear metadata
-    reader2 = PyPDF2.PdfReader(BytesIO(documentbytes))
-    # Check if metadata exists.
-    if reader2.metadata is not None:
-        # Create a new PDF file without metadata.
-        writer = PyPDF2.PdfWriter()
-        # Copy pages from the original PDF to the new PDF.
-        for page_num in range(len(reader2.pages)):
-            page = reader2.pages[page_num]                
-            writer.add_page(page)        
-        #writer.remove_links() # to remove comments.
-        buffer = BytesIO()
-        writer.write(buffer)
-        return buffer.getvalue()
