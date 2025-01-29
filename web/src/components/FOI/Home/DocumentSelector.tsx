@@ -189,7 +189,8 @@ const DocumentSelector = React.memo(
         setConsultMinistries(
           data.find((flag: any) => flag.name === "Consult").programareas
         );
-        setPageFlagList(data);
+        let sorted= data.sort((a:any, b:any) => a.sortorder - b.sortorder);
+        setPageFlagList(sorted);
       };
 
       const updateCompletionCounter = () => {
@@ -888,13 +889,36 @@ const DocumentSelector = React.memo(
             <div>
               <span className="filterText">Filter:</span>
               <span>
-                {pageFlagList.map((item: any) => (
-                  <>
-                    {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
-                      <span
-                        style={consultFilterStyle}
-                        onClick={(event) => openConsulteeList(event)}
-                      >
+                {pageFlagList.map((item: any, index: number) => {
+                  return(
+                    <>
+                      {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
+                        <span
+                          style={consultFilterStyle}
+                          onClick={(event) => openConsulteeList(event)}
+                        >
+                          <FontAwesomeIcon
+                            key={item.pageflagid}
+                            title={item.name}
+                            className={
+                              item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
+                                ? "filterConsultIcon"
+                                : "filterIcons"
+                            }
+                            id={item.pageflagid}
+                            style={{ color: "inherit" }}
+                            icon={assignIcon(item.pageflagid) as IconProp}
+                            size="1x"
+                          />
+                          <FontAwesomeIcon
+                            className={"filterDropDownIcon"}
+                            icon={faAngleDown as IconProp}
+                            style={{ color: "inherit" }}
+                          />
+                        </span>
+                      ) : ((item.pageflagid == "Phases" || item.pageflagid == pageFlagTypes['Phases'] && 
+                        requestInfo?.isphasedrelease )|| item.pageflagid != pageFlagTypes['Phases'] )&&
+                      (
                         <FontAwesomeIcon
                           key={item.pageflagid}
                           title={item.name}
@@ -903,36 +927,16 @@ const DocumentSelector = React.memo(
                               ? "filterConsultIcon"
                               : "filterIcons"
                           }
+                          onClick={(event) =>
+                            applyFilter(item.pageflagid, null, event, [])
+                          }
                           id={item.pageflagid}
-                          style={{ color: "inherit" }}
                           icon={assignIcon(item.pageflagid) as IconProp}
                           size="1x"
                         />
-                        <FontAwesomeIcon
-                          className={"filterDropDownIcon"}
-                          icon={faAngleDown as IconProp}
-                          style={{ color: "inherit" }}
-                        />
-                      </span>
-                    ) : (
-                      <FontAwesomeIcon
-                        key={item.pageflagid}
-                        title={item.name}
-                        className={
-                          item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
-                            ? "filterConsultIcon"
-                            : "filterIcons"
-                        }
-                        onClick={(event) =>
-                          applyFilter(item.pageflagid, null, event, [])
-                        }
-                        id={item.pageflagid}
-                        icon={assignIcon(item.pageflagid) as IconProp}
-                        size="1x"
-                      />
-                    )}
-                  </>
-                ))}
+                      )}
+                    </>
+                  )})}
                 <FontAwesomeIcon
                   key="0"
                   title="No Flag"

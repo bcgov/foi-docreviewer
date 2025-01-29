@@ -122,7 +122,7 @@ const ContextMenu = ({
         </MenuList>
       );
     }
-    return pageFlagList?.map((pageFlag: any, index: number) => {
+    return pageFlagList?.map((pageFlag: any) => {
       return pageFlag?.name === "Page Left Off" ? (
         <div
           className="pageLeftOff"
@@ -137,7 +137,7 @@ const ContextMenu = ({
             }
           }}
         >
-          <hr className="hrStyle" />
+          {/* <hr className="hrStyle" /> */}
           <div>
             {pageFlag?.name}
             <span className="pageLeftOffIcon">
@@ -148,7 +148,17 @@ const ContextMenu = ({
             </span>
           </div>
         </div>
-      ) : (
+      ) : pageFlag?.name === "Phases" ? (
+        <div>
+          <hr className="hrStyle" />
+          <div style={{marginLeft:"16px"}}>
+            {pageFlag?.name}
+          </div>
+          <PhaseFlags pageFlag={pageFlag} />
+          <hr className="hrStyle" />
+        </div>
+      ): 
+      (
         <>
           <MenuList key={pageFlag?.pageflagid}>
             <MenuItem disabled={disablePageFlags}>
@@ -242,6 +252,67 @@ const ContextMenu = ({
       }      
     }
   };
+
+  const [showAll, setShowAll] = useState(false); // State to control visibility of all numbers
+  const[selectedPhaseFlag, setSelectedPhaseFlag] = useState({});
+  
+  const addPhaseFlag = (pageFlagId:number, phaseNumber:number)=>{
+    let phases=[]
+    phases.push(phaseNumber)
+    let phaseFlags = { flagid: pageFlagId, phases: phases }
+    setSelectedPhaseFlag(phaseFlags)
+    savePageFlags(pageFlagId,phaseFlags)
+  }
+  
+  const handleToggle = () => {
+    setShowAll(!showAll); // Toggle between showing all and showing the first 3
+  };
+
+  const PhaseFlags = ({pageFlag }: any) => {
+    return (
+      <div
+        className="phasesGrid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, auto)",
+          padding: "10px",
+          margin: "10px",
+        }}
+      >
+        {Array.from({ length: 9 }).map((_, index) => {
+          // If not showing all numbers, only display the first 3 and the "+"
+          if (!showAll && index > 2) {
+            return index === 3 ? (
+              <span
+                key={index}
+                style={{
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                }}
+                onClick={handleToggle}>+</span>
+            ) : null;
+          }
+          return (
+            <span
+              key={index}
+              style={{
+                fontSize: "1.5rem",
+                cursor: disablePageFlags ? "not-allowed" : "pointer",
+              }}
+              onClick={() => {
+                if (!disablePageFlags) {
+                  addPhaseFlag(pageFlag.pageflagid, (index+1))
+                }
+              }}
+            >
+              {index + 1}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+    
 
   return (
     <>
