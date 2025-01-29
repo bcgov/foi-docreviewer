@@ -15,7 +15,6 @@ from .notificationservice import notificationservice
 import json
 import traceback
 import PyPDF2
-from os import path
 
 def processmessage(message):
     try:
@@ -114,18 +113,16 @@ def __zipfilesandupload(_message, s3credentials):
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
                     _formattedbytes = None
-                    _filename, extension = path.splitext(fileobj["s3uripath"])
-
-                    if extension.lower() == '.pdf':
-                        try:                           
-                            _formattedbytes = __removesensitivecontent(_docbytes)
-                            if _formattedbytes is not None:
-                                print("_formattedbytes length is {0}".format(len(_formattedbytes)))
-                            else:
-                               print("_formattedbytes is none")                                
-                        except Exception:
-                            print("error happened while removing sensitive content of {0} ".format(filename))
-                            print(traceback.format_exc())
+                    
+                    try:                           
+                        _formattedbytes = __removesensitivecontent(_docbytes)
+                        if _formattedbytes is not None:
+                            print("_formattedbytes length is {0}".format(len(_formattedbytes)))
+                        else:
+                           print("_formattedbytes is none")                                
+                    except Exception:
+                        print("error happened while removing sensitive content of {0} ".format(filename))
+                        print(traceback.format_exc())
                     #added a space to try out code merge on git. 18-Sept-2024    
                     zip.writestr(
                         filename, _docbytes if _formattedbytes is None else _formattedbytes
@@ -176,4 +173,3 @@ def __getzipfilepath(foldername, filename):
         if foldername is not None
         else filename + ".zip"
     )
-
