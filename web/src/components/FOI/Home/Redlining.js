@@ -28,6 +28,7 @@ import {
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
   REDLINE_OPACITY,
+  REDACTION_SECTION_BUFFER
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -2117,7 +2118,8 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       // let rect = _redaction.getQuads()[0].toRect();
       let quad = _redaction.getQuads()[0];
-      let rect = new docInstance.Core.Math.Rect(quad.x1, quad.y3, quad.x2, quad.y2);
+      var buffer = Number(REDACTION_SECTION_BUFFER);
+      let rect = new docInstance.Core.Math.Rect(quad.x1 + buffer, quad.y3 + buffer, quad.x2 + buffer, quad.y2 + buffer);
       const doc = docViewer.getDocument();
       const pageInfo = doc.getPageInfo(_annot.PageNumber);
       const pageMatrix = doc.getPageMatrix(_annot.PageNumber);
