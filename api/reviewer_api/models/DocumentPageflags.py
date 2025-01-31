@@ -101,6 +101,7 @@ class DocumentPageflag(db.Model):
                 DocumentPageflag.id
             ).first()
             pageflag_schema = DocumentPageflagSchema(many=False)
+            print("savepageflag-pageflag:",pageflag)
             if pageflag is not None:
                 DocumentPageflagHistory.createpageflag(
                     DocumentPageflagHistory(

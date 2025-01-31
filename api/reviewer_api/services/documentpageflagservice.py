@@ -62,13 +62,19 @@ class documentpageflagservice:
 
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
         docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
+        print("\ndocpageflags1:",docpageflags)
+        print("\ndocpgattributes1:",docpgattributes)
         for pageflag in pageflags:
             if self.__isbookmark(pageflag) == True:
                 self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
-            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+            docpgattributes = self.handlepageflagattributes(docpgattributes, pageflag)
+            print("\ndocpgattributes2:",docpgattributes)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
+            print("\ndocpageflags:",docpageflags)
         __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
+        print("\n__docpgattributes:",__docpgattributes)
         __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
+        print("\n__docpageflags:",__docpageflags)
         return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
     async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
@@ -99,8 +105,11 @@ class documentpageflagservice:
                     }
                 )
         return results
+    
 
-    def handlepublicbody(self, docpgattributes, data):
+    def handlepageflagattributes(self, docpgattributes, data):
+        print("\ndata:",data)
+        print("\ndocpgattributes1:",docpgattributes)
         if "publicbodyaction" in data and data["publicbodyaction"] == "add":
             attributes = docpgattributes if docpgattributes not in (None, {}) else None
             publicbody = (
@@ -148,28 +157,56 @@ class documentpageflagservice:
     
     def __createnewpageflag(self, pageflag, data):
         formatted_data = self.__formatpageflag(data)  
+        print("formatted_data:",formatted_data)
         if not pageflag:
             pageflag = []
         match = [x for x in pageflag if x['page'] == data['page']] 
         filtered = [x for x in pageflag if x['page'] != data['page']]
+        print("match:",match)
+        print("filtered:",filtered)
         if len(match) == 0 and data['deleted'] == False:
             filtered.append(formatted_data)
         else:
             flag_consult = [x for x in match if x['flagid'] == 4]
-            flag_nonconsults = [x for x in match if x['flagid'] != 4]            
+            flag_nonconsults = [x for x in match if x['flagid'] != 4]
+            flag_nonconsultsorphases = [x for x in match if x['flagid'] not in [4,9]]  
+            flag_phase = [x for x in match if x['flagid'] == 9]
+            flag_nonphase = [x for x in match if x['flagid'] != 9]
+            print("flag_consult:",flag_consult)
+            print("flag_nonconsults:",flag_nonconsults)
+            print("flag_phase:",flag_phase)
             if data['deleted'] == True: 
+                print("!!!",data['flagid'])
                 if data['flagid'] == 0:
                     if self.__isdeleteallowed(data['redactiontype'], flag_nonconsults) == True:
+                        print("Delete1:",filtered + flag_consult)
                         return filtered + flag_consult
                     else:
+                        print("Delete2:",(filtered + filtered + flag_consult + flag_nonconsults))
                         return filtered + flag_consult + flag_nonconsults
-                return filtered + flag_nonconsults               
+                elif data['flagid'] == 9:
+                    print("Delete3:",(filtered + flag_nonphase))
+                    return filtered + flag_nonphase
+                print("Delete4:",(filtered + flag_nonconsults))
+                return filtered + flag_nonconsults   
+                #return filtered + flag_nonconsultsorphases            
             #Below block will only be executed during updates
             if data['flagid'] != 4 and len(flag_consult) > 0:
                 filtered = filtered + flag_consult
-            if data['flagid'] == 4 and len(flag_nonconsults) > 0:
-                filtered = filtered + flag_nonconsults            
+                print("filtered2:",filtered)
+            if data['flagid'] == 4 and len(flag_nonconsultsorphases) > 0:
+                filtered = filtered + flag_nonconsultsorphases  
+                print("filtered3:",filtered)
+            if data['flagid'] != 9 and len(flag_phase) > 0:
+                filtered = filtered + flag_phase
+                print("filtered4:",filtered)
+            if data['flagid'] == 9 and len(flag_nonconsultsorphases) > 0:
+                filtered = filtered + flag_nonconsultsorphases
+                print("filtered5:",filtered)
+
+
             filtered.append(formatted_data)
+        print("filtered-final:",filtered)
         return filtered
     
     def __isdeleteallowed(self, redactiontype, flag_nonconsults):      
