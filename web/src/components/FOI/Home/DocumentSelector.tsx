@@ -916,8 +916,8 @@ const DocumentSelector = React.memo(
                             style={{ color: "inherit" }}
                           />
                         </span>
-                      ) : ((item.pageflagid == "Phases" || item.pageflagid == pageFlagTypes['Phases'] && 
-                        requestInfo?.isphasedrelease )|| item.pageflagid != pageFlagTypes['Phases'] )&&
+                      ) : ((item.pageflagid == "Phase" || item.pageflagid == pageFlagTypes['Phase'] && 
+                        requestInfo?.isphasedrelease )|| item.pageflagid != pageFlagTypes['Phase'] )&&
                       (
                         <FontAwesomeIcon
                           key={item.pageflagid}

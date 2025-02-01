@@ -14,7 +14,7 @@ export const PAGE_FLAGS = {
     6:"Not Responsive",
     7:"In Progress",
     8:"Page Left Off",
-    9:"Phases"    
+    9:"Phase"    
 };
 
 export const pageFlagIcons: any = {
@@ -35,7 +35,7 @@ export const pageFlagIcons: any = {
     8: faBookmark,
     "Page Left Off": faBookmark,
     9: faLayerGroup,
-    "Phases": faLayerGroup,
+    "Phase": faLayerGroup,
 };
 
 

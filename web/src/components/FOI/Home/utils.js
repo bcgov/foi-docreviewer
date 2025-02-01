@@ -29,7 +29,7 @@ export const createPageFlagPayload = (
     }
     if (
       data &&
-      data?.phases?.length === 0 ) {
+      data?.phase?.length === 0 ) {
       deleted = true;
     }
     documentpageflags[page.docid].push({
