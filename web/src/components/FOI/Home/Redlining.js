@@ -237,12 +237,11 @@ const Redlining = React.forwardRef(
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
           instance.UI.enableNoteSubmissionWithEnter();
-          documentViewer.setToolMode(
-            documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
-          );
-          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
+          let redactionTool = documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
+          redactionTool.setStyles({
             StrokeColor: new Annotations.Color(255, 205, 69)
           });
+          documentViewer.setToolMode(redactionTool);
           const UIEvents = instance.UI.Events;
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
@@ -316,6 +315,42 @@ const Redlining = React.forwardRef(
               header.headers.default.length - 4,
               0,
               opacityToggle
+            );
+
+            const textSelectorToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      if (e.target.checked) {
+                        redactionTool.cursor = "crosshair"
+                        instance.Core.Tools.RedactionCreateTool.disableAutoSwitch();
+                      } else {
+                        instance.Core.Tools.RedactionCreateTool.enableAutoSwitch();
+                      }
+                    } 
+                  }
+                  defaultChecked={false}
+                  id="textSelectorToggle"
+                >
+                </input>
+                <label 
+                  for="textSelectorToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Disable Text Selection
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 5,
+              0,
+              textSelectorToggle
             );
           });
 
@@ -1436,7 +1471,7 @@ const Redlining = React.forwardRef(
     }, [pageFlags, isStitchingLoaded]);
 
     useEffect(() => {      
-      if (docInstance && documentList.length > 0 && !isWatermarkSet) {
+      if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
         setWatermarks();
         setIsWatermarkSet(true)
       }
@@ -1444,7 +1479,7 @@ const Redlining = React.forwardRef(
 
 
     const setWatermarks = () => {
-      docViewer?.setWatermark({
+      docViewer.setWatermark({
         // Draw custom watermark in middle of the document
         custom: (ctx, pageNumber, pageWidth, pageHeight) => {
           // ctx is an instance of CanvasRenderingContext2D
@@ -1478,8 +1513,8 @@ const Redlining = React.forwardRef(
           }
         },
       });
-      docViewer?.refreshAll();
-      docViewer?.updateView();
+      docViewer.refreshAll();
+      docViewer.updateView();
     }
 
     const stitchPages = (_doc, pdftronDocObjs) => {

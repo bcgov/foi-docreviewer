@@ -1,4 +1,4 @@
-from utils import getdbconnection
+from utils import getdbconnection, getfoidbconnection
 import logging
 import json
 
@@ -34,7 +34,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
-        conn = getdbconnection()
+        conn = getfoidbconnection()
         programareas = {}
         try:
             cursor = conn.cursor()
