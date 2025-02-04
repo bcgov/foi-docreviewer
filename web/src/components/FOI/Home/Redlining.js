@@ -239,7 +239,7 @@ const Redlining = React.forwardRef(
           instance.UI.enableElements(["attachmentPanelButton"]);
           instance.UI.enableNoteSubmissionWithEnter();
           let redactionTool = documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
-          redactionTool.setStyles({
+          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
             StrokeColor: new Annotations.Color(255, 205, 69)
           });
           documentViewer.setToolMode(redactionTool);
