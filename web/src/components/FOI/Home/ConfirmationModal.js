@@ -32,9 +32,11 @@ export const ConfirmationModal= ({
     setRedlinePhase,
     redlinePhase
 }) => {
-    let disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
+    const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
+    const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && isPhasedRelease && !redlinePhase;
+    const modalClass = (modalData?.modalFor === "redline" && isPhasedRelease ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
     
-    let availablePhases = 10
+    let availablePhases = 10;
     const phaseSelection = [];
     for (let i = 0; i < availablePhases; i++) {
       if (i === 0) {
@@ -43,10 +45,14 @@ export const ConfirmationModal= ({
         phaseSelection.push(<MenuItem disabled={false} key={i} value={i}>{i}</MenuItem>);
       }
     }
+
     const handlePhaseSelect = (value) => {
       setRedlinePhase(value);
     }
-    const modalClass = (modalData?.modalFor === "redline" && isPhasedRelease ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")
+    const handleCancel = () => {
+      setRedlinePhase(null);
+      cancelSaveRedlineDoc();
+    }
 
     return (
       <ReactModal
@@ -60,7 +66,7 @@ export const ConfirmationModal= ({
     >
       <DialogTitle disabletypography="true" id="state-change-dialog-title">
         <h2 className="state-change-header">{modalData?.modalTitle}</h2>
-        <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
+        <IconButton className="title-col3" onClick={handleCancel}>
           <i className="dialog-close-button">Close</i>
           <CloseIcon />
         </IconButton>
@@ -74,7 +80,7 @@ export const ConfirmationModal= ({
             {modalData?.modalMessage}
             <br/><br/>
             {isPhasedRelease &&
-              <div className={"YOPHASE"}>
+              <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}
                     select
@@ -188,12 +194,12 @@ export const ConfirmationModal= ({
         </DialogContentText>
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
-        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton}>
+        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton || disableRedlinePhaseSaveButton}>
           {modalData?.modalButtonLabel}
         </button>
         <button
           className="btn-bottom btn-cancel"
-          onClick={cancelSaveRedlineDoc}
+          onClick={handleCancel}
         >
           Cancel
         </button>
