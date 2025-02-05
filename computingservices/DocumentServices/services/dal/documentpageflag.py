@@ -225,7 +225,8 @@ class documentpageflag:
                 select redactionlayerid  
                 from "DocumentPageflags" 
                 where foiministryrequestid = %s::integer
-                order by created_at desc limit 1;
+                and redactionlayerid != (select redactionlayerid from "RedactionLayers" where name = 'Response Package')
+                order by created_at, id desc limit 1;
             '''
             cursor.execute(query, (ministryrequestid,))
             layerid = cursor.fetchone()
