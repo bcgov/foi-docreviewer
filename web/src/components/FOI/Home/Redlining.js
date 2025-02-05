@@ -88,11 +88,13 @@ const Redlining = React.forwardRef(
       outstandingBalance,
       pageFlags, 
       syncPageFlagsOnAction,
+      isPhasedRelease,
     },
     ref
   ) => {
     const alpha = REDLINE_OPACITY;
-
+    //REMOVE
+    isPhasedRelease = true;
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
@@ -176,6 +178,8 @@ const Redlining = React.forwardRef(
       consultApplyRedactions,
       setConsultApplyRedlines,
       consultApplyRedlines,
+      setRedlinePhase,
+      redlinePhase,
     } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
@@ -2551,6 +2555,9 @@ const Redlining = React.forwardRef(
           handleApplyRedactions={handleApplyRedactions}
           handleApplyRedlines={handleApplyRedlines}
           consultApplyRedlines={consultApplyRedlines}
+          isPhasedRelease={isPhasedRelease}
+          setRedlinePhase={setRedlinePhase}
+          redlinePhase={redlinePhase}
         />
         }
         {messageModalOpen &&

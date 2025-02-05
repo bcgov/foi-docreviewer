@@ -1,7 +1,3 @@
-import React, {
-    useEffect,
-    useState,
-  } from "react";
 import ReactModal from "react-modal-resizable-draggable";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -11,7 +7,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import Grid from '@mui/material/Grid';
 import { Tooltip } from '@mui/material';
-//import type { ReactModalProps } from './types';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 
 export const ConfirmationModal= ({
     cancelRedaction,
@@ -30,9 +27,26 @@ export const ConfirmationModal= ({
     consultApplyRedactions,
     handleApplyRedactions,
     consultApplyRedlines,
-    handleApplyRedlines
+    handleApplyRedlines,
+    isPhasedRelease,
+    setRedlinePhase,
+    redlinePhase
 }) => {
     let disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
+    
+    let availablePhases = 10
+    const phaseSelection = [];
+    for (let i = 0; i < availablePhases; i++) {
+      if (i === 0) {
+        phaseSelection.push(<MenuItem disabled key={i} value={i}>Select Phase</MenuItem>);
+      } else {
+        phaseSelection.push(<MenuItem disabled={false} key={i} value={i}>{i}</MenuItem>);
+      }
+    }
+    const handlePhaseSelect = (value) => {
+      setRedlinePhase(value);
+    }
+    const modalClass = (modalData?.modalFor === "redline" && isPhasedRelease ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")
 
     return (
       <ReactModal
@@ -40,7 +54,7 @@ export const ConfirmationModal= ({
       initHeight={300}
       minWidth={600}
       minHeight={250}
-      className={"state-change-dialog" + (modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")}
+      className={"state-change-dialog" + modalClass}
       onRequestClose={cancelRedaction}
       isOpen={redlineModalOpen}
     >
@@ -57,30 +71,51 @@ export const ConfirmationModal= ({
           component={"span"}
         >
           <span>
-            {modalData?.modalMessage} <br/><br/>
-            {modalData?.modalFor == "redline" && <>
-            <input
-              type="checkbox"
-              style={{ marginRight: 10 }}
-              className="redline-checkmark"
-              id="nr-checkbox"
-              checked={includeNRPages}
-              onChange={handleIncludeNRPages}
-              disabled={isDisableNRDuplicate}
-            />
-            <label for="nr-checkbox">Include NR pages</label>
+            {modalData?.modalMessage}
+            <br/><br/>
+            {isPhasedRelease &&
+              <div className={"YOPHASE"}>
+                <TextField
+                    InputLabelProps={{ shrink: true }}
+                    select
+                    size="small"
+                    variant="outlined"
+                    style={{width: "30%"}}
+                    value={redlinePhase ? redlinePhase : 0}
+                    label="Phase"
+                    onChange = {(event) => handlePhaseSelect(event.target.value)}
+                    error={!redlinePhase}
+                    required
+                >
+                  {phaseSelection}
+                </TextField>
+              </div>
+            }
             <br/>
-            <input
-              type="checkbox"
-              style={{ marginRight: 10 }}
-              className="redline-checkmark"
-              id="duplicate-checkbox"
-              checked={includeDuplicatePages}
-              onChange={handleIncludeDuplicantePages}
-              disabled={isDisableNRDuplicate}
-            />
-            <label for="duplicate-checkbox">Include Duplicate pages</label>
-            </>}
+            {modalData?.modalFor == "redline" && 
+              <>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
+                  checked={includeNRPages}
+                  onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
+                  checked={includeDuplicatePages}
+                  onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
+              </>}
             {modalData?.modalFor === "consult" &&
               <>
                 <Grid container spacing={0.5}>
