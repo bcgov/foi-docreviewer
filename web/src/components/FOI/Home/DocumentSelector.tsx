@@ -850,7 +850,7 @@ const DocumentSelector = React.memo(
                 />
               </div>
             </div>
-            { (!['MCF'].includes(requestInfo.bcgovcode) || requestInfo.requesttype !== "personal") &&
+            { (!['MCF', 'MSD'].includes(requestInfo.bcgovcode) || requestInfo.requesttype !== "personal") &&
               <>
               <hr className="hrStyle" />
               <div className="row">
