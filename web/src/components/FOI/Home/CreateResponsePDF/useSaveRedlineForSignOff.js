@@ -244,10 +244,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         let incompatableList = [];
 
         // Custom public bodies/consults do not exist in allPublicBodies data (BE program area data) and are stored as simple strings with pageflag data (in other array attribute).
-        // Therefore, if publicBodyInfo cannot be found in allPublicBodies, the publicbody is a custom one and we will create its 'divison' data in the FE with a random unique id (date.now()), and its publicBodyID (which is its name as a string) for consult package creation purposes
+        // Therefore, if publicBodyInfo cannot be found in allPublicBodies, the publicbody is a custom one and we will create its 'divison' data in the FE with a random unique id (Math.floor(Math.random() * 100000)), and its publicBodyID (which is its name as a string) for consult package creation purposes
         const publicBodyInfo = allPublicBodies.find((body) => body.programareaid === publicBodyId);
         newDocList.push({
-          divisionid: publicBodyInfo ? publicBodyInfo.programareaid : Date.now(),
+          divisionid: publicBodyInfo ? publicBodyInfo.programareaid : Math.floor(Math.random() * 100000),
           divisionname: publicBodyInfo ? publicBodyInfo.name : publicBodyId,
           documentlist: publicBodyDocList,
           incompatableList: incompatableList,
@@ -1956,7 +1956,6 @@ const stampPageNumberRedline = async (
             doc
             .getFileData({
               // export the document to arraybuffer
-              // xfdfString: xfdfString,
               downloadType: downloadType,
               flatten: true,
             })
@@ -1997,7 +1996,7 @@ const stampPageNumberRedline = async (
                   // saves the document with annotations in it
                   xfdfString: xfdfString1,
                   downloadType: downloadType,
-                  flatten: true,
+                  // flatten: true,
                 })
                 .then(async (__data) => {
                   const __arr = new Uint8Array(__data);

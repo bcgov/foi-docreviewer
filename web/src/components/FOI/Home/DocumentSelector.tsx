@@ -28,6 +28,7 @@ import { getStitchedPageNoFromOriginal } from "./utils";
 import { pageFlagTypes } from "../../../constants/enum";
 import Popover from "@mui/material/Popover";
 import CustomTreeView from "./CustomTreeView";
+import { MSDDivisionsSorting } from "../../../constants/enum";
 
 const DocumentSelector = React.memo(
   React.forwardRef(
@@ -748,6 +749,9 @@ const DocumentSelector = React.memo(
                     // )
                 }})
             } else if (organizeBy === "division" ) {
+                if (requestInfo.bcgovcode === "MSD" && requestInfo.requesttype === "personal") {
+                  divisions = divisions.sort((a: any, b: any) => Number(MSDDivisionsSorting[a.name]) - Number(MSDDivisionsSorting[b.name]))
+                }
                 return divisions.map((division: any) => {
                     return {
                         id: `{"division": ${division.divisionid}}`,

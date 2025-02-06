@@ -244,7 +244,7 @@ const useSaveResponsePackage = () => {
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        let pagesToRemove = [];
+        var pagesToRemove = [];
         for (const infoForEachDoc of pageFlags) {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
@@ -289,6 +289,27 @@ const useSaveResponsePackage = () => {
           render: "Saving section stamps...",
           isLoading: true,
         });
+        // update page mappings
+        for (var page of pagesToRemove) {
+          delete pageMappedDocs.stitchedPageLookup[page]
+        }
+        var updatedPageMapping = Object.entries(pageMappedDocs.stitchedPageLookup)
+        // remove withheld in full pages after page stamp has been applied
+        pagesToRemove = [];
+        for (const infoForEachDoc of pageFlags) {
+          for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
+              var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
+              pagesToRemove.push(pageToRemove);
+            }
+          }
+        }
+
+        if (pagesToRemove.length > 0) {
+          await doc.removePages(pagesToRemove);
+        }
+
+
         /**Fixing section cutoff issue in response pkg-
          * (For showing section names-freetext annotations are
          * added once redactions are applied in the annotationChangedHandler)

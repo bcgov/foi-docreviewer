@@ -109,7 +109,7 @@ function Home() {
           });
 
           let doclist = [];          
-          let requestInfo = _requestInfo.requestinfo;
+          let requestInfo = _requestInfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
@@ -150,10 +150,13 @@ function Home() {
     return doclist.find(item => item.file.pagecount > 0);    
   }
 
-  const syncPageFlagsOnAction = (updatedFlags) => {
+  const syncPageFlagsOnAction = (updatedFlags, isNRorDuplicate) => {
      
     selectorRef?.current?.scrollLeftPanelPosition("")       
     setPageFlags(updatedFlags);
+    if (isNRorDuplicate) {
+      redliningRef?.current?.triggerSetWatermarks();
+    }
   };
 
   useEffect(() => {

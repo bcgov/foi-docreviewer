@@ -67,6 +67,7 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
+import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
@@ -149,8 +150,8 @@ const Redlining = React.forwardRef(
     const [pageSelectionsContainNRDup, setPageSelectionsContainNRDup] = useState(false);
     const [outstandingBalanceModal, setOutstandingBalanceModal] = useState(false);
     const [isOverride, setIsOverride]= useState(false);
-    const [feeOverrideReason, setFeeOverrideReason]= useState("");
-    
+    const [feeOverrideReason, setFeeOverrideReason]= useState("");   
+    const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -181,6 +182,27 @@ const Redlining = React.forwardRef(
       checkSavingFinalPackage,
       enableSavingFinal,
     } = useSaveResponsePackage();
+
+    const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
+
+    useEffect(() => {
+      if (annotManager) {
+        let annotations = annotManager.getAnnotationsList();
+        for (let annotation of annotations) {
+          if (annotation.Subject === 'Redact') {
+            annotation.FillDisplayColor = new docInstance.Core.Annotations.Color(
+              255,
+              255,
+              255,
+              isRedlineOpaque ? alpha : 0
+            );
+            annotManager.redrawAnnotation(annotation)
+          }
+        }
+        localStorage.setItem('isRedlineOpaque', isRedlineOpaque)
+      }
+
+    }, [isRedlineOpaque])
 
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -218,8 +240,10 @@ const Redlining = React.forwardRef(
           documentViewer.setToolMode(
             documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           );
+          documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
+            StrokeColor: new Annotations.Color(255, 205, 69)
+          });
           const UIEvents = instance.UI.Events;
-   
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
           setIframeDocument(document);
@@ -260,6 +284,38 @@ const Redlining = React.forwardRef(
               header.headers.default.length - 3,
               0,
               newCustomElement
+            );
+
+            
+            const opacityToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      setIsRedlineOpaque(e.target.checked)
+                    } 
+                  }
+                  defaultChecked={isRedlineOpaque}
+                  id="isRedlineOpaqueToggle"
+                >
+                </input>
+                <label 
+                  for="isRedlineOpaqueToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Toggle Opacity
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 4,
+              0,
+              opacityToggle
             );
           });
 
@@ -1029,7 +1085,7 @@ const Redlining = React.forwardRef(
                     `${currentLayer.redactionlayerid}`
                   );
                   annotations[i].IsHoverable = false;
-                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, alpha);
+                  annotations[i].FillDisplayColor = new docInstance.Core.Annotations.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
                 });
                 setPageSelections(pageSelectionList);
                 let annot = annots[0].children[0];
@@ -1325,6 +1381,9 @@ const Redlining = React.forwardRef(
         annotManager.addAnnotations(newAnnots);
         annotManager.drawAnnotationsFromList(newAnnots);
       },
+      triggerSetWatermarks() {
+        setWatermarks();
+      }
     }));
 
     const disableNRDuplicate = () => {
@@ -1369,43 +1428,6 @@ const Redlining = React.forwardRef(
       if (docInstance && documentList.length > 0) {
         const document = docInstance?.UI.iframeWindow.document;
         document.getElementById("create_response_pdf").addEventListener("click", handleCreateResponsePDFClick);
-        docViewer?.setWatermark({
-          // Draw custom watermark in middle of the document
-          custom: (ctx, pageNumber, pageWidth, pageHeight) => {
-            // ctx is an instance of CanvasRenderingContext2D
-            // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
-            // Hence being able to leverage those properties
-            let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
-            let doc = pageFlags.find(d => d.documentid === originalPage.docid);
-            let pageFlagsOnPage = doc?.pageflag?.filter(f => f.page === originalPage.page);
-            let NrOrDupeFlag = pageFlagsOnPage?.find(pageFlagItem => pageFlagItem.flagid === pageFlagTypes["Duplicate"] || pageFlagItem.flagid === pageFlagTypes["Not Responsive"]);
-            if (NrOrDupeFlag?.flagid === pageFlagTypes["Duplicate"]) {
-              ctx.fillStyle = "#ff0000";
-              ctx.font = "20pt Arial";
-              ctx.globalAlpha = 0.4;
-    
-              ctx.save();
-              ctx.translate(pageWidth / 2, pageHeight / 2);
-              ctx.rotate(-Math.PI / 4);
-              ctx.fillText("DUPLICATE", 0, 0);
-              ctx.restore();
-            }
-    
-            if (NrOrDupeFlag?.flagid === pageFlagTypes["Not Responsive"]) {
-              ctx.fillStyle = "#ff0000";
-              ctx.font = "20pt Arial";
-              ctx.globalAlpha = 0.4;
-    
-              ctx.save();
-              ctx.translate(pageWidth / 2, pageHeight / 2);
-              ctx.rotate(-Math.PI / 4);
-              ctx.fillText("NOT RESPONSIVE", 0, 0);
-              ctx.restore();
-            }
-          },
-        });
-        docViewer?.refreshAll();
-        docViewer?.updateView();
       }
       //Cleanup Function: removes previous event listeiner to ensure handleCreateResponsePDFClick event is not called multiple times on click
       return () => {
@@ -1415,6 +1437,53 @@ const Redlining = React.forwardRef(
         }
       };
     }, [pageFlags, isStitchingLoaded]);
+
+    useEffect(() => {      
+      if (docInstance && documentList.length > 0 && !isWatermarkSet) {
+        setWatermarks();
+        setIsWatermarkSet(true)
+      }
+    }, [pageFlags, isStitchingLoaded, isWatermarkSet]);
+
+
+    const setWatermarks = () => {
+      docViewer?.setWatermark({
+        // Draw custom watermark in middle of the document
+        custom: (ctx, pageNumber, pageWidth, pageHeight) => {
+          // ctx is an instance of CanvasRenderingContext2D
+          // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+          // Hence being able to leverage those properties
+          let originalPage = pageMappedDocs['stitchedPageLookup'][pageNumber]
+          let doc = pageFlags.find(d => d.documentid === originalPage.docid);
+          let pageFlag = doc?.pageflag?.find(f => f.page === originalPage.page);
+          if (pageFlag?.flagid === pageFlagTypes["Duplicate"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("DUPLICATE", 0, 0);
+            ctx.restore();
+          }
+
+          if (pageFlag?.flagid === pageFlagTypes["Not Responsive"]) {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "20pt Arial";
+            ctx.globalAlpha = 0.4;
+
+            ctx.save();
+            ctx.translate(pageWidth / 2, pageHeight / 2);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText("NOT RESPONSIVE", 0, 0);
+            ctx.restore();
+          }
+        },
+      });
+      docViewer?.refreshAll();
+      docViewer?.updateView();
+    }
 
     const stitchPages = (_doc, pdftronDocObjs) => {
       for (let filerow of pdftronDocObjs) {
@@ -1529,7 +1598,7 @@ const Redlining = React.forwardRef(
           if (_annotation.Subject === "Redact") {
             _annotation.IsHoverable = false;
             _annotation.NoMove = true;
-            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, alpha);
+            _annotation.FillDisplayColor = new annots.Color(255, 255, 255, isRedlineOpaque ? alpha : 0);
 
             if (_annotation.type === "fullPage") {
               _annotation.NoResize = true;
@@ -2169,10 +2238,8 @@ const Redlining = React.forwardRef(
         setIsOverride(false)
         setOutstandingBalanceModal(false)
       }
-      else{
-        setModalOpen(false);
-        setMessageModalOpen(false);
-      }
+      setModalOpen(false);
+      setMessageModalOpen(false);
       setSelectedPageFlagId(null);
       setSelectedSections([]);
       setSaveDisabled(true);
@@ -2451,7 +2518,6 @@ const Redlining = React.forwardRef(
     return (
       <div>
         <div className="webviewer" ref={viewer}></div>
-        {/* { modalOpen && */}
           <FOIPPASectionsModal
             cancelRedaction={cancelRedaction}
             modalOpen={modalOpen}
@@ -2469,7 +2535,6 @@ const Redlining = React.forwardRef(
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
           />
-        {/* } */}
         {redlineModalOpen && 
           <ConfirmationModal 
           cancelRedaction={cancelRedaction}
