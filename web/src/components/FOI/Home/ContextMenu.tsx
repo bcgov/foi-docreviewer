@@ -327,11 +327,12 @@ const ContextMenu = ({
     
 
   const PhaseFlags = ({ pageFlag, selectedPhase }: any) => {
+    console.log("selectedPhase:",selectedPhase)
     // Dynamically determine the phases to display
     const phasesToShow = showAll
       ? Array.from({ length: 9 }, (_, i) => i + 1) // Show all 9 phases
       : selectedPhase > 3
-      ? [1, 2, 3, selectedPhase] // Show first 3 + selected phase if > 3
+      ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // Show first 3 + selected phase if > 3
       : [1, 2, 3]; // Default first 3
   
     return (
@@ -339,6 +340,7 @@ const ContextMenu = ({
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, auto)",
+          gap:"5px",
           padding: "5px",
           margin: "5px",
         }}
@@ -371,9 +373,14 @@ const ContextMenu = ({
         ))}
   
         {/* Show '+' only if not showing all numbers */}
-        {!showAll && selectedPhase <= 3 && (
+        {!showAll && selectedPhase <= 9 && (
           <span
-            style={{ fontSize: "1.5rem", cursor: "pointer" }}
+            style={{ 
+              fontSize: "1.5rem", 
+              textAlign: "center",
+              cursor: "pointer",
+              margin: "0px 2px",
+              padding: "2px 6px", }}
             onClick={handleToggle}
           >
             +
