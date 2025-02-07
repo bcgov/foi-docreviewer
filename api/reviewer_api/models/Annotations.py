@@ -9,6 +9,7 @@ import json
 from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
+from .DocumentDeleted import DocumentDeleted
 from sqlalchemy import func
 
 
@@ -85,11 +86,24 @@ class Annotation(db.Model):
     def get_request_annotations_pagination(
         cls, ministryrequestid, mappedlayerids, page, size
     ):
-        _deleted = DocumentMaster.getdeleted(ministryrequestid)
-        _originalnodonversionfiles = DocumentMaster.filteroriginalnoconversionfiles(ministryrequestid)
-        _replacednoconversionfiles = DocumentMaster.filterreplacednoconversionfiles(ministryrequestid)
-        _replacedotherfiles = DocumentMaster.filterreplacedfiles(ministryrequestid)
         _session = db.session
+        _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
+            DocumentMaster.processingparentid == None,
+            DocumentMaster.ministryrequestid == ministryrequestid
+        ).subquery('sq')
+        _replacednoconversionfiles = _session.query(DocumentMaster.processingparentid).filter(
+            DocumentMaster.processingparentid != None,
+            DocumentMaster.ministryrequestid == ministryrequestid
+        ).subquery('sq2')
+        _replacedotherfiles = _session.query(func.max(DocumentMaster.documentmasterid).label('documentmasterid')).filter(
+            DocumentMaster.processingparentid != None,
+            DocumentMaster.ministryrequestid == ministryrequestid
+        ).group_by(DocumentMaster.processingparentid).subquery('sq3')
+        _deleted = _session.query(func.distinct(DocumentMaster.documentmasterid).label('documentmasterid')).join(
+            DocumentDeleted, DocumentMaster.filepath.like(DocumentDeleted.filepath + '%')
+        ).filter(
+            DocumentMaster.ministryrequestid == ministryrequestid
+        ).subquery('sq4')
         _subquery_annotation = (
             _session.query(
                 Annotation.pagenumber, Annotation.annotation, Document.documentid
@@ -98,15 +112,31 @@ class Annotation(db.Model):
                 Document,
                 and_(
                     Annotation.documentid == Document.documentid,
-                    Document.documentmasterid.notin_(_deleted),
-                    or_(Document.documentmasterid.in_(_replacedotherfiles), Document.documentmasterid.in_(_originalnodonversionfiles)),
-                    Document.documentmasterid.notin_(_replacednoconversionfiles),
                     Document.foiministryrequestid == ministryrequestid,
                 ),
+            )
+            .join(
+                _originalnodonversionfiles, _originalnodonversionfiles.c.documentmasterid == Document.documentmasterid,
+                isouter=True
+            )
+            .join(
+                _replacedotherfiles, _replacedotherfiles.c.documentmasterid == Document.documentmasterid,
+                isouter=True
+            )
+            .join(
+                _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
+                isouter=True
+            )
+            .join(
+                _deleted, _deleted.c.documentmasterid == Document.documentmasterid,
+                isouter=True
             )
             .filter(
                 Annotation.redactionlayerid.in_(mappedlayerids),
                 Annotation.isactive == True,
+                or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
+                _replacednoconversionfiles.c.processingparentid == None,
+                _deleted.c.documentmasterid == None
             )
             .order_by(
                 Document.documentid, Annotation.pagenumber, Annotation.annotationid
