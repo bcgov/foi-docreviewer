@@ -360,11 +360,22 @@ const Redlining = React.forwardRef(
             let params = new URLSearchParams(window?.location?.search);
             console.log("\nparams:",params)
             let crossTextSearchKeywords = params?.get("query");
-            if(crossTextSearchKeywords?.length >0){
-              const formattedKeywords = crossTextSearchKeywords?.replace(/,/g, "|");
-              console.log("\nformattedKeywords:",formattedKeywords)
+            // if(crossTextSearchKeywords?.length >0){
+            //   const formattedKeywords = crossTextSearchKeywords?.replace(/,/g, "|");
+            //   console.log("\nformattedKeywords:",formattedKeywords)
+            //   instance.UI.searchTextFull(formattedKeywords, {
+            //     regex: true
+            //   });
+            // }
+            if (crossTextSearchKeywords?.length > 0) {
+              // Match words inside quotes OR individual words
+              const keywordsArray = crossTextSearchKeywords.match(/"[^"]+"|\S+/g); 
+              // Join the keywords with | while keeping spaces inside quotes
+              const formattedKeywords = keywordsArray.join("|");
+              console.log("\nformattedKeywords:", formattedKeywords);
               instance.UI.searchTextFull(formattedKeywords, {
-                regex: true
+                regex: true,
+                wholeWord:true
               });
             }
             //Search Document Logic (for multi-keyword search and etc)
