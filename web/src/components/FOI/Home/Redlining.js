@@ -369,9 +369,10 @@ const Redlining = React.forwardRef(
             // }
             if (crossTextSearchKeywords?.length > 0) {
               // Match words inside quotes OR individual words
-              const keywordsArray = crossTextSearchKeywords.match(/"[^"]+"|\S+/g); 
+              const keywordsArray = crossTextSearchKeywords.match(/"([^"]+)"|\S+/g); 
+              const quotesRemoved = keywordsArray.map(keyword => keyword.replace(/"/g, "")); 
               // Join the keywords with | while keeping spaces inside quotes
-              const formattedKeywords = keywordsArray.join("|");
+              const formattedKeywords = quotesRemoved.join("|");
               console.log("\nformattedKeywords:", formattedKeywords);
               instance.UI.searchTextFull(formattedKeywords, {
                 regex: true,
