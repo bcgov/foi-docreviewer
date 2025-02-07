@@ -317,6 +317,31 @@ services:
         - FOI_DB_PORT=${FOI_DB_PORT}
         - FOI_DB_USER=${FOI_DB_USER}
         - FOI_DB_PASSWORD=${FOI_DB_PASSWORD}
+  foi-azure-docextract-statusapi:
+      container_name: foi-azure-docextract-statusapi
+      depends_on:
+        - foi-docreviewer-db
+      build:
+        context: ./azuredocextractapi/
+        dockerfile: DockerFile
+      image: foiazuredocextractstatusapi
+      ports:
+      - "${AZDOCEXTRACT_LISTENING_PORT}:${AZDOCEXTRACT_LISTENING_PORT}"
+      stdin_open: true
+      tty: true
+      networks:
+        services-network:
+          aliases:
+            - foiazuredocextractstatusapi     
+      environment:
+        - AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST=${AZDOCEXTRACT_FOIDOCREVIEWER_DB_HOST}
+        - AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT=${AZDOCEXTRACT_FOIDOCREVIEWER_DB_PORT}
+        - AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME=${AZDOCEXTRACT_FOIDOCREVIEWER_DB_NAME}      
+        - AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME=${AZDOCEXTRACT_FOIDOCREVIEWER_DB_USERNAME}
+        - AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD=${AZDOCEXTRACT_FOIDOCREVIEWER_DB_PASSWORD}
+        - AZDOCEXTRACT_LISTENING_PORT=${AZDOCEXTRACT_LISTENING_PORT}
+        - AZDOCEXTRACT_API_SECRET=${AZDOCEXTRACT_API_SECRET}
+        - AZDOCEXTRACT_ALLOWED_ORIGINS=${AZDOCEXTRACT_ALLOWED_ORIGINS}
 volumes:
   dbdata:
 networks:
