@@ -119,8 +119,8 @@ class redactionsummary():
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                if len(set(record["documentids"]).intersection(set(pagecounts.keys()))) > 0:
-                    for document_id in record["documentids"]:
+                for document_id in record["documentids"]:
+                    if document_id in (set(pagecounts.keys())):
                         # print("-----------------------Record : ---------------------------", record["documentids"])
                         record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
@@ -139,6 +139,7 @@ class redactionsummary():
 
         except Exception as error:
             print('CFD Error occurred in redaction dts service: ', error)
+            traceback.print_exc()
 
 
     def __calculate_range(self, mapped_flags, document_id):
@@ -341,8 +342,12 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item})
-        return section_list
+                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item, 
+                                     "page_no": self.__getrangenumber(range_item) if '-' in range_item else int(range_item)})
+        
+        section_list.sort(key=lambda x: x['page_no'])
+        formatted_section_list = [{"formatted":item['formatted']} for item in section_list]
+        return formatted_section_list
 
     
     def __getredactionlayerid(self, message):
