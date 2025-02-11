@@ -2431,8 +2431,6 @@ const Redlining = React.forwardRef(
 
     // Phase Redline Package Functions
     console.log("PAGEFLAGS", pageFlags)
-    console.log("curreDOC", currentDocument)
-    console.log("docsForStitcing", docsForStitcing)
     const findAllPhases = () => {
       const docsWithPhaseFlag = pageFlags.filter((flagObj) =>
         flagObj.pageflag?.some((obj) => obj.flagid === pageFlagTypes['Phase'])

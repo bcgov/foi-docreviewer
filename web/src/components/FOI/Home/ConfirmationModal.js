@@ -37,9 +37,9 @@ export const ConfirmationModal= ({
     const modalClass = (modalData?.modalFor === "redline" && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
     
     const phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
-    for (let i = 0; i < assignedPhases?.length; i++) {
-      const phase = assignedPhases[i].activePhase;
-      phaseSelectionList.push(<MenuItem disabled={!assignedPhases[i].valid} key={phase} value={phase}>{phase}</MenuItem>);
+    for (let phase of assignedPhases.sort((a,b) => a.activePhase - b.activePhase)) {
+      const phaseNum = phase.activePhase;
+      phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
     }
     const handlePhaseSelect = (value) => {
       setRedlinePhase(value);
