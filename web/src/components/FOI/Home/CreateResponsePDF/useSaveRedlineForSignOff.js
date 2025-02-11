@@ -81,7 +81,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
 
   const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
     let isvalid = false;
+    let pagePageFlagMappings = {};
+    let redlinePhasePageArr = [];
     for (let divObj of divisionDocuments) {    
+      console.log("DIVV VALID", divObj)
       if (divObj.divisionid === divisionid)  {
         // enable the Redline for Sign off if a division has only Incompatable files
         if (divObj?.incompatableList?.length > 0) {
@@ -91,17 +94,35 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         else {
           for (let doc of divObj.documentlist) {
-            //page to pageFlag mappings logic used for consults
-            const pagePageFlagMappings = {};
-            for (let pageFlag of doc.pageFlag) {
-              if (pageFlag.page in pagePageFlagMappings) {
-                pagePageFlagMappings[pageFlag.page].push(pageFlag.flagid);
-              } else {
-                pagePageFlagMappings[pageFlag.page] = [pageFlag.flagid];
+            console.log("DOCC VALID", doc)
+            //page to pageFlag mappings logic used for consults validation
+            if (redlineCategory === "consult") {
+              for (let pageFlag of doc.pageFlag) {
+                if (pageFlag.page in pagePageFlagMappings) {
+                  pagePageFlagMappings[pageFlag.page].push(pageFlag.flagid);
+                } else {
+                  pagePageFlagMappings[pageFlag.page] = [pageFlag.flagid];
+                }
               }
             }
+            // redlinePagePhase array creation used for phased redline validation
+            if (redlineCategory === "redline" && redlinePhase) {
+              redlinePhasePageArr = doc.pageFlag.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+            }
+            console.log("redlinePhasePageArr", redlinePhasePageArr)
             for (const flagInfo of doc.pageFlag) {
-              if (redlineCategory === "consult") {
+              if (redlineCategory === "redline" && redlinePhase) {
+                if (
+                  (redlinePhasePageArr.includes(flagInfo.page) && flagInfo.flagid !== pageFlagTypes["Phase"] && flagInfo.flagid !== pageFlagTypes["Consult"]) && 
+                  ((flagInfo.flagid !== pageFlagTypes["Duplicate"] && flagInfo.flagid != pageFlagTypes["Not Responsive"]) || 
+                  ((includeDuplicatePages && flagInfo.flagid === pageFlagTypes["Duplicate"]) || (includeNRPages && flagInfo.flagid === pageFlagTypes["Not Responsive"])))
+                ) {
+                  if (isvalid == false) {
+                    isvalid = true; 
+                  }
+                }
+              }
+              else if (redlineCategory === "consult") {
                 const pageFlagsOnPage = pagePageFlagMappings[flagInfo.page];
                 for (let consult of doc.consult) {
                   if ((consult.page === flagInfo.page && consult.programareaid.includes(divObj.divisionid)) || (consult.page === flagInfo.page && consult.other.includes(divObj.divisionname))) {
@@ -141,6 +162,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
       }
     }
+    console.log("VALID", isvalid)
     return isvalid;
   };
   const getDeletedPagesBeforeStitching = (documentid) => {
@@ -717,7 +739,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 }
               } else if (flagInfo.flagid === pageFlagTypes["Not Responsive"]) {
                 if(includeNRPages) {
-                  console.log("DUPE", flagInfo)
+                  console.log("NR", flagInfo)
                   NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
                   pageMappings[doc.documentid][flagInfo.page] =
@@ -1535,7 +1557,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
-        false; // AH NOTE REMOVE
+        !redlineReadyAndValid || !validRedlineStatus;
     }
   };
   const checkSavingOIPCRedline = (
@@ -1598,6 +1620,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
+      // redlinephase: redlinePhase ? redlinePhase : null
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");

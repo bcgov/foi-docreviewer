@@ -1463,7 +1463,6 @@ const Redlining = React.forwardRef(
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
     };
-    console.log("STATE", assignedPhases)
 
     //useEffect to handle validation of all Response Package downloads
     useEffect(() => {
@@ -2467,7 +2466,6 @@ const Redlining = React.forwardRef(
     }
 
     // Phase Redline Package Functions
-    console.log("PAGEFLAGS", pageFlags)
     const findAllPhases = () => {
       const docsWithPhaseFlag = pageFlags.filter((flagObj) =>
         flagObj.pageflag?.some((obj) => obj.flagid === pageFlagTypes['Phase'])
@@ -2504,7 +2502,6 @@ const Redlining = React.forwardRef(
           }
         }
       }
-      console.log("phasePageMap",phasePageMap)
       for (let activePhase of requestPhases) {
         let totalPhasedPagesWithFlags = 0;
         let phasedPagesCount = 0;
@@ -2512,9 +2509,7 @@ const Redlining = React.forwardRef(
           // Extract pages that have the phase flag for active phases
           const phasedPages = phasePageMap[activePhase];
           phasedPagesCount = phasedPages.size;
-
           const validPages = new Set();
-          console.log("phasedPages", phasedPages)
           pageFlags.forEach((docObj) => {
             docObj.pageflag?.forEach((flag) => {
               if (phasedPages?.has(flag.page) &&
@@ -2530,7 +2525,6 @@ const Redlining = React.forwardRef(
             });
           });
           totalPhasedPagesWithFlags = validPages.size;
-          console.log("VALID", validPages)
         }
         // const completion = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100) : 0;
         const valid = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags === phasedPagesCount;
