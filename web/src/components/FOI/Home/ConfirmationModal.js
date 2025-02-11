@@ -28,24 +28,19 @@ export const ConfirmationModal= ({
     handleApplyRedactions,
     consultApplyRedlines,
     handleApplyRedlines,
-    isPhasedRelease,
     setRedlinePhase,
-    redlinePhase
+    redlinePhase,
+    assignedPhases
 }) => {
     const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
-    const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && isPhasedRelease && !redlinePhase;
-    const modalClass = (modalData?.modalFor === "redline" && isPhasedRelease ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
+    const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && assignedPhases && !redlinePhase;
+    const modalClass = (modalData?.modalFor === "redline" && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
     
-    let availablePhases = 10;
-    const phaseSelection = [];
-    for (let i = 0; i < availablePhases; i++) {
-      if (i === 0) {
-        phaseSelection.push(<MenuItem disabled key={i} value={i}>Select Phase</MenuItem>);
-      } else {
-        phaseSelection.push(<MenuItem disabled={false} key={i} value={i}>{i}</MenuItem>);
-      }
+    const phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
+    for (let i = 0; i < assignedPhases?.length; i++) {
+      const phase = assignedPhases[i].activePhase;
+      phaseSelectionList.push(<MenuItem disabled={!assignedPhases[i].valid} key={phase} value={phase}>{phase}</MenuItem>);
     }
-
     const handlePhaseSelect = (value) => {
       setRedlinePhase(value);
     }
@@ -79,7 +74,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {isPhasedRelease &&
+            {assignedPhases &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}
@@ -93,7 +88,7 @@ export const ConfirmationModal= ({
                     error={!redlinePhase}
                     required
                 >
-                  {phaseSelection}
+                  {phaseSelectionList}
                 </TextField>
               </div>
             }
