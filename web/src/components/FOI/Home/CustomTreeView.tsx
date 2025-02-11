@@ -24,6 +24,7 @@ import { PAGE_SELECT_LIMIT } from '../../../constants/constants'
 import { styled } from "@mui/material/styles";
 import {PAGE_FLAGS} from '../../../constants/PageFlags';
 import _ from "lodash";
+import { useAppSelector } from '../../../hooks/hook';
 
 const CustomTreeView = React.memo(React.forwardRef(({
     items,
@@ -60,6 +61,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
     const [anchorPosition, setAnchorPosition] = useState<any>(undefined);
     const [activeNode, setActiveNode] = useState<any>();
     const [currentEditRecord, setCurrentEditRecord] = useState();
+    
+    const currentLayer = useAppSelector((state: any) => state.documents?.currentLayer);
 
     useImperativeHandle(ref, () => ({
         async scrollToPage(event: any, newExpandedItems: string[], pageId: string) {
@@ -208,6 +211,7 @@ const CustomTreeView = React.memo(React.forwardRef(({
     });
 
     const openContextMenu = (e: any, props: any) => {
+        if (currentLayer.name === "Response Package") return
         if (props.children && requestInfo.bcgovcode !== "MCF" && requestInfo.requesttype !== "personal") return
         e.preventDefault();
         let nodeId: string = e.target.parentElement.parentElement.id;
