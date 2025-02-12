@@ -68,7 +68,6 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
-import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
