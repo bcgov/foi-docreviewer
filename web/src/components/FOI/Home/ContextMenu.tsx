@@ -119,6 +119,13 @@ const ContextMenu = ({
     return phases[0];
   }
 
+  const clearSelectedPhases = (pageFlagId: number) => {
+    let phaseFlags = { flagid: pageFlagId, phase: [] }
+    //setSelectedPhaseFlag(phaseFlags)
+    savePageFlags(pageFlagId,phaseFlags)
+    console.log("clearSelectedPhases")
+  }
+
   const showPageFlagList = () => {
     if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
       return (
@@ -159,9 +166,13 @@ const ContextMenu = ({
       ) : pageFlag?.name === "Phase" ? (
         <div>
           <hr className="hrStyle" />
-          <div style={{marginLeft:"16px"}}>
+          <span style={{marginLeft:"16px"}}>
             {pageFlag?.name}
-          </div>
+          </span>
+          {(selectedPages?.length > 1) &&
+            <span style={{marginRight:"16px", float:"right",cursor: "pointer",}} onClick={() => clearSelectedPhases(pageFlag.pageflagid)}>
+              Clear All</span>
+            }
           <PhaseFlags pageFlag={pageFlag} selectedPhase={selectedPhase} />
           <hr className="hrStyle" />
         </div>
@@ -328,11 +339,10 @@ const ContextMenu = ({
 
   const PhaseFlags = ({ pageFlag, selectedPhase }: any) => {
     console.log("selectedPhase:",selectedPhase)
-    // Dynamically determine the phases to display
     const phasesToShow = showAll
       ? Array.from({ length: 9 }, (_, i) => i + 1) // Show all 9 phases
       : selectedPhase > 3
-      ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // Show first 3 + selected phase if > 3
+      ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // First 3 + selected phase if > 3
       : [1, 2, 3]; // Default first 3
   
     return (
