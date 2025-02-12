@@ -1,4 +1,4 @@
-from utils import getdbconnection
+from utils import getdbconnection, getfoidbconnection
 import logging
 import json
 
@@ -34,7 +34,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
-        conn = getdbconnection()
+        conn = getfoidbconnection()
         programareas = {}
         try:
             cursor = conn.cursor()
@@ -225,6 +225,7 @@ class documentpageflag:
                 select redactionlayerid  
                 from "DocumentPageflags" 
                 where foiministryrequestid = %s::integer
+                and redactionlayerid != (select redactionlayerid from "RedactionLayers" where name = 'Response Package')
                 order by created_at, id desc limit 1;
             '''
             cursor.execute(query, (ministryrequestid,))
