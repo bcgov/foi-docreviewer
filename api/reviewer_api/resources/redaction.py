@@ -276,7 +276,6 @@ class GetSections(Resource):
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
 
-
 @cors_preflight("GET,OPTIONS")
 @API.route("/account")
 class GetAccount(Resource):
