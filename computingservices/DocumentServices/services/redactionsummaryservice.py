@@ -97,8 +97,8 @@ class redactionsummaryservice():
   
     def __get_pageflags(self, category):
         if category == "responsepackage":            
-            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
-        return documentpageflag().get_all_pageflags(['Consult'])
+            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate', 'Phase'])
+        return documentpageflag().get_all_pageflags(['Consult', 'Phase'])
         
 
    

@@ -1620,7 +1620,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
-      // redlinephase: redlinePhase ? redlinePhase : null
+      redlinephase: redlinePhase ? redlinePhase : null
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
