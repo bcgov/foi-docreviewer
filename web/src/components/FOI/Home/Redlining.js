@@ -68,7 +68,6 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
-import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
@@ -89,11 +88,11 @@ const Redlining = React.forwardRef(
       outstandingBalance,
       pageFlags, 
       syncPageFlagsOnAction,
+      isPhasedRelease,
     },
     ref
   ) => {
     const alpha = REDLINE_OPACITY;
-
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
@@ -153,6 +152,7 @@ const Redlining = React.forwardRef(
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
+    const [assignedPhases, setAssignedPhases] = useState(null);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -177,6 +177,8 @@ const Redlining = React.forwardRef(
       consultApplyRedactions,
       setConsultApplyRedlines,
       consultApplyRedlines,
+      setRedlinePhase,
+      redlinePhase,
     } = useSaveRedlineForSignoff(docInstance, docViewer);
     const {
       saveResponsePackage,
@@ -1447,13 +1449,21 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      if (isPhasedRelease) {
+        const phasesOnRequest = findAllPhases();
+        const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
+        setAssignedPhases(phaseCompletionObj);
+        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
+        checkSavingRedline(phasedRedlineReadyAndValid, _instance);
+      } else {
+        checkSavingRedline(redlineReadyAndValid, _instance);
+      }
       checkSavingConsults(documentList, _instance);
-      checkSavingRedline(redlineReadyAndValid, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
       checkSavingFinalPackage(redlineReadyAndValid, _instance);
     };
 
-    //useEffect to handle validation of Response Package downloads
+    //useEffect to handle validation of all Response Package downloads
     useEffect(() => {
       const handleCreateResponsePDFClick = () => {
         checkSavingRedlineButton(docInstance);
@@ -2453,7 +2463,75 @@ const Redlining = React.forwardRef(
         });
       }
     }
-    
+
+    // Phase Redline Package Functions
+    const findAllPhases = () => {
+      const docsWithPhaseFlag = pageFlags.filter((flagObj) =>
+        flagObj.pageflag?.some((obj) => obj.flagid === pageFlagTypes['Phase'])
+      );
+      if (docsWithPhaseFlag.length > 0) {
+        const phases = docsWithPhaseFlag.flatMap((obj) => 
+          obj.pageflag
+              ? obj.pageflag
+                    .filter((flag) => flag.flagid === pageFlagTypes['Phase'])
+                    .flatMap((flag) => flag.phase) 
+              : []
+        );
+        return [...new Set(phases)];
+      }
+    }
+    const checkPhaseCompletion  = (requestPhases) => {
+      const phaseResults = [];
+      const docsWithPhaseFlag = pageFlags.filter((docObj) =>
+        docObj.pageflag?.some((obj) => obj.flagid === pageFlagTypes['Phase'])
+      );
+      const phasePageMap = {};
+      //Phase:Pages Map
+      if (docsWithPhaseFlag.length > 0) {
+        for (let docObj of pageFlags) {
+          for (let flag of docObj.pageflag) {
+            if (flag.flagid === pageFlagTypes["Phase"]) {
+              for (let phase of flag.phase) {
+                if (!phasePageMap[phase]) {
+                  phasePageMap[phase] = new Set();
+                }
+                phasePageMap[phase].add(flag.page);
+              }
+            }
+          }
+        }
+      }
+      for (let activePhase of requestPhases) {
+        let totalPhasedPagesWithFlags = 0;
+        let phasedPagesCount = 0;
+        if (docsWithPhaseFlag.length > 0) {
+          // Extract pages that have the phase flag for active phases
+          const phasedPages = phasePageMap[activePhase];
+          phasedPagesCount = phasedPages.size;
+          const validPages = new Set();
+          pageFlags.forEach((docObj) => {
+            docObj.pageflag?.forEach((flag) => {
+              if (phasedPages?.has(flag.page) &&
+                ![
+                  pageFlagTypes["Phase"],
+                  pageFlagTypes["Consult"],
+                  pageFlagTypes["In Progress"],
+                  pageFlagTypes["Page Left Off"]
+                ].includes(flag.flagid) // Page does NOT have excluded flags
+              ) {
+                validPages.add(flag.page);
+              }
+            });
+          });
+          totalPhasedPagesWithFlags = validPages.size;
+        }
+        // const completion = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100) : 0;
+        const valid = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags === phasedPagesCount;
+        phaseResults.push({activePhase: parseInt(activePhase), valid});
+      }
+      return phaseResults;
+    }
+
     const saveDoc = () => {
       setIsOverride(false)
       setOutstandingBalanceModal(false)
@@ -2588,6 +2666,9 @@ const Redlining = React.forwardRef(
           handleApplyRedactions={handleApplyRedactions}
           handleApplyRedlines={handleApplyRedlines}
           consultApplyRedlines={consultApplyRedlines}
+          setRedlinePhase={setRedlinePhase}
+          redlinePhase={redlinePhase}
+          assignedPhases={assignedPhases}
         />
         }
         {messageModalOpen &&

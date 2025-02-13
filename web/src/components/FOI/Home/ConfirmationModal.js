@@ -1,7 +1,3 @@
-import React, {
-    useEffect,
-    useState,
-  } from "react";
 import ReactModal from "react-modal-resizable-draggable";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -11,7 +7,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import Grid from '@mui/material/Grid';
 import { Tooltip } from '@mui/material';
-//import type { ReactModalProps } from './types';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 
 export const ConfirmationModal= ({
     cancelRedaction,
@@ -30,9 +27,27 @@ export const ConfirmationModal= ({
     consultApplyRedactions,
     handleApplyRedactions,
     consultApplyRedlines,
-    handleApplyRedlines
+    handleApplyRedlines,
+    setRedlinePhase,
+    redlinePhase,
+    assignedPhases
 }) => {
-    let disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
+    const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
+    const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && assignedPhases && !redlinePhase;
+    const modalClass = (modalData?.modalFor === "redline" && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
+    
+    const phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
+    for (let phase of assignedPhases.sort((a,b) => a.activePhase - b.activePhase)) {
+      const phaseNum = phase.activePhase;
+      phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
+    }
+    const handlePhaseSelect = (value) => {
+      setRedlinePhase(value);
+    }
+    const handleCancel = () => {
+      setRedlinePhase(null);
+      cancelSaveRedlineDoc();
+    }
 
     return (
       <ReactModal
@@ -40,13 +55,13 @@ export const ConfirmationModal= ({
       initHeight={300}
       minWidth={600}
       minHeight={250}
-      className={"state-change-dialog" + (modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")}
+      className={"state-change-dialog" + modalClass}
       onRequestClose={cancelRedaction}
       isOpen={redlineModalOpen}
     >
       <DialogTitle disabletypography="true" id="state-change-dialog-title">
         <h2 className="state-change-header">{modalData?.modalTitle}</h2>
-        <IconButton className="title-col3" onClick={cancelSaveRedlineDoc}>
+        <IconButton className="title-col3" onClick={handleCancel}>
           <i className="dialog-close-button">Close</i>
           <CloseIcon />
         </IconButton>
@@ -57,30 +72,51 @@ export const ConfirmationModal= ({
           component={"span"}
         >
           <span>
-            {modalData?.modalMessage} <br/><br/>
-            {modalData?.modalFor == "redline" && <>
-            <input
-              type="checkbox"
-              style={{ marginRight: 10 }}
-              className="redline-checkmark"
-              id="nr-checkbox"
-              checked={includeNRPages}
-              onChange={handleIncludeNRPages}
-              disabled={isDisableNRDuplicate}
-            />
-            <label for="nr-checkbox">Include NR pages</label>
+            {modalData?.modalMessage}
+            <br/><br/>
+            {assignedPhases &&
+              <div>
+                <TextField
+                    InputLabelProps={{ shrink: true }}
+                    select
+                    size="small"
+                    variant="outlined"
+                    style={{width: "30%"}}
+                    value={redlinePhase ? redlinePhase : 0}
+                    label="Phase"
+                    onChange = {(event) => handlePhaseSelect(event.target.value)}
+                    error={!redlinePhase}
+                    required
+                >
+                  {phaseSelectionList}
+                </TextField>
+              </div>
+            }
             <br/>
-            <input
-              type="checkbox"
-              style={{ marginRight: 10 }}
-              className="redline-checkmark"
-              id="duplicate-checkbox"
-              checked={includeDuplicatePages}
-              onChange={handleIncludeDuplicantePages}
-              disabled={isDisableNRDuplicate}
-            />
-            <label for="duplicate-checkbox">Include Duplicate pages</label>
-            </>}
+            {modalData?.modalFor == "redline" && 
+              <>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="nr-checkbox"
+                  checked={includeNRPages}
+                  onChange={handleIncludeNRPages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="nr-checkbox">Include NR pages</label>
+                <br/>
+                <input
+                  type="checkbox"
+                  style={{ marginRight: 10 }}
+                  className="redline-checkmark"
+                  id="duplicate-checkbox"
+                  checked={includeDuplicatePages}
+                  onChange={handleIncludeDuplicantePages}
+                  disabled={isDisableNRDuplicate}
+                />
+                <label for="duplicate-checkbox">Include Duplicate pages</label>
+              </>}
             {modalData?.modalFor === "consult" &&
               <>
                 <Grid container spacing={0.5}>
@@ -153,12 +189,12 @@ export const ConfirmationModal= ({
         </DialogContentText>
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
-        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton}>
+        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton || disableRedlinePhaseSaveButton}>
           {modalData?.modalButtonLabel}
         </button>
         <button
           className="btn-bottom btn-cancel"
-          onClick={cancelSaveRedlineDoc}
+          onClick={handleCancel}
         >
           Cancel
         </button>
