@@ -899,9 +899,14 @@ const Redlining = React.forwardRef(
         /**Fix for lengthy section cutoff issue with response pkg 
          * download - changed overlaytext to freetext annotations after 
          * redaction applied*/
+
+        /**Fix for lengthy section cutoff issue with response pkg 
+         * download - changed overlaytext to freetext annotations after 
+         * redaction applied*/
         if (info['source'] === 'redactionApplied') {
           annotations.forEach((annotation) => {
             if(annotation.Subject == "Free Text"){
+              docInstance?.Core?.annotationManager.addAnnotation(annotation);
               docInstance?.Core?.annotationManager.addAnnotation(annotation);
             }
           });
@@ -917,8 +922,6 @@ const Redlining = React.forwardRef(
           info.source !== "redactionApplied" &&
           info.source !== "cancelRedaction"
         ) {
-          
-
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving

@@ -439,7 +439,6 @@ class AnnotationSection(db.Model):
         finally:
             db.session.close()
 
-
 class AnnotationSectionSchema(ma.Schema):
     class Meta:
         fields = (
