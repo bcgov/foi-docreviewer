@@ -148,7 +148,7 @@ def fetchdocumentsforextraction():
                 AND EXISTS (
                     SELECT 1 FROM "DocumentStatus" ds
                     WHERE ds.statusid = d.statusid
-                    AND ds.name IN ('new', 'failed')
+                    AND ds.name IN ('new')
                 )
                 AND NOT EXISTS (
                     SELECT 1 FROM "DocumentDeleted" dd
