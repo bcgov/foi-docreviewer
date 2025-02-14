@@ -10,7 +10,7 @@ import { triggerDownloadFinalPackage } from "../../../../apiManager/services/doc
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 
-const useSaveResponsePackage = () => {
+const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
@@ -244,15 +244,28 @@ const useSaveResponsePackage = () => {
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        var pagesToRemove = [];
+        var uniquePagesToRemove = new Set();
+        var redlinePhasePageArr = [];
         for (const infoForEachDoc of pageFlags) {
+          if (redlinePhase) {
+            redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+          }
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
               pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
               pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
             ) {
-              pagesToRemove.push(
+              uniquePagesToRemove.add(
+                getStitchedPageNoFromOriginal(
+                  infoForEachDoc.documentid,
+                  pageFlagsForEachDoc.page,
+                  pageMappedDocs
+                )
+              );
+            }
+            if(!redlinePhasePageArr?.includes(pageFlagsForEachDoc.page)){
+              uniquePagesToRemove.add(
                 getStitchedPageNoFromOriginal(
                   infoForEachDoc.documentid,
                   pageFlagsForEachDoc.page,
@@ -262,6 +275,7 @@ const useSaveResponsePackage = () => {
             }
           }
         }
+        var pagesToRemove = [...uniquePagesToRemove];
         let doc = documentViewer.getDocument();
         await annotationManager.applyRedactions();
         /**must apply redactions before removing pages*/

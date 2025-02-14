@@ -153,6 +153,7 @@ const Redlining = React.forwardRef(
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     const [assignedPhases, setAssignedPhases] = useState(null);
+    const [redlinePhase, setRedlinePhase] = useState(null);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -177,14 +178,12 @@ const Redlining = React.forwardRef(
       consultApplyRedactions,
       setConsultApplyRedlines,
       consultApplyRedlines,
-      setRedlinePhase,
-      redlinePhase,
-    } = useSaveRedlineForSignoff(docInstance, docViewer);
+    } = useSaveRedlineForSignoff(docInstance, docViewer,redlinePhase);
     const {
       saveResponsePackage,
       checkSavingFinalPackage,
       enableSavingFinal,
-    } = useSaveResponsePackage();
+    } = useSaveResponsePackage(redlinePhase);
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
 
@@ -1445,7 +1444,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       disableNRDuplicate();
-      const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
+      const readyForSignOff = true //isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;

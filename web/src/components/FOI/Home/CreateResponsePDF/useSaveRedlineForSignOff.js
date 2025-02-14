@@ -23,7 +23,7 @@ import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 import XMLParser from "react-xml-parser";
 
-const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
+const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
@@ -73,7 +73,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
   const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
   const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
-  const [redlinePhase, setRedlinePhase] = useState(null);
+  //const [redlinePhase, setRedlinePhase] = useState(null);
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
@@ -2525,8 +2525,6 @@ const stampPageNumberRedline = async (
     consultApplyRedactions,
     setConsultApplyRedlines,
     consultApplyRedlines,
-    setRedlinePhase,
-    redlinePhase
   };
 };
 
