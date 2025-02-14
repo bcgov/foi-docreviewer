@@ -74,7 +74,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {assignedPhases &&
+            {assignedPhases && modalData?.modalFor === "redline" &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}
