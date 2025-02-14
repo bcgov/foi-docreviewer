@@ -286,8 +286,8 @@ class FOIFlowS3PresignedRedline(Resource):
                         filename = filepathlist[0]
                         # print("filename1:",filename)
                         if packagetype == "redlinephase":
-                            filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
-                                filepathlist[0],filename, f"{packagetype}{phase}", f"Redline - Phase {phase}"
+                            filepath_put = "{0}/{2}/{1}-{3}.pdf".format(
+                                filepathlist[0],filename, f"{packagetype}{phase}", f"Redline-Phase{phase}"
                             )
                         else:
                             filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
