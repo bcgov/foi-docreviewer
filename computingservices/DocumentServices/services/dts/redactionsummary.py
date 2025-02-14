@@ -119,34 +119,36 @@ class redactionsummary():
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
             for record in records:
-                if len(set(record["documentids"]).intersection(set(pagecounts.keys()))) > 0:
-                    # print("-----------------------Record : ---------------------------", record["documentids"])
-                    record_range, totalpagecount1,end_page  = self.__createrecordpagerange(record, pagecounts,end_page )
-                    # print(f"Range for each record- record_range:{record_range} &&& totalpagecount1:{totalpagecount1} \
-                    #     &&& end_page-{end_page}")
-                    self.assignfullpagesections(redactionlayerid, mapped_flags)
-                    # print("\nMapped_flags::",mapped_flags)
-                    range_result = self.__calculate_range(mapped_flags, record["documentids"])
-                    # print("range_result:",range_result)
-                    recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
-                    # print(f"{record['recordname']} :{recordwise_pagecount}")
-                    summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
+                for document_id in record["documentids"]:
+                    if document_id in (set(pagecounts.keys())):
+                        # print("-----------------------Record : ---------------------------", record["documentids"])
+                        record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
+                        # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
+                        #     &&& end_page-{end_page}")
+                        self.assignfullpagesections(redactionlayerid, mapped_flags)
+                        # print("\nMapped_flags::",mapped_flags)
+                        range_result = self.__calculate_range(mapped_flags, document_id)
+                        # print("range_result:",range_result)
+                        recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
+                        # print(f"{record['recordname']} :{recordwise_pagecount}")
+                        summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
 
             # print("\n summarydata:",summarydata)
-            return {"requestnumber": message.requestnumber, "data": summarydata}
+            sortedredactions = sorted(summarydata, key=lambda x: self.__getrangenumber(x["sections"][0]["range"]) if '-' in x["sections"][0]["range"] else int(x["sections"][0]["range"])) 
+            return {"requestnumber": message.requestnumber, "data": sortedredactions}
 
         except Exception as error:
             print('CFD Error occurred in redaction dts service: ', error)
+            traceback.print_exc()
 
 
-    def __calculate_range(self, mapped_flags, docids):
+    def __calculate_range(self, mapped_flags, document_id):
         if not mapped_flags:
             return {}
         #min_stitched_page = min(flag['stitchedpageno'] for flag in mapped_flags)
-        min_stitched_page = min(flag['stitchedpageno'] for flag in mapped_flags if flag['docid'] in docids)
-        max_stitched_page = max(flag['stitchedpageno'] for flag in mapped_flags if flag['docid'] in docids)
-        
-        filtered_mapper = [flag for flag in mapped_flags if flag['docid'] in docids and flag.get('flagid') == 3]
+        min_stitched_page = min(flag['stitchedpageno'] for flag in mapped_flags if flag['docid'] == document_id)
+        max_stitched_page = max(flag['stitchedpageno'] for flag in mapped_flags if flag['docid'] == document_id)
+        filtered_mapper = [flag for flag in mapped_flags if flag['docid'] == document_id and flag.get('flagid') == 3]
         # Sort the filtered flags by stitchedpageno
         filtered_mapper.sort(key=lambda x: x['stitchedpageno'])
 
@@ -198,26 +200,23 @@ class redactionsummary():
         result = [{docid: pages} for docid, pages in pages_by_docid.items()]
         return result
 
-    def __createrecordpagerange(self, record, pagecounts, previous_end_page=0):
-        totalpagecount1 = 0
-        for doc_id in record["documentids"]:
-            if doc_id in pagecounts:
-                totalpagecount1 += pagecounts[doc_id]
+    def __createrecordpagerange(self, record, pagecounts, doc_id, previous_end_page=0):
+        total_page_count = pagecounts[doc_id]
 
-        if totalpagecount1 == 0:
-            return [], totalpagecount1, previous_end_page
+        if total_page_count == 0:
+            return [], total_page_count, previous_end_page
 
         start_page = previous_end_page + 1
-        end_page = previous_end_page + totalpagecount1
+        end_page = previous_end_page + total_page_count
 
-        range_string = f"{start_page} - {end_page}" if totalpagecount1 > 1 else f"{start_page}"
+        range_string = f"{start_page} - {end_page}" if total_page_count > 1 else f"{start_page}"
         result = {
             "recordname": record['recordname'].upper(),
             "range": range_string,
-            "pagecount": totalpagecount1
+            "pagecount": total_page_count
         }
 
-        return [result], totalpagecount1, end_page
+        return [result], total_page_count, end_page
     
     def count_pages_per_doc(self, mapped_flags):
         page_counts = {}
@@ -343,8 +342,12 @@ class redactionsummary():
                 # Format the section information
                 formatted_sections = f"{pageflag} under {sections_str}" if sections_str else ""
                 # Append the formatted text to the section list
-                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item})
-        return section_list
+                section_list.append({"formatted" :f"pg(s). {range_item} {formatted_sections}" if formatted_sections else range_item, 
+                                     "page_no": self.__getrangenumber(range_item) if '-' in range_item else int(range_item)})
+        
+        section_list.sort(key=lambda x: x['page_no'])
+        formatted_section_list = [{"formatted":item['formatted']} for item in section_list]
+        return formatted_section_list
 
     
     def __getredactionlayerid(self, message):
