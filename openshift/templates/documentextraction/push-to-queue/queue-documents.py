@@ -20,10 +20,10 @@ FOI_DB_PASSWORD= os.getenv('FOI_DB_PASSWORD')
 FOI_DB_PORT= os.getenv('FOI_DB_PORT')
 REQUEST_STATUS =  os.getenv('REQUEST_STATUS', "Records Review")
 REQUEST_LIMIT =  os.getenv('REQUEST_LIMIT', 3)
+ACTIVEMQ_URL= os.getenv('ACTIVEMQ_URL')
 ACTIVEMQ_USERNAME=os.getenv('ACTIVEMQ_USERNAME')
 ACTIVEMQ_PASSWORD=os.getenv('ACTIVEMQ_PASSWORD')
-ACTIVEMQ_DESTINATION=  os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
-
+ACTIVEMQ_DESTINATION= os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
 
 def getdocreviewerdbconnection():
     conn = psycopg2.connect(
@@ -291,7 +291,7 @@ def fetchandqueuedocsforextraction():
 
 
 def pushdocstoactivemq(requestsforextraction):
-    url = "https://activemq-fc7a67-dev.apps.gold.devops.gov.bc.ca/api/message"
+    url = ACTIVEMQ_URL
     username = ACTIVEMQ_USERNAME
     password = ACTIVEMQ_PASSWORD
     params = {
