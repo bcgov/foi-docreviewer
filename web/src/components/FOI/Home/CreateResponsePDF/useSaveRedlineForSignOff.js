@@ -1546,7 +1546,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         console.log("Error fetching document:", error);
       },
       layertype,
-      currentLayer.name.toLowerCase()
+      currentLayer.name.toLowerCase(),
+      redlinePhase
     );
   };
   
