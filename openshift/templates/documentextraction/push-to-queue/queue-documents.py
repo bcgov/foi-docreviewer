@@ -299,7 +299,6 @@ def pushdocstoactivemq(requestsforextraction):
     }
     print("\nACTIVEMQ_URL:",url)
     print("\nACTIVEMQ_USERNAME:",username)
-    print("\nACTIVEMQ_PASSWORD:",password)
     try:
         if requestsforextraction:
             formattedjson= formatbatch(requestsforextraction)
