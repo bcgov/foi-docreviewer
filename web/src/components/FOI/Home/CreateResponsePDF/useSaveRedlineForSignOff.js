@@ -22,6 +22,7 @@ import {
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 import XMLParser from "react-xml-parser";
+import { BIG_HTTP_GET_TIMEOUT } from "../../../../constants/constants";
 
 const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -749,7 +750,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         if (docCounter === documentids.length) {
           setRedlineDocumentAnnotations(documentRedlineAnnotations);
         }
-      });
+      }, BIG_HTTP_GET_TIMEOUT);
     }
   };
   const getzipredlinecategory = (layertype) => {
