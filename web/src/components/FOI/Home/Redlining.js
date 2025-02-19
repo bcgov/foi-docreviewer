@@ -157,10 +157,12 @@ const Redlining = React.forwardRef(
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
     const { 
+      includeComments,
       includeNRPages,
       includeDuplicatePages,
       setIncludeDuplicatePages,
       setIncludeNRPages,
+      setIncludeComments,
       saveRedlineDocument,
       enableSavingOipcRedline,
       enableSavingRedline,
@@ -2447,6 +2449,9 @@ const Redlining = React.forwardRef(
         setRedlineModalOpen(false);
     };
   
+    const handleIncludeComments = (e) => {
+      setIncludeComments(e.target.checked);
+    };
     const handleIncludeNRPages = (e) => {
       setIncludeNRPages(e.target.checked);
     };
@@ -2600,6 +2605,8 @@ const Redlining = React.forwardRef(
           cancelRedaction={cancelRedaction}
           redlineModalOpen={redlineModalOpen}
           cancelSaveRedlineDoc={cancelSaveRedlineDoc}
+          includeComments={includeComments}
+          handleIncludeComments={handleIncludeComments}
           includeNRPages={includeNRPages}
           handleIncludeNRPages={handleIncludeNRPages}
           includeDuplicatePages={includeDuplicatePages}
