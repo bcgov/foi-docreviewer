@@ -34,7 +34,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
-        conn = getdbconnection()
+        conn = getfoidbconnection()
         programareas = {}
         try:
             cursor = conn.cursor()
