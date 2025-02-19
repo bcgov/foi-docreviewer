@@ -1,26 +1,26 @@
-from utils import getdbconnection
+from utils import getdbconnection, getfoidbconnection
 import logging
 import json
 
 class documentpageflag:
 
     @classmethod
-    def get_all_pageflags(cls):
+    def get_all_pageflags(cls, ignoreflags):
         conn = getdbconnection()
         pageflags = []
         try:
             cursor = conn.cursor()
             cursor.execute(
                 """select pageflagid, name, description from "Pageflags" 
-                where isactive = true and name not in ('Consult') order by sortorder
-                """
+                where isactive = true order by sortorder;"""               
             )
 
             result = cursor.fetchall()
             cursor.close()
             if result is not None:
                 for entry in result:
-                    pageflags.append({"pageflagid": entry[0], "name": entry[1], "description": entry[2]})
+                    if entry[1] not in ignoreflags:
+                        pageflags.append({"pageflagid": entry[0], "name": entry[1], "description": entry[2]})
                 return pageflags
             return None
 
@@ -34,7 +34,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
-        conn = getdbconnection()
+        conn = getfoidbconnection()
         programareas = {}
         try:
             cursor = conn.cursor()
@@ -78,7 +78,8 @@ class documentpageflag:
             cursor.close()
             if result is not None:
                 for entry in result:
-                    documentpageflags[entry[0]] = {"pageflag": entry[2], "attributes": entry[3]}
+                    sortedpageflags = sorted(entry[2], key=lambda x: x["page"]) 
+                    documentpageflags[entry[0]] = {"pageflag": sortedpageflags , "attributes": entry[3]}
                 return documentpageflags
             return None
 
@@ -182,5 +183,58 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
+            if conn is not None:
+                conn.close()
+
+    @classmethod
+    def getdeletedpages(cls, ministryrequestid, docids):
+        conn = getdbconnection()
+        deldocpages = []
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select id, documentid, pagemetadata  
+                from "DocumentDeletedPages" 
+                where ministryrequestid = %s::integer and documentid in  %s
+                order by documentid, id;""",
+                (ministryrequestid, tuple(docids)),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    deldocpages.append({"id": entry[0], "documentid": entry[1], "pagemetadata": entry[2]})
+                return deldocpages
+            return None
+        except Exception as error:
+            logging.error("Error in getting deletedpages for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+
+    @classmethod
+    def getrecentredactionlayerid(cls, ministryrequestid):
+        conn = getdbconnection()
+        layerid = 1
+        try:
+            cursor = conn.cursor()
+            query = '''
+                select redactionlayerid  
+                from "DocumentPageflags" 
+                where foiministryrequestid = %s::integer
+                and redactionlayerid != (select redactionlayerid from "RedactionLayers" where name = 'Response Package')
+                order by created_at, id desc limit 1;
+            '''
+            cursor.execute(query, (ministryrequestid,))
+            layerid = cursor.fetchone()
+            return layerid
+        except Exception as error:
+            logging.error("Error in getting recentredactionlayerid for requestid")
+            logging.error(error)
+        finally:
+            cursor.close()
             if conn is not None:
                 conn.close()

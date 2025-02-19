@@ -46,6 +46,7 @@ export const getFOIS3DocumentPreSignedUrls = (
 
 export const getFOIS3DocumentRedlinePreSignedUrl = (
     ministryrequestID: any,
+    requestType: any,
     documentList: any[],
     callback: any,
     errorCallback: any,
@@ -58,13 +59,15 @@ export const getFOIS3DocumentRedlinePreSignedUrl = (
     
     if (layertype === "oipcreview") {
         apiurl = apiurl + "/oipcreview"
+    } else if (layertype === "consult") {
+        apiurl = apiurl + "/consult"
     } else {
         apiurl = apiurl + "/" + layer
     }
     
     
 
-    httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList}, token: UserService.getToken() || ''})
+    httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList,"requestType":requestType}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

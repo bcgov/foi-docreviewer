@@ -5,11 +5,12 @@ class FileSchema(Schema):
     s3uripath = fields.Str(data_key="s3uripath", allow_none=False)
     filename = fields.Str(data_key="filename", allow_none=False)
 
-
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
     divisionname = fields.Str(data_key="divisionname", allow_none=True)
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
+    includeduplicatepages = fields.Boolean(data_key="includeduplicatepages", allow_none=True)
+    includenrpages = fields.Boolean(data_key="includenrpages", allow_none=True)
 
 class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
@@ -29,3 +30,4 @@ class RedlineSchema(Schema):
     )
     summarydocuments = fields.Nested(SummarySchema, allow_none=True)
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
+    requesttype = fields.Str(data_key="requesttype", allow_none=False)

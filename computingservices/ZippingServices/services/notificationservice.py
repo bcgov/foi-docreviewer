@@ -44,6 +44,7 @@ class notificationservice:
                 serviceid="pdfstitchforresponsepackage",
                 createdby=message.createdby,
                 errorflag=self.__booltostr(error),
+                feeoverridereason= message.feeoverridereason
             )
 
             logging.info(

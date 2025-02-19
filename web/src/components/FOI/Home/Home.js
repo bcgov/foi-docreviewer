@@ -8,10 +8,12 @@ import Grid from "@mui/material/Grid";
 import {
   fetchDocuments,
   fetchRedactionLayerMasterData,
+  fetchDeletedDocumentPages,
+  fetchPersonalAttributes
 } from "../../../apiManager/services/docReviewerService";
 import { getFOIS3DocumentPreSignedUrls } from "../../../apiManager/services/foiOSSService";
 import { useParams } from "react-router-dom";
-import { sortDocList } from "./utils";
+import { sortDocList, getDocumentPages } from "./utils";
 import { store } from "../../../services/StoreService";
 import { setCurrentLayer } from "../../../actions/documentActions";
 import DocumentLoader from "../../../containers/DocumentLoader";
@@ -25,10 +27,11 @@ import IconButton from "@mui/material/IconButton";
 function Home() {
   const user = useAppSelector((state) => state.user.userDetail);
   const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
+  const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
+  const redactionLayers = useAppSelector((state) => state.documents?.redactionLayers);
   const [files, setFiles] = useState([]);
   // added incompatibleFiles to capture incompatible files for download redline
   const [incompatibleFiles, setIncompatibleFiles] = useState([]);
-
   const [currentPageInfo, setCurrentPageInfo] = useState({ file: {}, page: 0 });
   const [s3UrlReady, setS3UrlReady] = useState(false);
   const [s3Url, setS3Url] = useState("");
@@ -36,11 +39,14 @@ function Home() {
   const [totalPageCount, setTotalPageCount] = useState(0);
   const [currentDocument, setCurrentDocument] = useState({});
   const [docsForStitcing, setDocsForStitcing] = useState([]);
-  const [stitchedDoc, setStitchedDoc] = useState();
   const [individualDoc, setIndividualDoc] = useState({ file: {}, page: 0 });
-  const [pageMappedDocs, setPageMappedDocs] = useState([]);
+  const [pageMappedDocs, setPageMappedDocs] = useState(false);
   const [isStitchingLoaded, setIsStitchingLoaded] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [divisions, setDivisions] = useState([]);
+  const [pageFlags, setPageFlags]= useState([]);
+  const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
+  const [outstandingBalance, setOutstandingBalance]= useState(0);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -49,20 +55,32 @@ function Home() {
     setS3UrlReady(false);
     let documentObjs = [];
     let totalPageCountVal = 0;
-    let presignedurls = [];
+    let deletedDocPages = [];
+
+    fetchDeletedDocumentPages(
+      foiministryrequestid, 
+      (deletedPages) => {
+        deletedDocPages = deletedPages;
+      }, 
+      (error) =>
+        console.log(error)
+    );
+
     fetchDocuments(
       parseInt(foiministryrequestid),
-      async (data) => {
-
+      async (documents, documentDivisions, _requestInfo) => {
+        setDivisions(documentDivisions);
+        setOutstandingBalance(_requestInfo.outstandingbalance)
+        setIsBalanceFeeOverrode(_requestInfo.balancefeeoverrodforrequest)
         const getFileExt = (filepath) => {
           const parts = filepath.split(".")
           const fileExt = parts.pop()
           return fileExt
         }
         // New code added to get the incompatable files for download redline
-        // data has all the files including incompatable ones
+        // documents has all the files including incompatable ones
         // _files has all files except incompatable ones
-        const _incompatableFiles = data.filter(
+        const _incompatableFiles = documents.filter(
           (d) => {
             const isPdfFile = getFileExt(d.filepath) === "pdf"
             if (isPdfFile) {
@@ -73,14 +91,14 @@ function Home() {
           }
         );
         setIncompatibleFiles(_incompatableFiles);
-        const _files = data.filter((d) => {
+        const _files = documents.filter((d) => {
           const isPdfFile = getFileExt(d.filepath) === "pdf"
           const isCompatible = !d.attributes.incompatible || isPdfFile
           return isCompatible
         });
-        let sortedFiles = []
-        sortDocList(_files, null, sortedFiles);
-        setFiles(sortedFiles);
+        // let sortedFiles = []
+        // sortDocList(_files, null, sortedFiles);
+        // setFiles(sortedFiles);
         setCurrentPageInfo({ file: _files[0] || {}, page: 1 });
         if (_files.length > 0) {
           let urlPromises = [];
@@ -90,23 +108,26 @@ function Home() {
             totalPageCountVal += filePageCount;
           });
 
-          let doclist = [];
+          let doclist = [];          
+          let requestInfo = _requestInfo;
           getFOIS3DocumentPreSignedUrls(
             documentObjs,
             (newDocumentObjs) => {
-              sortDocList(newDocumentObjs, null, doclist);
+              sortDocList(newDocumentObjs, null, doclist, requestInfo);
               //prepareMapperObj will add sortorder, stitchIndex and totalPageCount to doclist
               //and prepare the PageMappedDocs object
-              prepareMapperObj(doclist);
+              prepareMapperObj(doclist, deletedDocPages);
+              const currentDoc = getCurrentDocument(doclist)              
               setCurrentDocument({
-                file: doclist[0]?.file || {},
+                file: currentDoc?.file || {},
                 page: 1,
-                currentDocumentS3Url: doclist[0]?.s3url,
+                currentDocumentS3Url: currentDoc?.s3url,
               });
-              // localStorage.setItem("currentDocumentS3Url", s3data);
-              setS3Url(doclist[0]?.s3url);
+              setS3Url(currentDoc?.s3url);
               setS3UrlReady(true);
               setDocsForStitcing(doclist);
+              //files will have [pages] added
+              setFiles(doclist.map(_doc => _doc.file));
               setTotalPageCount(totalPageCountVal);
             },
             (error) => {
@@ -119,22 +140,57 @@ function Home() {
         console.log(error);
       }
     );
+
+
   }, []);
+
+
+
+  const getCurrentDocument = (doclist) => {    
+    return doclist.find(item => item.file.pagecount > 0);    
+  }
+
+  const syncPageFlagsOnAction = (updatedFlags, isNRorDuplicate) => {
+     
+    selectorRef?.current?.scrollLeftPanelPosition("")       
+    setPageFlags(updatedFlags);
+    if (isNRorDuplicate) {
+      redliningRef?.current?.triggerSetWatermarks();
+    }
+  };
 
   useEffect(() => {
     fetchRedactionLayerMasterData(
       foiministryrequestid,
       (data) => {
         let redline = data.find((l) => l.name === "Redline");
-        let oipc = data.find((l) => l.name === "OIPC");
-        let currentLayer = validoipcreviewlayer && oipc.count > 0 ? oipc : redline; 
+        let currentLayer = redline;
         store.dispatch(setCurrentLayer(currentLayer));
       },
       (error) => console.log(error)
     );
-  }, [validoipcreviewlayer])
+  }, [])
 
-  const prepareMapperObj = (doclistwithSortOrder) => {
+  //useEffect to manage and apply oipc layer to current layer
+  useEffect(() => {
+    const oipcLayer = redactionLayers.find((layer) => layer.name === "OIPC")
+    if(validoipcreviewlayer && oipcLayer?.count > 0) {
+      store.dispatch(setCurrentLayer(oipcLayer));
+    }
+  }, [validoipcreviewlayer, redactionLayers])
+
+  useEffect(() => {
+    if(requestInfo?.bcgovcode && requestInfo.bcgovcode === "MCF"
+          && requestInfo?.requesttype && requestInfo.requesttype === "personal") {
+      fetchPersonalAttributes(
+        requestInfo.bcgovcode, 
+        (error) =>
+          console.log(error)
+      );
+    }
+  }, [requestInfo])
+
+  const prepareMapperObj = (doclistwithSortOrder, deletedDocPages) => {
     let mappedDocs = { stitchedPageLookup: {}, docIdLookup: {}, redlineDocIdLookup: {} };
     let mappedDoc = { docId: 0, version: 0, division: "", pageMappings: [] };
 
@@ -143,24 +199,27 @@ function Home() {
     let totalPageCount = 0;
     doclistwithSortOrder.forEach((sortedDoc, _index) => {
       mappedDoc = { pageMappings: [] };
+      const documentId = sortedDoc.file.documentid;
+      // pages array by removing deleted pages
+      let pages = getDocumentPages(documentId, deletedDocPages, sortedDoc.file.originalpagecount);      
       let j = 0;
-      const pages = [];
-      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {
-        j++;
+
+      for (let i = index + 1; i <= index + sortedDoc.file.pagecount; i++) {        
         let pageMapping = {
-          pageNo: j,
+          pageNo: pages[j],
           stitchedPageNo: i,
         };
         mappedDoc.pageMappings.push(pageMapping);
         mappedDocs["stitchedPageLookup"][i] = {
-          docid: sortedDoc.file.documentid,
+          docid: documentId,
           docversion: sortedDoc.file.version,
-          page: j,
+          page: pages[j],
         };
         totalPageCount = i;
+        j++;
       }
-      mappedDocs["docIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["docIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: sortedDoc.file.divisions[0].divisionid,
         pageMappings: mappedDoc.pageMappings,
@@ -169,32 +228,35 @@ function Home() {
       for (let div of sortedDoc.file.divisions) {
         fileDivisons.push(div.divisionid)
       }
-      mappedDocs["redlineDocIdLookup"][sortedDoc.file.documentid] = {
-        docId: sortedDoc.file.documentid,
+      mappedDocs["redlineDocIdLookup"][documentId] = {
+        docId: documentId,
         version: sortedDoc.file.version,
         division: fileDivisons,
         pageMappings: mappedDoc.pageMappings,
       };
 
-      for (let i = 0; i < sortedDoc.file.pagecount; i++) {
-        pages.push(i + 1);
-      }
-      index = index + sortedDoc.file.pagecount;
-      sortedDoc.sortorder = _index + 1;
-      sortedDoc.stitchIndex = stitchIndex;
+       // added to iterate through the non deleted pages for the left panel functionalities
+      sortedDoc.file.pages = pages;
       sortedDoc.pages = pages;
-      stitchIndex += sortedDoc.file.pagecount;
+      if (sortedDoc.file.pagecount > 0) {
+        index = index + sortedDoc.file.pagecount;
+        //added sortorder to fix the sorting issue for redlining stitching
+        sortedDoc.file.sortorder = _index + 1; 
+        sortedDoc.sortorder = _index + 1;
+        sortedDoc.stitchIndex = stitchIndex;     
+        stitchIndex += sortedDoc.file.pagecount;
+      }
     });
     doclistwithSortOrder.totalPageCount = totalPageCount;
     setPageMappedDocs(mappedDocs);
   };
 
-  const openFOIPPAModal = (pageNos) => {
-    redliningRef?.current?.addFullPageRedaction(pageNos);
+  const openFOIPPAModal = (pageNos, flagId) => {
+    redliningRef?.current?.addFullPageRedaction(pageNos, flagId);
   };
 
-  const scrollLeftPanel = (pageNo) => {
-    selectorRef?.current?.scrollToPage(pageNo);
+  const scrollLeftPanel = (event, pageNo) => {
+    selectorRef?.current?.scrollToPage(event, pageNo);
   };
 
   const closeWarningMessage = () => {
@@ -217,6 +279,9 @@ function Home() {
                 setIndividualDoc={setIndividualDoc}
                 pageMappedDocs={pageMappedDocs}
                 setWarningModalOpen={setWarningModalOpen}
+                divisions={divisions}
+                pageFlags={pageFlags}
+                syncPageFlagsOnAction={syncPageFlagsOnAction}
               />
             )
             // : <div>Loading</div>
@@ -234,16 +299,17 @@ function Home() {
                   requestid={foiministryrequestid}
                   docsForStitcing={docsForStitcing}
                   currentDocument={currentDocument}
-                  stitchedDoc={stitchedDoc}
-                  setStitchedDoc={setStitchedDoc}
                   individualDoc={individualDoc}
                   pageMappedDocs={pageMappedDocs}
-                  setPageMappedDocs={setPageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  isBalanceFeeOverrode={isBalanceFeeOverrode}
+                  outstandingBalance={outstandingBalance}
+                  pageFlags={pageFlags}
+                  syncPageFlagsOnAction={syncPageFlagsOnAction}
                 />
               )
             // : <div>Loading</div>
@@ -265,7 +331,7 @@ function Home() {
         className={"state-change-dialog"}
         isOpen={warningModalOpen}
       >
-        <DialogTitle disableTypography id="state-change-dialog-title">
+        <DialogTitle disabletypography="true" id="state-change-dialog-title">
           <h2 className="state-change-header"></h2>
           <IconButton className="title-col3" onClick={closeWarningMessage}>
             <i className="dialog-close-button">Close</i>

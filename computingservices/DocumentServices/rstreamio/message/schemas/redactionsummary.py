@@ -12,59 +12,54 @@ __author__   = "sumathi.thirumani@aot-technologies.com"
 
 
 class FileSchema(Schema):
-    class Meta:
-        unknown = EXCLUDE
-    filename = fields.Str(data_key="filename",allow_none=False)
-    s3uripath = fields.Str(data_key="s3uripath",allow_none=False)
+    def __init__(self, filename, s3uripath) -> None:
+        self.filename = filename
+        self.s3uripath = s3uripath
 
-class SummaryPkgSchema(Schema):
-    class Meta:
-        unknown = EXCLUDE
-    divisionid = fields.Int(data_key="divisionid", allow_none=True)
-    documentids = fields.List(fields.Int())
+class SummaryPackage(Schema):
+    def __init__(self, divisionid, documentids) -> None:
+        self.divisionid = divisionid
+        self.documentids = documentids
 
-class SummarySchema(Schema):
-    class Meta:
-        unknown = EXCLUDE
-    sorteddocuments = fields.List(fields.Int())
-    pkgdocuments = fields.List(fields.Nested(SummaryPkgSchema, allow_none=True))
-    
-class AttributeSchema(Schema):
-    class Meta:
-        unknown = EXCLUDE
-    divisionid = fields.Int(data_key="divisionid",allow_none=True)
-    files = fields.List(fields.Nested(FileSchema, allow_none=True))
-    divisionname = fields.Str(data_key="divisionname",allow_none=True)
+class Summary(Schema):
+    def __init__(self, sorteddocuments, pkgdocuments) -> None:
+        self.sorteddocuments = sorteddocuments
+        self.pkgdocuments = pkgdocuments
 
-class RedactionSummaryIncomingSchema(Schema):
-    class Meta:
-        unknown = EXCLUDE
-    jobid = fields.Int(data_key="jobid",allow_none=False)
-    requestid = fields.Int(data_key="requestid",allow_none=False)
-    ministryrequestid = fields.Int(data_key="ministryrequestid",allow_none=False)
-    category = fields.Str(data_key="category",allow_none=False)
-    requestnumber = fields.Str(data_key="requestnumber",allow_none=False)
-    bcgovcode = fields.Str(data_key="bcgovcode",allow_none=False)
-    createdby = fields.Str(data_key="createdby",allow_none=False)
-    filestozip = fields.List(fields.Nested(FileSchema, allow_none=True))
-    finaloutput = fields.Str(data_key="finaloutput",allow_none=False)
-    attributes = fields.List(fields.Nested(AttributeSchema, allow_none=True))
-    summarydocuments = fields.Nested(SummarySchema, allow_none=True)
-    redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
+
+
+class RedactionSummaryMessage(object):
+    def __init__(self, jobid, requestid, ministryrequestid, category, requestnumber, 
+                 bcgovcode, createdby, filestozip, finaloutput, attributes, summarydocuments ,redactionlayerid, requesttype, feeoverridereason) -> None:
+        self.jobid = jobid
+        self.requestid = requestid
+        self.ministryrequestid = ministryrequestid
+        self.category = category
+        self.requestnumber = requestnumber
+        self.bcgovcode = bcgovcode
+        self.createdby = createdby
+        self.filestozip = filestozip
+        self.finaloutput = finaloutput
+        self.attributes = attributes
+        self.summarydocuments = summarydocuments
+        self.redactionlayerid = redactionlayerid
+        self.requesttype = requesttype
+        self.feeoverridereason = feeoverridereason
 
 
 def get_in_redactionsummary_msg(producer_json): 
-    messageobject = RedactionSummaryIncomingSchema().load(__formatmsg(producer_json), unknown=EXCLUDE)
-    return dict2obj(messageobject)
+    messageobject = RedactionSummaryMessage(**__formatmsg(producer_json))
+    return messageobject
+
+def get_in_summary_object(producer_json): 
+    messageobject = Summary(**__formatmsg(producer_json))
+    return messageobject
+
+def get_in_summarypackage_object(producer_json): 
+    messageobject = SummaryPackage(**__formatmsg(producer_json))
+    return messageobject
 
 def __formatmsg(producer_json):
     j = json.loads(producer_json)
     return j
 
-def decodesummarymsg(_message):
-    _message = _message.encode().decode('unicode-escape')
-    _message = _message.replace("b'","'").replace('"\'','"').replace('\'"','"')
-    _message = _message.replace('"[','[').replace(']"',"]").replace("\\","")
-    _message = _message.replace('"{','{').replace('}"',"}")
-    _message = _message.replace('""','"')
-    return _message

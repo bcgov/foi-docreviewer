@@ -39,10 +39,10 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string,string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
-            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-cal.ics"), FileMode.Open, FileAccess.Read);
+            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "Backlog refinement.ics"), FileMode.Open, FileAccess.Read);
 
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(testFile);
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
@@ -50,6 +50,8 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
             string outputPath = Path.Combine(getSourceFolder(), "output");
             (isProcessed, message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             Assert.IsTrue(isProcessed == true, $"Calendar to PDF Conversion failed");
+
+            SaveStreamAsFile(getSourceFolder(), output, "result_Backlog refinement.pdf");
         }
 
         [TestMethod]
@@ -57,10 +59,10 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
-            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-with-attachments.ics"), FileMode.Open, FileAccess.Read);
+            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "Backlog refinement.ics"), FileMode.Open, FileAccess.Read);
 
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(testFile);
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
@@ -71,6 +73,8 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
 
             bool isAttachmentsExists = attachments.Count == 2;
             Assert.IsTrue(isAttachmentsExists, $"Attachments not found");
+
+            SaveStreamAsFile(getSourceFolder(), output, "result_Backlog refinement.pdf");
         }
 
         [TestMethod]
@@ -78,21 +82,37 @@ namespace MCS.FOI.CalenderToPDF.UnitTests
         {
             bool isProcessed;
             string message = string.Empty;
-            Dictionary<MemoryStream, string> attachments = new Dictionary<MemoryStream, string>();
+            Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
             Stream output = new MemoryStream();
-            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-problematic-calendar.ics"), FileMode.Open, FileAccess.Read);
+            Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "test-with-attachments.ics"), FileMode.Open, FileAccess.Read);
 
             CalendarFileProcessor calendarFileProcessor = new CalendarFileProcessor(testFile);
             calendarFileProcessor.WaitTimeinMilliSeconds = 5000;
             calendarFileProcessor.FailureAttemptCount = 10;
             (isProcessed, message, output, attachments) = calendarFileProcessor.ProcessCalendarFiles();
             Assert.IsTrue(isProcessed == true, $"Calendar to PDF Conversion failed");
+
+            SaveStreamAsFile(getSourceFolder(), output, "result_test-with-attachmentsr.pdf");
         }
 
             private string getSourceFolder()
         {
-            return "C:\\Projects\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.CalendarToPDFUnitTests\\SourceFiles";
+            return "C:\\AOT\\FOI\\Source\\foi-docreviewer\\foi-docreviewer\\MCS.FOI.S3FileConversion\\MCS.FOI.CalendarToPDFUnitTests\\SourceFiles";
+        }
+
+        public static void SaveStreamAsFile(string filePath, Stream stream, string fileName)
+        {
+            stream.Position = 0;
+            var path = Path.Combine(filePath, fileName);
+            var bytesInStream = new byte[stream.Length];
+
+            stream.Read(bytesInStream, 0, (int)bytesInStream.Length);
+
+            using (var outputFileStream = new FileStream(path, FileMode.Create))
+            {
+                outputFileStream.Write(bytesInStream, 0, bytesInStream.Length);
+            }
         }
     }
 }

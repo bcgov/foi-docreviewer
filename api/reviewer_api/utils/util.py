@@ -34,7 +34,7 @@ from reviewer_api.utils.enums import (
     ProcessingTeamWithKeycloackGroup,
 )
 import maya
-from reviewer_api.utils.constants import REDLINE_SINGLE_PKG_MINISTRIES
+from reviewer_api.utils.constants import REDLINE_SINGLE_PKG_MINISTRIES, REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL
 
 def cors_preflight(methods):
     # Render an option method on the class.
@@ -136,11 +136,17 @@ def getbatchconfig():
     _limit = _batchconfig["limit"] if "limit" in _batchconfig else 250    
     return _begin, _size, _limit
 
-def is_single_redline_package(bcgovcode, packagetype):
+def is_single_redline_package(bcgovcode, packagetype, requesttype):
+    if packagetype == "consult":
+        return False
     if (packagetype == "oipcreview"):
         return True
     if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
         _pkg_ministries = REDLINE_SINGLE_PKG_MINISTRIES.replace(" ", "").split(',')
         if bcgovcode.upper() in _pkg_ministries:
+            return True
+    if REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL not in (None, ""):
+        _pkg_ministries_personal = REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL.replace(" ", "").split(',')
+        if bcgovcode.upper() in _pkg_ministries_personal and requesttype.upper() == "PERSONAL":
             return True
     return False

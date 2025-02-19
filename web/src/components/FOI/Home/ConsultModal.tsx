@@ -100,7 +100,7 @@ const ConsultModal = ({
             </DialogTitle>
             <DialogContent>
                 <DialogContentText id="consult-modal-description" component={'span'}>
-                    <div style={{textAlign: "left", marginLeft: 25}}>Select one or more Ministry you with the send the selected page(s) to for consult.</div>
+                    <div style={{textAlign: "left", marginLeft: 25}}>Select one or more public bodies you wish to consult with on the selected page(s).</div>
                     <div className="consult-modal-ministries-list">
                         {programAreaList.programareas?.map((programArea: any, index: number) => (
                             <label  id={"lbl"+programArea.iaocode}  key={index} className="check-item">
@@ -115,7 +115,7 @@ const ConsultModal = ({
                                 required
                                 defaultChecked={selectedPageFlag?.programareaid?.findIndex((e:any) => e === programArea.programareaid) > -1}
                             />
-                            <span id={"selectspan"+programArea.iaocode} key={index + 1} className="checkmark"></span>
+                            <span id={"selectspan"+programArea.iaocode} key={programArea.iaocode} className="checkmark"></span>
                             {programArea.iaocode}
                             </label>
                         ))}
@@ -128,19 +128,19 @@ const ConsultModal = ({
                                 type="checkbox"
                                 className="checkmark"
                                 id={"selectchk"+programArea}
-                                key={programArea + index}
+                                key={programArea + "_" + index}
                                 data-iaocode={programArea}
                                 onChange={handleSelectCustomMinistry}
                                 required
                                 defaultChecked={selectedPageFlag?.other?.findIndex((e:any) => e === programArea) > -1}
                             />
-                            <span id={"selectspan"+programArea} key={index + 1} className="checkmark"></span>
+                            <span id={"selectspan"+programArea} key={index + "_" + 1} className="checkmark"></span>
                             {programArea}
                             </label>
                         ))}
                     </div>
 
-                    <div style={{textAlign: "left", marginLeft: 25}}>If you do not see the name of the Ministry you would like to send for consult above please type it below.</div>
+                    <div style={{textAlign: "left", marginLeft: 25}}>If you do not see the name of the public body you wish to consult with, please type it below.</div>
                     <div className={`other-pb-modal-message`}>
                         <TextField
                             id="new-public-body"

@@ -80,6 +80,11 @@
   flex-basis: 70%
 }
 
+li.modal-message-list-item {
+  margin: 6px 0;
+  font-size: 15px;
+}
+
 #state-change-dialog-title .MuiIconButton-root {
   background-color: #036 ;
   color: white;
@@ -136,6 +141,12 @@
 
 .dialog-content-nomargin{
   padding: 0px 30px !important;
+  overflow-y: visible !important;
+  height: calc(100% - 198px);
+}
+
+.modal-content{
+  padding: 20px 30px !important;
   overflow-y: visible !important;
   height: calc(100% - 198px);
 }
@@ -211,4 +222,24 @@
 
 .expandallicon {
   color: grey !important;
+}
+
+.redline-modal {
+  min-height: 350px !important;
+}
+
+.consult-modal {
+  min-height: 600px !important;
+}
+
+.redline-checkmark {
+  height:14px;
+  width:14px;
+  background-color:#eee;
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+.redline-checkmark:checked {
+  accent-color: #178100;
 }

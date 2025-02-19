@@ -64,12 +64,12 @@ class DeduplicationJob(db.Model):
         executions = []
         try:
             sql = """select distinct on (deduplicationjobid) deduplicationjobid, version, 
-                    filename, status, documentmasterid, trigger   
+                    filename, status, documentmasterid, trigger, message   
                     from "DeduplicationJob" fcj  where ministryrequestid = :ministryrequestid
                     order by deduplicationjobid, "version" desc"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                executions.append({"deduplicationjobid": row["deduplicationjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["documentmasterid"], "trigger":row["trigger"]})
+                executions.append({"deduplicationjobid": row["deduplicationjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["documentmasterid"], "trigger":row["trigger"], "message": row["message"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

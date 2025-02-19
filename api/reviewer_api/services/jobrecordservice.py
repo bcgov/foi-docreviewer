@@ -1,10 +1,12 @@
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from reviewer_api.models.PDFStitchJob import PDFStitchJob
+from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.services.documentpageflagservice import documentpageflagservice
+from reviewer_api.models.PDFStitchJobAttributes import PDFStitchJobAttributes
 from reviewer_api.auth import auth, AuthHelper
 from datetime import datetime as datetime2
 from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES, DEDUPE_FILE_TYPES
@@ -116,3 +118,31 @@ class jobrecordservice:
             else:
                 jobids[record['s3uripath']] = {'error': 'Invalid file type'}
         return jobids
+    
+
+    def insertpagecalculatorjobstatus(self, message, userid):
+        row = PageCalculatorJob(
+                    version=1,
+                    ministryrequestid=message['ministryrequestid'],
+                    inputmessage=message,
+                    status='pushedtostream',
+                    createdby=userid
+                )
+        job = PageCalculatorJob.insert(row)
+        return job
+    
+    def insertfeeoverridereason(self, message, pdfstitchjobid, userid):
+        row = PDFStitchJobAttributes(
+                    pdfstitchjobid=pdfstitchjobid,
+                    version=1,
+                    ministryrequestid=message['ministryrequestid'],
+                    attributes=message['pdfstitchjobattributes'],
+                    createdby=userid
+                )
+        job = PDFStitchJobAttributes.insert(row)
+        return job
+
+    def isbalancefeeoverrodforrequest(self, requestid):
+        pdfstitchjobattributes= PDFStitchJobAttributes().getpdfstitchjobattributesbyid(requestid)
+        isbalancefeeoverrode= False if pdfstitchjobattributes is None or not pdfstitchjobattributes else True
+        return isbalancefeeoverrode

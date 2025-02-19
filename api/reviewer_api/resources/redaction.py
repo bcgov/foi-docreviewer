@@ -29,6 +29,7 @@ from reviewer_api.exceptions import BusinessException
 import json
 import os
 from reviewer_api.services.radactionservice import redactionservice
+from reviewer_api.services.redactionlayerservice import redactionlayerservice
 
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.schemas.annotationrequest import (
@@ -38,7 +39,7 @@ from reviewer_api.schemas.annotationrequest import (
     SectionSchema,
 )
 from reviewer_api.schemas.redline import RedlineSchema
-from reviewer_api.schemas.finalpackage import FinalPackageSchema
+from reviewer_api.schemas.finalpackage import FinalPackageSchema, MCFFinalPackageSchema
 
 API = Namespace(
     "Document and annotations",
@@ -90,14 +91,13 @@ class AnnotationPagination(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(ministryrequestid, redactionlayer="redline", page=1, size=1000):
         try:
-            isvalid, _redactionlayer = redactionservice().validateredactionlayer(
-                redactionlayer, ministryrequestid
-            )
-            if isvalid == True:
+            redactionlayer = redactionlayerservice().getredactionlayer(redactionlayer)
+            if redactionlayer is not None:
                 result = redactionservice().getannotationsbyrequest(
-                    ministryrequestid, _redactionlayer, page, size
+                    ministryrequestid, redactionlayer, page, size
                 )
                 return result, 200
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + "Invalid Layer"}, 400
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
@@ -143,13 +143,14 @@ class SaveAnnotations(Resource):
         try:
             requestjson = request.get_json()
             annotationschema = AnnotationRequest().load(requestjson)
-            result = redactionservice().saveannotation(
+            pageflagresponse, result = redactionservice().saveannotation(
                 annotationschema, AuthHelper.getuserinfo()
             )
             return {
                 "status": result.success,
                 "message": result.message,
                 "annotationid": result.identifier,
+                "updatedpageflag":pageflagresponse
             }, 201
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
@@ -230,7 +231,7 @@ class AnnotationMetadata(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
-    @auth.require
+    #@auth.require
     def get(ministryrequestid, redactionlayer):
         try:
             result = redactionservice().getannotationinfobyrequest(ministryrequestid, redactionlayer)
@@ -274,42 +275,6 @@ class GetSections(Resource):
             return json.dumps(data), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
-        
-@cors_preflight("GET,OPTIONS")
-@API.route("/documentpage/ministryrequest/<int:ministryrequestid>")
-class GetRedactedDocumentPages(Resource):
-    """get document data"""
-
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def get(ministryrequestid):
-        try:
-            data = annotationservice().getredactedpagebyrequest(ministryrequestid)
-            return json.dumps(data), 200
-        except KeyError as error:
-            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
-        except BusinessException as exception:
-            return {"status": exception.status_code, "message": exception.message}, 500       
-
-@cors_preflight("GET,OPTIONS")
-@API.route("/documentpageflags/ministryrequest/<int:ministryrequestid>")
-class GetRedactedPageFlags(Resource):
-    """get document flag data"""
-    
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    def get(ministryrequestid):
-        try:
-            data = annotationservice().getdocumentpageflagbyrequest(ministryrequestid)
-            return json.dumps(data), 200
-        except KeyError as error:
-            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
-        except BusinessException as exception:
-            return {"status": exception.status_code, "message": exception.message}, 500                
 
 @cors_preflight("GET,OPTIONS")
 @API.route("/account")
@@ -375,7 +340,12 @@ class SaveFinalPackage(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            finalpackageschema = FinalPackageSchema().load(requestjson)
+            print("\nrequestjson:",requestjson)
+            if(requestjson['bcgovcode'] == "mcf" and requestjson['requesttype'] == "personal"):
+                finalpackageschema = MCFFinalPackageSchema().load(requestjson) 
+            else:
+                finalpackageschema = FinalPackageSchema().load(requestjson)
+            print("\nfinalpackageschema:",finalpackageschema)
             result = redactionservice().triggerdownloadredlinefinalpackage(
                 finalpackageschema, AuthHelper.getuserinfo()
             )

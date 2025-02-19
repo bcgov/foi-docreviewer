@@ -22,7 +22,7 @@ from reviewer_api.utils.enums import (
     MinistryTeamWithKeycloackGroup,
     ProcessingTeamWithKeycloackGroup,
     IAOTeamWithKeycloackGroup,
-)
+) 
 
 jwt = (
     JwtManager()

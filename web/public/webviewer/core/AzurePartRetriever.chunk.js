@@ -1,5 +1,3 @@
 /** Notice * This file contains works from many authors under various (but compatible) licenses. Please see core.txt for more information. **/
-(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[3],{524:function(wa,ta,n){n.r(ta);var pa=n(0),na=n(177);wa=n(518);n=n(439);wa=function(oa){function ia(ka,ea,z,x){return oa.call(this,ka,ea,z,x)||this}Object(pa.c)(ia,oa);ia.prototype.Q0=function(){return{start:this.J_-na.a,stop:this.J_}};ia.prototype.nw=function(ka){var ea=this;this.yq(this.url,{start:0,stop:1},function(z,x,f){if(z)return ka(z);z=f.request.getResponseHeader("Content-Range");ea.J_=z.split("/")[1];oa.prototype.nw.call(ea,
-ka)})};return ia}(wa["default"]);Object(n.a)(wa);Object(n.b)(wa);ta["default"]=wa}}]);}).call(this || window)
-
-//# sourceMappingURL=AzurePartRetriever.chunk.js.map
+(function(){(window.wpCoreControlsBundle=window.wpCoreControlsBundle||[]).push([[3],{569:function(xa,ta,h){h.r(ta);var ra=h(0),na=h(189);xa=h(563);h=h(486);xa=function(pa){function ja(ka,ea,y,z){return pa.call(this,ka,ea,y,z)||this}Object(ra.c)(ja,pa);ja.prototype.P4=function(){return{start:this.O3-na.a,stop:this.O3}};ja.prototype.Tx=function(ka){var ea=this;this.Rr(this.url,{start:0,stop:1},function(y,z,r){if(y)return ka(y);y=r.request.getResponseHeader("Content-Range");ea.O3=y.split("/")[1];pa.prototype.Tx.call(ea,
+ka)})};return ja}(xa["default"]);Object(h.a)(xa);Object(h.b)(xa);ta["default"]=xa}}]);}).call(this || window)

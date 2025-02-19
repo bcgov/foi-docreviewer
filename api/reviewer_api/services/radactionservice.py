@@ -46,12 +46,10 @@ class redactionservice:
     def copyannotation(self, ministryrequestid, targetlayer):
         sourcelayers = []
         sourcelayers.append(redactionlayerservice().getdefaultredactionlayerid())
-        print(ministryrequestid)
-        print(sourcelayers)
-        print(targetlayer)
         return annotationservice().copyannotation(ministryrequestid, sourcelayers, targetlayer)
 
     def saveannotation(self, annotationschema, userinfo):
+        pageflagresponse= None
         result = annotationservice().saveannotation(annotationschema, userinfo)
         if (
             result.success == True
@@ -66,12 +64,12 @@ class redactionservice:
                     "foiministryrequestid"
                 ]
             if foiministryrequestid:
-                documentpageflagservice().bulksavepageflag(
+                pageflagresponse= documentpageflagservice().bulksavepageflag(
                     foiministryrequestid,
                     annotationschema["pageflags"],
                     userinfo,
                 )
-        return result
+        return pageflagresponse, result
 
     def deactivateannotation(
         self,
@@ -101,73 +99,7 @@ class redactionservice:
         result = annotationservice().deactivateannotation(
             annotationnames, redactionlayerid, userinfo
         )
-        ### Remove/Update pageflags start here ###
-        # totaldocumentpagesmapping docid and pages mapping
-        inputdocpagesmapping = self.__getdocumentpagesmapping(
-            annotationschema["annotations"]
-        )
-        # skip the pages as it has redactions in it. DB call to get the (document, pages) with redactions in it.
-        skipdocpagesmapping = self.__getskipdocpagesmapping(
-            inputdocpagesmapping, redactionlayerid
-        )
-        # pages not having redactions
-        deldocpagesmapping = self.__getdeldocpagesmapping(
-            inputdocpagesmapping, skipdocpagesmapping
-        )
-        if deldocpagesmapping:
-            documentpageflagservice().updatepageflags(
-                requestid,
-                deldocpagesmapping,
-                redactionlayerid,
-                userinfo,
-            )
-        ### Remove/Update pageflags end here ###
         return result
-
-    def __getskipdocpagesmapping(self, _documentpagesmapping, _redactionlayerid):
-        skipdata = []
-        # gets the documentid and pages to skip based on documentid and pages
-        for item in _documentpagesmapping:
-            docid = item["docid"]
-            pages = item["pages"]
-            skipdata.extend(
-                Annotation.getredactionsbydocumentpages(docid, pages, _redactionlayerid)
-            )
-        return skipdata
-
-    def __getdeldocpagesmapping(self, inputdocpagesmapping, skipdocpagesmapping):
-        #  item["pagenumber"] + 1 is because the page in pageflags starts with 1
-        skip_combinations = {
-            (item["documentid"], item["pagenumber"])
-            for item in skipdocpagesmapping
-            if len(skipdocpagesmapping) > 0
-        }
-
-        # Filter inputdocpagesmapping to obtain deletedocumentpagesmapping
-        deldocpagesmapping = [
-            {
-                "docid": item["docid"],
-                "pages": [
-                    page + 1
-                    for page in item["pages"]
-                    if (item["docid"], page) not in skip_combinations
-                ],
-            }
-            for item in inputdocpagesmapping
-            if len(item["pages"]) > 0
-        ]
-        return deldocpagesmapping
-
-    def __getdocumentpagesmapping(self, annotations):
-        output_dict = {}
-        for annotation in annotations:
-            docid = annotation["docid"]
-            page = annotation["page"] - 1  # in DB the page starts with 0
-            if docid not in output_dict:
-                output_dict[docid] = {"docid": docid, "pages": []}
-            output_dict[docid]["pages"].append(page)
-        output_list = list(output_dict.values())
-        return output_list
 
     def getdocumentmapper(self, bucket):
         return DocumentPathMapper.getmapper(bucket)
@@ -192,6 +124,11 @@ class redactionservice:
             _jobmessage, userinfo["userid"]
         )
         if job.success:
+            if 'pdfstitchjobattributes' in finalpackageschema and finalpackageschema['pdfstitchjobattributes'] is not None:
+                if 'feeoverridereason' in finalpackageschema['pdfstitchjobattributes']:
+                    feeoverridereason= finalpackageschema['pdfstitchjobattributes']['feeoverridereason']
+                    if feeoverridereason is not None and feeoverridereason != '':
+                        jobrecordservice().insertfeeoverridereason(finalpackageschema,job.identifier,userinfo["userid"])
             _message = self.__preparemessageforsummaryservice(
                 finalpackageschema, userinfo, job
             )
@@ -199,6 +136,14 @@ class redactionservice:
 
     # redline/final package download: prepare message for zipping service
     def __preparemessageforsummaryservice(self, messageschema, userinfo, job):
+        feeoverridereason= ''
+        pdf_stitch_job_attributes = None
+        if 'pdfstitchjobattributes' in messageschema:
+            pdf_stitch_job_attributes = to_json(messageschema['pdfstitchjobattributes'])
+        if pdf_stitch_job_attributes is not None:
+            feeoverridereason= json.loads(pdf_stitch_job_attributes).get("feeoverridereason", None) 
+            if feeoverridereason is not None and feeoverridereason != '':
+                feeoverridereason= userinfo["firstname"]+" "+userinfo["lastname"]+" overrode balance outstanding warning for the following reason: "+feeoverridereason
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
@@ -213,7 +158,9 @@ class redactionservice:
             "finaloutput": to_json(""),
             "attributes": to_json(messageschema["attributes"]),
             "summarydocuments": json.dumps(messageschema["summarydocuments"]),
-            "redactionlayerid": json.dumps(messageschema["redactionlayerid"])
+            "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
+            "requesttype": messageschema["requesttype"],
+            "feeoverridereason":feeoverridereason
         }
         return _message
 

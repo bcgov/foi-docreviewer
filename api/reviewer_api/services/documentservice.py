@@ -2,6 +2,7 @@ from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
+from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from datetime import datetime as datetime2, timezone
 from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
@@ -9,13 +10,14 @@ import json
 from reviewer_api.utils.util import pstformat
 from reviewer_api.models.DocumentAttributes import DocumentAttributes
 from reviewer_api.services.pdfstitchpackageservice import pdfstitchpackageservice
+from reviewer_api.services.external.eventqueueproducerservice import eventqueueproducerservice
 import requests
 from reviewer_api.auth import auth, AuthHelper
 from os import getenv
 from reviewer_api.utils.enums import StateName
 
 requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
-
+pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class documentservice:
     def getdedupestatus(self, requestid):
@@ -39,7 +41,6 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-
         # Duplicate check
         finalresults = []
         (
@@ -75,6 +76,7 @@ class documentservice:
         if record["recordid"] is not None:
             _att_in_properties = []
             (
+                record["originalpagecount"],
                 record["pagecount"],
                 record["filename"],
                 record["documentid"],
@@ -121,6 +123,7 @@ class documentservice:
                             ) = self.__isduplicate(_att_in_properties, attachment)
 
                     (
+                        attachment["originalpagecount"],
                         attachment["pagecount"],
                         attachment["filename"],
                         attachment["documentid"],
@@ -142,6 +145,7 @@ class documentservice:
         return parentrecords, parentswithattachments, attchments
       
     def __getpagecountandfilename(self, record, properties):
+        originalpagecount = 0
         pagecount = 0
         filename = record["filename"] if "filename" in record else None
         documentid = None
@@ -151,11 +155,12 @@ class documentservice:
                 property["processingparentid"] is None
                 and record["documentmasterid"] == property["documentmasterid"]
             ):
+                originalpagecount = property["originalpagecount"]
                 pagecount = property["pagecount"]
                 filename = property["filename"]
                 documentid = property["documentid"]
                 version = property["version"]
-        return pagecount, filename, documentid, version
+        return originalpagecount, pagecount, filename, documentid, version
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
@@ -246,6 +251,7 @@ class documentservice:
                 record["deduplicationstatus"] = dedupe["status"]
                 record["filename"] = dedupe["filename"]
                 record["trigger"] = dedupe["trigger"]
+                record["message"] = dedupe["message"]
         return record
 
     def __updateproperties_old(self, properties, records, record):
@@ -354,7 +360,7 @@ class documentservice:
 
     def deletedocument(self, payload, userid):
         """Inserts document into list of deleted documents"""
-        return DocumentDeleted.create(
+        result = DocumentDeleted.create(
             [
                 DocumentDeleted(
                     filepath=path.splitext(filepath)[0],
@@ -366,6 +372,22 @@ class documentservice:
                 for filepath in payload["filepaths"]
             ]
         )
+        if result.success:
+                streamobject = {
+                        'ministryrequestid': payload["ministryrequestid"]
+                    }
+                row = PageCalculatorJob(
+                    version=1,
+                    ministryrequestid=payload["ministryrequestid"],
+                    inputmessage=streamobject,
+                    status='pushedtostream',
+                    createdby='delete'
+                )
+                job = PageCalculatorJob.insert(row)
+                streamobject["jobid"] = job.identifier
+                streamobject["createdby"] = 'delete'
+                eventqueueproducerservice().add(pagecalculatorstreamkey, streamobject)
+        return result
 
     def updatedocumentattributes(self, payload, userid):
         """update document attributes"""
@@ -390,7 +412,12 @@ class documentservice:
                 }
             )
             newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
-            newdocattributes["divisions"] = payload["divisions"]
+            if 'divisions' in payload:
+                newdocattributes["divisions"] = payload["divisions"]
+            if 'rotatedpages' in payload:
+                if 'rotatedpages' not in newdocattributes:
+                    newdocattributes['rotatedpages'] = {}
+                newdocattributes['rotatedpages'].update(payload["rotatedpages"])
             newRows.append(
                 DocumentAttributes(
                     version=docattributes["version"] + 1,
@@ -402,7 +429,54 @@ class documentservice:
                 )
             )
 
-        return DocumentAttributes.update(newRows, oldRows)
+        return DocumentAttributes.update(newRows, payload["documentmasterids"])
+
+    def updatedocumentpersonalattributes(self, payload, userid):
+        """update document attributes"""
+
+        docattributeslist = DocumentAttributes.getdocumentattributesbyid(
+            payload["documentmasterids"]
+        )
+        oldRows = []
+        newRows = []
+        for docattributes in docattributeslist:
+            oldRows.append(
+                {
+                    "attributeid": docattributes["attributeid"],
+                    "version": docattributes["version"],
+                    "documentmasterid": docattributes["documentmasterid"],
+                    "attributes": docattributes["attributes"],
+                    "createdby": docattributes["createdby"],
+                    "created_at": docattributes["created_at"],
+                    "updatedby": userid,
+                    "updated_at": datetime2.now(),
+                    "isactive": False,
+                }
+            )
+            newdocattributes = json.loads(json.dumps(docattributes["attributes"]))
+            if payload["personalattributes"] is not None:
+                #apply change to all
+                if(len(payload["documentmasterids"]) > 1):
+                    for attribute in payload["personalattributes"]:
+                        if(payload["personalattributes"][attribute] is not None and len(payload["personalattributes"][attribute]) > 0):
+                            if 'personalattributes' not in newdocattributes:
+                                newdocattributes['personalattributes'] = {}
+                            newdocattributes["personalattributes"][attribute]=payload["personalattributes"][attribute]
+                #apply change to individual
+                else:
+                    newdocattributes["personalattributes"] = payload["personalattributes"]
+            newRows.append(
+                DocumentAttributes(
+                    version=docattributes["version"] + 1,
+                    documentmasterid=docattributes["documentmasterid"],
+                    attributes=newdocattributes,
+                    createdby=docattributes["createdby"],
+                    created_at=docattributes["created_at"],
+                    isactive=True,
+                )
+            )
+
+        return DocumentAttributes.update(newRows, payload["documentmasterids"])
     
     
     def getdocuments(self, requestid,bcgovcode):
@@ -412,13 +486,13 @@ class documentservice:
                 headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'}
             ).json()
         divisions = {div['divisionid']: div for div in divisions_data['divisions']}
-
+        documentdivisionids=set()
+        filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
             for document in self.getdedupestatus(requestid)
         }
         attachments = []
-
         for documentid in documents:
             _attachments = documents[documentid].pop("attachments", [])
             for attachment in _attachments:
@@ -456,12 +530,15 @@ class documentservice:
                 map(lambda d: {"divisionid": d}, documentdivisions)
             )
             document["divisions"] = list(map(lambda d: divisions[d], documentdivisions))
+            documentdivisionids.update(documentdivisions)
+
             # For replaced attachments, change filepath to .pdf instead of original extension
             if "trigger" in document["attributes"] and document["attributes"]["trigger"] == "recordreplace":
                 base_path, current_extension = path.splitext(document["filepath"])
                 document["filepath"] = base_path + ".pdf"
 
-        return [documents[documentid] for documentid in documents]
+        filtered_maps=([item for item in divisions_data['divisions'] if item["divisionid"] in documentdivisionids])
+        return filtered_maps,[documents[documentid] for documentid in documents]
 
     def getdocument(self, documentid):
         return Document.getdocument(documentid)
