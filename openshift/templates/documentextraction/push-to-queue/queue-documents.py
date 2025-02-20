@@ -77,6 +77,7 @@ def getrequestswithstatus():
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
                 WHERE fmr."isactive" = true 
+                AND fr.receiveddate >=NOW() - INTERVAL '10 days'
                 AND EXISTS (
                     SELECT 1
                     FROM "FOIMinistryRequests" fm2
