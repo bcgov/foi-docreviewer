@@ -72,7 +72,7 @@ def getrequestswithstatus():
                 JOIN "FOIRequestStatuses" frs 
                     ON fmr.requeststatusid = frs.requeststatusid
                 JOIN "FOIRequests" fr 
-                    ON fmr.foiministryrequestid = fr.foirequestid 
+                    ON fmr.foirequest_id = fr.foirequestid 
                     AND fmr.version = fr.version
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
