@@ -101,11 +101,12 @@ export const fetchDocumentAnnotations = (
   redactionlayer: string,
   documentid: number,
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  timeout: number = 300000
 ) => {
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
