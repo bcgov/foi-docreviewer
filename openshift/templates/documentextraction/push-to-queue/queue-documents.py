@@ -72,7 +72,7 @@ def getrequestswithstatus():
                 JOIN "FOIRequestStatuses" frs 
                     ON fmr.requeststatusid = frs.requeststatusid
                 JOIN "FOIRequests" fr 
-                    ON fmr.foiministryrequestid = fr.foirequestid 
+                    ON fmr.foirequest_id = fr.foirequestid 
                     AND fmr.version = fr.version
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
@@ -171,7 +171,6 @@ def fetchdocumentsforextraction():
             if result:
                 requestswithdocs=[]
                 for entry in result:
-                    #print("\n\nDOCSS:",entry[1])
                     if entry[1]:
                         row={"foiministryrequestid": entry[0], "documents": entry[1]}
                         print("\n\nROW:::",row)
@@ -199,7 +198,6 @@ def fetchdocumentsforextraction():
 def formatdocumentsrequest(requestswithdocs,requestdetails):
     limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
     print("\n\nlimited_requestdetails:",limited_requestdetails)
-    #print("\n\nrequestdetails:",requestdetails)
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
