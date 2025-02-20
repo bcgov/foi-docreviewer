@@ -520,15 +520,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           let skipDocumentPages = false;
           let skipOnlyDuplicateDocument = false;
           let skipOnlyNRDocument = false;
-          if (!includeDuplicatePages && !includeNRPages) {
-            skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
-          else if (!includeDuplicatePages) {
-            skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
-          else if (!includeNRPages) {
-            skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
+          // if (!includeDuplicatePages && !includeNRPages) {
+          //   skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
+          // else if (!includeDuplicatePages) {
+          //   skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
+          // else if (!includeNRPages) {
+          //   skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
 
           // for consults, go through all pages
           for (const page of doc.pages) {
