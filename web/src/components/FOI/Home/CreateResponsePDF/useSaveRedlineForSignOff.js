@@ -2089,65 +2089,66 @@ const stampPageNumberRedline = async (
           .then(async (_data) => {
             const _arr = new Uint8Array(_data);
             const _blob = new Blob([_arr], { type: "application/pdf" });
-            await docInstance?.Core.createDocument(_data, {
+            let docObj = await docInstance?.Core.createDocument(_data, {
               loadAsPDF: true,
               useDownloader: false, // Added to fix BLANK page issue
             }).then( async (docObj) => {
-              const xfdfStringTwo = await annotationManager.exportAnnotations({annotationList:filteredAnnotations});
-              docObj
-                .getFileData({
-                // saves the document with annotations in it
-                xfdfString: xfdfStringTwo,
-                downloadType: downloadType,
-              })
-              .then(async (_data) => {
-                const _arr = new Uint8Array(_data);
-                const _blob = new Blob([_arr], {
-                    type: "application/pdf",
+              return docObj
+            })
+            const xfdfStringTwo = await annotationManager.exportAnnotations({annotationList:filteredAnnotations});
+            docObj
+              .getFileData({
+              // saves the document with annotations in it
+              xfdfString: xfdfStringTwo,
+              downloadType: downloadType,
+            })
+            .then(async (_data) => {
+              const _arr = new Uint8Array(_data);
+              const _blob = new Blob([_arr], {
+                  type: "application/pdf",
+                }); 
+              saveFilesinS3(
+                { filepath: redlineStitchInfo[divisionid]["s3path"] },
+                _blob,
+                (_res) => {
+                  // ######### call another process for zipping and generate download here ##########
+                  toast.update(toastId.current, {
+                    render: `Redline PDF saved to Object Storage`,
+                    type: "success",
+                    className: "file-upload-toast",
+                    isLoading: false,
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    closeButton: true,
                   });
-                saveFilesinS3(
-                  { filepath: redlineStitchInfo[divisionid]["s3path"] },
-                  _blob,
-                  (_res) => {
-                    // ######### call another process for zipping and generate download here ##########
-                    toast.update(toastId.current, {
-                      render: `Redline PDF saved to Object Storage`,
-                      type: "success",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                    triggerRedlineZipper(
-                      redlineIncompatabileMappings[divisionid],
-                      redlineStitchInfo[divisionid]["s3path"],
-                      divisionCountForToast,
-                      isSingleRedlinePackage
-                    );
-                  },
-                  (_err) => {
-                    console.log(_err);
-                    toast.update(toastId.current, {
-                      render: "Failed to save redline pdf to Object Storage",
-                      type: "error",
-                      className: "file-upload-toast",
-                      isLoading: false,
-                      autoClose: 3000,
-                      hideProgressBar: true,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      draggable: true,
-                      closeButton: true,
-                    });
-                  }
-                );
-              });
+                  triggerRedlineZipper(
+                    redlineIncompatabileMappings[divisionid],
+                    redlineStitchInfo[divisionid]["s3path"],
+                    divisionCountForToast,
+                    isSingleRedlinePackage
+                  );
+                },
+                (_err) => {
+                  console.log(_err);
+                  toast.update(toastId.current, {
+                    render: "Failed to save redline pdf to Object Storage",
+                    type: "error",
+                    className: "file-upload-toast",
+                    isLoading: false,
+                    autoClose: 3000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    closeButton: true,
+                  });
+                }
+              );
+            });
           })
-        })
         }
       }
     }
