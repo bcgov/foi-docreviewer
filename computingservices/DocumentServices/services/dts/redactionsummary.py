@@ -43,6 +43,23 @@ class redactionsummary():
             print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            
+            # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
+            redlinephase = message.redlinephase
+            if redlinephase is not None and 'redlinephase' in message.category:
+                print("\nInside PHASEREDLINE __packaggesummary")
+                docpagephase_map = {}
+                for docid in docpageflags:
+                    for flagobj in docpageflags[docid]['pageflag']:
+                        if flagobj['flagid'] == 9 and int(redlinephase) in flagobj['phase']:
+                            if docid not in docpagephase_map:
+                                docpagephase_map[docid] = [flagobj['page']]
+                            else:
+                                docpagephase_map[docid].append(flagobj['page'])
+                for docid in docpageflags:
+                    pageflags = docpageflags[docid]['pageflag']
+                    docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
+
             print("\n docpageflags",docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     

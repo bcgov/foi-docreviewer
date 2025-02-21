@@ -288,7 +288,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         }
       }
       // sort based on sortorder as the sortorder added based on the LastModified
-      if (redlinePhase) {
+      if (redlineCategory === "redline" && redlinePhase) {
         preparePhasedRedlinePageMappingByRequest(sortBySortOrder(reqdocuments), pageMappedDocs);
       } else {
         prepareRedlinePageMappingByRequest(sortBySortOrder(reqdocuments), pageMappedDocs);
@@ -1032,6 +1032,9 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     if (currentLayer.name.toLowerCase() === "oipc") {
       return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
     }
+    if (redlineCategory === "redline" && redlinePhase) {
+      return `redlinephase${redlinePhase}`
+    }
     return "redline";
   };
 
@@ -1521,7 +1524,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         console.log("Error fetching document:", error);
       },
       layertype,
-      currentLayer.name.toLowerCase()
+      currentLayer.name.toLowerCase(),
+      redlinePhase
     );
   };
   
@@ -1598,7 +1602,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
-      // redlinephase: redlinePhase ? redlinePhase : null
+      redlinephase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");

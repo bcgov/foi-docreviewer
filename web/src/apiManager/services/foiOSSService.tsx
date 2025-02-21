@@ -51,12 +51,12 @@ export const getFOIS3DocumentRedlinePreSignedUrl = (
     callback: any,
     errorCallback: any,
     layertype: any,
-    layer: any
+    layer: any,
+    redlinePhase: any,
 ) => {	
     let apiurl;
     apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_REDLINE + "/" + layer.toLowerCase() + "/" + ministryrequestID;
-    
-    
+
     if (layertype === "oipcreview") {
         apiurl = apiurl + "/oipcreview"
     } else if (layertype === "consult") {
@@ -64,9 +64,10 @@ export const getFOIS3DocumentRedlinePreSignedUrl = (
     } else {
         apiurl = apiurl + "/" + layer
     }
+    if (redlinePhase) {
+        apiurl = apiurl + "/" + redlinePhase;
+    }
     
-    
-
     httpPOSTRequest({url: apiurl, data: {"divdocumentList":documentList,"requestType":requestType}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {

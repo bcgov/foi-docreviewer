@@ -56,13 +56,17 @@ class redactionsummaryservice():
                         divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
-                    stitcheddocfilename = filesobj['filename'] 
+                    stitcheddocfilename = filesobj['filename']
                     if category == 'oipcreviewredline':
                         s3uricategoryfolder = "oipcreview"
                     else:
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
+                    # phased redline filename adjustment
+                    if "redlinephase" in category and message.redlinephase is not None:
+                        filename =self.__get_summaryfilename(message.requestnumber, f'Redline - Phase {message.redlinephase}', divisioname, stitcheddocfilename)
+                    else:
+                        filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
@@ -97,8 +101,8 @@ class redactionsummaryservice():
   
     def __get_pageflags(self, category):
         if category == "responsepackage":            
-            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
-        return documentpageflag().get_all_pageflags(['Consult'])
+            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate', 'Phase'])
+        return documentpageflag().get_all_pageflags(['Consult', 'Phase'])
         
 
    
