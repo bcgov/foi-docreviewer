@@ -77,6 +77,7 @@ def getrequestswithstatus():
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
                 WHERE fmr."isactive" = true 
+                AND fr.receiveddate >=NOW() - INTERVAL '10 days'
                 AND EXISTS (
                     SELECT 1
                     FROM "FOIMinistryRequests" fm2
@@ -171,7 +172,6 @@ def fetchdocumentsforextraction():
             if result:
                 requestswithdocs=[]
                 for entry in result:
-                    #print("\n\nDOCSS:",entry[1])
                     if entry[1]:
                         row={"foiministryrequestid": entry[0], "documents": entry[1]}
                         print("\n\nROW:::",row)
@@ -199,7 +199,6 @@ def fetchdocumentsforextraction():
 def formatdocumentsrequest(requestswithdocs,requestdetails):
     limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
     print("\n\nlimited_requestdetails:",limited_requestdetails)
-    #print("\n\nrequestdetails:",requestdetails)
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
