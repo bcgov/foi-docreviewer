@@ -28,6 +28,7 @@ import {
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
   REDLINE_OPACITY,
+  REDACTION_SECTION_BUFFER
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -238,12 +239,11 @@ const Redlining = React.forwardRef(
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
           instance.UI.enableNoteSubmissionWithEnter();
-          documentViewer.setToolMode(
-            documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
-          );
+          let redactionTool = documentViewer.getTool(instance.Core.Tools.ToolNames.REDACTION)
           documentViewer.getTool(instance.Core.Tools.ToolNames.RECTANGLE).setStyles({
             StrokeColor: new Annotations.Color(255, 205, 69)
           });
+          documentViewer.setToolMode(redactionTool);
           const UIEvents = instance.UI.Events;
           //customize header - insert a dropdown button
           const document = instance.UI.iframeWindow.document;
@@ -317,6 +317,42 @@ const Redlining = React.forwardRef(
               header.headers.default.length - 4,
               0,
               opacityToggle
+            );
+
+            const textSelectorToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      if (e.target.checked) {
+                        redactionTool.cursor = "crosshair"
+                        instance.Core.Tools.RedactionCreateTool.disableAutoSwitch();
+                      } else {
+                        instance.Core.Tools.RedactionCreateTool.enableAutoSwitch();
+                      }
+                    } 
+                  }
+                  defaultChecked={false}
+                  id="textSelectorToggle"
+                >
+                </input>
+                <label 
+                  for="textSelectorToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Disable Text Selection
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 5,
+              0,
+              textSelectorToggle
             );
           });
 
@@ -886,10 +922,14 @@ const Redlining = React.forwardRef(
         /**Fix for lengthy section cutoff issue with response pkg 
          * download - changed overlaytext to freetext annotations after 
          * redaction applied*/
+
+        /**Fix for lengthy section cutoff issue with response pkg 
+         * download - changed overlaytext to freetext annotations after 
+         * redaction applied*/
         if (info['source'] === 'redactionApplied') {
           annotations.forEach((annotation) => {
             if(annotation.Subject == "Free Text"){
-              docInstance?.Core?.annotationManager.addAnnotation(annotation);
+              docInstance?.Core?.annotationManager.addAnnotation(annotation);              
             }
           });
         }
@@ -904,8 +944,6 @@ const Redlining = React.forwardRef(
           info.source !== "redactionApplied" &&
           info.source !== "cancelRedaction"
         ) {
-          
-
           //ignore annots/redact changes made by applyRedaction
           if (info.imported) return;
           //do not run if redline is saving
@@ -2140,7 +2178,8 @@ const Redlining = React.forwardRef(
       _annot.PageNumber = _redaction?.getPageNumber();
       // let rect = _redaction.getQuads()[0].toRect();
       let quad = _redaction.getQuads()[0];
-      let rect = new docInstance.Core.Math.Rect(quad.x1, quad.y3, quad.x2, quad.y2);
+      var buffer = Number(REDACTION_SECTION_BUFFER);
+      let rect = new docInstance.Core.Math.Rect(quad.x1 + buffer, quad.y3 + buffer, quad.x2 + buffer, quad.y2 + buffer);
       const doc = docViewer.getDocument();
       const pageInfo = doc.getPageInfo(_annot.PageNumber);
       const pageMatrix = doc.getPageMatrix(_annot.PageNumber);

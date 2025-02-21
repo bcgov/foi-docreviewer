@@ -20,10 +20,10 @@ FOI_DB_PASSWORD= os.getenv('FOI_DB_PASSWORD')
 FOI_DB_PORT= os.getenv('FOI_DB_PORT')
 REQUEST_STATUS =  os.getenv('REQUEST_STATUS', "Records Review")
 REQUEST_LIMIT =  os.getenv('REQUEST_LIMIT', 3)
+ACTIVEMQ_URL= os.getenv('ACTIVEMQ_URL')
 ACTIVEMQ_USERNAME=os.getenv('ACTIVEMQ_USERNAME')
 ACTIVEMQ_PASSWORD=os.getenv('ACTIVEMQ_PASSWORD')
-ACTIVEMQ_DESTINATION=  os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
-
+ACTIVEMQ_DESTINATION= os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
 
 def getdocreviewerdbconnection():
     conn = psycopg2.connect(
@@ -72,11 +72,12 @@ def getrequestswithstatus():
                 JOIN "FOIRequestStatuses" frs 
                     ON fmr.requeststatusid = frs.requeststatusid
                 JOIN "FOIRequests" fr 
-                    ON fmr.foiministryrequestid = fr.foirequestid 
+                    ON fmr.foirequest_id = fr.foirequestid 
                     AND fmr.version = fr.version
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
                 WHERE fmr."isactive" = true 
+                AND fr.receiveddate >=NOW() - INTERVAL '10 days'
                 AND EXISTS (
                     SELECT 1
                     FROM "FOIMinistryRequests" fm2
@@ -148,7 +149,7 @@ def fetchdocumentsforextraction():
                 AND EXISTS (
                     SELECT 1 FROM "DocumentStatus" ds
                     WHERE ds.statusid = d.statusid
-                    AND ds.name IN ('new', 'failed')
+                    AND ds.name IN ('new')
                 )
                 AND NOT EXISTS (
                     SELECT 1 FROM "DocumentDeleted" dd
@@ -171,7 +172,6 @@ def fetchdocumentsforextraction():
             if result:
                 requestswithdocs=[]
                 for entry in result:
-                    #print("\n\nDOCSS:",entry[1])
                     if entry[1]:
                         row={"foiministryrequestid": entry[0], "documents": entry[1]}
                         print("\n\nROW:::",row)
@@ -199,7 +199,6 @@ def fetchdocumentsforextraction():
 def formatdocumentsrequest(requestswithdocs,requestdetails):
     limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
     print("\n\nlimited_requestdetails:",limited_requestdetails)
-    #print("\n\nrequestdetails:",requestdetails)
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
@@ -291,12 +290,14 @@ def fetchandqueuedocsforextraction():
 
 
 def pushdocstoactivemq(requestsforextraction):
-    url = "https://activemq-fc7a67-dev.apps.gold.devops.gov.bc.ca/api/message"
+    url = ACTIVEMQ_URL
     username = ACTIVEMQ_USERNAME
     password = ACTIVEMQ_PASSWORD
     params = {
     "destination": "queue://"+ACTIVEMQ_DESTINATION
     }
+    print("\nACTIVEMQ_URL:",url)
+    print("\nACTIVEMQ_USERNAME:",username)
     try:
         if requestsforextraction:
             formattedjson= formatbatch(requestsforextraction)
