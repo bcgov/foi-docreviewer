@@ -144,7 +144,7 @@ class redactionservice:
             feeoverridereason= json.loads(pdf_stitch_job_attributes).get("feeoverridereason", None) 
             if feeoverridereason is not None and feeoverridereason != '':
                 feeoverridereason= userinfo["firstname"]+" "+userinfo["lastname"]+" overrode balance outstanding warning for the following reason: "+feeoverridereason
-        redlinephase = messageschema["attributes"][0]['redlinephase']
+        phase = messageschema["attributes"][0]['phase']
         _message = {
             "jobid": job.identifier,
             "requestid": -1,
@@ -162,7 +162,7 @@ class redactionservice:
             "redactionlayerid": json.dumps(messageschema["redactionlayerid"]),
             "requesttype": messageschema["requesttype"],
             "feeoverridereason":feeoverridereason,
-            "redlinephase": redlinephase
+            "phase": "" if phase is None else phase
         }
         return _message
 

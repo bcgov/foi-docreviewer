@@ -109,12 +109,13 @@ export const saveFilesinS3 = (
 export const getResponsePackagePreSignedUrl = (
     ministryrequestID: any,
     firstDocInfo: any,
+    phase:number,
     callback: any,
     errorCallback: any
 ) => {	
     const apiurl = API.FOI_GET_S3DOCUMENT_PRESIGNEDURL_RESPONSE_PACKAGE + "/" + ministryrequestID;
 
-    httpPOSTRequest({url: apiurl, data: firstDocInfo, token: UserService.getToken() || ''})
+    httpPOSTRequest({url: apiurl, data: {"documentsInfo":firstDocInfo, "phase":phase}, token: UserService.getToken() || ''})
         .then((res:any) => {
             if (res.data) {
                 callback(res.data);

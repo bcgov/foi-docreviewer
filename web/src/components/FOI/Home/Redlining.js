@@ -1444,7 +1444,7 @@ const Redlining = React.forwardRef(
 
     const checkSavingRedlineButton = (_instance) => {
       disableNRDuplicate();
-      const readyForSignOff = true //isReadyForSignOff(documentList, pageFlags);
+      const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
@@ -1454,12 +1454,13 @@ const Redlining = React.forwardRef(
         setAssignedPhases(phaseCompletionObj);
         const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
+        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
+        checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
       checkSavingConsults(documentList, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
-      checkSavingFinalPackage(redlineReadyAndValid, _instance);
     };
 
     //useEffect to handle validation of all Response Package downloads

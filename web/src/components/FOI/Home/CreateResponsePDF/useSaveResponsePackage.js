@@ -102,6 +102,7 @@ const useSaveResponsePackage = (redlinePhase) => {
     };
     const zipDocObj = {
       files: [],
+      phase: redlinePhase ? redlinePhase : null
     };
     zipDocObj.files.push(file);
 
@@ -223,7 +224,7 @@ const useSaveResponsePackage = (redlinePhase) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
-      category: "responsepackage",
+      category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
@@ -235,6 +236,7 @@ const useSaveResponsePackage = (redlinePhase) => {
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
       documentList[0],
+      redlinePhase,
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
@@ -247,9 +249,7 @@ const useSaveResponsePackage = (redlinePhase) => {
         var uniquePagesToRemove = new Set();
         var redlinePhasePageArr = [];
         for (const infoForEachDoc of pageFlags) {
-          if (redlinePhase) {
-            redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
-          }
+          
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
@@ -264,14 +264,17 @@ const useSaveResponsePackage = (redlinePhase) => {
                 )
               );
             }
-            if(!redlinePhasePageArr?.includes(pageFlagsForEachDoc.page)){
-              uniquePagesToRemove.add(
-                getStitchedPageNoFromOriginal(
-                  infoForEachDoc.documentid,
-                  pageFlagsForEachDoc.page,
-                  pageMappedDocs
-                )
-              );
+            if (redlinePhase) {
+              redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+              if(!redlinePhasePageArr?.includes(pageFlagsForEachDoc.page)){
+                uniquePagesToRemove.add(
+                  getStitchedPageNoFromOriginal(
+                    infoForEachDoc.documentid,
+                    pageFlagsForEachDoc.page,
+                    pageMappedDocs
+                  )
+                );
+              }
             }
           }
         }
@@ -391,7 +394,7 @@ const useSaveResponsePackage = (redlinePhase) => {
                   res.documentid
                 );
                 setTimeout(() => {
-                  window.location.reload(true);
+                  //window.location.reload(true);
                 }, 3000);
               },
               (_err) => {

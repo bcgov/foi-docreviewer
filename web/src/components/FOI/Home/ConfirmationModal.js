@@ -35,11 +35,13 @@ export const ConfirmationModal= ({
     const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
     const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && assignedPhases && !redlinePhase;
     const modalClass = (["redline", "responsepackage"].includes(modalData?.modalFor) && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
-    
-    const phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
-    for (let phase of assignedPhases.sort((a,b) => a.activePhase - b.activePhase)) {
-      const phaseNum = phase.activePhase;
-      phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
+    let phaseSelectionList;
+    if(assignedPhases?.length >0){
+      phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
+      for (let phase of assignedPhases?.sort((a,b) => a.activePhase - b.activePhase)) {
+        const phaseNum = phase.activePhase;
+        phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
+      }
     }
     const handlePhaseSelect = (value) => {
       setRedlinePhase(value);
@@ -74,7 +76,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {assignedPhases && modalData?.modalFor === "redline" &&
+            {assignedPhases && phaseSelectionList && //modalData?.modalFor === "redline" &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}

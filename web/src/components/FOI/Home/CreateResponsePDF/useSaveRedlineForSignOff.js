@@ -1602,7 +1602,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
-      redlinephase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
+      phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -1628,7 +1628,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        window.location.reload();
+        //window.location.reload();
       });
     }
     return zipServiceMessage;

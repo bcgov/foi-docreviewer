@@ -12,7 +12,7 @@ class redactionsummary():
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if message.category == "responsepackage" and _ismcfpersonalrequest == False:
+        if (message.category == "responsepackage" or "responsepackage_phase" in message.category) and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
@@ -45,13 +45,13 @@ class redactionsummary():
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
-            redlinephase = message.redlinephase
-            if redlinephase is not None and 'redlinephase' in message.category:
+            phase = message.phase
+            if phase is not None and phase !="": # and 'redlinephase' in message.category or 'responsepackage_phase' in message.category:
                 print("\nInside PHASEREDLINE __packaggesummary")
                 docpagephase_map = {}
                 for docid in docpageflags:
                     for flagobj in docpageflags[docid]['pageflag']:
-                        if flagobj['flagid'] == 9 and int(redlinephase) in flagobj['phase']:
+                        if flagobj['flagid'] == 9 and int(phase) in flagobj['phase']:
                             if docid not in docpagephase_map:
                                 docpagephase_map[docid] = [flagobj['page']]
                             else:
@@ -368,7 +368,7 @@ class redactionsummary():
 
     
     def __getredactionlayerid(self, message):
-        if message.category == "responsepackage":
+        if message.category == "responsepackage" or "responsepackage_phase" in message.category:
             return documentpageflag().getrecentredactionlayerid(message.ministryrequestid)
         return message.redactionlayerid 
 
@@ -490,7 +490,7 @@ class redactionsummary():
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline']:
+        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
             skipcount =  self.__calculateskipcount(pageno, skippages)     
         skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
         return (pageno+totalpages)-skipcount
