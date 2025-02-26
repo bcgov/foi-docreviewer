@@ -1,7 +1,7 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import func
+from sqlalchemy import func, text
 import logging
 
 class PDFStitchPackage(db.Model):
@@ -32,6 +32,21 @@ class PDFStitchPackage(db.Model):
             pdfstitchpackageschema = PDFStitchPackageSchema(many=False)
             query = db.session.query(PDFStitchPackage).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == category).order_by(PDFStitchPackage.pdfstitchpackageid.desc()).first()
             return pdfstitchpackageschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getpdfstitchpackages(cls, requestid, category):
+        try:
+            sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchPackage" 
+            WHERE category LIKE :category AND ministryrequestid = :requestid 
+            ORDER BY category, pdfstitchpackageid DESC;
+            """
+            res = db.session.execute(text(sql), {'category': category+'%', 'requestid': int(requestid)})
+            pdfstitchjobpackages = [{'category': row['category'], 'pdfstitchpackageid': row['pdfstitchpackageid'], 'ministryrequestid': row['ministryrequestid'], 'finalpackagepath': row['finalpackagepath'], 'createdat': row['createdat']} for row in res]
+            return pdfstitchjobpackages
         except Exception as ex:
             logging.error(ex)
         finally:

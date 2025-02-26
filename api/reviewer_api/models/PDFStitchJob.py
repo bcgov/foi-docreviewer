@@ -1,7 +1,7 @@
 from .db import db, ma
 from datetime import datetime as datetime2
 from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, text
 from .default_method_result import DefaultMethodResult
 from .DocumentDeleted import DocumentDeleted
 from .DocumentMaster import DocumentMaster
@@ -55,6 +55,21 @@ class PDFStitchJob(db.Model):
                 .first()
             )
             return pdfstitchjobschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getpdfstitchjobphasestatuses(cls, requestid, category):
+        try:
+            sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchJob" 
+            WHERE category LIKE :category AND ministryrequestid = :requestid AND category NOT LIKE '%-summary' 
+            ORDER BY category, pdfstitchjobid DESC, version DESC;
+            """
+            res = db.session.execute(text(sql), {'category': category+'%', 'requestid': int(requestid)})
+            pdfstitchjobsstatuses = [{'category': row['category'], 'status': row['status'], 'ministryrequestid': row['ministryrequestid']} for row in res]
+            return pdfstitchjobsstatuses
         except Exception as ex:
             logging.error(ex)
         finally:

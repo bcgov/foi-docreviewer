@@ -31,6 +31,9 @@ class jobrecordservice:
         return job
     
     def getpdfstitchjobstatus(self, requestid, category):
+        if category == "redlinephase" or category == "responsepackagephase":
+            job = PDFStitchJob.getpdfstitchjobphasestatuses(requestid, category)
+            return job
         job = PDFStitchJob.getpdfstitchjobstatus(requestid, category)
         return job
     
@@ -131,7 +134,7 @@ class jobrecordservice:
         job = PageCalculatorJob.insert(row)
         return job
     
-    def insertfeeoverridereason(self, message, pdfstitchjobid, userid):
+    def insertpdfstitchjobattributes(self, message, pdfstitchjobid, userid):
         row = PDFStitchJobAttributes(
                     pdfstitchjobid=pdfstitchjobid,
                     version=1,

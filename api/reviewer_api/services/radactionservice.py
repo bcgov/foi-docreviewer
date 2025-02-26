@@ -128,7 +128,7 @@ class redactionservice:
                 if 'feeoverridereason' in finalpackageschema['pdfstitchjobattributes']:
                     feeoverridereason= finalpackageschema['pdfstitchjobattributes']['feeoverridereason']
                     if feeoverridereason is not None and feeoverridereason != '':
-                        jobrecordservice().insertfeeoverridereason(finalpackageschema,job.identifier,userinfo["userid"])
+                        jobrecordservice().insertpdfstitchjobattributes(finalpackageschema,job.identifier,userinfo["userid"])
             _message = self.__preparemessageforsummaryservice(
                 finalpackageschema, userinfo, job
             )

@@ -2494,9 +2494,12 @@ const Redlining = React.forwardRef(
             if (flag.flagid === pageFlagTypes["Phase"]) {
               for (let phase of flag.phase) {
                 if (!phasePageMap[phase]) {
-                  phasePageMap[phase] = new Set();
+                  phasePageMap[phase] = {};
                 }
-                phasePageMap[phase].add(flag.page);
+                if (!phasePageMap[phase][docObj.documentid]) {
+                  phasePageMap[phase][docObj.documentid] = new Set();
+                }
+                phasePageMap[phase][docObj.documentid].add(flag.page);
               }
             }
           }
@@ -2508,11 +2511,11 @@ const Redlining = React.forwardRef(
         if (docsWithPhaseFlag.length > 0) {
           // Extract pages that have the phase flag for active phases
           const phasedPages = phasePageMap[activePhase];
-          phasedPagesCount = phasedPages.size;
-          const validPages = new Set();
+          phasedPagesCount = Object.values(phasedPages).reduce((count, pages) => count + pages.size, 0);
           pageFlags.forEach((docObj) => {
+            const docid = docObj.documentid
             docObj.pageflag?.forEach((flag) => {
-              if (phasedPages?.has(flag.page) &&
+              if (phasedPages[docid]?.has(flag.page) &&
                 ![
                   pageFlagTypes["Phase"],
                   pageFlagTypes["Consult"],
@@ -2520,11 +2523,10 @@ const Redlining = React.forwardRef(
                   pageFlagTypes["Page Left Off"]
                 ].includes(flag.flagid) // Page does NOT have excluded flags
               ) {
-                validPages.add(flag.page);
+                totalPhasedPagesWithFlags += 1
               }
             });
           });
-          totalPhasedPagesWithFlags = validPages.size;
         }
         // const completion = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100) : 0;
         const valid = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags === phasedPagesCount;
