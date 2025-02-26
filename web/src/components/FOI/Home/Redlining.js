@@ -68,7 +68,6 @@ import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
-import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
 
 const Redlining = React.forwardRef(
@@ -154,6 +153,7 @@ const Redlining = React.forwardRef(
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     const [assignedPhases, setAssignedPhases] = useState(null);
+    const [redlinePhase, setRedlinePhase] = useState(null);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -178,14 +178,12 @@ const Redlining = React.forwardRef(
       consultApplyRedactions,
       setConsultApplyRedlines,
       consultApplyRedlines,
-      setRedlinePhase,
-      redlinePhase,
-    } = useSaveRedlineForSignoff(docInstance, docViewer);
+    } = useSaveRedlineForSignoff(docInstance, docViewer,redlinePhase);
     const {
       saveResponsePackage,
       checkSavingFinalPackage,
       enableSavingFinal,
-    } = useSaveResponsePackage();
+    } = useSaveResponsePackage(redlinePhase);
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
 
@@ -1456,12 +1454,13 @@ const Redlining = React.forwardRef(
         setAssignedPhases(phaseCompletionObj);
         const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
+        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
+        checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
       checkSavingConsults(documentList, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
-      checkSavingFinalPackage(redlineReadyAndValid, _instance);
     };
 
     //useEffect to handle validation of all Response Package downloads

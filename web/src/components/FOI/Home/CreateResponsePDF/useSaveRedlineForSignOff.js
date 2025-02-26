@@ -23,7 +23,7 @@ import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 import XMLParser from "react-xml-parser";
 
-const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
+const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
@@ -73,18 +73,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
   const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
   const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
-  const [redlinePhase, setRedlinePhase] = useState(null);
+  //const [redlinePhase, setRedlinePhase] = useState(null);
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
-  console.log(redlinePhase)
 
   const isValidRedlineDivisionDownload = (divisionid, divisionDocuments) => {
     let isvalid = false;
     let pagePageFlagMappings = {};
     let redlinePhasePageArr = [];
     for (let divObj of divisionDocuments) {    
-      console.log("DIVV VALID", divObj)
       if (divObj.divisionid === divisionid)  {
         // enable the Redline for Sign off if a division has only Incompatable files
         if (divObj?.incompatableList?.length > 0) {
@@ -94,7 +92,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
         else {
           for (let doc of divObj.documentlist) {
-            console.log("DOCC VALID", doc)
             //page to pageFlag mappings logic used for consults validation
             if (redlineCategory === "consult") {
               for (let pageFlag of doc.pageFlag) {
@@ -109,7 +106,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             if (redlineCategory === "redline" && redlinePhase) {
               redlinePhasePageArr = doc.pageFlag.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
             }
-            console.log("redlinePhasePageArr", redlinePhasePageArr)
             for (const flagInfo of doc.pageFlag) {
               if (redlineCategory === "redline" && redlinePhase) {
                 if (
@@ -162,7 +158,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         }
       }
     }
-    console.log("VALID", isvalid)
     return isvalid;
   };
   const getDeletedPagesBeforeStitching = (documentid) => {
@@ -426,7 +421,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     let NRWatermarksPages = {};
     let NRWatermarksPagesEachDiv = [];
     for (let doc of divisionDocuments) {
-      console.log("DOC", doc)
       if (doc.pagecount > 0) {
         let pagesToRemoveEachDoc = [];
         pageMappings[doc.documentid] = {};
@@ -436,13 +430,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         const pagesWithPhaseFlag = doc.pageFlag.filter(flagEntry => flagEntry.flagid === pageFlagTypes["Phase"]);
         const pagesWithPhaseFlagDict = createPhasePageLookUp(pagesWithPhaseFlag);
         const consolidatedPageFlagInfo = consolidatePageFlagInfo(doc.pages, doc.pageFlag, pagesWithPhaseFlagDict);
-        console.log("DICT", consolidatedPageFlagInfo);
         for (const flagInfo of consolidatedPageFlagInfo) {
           const isPhaseRedlinePage = pagesWithPhaseFlagDict[flagInfo.page] && pagesWithPhaseFlagDict[flagInfo.page].includes(redlinePhase);
-          console.log("YO", isPhaseRedlinePage, flagInfo)
           if (flagInfo.flagid === null) {
             // Remove pages that have no pageflag
-            console.log("REMOVE NO PAGEFLAG PAGE", flagInfo)
             pagesToRemoveEachDoc.push(flagInfo.page);
             pagesToRemove.push(
               getStitchedPageNoFromOriginal(
@@ -453,7 +444,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
             );
           } else if (!isPhaseRedlinePage) {
             // Remove pages that are unrelated to this redline phase or that have no phase
-            console.log("REMOVE PHASE", flagInfo)
             pagesToRemoveEachDoc.push(flagInfo.page);
             pagesToRemove.push(
               getStitchedPageNoFromOriginal(
@@ -529,9 +519,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     removepages['0'] = pagesToRemove; 
     duplicateWatermarkPages['0'] = duplicateWatermarkPagesEachDiv;
     NRWatermarksPages['0'] = NRWatermarksPagesEachDiv;
-    console.log("divpagemappings",divPageMappings )
-    console.log("pagestoremove",removepages )
-    console.log("pageMappings", pageMappings)
     setRedlinepageMappings({
       'divpagemappings': divPageMappings,
       'pagemapping': pageMappings,
@@ -673,10 +660,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     let NRWatermarksPagesEachDiv = [];
 
     for (let divObj of divisionDocuments) {
-      console.log("div", divObj)
       // sort based on sortorder as the sortorder added based on the LastModified
       for (let doc of sortBySortOrder(divObj.documentlist)) {
-        console.log("DOC", doc)
         if (doc.pagecount > 0) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
@@ -698,13 +683,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
           const pagesWithPhaseFlag = doc.pageFlag.filter(flagEntry => flagEntry.flagid === pageFlagTypes["Phase"]);
           const pagesWithPhaseFlagDict = createPhasePageLookUp(pagesWithPhaseFlag);
           const consolidatedPageFlagInfo = consolidatePageFlagInfo(doc.pages, doc.pageFlag, pagesWithPhaseFlagDict);
-          console.log("DICT", consolidatedPageFlagInfo);
           for (const flagInfo of consolidatedPageFlagInfo) {
               const isPhaseRedlinePage = pagesWithPhaseFlagDict[flagInfo.page] && pagesWithPhaseFlagDict[flagInfo.page].includes(redlinePhase);
-              console.log("YO", isPhaseRedlinePage, flagInfo)
               if (flagInfo.flagid === null) {
                 // Remove pages that have no pageflag
-                console.log("REMOVE NO PAGEFLAG PAGE", flagInfo)
                 pagesToRemoveEachDoc.push(flagInfo.page);
                 if (!skipDocumentPages) {
                   pagesToRemove.push(                  
@@ -713,7 +695,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 }
               } else if (!isPhaseRedlinePage) {
                 // Remove pages that are unrelated to this redline phase or that have no phase
-                console.log("REMOVE PHASE", flagInfo)
                 pagesToRemoveEachDoc.push(flagInfo.page);
                 if (!skipDocumentPages) {
                   pagesToRemove.push(                  
@@ -721,7 +702,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                   );
                 }
               } else if (flagInfo.flagid === pageFlagTypes["Duplicate"]) {
-                console.log("DUPE", flagInfo)
                 if(includeDuplicatePages) {
                   duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
@@ -739,7 +719,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
                 }
               } else if (flagInfo.flagid === pageFlagTypes["Not Responsive"]) {
                 if(includeNRPages) {
-                  console.log("NR", flagInfo)
                   NRWatermarksPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
 
                   pageMappings[doc.documentid][flagInfo.page] =
@@ -781,8 +760,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       totalPageCount = 0;
       totalPageCountIncludeRemoved = 0;
       pageMappings = {}
-      console.log("divpagemappings",divPageMappings )
-      console.log("pagestoremove",removepages )
     }
 
     setRedlinepageMappings({
@@ -1513,6 +1490,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
         
         setRedlineStitchInfo(stitchDoc);
         setIsSingleRedlinePackage(res.issingleredlinepackage);
+        //HERE?
         setRedlineZipperMessage({
           ministryrequestid: foiministryrequestid,
           category: getzipredlinecategory(layertype),
@@ -1624,7 +1602,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
-      redlinephase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
+      phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -1650,7 +1628,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        // window.location.reload();
+        //window.location.reload();
       });
     }
     return zipServiceMessage;
@@ -2551,8 +2529,6 @@ const stampPageNumberRedline = async (
     consultApplyRedactions,
     setConsultApplyRedlines,
     consultApplyRedlines,
-    setRedlinePhase,
-    redlinePhase
   };
 };
 

@@ -34,12 +34,14 @@ export const ConfirmationModal= ({
 }) => {
     const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
     const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && assignedPhases && !redlinePhase;
-    const modalClass = (modalData?.modalFor === "redline" && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
-    
-    const phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
-    for (let phase of assignedPhases.sort((a,b) => a.activePhase - b.activePhase)) {
-      const phaseNum = phase.activePhase;
-      phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
+    const modalClass = (["redline", "responsepackage"].includes(modalData?.modalFor) && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
+    let phaseSelectionList;
+    if(assignedPhases?.length >0){
+      phaseSelectionList = [<MenuItem disabled key={0} value={0}>Select Phase</MenuItem>];
+      for (let phase of assignedPhases?.sort((a,b) => a.activePhase - b.activePhase)) {
+        const phaseNum = phase.activePhase;
+        phaseSelectionList.push(<MenuItem disabled={!phase.valid} key={phaseNum} value={phaseNum}>{phaseNum}</MenuItem>);
+      }
     }
     const handlePhaseSelect = (value) => {
       setRedlinePhase(value);
@@ -74,7 +76,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {assignedPhases && modalData?.modalFor === "redline" &&
+            {assignedPhases && phaseSelectionList && //modalData?.modalFor === "redline" &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}
@@ -104,7 +106,7 @@ export const ConfirmationModal= ({
                   onChange={handleIncludeNRPages}
                   disabled={isDisableNRDuplicate}
                 />
-                <label for="nr-checkbox">Include NR pages</label>
+                <label htmlFor="nr-checkbox">Include NR pages</label>
                 <br/>
                 <input
                   type="checkbox"
@@ -115,7 +117,7 @@ export const ConfirmationModal= ({
                   onChange={handleIncludeDuplicantePages}
                   disabled={isDisableNRDuplicate}
                 />
-                <label for="duplicate-checkbox">Include Duplicate pages</label>
+                <label htmlFor="duplicate-checkbox">Include Duplicate pages</label>
               </>}
             {modalData?.modalFor === "consult" &&
               <>
@@ -134,7 +136,7 @@ export const ConfirmationModal= ({
                         onClick={handleSelectedPublicBodies}
                       />
                       <Tooltip title={publicBody.iaocode} enterDelay={1000}>
-                        <label style={{display: "inline", fontSize: "small" }} for={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
+                        <label style={{display: "inline", fontSize: "small" }} htmlFor={`${publicBody.iaocode}-checkbox`}>{publicBody.iaocode}</label>
                       </Tooltip>
                     </Grid>
                     </>)
@@ -151,7 +153,7 @@ export const ConfirmationModal= ({
                   onChange={handleIncludeNRPages}
                   disabled={isDisableNRDuplicate}
                 />
-                <label for="nr-checkbox">Include NR pages</label>
+                <label htmlFor="nr-checkbox">Include NR pages</label>
                 <br/>
                 <input
                   type="checkbox"
@@ -162,7 +164,7 @@ export const ConfirmationModal= ({
                   onChange={handleIncludeDuplicantePages}
                   disabled={isDisableNRDuplicate}
                 />
-                <label for="duplicate-checkbox">Include Duplicate pages</label>
+                <label htmlFor="duplicate-checkbox">Include Duplicate pages</label>
                 <br/>
                 <input
                     type="checkbox"
@@ -172,7 +174,7 @@ export const ConfirmationModal= ({
                     checked={consultApplyRedlines}
                     onChange={handleApplyRedlines}
                   />
-                  <label for="applyredline-checkbox">Include Transparent Redactions (Redlines)</label>
+                  <label htmlFor="applyredline-checkbox">Include Transparent Redactions (Redlines)</label>
                   <br/>
                 <input
                   type="checkbox"
@@ -183,7 +185,7 @@ export const ConfirmationModal= ({
                   onChange={handleApplyRedactions}
                   disabled={!consultApplyRedlines}
                 />
-                <label for="redaction-checkbox">Apply Redactions (NR code only)</label>
+                <label htmlFor="redaction-checkbox">Apply Redactions (NR code only)</label>
               </>}
           </span>
         </DialogContentText>

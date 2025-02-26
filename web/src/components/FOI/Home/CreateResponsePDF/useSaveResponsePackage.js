@@ -10,7 +10,7 @@ import { triggerDownloadFinalPackage } from "../../../../apiManager/services/doc
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 
-const useSaveResponsePackage = () => {
+const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
@@ -102,6 +102,7 @@ const useSaveResponsePackage = () => {
     };
     const zipDocObj = {
       files: [],
+      phase: redlinePhase ? redlinePhase : null
     };
     zipDocObj.files.push(file);
 
@@ -223,7 +224,7 @@ const useSaveResponsePackage = () => {
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
-      category: "responsepackage",
+      category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
@@ -235,6 +236,7 @@ const useSaveResponsePackage = () => {
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
       documentList[0],
+      redlinePhase,
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
@@ -244,15 +246,17 @@ const useSaveResponsePackage = () => {
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        var pagesToRemove = [];
+        var uniquePagesToRemove = new Set();
+        var redlinePhasePageArr = [];
         for (const infoForEachDoc of pageFlags) {
+          
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
               pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
               pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
             ) {
-              pagesToRemove.push(
+              uniquePagesToRemove.add(
                 getStitchedPageNoFromOriginal(
                   infoForEachDoc.documentid,
                   pageFlagsForEachDoc.page,
@@ -260,8 +264,21 @@ const useSaveResponsePackage = () => {
                 )
               );
             }
+            if (redlinePhase) {
+              redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+              if(!redlinePhasePageArr?.includes(pageFlagsForEachDoc.page)){
+                uniquePagesToRemove.add(
+                  getStitchedPageNoFromOriginal(
+                    infoForEachDoc.documentid,
+                    pageFlagsForEachDoc.page,
+                    pageMappedDocs
+                  )
+                );
+              }
+            }
           }
         }
+        var pagesToRemove = [...uniquePagesToRemove];
         let doc = documentViewer.getDocument();
         await annotationManager.applyRedactions();
         /**must apply redactions before removing pages*/
@@ -377,7 +394,7 @@ const useSaveResponsePackage = () => {
                   res.documentid
                 );
                 setTimeout(() => {
-                  window.location.reload(true);
+                  //window.location.reload(true);
                 }, 3000);
               },
               (_err) => {

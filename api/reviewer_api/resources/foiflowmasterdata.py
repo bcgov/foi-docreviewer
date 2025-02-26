@@ -345,7 +345,10 @@ class FOIFlowS3PresignedResponsePackage(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(ministryrequestid):
         try:
-            data = request.get_json()
+            json_data = request.get_json()
+            data = json_data["documentsInfo"]
+            phase = json_data["phase"]
+            print("FOIFlowS3PresignedResponsePackage-data:",data)
             documentmapper = redactionservice().getdocumentmapper(
                 data["filepath"].split("/")[3]
             )
@@ -367,8 +370,12 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
-            filepath_put = "{0}/responsepackage/{1}.pdf".format(
-                filepathlist[0], filename
+            if phase is not None:
+                filepath_put = "{0}/{2}/{1}-{3}.pdf".format(
+                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Responsepackage-Phase{phase}")
+            else:
+                filepath_put = "{0}/responsepackage/{1}.pdf".format(
+                    filepathlist[0], filename
             )
 
             # filename_put, file_extension_put = os.path.splitext(filepath_put)

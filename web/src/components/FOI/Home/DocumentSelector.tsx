@@ -268,64 +268,6 @@ const DocumentSelector = React.memo(
         }
       };
 
-      // const updateCompletionCounter = () => {
-      //   if (filterFlags.length > 0 && phaseFilter?.length >0){
-      //     let totalPagesWithFlags = 0;
-      //     const phaseFlagged = filesForDisplay.filter((file: any) =>
-      //       file.pageFlag?.find((obj: any) => obj.flagid === pageFlagTypes['Phase'])
-      //     );
-      //     if (phaseFlagged.length > 0) {
-      //       const phases = phaseFlagged?.flatMap((obj: any) => 
-      //         obj.pageFlag ? obj.pageFlag.filter((flag: any) => 
-      //           flag.flagid === pageFlagTypes['Phase'] && flag.phase?.includes(phaseFilter[0])) 
-      //           : []
-      //       );
-      //       console.log("phases:",phases)
-      //       const phasedPages= phases?.map((phase:any) => phase.page)
-      //       console.log("phasedPages:",phasedPages)
-      //       filesForDisplay?.forEach((file: any) => {
-      //         let phaseFlaggedpagesCount = file.pageFlag?.filter(
-      //           (obj: any) => phasedPages?.includes(obj.page) &&
-      //             ![
-      //               pageFlagTypes["Consult"],
-      //               pageFlagTypes["In Progress"],
-      //               pageFlagTypes["Page Left Off"],
-      //             ].includes(obj.flagid)
-      //         )?.length;
-      //         totalPagesWithFlags += phaseFlaggedpagesCount
-      //     });
-      //     }
-      //     console.log("totalPagesWithFlags-phase:",totalPagesWithFlags)
-      //     /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
-      //      * as it may show 100% even if the result is 99.9% */
-      //     return totalPageCount > 0 && totalPagesWithFlags >= 0
-      //       ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
-      //       : 0;
-      //   }
-      //   else{
-      //     let totalPagesWithFlags = 0;
-      //     pageFlags?.forEach((element: any) => {
-      //       /**Page Flags to be avoided while
-      //        * calculating % on left panel-
-      //        * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-      //       let documentSpecificCount = element?.pageflag?.filter(
-      //         (obj: any) =>
-      //           ![
-      //             pageFlagTypes["Consult"],
-      //             pageFlagTypes["In Progress"],
-      //             pageFlagTypes["Page Left Off"],
-      //             pageFlagTypes["Phase"]
-      //           ].includes(obj.flagid)
-      //       )?.length;
-      //       totalPagesWithFlags += documentSpecificCount;
-      //     });
-      //     /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
-      //      * as it may show 100% even if the result is 99.9% */
-      //     return totalPageCount > 0 && totalPagesWithFlags >= 0
-      //       ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
-      //       : 0;
-      //   }
-      // };
 
       function intersection(setA: any, setB: any) {
         const _intersection = new Set();
@@ -337,101 +279,71 @@ const DocumentSelector = React.memo(
         return _intersection;
       }
 
-      // const updatePageCount = () => {
-      //   let totalFilteredPages = 0;
-      //   pageFlags?.forEach((element: any) => {
-      //     /**Page Flags to be avoided while
-      //      * calculating % on left panel-
-      //      * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-      //     let documentSpecificCount = element?.pageflag?.filter((obj: any) => {
-      //       if (obj.flagid === pageFlagTypes["Consult"]) {
-      //         const consultFilter = new Set(consulteeFilter);
-      //         const selectedMinistries = new Set([
-      //           ...obj.programareaid,
-      //           ...obj.other,
-      //         ]);
-      //         const consultOverlap = intersection(
-      //           consultFilter,
-      //           selectedMinistries
-      //         );
-      //         return (
-      //           filterFlags.includes(obj.flagid) && consultOverlap.size > 0
-      //         );
-      //       }
-      //       if (obj.flagid === pageFlagTypes["Phase"]) {
-      //         const phaseFilterApplied = new Set(phaseFilter);
-      //         const selectedPhases = new Set([
-      //           ...obj.phase,
-      //         ]);
-      //         const consultOverlap = intersection(
-      //           phaseFilterApplied,
-      //           selectedPhases
-      //         );
-      //         return (
-      //           filterFlags.includes(obj.flagid) && consultOverlap.size > 0
-      //         );
-      //       }
-      //       return filterFlags.includes(obj.flagid);
-      //     })?.length;
-      //     totalFilteredPages += documentSpecificCount;
-      //   });
-      //   let unflagged = 0;
-      //   if (filterFlags.length > 0 && filterFlags.includes(0)) {
-      //     filesForDisplay?.forEach((file: any) => {
-      //       let flagedpages = file.pageFlag ? file.pageFlag.length : 0;
-      //       unflagged += file.pagecount - flagedpages;
-      //     });
-      //   }
-      //   return filterFlags.length > 0
-      //     ? totalFilteredPages + unflagged
-      //     : totalPageCount;
-      //   // setTotalDisplayedPages(filterFlags.length > 0
-      //   //       ? totalFilteredPages + unflagged
-      //   //       : totalPageCount);
-      // };
-
+      
       const updatePageCount = () => {
-        let uniquePages = new Set(); 
+        let uniquePages = new Set();
         let totalFilteredPages = 0;
+      
         pageFlags?.forEach((element: any) => {
           element?.pageflag?.forEach((obj: any) => {
             let shouldCount = false;
-            // Check Consult Flag
-            if (obj.flagid === pageFlagTypes["Consult"]) {
-              const consultFilter = new Set(consulteeFilter);
-              const selectedMinistries = new Set([...obj.programareaid, ...obj.other]);
-              const consultOverlap = intersection(consultFilter, selectedMinistries);
-              if (filterFlags.includes(obj.flagid) && consultOverlap.size > 0) {
-                shouldCount = true;
+      
+            // To check if the page has already been counted
+            const stitchedPageNo = getStitchedPageNoFromOriginal(
+              element.documentid,
+              obj.page,
+              pageMappedDocs
+            );
+      
+            if (uniquePages.has(stitchedPageNo)) return;
+            if(obj.flagid === pageFlagTypes["Consult"] || obj.flagid === pageFlagTypes["Phase"]){
+              // Check Consult Flag
+              if (
+                obj.flagid === pageFlagTypes["Consult"] &&
+                filterFlags.includes(pageFlagTypes["Consult"])
+              ) {
+                const consultFilter = new Set(consulteeFilter);
+                const selectedMinistries = new Set([...obj.programareaid, ...obj.other]);
+                const consultOverlap = intersection(consultFilter, selectedMinistries);
+        
+                if (consultOverlap.size > 0) {
+                  shouldCount = true;
+                }
+              }
+              // Check Phase Flag
+              if (
+                obj.flagid === pageFlagTypes["Phase"] &&
+                filterFlags.includes(pageFlagTypes["Phase"])
+              ) {
+                const phaseFilterApplied = new Set(phaseFilter);
+                const selectedPhases = new Set([...obj.phase]);
+                const phaseOverlap = intersection(phaseFilterApplied, selectedPhases);
+        
+                if (phaseOverlap.size > 0) {
+                  shouldCount = true;
+                }
               }
             }
-            // Check Phase Flag
-            if (obj.flagid === pageFlagTypes["Phase"]) {
-              const phaseFilterApplied = new Set(phaseFilter);
-              const selectedPhases = new Set([...obj.phase]);
-              const phaseOverlap = intersection(phaseFilterApplied, selectedPhases);
-              if (filterFlags.includes(obj.flagid) && phaseOverlap.size > 0) {
+            // Other Flag Check
+            else if (filterFlags.includes(obj.flagid)) {
                 shouldCount = true;
-              }
             }
-            // Add to uniquePages only if it meets a condition
             if (shouldCount) {
-              uniquePages.add(obj.page);
+              uniquePages.add(stitchedPageNo);
             }
           });
         });
-        totalFilteredPages = uniquePages.size; // Count only unique pages
+        totalFilteredPages = uniquePages.size;
         let unflagged = 0;
         if (filterFlags.length > 0 && filterFlags.includes(0)) {
           filesForDisplay?.forEach((file: any) => {
-            let flagedpages = file.pageFlag ? file.pageFlag.length : 0;
-            unflagged += file.pagecount - flagedpages;
+            let flaggedPages = file.pageFlag ? file.pageFlag.length : 0;
+            unflagged += file.pagecount - flaggedPages;
           });
         }
-        return filterFlags.length > 0
-          ? totalFilteredPages + unflagged
-          : totalPageCount;
+        return filterFlags.length > 0 ? totalFilteredPages + unflagged : totalPageCount;
       };
+      
       
       
       const setAdditionalData = () => {
@@ -790,16 +702,16 @@ const DocumentSelector = React.memo(
           file.pageFlag?.some((obj: any) => obj.flagid === pageFlagTypes['Phase'])
         );
         if (phaseFlagged.length > 0) {
-          const phases = phaseFlagged.flatMap((obj: any) => 
+          const phases = new Set(phaseFlagged.flatMap((obj: any) => 
             obj.pageFlag
                 ? obj.pageFlag
                       .filter((flag: any) => flag.flagid === pageFlagTypes['Phase'])
                       .flatMap((flag: any) => "Phase "+ flag.phase) 
                 : []
-          );
+          ));
           console.log(phases); 
-          setAssignedPhases(phases);
-          if(phases.length >0){
+          setAssignedPhases([...phases]);
+          if(phases.size >0){
             setOpenPhaseFilterModal(true);
             setAnchorElPhases(e.currentTarget);
           }
