@@ -113,12 +113,16 @@ def __zipfilesandupload(_message, s3credentials):
                     print("\nfilename:",filename)
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
+                    
+                    print("\n_s3uripath:",fileobj["s3uripath"])
                     _formattedbytes = None
                     _filename, extension = path.splitext(fileobj["s3uripath"])
 
+                    print("\nextension:",extension)
                     if extension.lower() == '.pdf':
                         try:                           
                             _formattedbytes = __removesensitivecontent(_docbytes)
+                            print("\n_formattedbytes:",_formattedbytes)
                             if _formattedbytes is not None:
                                 print("_formattedbytes length is {0}".format(len(_formattedbytes)))
                             else:
@@ -154,6 +158,7 @@ def __zipfilesandupload(_message, s3credentials):
         zipped_bytes = None
 
 def __removesensitivecontent(documentbytes):
+    print("\n inside __removesensitivecontent:",documentbytes)
     # clear metadata
     reader2 = PyPDF2.PdfReader(BytesIO(documentbytes))
     # Check if metadata exists.
@@ -167,6 +172,7 @@ def __removesensitivecontent(documentbytes):
     #writer.remove_links() # to remove comments.
     buffer = BytesIO()
     writer.write(buffer)
+    print("\n after __removesensitivecontent:",buffer, writer)
     return buffer.getvalue()
 
 
