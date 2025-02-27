@@ -103,11 +103,58 @@ const RedactionTypes: RedactionType = {
 
 const MCFPopularSections = 21
 
+type MSDSortingType = {
+  [key: string]: Number
+}
+
+const MSDDivisionsSorting: MSDSortingType = {
+  "FASB": 1,
+  "GA KEY PLAYER AHR": 2,
+  "GA KEY PLAYER": 3,
+  "GA KEY PLAYER PHYSICAL": 4,
+  "TPA": 5,
+  "ELMSD": 6,
+  "PLMS": 7,
+  "FM1 KEY PLAYER AHR": 8,
+  "FM1 KEY PLAYER": 9,
+  "FM1 KEY PLAYER PHYSICAL": 10,
+  "GA SPOUSE AHR": 11,
+  "GA SPOUSE": 12,
+  "GA SPOUSE PHYSICAL": 13,
+  "GA 2 SPOUSE AHR": 14,
+  "GA 2 SPOUSE": 15,
+  "GA2 SPOUSE PHYSICAL": 16,
+  "GA 3 SPOUSE AHR": 17,
+  "GA 3 SPOUSE": 18,
+  "GA3 SPOUSE PHYSICAL": 19,
+  "FM2 RESPONDENT AHR": 20,
+  "FM2 RESPONDENT": 21,
+  "FM2 RESPONDENT PHYSICAL": 22,
+  "FM3 AHR": 23,
+  "FM3": 24,
+  "FM3 PHYSICAL": 25,
+  "FM4 AHR": 26,
+  "FM4": 27,
+  "FM4 PHYSICAL": 28,
+  "FM5 AHR": 29,
+  "FM5": 30,
+  "FM5 PHYSICAL": 31,
+  "GA DEPENDENT AHR": 32,
+  "GA DEPENDENT": 33,
+  "GA DEPENDENT PHYSICAL": 34,
+  "GA 2 DEPENDENT AHR": 35,
+  "GA 2 DEPENDENT": 36,
+  "GA2 DEPENDENT PHYSICAL": 37,
+  "SHRC": 38,
+  "ISD": 39
+}
+
 export {
   KCProcessingTeams,
   MINISTRYGROUPS,
   pageFlagTypes,
   RequestStates,
   RedactionTypes,
-  MCFPopularSections
+  MCFPopularSections,
+  MSDDivisionsSorting
 };

@@ -104,3 +104,7 @@ openshift/templates/zippingservice/zipper.env
 
 MCS.FOI.S3FileConversion/MCS.FOI.MSGToPDFUnitTests/SourceFiles/result_*.pdf
 MCS.FOI.S3FileConversion/MCS.FOI.CalendarToPDFUnitTests/SourceFiles/result_*.pdf
+
+openshift/templates/solrservices/cleardocsfromsolr/env/*
+azuredocextractapi/*.exe
+azuredocextractapi/main
