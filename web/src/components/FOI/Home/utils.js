@@ -1,4 +1,4 @@
-
+import { MSDDivisionsSorting } from "../../../constants/enum";
 
 export const getStitchedPageNoFromOriginal = (docid, page, pageMappedDocs) => {
   if (!docid || !pageMappedDocs) return 0;
@@ -90,6 +90,19 @@ export const CFDSorting = (a, b) => {
   return Date.parse(a.created_at) - Date.parse(b.created_at);
 };
 
+export const MSDSorting = (a, b) => {
+  if (a.file) {
+    a = a.file;
+  }
+  if (b.file) {
+    b = b.file;
+  }
+  if (a.divisions[0].name !== b.divisions[0].name ) {
+    return MSDDivisionsSorting[a.divisions[0].name] - MSDDivisionsSorting[b.divisions[0].name]
+  } 
+  return Date.parse(a.created_at) - Date.parse(b.created_at);
+};
+
 // sort by parent-attachment, then last modified date
 export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo) => {
   let parentid = null;
@@ -114,6 +127,8 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
     } else {
       if (requestInfo?.bcgovcode === "MCF" && requestInfo?.requesttype === "personal") {
         sortedChildDocList = childDocList.sort(CFDSorting);
+      } else if (requestInfo?.bcgovcode === "MSD" && requestInfo?.requesttype === "personal") {
+        sortedChildDocList = childDocList.sort(MSDSorting);
       } else {
         sortedChildDocList = childDocList.sort(docSorting);
       }
