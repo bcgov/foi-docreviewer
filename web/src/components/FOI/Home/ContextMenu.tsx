@@ -339,10 +339,10 @@ const ContextMenu = ({
 
   const PhaseFlags = ({ pageFlag, selectedPhase }: any) => {
     console.log("selectedPhase:",selectedPhase)
-    const phasesToShow = showAll
+    const phasesToShow = showAll || selectedPhase > 3
       ? Array.from({ length: 9 }, (_, i) => i + 1) // Show all 9 phases
-      : selectedPhase > 3
-      ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // First 3 + selected phase if > 3
+      // : selectedPhase > 3
+      // ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // First 3 + selected phase if > 3
       : [1, 2, 3]; // Default first 3
   
     return (
@@ -383,7 +383,7 @@ const ContextMenu = ({
         ))}
   
         {/* Show '+' only if not showing all numbers */}
-        {!showAll && selectedPhase <= 9 && (
+        {!showAll && selectedPhase <= 3 && (
           <span
             style={{ 
               fontSize: "1.5rem", 
