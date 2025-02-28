@@ -94,10 +94,12 @@ class redactionsummaryservice():
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename, phase):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
         if 'responsepackage' in category:
-            if 'phase' in category and phase:
-                _filename = requestnumber+ f' - phase{phase}'
+            if 'phase' in category and phase not in ("", None):
+                _filename = requestnumber+ f' - Phase {phase}'
             else:
                 _filename = requestnumber
+        elif 'redline' in category and phase not in ("", None):
+            _filename = requestnumber+ f' - Redline - Phase {phase}'
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'
         else:

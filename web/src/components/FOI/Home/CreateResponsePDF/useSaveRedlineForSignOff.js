@@ -74,7 +74,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   const [documentPublicBodies, setDocumentPublicBodies] = useState([]);
   const [consultApplyRedactions, setConsultApplyRedactions] = useState(false);
   const [consultApplyRedlines, setConsultApplyRedlines] = useState(false);
-  //const [redlinePhase, setRedlinePhase] = useState(null);
 
   const requestInfo = useAppSelector((state) => state.documents?.requestinfo);
   const requestType = requestInfo?.requesttype ? requestInfo.requesttype : "public";
@@ -1034,7 +1033,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       return layertype === "oipcreview" ? "oipcreviewredline" : "oipcredline";
     }
     if (redlineCategory === "redline" && redlinePhase) {
-      return `redlinephase${redlinePhase}`
+      return `redline_phase${redlinePhase}`
     }
     return "redline";
   };
@@ -1438,7 +1437,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         
         setRedlineStitchInfo(stitchDoc);
         setIsSingleRedlinePackage(res.issingleredlinepackage);
-        //HERE?
         setRedlineZipperMessage({
           ministryrequestid: foiministryrequestid,
           category: getzipredlinecategory(layertype),

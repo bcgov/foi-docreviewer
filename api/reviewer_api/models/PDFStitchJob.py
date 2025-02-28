@@ -48,6 +48,7 @@ class PDFStitchJob(db.Model):
                 .filter(
                     PDFStitchJob.ministryrequestid == requestid,
                     func.lower(PDFStitchJob.category).ilike(f"%{category.lower()}%"),
+                    ~PDFStitchJob.inputfiles[0].has_key('phase')
                 )
                 .order_by(
                     PDFStitchJob.pdfstitchjobid.desc(), PDFStitchJob.version.desc()

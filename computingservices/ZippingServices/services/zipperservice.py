@@ -42,8 +42,8 @@ def processmessage(message):
         if result.get("success"):
             logging.info("final document path = %s", result.get("documentpath"))
             category = message.category
-            if message.phase not in ("", None) and (message.category == "redline" or message.category == "responsepacakage"):
-                category = f"{message.category}phase{message.phase}"
+            if message.phase not in ("", None) and ('phase' in category):
+                category = message.category.replace("_", "")
             savefinaldocumentpath(
                 result, message.ministryrequestid, category, message.createdby
             )

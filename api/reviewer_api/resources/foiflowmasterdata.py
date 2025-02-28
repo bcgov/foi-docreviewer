@@ -203,8 +203,6 @@ class FOIFlowS3PresignedRedline(Resource):
                 packagetype = "oipcreview" if layertype == "oipcreview" else "oipcredline"
             if layertype == "consult":
                 packagetype = "consult"
-            if layertype == "redline" and phase is not None:
-                packagetype = "redlinephase"
             
             #check if is single redline package
             is_single_redline = is_single_redline_package(_bcgovcode, packagetype, requesttype)
@@ -220,9 +218,9 @@ class FOIFlowS3PresignedRedline(Resource):
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
                             filepathlist[0], division_name, packagetype
                         )
-                        if packagetype == "redlinephase":
+                        if packagetype == "redline" and phase is not None:
                             filepath_put = "{0}/{3}/{1}/{0} - {2} - {1}.pdf".format(
-                                filepathlist[0], division_name, f"Redline - Phase {phase}", f"{packagetype}{phase}"
+                                filepathlist[0], division_name, f"Redline - Phase {phase}", f"{packagetype}_phase{phase}"
                             )
                         if packagetype == "consult":
                             filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
@@ -285,9 +283,9 @@ class FOIFlowS3PresignedRedline(Resource):
                         # print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
                         # print("filename1:",filename)
-                        if packagetype == "redlinephase":
+                        if packagetype == "redline" and phase is not None:
                             filepath_put = "{0}/{2}/{1}-{3}.pdf".format(
-                                filepathlist[0],filename, f"{packagetype}{phase}", f"Redline-Phase{phase}"
+                                filepathlist[0],filename, f"{packagetype}_phase{phase}", f"Redline-Phase{phase}"
                             )
                         else:
                             filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
@@ -372,7 +370,7 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             filename = filepathlist[0]
             if phase is not None:
                 filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
-                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase{phase}")
+                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase {phase}")
             else:
                 filepath_put = "{0}/responsepackage/{1}.pdf".format(
                     filepathlist[0], filename
