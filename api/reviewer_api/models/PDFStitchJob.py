@@ -63,12 +63,16 @@ class PDFStitchJob(db.Model):
     @classmethod
     def getpdfstitchjobphasestatuses(cls, requestid, category):
         try:
-            sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchJob" 
-            WHERE category LIKE :category AND ministryrequestid = :requestid AND category NOT LIKE '%-summary' 
-            ORDER BY category, pdfstitchjobid DESC, version DESC;
+            # sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchJob" 
+            # WHERE category LIKE :category AND ministryrequestid = :requestid AND category NOT LIKE '%-summary' 
+            # ORDER BY category, pdfstitchjobid DESC, version DESC;
+            # """
+            sql = """SELECT DISTINCT ON (inputfiles->0->>'phase') inputfiles->0->>'phase' AS Phase, * FROM public."PDFStitchJob" 
+            WHERE category LIKE :category AND ministryrequestid = :requestid AND inputfiles->0->>'phase' is not NULL
+            ORDER BY Phase, pdfstitchjobid DESC, version DESC;
             """
-            res = db.session.execute(text(sql), {'category': category+'%', 'requestid': int(requestid)})
-            pdfstitchjobsstatuses = [{'category': row['category'], 'status': row['status'], 'ministryrequestid': row['ministryrequestid']} for row in res]
+            res = db.session.execute(text(sql), {'category': category, 'requestid': int(requestid)})
+            pdfstitchjobsstatuses = [{'category': row['category'], 'status': row['status'], 'ministryrequestid': row['ministryrequestid'], 'phase': int(row['phase'])} for row in res]
             return pdfstitchjobsstatuses
         except Exception as ex:
             logging.error(ex)

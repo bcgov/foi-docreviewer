@@ -1577,7 +1577,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     if (divisionCountForToast === zipServiceMessage.attributes.length) {
       triggerDownloadRedlines(zipServiceMessage, (error) => {
         console.log(error);
-        //window.location.reload();
+        window.location.reload();
       });
     }
     return zipServiceMessage;

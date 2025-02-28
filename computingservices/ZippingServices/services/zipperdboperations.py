@@ -57,7 +57,7 @@ def recordjobstatus(
                 version,
                 pdfstitchmessage.ministryrequestid,
                 category.lower(),
-                json.dumps(pdfstitchmessage.attributes),
+                json.loads(pdfstitchmessage.attributes),
                 json.dumps(outputfiles),
                 status,
                 message if error else "",

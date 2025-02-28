@@ -23,7 +23,7 @@ class pdfstitchjobactivity:
                     version,
                     message.ministryrequestid,
                     category,
-                    to_json(message.attributes),
+                    message.attributes,
                     status,
                     errormessage if error else None,
                     message.createdby,
