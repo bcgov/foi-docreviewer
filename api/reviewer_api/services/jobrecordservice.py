@@ -24,11 +24,19 @@ class jobrecordservice:
                     ministryrequestid=message['ministryrequestid'],
                     inputfiles=message['inputfiles'],
                     status='pushedtostream',
-                    category= message['category'],
+                    category= self.__assigncategory(message['category']),
                     createdby=userid
                 )
         job = PDFStitchJob.insert(row)
         return job
+    
+    def __assigncategory(self, category):
+        if "phase" in category:
+            if "redline" in category:
+                return "redline"
+            else:
+                return "responsepackage"
+        return category
     
     def getpdfstitchjobstatus(self, requestid, category):
         if category == "redlinephase" or category == "responsepackagephase":

@@ -42,9 +42,9 @@ def recordjobstatus(
         cursor = conn.cursor()
         outputfiles = pdfstitchmessage.finaloutput if finalmessage is not None else None
         category = (
-            pdfstitchmessage.category.lower() + "-zipper"
+            assigncategory(pdfstitchmessage.category.lower()) + "-zipper"
             if isziping
-            else pdfstitchmessage.category.lower()
+            else assigncategory(pdfstitchmessage.category.lower())
         )
         status = "error" if error else status
 
@@ -74,6 +74,14 @@ def recordjobstatus(
     finally:
         if conn is not None:
             conn.close()
+
+def assigncategory(category):
+    if "phase" in category:
+        if "redline" in category:
+            return "redline"
+        else:
+            return "responsepackage"
+    return category
 
 
 def ispdfstichjobcompleted(jobid, category):

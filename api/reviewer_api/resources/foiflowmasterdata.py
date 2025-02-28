@@ -371,8 +371,8 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
             if phase is not None:
-                filepath_put = "{0}/{2}/{1}-{3}.pdf".format(
-                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Responsepackage-Phase{phase}")
+                filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
+                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase{phase}")
             else:
                 filepath_put = "{0}/responsepackage/{1}.pdf".format(
                     filepathlist[0], filename

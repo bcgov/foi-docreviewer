@@ -69,7 +69,7 @@ class redactionsummaryservice():
                     summary_category= category
                     if category in ("redlinephase" , "responsepackagephase") and (message.phase is not None and message.phase != ""):
                         summary_category= f'Redline - Phase {message.phase}' if category == "redlinephase" else f'ResponsePackage - Phase {message.phase}'
-                    filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename)
+                    filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename, message.phase)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     print("filename: ",filename)
                     print("s3uri: ",s3uri)
@@ -91,10 +91,13 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
         
-    def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
+    def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename, phase):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
         if 'responsepackage' in category:
-            _filename = requestnumber
+            if 'phase' in category and phase:
+                _filename = requestnumber+ f' - phase{phase}'
+            else:
+                _filename = requestnumber
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'
         else:

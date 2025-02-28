@@ -4,11 +4,19 @@ import json
 
 def to_json(obj):
     return json.dumps(obj, default=lambda obj: obj.__dict__)
+
+def assigncategory(category):
+    if "phase" in category:
+        if "redline" in category:
+            return "redline"
+        else:
+            return "responsepackage"
+    return category
 class pdfstitchjobactivity:
     
     @classmethod
     def recordjobstatus(cls,message,version,status,error=None,errormessage=None):
-        category = message.category.lower() + "-summary"
+        category = assigncategory(message.category.lower()) + "-summary"
         conn = getdbconnection()
         try:
             cursor = conn.cursor()
