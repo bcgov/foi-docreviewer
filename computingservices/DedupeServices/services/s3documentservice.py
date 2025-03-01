@@ -421,7 +421,8 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 subject = annotation_obj["/Subj"] if "/Subj" in annotation_obj else ""
                 annotationdate=annotation_obj["/CreationDate"] if "/CreationDate" in annotation_obj else ""
                 #print(f'annotationdate:{annotationdate} , comment:{comment}')
-                creationdate= __converttoPST(annotationdate) 
+                creationdate= __converttoPST(annotationdate) if annotationdate else ""
+                #print("\ncreationdate:", creationdate)
                 comments.append({
                     'page': page_num + 1,
                     'text': comment,
