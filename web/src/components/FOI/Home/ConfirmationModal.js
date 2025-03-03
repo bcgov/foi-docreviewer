@@ -33,7 +33,7 @@ export const ConfirmationModal= ({
     assignedPhases
 }) => {
     const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
-    const disableRedlinePhaseSaveButton = modalData?.modalFor === "redline" && assignedPhases && !redlinePhase;
+    const disablePhasePackageCreation = ["redline","responsepackage"].includes(modalData?.modalFor) && assignedPhases && !redlinePhase;
     const modalClass = (["redline", "responsepackage"].includes(modalData?.modalFor) && assignedPhases ? " redlinephase-modal" : modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "");
     let phaseSelectionList;
     if(assignedPhases?.length >0){
@@ -76,7 +76,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {assignedPhases && phaseSelectionList && //modalData?.modalFor === "redline" &&
+            {assignedPhases && phaseSelectionList && ["redline","responsepackage"].includes(modalData?.modalFor) &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}
@@ -191,7 +191,7 @@ export const ConfirmationModal= ({
         </DialogContentText>
       </DialogContent>
       <DialogActions className="foippa-modal-actions">
-        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton || disableRedlinePhaseSaveButton}>
+        <button className="btn-bottom btn-save btn" onClick={saveDoc} disabled={disableConsultSaveButton || disablePhasePackageCreation}>
           {modalData?.modalButtonLabel}
         </button>
         <button

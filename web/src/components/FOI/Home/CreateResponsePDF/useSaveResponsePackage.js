@@ -394,7 +394,7 @@ const useSaveResponsePackage = (redlinePhase) => {
                   res.documentid
                 );
                 setTimeout(() => {
-                  //window.location.reload(true);
+                  window.location.reload(true);
                 }, 3000);
               },
               (_err) => {
