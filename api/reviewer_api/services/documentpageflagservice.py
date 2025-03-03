@@ -62,19 +62,13 @@ class documentpageflagservice:
 
     def bulksavedocumentpageflag(self, requestid, documentid, version, pageflags, redactionlayerid, userinfo):
         docpageflags, docpgattributes = self.getdocumentpageflags(requestid, redactionlayerid, documentid, version)
-        print("\ndocpageflags1:",docpageflags)
-        print("\ndocpgattributes1:",docpgattributes)
         for pageflag in pageflags:
             if self.__isbookmark(pageflag) == True:
                 self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
             docpgattributes = self.handlepageflagattributes(docpgattributes, pageflag)
-            print("\ndocpgattributes2:",docpgattributes)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
-            print("\ndocpageflags:",docpageflags)
         __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
-        print("\n__docpgattributes:",__docpgattributes)
         __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
-        print("\n__docpageflags:",__docpageflags)
         return DocumentPageflag.savepageflag(requestid,documentid, version, __docpageflags, json.dumps(userinfo),redactionlayerid,__docpgattributes)
 
     async def bulkarchivedocumentpageflag(self, requestid, documentid, userinfo):
@@ -108,8 +102,6 @@ class documentpageflagservice:
     
 
     def handlepageflagattributes(self, docpgattributes, data):
-        print("\ndata:",data)
-        print("\ndocpgattributes1:",docpgattributes)
         if "publicbodyaction" in data and data["publicbodyaction"] == "add":
             attributes = docpgattributes if docpgattributes not in (None, {}) else None
             publicbody = (
