@@ -346,7 +346,6 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             json_data = request.get_json()
             data = json_data["documentsInfo"]
             phase = json_data["phase"]
-            print("FOIFlowS3PresignedResponsePackage-data:",data)
             documentmapper = redactionservice().getdocumentmapper(
                 data["filepath"].split("/")[3]
             )

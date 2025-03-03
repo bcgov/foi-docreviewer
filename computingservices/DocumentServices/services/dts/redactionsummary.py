@@ -46,7 +46,7 @@ class redactionsummary():
             
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
-            if phase is not None and phase !="": # and 'redlinephase' in message.category or 'responsepackage_phase' in message.category:
+            if phase is not None and phase !="":
                 print("\nInside PHASEREDLINE __packaggesummary")
                 docpagephase_map = {}
                 for docid in docpageflags:
@@ -124,7 +124,6 @@ class redactionsummary():
             summarydata = []
 
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
-            print("============>1)docpageflags:", docpageflags)
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
             if phase is not None and phase !="":
@@ -141,7 +140,6 @@ class redactionsummary():
                     pageflags = docpageflags[docid]['pageflag']
                     docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
             
-            print("============>2)docpageflags:", docpageflags)
             sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
             # print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
@@ -159,12 +157,11 @@ class redactionsummary():
                     if document_id in (set(pagecounts.keys())):
                         # print("-----------------------Record : ---------------------------", record["documentids"])
                         record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
-                        print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
-                            &&& end_page-{end_page}")
+                        # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
+                        #     &&& end_page-{end_page}")
                         self.assignfullpagesections(redactionlayerid, mapped_flags)
                         print("\nfilteredpageswithphase::",filteredpageswithphase)
                         range_result = self.__calculate_range(filteredpageswithphase, document_id)
-                        print("range_result:",range_result)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
                         # print(f"{record['recordname']} :{recordwise_pagecount}")
                         summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))

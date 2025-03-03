@@ -237,7 +237,6 @@ const DocumentSelector = React.memo(
             });
             totalPhasedPagesWithFlags = validPages.size;
           }
-          console.log("totalPhasedPagesWithFlags:",totalPhasedPagesWithFlags)
           /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
            * as it may show 100% even if the result is 99.9% */
           return totalPageCount > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags >= 0
@@ -710,7 +709,6 @@ const DocumentSelector = React.memo(
                       .flatMap((flag: any) => "Phase "+ flag.phase) 
                 : []
           ));
-          console.log(phases); 
           setAssignedPhases([...phases]);
           if(phases.size >0){
             setOpenPhaseFilterModal(true);
@@ -783,7 +781,6 @@ const DocumentSelector = React.memo(
         let phaseIds = assignedPhases?.map(
           (obj: any) => parseInt(obj?.split(" ")[1])
         );
-        console.log("phaseIds:",phaseIds)
         applyFilter(9, null, event, [],null, phaseIds);
       };
 

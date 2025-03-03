@@ -39,7 +39,6 @@ class jobrecordservice:
         return category
     
     def getpdfstitchjobstatus(self, requestid, category):
-        print("CATEGORY", category)
         if category == "redlinephase" or category == "responsepackagephase":
             package = "redline" if category == 'redlinephase' else "responsepackage"
             job = PDFStitchJob.getpdfstitchjobphasestatuses(requestid, package)

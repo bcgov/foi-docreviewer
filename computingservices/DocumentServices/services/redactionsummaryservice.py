@@ -46,7 +46,6 @@ class redactionsummaryservice():
                     print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
-                    print("redaction_summary:",redaction_summary)
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
@@ -58,12 +57,10 @@ class redactionsummaryservice():
                         
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename']
-                    print("stitcheddocs3uri: ",stitcheddocs3uri)
                     if category == 'oipcreviewredline':
                         s3uricategoryfolder = "oipcreview"
                     else:
                         s3uricategoryfolder = category
-                    print("s3uricategoryfolder:",s3uricategoryfolder)
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
                     # phased redline filename adjustment
                     summary_category= category
@@ -71,8 +68,6 @@ class redactionsummaryservice():
                         summary_category= f'Redline - Phase {message.phase}' if category == "redlinephase" else f'ResponsePackage - Phase {message.phase}'
                     filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename, message.phase)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
-                    print("filename: ",filename)
-                    print("s3uri: ",s3uri)
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:

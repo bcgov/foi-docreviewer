@@ -121,9 +121,7 @@ const ContextMenu = ({
 
   const clearSelectedPhases = (pageFlagId: number) => {
     let phaseFlags = { flagid: pageFlagId, phase: [] }
-    //setSelectedPhaseFlag(phaseFlags)
     savePageFlags(pageFlagId,phaseFlags)
-    console.log("clearSelectedPhases")
   }
 
   const showPageFlagList = () => {
@@ -338,7 +336,6 @@ const ContextMenu = ({
     
 
   const PhaseFlags = ({ pageFlag, selectedPhase }: any) => {
-    console.log("selectedPhase:",selectedPhase)
     const phasesToShow = showAll || selectedPhase > 3
       ? Array.from({ length: 9 }, (_, i) => i + 1) // Show all 9 phases
       // : selectedPhase > 3
