@@ -239,7 +239,7 @@ export const FOIPPASectionsModal= ({
           initHeight={700}
           minWidth={400}
           minHeight={200}
-          top={15}
+          //top={15}
           className={"state-change-dialog"}
           onRequestClose={cancelRedaction}
           isOpen={modalOpen}
@@ -290,6 +290,24 @@ export const FOIPPASectionsModal= ({
             >
               Select Code(s)
             </button>
+            {defaultSections.length > 0 ? (
+              <button
+                className="btn-bottom btn-cancel"
+                onClick={clearDefaultSections}
+              >
+                Clear Defaults
+              </button>
+            ) : (
+              <button
+                className={`btn-bottom btn-cancel ${
+                  saveDisabled && "btn-disabled"
+                }`}
+                onClick={saveDefaultSections}
+                disabled={saveDisabled}
+              >
+                Save as Default
+              </button>
+            )}
             <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
               Cancel
             </button>
