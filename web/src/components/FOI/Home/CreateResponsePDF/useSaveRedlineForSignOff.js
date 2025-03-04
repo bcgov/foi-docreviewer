@@ -671,15 +671,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
           let skipDocumentPages = false;
           let skipOnlyDuplicateDocument = false;
           let skipOnlyNRDocument = false;
-          if (!includeDuplicatePages && !includeNRPages) {
-            skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
-          else if (!includeDuplicatePages) {
-            skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
-          else if (!includeNRPages) {
-            skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
-          }
+          // if (!includeDuplicatePages && !includeNRPages) {
+          //   skipDocumentPages = skipDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
+          // else if (!includeDuplicatePages) {
+          //   skipOnlyDuplicateDocument = skipDuplicateDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
+          // else if (!includeNRPages) {
+          //   skipOnlyNRDocument = skipNRDocument(doc.pageFlag, doc.pagecount, pageFlagTypes);
+          // }
           const pagesWithPhaseFlag = doc.pageFlag.filter(flagEntry => flagEntry.flagid === pageFlagTypes["Phase"]);
           const pagesWithPhaseFlagDict = createPhasePageLookUp(pagesWithPhaseFlag);
           const consolidatedPageFlagInfo = consolidatePageFlagInfo(doc.pages, doc.pageFlag, pagesWithPhaseFlagDict);

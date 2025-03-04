@@ -150,7 +150,7 @@ const ContextMenu = ({
             }
           }}
         >
-          {/* <hr className="hrStyle" /> */}
+          {!requestInfo?.isphasedrelease && <hr className="hrStyle" />}
           <div>
             {pageFlag?.name}
             <span className="pageLeftOffIcon">
@@ -162,6 +162,7 @@ const ContextMenu = ({
           </div>
         </div>
       ) : pageFlag?.name === "Phase" ? (
+        requestInfo?.isphasedrelease && 
         <div>
           <hr className="hrStyle" />
           <span style={{marginLeft:"16px"}}>

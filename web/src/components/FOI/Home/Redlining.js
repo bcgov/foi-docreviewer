@@ -2511,8 +2511,8 @@ const Redlining = React.forwardRef(
         docObj.pageflag?.some((obj) => obj.flagid === pageFlagTypes['Phase'])
       );
       const phasePageMap = {};
-      //Phase:Pages Map
       if (docsWithPhaseFlag.length > 0) {
+        //Phase:Pages Map
         for (let docObj of pageFlags) {
           for (let flag of docObj.pageflag) {
             if (flag.flagid === pageFlagTypes["Phase"]) {
@@ -2528,11 +2528,9 @@ const Redlining = React.forwardRef(
             }
           }
         }
-      }
-      for (let activePhase of requestPhases) {
-        let totalPhasedPagesWithFlags = 0;
-        let phasedPagesCount = 0;
-        if (docsWithPhaseFlag.length > 0) {
+        for (let activePhase of requestPhases) {
+          let totalPhasedPagesWithFlags = 0;
+          let phasedPagesCount = 0;
           // Extract pages that have the phase flag for active phases
           const phasedPages = phasePageMap[activePhase];
           phasedPagesCount = Object.values(phasedPages).reduce((count, pages) => count + pages.size, 0);
@@ -2551,10 +2549,10 @@ const Redlining = React.forwardRef(
               }
             });
           });
+          // const completion = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100) : 0;
+          const valid = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags === phasedPagesCount;
+          phaseResults.push({activePhase: parseInt(activePhase), valid});
         }
-        // const completion = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100) : 0;
-        const valid = totalPhasedPagesWithFlags > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags === phasedPagesCount;
-        phaseResults.push({activePhase: parseInt(activePhase), valid});
       }
       return phaseResults;
     }
