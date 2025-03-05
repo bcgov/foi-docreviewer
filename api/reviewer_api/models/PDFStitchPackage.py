@@ -55,7 +55,7 @@ class PDFStitchPackage(db.Model):
     @classmethod
     def isresponsepackagecreated(cls, requestid, generatedat):
         try:
-            query = db.session.query(func.count(PDFStitchPackage.pdfstitchpackageid)).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == "responsepackage", PDFStitchPackage.createdat <= generatedat)
+            query = db.session.query(func.count(PDFStitchPackage.pdfstitchpackageid)).filter(PDFStitchPackage.ministryrequestid == requestid, func.lower(PDFStitchPackage.category).ilike("responsepackage%"), PDFStitchPackage.createdat <= generatedat)
             packagecount = query.scalar()
             return True if packagecount > 0 else False
         except Exception as ex:
