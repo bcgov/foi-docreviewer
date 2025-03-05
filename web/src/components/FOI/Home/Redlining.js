@@ -70,6 +70,7 @@ import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
 import Switch from "@mui/material/Switch";
 import FeeOverrideModal from "./FeeOverrideModal";
+import { ReactComponent as RedactLogo } from "../../../assets/images/mark-redact.svg";
 
 const Redlining = React.forwardRef(
   (
@@ -235,6 +236,7 @@ const Redlining = React.forwardRef(
             Annotations,
             PDFNet,
             Math,
+            Search,
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
@@ -354,6 +356,103 @@ const Redlining = React.forwardRef(
               0,
               textSelectorToggle
             );
+
+            const nlppochighlightbutton = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={async (e) => {
+                      // setIsRedlineOpaque(e.target.checked)
+                      if (e.target.checked) {
+                        const searchText = 'never complain';
+                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT];
+                        const searchOptions = {
+                          // If true, a search of the entire document will be performed. Otherwise, a single search will be performed.
+                          fullSearch: true,
+                          // The callback function that is called when the search returns a result.
+                          onResult: result => {
+                            // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
+                            if (result.resultCode === Search.ResultCode.FOUND) {
+                              const textQuad = result.quads[0].getPoints(); // getPoints will return Quad objects
+                              // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
+                              const annot = new Annotations.TextHighlightAnnotation({
+                                PageNumber: 1,
+                                X: textQuad.x1,
+                                Y: textQuad.y3,
+                                Width: textQuad.x2 - textQuad.x1,
+                                Height: textQuad.x2 - textQuad.x1,
+                                Color: new Annotations.Color(228, 66, 52, 1),
+                                Quads: [
+                                  textQuad
+                                ],
+                              });
+                              annot.setCustomData("isNLPhighlight", true)
+                              annot.setCustomData("trn-annot-preview", searchText)
+                              
+                              annotationManager.addAnnotation(annot);
+                              // Always redraw annotation
+                              annotationManager.redrawAnnotation(annot);
+                            }
+                          },
+                          startPage: documentViewer.getCurrentPage(),
+                          endPage: documentViewer.getCurrentPage()
+                        };
+
+                        documentViewer.textSearchInit(searchText, mode, searchOptions);
+
+                        // const annot = new Annotations.TextHighlightAnnotation({
+                        //   PageNumber: 1,
+                        //   X: 245.296,
+                        //   Y: 249.592041015625,
+                        //   Width: 67.23599999999999,
+                        //   Height: 11.663964843750023,
+                        //   Color: new Annotations.Color(228, 66, 52, 1),
+                        //   Quads: [
+                        //     {
+                        //       x1: 245.296,
+                        //       x2: 312.532,
+                        //       x3: 312.532,
+                        //       x4: 245.296,
+                        //       y1: 261.256005859375,
+                        //       y2: 261.256005859375,
+                        //       y3: 249.592041015625,
+                        //       y4: 249.592041015625,
+                        //     },
+                        //   ],
+                        // });
+                        // annot.setCustomData("isNLPhighlight", true)
+                        
+                        // annotationManager.addAnnotation(annot);
+                        // // Always redraw annotation
+                        // annotationManager.redrawAnnotation(annot);
+                      } else {
+                        const annots = annotationManager.getAnnotationsList().filter(a => a.getCustomData("isNLPhighlight") === 'true')
+                        annotationManager.deleteAnnotations(annots)
+                      }
+                    } 
+                  }
+                  defaultChecked={false}
+                  id="nlptoggle"
+                >
+                </input>
+                <label 
+                  for="nlptoggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Show NLP
+                </label>
+                </>
+              )
+            };
+
+            header.headers.default.splice(
+              header.headers.default.length - 6,
+              0,
+              nlppochighlightbutton
+            );
           });
 
           instance.UI.setHeaderItems(header => {
@@ -373,6 +472,41 @@ const Redlining = React.forwardRef(
             title: "Edit",
             render: () => (
               <Edit instance={instance} editAnnotation={editAnnotation} />
+            ),
+          });
+          instance.UI.annotationPopup.add({
+            type: "customElement",
+            title: "Mark for redaction",
+            render: () => (
+              <button
+                type="button"
+                className="Button ActionButton"
+                // style={disableEdit ? { cursor: "default" } : {}}
+                onClick={() => {
+                  let selectedAnnotations = annotationManager.getSelectedAnnotations();
+                  let redactAnnotations = []
+                  selectedAnnotations.forEach((annotation) => {
+                    const redactAnnot = new Annotations.RedactionAnnotation({
+                      PageNumber: annotation.PageNumber,
+                      StrokeColor: new Annotations.Color(255, 0, 0),
+                      FillColor: new Annotations.Color(255, 255, 255),
+                      Quads: annotation.getQuads(),
+                    });
+                    redactAnnotations.push(redactAnnot)
+                  });
+                  annotationManager.deleteAnnotations(selectedAnnotations)
+                  annotationManager.addAnnotations(redactAnnotations);
+                  // need to draw the annotations otherwise they won't show up until the page is refreshed
+                  annotationManager.drawAnnotationsFromList(redactAnnotations);
+                }}
+              >
+                <div
+                  className="Icon"
+                  // style={disableEdit ? { color: "#868e9587" } : {}}
+                >
+                  <RedactLogo />
+                </div>
+              </button>
             ),
           });
           setDocInstance(instance);
@@ -917,7 +1051,10 @@ const Redlining = React.forwardRef(
         // If the event is triggered by importing then it can be ignored
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
-
+        
+        if (annotations[0].getCustomData('isNLPhighlight') === 'true') {
+          return
+        }
 
         /**Fix for lengthy section cutoff issue with response pkg 
          * download - changed overlaytext to freetext annotations after 
@@ -1362,6 +1499,7 @@ const Redlining = React.forwardRef(
       annotManager?.addEventListener(
         "annotationSelected",
         (annotations, action) => {
+          console.log(annotations)
           if (action === "selected") {
             if (
               annotManager?.getSelectedAnnotations().length >
