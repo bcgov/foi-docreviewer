@@ -30,7 +30,8 @@ export const ConfirmationModal= ({
     handleApplyRedlines,
     setRedlinePhase,
     redlinePhase,
-    assignedPhases
+    assignedPhases,
+    validoipcreviewlayer
 }) => {
     const disableConsultSaveButton = modalData?.modalFor === "consult" && selectedPublicBodyIDs.length < 1;
     const disablePhasePackageCreation = ["redline","responsepackage"].includes(modalData?.modalFor) && assignedPhases && !redlinePhase;
@@ -76,7 +77,7 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage}
             <br/><br/>
-            {assignedPhases && phaseSelectionList && ["redline","responsepackage"].includes(modalData?.modalFor) &&
+            {assignedPhases && phaseSelectionList && ["redline","responsepackage"].includes(modalData?.modalFor) && !validoipcreviewlayer &&
               <div>
                 <TextField
                     InputLabelProps={{ shrink: true }}

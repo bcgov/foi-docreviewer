@@ -324,7 +324,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         doc.pageFlag.sort((a, b) => a.page - b.page); //sort pageflag by page #
         let pageIndex = 1;
         for (const flagInfo of doc.pageFlag) {
-          if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
+          if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) { // ignore consult flag to fix bug FOIMOD-3062
             if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
               if(includeDuplicatePages) {
                 duplicateWatermarkPagesEachDiv.push(
@@ -374,14 +374,14 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
                 );
               }
             } else {
-              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+              if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) {
                 pageMappings[doc.documentid][flagInfo.page] =
                   pageIndex +
                   totalPageCount -
                   pagesToRemoveEachDoc.length;
               }
             }
-            if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+            if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) {
               pageIndex ++;
             }
           }
@@ -566,7 +566,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
           // }
           //if(isIgnoredDocument(doc, doc['pagecount'], divisionDocuments) == false) {
           for (const flagInfo of doc.pageFlag) {
-            if (flagInfo.flagid !== pageFlagTypes["Consult"]) { // ignore consult flag to fix bug FOIMOD-3062
+            if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) { // ignore consult flag to fix bug FOIMOD-3062
               if (flagInfo.flagid == pageFlagTypes["Duplicate"]) {
                 if(includeDuplicatePages) {
                   duplicateWatermarkPagesEachDiv.push(pageIndex + totalPageCountIncludeRemoved - pagesToRemove.length);
@@ -601,14 +601,14 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
                   }
                 }
               } else {
-                if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+                if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) {
                   pageMappings[doc.documentid][flagInfo.page] =
                     pageIndex +
                     totalPageCount -
                     pagesToRemoveEachDoc.length;
                 }
               }
-              if (flagInfo.flagid !== pageFlagTypes["Consult"]) {
+              if (flagInfo.flagid !== pageFlagTypes["Consult"] && flagInfo.flagid !== pageFlagTypes["Phase"]) {
                 pageIndex ++;
               }
             }
@@ -806,7 +806,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
           for (const page of doc.pages) {
             //find pageflags for this page
             const pageFlagsOnPage = doc.pageFlag.filter((pageFlag) => {
-              return pageFlag.page === page;
+              return pageFlag.page === page && pageFlag.flagid !== pageFlagTypes["Phase"];
             })
             const notConsultPageFlagsOnPage = pageFlagsOnPage.filter((pageFlag) => {
               return pageFlag.flagid !== pageFlagTypes["Consult"];

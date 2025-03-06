@@ -1473,7 +1473,7 @@ const Redlining = React.forwardRef(
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
-      if (isPhasedRelease) {
+      if (!validoipcreviewlayer && isPhasedRelease) {
         const phasesOnRequest = findAllPhases();
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
         setAssignedPhases(phaseCompletionObj);
@@ -2694,6 +2694,7 @@ const Redlining = React.forwardRef(
           setRedlinePhase={setRedlinePhase}
           redlinePhase={redlinePhase}
           assignedPhases={assignedPhases}
+          validoipcreviewlayer={validoipcreviewlayer}
         />
         }
         {messageModalOpen &&
