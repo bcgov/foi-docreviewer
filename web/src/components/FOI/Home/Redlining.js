@@ -357,6 +357,76 @@ const Redlining = React.forwardRef(
               textSelectorToggle
             );
 
+            const nlptogglehandler = async (e) => {
+              // setIsRedlineOpaque(e.target.checked)
+              if (e.target.checked) {
+                const searchText = 'never complain';
+                const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT];
+                const searchOptions = {
+                  // If true, a search of the entire document will be performed. Otherwise, a single search will be performed.
+                  fullSearch: true,
+                  // The callback function that is called when the search returns a result.
+                  onResult: result => {
+                    // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
+                    if (result.resultCode === Search.ResultCode.FOUND) {
+                      const textQuad = result.quads[0].getPoints(); // getPoints will return Quad objects
+                      // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
+                      const annot = new Annotations.TextHighlightAnnotation({
+                        PageNumber: 1,
+                        X: textQuad.x1,
+                        Y: textQuad.y3,
+                        Width: textQuad.x2 - textQuad.x1,
+                        Height: textQuad.x2 - textQuad.x1,
+                        Color: new Annotations.Color(255, 205, 69, 1),
+                        Quads: [
+                          textQuad
+                        ],
+                      });
+                      annot.setCustomData("isNLPhighlight", true)
+                      annot.setCustomData("trn-annot-preview", searchText)
+                      
+                      annotationManager.addAnnotation(annot);
+                      // Always redraw annotation
+                      annotationManager.redrawAnnotation(annot);
+                    }
+                  },
+                  startPage: documentViewer.getCurrentPage(),
+                  endPage: documentViewer.getCurrentPage()
+                };
+
+                documentViewer.textSearchInit(searchText, mode, searchOptions);
+
+                // const annot = new Annotations.TextHighlightAnnotation({
+                //   PageNumber: 1,
+                //   X: 245.296,
+                //   Y: 249.592041015625,
+                //   Width: 67.23599999999999,
+                //   Height: 11.663964843750023,
+                //   Color: new Annotations.Color(228, 66, 52, 1),
+                //   Quads: [
+                //     {
+                //       x1: 245.296,
+                //       x2: 312.532,
+                //       x3: 312.532,
+                //       x4: 245.296,
+                //       y1: 261.256005859375,
+                //       y2: 261.256005859375,
+                //       y3: 249.592041015625,
+                //       y4: 249.592041015625,
+                //     },
+                //   ],
+                // });
+                // annot.setCustomData("isNLPhighlight", true)
+                
+                // annotationManager.addAnnotation(annot);
+                // // Always redraw annotation
+                // annotationManager.redrawAnnotation(annot);
+              } else {
+                const annots = annotationManager.getAnnotationsList().filter(a => a.getCustomData("isNLPhighlight") === 'true')
+                annotationManager.deleteAnnotations(annots)
+              }
+            } 
+
             const nlppochighlightbutton = {
               type: 'customElement',
               render: () => (
@@ -364,76 +434,7 @@ const Redlining = React.forwardRef(
                 <input
                   style={{"float": "left"}}
                   type="checkbox"
-                  onChange={async (e) => {
-                      // setIsRedlineOpaque(e.target.checked)
-                      if (e.target.checked) {
-                        const searchText = 'never complain';
-                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT];
-                        const searchOptions = {
-                          // If true, a search of the entire document will be performed. Otherwise, a single search will be performed.
-                          fullSearch: true,
-                          // The callback function that is called when the search returns a result.
-                          onResult: result => {
-                            // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
-                            if (result.resultCode === Search.ResultCode.FOUND) {
-                              const textQuad = result.quads[0].getPoints(); // getPoints will return Quad objects
-                              // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
-                              const annot = new Annotations.TextHighlightAnnotation({
-                                PageNumber: 1,
-                                X: textQuad.x1,
-                                Y: textQuad.y3,
-                                Width: textQuad.x2 - textQuad.x1,
-                                Height: textQuad.x2 - textQuad.x1,
-                                Color: new Annotations.Color(228, 66, 52, 1),
-                                Quads: [
-                                  textQuad
-                                ],
-                              });
-                              annot.setCustomData("isNLPhighlight", true)
-                              annot.setCustomData("trn-annot-preview", searchText)
-                              
-                              annotationManager.addAnnotation(annot);
-                              // Always redraw annotation
-                              annotationManager.redrawAnnotation(annot);
-                            }
-                          },
-                          startPage: documentViewer.getCurrentPage(),
-                          endPage: documentViewer.getCurrentPage()
-                        };
-
-                        documentViewer.textSearchInit(searchText, mode, searchOptions);
-
-                        // const annot = new Annotations.TextHighlightAnnotation({
-                        //   PageNumber: 1,
-                        //   X: 245.296,
-                        //   Y: 249.592041015625,
-                        //   Width: 67.23599999999999,
-                        //   Height: 11.663964843750023,
-                        //   Color: new Annotations.Color(228, 66, 52, 1),
-                        //   Quads: [
-                        //     {
-                        //       x1: 245.296,
-                        //       x2: 312.532,
-                        //       x3: 312.532,
-                        //       x4: 245.296,
-                        //       y1: 261.256005859375,
-                        //       y2: 261.256005859375,
-                        //       y3: 249.592041015625,
-                        //       y4: 249.592041015625,
-                        //     },
-                        //   ],
-                        // });
-                        // annot.setCustomData("isNLPhighlight", true)
-                        
-                        // annotationManager.addAnnotation(annot);
-                        // // Always redraw annotation
-                        // annotationManager.redrawAnnotation(annot);
-                      } else {
-                        const annots = annotationManager.getAnnotationsList().filter(a => a.getCustomData("isNLPhighlight") === 'true')
-                        annotationManager.deleteAnnotations(annots)
-                      }
-                    } 
-                  }
+                  onChange={nlptogglehandler}
                   defaultChecked={false}
                   id="nlptoggle"
                 >
@@ -477,13 +478,18 @@ const Redlining = React.forwardRef(
           instance.UI.annotationPopup.add({
             type: "customElement",
             title: "Mark for redaction",
-            render: () => (
+            render: () => {
+              let selectedAnnotations = annotationManager.getSelectedAnnotations();
+              const disabled = selectedAnnotations.some(
+                (obj) =>
+                  obj.getCustomData("isNLPhighlight") !== "true"
+              );
+              return (
               <button
                 type="button"
                 className="Button ActionButton"
                 // style={disableEdit ? { cursor: "default" } : {}}
-                onClick={() => {
-                  let selectedAnnotations = annotationManager.getSelectedAnnotations();
+                onClick={() => {                  
                   let redactAnnotations = []
                   selectedAnnotations.forEach((annotation) => {
                     const redactAnnot = new Annotations.RedactionAnnotation({
@@ -498,16 +504,17 @@ const Redlining = React.forwardRef(
                   annotationManager.addAnnotations(redactAnnotations);
                   // need to draw the annotations otherwise they won't show up until the page is refreshed
                   annotationManager.drawAnnotationsFromList(redactAnnotations);
-                }}
+                }}                
+                disabled={disabled}
               >
                 <div
                   className="Icon"
-                  // style={disableEdit ? { color: "#868e9587" } : {}}
+                  style={disabled ? { color: "#868e9587" } : {}}
                 >
                   <RedactLogo />
                 </div>
               </button>
-            ),
+            )},
           });
           setDocInstance(instance);
 
