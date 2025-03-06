@@ -1499,6 +1499,10 @@ const Redlining = React.forwardRef(
           (_file) => _file.file.file.documentid === filerow.file.file.documentid
         );
         if (_exists?.length === 0) {
+          // Check if total pages to be stitched is greater than the total pages in the document
+          if(filerow.pages.length > filerow.pdftronobject.getPageCount()) {
+                filerow.pages = filerow.pages.slice(0, filerow.pdftronobject.getPageCount());
+          }
           let index = filerow.stitchIndex;
           _doc
             .insertPages(filerow.pdftronobject, filerow.pages, index)
