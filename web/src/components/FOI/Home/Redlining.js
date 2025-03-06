@@ -395,7 +395,6 @@ const Redlining = React.forwardRef(
           documentViewer.addEventListener("documentLoaded", async () => {
             PDFNet.initialize(); // Only needs to be initialized once
             let params = new URLSearchParams(window?.location?.search);
-            console.log("\nparams:",params)
             let crossTextSearchKeywords = params?.get("query");
             // if(crossTextSearchKeywords?.length >0){
             //   const formattedKeywords = crossTextSearchKeywords?.replace(/,/g, "|");
@@ -410,7 +409,6 @@ const Redlining = React.forwardRef(
               const quotesRemoved = keywordsArray.map(keyword => keyword.replace(/"/g, "")); 
               // Join the keywords with | while keeping spaces inside quotes
               const formattedKeywords = quotesRemoved.join("|");
-              console.log("\nformattedKeywords:", formattedKeywords);
               instance.UI.searchTextFull(formattedKeywords, {
                 regex: true,
                 wholeWord:true
