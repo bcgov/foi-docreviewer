@@ -247,33 +247,36 @@ const useSaveResponsePackage = (redlinePhase) => {
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
         var uniquePagesToRemove = new Set();
-        var redlinePhasePageArr = [];
+        var phasedPagesArr = [];
         for (const infoForEachDoc of pageFlags) {
           if (redlinePhase) {
-            redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
+            phasedPagesArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
               flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
-              const allPages = Object.values(pageMappedDocs.stitchedPageLookup)
+              const allPages = documentList.find(entry => entry.documentid === infoForEachDoc.documentid)?.pages;
+              const allPagesWithFlags = Object.values(pageMappedDocs.stitchedPageLookup)
                   .filter(entry => entry.docid === infoForEachDoc.documentid)
                   .map(entry => entry.page);
-              console.log("allPages:",allPages)
+              console.log(`allPages of DocumentID: ${infoForEachDoc.documentid} => ${allPages}`);
               if(allPages.length > 0){
                 //const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.has(page));
-                const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.some(flagInfo => flagInfo.page === page));
-                console.log("missingPages:",missingPages)
-                if(missingPages.length >0){ 
-                  for ( const missingPage of missingPages){
-                    uniquePagesToRemove.add(
-                      getStitchedPageNoFromOriginal(
-                        infoForEachDoc.documentid,
-                        missingPage,
-                        pageMappedDocs
-                      )
-                    );
+                const pagesWithoutAnyFlags = allPagesWithFlags.filter(page => !infoForEachDoc.pageflag?.some(flagInfo => flagInfo.page === page));
+                console.log(`pagesWithoutAnyFlags of DocumentID: ${infoForEachDoc.documentid} => ${pagesWithoutAnyFlags}`);
+                if(pagesWithoutAnyFlags.length >0){ 
+                  for (const pageWithoutFlag of pagesWithoutAnyFlags){
+                    if(allPages.includes(pageWithoutFlag)){
+                      uniquePagesToRemove.add(
+                        getStitchedPageNoFromOriginal(
+                          infoForEachDoc.documentid,
+                          pageWithoutFlag,
+                          pageMappedDocs
+                        )
+                      );
+                    }
                   }
                 }
               }
           }
-          console.log("redlinePhasePageArr:",redlinePhasePageArr)
+          console.log(`phaseFlaggedPages of DocumentID: ${infoForEachDoc.documentid} => ${phasedPagesArr}`);
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
@@ -288,10 +291,7 @@ const useSaveResponsePackage = (redlinePhase) => {
                 )
               );
             }
-            //if (redlinePhasePageArr.length >0) {
-              // redlinePhasePageArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
-              //   flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
-              if((redlinePhasePageArr.length >0 && !redlinePhasePageArr?.includes(pageFlagsForEachDoc.page)) || redlinePhasePageArr.length <=0){
+              if((phasedPagesArr.length >0 && !phasedPagesArr?.includes(pageFlagsForEachDoc.page)) || phasedPagesArr.length <=0){
                 uniquePagesToRemove.add(
                   getStitchedPageNoFromOriginal(
                     infoForEachDoc.documentid,
@@ -300,7 +300,6 @@ const useSaveResponsePackage = (redlinePhase) => {
                   )
                 );
               }
-            //}
           }
         }
         var pagesToRemove = [...uniquePagesToRemove];
@@ -342,7 +341,8 @@ const useSaveResponsePackage = (redlinePhase) => {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
               var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
-              pagesToRemove.push(pageToRemove);
+              if(pagesToRemove !=0)
+                pagesToRemove.push(pageToRemove);
             }
           }
         }
