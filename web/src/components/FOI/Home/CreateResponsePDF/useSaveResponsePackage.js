@@ -337,7 +337,7 @@ const useSaveResponsePackage = (redlinePhase) => {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
               var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
-              if(pagesToRemove !=0)
+              if(pageToRemove !== 0)
                 pagesToRemove.push(pageToRemove);
             }
           }
