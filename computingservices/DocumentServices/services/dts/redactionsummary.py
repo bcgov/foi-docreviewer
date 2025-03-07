@@ -145,10 +145,10 @@ class redactionsummary():
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             #print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
-            print("###mapped_flags1:",mapped_flags)
+            # print("###mapped_flags1:",mapped_flags)
             filteredpageswithphase= self.removeduplicatepageswithphase(mapped_flags)
             pagecounts= self.count_pages_per_doc(filteredpageswithphase)
-            print("pagecounts:",pagecounts)
+            # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
             end_page = 0
@@ -160,7 +160,7 @@ class redactionsummary():
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
                         #     &&& end_page-{end_page}")
                         self.assignfullpagesections(redactionlayerid, mapped_flags)
-                        print("\nfilteredpageswithphase::",filteredpageswithphase)
+                        # print("\nfilteredpageswithphase::",filteredpageswithphase)
                         range_result = self.__calculate_range(filteredpageswithphase, document_id)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
                         # print(f"{record['recordname']} :{recordwise_pagecount}")

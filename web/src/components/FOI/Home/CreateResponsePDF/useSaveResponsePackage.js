@@ -255,11 +255,9 @@ const useSaveResponsePackage = (redlinePhase) => {
               const allPages = Object.values(pageMappedDocs.stitchedPageLookup)
                   .filter(entry => entry.docid === infoForEachDoc.documentid)
                   .map(entry => entry.page);
-              console.log("allPages:",allPages)
               if(allPages.length > 0){
                 //const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.has(page));
                 const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.some(flagInfo => flagInfo.page === page));
-                console.log("missingPages:",missingPages)
                 if(missingPages.length >0){ 
                   for ( const missingPage of missingPages){
                     uniquePagesToRemove.add(
@@ -273,7 +271,6 @@ const useSaveResponsePackage = (redlinePhase) => {
                 }
               }
           }
-          console.log("redlinePhasePageArr:",redlinePhasePageArr)
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
