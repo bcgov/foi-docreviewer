@@ -161,10 +161,10 @@ class documentpageflagservice:
             flag_nonconsultsorphases = [x for x in match if x['flagid'] not in [4,9]]  
             flag_phase = [x for x in match if x['flagid'] == 9]
             flag_nonphase = [x for x in match if x['flagid'] != 9]
-            if data['deleted'] == True: 
+            if data['deleted'] == True:
                 if data['flagid'] == 0:
-                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsults) == True:
-                        return filtered + flag_consult
+                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsultsorphases) == True:
+                        return filtered + flag_consult + flag_phase
                     else:
                         return filtered + flag_consult + flag_nonconsults
                 elif data['flagid'] == 9:
