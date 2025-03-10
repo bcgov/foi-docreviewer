@@ -11,6 +11,7 @@ class AttributeSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)
     includeduplicatepages = fields.Boolean(data_key="includeduplicatepages", allow_none=True)
     includenrpages = fields.Boolean(data_key="includenrpages", allow_none=True)
+    phase = fields.Int(data_key="phase", allow_none=True)
 
 class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)

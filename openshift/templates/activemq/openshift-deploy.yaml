@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: openshift-activemq
+objects:
+- kind: Secret
+  apiVersion: v1
+  stringData:
+    ACTIVEMQ_ADMIN_LOGIN: ${ACTIVEMQ_ADMIN_LOGIN}
+    ACTIVEMQ_ADMIN_PASSWORD: ${ACTIVEMQ_ADMIN_PASSWORD}
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: openshift-activemq
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: openshift-activemq
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: openshift-activemq
+      spec:
+        containers:
+        - image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${IMAGE_NAMESPACE_TAG}
+          env:
+            - name: ACTIVEMQ_ADMIN_LOGIN
+              value: ${ACTIVEMQ_ADMIN_LOGIN}  # Set the admin password for the ActiveMQ web console
+            - name: ACTIVEMQ_ADMIN_PASSWORD
+              value: ${ACTIVEMQ_ADMIN_PASSWORD}  # Set the admin username for the ActiveMQ web console
+          imagePullPolicy: Always
+          name: openshift-activemq
+          ports:
+          - containerPort: 61616
+            protocol: TCP
+          - containerPort: 8161
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /opt/activemq/data
+              name: activemq-data
+              subPath: activemq
+        volumes:
+        - name: activemq-data
+          persistentVolumeClaim:
+            claimName: activemq-pvc
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${IMAGE_NAMESPACE_TAG}
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/abin-aot/openshift-activemq.git
+      type: Git
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+            - name: ACTIVEMQ_ADMIN_LOGIN
+              value: ${ACTIVEMQ_ADMIN_LOGIN}  # Set the admin password for the ActiveMQ web console
+            - name: ACTIVEMQ_ADMIN_PASSWORD
+              value: ${ACTIVEMQ_ADMIN_PASSWORD}
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: iC5AZ9ft5C5XgfrYkKQT
+      type: GitHub
+    - generic:
+        secret: -z44GI1g-dXhvhWSGc5W
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: openshift-activemq
+  spec:
+    ports:
+    - name: 8161-tcp
+      port: 8161
+      protocol: TCP
+      targetPort: 8161
+    - name: 61616-tcp
+      port: 61616
+      protocol: TCP
+      targetPort: 61616
+    selector:
+      app: openshift-activemq
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    labels:
+      app: openshift-activemq
+    name: activemq
+  spec:
+    port:
+      targetPort: 8161-tcp
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: openshift-activemq
+      weight: 100
+    wildcardPolicy: None
+parameters:
+- name: ACTIVEMQ_ADMIN_LOGIN
+  displayname: ACTIVEMQ_ADMIN_LOGIN
+  required: true
+- name: ACTIVEMQ_ADMIN_PASSWORD
+  displayname: ACTIVEMQ_ADMIN_PASSWORD
+  required: true
+- name: IMAGE_NAMESPACE
+  displayname: IMAGE_NAMESPACE
+  required: true
+- name: IMAGE_NAMESPACE_TAG
+  displayname: IMAGE_NAMESPACE_TAG
+  required: true
+

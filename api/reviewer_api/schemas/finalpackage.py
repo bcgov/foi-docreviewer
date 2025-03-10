@@ -9,6 +9,7 @@ class FileSchema(Schema):
 
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
+    phase = fields.Int(data_key="phase", allow_none=True)
 
 class FeeOverrideSchema(Schema):
     feeoverridereason = fields.Str(data_key="feeoverridereason", allow_none=True)

@@ -41,8 +41,11 @@ def processmessage(message):
         )
         if result.get("success"):
             logging.info("final document path = %s", result.get("documentpath"))
+            category = message.category
+            if message.phase not in ("", None) and ('phase' in category):
+                category = message.category.replace("_", "")
             savefinaldocumentpath(
-                result, message.ministryrequestid, message.category, message.createdby
+                result, message.ministryrequestid, category, message.createdby
             )
             recordjobstatus(
                 pdfstitchmessage=message,

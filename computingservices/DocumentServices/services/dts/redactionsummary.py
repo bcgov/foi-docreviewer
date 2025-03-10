@@ -8,11 +8,11 @@ class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
-        if _ismcfpersonalrequest and message.category == "responsepackage":
+        if _ismcfpersonalrequest and (message.category == "responsepackage" or  "responsepackage_phase" in message.category):
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if message.category == "responsepackage" and _ismcfpersonalrequest == False:
+        if (message.category == "responsepackage" or "responsepackage_phase" in message.category) and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
@@ -43,6 +43,23 @@ class redactionsummary():
             print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            
+            # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
+            phase = message.phase
+            if phase is not None and phase !="":
+                print("\nInside PHASEREDLINE __packaggesummary")
+                docpagephase_map = {}
+                for docid in docpageflags:
+                    for flagobj in docpageflags[docid]['pageflag']:
+                        if flagobj['flagid'] == 9 and int(phase) in flagobj['phase']:
+                            if docid not in docpagephase_map:
+                                docpagephase_map[docid] = [flagobj['page']]
+                            else:
+                                docpagephase_map[docid].append(flagobj['page'])
+                for docid in docpageflags:
+                    pageflags = docpageflags[docid]['pageflag']
+                    docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
+
             print("\n docpageflags",docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
@@ -107,13 +124,30 @@ class redactionsummary():
             summarydata = []
 
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
+            phase = message.phase
+            if phase is not None and phase !="":
+                print("\nInside phase logic for __packagesummaryforcfdrequests")
+                docpagephase_map = {}
+                for docid in docpageflags:
+                    for flagobj in docpageflags[docid]['pageflag']:
+                        if flagobj['flagid'] == 9 and int(phase) in flagobj['phase']:
+                            if docid not in docpagephase_map:
+                                docpagephase_map[docid] = [flagobj['page']]
+                            else:
+                                docpagephase_map[docid].append(flagobj['page'])
+                for docid in docpageflags:
+                    pageflags = docpageflags[docid]['pageflag']
+                    docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
+            
             sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
             # print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             #print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
-            #print("###mapped_flags1:",mapped_flags)
-            pagecounts= self.count_pages_per_doc(mapped_flags)
+            # print("###mapped_flags1:",mapped_flags)
+            filteredpageswithphase= self.removeduplicatepageswithphase(mapped_flags)
+            pagecounts= self.count_pages_per_doc(filteredpageswithphase)
             # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
@@ -126,9 +160,8 @@ class redactionsummary():
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
                         #     &&& end_page-{end_page}")
                         self.assignfullpagesections(redactionlayerid, mapped_flags)
-                        # print("\nMapped_flags::",mapped_flags)
-                        range_result = self.__calculate_range(mapped_flags, document_id)
-                        # print("range_result:",range_result)
+                        # print("\nfilteredpageswithphase::",filteredpageswithphase)
+                        range_result = self.__calculate_range(filteredpageswithphase, document_id)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
                         # print(f"{record['recordname']} :{recordwise_pagecount}")
                         summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
@@ -140,6 +173,13 @@ class redactionsummary():
         except Exception as error:
             print('CFD Error occurred in redaction dts service: ', error)
             traceback.print_exc()
+
+    def removeduplicatepageswithphase(self, mapped_flags):
+        # Identify pages where flagid=9 exists
+        pages_with_flagid_9 = {(entry['docid'], entry['originalpageno']) for entry in mapped_flags if entry['flagid'] == 9}
+        # Keep only entries where either flagid=9 or the page does not have flagid=9 at all
+        return [entry for entry in mapped_flags if entry['flagid'] == 9 or (entry['docid'], entry['originalpageno']) not in pages_with_flagid_9]
+
 
 
     def __calculate_range(self, mapped_flags, document_id):
@@ -220,13 +260,36 @@ class redactionsummary():
     
     def count_pages_per_doc(self, mapped_flags):
         page_counts = {}
+        #track pages per document
+        processed_pages = {}
         for entry in mapped_flags:
             doc_id = entry['docid']
+            page = entry['originalpageno']
+            if doc_id not in processed_pages:
+                processed_pages[doc_id] = set()
+            # If the page was already counted, skip it
+            if page in processed_pages[doc_id]:
+                continue
+            # Mark page as processed
+            processed_pages[doc_id].add(page)
+            # Count the page for the document
             if doc_id in page_counts:
                 page_counts[doc_id] += 1
             else:
                 page_counts[doc_id] = 1
+
         return page_counts
+
+    
+    # def count_pages_per_doc(self, mapped_flags):
+    #     page_counts = {}
+    #     for entry in mapped_flags:
+    #         doc_id = entry['docid']
+    #         if doc_id in page_counts:
+    #             page_counts[doc_id] += 1
+    #         else:
+    #             page_counts[doc_id] = 1
+    #     return page_counts
 
     
     def check_docid_in_stitched_pages(self, stitched_pages, doc_id):
@@ -243,28 +306,25 @@ class redactionsummary():
             if d_id == doc_id:
                 pagecount += 1
         return pagecount
-
     
-    def process_page_flags(self,docpageflags, deletedpages):
+    def process_page_flags(self, docpageflags, deletedpages):
         result = []
-        stitched_pages = {}
-        current_stitched_page = 1
-        
+        current_stitched_page = 1  
         for doc_id, details in docpageflags.items():
-            docdeletedpages = deletedpages.get(doc_id, [])
+            docdeletedpages = set(deletedpages.get(doc_id, []))
+            stitched_page_map = {}
+            # Identify pages that should be skipped
+            pages_to_skip = {flag['page'] for flag in details['pageflag'] if flag['flagid'] in (5, 6)}
             for flag in details['pageflag']:
                 original_page = flag['page']
-                
-                # Skip pages with flagid 5 or 6
-                if flag['flagid'] in (5, 6):
-                    continue
-                # Skip deleted pages
-                if original_page in docdeletedpages:
-                    continue
-                
+                if original_page in pages_to_skip or original_page in docdeletedpages:
+                    continue  # Skip invalid pages
                 dbpageno = original_page - 1
-                stitchedpageno = current_stitched_page
-                stitched_pages[(doc_id, original_page)] = stitchedpageno
+                # Assign a stitched page number only once per unique page
+                stitchedpageno = stitched_page_map.setdefault(original_page, current_stitched_page)
+                # If this is the first time assigning the page, increment the counter
+                if stitchedpageno == current_stitched_page:
+                    current_stitched_page += 1
                 result.append({
                     'docid': doc_id,
                     'originalpageno': original_page,
@@ -272,8 +332,39 @@ class redactionsummary():
                     'stitchedpageno': stitchedpageno,
                     'flagid': flag['flagid']
                 })
-                current_stitched_page += 1
         return result
+
+
+    
+    # def process_page_flags(self,docpageflags, deletedpages):
+    #     result = []
+    #     stitched_pages = {}
+    #     current_stitched_page = 1
+        
+    #     for doc_id, details in docpageflags.items():
+    #         docdeletedpages = deletedpages.get(doc_id, [])
+    #         for flag in details['pageflag']:
+    #             original_page = flag['page']
+                
+    #             # Skip pages with flagid 5 or 6
+    #             if flag['flagid'] in (5, 6):
+    #                 continue
+    #             # Skip deleted pages
+    #             if original_page in docdeletedpages:
+    #                 continue
+                
+    #             dbpageno = original_page - 1
+    #             stitchedpageno = current_stitched_page
+    #             stitched_pages[(doc_id, original_page)] = stitchedpageno
+    #             result.append({
+    #                 'docid': doc_id,
+    #                 'originalpageno': original_page,
+    #                 'dbpageno': dbpageno,
+    #                 'stitchedpageno': stitchedpageno,
+    #                 'flagid': flag['flagid']
+    #             })
+    #             current_stitched_page += 1
+    #     return result
     
        
     def __groupbysections(self, filtered_mapper):
@@ -351,7 +442,7 @@ class redactionsummary():
 
     
     def __getredactionlayerid(self, message):
-        if message.category == "responsepackage":
+        if message.category == "responsepackage" or "responsepackage_phase" in message.category:
             return documentpageflag().getrecentredactionlayerid(message.ministryrequestid)
         return message.redactionlayerid 
 
@@ -473,7 +564,7 @@ class redactionsummary():
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline']:
+        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
             skipcount =  self.__calculateskipcount(pageno, skippages)     
         skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
         return (pageno+totalpages)-skipcount
