@@ -17,6 +17,8 @@ export const ConfirmationModal= ({
     cancelRedaction,
     redlineModalOpen,
     cancelSaveRedlineDoc,
+    includeComments,
+    handleIncludeComments,
     includeNRPages,
     handleIncludeNRPages,
     includeDuplicatePages,
@@ -37,7 +39,7 @@ export const ConfirmationModal= ({
     return (
       <ReactModal
       initWidth={800}
-      initHeight={300}
+      initHeight={420}
       minWidth={600}
       minHeight={250}
       className={"state-change-dialog" + (modalData?.modalFor === "redline" ? " redline-modal" : modalData?.modalFor === "consult" ? " consult-modal" : "")}
@@ -59,6 +61,16 @@ export const ConfirmationModal= ({
           <span>
             {modalData?.modalMessage} <br/><br/>
             {modalData?.modalFor == "redline" && <>
+            <input
+              type="checkbox"
+              style={{ marginRight: 10 }}
+              className="redline-checkmark"
+              id="comment-checkbox"
+              checked={includeComments}
+              onChange={handleIncludeComments}
+            />
+            <label for="comment-checkbox">Include Comments</label>
+            <br/>
             <input
               type="checkbox"
               style={{ marginRight: 10 }}
