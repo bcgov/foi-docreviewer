@@ -54,8 +54,7 @@ class redactionsummaryservice():
                     else:
                         filesobj= messageattributes[0]['files'][0]
                         divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline') else None  
-                    print("\n filesobj: ",filesobj)
-                           
+                        
                     stitcheddocs3uri = filesobj['s3uripath']
                     stitcheddocfilename = filesobj['filename'] 
                     if category == 'oipcreviewredline':
@@ -63,7 +62,6 @@ class redactionsummaryservice():
                     else:
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    print("\n redaction_summary.content: ", message.requestnumber, category, divisioname, stitcheddocfilename)
                     filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
@@ -94,7 +92,7 @@ class redactionsummaryservice():
             _filename = requestnumber+" - "+category
             if divisionname not in (None, ''):
                 _filename = _filename+" - "+divisionname    
-        print("---->",stitchedfilepath+_filename+" - summary.pdf")   
+        # print("---->",stitchedfilepath+_filename+" - summary.pdf")   
         return stitchedfilepath+_filename+" - summary.pdf"
   
     def __get_pageflags(self, category):

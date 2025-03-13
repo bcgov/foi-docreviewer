@@ -44,7 +44,6 @@ def gets3documentbytearray(file, s3credentials):
                             aws_service=s3_service)
             response= requests.get(filepath, auth=auth,stream=True)
             
-            print("\nresponse.content:",response.content)
             return response.content
         except Exception as ex:
             if retry > int(failureattempt):
