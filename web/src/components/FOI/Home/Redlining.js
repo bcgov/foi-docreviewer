@@ -931,8 +931,7 @@ const Redlining = React.forwardRef(
         if (info['source'] === 'redactionApplied') {
           annotations.forEach((annotation) => {
             if(annotation.Subject == "Free Text"){
-              docInstance?.Core?.annotationManager.addAnnotation(annotation);
-              docInstance?.Core?.annotationManager.addAnnotation(annotation);
+              docInstance?.Core?.annotationManager.addAnnotation(annotation);              
             }
           });
         }
