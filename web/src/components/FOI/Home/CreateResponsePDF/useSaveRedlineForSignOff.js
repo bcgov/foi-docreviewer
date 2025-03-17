@@ -60,6 +60,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const [pdftronDocObjectsForRedline, setPdftronDocObjectsForRedline] =
     useState([]);
   const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
+  const [includeComments, setIncludeComments] = useState(false);
   const [includeNRPages, setIncludeNRPages] = useState(false);
   const [includeDuplicatePages, setIncludeDuplicatePages] = useState(false);
   const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
@@ -1259,6 +1260,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     );
     setIncludeDuplicatePages(false);
     setIncludeNRPages(false);
+    setIncludeComments(false);
   };
   const prepareMessageForRedlineZipping = (
     divObj,
@@ -1273,6 +1275,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
+      includecomments: includeComments,
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -1396,7 +1399,7 @@ const stampPageNumberRedline = async (
       let xmlObj = parser.parseFromString(annotxml);
       let customfield = xmlObj.children.find(
         (xmlfield) => xmlfield.name === "trn-custom-data"
-      );
+      );    
       let flags = xmlObj.attributes.flags;
       let txt = domParser.parseFromString(
         customfield.attributes.bytes,
@@ -1424,7 +1427,7 @@ const stampPageNumberRedline = async (
           customData["parentRedaction"] ||
           (Object.entries(filteredComments).length > 0 &&
             checkFilter(xmlObj, _freeTextIds, _annoteIds))
-        )
+        ) 
           updatedXML.push(annotxml);
       }
     }
@@ -1447,12 +1450,11 @@ const stampPageNumberRedline = async (
   const checkFilter = (xmlObj, _freeTextIds, _annoteIds) => {
     //This method handles filtering of annotations in redline
     let filtered = false;
-
     const isType =
       filteredComments.types.includes(xmlObj.name) &&
       !_freeTextIds.includes(xmlObj.attributes.inreplyto);
     const isColor = filteredComments.colors.includes(
-      xmlObj.attributes.color.toLowerCase() + "ff"
+      xmlObj.attributes.color?.toLowerCase() + "ff"
     );
     const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
 
@@ -1478,7 +1480,7 @@ const stampPageNumberRedline = async (
       filteredComments.colors?.includes(
         _annoteIds
           .find((obj) => obj.hasOwnProperty(xmlObj.attributes.inreplyto))
-          ?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase() + "ff"
+          ?.[xmlObj.attributes.inreplyto].attributes.color?.toLowerCase() + "ff"
       );
 
     const parentIsAuthor =
@@ -1694,7 +1696,7 @@ const stampPageNumberRedline = async (
   }, [initDocViewer]);
 
   const StitchAndUploadDocument = async () => {
-    const { PDFNet } = docInstance.Core;
+    const { PDFNet, annotationManager } = docInstance.Core;
     const downloadType = "pdf";
     let currentDivisionCount = 0;
     const divisionCountForToast = Object.keys(redlineStitchObject).length;
@@ -1788,10 +1790,10 @@ const stampPageNumberRedline = async (
                     s14annots.push(s14annoation);
                   }
             }
-  
+            
             let doc = docViewer.getDocument();
             await annotationManager.applyRedactions(s14annots);
-  
+                        
             /** apply redaction and save to s3 - newXfdfString is needed to display
              * the freetext(section name) on downloaded file.*/
             doc
@@ -1821,7 +1823,7 @@ const stampPageNumberRedline = async (
                     redlineStitchInfo[divisionid]["stitchpages"],
                     isSingleRedlinePackage
                   );
-  
+
                   docObj.getFileData({
                     // saves the document with annotations in it
                     xfdfString: xfdfString1,
@@ -1997,19 +1999,65 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
         else {
-        stitchObject
+          let filteredAnnotations = [];
+          let domParser = new DOMParser();
+          if(includeComments && Object.entries(filteredComments).length > 0) {
+            const annotFiltered = Object.values(redlineDocumentAnnotations).flat();
+            const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(annotFiltered);
+            let xmlObjOne = parser.parseFromString(string.xfdfString);
+            xmlObjOne.children = [];
+            for (let annotxml of annotFiltered) {
+              let xmlObjTemp = parser.parseFromString(annotxml);
+              let customfield = xmlObjTemp.children.find(
+                (xmlfield) => xmlfield.name === "trn-custom-data"
+              );    
+              let txt = domParser.parseFromString(
+                customfield.attributes.bytes,
+                "text/html"
+              );
+              let customData = JSON.parse(txt.documentElement.textContent);
+              if (xmlObjTemp.name !== 'redact' && !customData["parentRedaction"] && checkFilter(xmlObjTemp, _freeTextIds, _annoteIds)) {
+                if(xmlObjOne.children.length >0 ) {
+                  xmlObjOne.children[0].children.push(parser.parseFromString(parser.toString(xmlObjTemp)))
+                } else {
+                  xmlObjOne.children.push(parser.parseFromString('<annots>' +parser.toString(xmlObjTemp)+ '</annots>'))
+                }
+              }
+            }
+            let xfdfStringFiltered = parser.toString(xmlObjOne);
+            filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
+          }
+          
+          let _data = await stitchObject
           .getFileData({
             // saves the document with annotations in it
             xfdfString: xfdfString,
             downloadType: downloadType,
-            //flatten: true, //commented this as part of #4862
+            flatten: true,
+          })
+          .then(async (_data) => {
+            return _data;
+          })
+          const _arr = new Uint8Array(_data);
+          const _blob = new Blob([_arr], { type: "application/pdf" });
+          let docObj = await docInstance?.Core.createDocument(_data, {
+            loadAsPDF: true,
+            useDownloader: false, // Added to fix BLANK page issue
+          }).then( async (docObj) => {
+            return docObj
+          })
+          const xfdfStringTwo = await annotationManager.exportAnnotations({annotationList:filteredAnnotations});
+          docObj
+            .getFileData({
+            // saves the document with annotations in it
+            xfdfString: xfdfStringTwo,
+            downloadType: downloadType,
           })
           .then(async (_data) => {
             const _arr = new Uint8Array(_data);
             const _blob = new Blob([_arr], {
-              type: "application/pdf",
-            });
-
+                type: "application/pdf",
+              }); 
             saveFilesinS3(
               { filepath: redlineStitchInfo[divisionid]["s3path"] },
               _blob,
@@ -2149,6 +2197,7 @@ const stampPageNumberRedline = async (
     includeDuplicatePages,
     setIncludeDuplicatePages,
     setIncludeNRPages,
+    setIncludeComments,
     saveRedlineDocument,
     enableSavingOipcRedline,
     enableSavingRedline,

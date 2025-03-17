@@ -113,6 +113,7 @@ def __zipfilesandupload(_message, s3credentials):
                     print("\nfilename:",filename)
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
+                    
                     _formattedbytes = None
                     _filename, extension = path.splitext(fileobj["s3uripath"])
 
