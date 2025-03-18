@@ -845,7 +845,7 @@ const DocumentSelector = React.memo(
         }
       
         if (phaseFlag && phaseFlag.phase?.length > 0) {
-          label += ` Phase[${phaseFlag.phase[0]}]`;
+          label += ` Phase [${phaseFlag.phase[0]}]`;
         }
       
         return label;
