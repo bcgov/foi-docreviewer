@@ -111,6 +111,8 @@ def getrequestswithstatus():
 
 
 def fetchdocumentsforextraction():
+    cursor = None
+    conn = None
     try:
         requestresults = getrequestswithstatus()
         #print("requestresults:",requestresults)
