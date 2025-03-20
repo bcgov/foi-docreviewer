@@ -1355,6 +1355,7 @@ const DocumentSelector = React.memo(
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   requestInfo={requestInfo}
+                  pageFlagTypes={pageFlagTypes}
                 />
               )
             }
