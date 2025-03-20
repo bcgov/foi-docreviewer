@@ -1545,27 +1545,51 @@ const Redlining = React.forwardRef(
       docViewer.updateView();
     }
 
-    const stitchPages = (_doc, pdftronDocObjs) => {
-      for (let filerow of pdftronDocObjs) {
-        let _exists = stichedfiles.filter(
-          (_file) => _file.file.file.documentid === filerow.file.file.documentid
+    const stitchPages = async (_doc, pdftronDocObjs) => {
+      if (!_doc) {
+        console.error("No document to insert into.");
+        return;
+      }
+    
+      let runningPageIndex = _doc.getPageCount(); // Start after the initial doc pages
+      let stitched = [];
+    
+      for (const filerow of pdftronDocObjs) {
+        const docId = filerow?.file?.file?.documentid;
+        const alreadyStitched = stichedfiles.some(
+          (_file) => _file.file.file.documentid === docId
         );
-        if (_exists?.length === 0) {
-          let index = filerow.stitchIndex;
-          _doc
-            .insertPages(filerow.pdftronobject, filerow.pages, index)
-            .then(() => {
-              const pageCount = docViewer.getPageCount();
-              if (pageCount === docsForStitcing.totalPageCount) {
-                setStitchPageCount(pageCount);
-              }
-            })
-            .catch((error) => {
-              console.error("An error occurred during page insertion:", error);
-            });
-          setstichedfiles((_arr) => [..._arr, filerow]);
+        if (alreadyStitched) continue;
+    
+        const sourceDoc = filerow.pdftronobject;
+        if (!sourceDoc) {
+          console.warn(`Skipping doc ${docId} - no PDFTron object.`);
+          continue;
+        }
+    
+        const availablePages = sourceDoc.getPageCount();
+        if (availablePages === 0) {
+          console.warn(`Skipping doc ${docId} - no pages.`);
+          continue;
+        }
+    
+        const safePages = filerow.pages.filter(p => p < availablePages);
+        if (safePages.length === 0) {
+          console.warn(`Skipping doc ${docId} - all page indices out of bounds.`);
+          continue;
+        }
+    
+        try {
+          await _doc.insertPages(sourceDoc, safePages, runningPageIndex);
+          runningPageIndex += safePages.length;
+          stitched.push(...safePages);
+        } catch (err) {
+          console.error(`Failed to stitch doc ${docId}:`, err);
         }
       }
+    
+      const stitchedPageCount = _doc.getPageCount();
+      setStitchPageCount(stitchedPageCount);
     };
 
     const applyAnnotationsFunc = () => {
@@ -1699,6 +1723,7 @@ const Redlining = React.forwardRef(
           const _doc = docViewer.getDocument();
           if (_doc && _pdftronDocObjects.length > 0) {
             stitchPages(_doc, _pdftronDocObjects);
+            setIsStitchingLoaded(true);
           }
         }
         else if (doclistCopy.length === 1){
