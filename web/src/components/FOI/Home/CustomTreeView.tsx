@@ -38,7 +38,8 @@ const CustomTreeView = React.memo(React.forwardRef(({
     assignIcon,
     pageFlags,
     syncPageFlagsOnAction,
-    requestInfo
+    requestInfo,
+    pageFlagTypes
 }: any, ref) => {
     const StyledTreeItem = styled(TreeItem)((props: any) => ({
         [`& .${treeItemClasses.label}`]: {
@@ -162,17 +163,38 @@ const CustomTreeView = React.memo(React.forwardRef(({
 
     
     const addIcons = (itemid: any) => {
-        if (itemid.page) { //&& pageFlags) {
-            let returnElem = (<>{itemid.flagid.map((id: any) => (
-                <FontAwesomeIcon
-                key={id}
-                className='leftPanelIcons'
-                icon={assignIcon(id) as IconProp}
-                size='1x'
-                title={PAGE_FLAGS[id as keyof typeof PAGE_FLAGS]}
-                />
-        ))}</>)
-            return returnElem
+        if (itemid.page) {
+            let sortedFlags = [...itemid.flagid].sort((a: any, b: any) => {
+                const order = (id: number) => {
+                    if (id === pageFlagTypes['Consult']) return 0; // Leftmost icon
+                    if (id === pageFlagTypes['Phase']) return 1; // Middle icon
+                    return 2; // All others (1-8) → Rightmost icon
+                };
+                return order(a) - order(b);
+            });
+            return (
+                <>
+                    {sortedFlags.map((id: any) => (
+                        <FontAwesomeIcon
+                            key={id}
+                            className="leftPanelIcons"
+                            icon={assignIcon(id) as IconProp}
+                            size="1x"
+                            title={PAGE_FLAGS[id as keyof typeof PAGE_FLAGS]}
+                        />
+                    ))}
+                </>
+            );
+        //     let returnElem = (<>{itemid.flagid.map((id: any) => (
+        //         <FontAwesomeIcon
+        //         key={id}
+        //         className='leftPanelIcons'
+        //         icon={assignIcon(id) as IconProp}
+        //         size='1x'
+        //         title={PAGE_FLAGS[id as keyof typeof PAGE_FLAGS]}
+        //         />
+        // ))}</>)
+        //     return returnElem
         }
     }
 

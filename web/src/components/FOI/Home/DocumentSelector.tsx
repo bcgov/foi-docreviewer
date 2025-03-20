@@ -202,28 +202,30 @@ const DocumentSelector = React.memo(
       const updateCompletionCounter = () => {
         if (filterFlags.length > 0 && phaseFilter?.length >0){
           let totalPhasedPagesWithFlags = 0;
-          let phasedPagesCount =0;
+          let phasedPagesCount=0;
           const phaseFlagged = filesForDisplay.filter((file: any) =>
             file.pageFlag?.find((obj: any) => obj.flagid === pageFlagTypes['Phase'])
           );
           if (phaseFlagged.length > 0) {
             // Extract pages that have the phase flag with the filtered phase
-            const phasedPagesSet = new Set(
-              phaseFlagged.flatMap((file: any) =>
-                file.pageFlag
-                  ?.filter((flag: any) =>
-                    flag.flagid === pageFlagTypes['Phase'] && flag.phase?.includes(phaseFilter[0])
-                  )
-                  .map((flag: any) => flag.page)
-              )
-            );
-            const phasedPages = [...phasedPagesSet];
-            phasedPagesCount = phasedPages.length;
-            const validPages = new Set();
-
+            const phasedPagesMap = phaseFlagged.reduce((acc: Record<number, number[]>, file: any) => {
+              const pages = file.pageFlag
+                ?.filter((flag: any) => flag.flagid === pageFlagTypes['Phase'] && flag.phase?.includes(phaseFilter[0]))
+                .map((flag: any) => flag.page) || [];
+              if (pages.length > 0) {
+                if (!acc[file.documentid]) {
+                  acc[file.documentid] = [];
+                }
+                acc[file.documentid].push(...pages);
+              }
+              return acc;
+            }, {}); 
+            phasedPagesCount = Object.values(phasedPagesMap).reduce((sum:number, pages:any) => sum + pages.length, 0);
+            const validPageList:any = [];
             filesForDisplay.forEach((file: any) => {
+              const validPages = new Set();
               file.pageFlag?.forEach((flag: any) => {
-                if (phasedPages?.includes(flag.page) &&
+                if (phasedPagesMap[file.documentid]?.includes(flag.page) &&
                   ![
                     pageFlagTypes["Phase"],
                     pageFlagTypes["Consult"],
@@ -234,8 +236,9 @@ const DocumentSelector = React.memo(
                   validPages.add(flag.page);
                 }
               });
+              validPageList.push(...validPages)
             });
-            totalPhasedPagesWithFlags = validPages.size;
+            totalPhasedPagesWithFlags = validPageList.length;//validPages.size;
           }
           /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
            * as it may show 100% even if the result is 99.9% */
@@ -1352,6 +1355,7 @@ const DocumentSelector = React.memo(
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   requestInfo={requestInfo}
+                  pageFlagTypes={pageFlagTypes}
                 />
               )
             }
