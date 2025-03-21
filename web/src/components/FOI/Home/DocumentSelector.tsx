@@ -712,7 +712,14 @@ const DocumentSelector = React.memo(
                       .flatMap((flag: any) => "Phase "+ flag.phase) 
                 : []
           ));
-          setAssignedPhases([...phases]);
+          // Convert Set to Array and sort numerically
+          const sortedPhases = [...phases]?.sort((a: any, b: any) => {
+            const numA = parseInt(a.replace("Phase ", ""), 10);
+            const numB = parseInt(b.replace("Phase ", ""), 10);
+            return numA - numB;
+          });
+
+          setAssignedPhases(sortedPhases);
           if(phases.size >0){
             setOpenPhaseFilterModal(true);
             setAnchorElPhases(e.currentTarget);
