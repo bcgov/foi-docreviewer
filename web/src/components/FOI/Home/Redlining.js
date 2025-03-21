@@ -63,6 +63,14 @@ import {
   renderCustomButton,
   isValidRedlineDownload,
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+import {
+  createSettingsDropDownMenu,
+  createPIIToggleButton,
+  renderCustomSettingsButton,
+  createTextToggle,
+  createOpacityToggle
+
+} from "./SettingsMenu/SettingsMenu" 
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
 import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
@@ -275,11 +283,19 @@ const Redlining = React.forwardRef(
             menu.appendChild(consultPackageButton);
             parent.appendChild(menu);
 
+            
+
+
             //Create render function to render custom Create Reseponse PDF button
             const newCustomElement = {
               type: "customElement",
               render: () => renderCustomButton(document, menu)
             };
+
+           
+
+            
+
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -313,11 +329,11 @@ const Redlining = React.forwardRef(
               )
             };
 
-            header.headers.default.splice(
-              header.headers.default.length - 4,
-              0,
-              opacityToggle
-            );
+            // header.headers.default.splice(
+            //   header.headers.default.length - 4,
+            //   0,
+            //   //opacityToggle
+            // );
 
             const textSelectorToggle = {
               type: 'customElement',
@@ -349,10 +365,25 @@ const Redlining = React.forwardRef(
               )
             };
 
+            const settingsMenu = createSettingsDropDownMenu(document)
+            const PIItogglebutton = createPIIToggleButton(document)
+            const texttogglebutton = createTextToggle(document,instance.Core.Tools.RedactionCreateTool)
+            const opacitytogglebutton = createOpacityToggle(document,setIsRedlineOpaque)
+            settingsMenu.appendChild(PIItogglebutton)
+            settingsMenu.appendChild(texttogglebutton) 
+            settingsMenu.appendChild(opacitytogglebutton)           
+            parent.appendChild(settingsMenu);
+
+            const newCustomSettingsElement = {
+              type: "customElement",
+              render: () => renderCustomSettingsButton(document, settingsMenu)
+            };
+
             header.headers.default.splice(
-              header.headers.default.length - 5,
+              header.headers.default.length - 4,
               0,
-              textSelectorToggle
+              //textSelectorToggle
+              newCustomSettingsElement
             );
           });
 
@@ -560,6 +591,7 @@ const Redlining = React.forwardRef(
       "click",
       (e) => {
         document.getElementById("saving_menu").style.display = "none"; 
+        document.getElementById("setting_menu").style.display = "none";
         
         // toggle between notesPanel and redactionPanel handled here
         const toggleNotesButton = document.querySelector(
