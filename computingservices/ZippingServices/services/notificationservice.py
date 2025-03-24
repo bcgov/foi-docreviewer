@@ -28,11 +28,10 @@ class notificationservice:
         complete, err = self.__isredlineresponsezipjobcompleted(
             producermessage.jobid, producermessage.category.lower()
         )
-
         if complete or err:
-            if producermessage.category.lower() == "redline":
+            if producermessage.category.lower() == "redline" or "redlinephase" in producermessage.category.lower():
                 self.__redlinepublishtostream(producermessage, err)
-            elif producermessage.category.lower() == "responsepackage":
+            elif producermessage.category.lower() == "responsepackage" or "responsepackage_phase" in producermessage.category.lower():
                 self.__responsepackagepublishtostream(producermessage, err)
         else:
             logging.info("redline zipping is not yet completed, no message to sent")

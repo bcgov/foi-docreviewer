@@ -248,7 +248,7 @@ const useSaveResponsePackage = (redlinePhase) => {
         var uniquePagesToRemove = new Set();
         var phasedPagesArr = [];
         for (const infoForEachDoc of pageFlags) {
-          if (redlinePhase) {
+          if (redlinePhase != null) {
             phasedPagesArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
               flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
               const allPages = documentList.find(entry => entry.documentid === infoForEachDoc.documentid)?.pages;
@@ -287,7 +287,7 @@ const useSaveResponsePackage = (redlinePhase) => {
                 )
               );
             }
-              if((phasedPagesArr.length >0 && !phasedPagesArr?.includes(pageFlagsForEachDoc.page)) || phasedPagesArr.length <=0){
+              if(redlinePhase != null && ((phasedPagesArr.length >0 && !phasedPagesArr?.includes(pageFlagsForEachDoc.page)) || phasedPagesArr.length <=0)){
                 uniquePagesToRemove.add(
                   getStitchedPageNoFromOriginal(
                     infoForEachDoc.documentid,
