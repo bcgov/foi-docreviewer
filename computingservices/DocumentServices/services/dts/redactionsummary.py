@@ -69,8 +69,10 @@ class redactionsummary():
                         if docpageflags is not None and docid in docpageflags.keys():
                             docpageflag = docpageflags[docid]
                             #print("docpageflag-display:",docpageflag["pageflag"])
-                            pageswithphases= sorted({entry["page"] for entry in docpageflag["pageflag"] if entry.get("flagid") == 9 and 
-                                                int(phase) in entry.get("phase", [])})
+                            pageswithphases=[]
+                            if phase is not None and phase !="" and 'responsepackage_phase' in message.category:
+                                pageswithphases= sorted({entry["page"] for entry in docpageflag["pageflag"] if entry.get("flagid") == 9 and 
+                                                    int(phase) in entry.get("phase", [])})
                             #print("\npageswithphases:",pageswithphases)
                             for pageflag in _pageflags:
                                 filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, 
