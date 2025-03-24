@@ -87,10 +87,10 @@ def processmessage(message):
 def sendnotification(readyfornotification, producermessage):
     if readyfornotification == True and producermessage.category.lower() == "harms":
         notificationservice().sendharmsnotification(producermessage)
-    elif readyfornotification == True and producermessage.category.lower() in (
+    elif readyfornotification == True and (producermessage.category.lower() in (
         "redline",
         "responsepackage",
-    ):
+    ) or "phase" in producermessage.category.lower()):
         notificationservice().sendredlineresponsenotification(producermessage)
 
 
