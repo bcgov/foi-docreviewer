@@ -43,10 +43,9 @@ class redactionsummary():
             print("\n_pageflags",_pageflags)
             summarydata = []
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
-            
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
-            if phase is not None and phase !="":
+            if phase is not None and phase !="" and 'redlinephase' in message.category:
                 print("\nInside PHASEREDLINE __packaggesummary")
                 docpagephase_map = {}
                 for docid in docpageflags:
@@ -59,7 +58,6 @@ class redactionsummary():
                 for docid in docpageflags:
                     pageflags = docpageflags[docid]['pageflag']
                     docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
-
             print("\n docpageflags",docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             skippages= []     
@@ -70,14 +68,22 @@ class redactionsummary():
                         docdeletedpages = deletedpages[docid] if docid in deletedpages else []
                         if docpageflags is not None and docid in docpageflags.keys():
                             docpageflag = docpageflags[docid]
+                            #print("docpageflag-display:",docpageflag["pageflag"])
+                            pageswithphases=[]
+                            if phase is not None and phase !="" and 'responsepackage_phase' in message.category:
+                                pageswithphases= sorted({entry["page"] for entry in docpageflag["pageflag"] if entry.get("flagid") == 9 and 
+                                                    int(phase) in entry.get("phase", [])})
+                            #print("\npageswithphases:",pageswithphases)
                             for pageflag in _pageflags:
-                                filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, pageflag["pageflagid"], message.category)
+                                filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, 
+                                                    pageflag["pageflagid"], message.category,pageswithphases)
+                                #print("\nfilteredpages:",filteredpages)
                                 if len(filteredpages) > 0:
                                     originalpagenos = [pg['originalpageno'] for pg in filteredpages]
                                     docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
                                     docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
                                     pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
-                            skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category)
+                            skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category,pageswithphases)
                     if stitchedpagedata is not None:        
                         pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
                 print("\n_pageflags1",_pageflags)
@@ -492,6 +498,7 @@ class redactionsummary():
     def __format_redaction_summary(self, pageflag, pageredactions, category):
         totalpages = len(pageredactions)                
         _sorted_pageredactions = sorted(pageredactions, key=lambda x: x["stitchedpageno"])
+        print("\n_sorted_pageredactions:",_sorted_pageredactions)
         #prepare ranges: Begin
         formatted = []
         range_start, range_end = 0, 0
@@ -504,7 +511,7 @@ class redactionsummary():
             range_sections = currentpg["sections"] if range_start == 0 else range_sections
             range_start = currentpg["stitchedpageno"] if range_start == 0 else range_start   
             range_consults = currentpg["consults"]        
-            skipconsult  = True if category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage') else False
+            skipconsult  = True if (category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage') or 'responsepackage_phase' in category) else False
             if (currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] 
                 and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"]))
                 and currentpg["sections"] == nextpg["sections"]
@@ -544,29 +551,34 @@ class redactionsummary():
             sections += [x.strip() for x in dta['section'].split(",")] 
         return list(filter(None, sections))
 
-    def __get_pages_by_flagid(self, _docpageflags, deletedpages, totalpages, flagid, category):
+    def __get_pages_by_flagid(self, _docpageflags, deletedpages, totalpages, flagid, category,pageswithphases):
         pagenos = []
-        skippages = self.__get_skippagenos(_docpageflags,category)
+        skippages = self.__get_skippagenos(_docpageflags,category,pageswithphases)
+        print("\nskippages::",skippages)
         for x in _docpageflags:
-            if x["flagid"] == flagid and x["page"] not in deletedpages: 
-                #print("\nInsideLoop")
+            if x["flagid"] == flagid and x["page"] not in deletedpages and x['page'] not in skippages: 
+                #print("\nInsideLoop",x)
                 pagenos.append({'originalpageno':x["page"]-1, 'stitchedpageno':self.__calcstitchedpageno(x["page"], totalpages, category, skippages, deletedpages)})
         return pagenos
     
 
-    def __get_skippagenos(self, _docpageflags, category):
-        skippages = []
-        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline']:
+    def __get_skippagenos(self, _docpageflags, category, pageswithphases=[]):
+        #skippages = []
+        skippages = set()
+        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
            for x in _docpageflags:
                if x['flagid'] in (5,6) and x['page'] not in skippages:
-                   skippages.append(x['page'])
-        return skippages
+                   skippages.add(x['page'])
+               if ("responsepackage_phase" in category and len(pageswithphases) >0 and 
+                x['page'] not in pageswithphases and x['page'] not in skippages):
+                   skippages.add(x['page'])
+        return list(skippages)
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
         if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
             skipcount =  self.__calculateskipcount(pageno, skippages)     
-        skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)         
+        skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)   
         return (pageno+totalpages)-skipcount
     
     
