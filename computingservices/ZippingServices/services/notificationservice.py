@@ -25,6 +25,7 @@ class notificationservice:
             logging.info("pdfstitch not yet complete, no message sent")
 
     def sendredlineresponsenotification(self, producermessage):
+        print("BANG", producermessage.category.lower())
         if "redlinephase" in producermessage.category.lower():
             category = "redline"
         elif "responsepackage_phase" in producermessage.category.lower():
