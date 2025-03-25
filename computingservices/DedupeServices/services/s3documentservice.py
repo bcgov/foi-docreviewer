@@ -98,6 +98,21 @@ def _generate_file_attachments(producermessage, reader, auth):
                     # Placeholder logic to handle pdf attachments+embedds. Once resources available to revise feature, and extract attachments + embedds into one new parent PDF, this error handling will be removed.
                     raise Exception("PDF contains attachments and/or embedded files. File must be manually fixed and replaced")
 
+                    # Old logic to extract embedded files. Uncomment when new feature to save pdf embedds + attachemnts as one file is started.
+                    # producermessage.attributes["hasattachment"] = True
+                    # fileobj = annotation.get_object()["/FS"]
+                    # file = fileobj["/F"]
+                    # data = fileobj["/EF"]["/F"].get_data()
+                    # # data = BytesIO(data).getvalue()
+                    # s3uripath = (
+                    #     path.splitext(producermessage.s3filepath)[0]
+                    #     + "/"
+                    #     + "{0}{1}".format(uuid.uuid4(), path.splitext(file)[1])
+                    # )
+                    # uploadresponse = requests.put(s3uripath, data=data, auth=auth)
+                    # uploadresponse.raise_for_status()
+                    # attachment = _prepareattachment(producermessage, data, s3uripath, file)
+                    # file_attachments.append(attachment)
     return file_attachments
 
 # New function to split comments into pages
