@@ -233,39 +233,6 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
     return pagecount
 
 
-# def __flattenfitz1(docbytesarr):
-#     doc = fitz.open(stream=BytesIO(docbytesarr))
-#     out = fitz.open()  # output PDF
-#     for page_num in range(len(doc)):
-#         page = doc[page_num]
-#         w, h = page.rect.br  # page width and height
-#         # Create a new page in the output document with the same size
-#         outpage = out.new_page(width=w, height=h)
-#         # Render the page text (keeping it searchable)
-#         outpage.show_pdf_page(page.rect, doc, page_num)
-#         # Manually process each annotation
-#         annot = page.first_annot
-#         while annot:
-#             try:
-#                 annot_rect = annot.rect  # Get the annotation's rectangle
-#                 # Check for invalid annotation dimensions (zero width/height)
-#                 if annot_rect.width <= 0 or annot_rect.height <= 0:
-#                     print(f"Skipping annotation on page {page_num + 1}: Invalid annotation dimensions.")
-#                     annot = annot.next  # Move to the next annotation
-#                     continue  # Skip invalid annotation
-#                 # Render the annotation area as an image and burn it into the page
-#                 annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)  # Render annotation as pixmap
-#                 outpage.insert_image(annot_rect, pixmap=annot_pix)  # Burn annotation into the page
-#             except Exception as e:
-#                 print(f"Error processing annotation on page {page_num + 1}: {e}")
-#             annot = annot.next  # Move to the next annotation
-#     # Saving the flattened PDF to a buffer
-#     buffer = BytesIO()
-#     out.save(buffer, garbage=3, deflate=True)
-#     buffer.seek(0)  # Reset the buffer to the beginning
-#     return buffer
-
-
 def __flattenfitz(docbytesarr):
     print("\n__flattenfitz")
     doc = fitz.open(stream=BytesIO(docbytesarr), filetype="pdf")
@@ -602,16 +569,25 @@ def get_dimension_value(value):
     return float(value) if isinstance(value, (Decimal, float)) else value
 
 def __converttoPST(creationdate):
-    original_timestamp = creationdate
-    # Extract date and time components from the timestamp
-    timestamp_str = original_timestamp[2:]  # Remove the leading "D:"
-    timestamp_str = timestamp_str.replace("'", ":")    
-    if timestamp_str.endswith(":"):
-        timestamp_str = timestamp_str[:-1]   
-    # Parse the timestamp into a datetime object
-    timestamp_utc = maya.parse(timestamp_str).datetime(to_timezone='America/Vancouver', naive=False) 
-    formatted_utc = timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p")  # Adjust format for output
-    return formatted_utc + " PST"
+    try:
+        if not creationdate or not creationdate.startswith("D:"):
+            return "Unknown PST"
+
+        timestamp_str = creationdate[2:].replace("'", ":")
+        if timestamp_str.endswith(":"):
+            timestamp_str = timestamp_str[:-1]
+
+        # Basic year sanity check
+        year = int(timestamp_str[:4])
+        if year < 1900:
+            return "Unknown PST"
+
+        timestamp_utc = maya.parse(timestamp_str).datetime(to_timezone='America/Vancouver', naive=False)
+        return timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p") + " PST"
+    
+    except Exception as e:
+        print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
+        return "Unknown PST"
 
 
 
