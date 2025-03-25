@@ -73,11 +73,11 @@ class redactionsummary():
                             if phase is not None and phase !="" and 'responsepackage_phase' in message.category:
                                 pageswithphases= sorted({entry["page"] for entry in docpageflag["pageflag"] if entry.get("flagid") == 9 and 
                                                     int(phase) in entry.get("phase", [])})
-                            #print("\npageswithphases:",pageswithphases)
+                            print("\npageswithphases:",pageswithphases)
                             for pageflag in _pageflags:
                                 filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, 
                                                     pageflag["pageflagid"], message.category,pageswithphases)
-                                #print("\nfilteredpages:",filteredpages)
+                                print("\nfilteredpages:",filteredpages)
                                 if len(filteredpages) > 0:
                                     originalpagenos = [pg['originalpageno'] for pg in filteredpages]
                                     docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
@@ -569,8 +569,8 @@ class redactionsummary():
            for x in _docpageflags:
                if x['flagid'] in (5,6) and x['page'] not in skippages:
                    skippages.add(x['page'])
-               if ("responsepackage_phase" in category and len(pageswithphases) >0 and 
-                x['page'] not in pageswithphases and x['page'] not in skippages):
+               if ("responsepackage_phase" in category and (len(pageswithphases) >0 and 
+                x['page'] not in pageswithphases ) or (len(pageswithphases) ==0)):
                    skippages.add(x['page'])
         return list(skippages)
                     
