@@ -263,7 +263,7 @@ def __flattenfitz(docbytesarr):
             try:
                 annot_rect = annot.rect  # Get the annotation's rectangle
                 # Check for invalid annotation dimensions (zero width/height)
-                if annot_rect.width <= 0 or annot_rect.height <= 0:
+                if __is_not_rect_renderable(annot_rect):
                     print(f"Skipping annotation on page {page_num + 1}: Invalid annotation dimensions.")
                     annot = annot.next  # Move to the next annots & skip invalid ones
                     continue
@@ -291,6 +291,15 @@ def __flattenfitz(docbytesarr):
     out.save(buffer, garbage=3, deflate=True)
     buffer.seek(0)  # Reset the buffer to the beginning
     return buffer
+
+def __is_not_rect_renderable(rect: fitz.Rect) -> bool:
+    return (
+        not rect.is_valid or
+        rect.is_empty or
+        rect.is_infinite or
+        rect.width <= 0 or
+        rect.height <= 0
+)
 
 
 def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
