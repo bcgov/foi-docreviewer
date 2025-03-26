@@ -421,7 +421,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     let NRWatermarksPages = {};
     let NRWatermarksPagesEachDiv = [];
     for (let doc of divisionDocuments) {
-      if (doc.pagecount > 0) {
+      if (doc.pagecount > 0 && doc.pageFlag) {
         let pagesToRemoveEachDoc = [];
         pageMappings[doc.documentid] = {};
         //gather pages that need to be removed
@@ -662,7 +662,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     for (let divObj of divisionDocuments) {
       // sort based on sortorder as the sortorder added based on the LastModified
       for (let doc of sortBySortOrder(divObj.documentlist)) {
-        if (doc.pagecount > 0) {
+        if (doc.pagecount > 0 && doc.pageFlag) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
           let pageIndex = 1;
@@ -1553,10 +1553,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
-      let fileName =
-        stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
+      let fileName = stitchedDocPathArray[stitchedDocPathArray.length - 1].split("?")[0];
       if (redlineSinglePkg !== "Y") {
         fileName = divObj.divisionname + "/" + decodeURIComponent(fileName);
+      } else {
+        fileName = decodeURIComponent(fileName);
       }
       const file = {
         filename: fileName,
