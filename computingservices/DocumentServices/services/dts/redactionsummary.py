@@ -569,8 +569,8 @@ class redactionsummary():
            for x in _docpageflags:
                if x['flagid'] in (5,6) and x['page'] not in skippages:
                    skippages.add(x['page'])
-               if ("responsepackage_phase" in category and (len(pageswithphases) >0 and 
-                x['page'] not in pageswithphases ) or (len(pageswithphases) ==0)):
+               if ("responsepackage_phase" in category and ((len(pageswithphases) >0 and 
+                x['page'] not in pageswithphases ) or (len(pageswithphases) ==0))):
                    skippages.add(x['page'])
         return list(skippages)
                     
