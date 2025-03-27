@@ -233,8 +233,9 @@ const Redlining = React.forwardRef(
           
           parsedData.documents.forEach(document => {
             document.entities.forEach(entity => {
-              if (entity.category === "Person") {
-                persons.push(entity.text);
+              if (entity.category === "Person" || entity.category === "Email") {
+                if(!entity.text.includes("@gov.bc.ca"))
+                  { persons.push(entity.text); }
               }
             });
           });
