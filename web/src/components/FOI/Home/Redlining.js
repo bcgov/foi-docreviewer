@@ -853,7 +853,7 @@ const Redlining = React.forwardRef(
             if(documentid === 8){
               documentid = 7520
             }
-            getsolrauth().then(()=>{
+            getsolrauth().then((solrauthtoken)=>{
               fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,(response)=>{
     
              

@@ -565,7 +565,7 @@ export const editPersonalAttributes = (
 
  export const getsolrauth = () => {
 
-  httpGETRequest(
+  return httpGETRequest(
      API.FOI_REQ_MANAGEMENT_SOLR_API_AUTH_URL,
       {},
    UserService.getToken()
@@ -574,7 +574,7 @@ export const editPersonalAttributes = (
       if (res.data) {
         //console.log("res:",res)
         const result = res.data;
-        store.dispatch(setSOLRAuth(res.data) as any);
+        //store.dispatch(setSOLRAuth(res.data) as any);
         //callback(result);
         return res.data; // ✅ Return the result for further use
       } else {
@@ -597,7 +597,7 @@ export const fetchPIIByPageNumDocumentID = (
   errorCallback: any
 ) => {   
   let apiUrlGet: string = replaceUrl(replaceUrl(API.SOLR_API_URL,"<pagenum>",pagenum),"<documentid>",documentid)  
-  httpGETRequestSOLR(apiUrlGet, {}, authToken)
+  httpGETRequestSOLR(apiUrlGet, {}, solrauthToken)
     .then((res:any) => {
       if (res.data) {
         callback(res.data);
