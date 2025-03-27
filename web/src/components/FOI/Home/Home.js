@@ -310,6 +310,7 @@ function Home() {
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
+                  documentPageNo={currentPageInfo?.page}
                 />
               )
             // : <div>Loading</div>

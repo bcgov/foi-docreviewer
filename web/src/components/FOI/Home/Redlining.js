@@ -21,6 +21,8 @@ import {
   saveRotateDocumentPage,
   deleteDocumentPages,
   savePageFlag,
+  fetchPIIByPageNumDocumentID,
+  getsolrauth
 } from "../../../apiManager/services/docReviewerService";
 import {
   PDFVIEWER_DISABLED_FEATURES,
@@ -68,7 +70,9 @@ import {
   createPIIToggleButton,
   renderCustomSettingsButton,
   createTextToggle,
-  createOpacityToggle
+  createOpacityToggle,
+  createSeperator,
+  createCategoryHeader
 
 } from "./SettingsMenu/SettingsMenu" 
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
@@ -97,6 +101,8 @@ const Redlining = React.forwardRef(
       outstandingBalance,
       pageFlags, 
       syncPageFlagsOnAction,
+      documentPageNo
+      
     },
     ref
   ) => {
@@ -111,7 +117,8 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
-    const sections = useSelector((state) => state.documents?.sections);
+    const solrauthtoken = useSelector((state) => state.documents?.foisolrauth);
+    const sections = useSelector((state) => state.documents?.sections);    
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
@@ -161,6 +168,7 @@ const Redlining = React.forwardRef(
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
+    const [isPIIDetection,setPIIDetection] = useState(false);
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -194,6 +202,7 @@ const Redlining = React.forwardRef(
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
   
+    
 
     useEffect(() => {
       if (annotManager) {
@@ -213,6 +222,30 @@ const Redlining = React.forwardRef(
       }
 
     }, [isRedlineOpaque])
+
+   // Function to extract only "Person" entities
+    const getPIITypeValues =   function extractPersons(data) {
+      let persons = [];
+
+      data.response.docs.forEach(doc => {
+        doc.foipiijson.forEach(jsonString => {
+          const parsedData = JSON.parse(jsonString); // Convert string to JSON object
+          
+          parsedData.documents.forEach(document => {
+            document.entities.forEach(entity => {
+              if (entity.category === "Person") {
+                persons.push(entity.text);
+              }
+            });
+          });
+        });
+      });
+
+      return persons;
+    }
+
+   
+
 
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -242,7 +275,7 @@ const Redlining = React.forwardRef(
             annotationManager,
             Annotations,
             PDFNet,
-            Math,
+            Math            
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
@@ -282,6 +315,7 @@ const Redlining = React.forwardRef(
             menu.appendChild(finalPackageBtn);
             menu.appendChild(consultPackageButton);
             parent.appendChild(menu);
+          
 
             
 
@@ -365,13 +399,32 @@ const Redlining = React.forwardRef(
               )
             };
 
+            const addSeparatorIfNotExists = (menu) => {
+              // Check if the last child is already a separator
+              if (!menu.lastChild || menu.lastChild.tagName !== "HR") {
+                  const seperator = createSeperator(document)
+                  menu.appendChild(seperator);
+              }
+          };
+
             const settingsMenu = createSettingsDropDownMenu(document)
-            const PIItogglebutton = createPIIToggleButton(document)
+            
+
+            const doccontentoptions = createCategoryHeader(document,"Document Review")
+
+            const PIItogglebutton = createPIIToggleButton(document,setPIIDetection)            
             const texttogglebutton = createTextToggle(document,instance.Core.Tools.RedactionCreateTool)
             const opacitytogglebutton = createOpacityToggle(document,setIsRedlineOpaque)
-            settingsMenu.appendChild(PIItogglebutton)
-            settingsMenu.appendChild(texttogglebutton) 
-            settingsMenu.appendChild(opacitytogglebutton)           
+            const aisettings = createCategoryHeader(document,"AI Settings")
+            
+            doccontentoptions.appendChild(texttogglebutton) 
+            doccontentoptions.appendChild(opacitytogglebutton)
+            settingsMenu.appendChild(doccontentoptions) 
+            addSeparatorIfNotExists(settingsMenu)
+
+            aisettings.appendChild(PIItogglebutton)
+            settingsMenu.appendChild(aisettings)
+                      
             parent.appendChild(settingsMenu);
 
             const newCustomSettingsElement = {
@@ -576,6 +629,12 @@ const Redlining = React.forwardRef(
             y = 0
           });
 
+          documentViewer.addEventListener('pageComplete', (pageNumber, canvas) => {
+            console.log(`currentPageNumber ${pageNumber}`)
+            
+          })
+         
+
           instance.UI.addEventListener("selectedThumbnailChanged", event => {
             if (event.detail.length > 1) {
               instance.UI.disableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
@@ -709,6 +768,113 @@ const Redlining = React.forwardRef(
     };
     initializeWebViewer();
     }, []);
+
+    const deletePIIAnnotations = (_annotationManager) => {
+      if (!_annotationManager) return;
+  
+    
+      const piiAnnots = _annotationManager?.getAnnotationsList().filter(a => a.getCustomData("PIIDetection") === 'true');
+  
+      if (piiAnnots.length > 0) {
+        _annotationManager?.deleteAnnotations(piiAnnots, {          
+          force: true,
+          source: "PIIdetection",
+        });
+      }
+      
+   };
+  
+
+    const highlightText = (searchText, pageNumber,isPIIenabled,annotationManager,documentViewer,_annotations) => {
+      const doc = documentViewer?.getDocument();
+      deletePIIAnnotations(annotationManager)
+      if(isPIIenabled)
+      {
+      // gets all text on the requested page
+      // see https://docs.apryse.com/api/web/Core.Document.html#loadPageText__anchor
+      doc?.loadPageText(pageNumber).then(text => {
+        let textStartIndex = 0;
+        let textIndex;
+        const annotationPromises = [];
+  
+        // find the position of the searched text and add text highlight annotation at that location
+        while ((textIndex = text.indexOf(searchText, textStartIndex)) > -1) {
+          textStartIndex = textIndex + searchText.length;
+          // gets quads for each of the characters from start to end index. Then,
+          // resolve the annotation and return.
+          // see https://docs.apryse.com/api/web/Core.Document.html#getTextPosition__anchor
+          const annotationPromise = doc.getTextPosition(pageNumber, textIndex, textIndex + searchText.length).then(quads => {
+            const annotation = new _annotations.TextHighlightAnnotation();
+            annotation.Author = "PIIDetection"
+            annotation.PageNumber = pageNumber;
+            annotation.Quads = quads;
+            annotation.setCustomData("PIIDetection", true)              
+            annotation.StrokeColor = new _annotations.Color(0, 255, 255);
+            return annotation;
+          });
+          annotationPromises.push(annotationPromise);
+        }
+  
+        // Wait for all annotations to be resolved.
+        Promise.all(annotationPromises).then(annotations => {
+          annotationManager.addAnnotations(annotations);
+          
+        });
+      
+     
+      });
+    }
+   
+    };
+
+
+    useEffect(() => {
+      
+      var annotationManager=annotManager
+     
+      var documentViewer= docViewer
+
+      var _annotations = annots
+
+      if(!isPIIDetection)
+      {
+        deletePIIAnnotations(annotationManager)
+        
+      }
+      else
+      {
+            var pagenum= documentPageNo
+            //var documentid = 7520
+            var documentid = individualDoc.file.documentid
+            //TODO TEMP CODE update by current selection PII detection by Document ID, page#
+            if(documentid === 5){
+              documentid = 7521
+            }
+            if(documentid === 8){
+              documentid = 7520
+            }
+            getsolrauth().then(()=>{
+              fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,(response)=>{
+    
+             
+                let textstohighlight = getPIITypeValues(response)
+                
+                textstohighlight?.forEach(_text =>{
+                  highlightText(_text,individualDoc.page,isPIIDetection,annotationManager,documentViewer,_annotations)
+                })
+      
+      
+              },(error) =>
+                console.log(error))
+
+            })
+            
+      }
+
+      
+    },[isPIIDetection,documentPageNo,individualDoc.page])
+
+
 
     const updateModalData = (newModalData) => {
       setRedlineCategory(newModalData.modalFor);
@@ -1192,7 +1358,8 @@ const Redlining = React.forwardRef(
                 });
               } else {
                 let pageFlagObj = [];
-                for (let annot of annotations) {
+                var filteredAnnotations = annotations.filter(annot => annot.Author !== "PIIDetection");
+                for (let annot of filteredAnnotations) {
                   displayedDoc =
                     pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
                   const _sections = annot.getCustomData("sections");

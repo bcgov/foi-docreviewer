@@ -1,13 +1,13 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest,httpGETRequestSOLR } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages,
-  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies
+  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies,setPIIJSONList,
+  setSOLRAuth
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
-import { number } from "yargs";
 import { pageFlagTypes } from "../../constants/enum";
 
 
@@ -561,4 +561,55 @@ export const editPersonalAttributes = (
     .catch((error:any) => {
       errorCallback("Error in editing personal attributes");
     });
+};
+
+ export const getsolrauth = () => {
+
+  httpGETRequest(
+     API.FOI_REQ_MANAGEMENT_SOLR_API_AUTH_URL,
+      {},
+   UserService.getToken()
+)
+    .then((res) => {
+      if (res.data) {
+        //console.log("res:",res)
+        const result = res.data;
+        store.dispatch(setSOLRAuth(res.data) as any);
+        //callback(result);
+        return res.data; // ✅ Return the result for further use
+      } else {
+        console.log("No response from SOLR AUTH API");
+      }
+    })
+    .catch((error) => {
+     
+      console.log(error);
+      throw error; // 
+    });
+};
+
+//SOLR FETCH PIIs by pagenum and documentid
+export const fetchPIIByPageNumDocumentID = (
+  pagenum: string,
+  documentid: string,
+  solrauthToken:any,
+  callback:any,
+  errorCallback: any
+) => {   
+  let apiUrlGet: string = replaceUrl(replaceUrl(API.SOLR_API_URL,"<pagenum>",pagenum),"<documentid>",documentid)  
+  httpGETRequestSOLR(apiUrlGet, {}, authToken)
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+        store.dispatch(setPIIJSONList(res.data) as any);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in fetching PII values in service, fetchPIIByPageNumDocumentID");
+    });
+  
+ 
 };

@@ -18,12 +18,36 @@ export const createSettingsDropDownMenu = (document) => {
     return menu;
   };
 
-  export const createPIIToggleButton = (document) => {
+  export const  createSeperator = (document)=>{
+      // Create separator line
+      const separator = document.createElement("hr");
+      separator.style.border = "none";
+      separator.style.borderTop = "1px solid #ccc";
+      separator.style.margin = "5px 0";
+
+      return separator;
+  }
+
+  // Function to create a category header
+export const createCategoryHeader = (document,text) => {
+  const header = document.createElement("div");
+  header.textContent = text;
+  header.style.fontWeight = "bold";
+  header.style.padding = "5px 0";
+  header.style.borderBottom = "2px solid #ddd"; // Header separator
+  header.style.marginTop = "10px";
+  header.style.width = "100%"
+  header.style.fontWeight = "bold";
+  return header;
+};
+
+
+  export const createPIIToggleButton = (document,setPIIDetection) => {
     const container = document.createElement("div");
     container.style.display = "flex";
     container.style.alignItems = "center";
     container.style.gap = "10px";
-    container.style.padding ="5px"
+    container.style.padding ="15px"
 
     // Label for toggle switch
     const label = document.createElement("label");
@@ -61,7 +85,8 @@ export const createSettingsDropDownMenu = (document) => {
       isOn = !isOn;
       switchContainer.style.background = isOn ? "#4CAF50" : "#ccc"; // Green for ON, Gray for OFF
       switchButton.style.left = isOn ? "22px" : "2px"; // Move switch button
-     
+      setPIIDetection(isOn)
+           
     });
 
     // Assemble elements
@@ -98,7 +123,7 @@ export const createSettingsDropDownMenu = (document) => {
     container.style.display = "flex";
     container.style.alignItems = "center";
     container.style.gap = "10px";
-    container.style.padding ="5px"
+    container.style.padding ="15px"
 
     // Label for toggle switch
     const label = document.createElement("label");
@@ -159,7 +184,7 @@ export const createSettingsDropDownMenu = (document) => {
     container.style.display = "flex";
     container.style.alignItems = "center";
     container.style.gap = "10px";
-    container.style.padding ="5px"
+    container.style.padding ="15px"
     
     // Label for toggle switch
     const label = document.createElement("label");

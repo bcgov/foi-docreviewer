@@ -52,6 +52,10 @@ const documents = (state = initialState, action:any)=> {
       return { ...state, foiPersonalFiletypes: action.payload };
     case ACTION_CONSTANTS.FOI_PERSONAL_VOLUMES:
       return { ...state, foiPersonalVolumes: action.payload };
+    case ACTION_CONSTANTS.FOI_SOLR_PII_VALUES:
+        return { ...state, foiPIIValues: action.payload };
+    case ACTION_CONSTANTS.FOI_SOLR_AUTH:
+          return { ...state, foisolrauth: action.payload };      
     default:
       return state;
   }
