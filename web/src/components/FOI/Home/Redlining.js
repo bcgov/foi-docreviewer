@@ -101,8 +101,8 @@ const Redlining = React.forwardRef(
       outstandingBalance,
       pageFlags, 
       syncPageFlagsOnAction,
-      documentPageNo
-      
+      documentPageNo_pii,
+      documentID_pii
     },
     ref
   ) => {
@@ -630,12 +630,6 @@ const Redlining = React.forwardRef(
             y = 0
           });
 
-          documentViewer.addEventListener('pageComplete', (pageNumber, canvas) => {
-            console.log(`currentPageNumber ${pageNumber}`)
-            
-          })
-         
-
           instance.UI.addEventListener("selectedThumbnailChanged", event => {
             if (event.detail.length > 1) {
               instance.UI.disableElements(["thumbnailsControlRotateClockwise", "thumbnailsControlRotateCounterClockwise", "rotatePageCounterClockwise", "rotatePageClockwise"]);
@@ -790,9 +784,7 @@ const Redlining = React.forwardRef(
       const doc = documentViewer?.getDocument();
       deletePIIAnnotations(annotationManager)
       if(isPIIenabled)
-      {
-      // gets all text on the requested page
-      // see https://docs.apryse.com/api/web/Core.Document.html#loadPageText__anchor
+      {     
       doc?.loadPageText(pageNumber).then(text => {
         let textStartIndex = 0;
         let textIndex;
@@ -800,10 +792,7 @@ const Redlining = React.forwardRef(
   
         // find the position of the searched text and add text highlight annotation at that location
         while ((textIndex = text.indexOf(searchText, textStartIndex)) > -1) {
-          textStartIndex = textIndex + searchText.length;
-          // gets quads for each of the characters from start to end index. Then,
-          // resolve the annotation and return.
-          // see https://docs.apryse.com/api/web/Core.Document.html#getTextPosition__anchor
+          textStartIndex = textIndex + searchText.length;         
           const annotationPromise = doc.getTextPosition(pageNumber, textIndex, textIndex + searchText.length).then(quads => {
             const annotation = new _annotations.TextHighlightAnnotation();
             annotation.Author = "PIIDetection"
@@ -844,16 +833,9 @@ const Redlining = React.forwardRef(
       }
       else
       {
-            var pagenum= documentPageNo
-            //var documentid = 7520
-            var documentid = individualDoc.file.documentid
-            //TODO TEMP CODE update by current selection PII detection by Document ID, page#
-            if(documentid === 5){
-              documentid = 7521
-            }
-            if(documentid === 8){
-              documentid = 7520
-            }
+            var pagenum= documentPageNo_pii ?? 1            
+            var documentid = documentID_pii          
+           
             getsolrauth().then((solrauthtoken)=>{
               fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,(response)=>{
     
@@ -863,8 +845,7 @@ const Redlining = React.forwardRef(
                 textstohighlight?.forEach(_text =>{
                   highlightText(_text,individualDoc.page,isPIIDetection,annotationManager,documentViewer,_annotations)
                 })
-      
-      
+            
               },(error) =>
                 console.log(error))
 
@@ -873,7 +854,7 @@ const Redlining = React.forwardRef(
       }
 
       
-    },[isPIIDetection,documentPageNo,individualDoc.page])
+    },[isPIIDetection,documentPageNo_pii,documentID_pii,individualDoc.page])
 
 
 

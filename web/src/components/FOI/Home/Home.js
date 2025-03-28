@@ -311,6 +311,7 @@ function Home() {
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   documentPageNo={currentPageInfo?.page}
+                  documentID_pii={currentPageInfo?.file.documentid}
                 />
               )
             // : <div>Loading</div>
