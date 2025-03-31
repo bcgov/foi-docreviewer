@@ -2569,7 +2569,7 @@ const Redlining = React.forwardRef(
         case "redline":
         case "consult":
           // Key phase logic: Phased redlines must filter and map pages over docs with NO PAGE FLAGS, therefore a document must have a pageFlag array to filter/map over.
-          let docList = redlinePhase ? documentList.map(doc => {
+          let docList = redlinePhase && modalFor === "redline" ? documentList.map(doc => {
             let docCopy = {...doc}
             if (!docCopy.pageFlag) docCopy.pageFlag = [];
             return docCopy;
