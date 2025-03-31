@@ -398,6 +398,22 @@ class AnnotationSection(db.Model):
     def getredactedsectionsbyrequest(cls, ministryrequestid, redactionlayerid):
         try:
             sql = """
+                WITH non_deleted_files AS (
+                SELECT filepath
+                FROM public."DocumentDeleted"
+                WHERE ministryrequestid = :ministryrequestid AND (deleted IS NULL OR deleted = FALSE)
+                )
+                SELECT unnest(xpath('//contents/text()', a.annotation::xml))::text as section 
+                FROM public."Annotations" a
+                JOIN public."Documents" d ON d.documentid = a.documentid
+                JOIN public."DocumentMaster" dm ON dm.documentmasterid = d.documentmasterid 
+                    AND dm.ministryrequestid = :ministryrequestid
+                LEFT JOIN non_deleted_files vd ON dm.filepath ILIKE vd.filepath || '%'
+                WHERE a.annotation LIKE '%%freetext%%'
+                    AND a.redactionlayerid = :redactionlayerid
+                    AND a.isactive = TRUE;
+            """
+            """
                 select unnest(xpath('//contents/text()', annotation::xml))::text as section 
                    from "Annotations" a 
                         join public."Documents" d on d.documentid = a.documentid and d.foiministryrequestid = :ministryrequestid
