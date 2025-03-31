@@ -2568,23 +2568,31 @@ const Redlining = React.forwardRef(
         case "oipcreview":
         case "redline":
         case "consult":
+          // Key phase logic: Phased redlines must filter and map pages over docs with NO PAGE FLAGS, therefore a document must have a pageFlag array to filter/map over.
+          let docList = redlinePhase ? documentList.map(doc => {
+            let docCopy = {...doc}
+            if (!docCopy.pageFlag) docCopy.pageFlag = [];
+            return docCopy;
+          }) : documentList;
           saveRedlineDocument(
             docInstance,
             modalFor,
             incompatibleFiles,
-            documentList,
+            docList,
             pageMappedDocs,
             applyRotations
           );
           break;
         case "responsepackage":
+          // Key phase logic: Phased packages must filter and map pages over docs with NO PAGE FLAGS, therefore a data set must include all docs (incl. ones with no page flags).
+          let docPageFlags = redlinePhase ? documentList.map(doc => ({"documentversion": doc.version, "documentid": doc.documentid, "pageflag": doc.pageFlag ? doc.pageFlag : []})) : pageFlags;
           saveResponsePackage(
             docViewer,
             annotManager,
             docInstance,
             documentList,
             pageMappedDocs,
-            pageFlags,
+            docPageFlags,
             feeOverrideReason,
             requestType,
           );

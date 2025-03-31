@@ -421,7 +421,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     let NRWatermarksPages = {};
     let NRWatermarksPagesEachDiv = [];
     for (let doc of divisionDocuments) {
-      if (doc.pagecount > 0 && doc.pageFlag) {
+      if (doc.pagecount > 0) {
         let pagesToRemoveEachDoc = [];
         pageMappings[doc.documentid] = {};
         //gather pages that need to be removed
@@ -662,7 +662,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     for (let divObj of divisionDocuments) {
       // sort based on sortorder as the sortorder added based on the LastModified
       for (let doc of sortBySortOrder(divObj.documentlist)) {
-        if (doc.pagecount > 0 && doc.pageFlag) {
+        if (doc.pagecount > 0) {
           let pagesToRemoveEachDoc = [];
           pageMappings[doc.documentid] = {};
           let pageIndex = 1;
@@ -1301,11 +1301,10 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       closeButton: false,
       isLoading: true,
     });
-
     const divisionFilesList = [...documentList, ...incompatibleFiles];
     let divisions;
     if (redlineCategory === "consult") {
-      //Key consult logic, uses preexisting division reldine logic for consults
+      // Key consult logic, uses preexisting division reldine logic for consults
       divisions = selectedPublicBodyIDs;
     } else {
       divisions = getDivisionsForSaveRedline(divisionFilesList);
