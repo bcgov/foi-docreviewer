@@ -2002,13 +2002,17 @@ const stampPageNumberRedline = async (
           let filteredAnnotations = [];
           let domParser = new DOMParser();
           if(includeComments && Object.entries(filteredComments).length > 0) {
+            let formattedAnnotationXML = formatAnnotationsForRedline(
+              redlineDocumentAnnotations,
+              redlinepageMappings["divpagemappings"][divisionid],
+              redlineStitchInfo[divisionid]["documentids"]
+            );
             const annotFiltered = Object.values(redlineDocumentAnnotations).flat();
             const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(annotFiltered);
             let xmlObjOne = parser.parseFromString(string.xfdfString);
-            xmlObjOne.children = [];
-            for (let annotxml of annotFiltered) {
-              let xmlObjTemp = parser.parseFromString(annotxml);
-              let customfield = xmlObjTemp.children.find(
+            let xmlObjTemp = parser.parseFromString('<parent>'+formattedAnnotationXML+'</parent>');
+            xmlObjTemp.children.forEach(childXmlObj => {
+              let customfield = childXmlObj.children.find(
                 (xmlfield) => xmlfield.name === "trn-custom-data"
               );    
               let txt = domParser.parseFromString(
@@ -2016,18 +2020,22 @@ const stampPageNumberRedline = async (
                 "text/html"
               );
               let customData = JSON.parse(txt.documentElement.textContent);
-              if (xmlObjTemp.name !== 'redact' && !customData["parentRedaction"] && checkFilter(xmlObjTemp, _freeTextIds, _annoteIds)) {
-                if(xmlObjOne.children.length >0 ) {
-                  xmlObjOne.children[0].children.push(parser.parseFromString(parser.toString(xmlObjTemp)))
-                } else {
-                  xmlObjOne.children.push(parser.parseFromString('<annots>' +parser.toString(xmlObjTemp)+ '</annots>'))
-                }
+              if ( childXmlObj.name !== 'redact' 
+                  && !customData["parentRedaction"]   && checkFilter(childXmlObj, _freeTextIds, _annoteIds)
+                ) {
+                    let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
+                  let annotsObj = xmlObjOne.getElementsByTagName('annots');
+                  if (annotsObj.length > 0) {
+                    annotsObj[0].children = annotsObj[0].children.concat(annots.children);
+                  } else {
+                    xmlObjOne.children.push(annots);
+                  }
               }
-            }
+            })     
             let xfdfStringFiltered = parser.toString(xmlObjOne);
             filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
+
           }
-          
           let _data = await stitchObject
           .getFileData({
             // saves the document with annotations in it
