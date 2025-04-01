@@ -112,6 +112,7 @@ def __zipfilesandupload(_message, s3credentials):
                 _jsonfiles = json.loads(_message.filestozip)
                 print("\n_jsonfiles:",_jsonfiles)
                 for fileobj in _jsonfiles:
+                    # filename = fileobj["filename"].replace("%20", " ")
                     filename = fileobj["filename"]
                     print("\nfilename:",filename)
 

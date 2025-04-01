@@ -45,7 +45,7 @@ class redactionsummary():
             docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
-            if phase is not None and phase !="" and 'redlinephase' in message.category:
+            if phase is not None and phase !="" and 'redline_phase' in message.category:
                 print("\nInside PHASEREDLINE __packaggesummary")
                 docpagephase_map = {}
                 for docid in docpageflags:

@@ -62,10 +62,7 @@ class redactionsummaryservice():
                     else:
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    # phased redline filename adjustment
                     summary_category= category
-                    if category in ("redlinephase" , "responsepackagephase") and (message.phase is not None and message.phase != ""):
-                        summary_category= f'Redline - Phase {message.phase}' if category == "redlinephase" else f'ResponsePackage - Phase {message.phase}'
                     filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename, message.phase)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
