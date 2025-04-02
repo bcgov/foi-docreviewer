@@ -96,6 +96,51 @@ export const createCategoryHeader = (document,text) => {
     return container;
   };
 
+  export const createCategorySelector = (document,setPIICategories) => {
+    const container = document.createElement("div");
+    container.style.display = "flex";
+    container.style.alignItems = "center";
+    container.style.gap = "10px";
+    container.style.padding ="15px"
+
+    // Label for toggle switch
+    const label = document.createElement("label");
+    label.style.display = "flex";
+    label.style.alignItems = "center";
+    label.style.cursor = "pointer";
+    label.style.gap = "8px";
+    label.textContent = "Categories";
+
+    const select = document.createElement("select")
+    select.setAttribute("multiple", true)
+
+    const personOption = document.createElement("option")
+    personOption.setAttribute("value", "Person")
+    personOption.textContent = "Person"
+    personOption.selected = true;
+    const emailOption = document.createElement("option")
+    emailOption.setAttribute("value", "Email")
+    emailOption.textContent = "Email"
+    emailOption.selected = true;
+    const orgOption = document.createElement("option")
+    orgOption.setAttribute("value", "Organization")
+    orgOption.textContent = "Organization"
+    select.appendChild(emailOption)
+    select.appendChild(personOption)
+    select.appendChild(orgOption)
+
+    select.addEventListener("change", (event) => {
+      setPIICategories([...event.target.selectedOptions].map(o => o.value))
+           
+    });
+
+    // Assemble elements
+    container.appendChild(label);
+    container.appendChild(select);
+
+    return container;
+  };
+  
   export const renderCustomSettingsButton = (document, menu) => {
     const menuBtn = document.createElement("button");
     //menuBtn.textContent = "Settings";

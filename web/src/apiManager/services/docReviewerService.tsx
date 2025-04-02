@@ -566,7 +566,7 @@ export const editPersonalAttributes = (
  export const getsolrauth = () => {
 
   return httpGETRequest(
-     API.FOI_REQ_MANAGEMENT_SOLR_API_AUTH_URL,
+     API.FOI_SOLR_API_AUTH_URL,
       {},
    UserService.getToken()
 )
