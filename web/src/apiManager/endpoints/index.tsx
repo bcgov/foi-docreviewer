@@ -1,4 +1,4 @@
-import { DOCREVIEWER_BASE_API_URL } from "./config";
+import { DOCREVIEWER_BASE_API_URL, SOLR_API_BASE_URL,FOI_REQ_MANAGEMENT_API_URL } from "./config";
 
 const API = {
     FOI_GET_S3DOCUMENT_PRESIGNEDURL:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/oss/presigned`,
@@ -20,5 +20,7 @@ const API = {
     DOCREVIEWER_DOCUMENT_PAGE_DELETE:`${DOCREVIEWER_BASE_API_URL}/api/document/ministryrequest/<ministryrequestid>/deletedpages`,
     FOI_GET_PERSONALTAG:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/personalattributes`,
     DOCREVIEWER_EDIT_PERSONAL_ATTRIBUTES:`${DOCREVIEWER_BASE_API_URL}/api/document/update/personal`,
+    SOLR_API_URL:`${SOLR_API_BASE_URL}q=foidocumentpagenumber:<pagenum>%20AND%20foidocumentid:<documentid>&fl=foipiijson&wt=json`,
+    FOI_REQ_MANAGEMENT_SOLR_API_AUTH_URL: `${FOI_REQ_MANAGEMENT_API_URL}/api/foicrosstextsearch/authstring`
 };
 export default API;
