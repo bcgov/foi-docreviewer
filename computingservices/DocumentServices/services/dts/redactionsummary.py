@@ -154,10 +154,10 @@ class redactionsummary():
                     pageflags = docpageflags[docid]['pageflag']
                     docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
             
-            sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids}
+            sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids if k in docpageflags}
             # print("============>sorted_docpageflags:", sorted_docpageflags)
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
-            #print("============>deletedpages:", deletedpages)
+            # print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
             # print("###mapped_flags1:",mapped_flags)
             filteredpageswithphase= self.removeduplicatepageswithphase(mapped_flags)
@@ -191,8 +191,8 @@ class redactionsummary():
     def removeduplicatepageswithphase(self, mapped_flags):
         # Identify pages where flagid=9 exists
         pages_with_flagid_9 = {(entry['docid'], entry['originalpageno']) for entry in mapped_flags if entry['flagid'] == 9}
-        # Keep only entries where either flagid=9 or the page does not have flagid=9 at all
-        return [entry for entry in mapped_flags if entry['flagid'] == 9 or (entry['docid'], entry['originalpageno']) not in pages_with_flagid_9]
+        # Keep only entries where page has an assocaited phase flag
+        return [entry for entry in mapped_flags if entry['flagid'] != 9 and (entry['docid'], entry['originalpageno']) in pages_with_flagid_9]
 
 
 
