@@ -2020,16 +2020,16 @@ const stampPageNumberRedline = async (
                 "text/html"
               );
               let customData = JSON.parse(txt.documentElement.textContent);
-              if ( childXmlObj.name !== 'redact' 
-                  && !customData["parentRedaction"]   && checkFilter(childXmlObj, _freeTextIds, _annoteIds)
-                ) {
-                    let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
-                  let annotsObj = xmlObjOne.getElementsByTagName('annots');
-                  if (annotsObj.length > 0) {
-                    annotsObj[0].children = annotsObj[0].children.concat(annots.children);
-                  } else {
-                    xmlObjOne.children.push(annots);
-                  }
+              if (childXmlObj.name !== 'redact'
+                  && !customData["parentRedaction"] && checkFilter(childXmlObj, _freeTextIds, _annoteIds)
+              ) {
+                let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
+                let annotsObj = xmlObjOne.getElementsByTagName('annots');
+                if (annotsObj.length > 0) {
+                  annotsObj[0].children = [...annotsObj[0].children, ...annots.children];
+                } else {
+                  xmlObjOne.children.push(annots);
+                }
               }
             })     
             let xfdfStringFiltered = parser.toString(xmlObjOne);
