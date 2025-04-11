@@ -828,7 +828,7 @@ const Redlining = React.forwardRef(
             if (Object.keys(individualDoc.file).length > 0) {
            
               getsolrauth().then((solrauthtoken)=>{
-                fetchPIIByPageNumDocumentID(pagenum,7522,solrauthtoken,PII_NUM_ROWS,(response)=>{
+                fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
       
               
                   let textstohighlight = getPIITypeValues(response)
