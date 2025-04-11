@@ -32,7 +32,8 @@ import {
   REDLINE_OPACITY,
   REDACTION_SECTION_BUFFER,
   PII_CATEGORIES,
-  PII_BLACKLIST
+  PII_BLACKLIST,
+  PII_NUM_ROWS
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -240,7 +241,22 @@ const Redlining = React.forwardRef(
           
           parsedData.documents.forEach(document => {
             document.entities.forEach(entity => {
-              if (PIICategories.includes(entity.category)) {
+              var matches = false;
+              for (let pattern of PIICategories) {
+                if (pattern === 'Age') {
+                  if (entity.subcategory === 'Age') {
+                    matches = true;
+                    break;
+                  }
+                } else {
+                  const regex = new RegExp(pattern);
+                  if (regex.test(entity.category)) {
+                    matches = true;
+                    break;
+                  }
+                }
+              }
+              if (matches) {
                 if(!piiblacklist.some(s => entity.text.includes(s)))
                   { piientities.push(entity.text); }
               }
@@ -812,7 +828,7 @@ const Redlining = React.forwardRef(
             if (Object.keys(individualDoc.file).length > 0) {
            
               getsolrauth().then((solrauthtoken)=>{
-                fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,(response)=>{
+                fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
       
               
                   let textstohighlight = getPIITypeValues(response)
