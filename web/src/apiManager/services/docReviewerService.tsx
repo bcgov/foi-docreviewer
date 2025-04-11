@@ -320,7 +320,7 @@ export const savePageFlag = (
   httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
-        callback(res.data);
+        callback(res.data, flagid);
       } else {
         throw new Error(`Error while saving page flag for requestid ${foiministryrquestid}`);
       }
@@ -593,10 +593,11 @@ export const fetchPIIByPageNumDocumentID = (
   pagenum: string,
   documentid: string,
   solrauthToken:any,
+  numsolrrows:number,
   callback:any,
   errorCallback: any
 ) => {   
-  let apiUrlGet: string = replaceUrl(replaceUrl(API.SOLR_API_URL,"<pagenum>",pagenum),"<documentid>",documentid)  
+  let apiUrlGet: string = replaceUrl(replaceUrl(API.SOLR_API_URL,"<pagenum>",pagenum),"<documentid>",documentid) + "&rows=" + numsolrrows; 
   httpGETRequestSOLR(apiUrlGet, {}, solrauthToken)
     .then((res:any) => {
       if (res.data) {
