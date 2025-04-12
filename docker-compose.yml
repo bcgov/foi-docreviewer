@@ -343,6 +343,40 @@ services:
         - AZDOCEXTRACT_LISTENING_PORT=${AZDOCEXTRACT_LISTENING_PORT}
         - AZDOCEXTRACT_API_SECRET=${AZDOCEXTRACT_API_SECRET}
         - AZDOCEXTRACT_ALLOWED_ORIGINS=${AZDOCEXTRACT_ALLOWED_ORIGINS}
+  foi-docreviewer-compression:
+    container_name: foi-docreviewer-compression
+    depends_on:
+      - foi-docreviewer-db
+      - foi-docreviewer-redis
+    build:
+      context: ./computingservices/CompressionServices
+      dockerfile: Dockerfile.local
+    image: docreviewercompressionimage
+    stdin_open: true
+    tty: true
+    networks:
+      services-network:
+        aliases:
+          - docreviewercompression    
+    environment:
+      - REDIS_HOST=${COMPRESSION_REDIS_HOST}
+      - REDIS_PASSWORD=${COMPRESSION_REDIS_PASSWORD}
+      - REDIS_PORT=${COMPRESSION_REDIS_PORT}
+      - COMPRESSION_STREAM_KEY=${COMPRESSION_STREAM_KEY}
+      - COMPRESSION_S3_ENV=${COMPRESSION_S3_ENV}
+      - COMPRESSION_DB_HOST=${COMPRESSION_DB_HOST}
+      - COMPRESSION_DB_NAME=${COMPRESSION_DB_NAME}
+      - COMPRESSION_DB_PORT=${COMPRESSION_DB_PORT}
+      - COMPRESSION_DB_USER=${COMPRESSION_DB_USER}
+      - COMPRESSION_DB_PASSWORD=${COMPRESSION_DB_PASSWORD}
+      - COMPRESSION_S3_HOST=${COMPRESSION_S3_HOST}
+      - COMPRESSION_S3_REGION=${COMPRESSION_S3_REGION}
+      - COMPRESSION_S3_SERVICE=${COMPRESSION_S3_SERVICE}
+      - COMPRESSION_REQUEST_MANAGEMENT_API=${COMPRESSION_REQUEST_MANAGEMENT_API}
+      - COMPRESSION_RECORD_FORMATS=${COMPRESSION_RECORD_FORMATS}
+      - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
+      - PAGECALCULATOR_STREAM_KEY=${PAGECALCULATOR_STREAM_KEY}
+      - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
 volumes:
   dbdata:
 networks:
