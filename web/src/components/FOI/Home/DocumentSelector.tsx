@@ -560,7 +560,7 @@ const DocumentSelector = React.memo(
                 filterPhases.push(phaseNum);
               }
             } else if (selectedPhases.length > 0) {
-              filterPhases = [];
+              filterPhases = selectNoPhases ? [0] : [];
             } else {
               filterPhases.splice(filterPhases.indexOf(phaseNum), 1);
             }
@@ -594,7 +594,7 @@ const DocumentSelector = React.memo(
               if (selectedPhases.length > 0) filterPhases = selectedPhases;
               else filterPhases.push(phaseNum);
             } else if (selectedPhases.length > 0) {
-              filterPhases = [];
+              filterPhases = selectNoPhases ? [0] : [];
             } else {
               filterPhases.splice(filterPhases.indexOf(phaseNum), 1);
             }
@@ -771,12 +771,14 @@ const DocumentSelector = React.memo(
       ) => {
         if (event.target.checked) {
           setSelectAllPhases(true);
-          setSelectNoPhases(false);
         }
         else setSelectAllPhases(false);
         let phaseIds = assignedPhases?.map(
           (obj: any) => parseInt(obj?.split(" ")[1])
         );
+        if (selectNoPhases) {
+          phaseIds.push(0);
+        }
         applyFilter(9, null, event, [],null, phaseIds);
       };
       const selectNoPhase = (event : any) : void => {
