@@ -575,7 +575,6 @@ class redactionsummary():
         if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
             for x in _docpageflags:
                 if x['flagid'] in (5,6) and x['page'] not in skippages:
-                    print("GOOD")
                     skippages.add(x['page'])
                 # condition to skip pages that do not have appropriate phase flag in the document
                 if "responsepackage_phase" in category and ((len(pageswithphases) > 0 and x['page'] not in pageswithphases and x['page'] not in deletedpages) or len(pageswithphases) == 0):             
@@ -584,7 +583,7 @@ class redactionsummary():
         # condition to skip pages that have no flags in the document
         if "responsepackage_phase" in category and len(pageswithnoflags) > 0:
             for x in pageswithnoflags:
-                print("AMAN", x['page'])
+                print("AMAN", x)
                 skippages.add(x)
         return sorted(list(skippages))
                     
