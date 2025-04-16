@@ -562,7 +562,7 @@ class redactionsummary():
     def __get_pages_by_flagid(self, _docpageflags, deletedpages, totalpages, flagid, category, pageswithphases, pageswithnoflags):
         pagenos = []
         skippages = self.__get_skippagenos(_docpageflags, category, deletedpages, pageswithphases, pageswithnoflags)
-        print("\nskippages::",skippages)
+        # print("\nskippages::",skippages)
         for x in _docpageflags:
             if x["flagid"] == flagid and x["page"] not in deletedpages and x['page'] not in skippages:
                 pagenos.append({'originalpageno':x["page"]-1, 'stitchedpageno':self.__calcstitchedpageno(x["page"], totalpages, category, skippages, deletedpages)})
