@@ -580,7 +580,7 @@ class redactionsummary():
                     print("GOOD")
                     skippages.add(x['page'])
                 # condition to skip pages that do not have appropriate phase flag in the document
-                if ("responsepackage_phase" in category and (len(pageswithphases) > 0 and (x['page'] not in pageswithphases and x['page'] not in deletedpages)) or (len(pageswithphases) == 0)):             
+                if ("responsepackage_phase" in category and (len(pageswithphases) > 0 and x['page'] not in pageswithphases and x['page'] not in deletedpages) or (len(pageswithphases) == 0)):             
                     skippages.add(x['page'])
                     print("BAD")
         # condition to skip pages that have no flags in the document
