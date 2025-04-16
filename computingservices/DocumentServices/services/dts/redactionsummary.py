@@ -572,13 +572,17 @@ class redactionsummary():
 
     def __get_skippagenos(self, _docpageflags, category, deletedpages, pageswithphases=[], pageswithnoflags=[]):
         skippages = set()
+        print("CHECK", "responsepackage_phase" in category)
+        print("category", category)
         if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
             for x in _docpageflags:
                 if x['flagid'] in (5,6) and x['page'] not in skippages:
+                    print("GOOD")
                     skippages.add(x['page'])
                 # condition to skip pages that do not have appropriate phase flag in the document
-                if ("responsepackage_phase" in category and (len(pageswithphases) > 0 and (x['page'] not in pageswithphases and x['page'] not in deletedpages)) or (len(pageswithphases) ==0)):                     
+                if ("responsepackage_phase" in category and (len(pageswithphases) > 0 and (x['page'] not in pageswithphases and x['page'] not in deletedpages)) or (len(pageswithphases) == 0)):             
                     skippages.add(x['page'])
+                    print("BAD")
         # condition to skip pages that have no flags in the document
         if "responsepackage_phase" in category and len(pageswithnoflags) > 0:
             for x in pageswithnoflags:
