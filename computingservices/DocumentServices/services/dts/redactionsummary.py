@@ -76,8 +76,8 @@ class redactionsummary():
                                 allpages = [number for number in range(1, originalpagedata[docid]["pagecount"]+1)]
                                 pageswithnoflags = sorted([pageno for pageno in allpages if pageno not in {flagobj['page'] for flagobj in docpageflag["pageflag"]} and 
                                                     pageno not in docdeletedpages])
-                            print("\npageswithphases:",pageswithphases)
-                            print("\npageswithnoflags:",pageswithnoflags)
+                            # print("\npageswithphases:",pageswithphases)
+                            # print("\npageswithnoflags:",pageswithnoflags)
                             for pageflag in _pageflags:
                                 filteredpages = self.__get_pages_by_flagid(docpageflag["pageflag"], docdeletedpages, pagecount, 
                                     pageflag["pageflagid"], message.category,pageswithphases,pageswithnoflags)
@@ -564,8 +564,7 @@ class redactionsummary():
         skippages = self.__get_skippagenos(_docpageflags, category, deletedpages, pageswithphases, pageswithnoflags)
         print("\nskippages::",skippages)
         for x in _docpageflags:
-            if x["flagid"] == flagid and x["page"] not in deletedpages and x['page'] not in skippages: 
-                #print("\nInsideLoop",x)
+            if x["flagid"] == flagid and x["page"] not in deletedpages and x['page'] not in skippages:
                 pagenos.append({'originalpageno':x["page"]-1, 'stitchedpageno':self.__calcstitchedpageno(x["page"], totalpages, category, skippages, deletedpages)})
         return pagenos
     
@@ -576,14 +575,12 @@ class redactionsummary():
             for x in _docpageflags:
                 if x['flagid'] in (5,6) and x['page'] not in skippages:
                     skippages.add(x['page'])
-                # condition to skip pages that do not have appropriate phase flag in the document
+                # condition to skip pages that do not have the appropriate phase flag on the document page (ie. )
                 if "responsepackage_phase" in category and ((len(pageswithphases) > 0 and x['page'] not in pageswithphases and x['page'] not in deletedpages) or len(pageswithphases) == 0):             
                     skippages.add(x['page'])
-                    print("BAD", x['page'])
         # condition to skip pages that have no flags in the document
         if "responsepackage_phase" in category and len(pageswithnoflags) > 0:
             for x in pageswithnoflags:
-                print("AMAN", x)
                 skippages.add(x)
         return sorted(list(skippages))
                     
