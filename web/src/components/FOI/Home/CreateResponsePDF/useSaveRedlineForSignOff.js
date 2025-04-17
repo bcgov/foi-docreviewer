@@ -2026,15 +2026,28 @@ const stampPageNumberRedline = async (
                 let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
                 let annotsObj = xmlObjOne.getElementsByTagName('annots');
                 if (annotsObj.length > 0) {
-                  annotsObj[0].children = [...annotsObj[0].children, ...annots.children];
-                } else {
+                  if (Array.isArray(annotsObj[0].children)) {
+                    annotsObj[0].children = [...annotsObj[0].children, ...(annots.children || [])];
+                  } else {
+                    console.error("annotsObj[0].children is not an array.");
+                  }
+                } else if (annots && annots.children) {
                   xmlObjOne.children.push(annots);
+                } else {
+                  console.error("annots or annots.children is undefined.");
                 }
               }
-            })     
-            let xfdfStringFiltered = parser.toString(xmlObjOne);
-            filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
-
+            })
+            try {
+              let xfdfStringFiltered = parser.toString(xmlObjOne);
+              if (xfdfStringFiltered) {
+                filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
+              } else {
+                console.warn("Generated XFDF string is empty or invalid.");
+              }
+            } catch (error) {
+              console.error("Error importing annotations:", error);
+            }
           }
           let _data = await stitchObject
           .getFileData({
