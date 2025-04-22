@@ -29,9 +29,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
   );
-  const requestStatus = useAppSelector(
-    (state) => state.documents?.requeststatus
-  );
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
@@ -1202,16 +1199,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   };
   
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
-    const validRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-      RequestStates["Peer Review"],
-    ].includes(requestStatus);
-    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus);
+    setEnableSavingRedline(redlineReadyAndValid);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
-        !redlineReadyAndValid || !validRedlineStatus;
+        !redlineReadyAndValid
     }
   };
   const checkSavingOIPCRedline = (
@@ -1219,18 +1211,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     instance,
     readyForSignOff
   ) => {
-    const validOIPCRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-    ].includes(requestStatus);
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid && validOIPCRedlineStatus
+      oipcRedlineReadyAndValid
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_oipc").disabled =
         !oipcRedlineReadyAndValid ||
-        !validOIPCRedlineStatus ||
         !readyForSignOff;
     }
   };
