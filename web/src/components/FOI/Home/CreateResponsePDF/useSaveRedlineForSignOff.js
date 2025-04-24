@@ -29,9 +29,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
   );
-  const requestStatus = useAppSelector(
-    (state) => state.documents?.requeststatus
-  );
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
@@ -1202,16 +1199,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
   };
   
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
-    const validRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-      RequestStates["Peer Review"],
-    ].includes(requestStatus);
-    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus);
+    setEnableSavingRedline(redlineReadyAndValid);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
-        !redlineReadyAndValid || !validRedlineStatus;
+        !redlineReadyAndValid
     }
   };
   const checkSavingOIPCRedline = (
@@ -1219,18 +1211,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer) => {
     instance,
     readyForSignOff
   ) => {
-    const validOIPCRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-    ].includes(requestStatus);
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid && validOIPCRedlineStatus
+      oipcRedlineReadyAndValid
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_oipc").disabled =
         !oipcRedlineReadyAndValid ||
-        !validOIPCRedlineStatus ||
         !readyForSignOff;
     }
   };
@@ -2002,13 +1989,17 @@ const stampPageNumberRedline = async (
           let filteredAnnotations = [];
           let domParser = new DOMParser();
           if(includeComments && Object.entries(filteredComments).length > 0) {
+            let formattedAnnotationXML = formatAnnotationsForRedline(
+              redlineDocumentAnnotations,
+              redlinepageMappings["divpagemappings"][divisionid],
+              redlineStitchInfo[divisionid]["documentids"]
+            );
             const annotFiltered = Object.values(redlineDocumentAnnotations).flat();
             const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(annotFiltered);
             let xmlObjOne = parser.parseFromString(string.xfdfString);
-            xmlObjOne.children = [];
-            for (let annotxml of annotFiltered) {
-              let xmlObjTemp = parser.parseFromString(annotxml);
-              let customfield = xmlObjTemp.children.find(
+            let xmlObjTemp = parser.parseFromString('<parent>'+formattedAnnotationXML+'</parent>');
+            xmlObjTemp.children.forEach(childXmlObj => {
+              let customfield = childXmlObj.children.find(
                 (xmlfield) => xmlfield.name === "trn-custom-data"
               );    
               let txt = domParser.parseFromString(
@@ -2016,18 +2007,35 @@ const stampPageNumberRedline = async (
                 "text/html"
               );
               let customData = JSON.parse(txt.documentElement.textContent);
-              if (xmlObjTemp.name !== 'redact' && !customData["parentRedaction"] && checkFilter(xmlObjTemp, _freeTextIds, _annoteIds)) {
-                if(xmlObjOne.children.length >0 ) {
-                  xmlObjOne.children[0].children.push(parser.parseFromString(parser.toString(xmlObjTemp)))
+              if (childXmlObj.name !== 'redact'
+                  && !customData["parentRedaction"] && checkFilter(childXmlObj, _freeTextIds, _annoteIds)
+              ) {
+                let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
+                let annotsObj = xmlObjOne.getElementsByTagName('annots');
+                if (annotsObj.length > 0) {
+                  if (Array.isArray(annotsObj[0].children)) {
+                    annotsObj[0].children = [...annotsObj[0].children, ...(annots.children || [])];
+                  } else {
+                    console.error("annotsObj[0].children is not an array.");
+                  }
+                } else if (annots && annots.children) {
+                  xmlObjOne.children.push(annots);
                 } else {
-                  xmlObjOne.children.push(parser.parseFromString('<annots>' +parser.toString(xmlObjTemp)+ '</annots>'))
+                  console.error("annots or annots.children is undefined.");
                 }
               }
+            })
+            try {
+              let xfdfStringFiltered = parser.toString(xmlObjOne);
+              if (xfdfStringFiltered) {
+                filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
+              } else {
+                console.warn("Generated XFDF string is empty or invalid.");
+              }
+            } catch (error) {
+              console.error("Error importing annotations:", error);
             }
-            let xfdfStringFiltered = parser.toString(xmlObjOne);
-            filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
           }
-          
           let _data = await stitchObject
           .getFileData({
             // saves the document with annotations in it
