@@ -62,7 +62,7 @@ func main() {
 
 	host, port, user, password, dbname = myconfig.GetDB()
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	env, queue, foiflowapi = myconfig.GetOthers()
+	env, queue, foiflowapi, _ = myconfig.GetOthers()
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)

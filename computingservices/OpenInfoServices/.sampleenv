@@ -15,6 +15,7 @@ OI_S3_REGION=us-east-1
 OI_S3_BUCKET=openinfopub
 OI_ACCESS_KEY=
 OI_SECRET_KEY=
+OI_MIME_TYPEs=[{"ext":".html", "type":"text/html"},{"ext":".pdf", "type":"application/pdf"},{"ext":".docx", "type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},{"ext":".doc", "type":"application/msword"},{"ext":".xlsx", "type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},{"ext":".xls", "type":"application/vnd.ms-excel"},{"ext":".pptx", "type":"application/vnd.openxmlformats-officedocument.presentationml.presentation"},{"ext":".ppt", "type":"application/vnd.ms-powerpoint"},{"ext":".txt", "type":"text/plain"},{"ext":".csv", "type":"text/csv"},{"ext":".xml", "type":"application/xml"},{"ext":".json", "type":"application/json"}]
 
 OI_PREFIX=packages/
 SITEMAP_PREFIX=sitemap/

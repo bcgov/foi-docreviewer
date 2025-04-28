@@ -129,6 +129,11 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: OI_SECRET_KEY
+            - name: OI_MIME_TYPEs
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_MIME_TYPEs
             - name: OI_PREFIX
               valueFrom:
                 secretKeyRef:
