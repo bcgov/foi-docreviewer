@@ -346,6 +346,7 @@ services:
         - OI_S3_BUCKET=${OI_S3_BUCKET}        
         - OI_ACCESS_KEY=${OI_ACCESS_KEY}
         - OI_SECRET_KEY=${OI_SECRET_KEY}
+        - OI_MIME_TYPEs=${OI_MIME_TYPEs}
         - OI_PREFIX=${OI_PREFIX}
         - SITEMAP_PREFIX=${SITEMAP_PREFIX}
         - SITEMAP_PAGES_LIMIT=${SITEMAP_PAGES_LIMIT}
