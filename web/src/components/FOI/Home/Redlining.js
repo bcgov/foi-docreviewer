@@ -258,7 +258,7 @@ const Redlining = React.forwardRef(
               }
               if (matches) {
                 if(!piiblacklist.some(s => entity.text.includes(s)))
-                  { piientities.push(entity.text); }
+                  { piientities.push(entity.text.replace(/[.*+?^${}()[\]\\]/g, '\\$&')); }
               }
             });
           });
