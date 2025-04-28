@@ -52,7 +52,7 @@ var (
 func Publish(msg OpenInfoMessage, db *sql.DB) {
 
 	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
-	env, _, _ = myconfig.GetOthers()
+	env, _, _, _ = myconfig.GetOthers()
 
 	oibucket := env + "-" + oibucket
 
@@ -123,7 +123,7 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	// Remove folder from s3
 
 	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
-	env, _, _ = myconfig.GetOthers()
+	env, _, _, _ = myconfig.GetOthers()
 
 	destBucket := env + "-" + oibucket
 	destPrefix := oiprefix

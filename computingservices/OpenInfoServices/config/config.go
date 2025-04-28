@@ -45,6 +45,7 @@ var (
 	//Other
 	env        string
 	foiflowapi string
+	mimetypes  string
 
 	onceDB       sync.Once
 	onceRedis    sync.Once
@@ -134,6 +135,7 @@ func loadConfigOther() {
 	env = getEnv("OI_S3_ENV")
 	queue = getEnv("OI_QUEUE_NAME")
 	foiflowapi = getEnv("FOIFLOW_BASE_API_URL")
+	mimetypes = getEnv("OI_MIME_TYPEs")
 }
 
 // Helper function to get environment variables
@@ -176,7 +178,7 @@ func GetKeycloak() (string, string, string, string, string, string) {
 }
 
 // GetS3 retrieves the S3 variables with lazy initialization
-func GetOthers() (string, string, string) {
+func GetOthers() (string, string, string, string) {
 	onceOthers.Do(loadConfigOther) // Ensures loadConfig is called only once
-	return env, queue, foiflowapi
+	return env, queue, foiflowapi, mimetypes
 }

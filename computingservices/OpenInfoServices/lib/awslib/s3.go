@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -73,6 +74,11 @@ type AdditionalFile struct {
 	Isactive         bool   `json:"isactive"`
 }
 
+type MimeTypes struct {
+	Ext  string `json:"ext"`
+	Type string `json:"type"`
+}
+
 type resolverV2 struct{}
 
 func (*resolverV2) ResolveEndpoint(ctx context.Context, params s3.EndpointParameters) (
@@ -133,12 +139,12 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 	var Result ScanResult
 	var filePath string = ""
 	var matched bool
-	var fileType string = "unknown"
+	// var fileType string = "unknown"
 	var err error
 	var letterLinks []files.Link
 	var fileLinks []files.Link
 
-	supportedFileTypes := []string{".pdf", ".xls", ".xlsx"}
+	// supportedFileTypes := []string{".pdf", ".xls", ".xlsx", ".csv", ".doc", ".docx", ".mp4", ".mp3", ".mpg", ".mpeg", ".avi", ".mov", ".wmv", ".wav"}
 
 	// Print file information
 	for _, item := range resp.Contents {
@@ -176,17 +182,17 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 			}
 		} else {
 			// Other files
-			fileType = getFileType(*item.Key)
-			if contains(supportedFileTypes, strings.ToLower(fileType)) {
-				fileLinks = append(fileLinks, files.Link{FileName: base, URL: urlPrefix + base})
-				if Result.FileNames == "" {
-					Result.FileNames = base
-					Result.FileSizes = fmt.Sprintf("%.2f", (float64(*item.Size) / (1024 * 1024)))
-				} else {
-					Result.FileNames = Result.FileNames + "," + base
-					Result.FileSizes = Result.FileSizes + "," + fmt.Sprintf("%.2f", (float64(*item.Size)/(1024*1024)))
-				}
+			// fileType = getFileType(*item.Key)
+			// if contains(supportedFileTypes, strings.ToLower(fileType)) {
+			fileLinks = append(fileLinks, files.Link{FileName: base, URL: urlPrefix + base})
+			if Result.FileNames == "" {
+				Result.FileNames = base
+				Result.FileSizes = fmt.Sprintf("%.2f", (float64(*item.Size) / (1024 * 1024)))
+			} else {
+				Result.FileNames = Result.FileNames + "," + base
+				Result.FileSizes = Result.FileSizes + "," + fmt.Sprintf("%.2f", (float64(*item.Size)/(1024*1024)))
 			}
+			// }
 		}
 		Result.Links = append(letterLinks, fileLinks...)
 	}
@@ -198,7 +204,7 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 
 func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalFile) {
 	s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit = myconfig.GetS3Path()
-	env, _, _ := myconfig.GetOthers()
+	env, _, _, mimetypesjson := myconfig.GetOthers()
 
 	// bucket := "dev-openinfopub"
 	bucket := sourceBucket
@@ -238,19 +244,21 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 
 		// Determine the content type based on file extension
 		var contentType string
-		if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".html") {
-			contentType = "text/html"
-		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".pdf") {
-			contentType = "application/pdf"
-		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".docx") {
-			contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".doc") {
-			contentType = "application/msword"
-		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".xlsx") {
-			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-		} else if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), ".xls") {
-			contentType = "application/vnd.ms-excel"
-		} else {
+		var mimetypes []MimeTypes
+		if mimetypesjson != "" {
+			json.Unmarshal([]byte(mimetypesjson), &mimetypes)
+		}
+
+		matched := false
+		for _, mime := range mimetypes {
+			if strings.EqualFold(filepath.Ext(bucket+"/"+sourceKey), mime.Ext) {
+				contentType = mime.Type
+				matched = true
+				break
+			}
+		}
+
+		if !matched {
 			// Set default content type or leave it unset
 			contentType = "application/octet-stream"
 		}
