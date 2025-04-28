@@ -844,25 +844,27 @@ const Redlining = React.forwardRef(
                     onResult: result => {
                       // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
                       if (result.resultCode === Search.ResultCode.FOUND) {
-                        const textQuad = result.quads[0].getPoints(); // getPoints will return Quad objects
-                        // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
-                        const annot = new annots.TextHighlightAnnotation({
-                          PageNumber: individualDoc.page,
-                          X: textQuad.x1,
-                          Y: textQuad.y3,
-                          Width: textQuad.x2 - textQuad.x1,
-                          Height: textQuad.x2 - textQuad.x1,
-                          Color: new annots.Color(255, 205, 69, 1),
-                          Quads: [
-                            textQuad
-                          ],
-                        });
-                        annot.setCustomData("PIIDetection", true)
-                        annot.setCustomData("trn-annot-preview", result.resultStr)
-                        
-                        annotationManager.addAnnotation(annot);
-                        // Always redraw annotation
-                        annotationManager.redrawAnnotation(annot);
+                        for (let quad of result.quads) {
+                          const textQuad = quad.getPoints(); // getPoints will return Quad objects
+                          // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
+                          const annot = new annots.TextHighlightAnnotation({
+                            PageNumber: individualDoc.page,
+                            X: textQuad.x1,
+                            Y: textQuad.y3,
+                            Width: textQuad.x2 - textQuad.x1,
+                            Height: textQuad.x2 - textQuad.x1,
+                            Color: new annots.Color(255, 205, 69, 1),
+                            Quads: [
+                              textQuad
+                            ],
+                          });
+                          annot.setCustomData("PIIDetection", true)
+                          annot.setCustomData("trn-annot-preview", result.resultStr)
+                          
+                          annotationManager.addAnnotation(annot);
+                          // Always redraw annotation
+                          annotationManager.redrawAnnotation(annot);
+                        }
                       }
                     },
                     startPage: documentViewer.getCurrentPage(),
