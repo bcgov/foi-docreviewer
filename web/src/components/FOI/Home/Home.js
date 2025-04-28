@@ -310,7 +310,7 @@ function Home() {
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
-                  documentPageNo={currentPageInfo?.page}
+                  documentPageNo_pii={currentPageInfo?.page}
                   documentID_pii={currentPageInfo?.file.documentid}
                 />
               )
