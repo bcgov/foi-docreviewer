@@ -236,7 +236,7 @@ const Redlining = React.forwardRef(
       let piientities = [];
 
       data.response.docs.forEach(doc => {
-        doc.foipiijson.forEach(jsonString => {
+        doc.foipiijson?.forEach(jsonString => {
           const parsedData = JSON.parse(jsonString); // Convert string to JSON object
           
           parsedData.documents.forEach(document => {
