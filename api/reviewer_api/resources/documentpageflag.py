@@ -95,28 +95,3 @@ class GetDocumentPageflag(Resource):
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
-    
-
-@cors_preflight('GET,OPTIONS')
-@API.route('/ministryrequest/<requestid>/pageflag/count')
-class GetDocumentPageflagCount(Resource):
-    """Get document page flag count for openinfo layer"""
-    @staticmethod
-    @TRACER.trace()
-    @cross_origin(origins=allowedorigins())
-    @auth.require
-    @auth.ismemberofgroups(getrequiredmemberships())
-    def get(requestid):
-        try:
-            # Get page flag count for openinfo layer (redactionlayerid=4)
-            result = documentpageflagservice().get_total_pages_by_ministryrequest_openinfo(requestid)
-            
-            if result is None:
-                return None, 200
-                
-            return json.dumps(result), 200
-            
-        except BusinessException as exception:
-            return {'status': exception.status_code, 'message': exception.message}, 500
-        except Exception as error:
-            return {'status': False, 'message': str(error)}, 400
