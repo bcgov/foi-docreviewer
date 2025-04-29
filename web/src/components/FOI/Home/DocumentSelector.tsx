@@ -718,6 +718,7 @@ const DocumentSelector = React.memo(
               <span style={{ marginRight: "10px" }}>
                 <input
                   type="checkbox"
+                  disabled={selectNoPhases}
                   id={`phase-checkbox-${index}`}
                   checked={phaseFilter.includes(
                     parseInt(phase?.split(" ")[1])
@@ -1311,6 +1312,7 @@ const DocumentSelector = React.memo(
                           type="checkbox"
                           id={`phase-checkbox-all`}
                           checked={selectAllPhases}
+                          disabled={selectNoPhases}
                           onChange={(e) => {
                             selectAllPhase(assignedPhases, e);
                           }}
@@ -1326,6 +1328,7 @@ const DocumentSelector = React.memo(
                         type="checkbox"
                         id={`phase-checkbox-nophase`}
                         checked={selectNoPhases}
+                        disabled={(phaseFilter.length > 0 && !phaseFilter.includes(0)) || selectAllPhases}
                         onChange={(e) => {
                           selectNoPhase(e)
                         }}
