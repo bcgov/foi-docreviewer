@@ -114,7 +114,7 @@ func GetOIRecordsForPrePublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 			r.foirequestid,
 			mr.axisrequestid,
 			mr.description,
-			oi.publicationdate,
+			to_char(oi.publicationdate, 'YYYY-MM-DD') AS publicationdate,
 			pa.name as contributor,
 			ac.name as applicant_type,
 			COALESCE((fee.feedata->>'amountpaid')::Numeric, 0) as fees,
