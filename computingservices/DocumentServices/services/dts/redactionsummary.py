@@ -123,6 +123,7 @@ class redactionsummary():
 
     def __packagesummaryforcfdrequests(self, message, documentids):
         try:
+            print("\nInside logic for __packagesummaryforcfdrequests")
             redactionlayerid = self.__getredactionlayerid(message)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
@@ -159,9 +160,10 @@ class redactionsummary():
             deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
             # print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
-            # print("###mapped_flags1:",mapped_flags)
-            filteredpageswithphase= self.removeduplicatepageswithphase(mapped_flags)
-            pagecounts= self.count_pages_per_doc(filteredpageswithphase)
+            print("###mapped_flags1:",mapped_flags)
+            filteredpages = self.removeduplicatepageswithphase(mapped_flags, phase)
+            pagecounts = self.count_pages_per_doc(filteredpages)
+            print("filteredpages:",filteredpages)
             # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
@@ -174,8 +176,8 @@ class redactionsummary():
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
                         #     &&& end_page-{end_page}")
                         self.assignfullpagesections(redactionlayerid, mapped_flags)
-                        # print("\nfilteredpageswithphase::",filteredpageswithphase)
-                        range_result = self.__calculate_range(filteredpageswithphase, document_id)
+                        # print("\nfilteredpages::",filteredpages)
+                        range_result = self.__calculate_range(filteredpages, document_id)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
                         # print(f"{record['recordname']} :{recordwise_pagecount}")
                         summarydata.append(self.__create_summary_data(record, range_result, mapped_flags, recordwise_pagecount))
@@ -188,11 +190,14 @@ class redactionsummary():
             print('CFD Error occurred in redaction dts service: ', error)
             traceback.print_exc()
 
-    def removeduplicatepageswithphase(self, mapped_flags):
-        # Identify pages where flagid=9 exists
-        pages_with_flagid_9 = {(entry['docid'], entry['originalpageno']) for entry in mapped_flags if entry['flagid'] == 9}
-        # Keep only entries where page has an assocaited phase flag
-        return [entry for entry in mapped_flags if entry['flagid'] != 9 and (entry['docid'], entry['originalpageno']) in pages_with_flagid_9]
+    def removeduplicatepageswithphase(self, mapped_flags, phase):
+        # Keep only entries (page, pageFlag) where page has an assocaited phase flag (and remove pages with flagid=9)
+        if phase is not None and phase !="":
+            # Identify pages where flagid=9 exists
+            pages_with_flagid_9 = {(entry['docid'], entry['originalpageno']) for entry in mapped_flags if entry['flagid'] == 9}
+            return [entry for entry in mapped_flags if entry['flagid'] != 9 and (entry['docid'], entry['originalpageno']) in pages_with_flagid_9]
+        else:
+            return mapped_flags
 
 
 
