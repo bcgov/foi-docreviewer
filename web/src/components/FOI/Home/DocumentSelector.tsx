@@ -71,7 +71,13 @@ const DocumentSelector = React.memo(
       const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
       const pageRefs = useRef([]);
       const treeRef: any = useRef();
-
+      const [openPhaseFilterModal, setOpenPhaseFilterModal] = useState(false);
+      const [assignedPhases, setAssignedPhases] = useState<any>([]);
+      const [selectAllPhases, setSelectAllPhases] = useState(false);
+      const [anchorElPhases, setAnchorElPhases] = useState<null | HTMLElement>(null);
+      const [phaseFilter , setPhaseFilter] = useState<any>([]);
+      const [selectNoPhases, setSelectNoPhases] = useState(false);
+      
       useImperativeHandle(
         ref,
         () => ({
@@ -190,34 +196,82 @@ const DocumentSelector = React.memo(
         setConsultMinistries(
           data.find((flag: any) => flag.name === "Consult").programareas
         );
-        setPageFlagList(data);
+        let sorted= data.sort((a:any, b:any) => a.sortorder - b.sortorder);
+        setPageFlagList(sorted);
       };
 
       const updateCompletionCounter = () => {
-        let totalPagesWithFlags = 0;
-        pageFlags?.forEach((element: any) => {
-          /**Page Flags to be avoided while
-           * calculating % on left panel-
-           * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-          let documentSpecificCount = element?.pageflag?.filter(
-            (obj: any) =>
-              ![
-                pageFlagTypes["Consult"],
-                pageFlagTypes["In Progress"],
-                pageFlagTypes["Page Left Off"],
-              ].includes(obj.flagid)
-          )?.length;
-          totalPagesWithFlags += documentSpecificCount;
-        });
-        /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
-         * as it may show 100% even if the result is 99.9% */
-        return totalPageCount > 0 && totalPagesWithFlags >= 0
-          ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
-          : 0;
-        // setCompletionCounter(totalPageCount > 0 && totalPagesWithFlags >= 0
-        //   ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
-        //   : 0);
+        if (filterFlags.length > 0 && (phaseFilter?.length > 0 && !phaseFilter?.includes(0))){
+          let totalPhasedPagesWithFlags = 0;
+          let phasedPagesCount=0;
+          const phaseFlagged = filesForDisplay.filter((file: any) =>
+            file.pageFlag?.find((obj: any) => obj.flagid === pageFlagTypes['Phase'])
+          );
+          if (phaseFlagged.length > 0) {
+            // Extract pages that have the phase flag with the filtered phase
+            const phasedPagesMap = phaseFlagged.reduce((acc: Record<number, number[]>, file: any) => {
+              const pages = file.pageFlag
+                ?.filter((flag: any) => flag.flagid === pageFlagTypes['Phase'] && flag.phase?.includes(phaseFilter[0]))
+                .map((flag: any) => flag.page) || [];
+              if (pages.length > 0) {
+                if (!acc[file.documentid]) {
+                  acc[file.documentid] = [];
+                }
+                acc[file.documentid].push(...pages);
+              }
+              return acc;
+            }, {}); 
+            phasedPagesCount = Object.values(phasedPagesMap).reduce((sum:number, pages:any) => sum + pages.length, 0);
+            const validPageList:any = [];
+            filesForDisplay.forEach((file: any) => {
+              const validPages = new Set();
+              file.pageFlag?.forEach((flag: any) => {
+                if (phasedPagesMap[file.documentid]?.includes(flag.page) &&
+                  ![
+                    pageFlagTypes["Phase"],
+                    pageFlagTypes["Consult"],
+                    pageFlagTypes["In Progress"],
+                    pageFlagTypes["Page Left Off"]
+                  ].includes(flag.flagid) // Page does NOT have excluded flags
+                ) {
+                  validPages.add(flag.page);
+                }
+              });
+              validPageList.push(...validPages)
+            });
+            totalPhasedPagesWithFlags = validPageList.length;//validPages.size;
+          }
+          /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
+           * as it may show 100% even if the result is 99.9% */
+          return totalPageCount > 0 && phasedPagesCount > 0 && totalPhasedPagesWithFlags >= 0
+            ? Math.floor((totalPhasedPagesWithFlags / phasedPagesCount) * 100)
+            : 0;
+        }
+        else{
+          let totalPagesWithFlags = 0;
+          pageFlags?.forEach((element: any) => {
+            /**Page Flags to be avoided while
+             * calculating % on left panel-
+             * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
+            let documentSpecificCount = element?.pageflag?.filter(
+              (obj: any) =>
+                ![
+                  pageFlagTypes["Consult"],
+                  pageFlagTypes["In Progress"],
+                  pageFlagTypes["Page Left Off"],
+                  pageFlagTypes["Phase"]
+                ].includes(obj.flagid)
+            )?.length;
+            totalPagesWithFlags += documentSpecificCount;
+          });
+          /** We need to Math.floor the result because the result can be a float value and we want to take the lower value 
+           * as it may show 100% even if the result is 99.9% */
+          return totalPageCount > 0 && totalPagesWithFlags >= 0
+            ? Math.floor((totalPagesWithFlags / totalPageCount) * 100)
+            : 0;
+        }
       };
+
 
       function intersection(setA: any, setB: any) {
         const _intersection = new Set();
@@ -229,46 +283,81 @@ const DocumentSelector = React.memo(
         return _intersection;
       }
 
+      
       const updatePageCount = () => {
+        let uniquePages = new Set();
         let totalFilteredPages = 0;
+      
         pageFlags?.forEach((element: any) => {
-          /**Page Flags to be avoided while
-           * calculating % on left panel-
-           * 'Consult'(flagid:4),'In Progress'(flagid:7),'Page Left Off'(flagid:8) */
-          let documentSpecificCount = element?.pageflag?.filter((obj: any) => {
-            if (obj.flagid === pageFlagTypes["Consult"]) {
-              const consultFilter = new Set(consulteeFilter);
-              const selectedMinistries = new Set([
-                ...obj.programareaid,
-                ...obj.other,
-              ]);
-              const consultOverlap = intersection(
-                consultFilter,
-                selectedMinistries
-              );
-              return (
-                filterFlags.includes(obj.flagid) && consultOverlap.size > 0
-              );
+          element?.pageflag?.forEach((obj: any) => {
+            let shouldCount = false;
+      
+            // To check if the page has already been counted
+            const stitchedPageNo = getStitchedPageNoFromOriginal(
+              element.documentid,
+              obj.page,
+              pageMappedDocs
+            );
+      
+            if (uniquePages.has(stitchedPageNo)) return;
+            if(obj.flagid === pageFlagTypes["Consult"] || obj.flagid === pageFlagTypes["Phase"]){
+              // Check Consult Flag
+              if (
+                obj.flagid === pageFlagTypes["Consult"] &&
+                filterFlags.includes(pageFlagTypes["Consult"])
+              ) {
+                const consultFilter = new Set(consulteeFilter);
+                const selectedMinistries = new Set([...obj.programareaid, ...obj.other]);
+                const consultOverlap = intersection(consultFilter, selectedMinistries);
+        
+                if (consultOverlap.size > 0) {
+                  shouldCount = true;
+                }
+              }
+              // Check Phase Flag
+              if (
+                obj.flagid === pageFlagTypes["Phase"] &&
+                filterFlags.includes(pageFlagTypes["Phase"])
+              ) {
+                const phaseFilterApplied = new Set(phaseFilter);
+                const selectedPhases = new Set([...obj.phase]);
+                const phaseOverlap = intersection(phaseFilterApplied, selectedPhases);
+        
+                if (phaseOverlap.size > 0) {
+                  shouldCount = true;
+                }
+              }
             }
-            return filterFlags.includes(obj.flagid);
-          })?.length;
-          totalFilteredPages += documentSpecificCount;
+            // Other Flag Check
+            else if (filterFlags.includes(obj.flagid)) {
+                shouldCount = true;
+            }
+            if (shouldCount) {
+              uniquePages.add(stitchedPageNo);
+            }
+          });
         });
+        totalFilteredPages = uniquePages.size;
         let unflagged = 0;
         if (filterFlags.length > 0 && filterFlags.includes(0)) {
           filesForDisplay?.forEach((file: any) => {
-            let flagedpages = file.pageFlag ? file.pageFlag.length : 0;
-            unflagged += file.pagecount - flagedpages;
+            // const pagesWithFlags = new Set(file.pageFlag.map((flagObj : any) => flagObj.page));
+            let flaggedPages = file.pageFlag ? file.pageFlag.length : 0;
+            unflagged += file.pagecount - flaggedPages;
           });
         }
-        return filterFlags.length > 0
-          ? totalFilteredPages + unflagged
-          : totalPageCount;
-        // setTotalDisplayedPages(filterFlags.length > 0
-        //       ? totalFilteredPages + unflagged
-        //       : totalPageCount);
+        if (phaseFilter?.includes(0)) {
+          filesForDisplay?.forEach((file: any) => {
+            const pagesWithPhase = createPagePhaseSet(file.pageFlag);
+            let flaggedPages = file.pageFlag ? pagesWithPhase.size : 0;
+            unflagged += file.pagecount - flaggedPages;
+          });
+        }
+        return filterFlags.length > 0 ? totalFilteredPages + unflagged : totalPageCount;
       };
-
+      
+      
+      
       const setAdditionalData = () => {
         let filesForDisplayCopy: any =
           filesForDisplay.length === 0 ? [...documents] : [...filesForDisplay];
@@ -371,10 +460,19 @@ const DocumentSelector = React.memo(
 
       const filterFiles = (
         filters: Array<number>,
-        consulteeFilters: Array<number>
+        consulteeFilters: Array<number>,
+        filterPhases: Array<number>
       ) => {
         if (filters?.length > 0) {
-          if (consulteeFilters.length > 0) {
+          if (filterPhases?.includes(0)) {
+            // Filter out files that have all of its pages with a phase flag
+            const filter = filteredFiles.filter((file: any) => {
+              const phaseCount = file.pageFlag?.reduce((acc: any, flagObj: any) => flagObj.flagid === pageFlagTypes["Phase"] ? ++acc : acc, 0);
+              return phaseCount !== file.pagecount;
+            });
+            setFilesForDisplay(filter);
+          }
+          else if (consulteeFilters.length > 0) {
             setFilesForDisplay(
               filteredFiles.filter((file: any) =>
                 file.pageFlag?.find(
@@ -390,7 +488,17 @@ const DocumentSelector = React.memo(
                 )
               )
             );
-          } else
+          }
+          else if (filterPhases.length > 0) {
+            let a = filteredFiles.filter((file: any) =>
+              file.pageFlag?.find((obj: any) =>
+                  filters.includes(obj.flagid) &&((obj.flagid != pageFlagTypes["Phase"] && filters.includes(obj.flagid)) 
+                || filterPhases.includes(obj.phase[0]))
+              )
+            )
+            setFilesForDisplay(a);
+          }
+          else if (consulteeFilters.length <= 0 && filterPhases.length <= 0){
             setFilesForDisplay(
               filteredFiles.filter(
                 (file: any) =>
@@ -405,6 +513,7 @@ const DocumentSelector = React.memo(
                   )
               )
             );
+          }
         } else setFilesForDisplay(filteredFiles);
       };
 
@@ -422,22 +531,44 @@ const DocumentSelector = React.memo(
         flagId: number,
         consultee: any,
         event: any,
-        allSelectedconsulteeList: any[]
+        allSelectedconsulteeList: any[],
+        phase: string | null,
+        selectedPhases: any[]
       ) => {
         const flagFilterCopy = [...filterFlags];
         let consulteeIds = [...consulteeFilter];
+        let filterPhases = [...phaseFilter];
         if (flagFilterCopy.includes(flagId)) {
           if (flagId == pageFlagTypes['Consult']) {
             if (event.target.checked) {
               if (allSelectedconsulteeList.length > 0) {
                 consulteeIds = allSelectedconsulteeList;
-              } else consulteeIds.push(consultee);
+              } 
+              else consulteeIds.push(consultee);
             } else if (allSelectedconsulteeList.length > 0) {
               consulteeIds = [];
             } else consulteeIds?.splice(consulteeIds.indexOf(consultee), 1);
             if (consulteeIds.length <= 0)
               flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
-          } else {
+          } 
+          else if (flagId == pageFlagTypes["Phase"]) {
+            const phaseNum = phase ? parseInt(phase?.split(" ")[1]) : null;
+            if (event.target.checked) {
+              if (selectedPhases.length > 0) {
+                filterPhases = selectedPhases;
+              } else {
+                filterPhases.push(phaseNum);
+              }
+            } else if (selectedPhases.length > 0) {
+              filterPhases = selectNoPhases ? [0] : [];
+            } else {
+              filterPhases.splice(filterPhases.indexOf(phaseNum), 1);
+            }
+            if (filterPhases.length <= 0)
+              flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
+          } 
+          
+          else {
             flagFilterCopy.splice(flagFilterCopy.indexOf(flagId), 1);
           }
           event.currentTarget.classList.remove("selected");
@@ -457,6 +588,17 @@ const DocumentSelector = React.memo(
             } else if (allSelectedconsulteeList.length > 0) consulteeIds = [];
             else consulteeIds?.splice(consulteeIds.indexOf(consultee), 1);
           }
+          else if (flagId == pageFlagTypes["Phase"]) {
+            const phaseNum = phase ? parseInt(phase?.split(" ")[1]) : null;
+            if (event.target.checked) {
+              if (selectedPhases.length > 0) filterPhases = selectedPhases;
+              else filterPhases.push(phaseNum);
+            } else if (selectedPhases.length > 0) {
+              filterPhases = selectNoPhases ? [0] : [];
+            } else {
+              filterPhases.splice(filterPhases.indexOf(phaseNum), 1);
+            }
+          }
           flagFilterCopy.push(flagId);
           event.currentTarget.classList.add("selected");
           if (
@@ -469,33 +611,43 @@ const DocumentSelector = React.memo(
         }
         setFilterFlags(flagFilterCopy);
         setConsulteeFilter(consulteeIds);
-        filterFiles(flagFilterCopy, consulteeIds);
+        setPhaseFilter(filterPhases);
+        filterFiles(flagFilterCopy, consulteeIds, filterPhases);
       };
 
       const getFlagName = (file: any, pageNo: number) => {
         let flag: any = file?.pageFlag?.find((flg: any) => flg.page === pageNo);
         if (flag) {
-          let consultFlag: any = file?.consult?.find(
-            (flg: any) =>
-              flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]
-          );
-          if (!!file.consult && file.consult.length > 0 && !!consultFlag) {
-            let ministries = consultFlag?.programareaid.map(
-              (m: any) =>
-                consultMinistries?.find(
-                  (ministry: any) => ministry.programareaid === m
-                )?.iaocode
+            const phaseFlag = file?.pageFlag?.find(
+                (flag: any) => flag.page === pageNo && flag.flagid === pageFlagTypes["Phase"]
             );
-            if (ministries) {
-              ministries.push(...consultFlag.other);
-              return `Consult - [` + ministries.join(`]\\nConsult - [`) + "]";
+            let consultFlag: any = file?.consult?.find(
+                (flg: any) =>
+                    flg.page === pageNo && flg.flagid === pageFlagTypes["Consult"]
+            );
+            let consultText = "";
+            let phaseText = "";
+            if (!!file.consult && file.consult.length > 0 && !!consultFlag) {
+                let ministries = consultFlag?.programareaid.map(
+                    (m: any) =>
+                        consultMinistries?.find(
+                            (ministry: any) => ministry.programareaid === m
+                        )?.iaocode
+                );
+                if (ministries) {
+                    ministries.push(...consultFlag.other);
+                    consultText = ministries.map((m: string) => `Consult - [${m}]`).join("\\n");
+                }
             }
-          }
-          return PAGE_FLAGS[flag.flagid as keyof typeof PAGE_FLAGS];
+            if (phaseFlag && phaseFlag.phase?.length > 0) {
+                phaseText = `Phase ${phaseFlag.phase[0]}`;
+            }
+            return [consultText, phaseText].filter(Boolean).join("\\n");
         }
-        return "";
-      };
-
+        return PAGE_FLAGS[flag?.flagid as keyof typeof PAGE_FLAGS] || "";
+    };
+    
+      
       let codeById: Record<number, string> = {};
       const mapConsultMinistries = () => {
         if (consultMinistries && consultMinistries.length > 0) {
@@ -531,6 +683,56 @@ const DocumentSelector = React.memo(
         }
       };
 
+      const openPhaseFilterList = (e: any) => {
+        //mapConsultMinistries();
+        const phaseFlagged = files.filter((file: any) =>
+          file.pageFlag?.some((obj: any) => obj.flagid === pageFlagTypes['Phase'])
+        );
+        if (phaseFlagged.length > 0) {
+          const phases = new Set(phaseFlagged.flatMap((obj: any) => 
+            obj.pageFlag
+                ? obj.pageFlag
+                      .filter((flag: any) => flag.flagid === pageFlagTypes['Phase'])
+                      .flatMap((flag: any) => "Phase "+ flag.phase) 
+                : []
+          ));
+          // Convert Set to Array and sort numerically
+          const sortedPhases = [...phases]?.sort((a: any, b: any) => {
+            const numA = parseInt(a.replace("Phase ", ""), 10);
+            const numB = parseInt(b.replace("Phase ", ""), 10);
+            return numA - numB;
+          });
+
+          setAssignedPhases(sortedPhases);
+          if(phases.size >0){
+            setOpenPhaseFilterModal(true);
+            setAnchorElPhases(e.currentTarget);
+          }
+        }
+      };
+
+      const showPhase = (assignedPhases: any[]) =>
+        assignedPhases?.map((phase: any, index: number) => {
+          return (
+            <div key={phase} className="consulteeItem">
+              <span style={{ marginRight: "10px" }}>
+                <input
+                  type="checkbox"
+                  disabled={selectNoPhases}
+                  id={`phase-checkbox-${index}`}
+                  checked={phaseFilter.includes(
+                    parseInt(phase?.split(" ")[1])
+                  )}
+                  onChange={(e) => {
+                    applyFilter(9, null, e, [], phase, []);
+                  }}
+                />
+              </span>
+              <label htmlFor={`phase-checkbox-${index}`}>{phase}</label>
+            </div>
+          );
+        });
+
       const showConsultee = (assignedConsulteeList: any[]) =>
         assignedConsulteeList?.map((consultee: any, index: number) => {
           return (
@@ -543,7 +745,7 @@ const DocumentSelector = React.memo(
                     consultee.id || consultee.code
                   )}
                   onChange={(e) => {
-                    applyFilter(4, consultee.id || consultee.code, e, []);
+                    applyFilter(4, consultee.id || consultee.code, e, [], null,[]);
                   }}
                 />
               </span>
@@ -561,11 +763,40 @@ const DocumentSelector = React.memo(
         let consulteeIds = assignedConsulteeList.map(
           (obj: any) => obj.id || obj.code
         );
-        applyFilter(4, null, event, consulteeIds);
+        applyFilter(4, null, event, consulteeIds, null,[]);
       };
+
+      const selectAllPhase = (
+        assignedPhases: any[],
+        event: any
+      ) => {
+        if (event.target.checked) {
+          setSelectAllPhases(true);
+        }
+        else setSelectAllPhases(false);
+        let phaseIds = assignedPhases?.map(
+          (obj: any) => parseInt(obj?.split(" ")[1])
+        );
+        if (selectNoPhases) {
+          phaseIds.push(0);
+        }
+        applyFilter(9, null, event, [],null, phaseIds);
+      };
+      const selectNoPhase = (event : any) : void => {
+        if (event.target.checked) {
+          setSelectNoPhases(true);
+        } else {
+          setSelectNoPhases(false);
+        }
+        applyFilter(9, null, event, [], "Phase 0", []);
+      }
 
       const consultFilterStyle = {
         color: consulteeFilter.length === 0 ? "#808080" : "#003366", // Change colors as needed
+      };
+
+      const phaseFilterStyle = {
+        color: phaseFilter.length === 0 ? "#808080" : "#003366", // Change colors as needed
       };
 
       const handleClose = () => {
@@ -573,31 +804,61 @@ const DocumentSelector = React.memo(
         setOpenConsulteeModal(false);
       };  
 
-      const getPageLabel = (file: any, p: number) => {
-        if (isConsult(file.consult, p)) {
-          return `Page ${getStitchedPageNoFromOriginal(
-            file.documentid,
-            p,
-            pageMappedDocs
-          )} (${ministryOrgCode(p, file.consult)})`;
-        } else {
-          return `Page ${getStitchedPageNoFromOriginal(
-            file.documentid,
-            p,
-            pageMappedDocs
-          )}`;
-        }
+      const closePhasesDropdown = () => {
+        setAnchorElPhases(null);
+        setOpenPhaseFilterModal(false);
       };
 
+      const getPageLabel = (file: any, p: number) => {
+        const phaseFlag = file?.pageFlag?.find(
+          (flag: any) => flag.page === p && flag.flagid === pageFlagTypes["Phase"]
+        );
+      
+        const stitchedPageNo = getStitchedPageNoFromOriginal(
+          file.documentid,
+          p,
+          pageMappedDocs
+        );
+      
+        let label = `Page ${stitchedPageNo}`;
+      
+        if (isConsult(file.consult, p)) {
+          label += ` (${ministryOrgCode(p, file.consult)})`;
+        }
+      
+        if (phaseFlag && phaseFlag.phase?.length > 0) {
+          label += ` [Phase ${phaseFlag.phase[0]}]`;
+        }
+      
+        return label;
+      };
+
+      const createPagePhaseSet = (pageFlags : any) => {
+        const pagesWithPhase = new Set();
+        if (!pageFlags) {
+          return pagesWithPhase;
+        }
+        for (let flagObj of pageFlags) {
+          if (flagObj.flagid === pageFlagTypes['Phase']) {
+            pagesWithPhase.add(flagObj.page);
+          }
+        }
+        return pagesWithPhase;
+      }
+      
       const getFilePages = (file: any, division?: any) => {
         if (filterFlags.length > 0) {
+          let pagesWithPhase = new Set();
+          if (phaseFilter?.includes(0) && file.pageFlag) {
+            pagesWithPhase = createPagePhaseSet(file.pageFlag);
+          }
           let filteredpages = file.pages.filter((p: any) => {
-            if (filterFlags?.includes(0) && isUnflagged(file.pageFlag, p)) {
+            if ((filterFlags?.includes(0) || phaseFilter?.includes(0)) && isUnflagged(file.pageFlag, p)) {
               return true;
             } else {
               return file.pageFlag?.find((obj: any) => {
                 if (obj.page === p) {
-                  if (obj.flagid != 4 && filterFlags?.includes(obj.flagid)) {
+                  if (obj.flagid != 4 && obj.flagid != 9 && filterFlags?.includes(obj.flagid)) {
                     return true;
                   } else if (consulteeFilter.length > 0) {
                     if (
@@ -608,7 +869,22 @@ const DocumentSelector = React.memo(
                     ) {
                         return true;
                     }
-                  }                    
+                  }
+                  if (phaseFilter.length > 0) {
+                    if (
+                        obj.phase?.some((val: any) =>
+                          phaseFilter.includes(val)
+                        ) ||
+                        obj.other?.some((val: any) => phaseFilter.includes(val))
+                    ) {
+                        return true;
+                      }
+                  }
+                  if (phaseFilter?.includes(0)) {
+                    if (!pagesWithPhase.has(obj.page)) {
+                      return true;
+                    }
+                  }
                 } else {
                   return false;
                 }
@@ -892,13 +1168,61 @@ const DocumentSelector = React.memo(
             <div>
               <span className="filterText">Filter:</span>
               <span>
-                {pageFlagList.map((item: any) => (
-                  <>
-                    {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
-                      <span
-                        style={consultFilterStyle}
-                        onClick={(event) => openConsulteeList(event)}
-                      >
+                {pageFlagList.map((item: any, index: number) => {
+                  return(
+                    <>
+                      {item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult'] ? (
+                        <span
+                          style={consultFilterStyle}
+                          onClick={(event) => openConsulteeList(event)}
+                        >
+                          <FontAwesomeIcon
+                            key={item.pageflagid}
+                            title={item.name}
+                            className={
+                              item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
+                                ? "filterConsultIcon"
+                                : "filterIcons"
+                            }
+                            id={item.pageflagid}
+                            style={{ color: "inherit" }}
+                            icon={assignIcon(item.pageflagid) as IconProp}
+                            size="1x"
+                          />
+                          <FontAwesomeIcon
+                            className={"filterDropDownIcon"}
+                            icon={faAngleDown as IconProp}
+                            style={{ color: "inherit" }}
+                          />
+                        </span>
+                      ) : ((item.pageflagid == "Phase" || item.pageflagid == pageFlagTypes['Phase'] ) && 
+                        requestInfo?.isphasedrelease )?
+                        <span
+                          style={phaseFilterStyle}
+                          onClick={(event) => openPhaseFilterList(event)}
+                        >
+                        <FontAwesomeIcon
+                        key={item.pageflagid}
+                        title={item.name}
+                        className={
+                          item.pageflagid == "Phase" || item.pageflagid == pageFlagTypes['Phase']
+                            ? "filterConsultIcon"
+                            : "filterIcons"
+                        }
+                        style={{ color: "inherit" }}
+                        id={item.pageflagid}
+                        icon={assignIcon(item.pageflagid) as IconProp}
+                        size="1x"
+                      />
+                      <FontAwesomeIcon
+                        className={"filterDropDownIcon"}
+                        icon={faAngleDown as IconProp}
+                        style={{ color: "inherit" }}
+                      />
+                      </span>
+                    :
+                      item.pageflagid != pageFlagTypes['Phase']&&
+                      (
                         <FontAwesomeIcon
                           key={item.pageflagid}
                           title={item.name}
@@ -907,41 +1231,21 @@ const DocumentSelector = React.memo(
                               ? "filterConsultIcon"
                               : "filterIcons"
                           }
+                          onClick={(event) =>
+                            applyFilter(item.pageflagid, null, event, [], null,[])
+                          }
                           id={item.pageflagid}
-                          style={{ color: "inherit" }}
                           icon={assignIcon(item.pageflagid) as IconProp}
                           size="1x"
                         />
-                        <FontAwesomeIcon
-                          className={"filterDropDownIcon"}
-                          icon={faAngleDown as IconProp}
-                          style={{ color: "inherit" }}
-                        />
-                      </span>
-                    ) : (
-                      <FontAwesomeIcon
-                        key={item.pageflagid}
-                        title={item.name}
-                        className={
-                          item.pageflagid == "Consult" || item.pageflagid == pageFlagTypes['Consult']
-                            ? "filterConsultIcon"
-                            : "filterIcons"
-                        }
-                        onClick={(event) =>
-                          applyFilter(item.pageflagid, null, event, [])
-                        }
-                        id={item.pageflagid}
-                        icon={assignIcon(item.pageflagid) as IconProp}
-                        size="1x"
-                      />
-                    )}
-                  </>
-                ))}
+                      )}
+                    </>
+                  )})}
                 <FontAwesomeIcon
                   key="0"
                   title="No Flag"
                   className="filterIcons"
-                  onClick={(event) => applyFilter(0, null, event, [])}
+                  onClick={(event) => applyFilter(0, null, event, [], null,[])}
                   id="0"
                   icon={faCircleExclamation as IconProp}
                   size="1x"
@@ -984,6 +1288,57 @@ const DocumentSelector = React.memo(
                   {showConsultee(assignedConsulteeList)}
                 </div>
               </Popover>
+              <Popover
+                anchorEl={anchorElPhases}
+                open={openPhaseFilterModal}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "center",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "center",
+                }}
+                slotProps={{
+                  paper: { style: { marginTop: "10px", padding: "10px" } },
+                }}
+                onClose={() => closePhasesDropdown()}
+              >
+                <div className="consultDropDown">
+                  <div className="heading">
+                    <div className="consulteeItem">
+                      <span style={{ marginRight: "10px" }}>
+                        <input
+                          type="checkbox"
+                          id={`phase-checkbox-all`}
+                          checked={selectAllPhases}
+                          disabled={selectNoPhases}
+                          onChange={(e) => {
+                            selectAllPhase(assignedPhases, e);
+                          }}
+                        />
+                      </span>
+                      <label htmlFor={`phase-checkbox-all`}>Select All</label>
+                    </div>
+                    <hr className="hrStyle" />
+                  </div>
+                  <div className="consulteeItem">
+                    <span style={{ marginRight: "10px" }}>
+                      <input
+                        type="checkbox"
+                        id={`phase-checkbox-nophase`}
+                        checked={selectNoPhases}
+                        disabled={(phaseFilter.length > 0 && !phaseFilter.includes(0)) || selectAllPhases}
+                        onChange={(e) => {
+                          selectNoPhase(e)
+                        }}
+                      />
+                    </span>
+                    <label htmlFor={`phase-checkbox-nophase`}>No Phase</label>
+                  </div>
+                  {showPhase(assignedPhases)}
+                </div>
+              </Popover>
             </div>
             <hr className="hrStyle" />
             <div className="row counters">
@@ -1015,6 +1370,7 @@ const DocumentSelector = React.memo(
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
                   requestInfo={requestInfo}
+                  pageFlagTypes={pageFlagTypes}
                 />
               )
             }

@@ -24,13 +24,25 @@ class jobrecordservice:
                     ministryrequestid=message['ministryrequestid'],
                     inputfiles=message['inputfiles'],
                     status='pushedtostream',
-                    category= message['category'],
+                    category= self.__assigncategory(message['category']),
                     createdby=userid
                 )
         job = PDFStitchJob.insert(row)
         return job
     
+    def __assigncategory(self, category):
+        if "phase" in category:
+            if "redline" in category:
+                return "redline"
+            else:
+                return "responsepackage"
+        return category
+    
     def getpdfstitchjobstatus(self, requestid, category):
+        if category == "redlinephase" or category == "responsepackagephase":
+            package = "redline" if category == 'redlinephase' else "responsepackage"
+            job = PDFStitchJob.getpdfstitchjobphasestatuses(requestid, package)
+            return job
         job = PDFStitchJob.getpdfstitchjobstatus(requestid, category)
         return job
     
@@ -131,7 +143,7 @@ class jobrecordservice:
         job = PageCalculatorJob.insert(row)
         return job
     
-    def insertfeeoverridereason(self, message, pdfstitchjobid, userid):
+    def insertpdfstitchjobattributes(self, message, pdfstitchjobid, userid):
         row = PDFStitchJobAttributes(
                     pdfstitchjobid=pdfstitchjobid,
                     version=1,

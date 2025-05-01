@@ -1,7 +1,7 @@
 from .db import db, ma
 from datetime import datetime as datetime2
 from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, text
 from .default_method_result import DefaultMethodResult
 from .DocumentDeleted import DocumentDeleted
 from .DocumentMaster import DocumentMaster
@@ -48,6 +48,7 @@ class PDFStitchJob(db.Model):
                 .filter(
                     PDFStitchJob.ministryrequestid == requestid,
                     func.lower(PDFStitchJob.category).ilike(f"%{category.lower()}%"),
+                    PDFStitchJob.inputfiles[0]['phase'].astext.is_(None)
                 )
                 .order_by(
                     PDFStitchJob.pdfstitchjobid.desc(), PDFStitchJob.version.desc()
@@ -55,6 +56,25 @@ class PDFStitchJob(db.Model):
                 .first()
             )
             return pdfstitchjobschema.dump(query)
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
+    def getpdfstitchjobphasestatuses(cls, requestid, category):
+        try:
+            # sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchJob" 
+            # WHERE category LIKE :category AND ministryrequestid = :requestid AND category NOT LIKE '%-summary' 
+            # ORDER BY category, pdfstitchjobid DESC, version DESC;
+            # """
+            sql = """SELECT DISTINCT ON (inputfiles->0->>'phase') inputfiles->0->>'phase' AS Phase, * FROM public."PDFStitchJob" 
+            WHERE category LIKE :category AND ministryrequestid = :requestid AND inputfiles->0->>'phase' is not NULL
+            ORDER BY Phase, pdfstitchjobid DESC, version DESC;
+            """
+            res = db.session.execute(text(sql), {'category': category, 'requestid': int(requestid)})
+            pdfstitchjobsstatuses = [{'category': row['category'], 'status': row['status'], 'ministryrequestid': row['ministryrequestid'], 'phase': int(row['phase'])} for row in res]
+            return pdfstitchjobsstatuses
         except Exception as ex:
             logging.error(ex)
         finally:
