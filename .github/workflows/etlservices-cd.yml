@@ -25,7 +25,7 @@ env:
   TOOLS_NAME: "${{secrets.OPENSHIFT4_REPOSITORY}}"
 
 jobs:
-  openinfoservice-cd-by-push:
+  etlservices-cd-by-push:
     runs-on: ubuntu-24.04
 
     if: github.event_name == 'push' && github.repository == 'bcgov/foi-docreviewer'
