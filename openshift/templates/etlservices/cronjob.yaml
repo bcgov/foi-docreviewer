@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: etl-task
 spec:
-  schedule: "0 2 * * *"  # Runs daily at 2:00 AM
+  schedule: "59 23 * * *"  # Runs daily at 11:59 AM
   timeZone: America/Vancouver
   jobTemplate:
     spec:
