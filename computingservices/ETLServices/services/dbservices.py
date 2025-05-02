@@ -62,13 +62,9 @@ def get_all_data(table_name, connection):
 
 def get_table_list(connection):
     """
-    Retrieves data from PostgreSQL tables that were created or updated today.
+    Retrieves lists of tables from PostgreSQL DB.
 
-    Args:
-        conn_params (dict): Database connection parameters.
-
-    Returns:
-        dict: Table names as keys, lists of rows as values.
+    return : dict of lists of tables with different timestamp columns.
     """
     table_list = {
         "table_with_created_completed_on": [],  #special case for Payments table
