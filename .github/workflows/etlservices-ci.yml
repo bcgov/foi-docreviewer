@@ -1,0 +1,51 @@
+name: ETL Services CI
+
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - dev-marshal
+      - test-marshal
+      - dev-rook
+      - test-rook
+    paths:
+      - "computingservices/ETLServices/**"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./computingservices/ETLServices
+
+jobs:
+  docker-build-check:
+    runs-on: ubuntu-latest
+    name: Build dockerfile to ensure it works
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker build to check strictness
+        id: docker-build
+        run: |
+          docker build -f Dockerfile .
+
+  go-build-check:
+    runs-on: ubuntu-latest
+    name: Build python to ensure it works
+
+    strategy:
+      matrix:
+        # python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi

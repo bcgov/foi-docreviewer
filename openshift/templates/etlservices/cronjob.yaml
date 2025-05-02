@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etl-task
+spec:
+  schedule: "0 2 * * *"  # Runs daily at 2:00 AM
+  timeZone: America/Vancouver
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: etl-task
+            image: image-registry.openshift-image-registry.svc:5000/d106d6-tools/reviewer-etlservices:dev
+            envFrom:
+            - secretRef:
+                name: etlservices-secret  # Reference to the secret containing env variables
+            imagePullPolicy: IfNotPresent
+            command: ["python", "foidbdailybackup.py"]  # Command to run your Python script
+          restartPolicy: OnFailure
