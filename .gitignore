@@ -27,7 +27,7 @@ computingservices/DedupeServices/env/*
 computingservices/PDFStitchServices/env/*
 computingservices/ZippingServices/env/*
 computingservices/PageCountCalculator/env/*
-
+computingservices/ETLServices/env/*
 
 ################################################################################
 # The following is for file conversion
