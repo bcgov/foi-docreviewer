@@ -51,7 +51,7 @@ jobs:
         run: |
           echo "For ${{ github.ref_name }} branch"
           echo "TAG_NAME=dev" >> $GITHUB_ENV
-          echo "BRANCH_NAME=dev" >> $GITHUB_ENV
+          echo "BRANCH_NAME=dev-RQ-FOIMOD-3829" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
 
       - name: Set ENV variables for main branch
