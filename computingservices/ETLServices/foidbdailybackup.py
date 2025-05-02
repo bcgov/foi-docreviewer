@@ -8,7 +8,7 @@ from services.s3services import upload_to_s3
 from utils.util import get_date_from_command_line
 from dotenv import dotenv_values
 
-is_local_test = True
+is_local_test = False  # Set to True for local testing
 if is_local_test:
     # Load environment variables from .env file for local testing
     env = dotenv_values(".env")
