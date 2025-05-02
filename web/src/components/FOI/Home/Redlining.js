@@ -242,15 +242,20 @@ const Redlining = React.forwardRef(
           parsedData.documents.forEach(document => {
             document.entities.forEach(entity => {
               var matches = false;
-              for (let pattern of PIICategories) {
-                if (pattern === 'Age') {
+              for (let category of PIICategories) {
+                if (category === 'Age') {
                   if (entity.subcategory === 'Age') {
                     matches = true;
                     break;
                   }
-                } else {
-                  const regex = new RegExp(pattern);
+                } else if (category === 'PassportNumber') {
+                  const regex = new RegExp(category)
                   if (regex.test(entity.category)) {
+                    matches = true;
+                    break;
+                  }
+                } else {
+                  if (entity.category === category) {
                     matches = true;
                     break;
                   }
