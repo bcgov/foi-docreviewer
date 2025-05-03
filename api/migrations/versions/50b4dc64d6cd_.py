@@ -28,8 +28,7 @@ def upgrade():
         sa.Column('filename', sa.String(length=500), nullable=False), 
         sa.Column('status', sa.String(length=120), nullable=False), 
         sa.Column('message', sa.Text, nullable=True),
-        sa.Column('inputdocumentmasterid', sa.Integer(), nullable=False), 
-        sa.Column('outputdocumentmasterid', sa.Integer(), nullable=True), 
+        sa.Column('documentmasterid', sa.Integer(), nullable=False), 
         sa.PrimaryKeyConstraint('compressionjobid', 'version')
     )
     # ### end Alembic commands ###

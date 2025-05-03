@@ -3,6 +3,8 @@ from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
+from reviewer_api.models.CompressionJob import CompressionJob
+from reviewer_api.models.DocumentProcesses import DocumentProcesses
 from datetime import datetime as datetime2, timezone
 from os import path
 from reviewer_api.models.DocumentDeleted import DocumentDeleted
@@ -25,22 +27,30 @@ class documentservice:
         records = DocumentMaster.getdocumentmaster(requestid)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
+        compressions = CompressionJob.getcompressionstatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
         redactions = DocumentMaster.getredactionready(requestid)
+        print("\n\nrecords :",records)
+        #print("\nCompressions :",compressions)
+
+        print("\n\nproperties :",properties)
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
             record["ministryrequestid"] = requestid
             record["isattachment"] = True if record["parentid"] is not None else False
             record["created_at"] = pstformat(record["created_at"])
-            record["conversionstatus"] = record["deduplicationstatus"] = None
-            record["isredactionready"] = False
+            record["conversionstatus"] = record["deduplicationstatus"] = record["compressionstatus"]= None
+            record["isredactionready"] = False #For duplicate scenario its added- check that after commenting
             record = self.__updatecoversionstatus(conversions, record)
             record = self.__updatededupestatus(dedupes, record)
+            record= self.__updatecompressionstatus(compressions, record)
             record = self.__updateredactionstatus(redactions, record)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
+            print("\n\neach RECORD:",record)
+            
         # Duplicate check
         finalresults = []
         (
@@ -61,7 +71,8 @@ class documentservice:
                     attachmentsrecords,
                 )
                 finalresults.append(finalresult)
-
+                print("\n\nid :",record["recordid"])
+                print("\n\nfinalresult :",finalresult)
         return finalresults
 
     def __updateproperties(
@@ -136,6 +147,7 @@ class documentservice:
         parentswithattachments = []
         attchments = []
         for record in records:
+            print("record---",record)
             if record["recordid"] is not None:
                 parentrecords.append(record)
             if "attachments" in record and len(record["attachments"]) > 0:
@@ -206,11 +218,12 @@ class documentservice:
         filtered = []
         for record in records:
             for property in properties:
-                if property["processingparentid"] == record["documentmasterid"] or (
+                if (property["processingparentid"] == record["documentmasterid"] or (
                     property["processingparentid"] is None
                     and record["documentmasterid"] == property["documentmasterid"]
-                ):
+                )) or (property["createdby"]=="compressionservice" and record["documentmasterid"] == property["documentmasterid"]):
                     filtered.append(property)
+                    print("filtered?-",filtered)
         return filtered
 
     def __getattachmentproperties(self, attachments, properties):
@@ -246,7 +259,7 @@ class documentservice:
         return record
 
     def __updatededupestatus(self, dedupes, record):
-        for dedupe in dedupes:
+        for dedupe in dedupes:   
             if record["documentmasterid"] == dedupe["documentmasterid"]:
                 record["deduplicationstatus"] = dedupe["status"]
                 record["filename"] = dedupe["filename"]
@@ -254,51 +267,61 @@ class documentservice:
                 record["message"] = dedupe["message"]
         return record
 
-    def __updateproperties_old(self, properties, records, record):
-        for property in properties:
-            if record["documentmasterid"] == property["processingparentid"] or (
-                property["processingparentid"] is None
-                and record["documentmasterid"] == property["documentmasterid"]
-            ):
-                record["pagecount"] = property["pagecount"]
-                (
-                    record["isduplicate"],
-                    record["duplicatemasterid"],
-                    record["duplicateof"],
-                ) = self.__isduplicate(properties, record)
-                record["filename"] = property["filename"]
-        """Begin        
-        Below block is a temporary workaround to verify duplicate in msg.
-        This verifies the duplicate with the parent hashcode and filename
-        """
-        if (
-            record["isduplicate"] == False
-            and record["parentid"] is not None
-            and record["filepath"].endswith(".msg")
-        ):
-            _uploaded = self.__getuploadedrecord(records, record["parentid"])
-            _occurances = [d for d in properties if d["filename"] == record["filename"]]
-            if len(_occurances) > 1:
-                (
-                    record["isduplicate"],
-                    record["duplicatemasterid"],
-                    record["duplicateof"],
-                ) = self.__isduplicate(properties, _uploaded)
-                if record["isduplicate"] == True:
-                    filtered = [
-                        x["processingparentid"]
-                        for x in properties
-                        if x["filename"] == record["filename"]
-                    ]
-                    record["duplicatemasterid"] = min(filtered)
-                    record["duplicateof"] = self.__getduplicateof(
-                        properties, record, record["duplicatemasterid"]
-                    )
-        """End
-
-        Duplicate block check end
-        """
+    def __updatecompressionstatus(self, compressions, record):
+        for compression in compressions:
+            if record["documentmasterid"] == compression["documentmasterid"]:
+                record["compressionstatus"] = compression["status"]
+                record["filename"] = compression["filename"]
+                record["trigger"] = compression["trigger"]
+                if "message" not in record or record["message"] in (None, '') :
+                    record["message"] = compression["message"]
         return record
+
+    # def __updateproperties_old(self, properties, records, record):
+    #     for property in properties:
+    #         if record["documentmasterid"] == property["processingparentid"] or (
+    #             property["processingparentid"] is None
+    #             and record["documentmasterid"] == property["documentmasterid"]
+    #         ):
+    #             record["pagecount"] = property["pagecount"]
+    #             (
+    #                 record["isduplicate"],
+    #                 record["duplicatemasterid"],
+    #                 record["duplicateof"],
+    #             ) = self.__isduplicate(properties, record)
+    #             record["filename"] = property["filename"]
+    #     """Begin        
+    #     Below block is a temporary workaround to verify duplicate in msg.
+    #     This verifies the duplicate with the parent hashcode and filename
+    #     """
+    #     if (
+    #         record["isduplicate"] == False
+    #         and record["parentid"] is not None
+    #         and record["filepath"].endswith(".msg")
+    #     ):
+    #         _uploaded = self.__getuploadedrecord(records, record["parentid"])
+    #         _occurances = [d for d in properties if d["filename"] == record["filename"]]
+    #         if len(_occurances) > 1:
+    #             (
+    #                 record["isduplicate"],
+    #                 record["duplicatemasterid"],
+    #                 record["duplicateof"],
+    #             ) = self.__isduplicate(properties, _uploaded)
+    #             if record["isduplicate"] == True:
+    #                 filtered = [
+    #                     x["processingparentid"]
+    #                     for x in properties
+    #                     if x["filename"] == record["filename"]
+    #                 ]
+    #                 record["duplicatemasterid"] = min(filtered)
+    #                 record["duplicateof"] = self.__getduplicateof(
+    #                     properties, record, record["duplicatemasterid"]
+    #                 )
+    #     """End
+
+    #     Duplicate block check end
+    #     """
+    #     return record
 
     def __updateredactionstatus(self, redactions, record):
         for entry in redactions:
@@ -310,16 +333,22 @@ class documentservice:
         return record
 
     def __isduplicate(self, properties, record):
+        print("parentproperties",properties)
+
         matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
         duplicateof = record["filename"] if "filename" in record else None
         for property in properties:
+            print("property:",property)
+
             if property["processingparentid"] == record["documentmasterid"] or (
                 property["processingparentid"] is None
                 and record["documentmasterid"] == property["documentmasterid"]
             ):
                 matchedhash = property["rank1hash"]
+                print("\nmatchedhash:",matchedhash)
+
         filtered = []
         for x in properties:
             if x["rank1hash"] == matchedhash:
@@ -329,6 +358,7 @@ class documentservice:
                     else x["documentmasterid"]
                 )
                 filtered.append(value)
+        print("\nFiltered:",filtered)
         if len(filtered) > 1 and filtered not in (None, []):
             originalid = min(filtered)
             if originalid != record["documentmasterid"]:
@@ -577,4 +607,13 @@ class documentservice:
             if state['status'] == StateName.response.value and isresponsephasecompleted == False:    
                 isresponsephasecompleted = True    
         return generatedbefore if isresponsephasecompleted == True else None
+    
+    def updateselectedfileprocessversion(self, request_json, userid):
+        recordids = request_json["requestids"]
+        ministryrequestid = request_json["ministryrequestid"]
+        recordretrieveversion = request_json["recordretrieveversion"]
+        selectedfileprocessversion = DocumentProcesses.getdocumentprocessbyname("compression")
+        if recordretrieveversion == 'retrive_uncompressed' or "uncompressed" in recordretrieveversion:
+            selectedfileprocessversion= DocumentProcesses.getdocumentprocessbyname("dedupe")
+        return Document.updateselectedfileprocessversion(ministryrequestid,recordids,selectedfileprocessversion, userid)
         

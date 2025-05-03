@@ -34,6 +34,7 @@ class Document(db.Model):
     originalpagecount = db.Column(db.Integer, nullable=True)
     pagecount = db.Column(db.Integer, nullable=True)
     incompatible = db.Column(db.Boolean, nullable=True)
+    selectedfileprocessversion= db.Column(db.Integer, db.ForeignKey('DocumentProcesses.processid'))
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
     documentmaster = relationship("DocumentMaster", backref=backref("DocumentMaster"), uselist=False)
 
@@ -424,6 +425,36 @@ class Document(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def updateselectedfileprocessversion(cls, ministryrequestid, recordids, selectedfileprocessversion, userid):
+        try:
+            # disable old rows
+            # sql =   """ update "Documents"
+            #             set isactive = False
+            #             where recordid in ("""+ ','.join([str(id) for id in recordids]) +""")
+            #         """
+            sql =   """ update "Documents"
+                        set selectedfileprocessversion = :selectedfileprocessversion,
+                        updatedby= :userid,
+                        updated_at=now()
+                        where 'ministryrequestid'= :ministryrequestid 
+                        and recordid in :recordids
+                        and a.isactive = True)
+                    """
+            db.session.execute(text(sql), 
+                    {'userid':userid,
+                     'ministryrequestid': ministryrequestid, 
+                     'selectedfileprocessversion':selectedfileprocessversion, 
+                     'recordids':tuple(recordids)})
+
+            db.session.commit()
+            return DefaultMethodResult(True,'Documentprocessversion updated for Documents')
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+
 class DocumentSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount')
+        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount', 'selectedfileprocessversion')

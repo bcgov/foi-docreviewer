@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"compressionservices/models"
 	"compressionservices/rstreamio"
 	"compressionservices/services"
 	"compressionservices/utils"
@@ -32,107 +33,189 @@ const (
 )
 
 func Start(consumerID string, startFrom StartFrom, cfg *utils.Config) {
-	STREAM_KEY := cfg.CompressionStreamKey
-	fmt.Printf("STREAM_KEY:%s\n", STREAM_KEY)
+	streamKey := cfg.CompressionStreamKey
+	fmt.Printf("STREAM_KEY: %s\n", streamKey)
 
 	rdb := utils.CreateRedisClient()
-
-	stream := STREAM_KEY
 	lastIDKey := fmt.Sprintf(LAST_ID_KEY, consumerID)
+	lastID := fetchLastID(rdb, lastIDKey, startFrom)
 
-	lastID, err := rdb.Get(ctx, lastIDKey).Result()
-	fmt.Printf("lastID:%s\n", lastID)
-	//fmt.Printf("err:%s\n", err)
-
-	// if last_id:
-	// 	print(f"Resume from ID: {last_id}")
-	// else:
-	// 	last_id = start_from.value
-	// 	print(f"Starting from {start_from.name}")
-	if err == redis.Nil {
-		lastID = string(startFrom)
-		fmt.Printf("Starting from %s\n", startFrom)
-	} else if err == nil {
-		fmt.Printf("Resume from ID: %s\n", lastID)
-	} else {
-		log.Fatalf("Error fetching last ID: %v", err)
-	}
-	// Create an instance of RedisStreamWriter
-	redisStreamWriter := rstreamio.NewRedisStreamWriter(rdb, STREAM_KEY)
-	fmt.Printf("where is the rest of it?")
 	for {
-		fmt.Printf("?????")
-
-		messages, err := rdb.XRead(ctx, &redis.XReadArgs{
-			Streams: []string{stream, lastID},
-			Block:   BLOCK_TIME,
-		}).Result()
-
+		messages, err := readStream(rdb, streamKey, lastID)
 		if err != nil && err != redis.Nil {
 			fmt.Printf("Error reading stream: %v\n", err)
 			continue
 		}
-
 		for _, stream := range messages {
 			for _, msg := range stream.Messages {
-				fmt.Printf("processing-%v\n", msg)
-
-				messageJSON := make(map[string]any)
-				maps.Copy(messageJSON, msg.Values)
-				casted := castRedisMessage(messageJSON)
-				messageBytes, _ := json.Marshal(casted)
-
-				fmt.Printf("messageJSON-%v\n\n", messageJSON)
-				fmt.Printf("casted-%v\n\n", casted)
-
-				func() {
-					defer func() {
-						if r := recover(); r != nil {
-							fmt.Printf("Exception while processing redis message, func start(p1), Error : %v\n", r)
-						}
-					}()
-					producermessage, err := utils.GetCompressionProducerMessage(messageBytes)
-					if err != nil {
-						// Handle error
-						fmt.Printf("Error:%v\n", err)
-						return
-					}
-					fmt.Printf("producermessage:%v\n", producermessage)
-					services.ProcessMessage(producermessage)
-					complete, error := services.IsBatchCompleted(producermessage.Batch)
-					if error {
-						// Handle error
-						fmt.Printf("Error:%v\n", err)
-						return
-					}
-					if complete {
-						redisStreamWriter.SendNotification(producermessage, error)
-					} else {
-						fmt.Printf("batch not yet complete, no message sent")
-					}
-				}()
+				if err := processStreamMessage(rdb, lastIDKey, msg); err != nil {
+					fmt.Printf("Error processing message ID %s: %v\n", msg.ID, err)
+					//continue // skip this message, don't stop entire processing
+				}
 				lastID = msg.ID
-				rdb.Set(ctx, lastIDKey, lastID, 0)
-				fmt.Printf("finished processing %s\n", msg.ID)
 			}
 		}
 	}
 }
 
+func fetchLastID(rdb *redis.Client, lastIDKey string, startFrom StartFrom) string {
+	lastID, err := rdb.Get(ctx, lastIDKey).Result()
+	if err == redis.Nil {
+		fmt.Printf("Starting from %s\n", startFrom)
+		return string(startFrom)
+	} else if err != nil {
+		log.Fatalf("Error fetching last ID: %v", err)
+	}
+	fmt.Printf("Resume from ID: %s\n", lastID)
+	return lastID
+}
+
+func readStream(rdb *redis.Client, stream, lastID string) ([]redis.XStream, error) {
+	return rdb.XRead(ctx, &redis.XReadArgs{
+		Streams: []string{stream, lastID},
+		Block:   BLOCK_TIME,
+	}).Result()
+}
+
+func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessage) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Recovered from panic while processing message ID %s: %v\n", msg.ID, r)
+		}
+	}()
+	fmt.Printf("Processing message: %v\n\n", msg)
+	messageJSON := make(map[string]any)
+	maps.Copy(messageJSON, msg.Values)
+	casted := castRedisMessage(messageJSON)
+	messageBytes, err := json.Marshal(casted)
+	if err != nil {
+		return fmt.Errorf("error marshaling message: %w", err)
+	}
+	producerMessage, err := utils.GetCompressionProducerMessage(messageBytes)
+	if err != nil {
+		return fmt.Errorf("error decoding producer message: %w", err)
+	}
+	fmt.Printf("producerMessage: %v\n", producerMessage)
+	// Only now — after all success — process the message
+	services.ProcessMessage(producerMessage)
+	complete, hasError := services.IsBatchCompleted(producerMessage.Batch)
+	if hasError {
+		log.Fatalf("error checking batch completion")
+	}
+	fmt.Printf("Batch completed:%v\n", complete)
+	//Placeholder for notification logic
+	if complete {
+		rstreamio.SendNotification(producerMessage, hasError)
+	} else {
+		fmt.Printf("Batch not yet complete, no message sent")
+	}
+	// Update last processed ID
+	if err := rdb.Set(ctx, lastIDKey, msg.ID, 0).Err(); err != nil {
+		return fmt.Errorf("error saving last ID to Redis: %w", err)
+	}
+	fmt.Printf("Finished processing message ID %s\n", msg.ID)
+	return nil
+}
+
 func castRedisMessage(msg map[string]any) map[string]any {
 	result := make(map[string]any)
 	for k, v := range msg {
-		strVal, _ := v.(string)
-		switch k {
-		case "inputdocumentmasterid", "jobid":
-			intVal, _ := strconv.Atoi(strVal)
-			result[k] = intVal
-		// case "incompatible":
-		// 	boolVal := strVal == "1" || strVal == "true"
-		// 	result[k] = boolVal
-		default:
-			result[k] = strVal
-		}
+		result[k] = castField(k, v)
 	}
 	return result
+}
+
+func castField(key string, value any) any {
+	strVal, _ := value.(string)
+	switch key {
+	case "jobid", "ministryrequestid", "documentmasterid",
+		"outputdocumentmasterid", "originaldocumentmasterid":
+		return parseInt(strVal)
+	case "attributes":
+		return parseAttributes(strVal)
+	case "incompatible":
+		return castBool(value)
+	default:
+		return strVal
+	}
+}
+
+func parseInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
+}
+
+func parseAttributes(attrStr string) any {
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(attrStr), &raw); err != nil {
+		return attrStr // fallback if not valid JSON
+	}
+	parsed := make(map[string]any)
+	for k, v := range raw {
+		parsed[k] = castAttributeField(k, v)
+	}
+	return parsed
+}
+
+func castAttributeField(key string, value any) any {
+	switch key {
+	case "filesize", "compressedsize", "convertedfilesize":
+		return castNumeric(value)
+	case "incompatible", "isattachment":
+		return castBool(value)
+	case "divisions":
+		return castDivisions(value)
+	default:
+		return value
+	}
+}
+
+func castNumeric(v any) int {
+	switch val := v.(type) {
+	case string:
+		i, _ := strconv.Atoi(val)
+		return i
+	case float64:
+		return int(val)
+	default:
+		return 0
+	}
+}
+
+func castBool(v any) bool {
+	switch val := v.(type) {
+	case string:
+		return val == "1" || val == "true"
+	case bool:
+		return val
+	default:
+		return false
+	}
+}
+
+func castDivisions(v any) []models.Division {
+	divisions := []models.Division{}
+	items, ok := v.([]any)
+	if !ok {
+		return divisions
+	}
+	for _, item := range items {
+		if itemMap, ok := item.(map[string]any); ok {
+			id := castDivisionID(itemMap["divisionid"])
+			divisions = append(divisions, models.Division{DivisionID: id})
+		}
+	}
+	return divisions
+}
+
+func castDivisionID(v any) int {
+	switch val := v.(type) {
+	case string:
+		i, _ := strconv.Atoi(val)
+		return i
+	case float64:
+		return int(val)
+	default:
+		return 0
+	}
 }

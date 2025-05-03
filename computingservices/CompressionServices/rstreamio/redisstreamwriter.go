@@ -2,8 +2,8 @@ package rstreamio
 
 import (
 	"compressionservices/models"
+	"compressionservices/utils"
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -12,6 +12,7 @@ import (
 
 // Assuming you have a global redis client
 var rdb *redis.Client
+var streamKey = utils.ViperEnvVariable("NOTIFICATION_STREAM_KEY")
 
 // NotificationPublishSchema is the Go equivalent of your notification schema
 type NotificationPublishSchema struct {
@@ -30,11 +31,16 @@ type RedisStreamWriter struct {
 }
 
 // NewRedisStreamWriter initializes and returns a new RedisStreamWriter
-func NewRedisStreamWriter(redisClient *redis.Client, streamKey string) *RedisStreamWriter {
+func NewRedisStreamWriter(redisClient *redis.Client) *RedisStreamWriter {
 	return &RedisStreamWriter{
 		rdb:                redisClient,
 		notificationStream: streamKey,
 	}
+}
+
+func SendNotification(message *models.CompressionProducerMessage, errorFlag bool) {
+	writer := NewRedisStreamWriter(rdb)
+	writer.SendNotification(message, errorFlag)
 }
 
 // SendNotification sends a notification to the Redis stream
@@ -64,30 +70,30 @@ func (w *RedisStreamWriter) SendNotification(message *models.CompressionProducer
 }
 
 // ReadFromStream reads messages from the Redis stream
-func (w *RedisStreamWriter) ReadFromStream() {
-	ctx := context.Background()
+// func (w *RedisStreamWriter) ReadFromStream() {
+// 	ctx := context.Background()
 
-	// XReadGroup is used for reading from the stream as part of a consumer group
-	streams, err := w.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
-		Group:    "compression-group", // Replace with your group name
-		Consumer: "consumer1",         // Replace with your consumer name
-		Streams:  []string{w.notificationStream},
-		Block:    0, // Block indefinitely if no message is available
-		Count:    1, // Read only 1 message at a time
-	}).Result()
+// 	// XReadGroup is used for reading from the stream as part of a consumer group
+// 	streams, err := w.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
+// 		Group:    "compression-group", // Replace with your group name
+// 		Consumer: "consumer1",         // Replace with your consumer name
+// 		Streams:  []string{w.notificationStream},
+// 		Block:    0, // Block indefinitely if no message is available
+// 		Count:    1, // Read only 1 message at a time
+// 	}).Result()
 
-	if err != nil {
-		log.Printf("Error while reading from the stream: %v", err)
-		return
-	}
+// 	if err != nil {
+// 		log.Printf("Error while reading from the stream: %v", err)
+// 		return
+// 	}
 
-	// Handle the received message
-	for _, stream := range streams {
-		for _, message := range stream.Messages {
-			fmt.Printf("Received message: %v\n", message.Values)
-		}
-	}
-}
+// 	// Handle the received message
+// 	for _, stream := range streams {
+// 		for _, message := range stream.Messages {
+// 			fmt.Printf("Received message: %v\n", message.Values)
+// 		}
+// 	}
+// }
 
 // Helper function to convert a boolean to "YES" or "NO" string
 func boolToStr(value bool) string {
@@ -96,38 +102,3 @@ func boolToStr(value bool) string {
 	}
 	return "NO"
 }
-
-// import logging
-// from utils import redisstreamdb, notification_stream_key
-// from rstreamio.message.schemas.notification import NotificationPublishSchema
-// #from models import dedupeproducermessage
-// from datetime import datetime
-
-// import json
-
-// class redisstreamwriter:
-
-//     rdb = redisstreamdb
-//     notificationstream = rdb.Stream(notification_stream_key)
-
-//     def sendnotification(self, message, error=False):
-//         try:
-//             notification_msg = NotificationPublishSchema()
-//             notification_msg.serviceid = "compression"
-//             notification_msg.errorflag = self.__booltostr(error)
-//             notification_msg.ministryrequestid = message.ministryrequestid
-//             notification_msg.createdby = message.createdby
-//             notification_msg.createdat = datetime.now().strftime("%m/%d/%Y, %H:%M:%S.%f")
-//             notification_msg.batch = message.batch
-//             #Additional execution parameters : Begin
-
-//             #Additional execution parameters : End
-//             msgid = self.notificationstream.add(notification_msg.__dict__, id="*")
-//             logging.info("Notification message for msgid = %s ",  msgid)
-//         except RuntimeError as error:
-//             print("Exception while sending notification, func sendnotification(p4), Error : {0} ".format(error))
-//             logging.error("Unable to write to notification stream for batch %s | ministryrequestid=%i", message.batch, message.ministryrequestid)
-//             logging.error(error)
-
-//     def __booltostr(self, value):
-//         return "YES" if value == True else "NO"
