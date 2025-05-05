@@ -65,7 +65,7 @@ class documentpageflagservice:
         for pageflag in pageflags:
             if self.__isbookmark(pageflag) == True:
                 self.removebookmark(requestid, redactionlayerid, userinfo, [documentid])
-            docpgattributes = self.handlepublicbody(docpgattributes, pageflag)
+            docpgattributes = self.handlepageflagattributes(docpgattributes, pageflag)
             docpageflags = self.__createnewpageflag(docpageflags, pageflag)
         __docpgattributes = json.dumps(docpgattributes) if docpgattributes not in (None, "") else None
         __docpageflags = json.dumps(docpageflags) if docpageflags not in (None, "") else None
@@ -99,8 +99,9 @@ class documentpageflagservice:
                     }
                 )
         return results
+    
 
-    def handlepublicbody(self, docpgattributes, data):
+    def handlepageflagattributes(self, docpgattributes, data):
         if "publicbodyaction" in data and data["publicbodyaction"] == "add":
             attributes = docpgattributes if docpgattributes not in (None, {}) else None
             publicbody = (
@@ -156,19 +157,31 @@ class documentpageflagservice:
             filtered.append(formatted_data)
         else:
             flag_consult = [x for x in match if x['flagid'] == 4]
-            flag_nonconsults = [x for x in match if x['flagid'] != 4]            
-            if data['deleted'] == True: 
+            flag_nonconsults = [x for x in match if x['flagid'] != 4]
+            flag_nonconsultsorphases = [x for x in match if x['flagid'] not in [4,9]]  
+            flag_phase = [x for x in match if x['flagid'] == 9]
+            flag_nonphase = [x for x in match if x['flagid'] != 9]
+            if data['deleted'] == True:
                 if data['flagid'] == 0:
-                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsults) == True:
-                        return filtered + flag_consult
+                    if self.__isdeleteallowed(data['redactiontype'], flag_nonconsultsorphases) == True:
+                        return filtered + flag_consult + flag_phase
                     else:
                         return filtered + flag_consult + flag_nonconsults
-                return filtered + flag_nonconsults               
+                elif data['flagid'] == 9:
+                    return filtered + flag_nonphase
+                return filtered + flag_nonconsults   
+                #return filtered + flag_nonconsultsorphases            
             #Below block will only be executed during updates
             if data['flagid'] != 4 and len(flag_consult) > 0:
                 filtered = filtered + flag_consult
-            if data['flagid'] == 4 and len(flag_nonconsults) > 0:
-                filtered = filtered + flag_nonconsults            
+            if data['flagid'] == 4 and len(flag_nonconsultsorphases) > 0:
+                filtered = filtered + flag_nonconsultsorphases  
+            if data['flagid'] != 9 and len(flag_phase) > 0:
+                filtered = filtered + flag_phase
+            if data['flagid'] == 9 and len(flag_nonconsultsorphases) > 0:
+                filtered = filtered + flag_nonconsultsorphases
+
+
             filtered.append(formatted_data)
         return filtered
     

@@ -10,7 +10,7 @@ import { triggerDownloadFinalPackage } from "../../../../apiManager/services/doc
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 
-const useSaveResponsePackage = () => {
+const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
@@ -102,6 +102,7 @@ const useSaveResponsePackage = () => {
     };
     const zipDocObj = {
       files: [],
+      phase: redlinePhase ? redlinePhase : null
     };
     zipDocObj.files.push(file);
 
@@ -135,7 +136,6 @@ const useSaveResponsePackage = () => {
   const prepareresponseredlinesummarylist = (documentlist, bcgovcode, requestType) => {
     let summarylist = [];
     let alldocuments = [];
-    console.log("\ndocumentlist:", documentlist);
     let sorteddocids = [];
     if (bcgovcode?.toLowerCase() === 'mcf' && requestType == "personal") {
       let labelGroups = {};
@@ -223,7 +223,7 @@ const useSaveResponsePackage = () => {
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
-      category: "responsepackage",
+      category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
@@ -235,6 +235,7 @@ const useSaveResponsePackage = () => {
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
       documentList[0],
+      redlinePhase,
       async (res) => {
         const toastID = toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
@@ -244,15 +245,41 @@ const useSaveResponsePackage = () => {
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        var pagesToRemove = [];
+        var uniquePagesToRemove = new Set();
+        var phasedPagesArr = [];
         for (const infoForEachDoc of pageFlags) {
+          if (redlinePhase != null) {
+            phasedPagesArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
+              flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+              const allPages = documentList.find(entry => entry.documentid === infoForEachDoc.documentid)?.pages;
+              const allPagesWithFlags = Object.values(pageMappedDocs.stitchedPageLookup)
+                  .filter(entry => entry.docid === infoForEachDoc.documentid)
+                  .map(entry => entry.page);
+              if(allPages.length > 0){
+                //const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.has(page));
+                const pagesWithoutAnyFlags = allPagesWithFlags.filter(page => !infoForEachDoc.pageflag?.some(flagInfo => flagInfo.page === page));
+                if(pagesWithoutAnyFlags.length >0){ 
+                  for (const pageWithoutFlag of pagesWithoutAnyFlags){
+                    if(allPages.includes(pageWithoutFlag)){
+                      uniquePagesToRemove.add(
+                        getStitchedPageNoFromOriginal(
+                          infoForEachDoc.documentid,
+                          pageWithoutFlag,
+                          pageMappedDocs
+                        )
+                      );
+                    }
+                  }
+                }
+              }
+          }
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
               pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
               pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
             ) {
-              pagesToRemove.push(
+              uniquePagesToRemove.add(
                 getStitchedPageNoFromOriginal(
                   infoForEachDoc.documentid,
                   pageFlagsForEachDoc.page,
@@ -260,13 +287,23 @@ const useSaveResponsePackage = () => {
                 )
               );
             }
+              if(redlinePhase != null && ((phasedPagesArr.length >0 && !phasedPagesArr?.includes(pageFlagsForEachDoc.page)) || phasedPagesArr.length <=0)){
+                uniquePagesToRemove.add(
+                  getStitchedPageNoFromOriginal(
+                    infoForEachDoc.documentid,
+                    pageFlagsForEachDoc.page,
+                    pageMappedDocs
+                  )
+                );
+              }
           }
         }
+        var pagesToRemove = [...uniquePagesToRemove];
         let doc = documentViewer.getDocument();
         await annotationManager.applyRedactions();
         /**must apply redactions before removing pages*/
         if (pagesToRemove.length > 0) {
-          await doc.removePages(pagesToRemove);
+          await doc?.removePages(pagesToRemove);
         }      
         doc.setWatermark({          
           diagonal: {
@@ -300,7 +337,8 @@ const useSaveResponsePackage = () => {
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
               var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
-              pagesToRemove.push(pageToRemove);
+              if(pageToRemove !== 0)
+                pagesToRemove.push(pageToRemove);
             }
           }
         }

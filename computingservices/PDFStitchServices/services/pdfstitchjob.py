@@ -24,12 +24,13 @@ def savefinaldocumentpath(finalpackage, ministryid, category, userid):
 
 def recordjobstart(message):
     conn = getdbconnection()
-    try:        
+    try:
+        attributes = to_json(message.attributes) if message.category.lower() == 'harms' else message.attributes
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO public."PDFStitchJob"
             (pdfstitchjobid, version, ministryrequestid, category, inputfiles, outputfiles, status, message, createdby)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) on conflict (pdfstitchjobid,version) do nothing returning pdfstitchjobid;''',
-            (message.jobid, 2, message.ministryrequestid, message.category.lower(), to_json(message.attributes), None, "started", None, message.createdby))
+            (message.jobid, 2, message.ministryrequestid, message.category.lower(), attributes, None, "started", None, message.createdby))
         conn.commit()
         cursor.close()
     except(Exception) as error:
@@ -45,13 +46,14 @@ def recordjobend(pdfstitchmessage, error, finalmessage=None, message=""):
     conn = getdbconnection()
     print("Inside recordjobend")
     try:
+        attributes = to_json(pdfstitchmessage.attributes) if pdfstitchmessage.category.lower() == 'harms' else pdfstitchmessage.attributes
         cursor = conn.cursor()
         outputfiles = finalmessage.finaloutput if finalmessage is not None else None
 
         cursor.execute('''INSERT INTO public."PDFStitchJob"
             (pdfstitchjobid, version, ministryrequestid, category, inputfiles, outputfiles, status, message, createdby)
             VALUES (%s::integer, %s::integer, %s::integer, %s, %s, %s, %s, %s, %s) on conflict (pdfstitchjobid,version) do nothing returning pdfstitchjobid;''',
-            (pdfstitchmessage.jobid, 3, pdfstitchmessage.ministryrequestid, pdfstitchmessage.category.lower(), to_json(pdfstitchmessage.attributes), to_json(outputfiles), 'error' if error else 'completed', message if error else "", pdfstitchmessage.createdby))
+            (pdfstitchmessage.jobid, 3, pdfstitchmessage.ministryrequestid, pdfstitchmessage.category.lower(), attributes, to_json(outputfiles), 'error' if error else 'completed', message if error else "", pdfstitchmessage.createdby))
         
         conn.commit()
         cursor.close()

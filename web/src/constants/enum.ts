@@ -64,6 +64,7 @@ const pageFlagTypes:pageFlagType = {
   "Not Responsive": 6,
   "In Progress": 7,
   "Page Left Off": 8,
+  "Phase": 9
 };
 
 type RequestStatesType = {

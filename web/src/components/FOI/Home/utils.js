@@ -22,11 +22,14 @@ export const createPageFlagPayload = (
       documentpageflags[page.docid] = [];
     }
     let deleted = page?.deleted || false;
-    if (
-      data &&
-      data?.programareaid?.length === 0 &&
+    if ( data && data?.programareaid?.length === 0 &&
       data?.other?.length === 0
     ) {
+      deleted = true;
+    }
+    if (
+      data &&
+      data?.phase?.length === 0 ) {
       deleted = true;
     }
     documentpageflags[page.docid].push({

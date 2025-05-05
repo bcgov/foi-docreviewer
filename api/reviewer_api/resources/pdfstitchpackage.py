@@ -53,7 +53,7 @@ class GetPDFStitchedDocuments(Resource):
     def get(requestid, category):
         try:
             result = pdfstitchpackageservice().getpdfstitchpackage(requestid, category)
-            return json.dumps(result), 200
+            return json.dumps(result, default=str), 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:

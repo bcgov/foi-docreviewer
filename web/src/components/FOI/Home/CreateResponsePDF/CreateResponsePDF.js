@@ -223,7 +223,7 @@ export const isReadyForSignOff = (documentList, pageFlags) => {
         pageFlags.every((pageFlagInfo) => {
           if (docInfo.documentid === pageFlagInfo?.documentid) {
             const exceptConsult = pageFlagInfo.pageflag?.filter(
-              (flag) => flag.flagid !== pageFlagTypes["Consult"]
+              (flag) => flag.flagid !== pageFlagTypes["Consult"] && flag.flagid !== pageFlagTypes["Phase"]
             );
             if (docInfo.pagecount > exceptConsult?.length) {
               // not all page has flag set

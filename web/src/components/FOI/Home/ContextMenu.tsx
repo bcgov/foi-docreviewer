@@ -112,6 +112,18 @@ const ContextMenu = ({
     setOpenContextPopup(false);
   };
 
+  const getSelectedPhaseNo = (pageFlag: any) =>{
+    let flag =pageFlags.find((d:any) => d.documentid === selectedPages[0]?.docid);
+    let selected= flag?.pageflag.find((p:any) => (p.page === selectedPages[0]?.page && p.flagid===9 ));
+    let phases= (!!selected && "phase" in selected) ? selected.phase : [0];
+    return phases[0];
+  }
+
+  const clearSelectedPhases = (pageFlagId: number) => {
+    let phaseFlags = { flagid: pageFlagId, phase: [] }
+    savePageFlags(pageFlagId,phaseFlags)
+  }
+
   const showPageFlagList = () => {
     if (validoipcreviewlayer && currentLayer.name.toLowerCase() === "redline") {
       return (
@@ -122,7 +134,8 @@ const ContextMenu = ({
         </MenuList>
       );
     }
-    return pageFlagList?.map((pageFlag: any, index: number) => {
+    return pageFlagList?.map((pageFlag: any) => {
+      const selectedPhase = selectedPages.length === 1 ? getSelectedPhaseNo(pageFlag): 0
       return pageFlag?.name === "Page Left Off" ? (
         <div
           className="pageLeftOff"
@@ -137,7 +150,7 @@ const ContextMenu = ({
             }
           }}
         >
-          <hr className="hrStyle" />
+          {!requestInfo?.isphasedrelease && <hr className="hrStyle" />}
           <div>
             {pageFlag?.name}
             <span className="pageLeftOffIcon">
@@ -148,7 +161,22 @@ const ContextMenu = ({
             </span>
           </div>
         </div>
-      ) : (
+      ) : pageFlag?.name === "Phase" ? (
+        requestInfo?.isphasedrelease && 
+        <div>
+          <hr className="hrStyle" />
+          <span style={{marginLeft:"16px"}}>
+            {pageFlag?.name}
+          </span>
+          {(selectedPages?.length > 1) &&
+            <span style={{marginRight:"16px", float:"right",cursor: "pointer",}} onClick={() => clearSelectedPhases(pageFlag.pageflagid)}>
+              Clear All</span>
+            }
+          <PhaseFlags pageFlag={pageFlag} selectedPhase={selectedPhase} />
+          <hr className="hrStyle" />
+        </div>
+      ): 
+      (
         <>
           <MenuList key={pageFlag?.pageflagid}>
             <MenuItem disabled={disablePageFlags}>
@@ -242,6 +270,134 @@ const ContextMenu = ({
       }      
     }
   };
+
+  const [showAll, setShowAll] = useState(false); // State to control visibility of all numbers
+  const[selectedPhaseFlag, setSelectedPhaseFlag] = useState({});
+  
+  const addPhaseFlag = (pageFlagId:number, phaseNumber:number, selectedPhase:number)=>{
+    let phase=[]
+    if(selectedPhase != phaseNumber)
+      phase.push(phaseNumber)
+    else
+      phase = []
+    let phaseFlags = { flagid: pageFlagId, phase: phase }
+    setSelectedPhaseFlag(phaseFlags)
+    savePageFlags(pageFlagId,phaseFlags)
+  }
+  
+  const handleToggle = () => {
+    setShowAll(!showAll); // Toggle between showing all and showing the first 3
+  };
+
+  // const PhaseFlags = ({pageFlag, selectedPhase }: any) => {
+  //   return (
+  //     <div
+  //       //className="phasesGrid"
+  //       style={{
+  //         display: "grid",
+  //         gridTemplateColumns: "repeat(4, auto)",
+  //         padding: "10px",
+  //         margin: "10px",
+  //       }}
+  //     >
+  //       {Array.from({ length: 9 }).map((_, index) => {
+  //         // If not showing all numbers, only display the first 3 and the "+"
+  //         if (!showAll && index > 2) {
+  //           return index === 3 ? (
+  //             <span
+  //               key={index}
+  //               style={{
+  //                 fontSize: "1.5rem",
+  //                 cursor: "pointer",
+  //                 backgroundColor: (index+1) === selectedPhase ? "#d3e3fd" : "transparent",
+  //               }}
+  //               onClick={handleToggle}>+</span>
+  //           ) : null;
+  //         }
+  //         return (
+  //           <span
+  //             key={index}
+  //             style={{
+  //               fontSize: "1.5rem",
+  //               cursor: disablePageFlags ? "not-allowed" : "pointer",
+  //             }}
+  //             onClick={() => {
+  //               if (!disablePageFlags) {
+  //                 addPhaseFlag(pageFlag.pageflagid, (index+1))
+  //               }
+  //             }}
+  //           >
+  //             {index + 1}
+  //           </span>
+  //         );
+  //       })}
+  //     </div>
+  //   );
+  // };
+    
+
+  const PhaseFlags = ({ pageFlag, selectedPhase }: any) => {
+    const phasesToShow = showAll || selectedPhase > 3
+      ? Array.from({ length: 9 }, (_, i) => i + 1) // Show all 9 phases
+      // : selectedPhase > 3
+      // ? Array.from({ length: selectedPhase }, (_, i) => i + 1) // First 3 + selected phase if > 3
+      : [1, 2, 3]; // Default first 3
+  
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, auto)",
+          gap:"5px",
+          padding: "5px",
+          margin: "5px",
+        }}
+      >
+        {phasesToShow.map((phaseNumber) => (
+          <span
+            key={phaseNumber}
+            style={{
+              fontSize: "1.5rem",
+              cursor: disablePageFlags ? "not-allowed" : "pointer",
+              backgroundColor: phaseNumber === selectedPhase ? "#8080804f" : "transparent", // Highlight selected phase
+              fontWeight: phaseNumber === selectedPhase ? "bold" : "normal",
+              borderRadius: "4px",
+              margin: "0 2px",
+              padding: "2px 6px",
+              display: "inline-block",
+              lineHeight: "1",
+              transition: "background-color 0.2s ease-in-out",
+              textAlign: "center",
+              alignContent: "center"
+            }}
+            onClick={() => {
+              if (!disablePageFlags) {
+                addPhaseFlag(pageFlag.pageflagid, phaseNumber, selectedPhase);
+              }
+            }}
+          >
+            {phaseNumber}
+          </span>
+        ))}
+  
+        {/* Show '+' only if not showing all numbers */}
+        {!showAll && selectedPhase <= 3 && (
+          <span
+            style={{ 
+              fontSize: "1.5rem", 
+              textAlign: "center",
+              cursor: "pointer",
+              margin: "0px 2px",
+              padding: "2px 6px", }}
+            onClick={handleToggle}
+          >
+            +
+          </span>
+        )}
+      </div>
+    );
+  };
+  
 
   return (
     <>
