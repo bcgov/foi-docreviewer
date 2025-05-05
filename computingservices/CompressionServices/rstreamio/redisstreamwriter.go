@@ -11,7 +11,7 @@ import (
 )
 
 // Assuming you have a global redis client
-var rdb *redis.Client
+var rdb = utils.CreateRedisClient()
 var streamKey = utils.ViperEnvVariable("NOTIFICATION_STREAM_KEY")
 
 // NotificationPublishSchema is the Go equivalent of your notification schema
