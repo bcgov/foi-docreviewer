@@ -1,6 +1,6 @@
 package models
 
-type CompressionProducerMessage struct {
+type OCRProducerMessage struct {
 	BCGovCode         string `json:"bcgovcode"`
 	S3FilePath        string `json:"s3filepath"`
 	RequestNumber     string `json:"requestnumber"`

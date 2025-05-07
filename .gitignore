@@ -28,6 +28,7 @@ computingservices/PDFStitchServices/env/*
 computingservices/ZippingServices/env/*
 computingservices/PageCountCalculator/env/*
 computingservices/CompressionServices/env/*
+computingservices/OCRServices/env/*
 
 
 ################################################################################

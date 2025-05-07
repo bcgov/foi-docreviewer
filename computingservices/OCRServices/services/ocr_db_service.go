@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"log"
 
-	"compressionservices/models"
-	"compressionservices/utils"
+	"ocrservices/models"
+	"ocrservices/utils"
 )
 
-func RecordCompressionJobStart(msg *models.CompressionProducerMessage) {
+func RecordJobStart(msg *models.OCRProducerMessage) {
 	db := utils.GetDBConnection()
 	defer db.Close()
 
-	exists := doesCompressionJobVersionExist(msg.JobID, 2)
+	exists := doesOCRJobVersionExist(msg.JobID, 2)
 	if !exists {
 		stmt, err := db.Prepare(`
-            INSERT INTO public."CompressionJob"
-            (compressionjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
+            INSERT INTO public."OCRJob"
+            (ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (compressionjobid, version) DO NOTHING;
+            ON CONFLICT (ocrjobid, version) DO NOTHING;
         `)
 		if err != nil {
-			fmt.Printf("Error inserting CompressionJob start: %v\n", err)
+			fmt.Printf("Error inserting OCR Job start: %v\n", err)
 			panic(err)
 			//return
 		}
@@ -38,7 +38,7 @@ func RecordCompressionJobStart(msg *models.CompressionProducerMessage) {
 		)
 		if err != nil {
 			//return fmt.Errorf("failed to execute insert: %w", err)
-			fmt.Printf("Error inserting CompressionJob start: %v\n", err)
+			fmt.Printf("Error inserting OCR Job start: %v\n", err)
 		}
 		return
 		// _, err := db.Exec(`
@@ -54,21 +54,17 @@ func RecordCompressionJobStart(msg *models.CompressionProducerMessage) {
 		// 	panic(err)
 		// }
 	} else {
-		fmt.Printf("Compression Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 2)
+		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 2)
 	}
 }
 
-//ADD LOGIC::if msg.Attributes.IsAttachment{}
+func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) error {
 
-func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, isError bool, message string) error {
-	if s3FilePath == "" {
-		s3FilePath = msg.S3FilePath
-	}
 	db := utils.GetDBConnection()
 	defer db.Close()
-	exists := doesCompressionJobVersionExist(msg.JobID, 3)
+	exists := doesOCRJobVersionExist(msg.JobID, 3)
 	if exists {
-		fmt.Printf("Compression Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 3)
+		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 3)
 		return nil
 	}
 	// Determine job status
@@ -78,8 +74,8 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 	}
 	if !isError {
 		query := `
-					INSERT INTO "CompressionJob"
-					(compressionjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
+					INSERT INTO "OCRJob"
+					(ocrjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 				`
 		stmt, err := db.Prepare(query)
@@ -104,12 +100,11 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 		}
 		return nil
 	} else {
-		fmt.Printf("Compression failed for file: %v\n", s3FilePath)
 		_, err := db.Exec(`
-			INSERT INTO public."CompressionJob"
-			(compressionjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
+			INSERT INTO public."OCRJob"
+			(ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (compressionjobid, version) DO NOTHING;
+			ON CONFLICT (ocrjobid, version) DO NOTHING;
 		`,
 			msg.JobID,
 			3,
@@ -122,7 +117,7 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 			message,
 		)
 		if err != nil {
-			log.Printf("Error inserting CompressionJob end: %v", err)
+			log.Printf("Error inserting OCR Job end: %v", err)
 			return err
 			// panic(err)
 		}
@@ -130,18 +125,18 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 	}
 }
 
-func doesCompressionJobVersionExist(jobID int, version int) bool {
+func doesOCRJobVersionExist(jobID int, version int) bool {
 	db := utils.GetDBConnection()
 	defer db.Close()
 
 	var count int
 	err := db.QueryRow(`
-		SELECT COUNT(compressionjobid)
-		FROM public."CompressionJob"
-		WHERE compressionjobid = $1::integer AND version = $2::integer`,
+		SELECT COUNT(ocrjobid)
+		FROM public."OCRJob"
+		WHERE ocrjobid = $1::integer AND version = $2::integer`,
 		jobID, version).Scan(&count)
 	if err != nil {
-		fmt.Printf("Error checking job version exists: %v\n", err)
+		fmt.Printf("Error checking OCR job version exists: %v\n", err)
 		panic(err)
 	}
 	return count > 0
@@ -158,13 +153,13 @@ func IsBatchCompleted(batch string) (bool, bool) {
 			COUNT(1) FILTER (WHERE status = 'error') AS error,
 			COUNT(1) FILTER (WHERE status = 'completed') AS completed
 		FROM (
-			SELECT MAX(version) AS version, compressionjobid
-			FROM public."CompressionJob"
+			SELECT MAX(version) AS version, ocrjobid
+			FROM public."OCRJob"
 			WHERE batch = $1
-			GROUP BY compressionjobid
+			GROUP BY ocrjobid
 		) sq
-		JOIN public."CompressionJob" dj
-		ON dj.compressionjobid = sq.compressionjobid AND dj.version = sq.version`,
+		JOIN public."OCRJob" dj
+		ON dj.ocrjobid = sq.ocrjobid AND dj.version = sq.version`,
 		batch).Scan(&compInProgress, &compError, &compCompleted)
 	if err != nil {
 		fmt.Printf("Error querying compression job state: %v\n", err)
@@ -176,7 +171,7 @@ func IsBatchCompleted(batch string) (bool, bool) {
 	//return compInProgress == 0 &&dedupeInProgress == 0, (dedupeError + compError) > 0
 }
 
-func UpdateDocumentDetails(message *models.CompressionProducerMessage, compressedFileSize int, s3CompressedFilePath string) error {
+func UpdateDocumentDetails(message *models.OCRProducerMessage, compressedFileSize int, s3CompressedFilePath string) error {
 
 	// if message.Attributes.IsAttachment {
 
@@ -236,7 +231,7 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 	return nil
 }
 
-func UpdateRedactionStatus(msg *models.CompressionProducerMessage) error {
+func UpdateRedactionStatus(msg *models.OCRProducerMessage) error {
 	db := utils.GetDBConnection()
 	defer db.Close()
 	query := `
@@ -261,131 +256,6 @@ func UpdateRedactionStatus(msg *models.CompressionProducerMessage) error {
 	}
 	fmt.Println("UpdateRedactionStatus - updated")
 	return nil
-}
-
-func doesOCRJobVersionExist(jobID int, version int) bool {
-	db := utils.GetDBConnection()
-	defer db.Close()
-
-	var count int
-	err := db.QueryRow(`
-		SELECT COUNT(ocrjobid)
-		FROM public."OCRJob"
-		WHERE ocrjobid = $1::integer AND version = $2::integer`,
-		jobID, version).Scan(&count)
-	if err != nil {
-		fmt.Printf("Error checking OCR job version exists: %v\n", err)
-		panic(err)
-	}
-	return count > 0
-}
-
-func RecordOCRJobStart(msg *models.CompressionProducerMessage) (int, error) {
-	db := utils.GetDBConnection()
-	defer db.Close()
-	const version = 1
-	exists := doesOCRJobVersionExist(msg.JobID, version)
-	if !exists {
-		stmt, err := db.Prepare(`
-            INSERT INTO public."OCRJob"
-            (ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (ocrjobid, version) DO NOTHING;
-        `)
-		if err != nil {
-			fmt.Printf("Error preparing insert statement: %v\n", err)
-			return 0, err
-		}
-		defer stmt.Close()
-		_, err = stmt.Exec(
-			msg.JobID,
-			version,
-			msg.MinistryRequestID,
-			msg.Batch,
-			msg.Trigger,
-			msg.Filename,
-			"started",
-			msg.DocumentMasterID,
-		)
-		if err != nil {
-			fmt.Printf("Error executing insert: %v\n", err)
-			return 0, err
-		}
-		fmt.Printf("OCR Job started and inserted for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, version)
-	} else {
-		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, version)
-	}
-	return msg.JobID, nil
-}
-
-func RecordOCRJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, isError bool, message string) error {
-	if s3FilePath == "" {
-		s3FilePath = msg.S3FilePath
-	}
-	db := utils.GetDBConnection()
-	defer db.Close()
-	exists := doesOCRJobVersionExist(msg.JobID, 3)
-	if exists {
-		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 3)
-		return nil
-	}
-	// Determine job status
-	status := "completed"
-	if isError {
-		status = "error"
-	}
-	if !isError {
-		query := `
-					INSERT INTO "OCRJob"
-					(ocrjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-				`
-		stmt, err := db.Prepare(query)
-		if err != nil {
-			log.Printf("Error preparing statement: %v", err)
-			return err
-		}
-		defer stmt.Close()
-		_, err = stmt.Exec(
-			msg.JobID,             // $1
-			3,                     // $2
-			msg.MinistryRequestID, // $3
-			msg.Batch,             // $4
-			msg.Trigger,           // $5
-			msg.DocumentMasterID,  // $6
-			msg.Filename,          // $7
-			status,                // $8
-		)
-		if err != nil {
-			log.Printf("Error executing query: %v", err)
-			return err
-		}
-		return nil
-	} else {
-		fmt.Printf("OCR failed for file: %v\n", s3FilePath)
-		_, err := db.Exec(`
-			INSERT INTO public."OCRJob"
-			(ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (ocrjobid, version) DO NOTHING;
-		`,
-			msg.JobID,
-			3,
-			msg.MinistryRequestID,
-			msg.Batch,
-			msg.Trigger,
-			msg.Filename,
-			status,
-			msg.DocumentMasterID,
-			message,
-		)
-		if err != nil {
-			log.Printf("Error inserting OCRJob end: %v", err)
-			return err
-			// panic(err)
-		}
-		return nil
-	}
 }
 
 // func UpdateRecordIdInDocMaster(recordID *int, newDocumentMasterId int) error {
