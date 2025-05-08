@@ -12,8 +12,8 @@ from utils.basicutils import to_json
 def processmessage(message):
     recordjobstart(message)
     try:
-        hashcode, _pagecount = gets3documenthashcode(message)
-        savedocumentdetails(message, hashcode, _pagecount)
+        hashcode, _pagecount, is_searchable_pdf = gets3documenthashcode(message)
+        savedocumentdetails(message, hashcode, _pagecount, is_searchable_pdf)
         recordjobend(message, False)
         #updateredactionstatus(message)
         _incompatible = True if str(message.incompatible).lower() == 'true' else False

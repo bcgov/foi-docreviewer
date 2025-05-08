@@ -28,6 +28,8 @@ from utils import (
     dedupe_s3_env,
     request_management_api,
     file_conversion_types,
+    needs_ocr,
+    has_fillable_forms,
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -474,6 +476,9 @@ def gets3documenthashcode(producermessage):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
     reader = None
+    
+    # check to see if pdf needs ocr service
+    is_searchable_pdf = verify_pdf_for_ocr(response.content)
 
     if extension.lower() in [".pdf"] or (
         producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
@@ -546,6 +551,7 @@ def gets3documenthashcode(producermessage):
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
+        is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
 
@@ -556,7 +562,7 @@ def gets3documenthashcode(producermessage):
     for line in response.iter_lines():
         sig.update(line)
 
-    return (sig.hexdigest(), pagecount)
+    return (sig.hexdigest(), pagecount, is_searchable_pdf)
 
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
@@ -597,6 +603,11 @@ def __converttoPST(creationdate):
     except Exception as e:
         print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
         return "Unknown PST"
-
-
-
+    
+def verify_pdf_for_ocr(pdf):
+    try: 
+        with fitz.open(stream=BytesIO(pdf), filetype="pdf") as doc:
+            ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
+            return not ocr_required
+    except Exception as e:
+        print(f"Error in ocr validation: {e}")

@@ -37,6 +37,7 @@ class Document(db.Model):
     selectedfileprocessversion= db.Column(db.Integer, db.ForeignKey('DocumentProcesses.processid'))
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
     documentmaster = relationship("DocumentMaster", backref=backref("DocumentMaster"), uselist=False)
+    is_searchable_pdf = db.Column(db.Boolean, nullable=True)
 
     @classmethod
     def getdocuments(cls, foiministryrequestid):
@@ -457,4 +458,4 @@ class Document(db.Model):
 
 class DocumentSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount', 'selectedfileprocessversion')
+        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount', 'selectedfileprocessversion', 'is_searchable_pdf')
