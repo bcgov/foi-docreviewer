@@ -476,7 +476,6 @@ def gets3documenthashcode(producermessage):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
     reader = None
-    
     # check to see if pdf needs ocr service
     is_searchable_pdf = verify_pdf_for_ocr(response.content)
 
@@ -551,6 +550,7 @@ def gets3documenthashcode(producermessage):
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
+        # check to see if pdf needs ocr service
         is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
