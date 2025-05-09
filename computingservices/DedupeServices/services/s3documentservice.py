@@ -476,14 +476,11 @@ def gets3documenthashcode(producermessage):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
     reader = None
-    # check to see if pdf needs ocr service
-    is_searchable_pdf = verify_pdf_for_ocr(response.content)
 
     if extension.lower() in [".pdf"] or (
         producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
         ):
         reader = PdfReader(BytesIO(response.content))
-        
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
         attachments = []
@@ -537,6 +534,8 @@ def gets3documenthashcode(producermessage):
                 )
                 saveresponse.raise_for_status()   
         fitz_reader.close()
+        # check to see if pdf file needs ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
         # clear metadata
         try:
             filenamewithextension=_filename+extension.lower()
@@ -550,10 +549,14 @@ def gets3documenthashcode(producermessage):
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
-        # check to see if pdf needs ocr service
-        is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content)
+        # check to see if converted pdf file needs ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
+    
+    else:
+        # check to see if non-pdf file need ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -604,9 +607,11 @@ def __converttoPST(creationdate):
         print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
         return "Unknown PST"
     
-def verify_pdf_for_ocr(pdf):
-    try: 
-        with fitz.open(stream=BytesIO(pdf), filetype="pdf") as doc:
+def verify_pdf_for_ocr(content, message):
+    try:
+        if (message.incompatible.lower() == 'true'):
+            return None
+        with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
             return not ocr_required
     except Exception as e:
