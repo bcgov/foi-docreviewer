@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"azuredocextractservice/utils"
+	"azureocrservice/utils"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"

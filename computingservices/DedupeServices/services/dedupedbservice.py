@@ -32,7 +32,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         conn.commit()
 
         cursor.close()
-        return True
+        return id_of_new_row[0], True
     except(Exception) as error:
         print("Exception while executing func savedocumentdetails (p5), Error : {0} ".format(error))
         raise

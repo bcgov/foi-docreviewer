@@ -45,7 +45,7 @@ func ProcessMessage() ([]types.QueueMessage, error) {
 			fmt.Println("No more messages in the queue. Exiting...")
 			break
 		}
-		fmt.Printf("Extracted s3uri: %s\n", message.S3Uri)
+		fmt.Printf("Extracted s3uri: %s\n", message.CompressedS3FilePath)
 		messages = append(messages, *message)
 	}
 	fmt.Println("All messages processed. Exiting.")

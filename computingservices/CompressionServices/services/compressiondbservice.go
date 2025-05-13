@@ -269,9 +269,9 @@ func doesOCRJobVersionExist(jobID int, version int) bool {
 
 	var count int
 	err := db.QueryRow(`
-		SELECT COUNT(ocrjobid)
-		FROM public."OCRJob"
-		WHERE ocrjobid = $1::integer AND version = $2::integer`,
+		SELECT COUNT(ocractivemqjobid)
+		FROM public."OCRActiveMQJob"
+		WHERE ocractivemqjobid = $1::integer AND version = $2::integer`,
 		jobID, version).Scan(&count)
 	if err != nil {
 		fmt.Printf("Error checking OCR job version exists: %v\n", err)
@@ -287,10 +287,10 @@ func RecordOCRJobStart(msg *models.CompressionProducerMessage) (int, error) {
 	exists := doesOCRJobVersionExist(msg.JobID, version)
 	if !exists {
 		stmt, err := db.Prepare(`
-            INSERT INTO public."OCRJob"
-            (ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
+            INSERT INTO public."OCRActiveMQJob"
+            (ocractivemqjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (ocrjobid, version) DO NOTHING;
+            ON CONFLICT (ocractivemqjobid, version) DO NOTHING;
         `)
 		if err != nil {
 			fmt.Printf("Error preparing insert statement: %v\n", err)
@@ -336,8 +336,8 @@ func RecordOCRJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, 
 	}
 	if !isError {
 		query := `
-					INSERT INTO "OCRJob"
-					(ocrjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
+					INSERT INTO "OCRActiveMQJob"
+					(ocractivemqjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 				`
 		stmt, err := db.Prepare(query)
@@ -364,10 +364,10 @@ func RecordOCRJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, 
 	} else {
 		fmt.Printf("OCR failed for file: %v\n", s3FilePath)
 		_, err := db.Exec(`
-			INSERT INTO public."OCRJob"
-			(ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
+			INSERT INTO public."OCRActiveMQJob"
+			(ocractivemqjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (ocrjobid, version) DO NOTHING;
+			ON CONFLICT (ocractivemqjobid, version) DO NOTHING;
 		`,
 			msg.JobID,
 			3,
@@ -380,7 +380,7 @@ func RecordOCRJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, 
 			message,
 		)
 		if err != nil {
-			log.Printf("Error inserting OCRJob end: %v", err)
+			log.Printf("Error inserting OCRActiveMQJob end: %v", err)
 			return err
 			// panic(err)
 		}

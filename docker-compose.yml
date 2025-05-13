@@ -409,6 +409,31 @@ services:
       - OCR_REQUEST_MANAGEMENT_API=${OCR_REQUEST_MANAGEMENT_API}
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
       - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
+  foi-azure-dococr-statusapi:
+      container_name: foi-azure-dococr-statusapi
+      depends_on:
+        - foi-docreviewer-db
+      build:
+        context: ./azuredococrapi/
+        dockerfile: DockerFile
+      image: foiazuredococrstatusapi
+      ports:
+      - "${AZDOCOCR_LISTENING_PORT}:${AZDOCOCR_LISTENING_PORT}"
+      stdin_open: true
+      tty: true
+      networks:
+        services-network:
+          aliases:
+            - foiazuredococrstatusapi     
+      environment:
+        - AZDOCOCR_FOIDOCREVIEWER_DB_HOST=${AZDOCOCR_FOIDOCREVIEWER_DB_HOST}
+        - AZDOCOCR_FOIDOCREVIEWER_DB_PORT=${AZDOCOCR_FOIDOCREVIEWER_DB_PORT}
+        - AZDOCOCR_FOIDOCREVIEWER_DB_NAME=${AZDOCOCR_FOIDOCREVIEWER_DB_NAME}      
+        - AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME=${AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME}
+        - AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD=${AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD}
+        - AZDOCOCR_LISTENING_PORT=${AZDOCOCR_LISTENING_PORT}
+        - AZDOCOCR_API_SECRET=${AZDOCOCR_API_SECRET}
+        - AZDOCOCR_ALLOWED_ORIGINS=${AZDOCOCR_ALLOWED_ORIGINS}
 volumes:
   dbdata:
 networks:

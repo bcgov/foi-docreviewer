@@ -12,13 +12,13 @@ func RecordJobStart(msg *models.OCRProducerMessage) {
 	db := utils.GetDBConnection()
 	defer db.Close()
 
-	exists := doesOCRJobVersionExist(msg.JobID, 2)
+	exists := doesOCRActiveMQJobVersionExist(msg.JobID, 2)
 	if !exists {
 		stmt, err := db.Prepare(`
-            INSERT INTO public."OCRJob"
-            (ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
+            INSERT INTO public."OCRActiveMQJob"
+            (ocractivemqjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (ocrjobid, version) DO NOTHING;
+            ON CONFLICT (ocractivemqjobid, version) DO NOTHING;
         `)
 		if err != nil {
 			fmt.Printf("Error inserting OCR Job start: %v\n", err)
@@ -62,7 +62,7 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 
 	db := utils.GetDBConnection()
 	defer db.Close()
-	exists := doesOCRJobVersionExist(msg.JobID, 3)
+	exists := doesOCRActiveMQJobVersionExist(msg.JobID, 3)
 	if exists {
 		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 3)
 		return nil
@@ -74,8 +74,8 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 	}
 	if !isError {
 		query := `
-					INSERT INTO "OCRJob"
-					(ocrjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
+					INSERT INTO "OCRActiveMQJob"
+					(ocractivemqjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 				`
 		stmt, err := db.Prepare(query)
@@ -101,10 +101,10 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 		return nil
 	} else {
 		_, err := db.Exec(`
-			INSERT INTO public."OCRJob"
-			(ocrjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
+			INSERT INTO public."OCRActiveMQJob"
+			(ocractivemqjobid, version, ministryrequestid, batch, trigger, filename, status, documentmasterid, message)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (ocrjobid, version) DO NOTHING;
+			ON CONFLICT (ocractivemqjobid, version) DO NOTHING;
 		`,
 			msg.JobID,
 			3,
@@ -125,15 +125,15 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 	}
 }
 
-func doesOCRJobVersionExist(jobID int, version int) bool {
+func doesOCRActiveMQJobVersionExist(jobID int, version int) bool {
 	db := utils.GetDBConnection()
 	defer db.Close()
 
 	var count int
 	err := db.QueryRow(`
-		SELECT COUNT(ocrjobid)
-		FROM public."OCRJob"
-		WHERE ocrjobid = $1::integer AND version = $2::integer`,
+		SELECT COUNT(ocractivemqjobid)
+		FROM public."OCRActiveMQJob"
+		WHERE ocractivemqjobid = $1::integer AND version = $2::integer`,
 		jobID, version).Scan(&count)
 	if err != nil {
 		fmt.Printf("Error checking OCR job version exists: %v\n", err)
@@ -153,13 +153,13 @@ func IsBatchCompleted(batch string) (bool, bool) {
 			COUNT(1) FILTER (WHERE status = 'error') AS error,
 			COUNT(1) FILTER (WHERE status = 'completed') AS completed
 		FROM (
-			SELECT MAX(version) AS version, ocrjobid
-			FROM public."OCRJob"
+			SELECT MAX(version) AS version, ocractivemqjobid
+			FROM public."OCRActiveMQJob"
 			WHERE batch = $1
-			GROUP BY ocrjobid
+			GROUP BY ocractivemqjobid
 		) sq
-		JOIN public."OCRJob" dj
-		ON dj.ocrjobid = sq.ocrjobid AND dj.version = sq.version`,
+		JOIN public."OCRActiveMQJob" dj
+		ON dj.ocractivemqjobid = sq.ocractivemqjobid AND dj.version = sq.version`,
 		batch).Scan(&compInProgress, &compError, &compCompleted)
 	if err != nil {
 		fmt.Printf("Error querying compression job state: %v\n", err)

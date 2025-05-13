@@ -18,6 +18,7 @@ type OCRProducerMessage struct {
 	OutputDocumentMasterID   *int       `json:"outputdocumentmasterid,omitempty"`
 	OriginalDocumentMasterID *int       `json:"originaldocumentmasterid,omitempty"`
 	CompressedS3FilePath     string     `json:"compresseds3filepath,omitempty"`
+	DocumentID               int        `json:"documentid"`
 }
 
 type Division struct {

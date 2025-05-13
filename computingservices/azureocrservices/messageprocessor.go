@@ -27,8 +27,9 @@ func main() {
 	// Print each message
 	for _, message := range dequeuedmessages {
 		fmt.Printf("Received message: %+v\n", message)
-		var jsonStrbytes []byte = getBytesfromDocumentPath(message.S3Uri)
-		analysisResults, _analyzeerr := azureservices.CallAzureOCRService(jsonStrbytes)
+		//var jsonStrbytes []byte =
+		var s3Uribytes []byte = getBytesfromDocumentPath(message.CompressedS3FilePath)
+		analysisResults, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message)
 		if _analyzeerr == nil && analysisResults.Status == "succeeded" {
 
 			// searchdocumentpagelines := []types.SOLRSearchDocument{}

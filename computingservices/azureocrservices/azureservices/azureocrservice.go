@@ -1,6 +1,7 @@
 package azureservices
 
 import (
+	"azureocrservice/docreviewerocrservice"
 	"azureocrservice/types"
 	"azureocrservice/utils"
 	"bytes"
@@ -88,7 +89,7 @@ func pdfToBase64(pdfData []byte) string {
 }
 
 // createSearchablePDF
-func (a *AzureService) performOCR(pdfData []byte) (types.AnalyzeResults, error) {
+func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (types.AnalyzeResults, error) {
 	var results types.AnalyzeResults
 
 	// Get the number of pages in the PDF
@@ -105,13 +106,13 @@ func (a *AzureService) performOCR(pdfData []byte) (types.AnalyzeResults, error) 
 	// API request URL
 	ocrPostURL := fmt.Sprintf("%s/documentintelligence/documentModels/prebuilt-read:analyze?_overload=analyzeDocument&api-version=2024-11-30&output=pdf", a.BaseURL)
 
-	resultLocation, err := a.createAnalysisRequest(ocrPostURL, base64SourceData)
+	resultLocation, apimRequestID, err := a.createAnalysisRequest(ocrPostURL, base64SourceData)
 	if err != nil {
 		return results, fmt.Errorf("failed to initiate document analysis: %w", err)
 	} else {
-		//wrapDocReviewerAudit(document.DocumentID, request.MinistryRequestID, resultLocation, "azureextractrequestcreated")
+		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "azureocrrequestcreated")
 	}
-	results, err = a.getAnalysisResults(resultLocation)
+	results, err = a.getAnalysisResults(resultLocation, message, apimRequestID)
 	if err != nil {
 		return results, fmt.Errorf("failed to fetch analysis results: %w", err)
 	}
@@ -179,7 +180,7 @@ func (a *AzureService) downloadSearchablePDF(resultLocation string) (types.Analy
 	return results, nil
 }
 
-func (a *AzureService) createAnalysisRequest(postURL string, base64SourceData string) (string, error) {
+func (a *AzureService) createAnalysisRequest(postURL string, base64SourceData string) (string, string, error) {
 
 	fmt.Printf("postURL: %s\n", postURL)
 	// Prepare JSON payload
@@ -199,23 +200,23 @@ func (a *AzureService) createAnalysisRequest(postURL string, base64SourceData st
 	// Check for HTTP status
 	if resp.StatusCode != http.StatusAccepted {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("POST request failed: %d %s", resp.StatusCode, string(body))
+		return "", "", fmt.Errorf("POST request failed: %d %s", resp.StatusCode, string(body))
 	}
 	// Extract "Operation-Location" from headers
 	resultLocation := resp.Header.Get("Operation-Location")
 	if resultLocation == "" {
-		return "", fmt.Errorf("Operation-Location header not found")
+		return "", "", fmt.Errorf("Operation-Location header not found")
 	}
 
-	// apimRequestID := resp.Header.Get("Apim-Request-Id")
+	apimRequestID := resp.Header.Get("Apim-Request-Id")
 
-	// if apimRequestID == "" {
-	// 	return "", fmt.Errorf("missing Apim-Request-Id in response header")
-	// }
-	return resultLocation, nil
+	if apimRequestID == "" {
+		return "", "", fmt.Errorf("missing Apim-Request-Id in response header")
+	}
+	return resultLocation, apimRequestID, nil
 }
 
-func (a *AzureService) getAnalysisResults(resultLocation string) (types.AnalyzeResults, error) {
+func (a *AzureService) getAnalysisResults(resultLocation string, message types.QueueMessage, apimRequestID string) (types.AnalyzeResults, error) {
 	// Upon successful completion, retrieve the PDF as application/pdf.
 	// GET /documentModels/prebuilt-read/analyzeResults/{resultId}/pdf
 	// 200 OK
@@ -237,18 +238,29 @@ func (a *AzureService) getAnalysisResults(resultLocation string) (types.AnalyzeR
 		body, _ := io.ReadAll(getResponse.Body)
 		if getResponse.StatusCode == http.StatusOK {
 			fmt.Println("OCR processing complete")
-			//wrapDocReviewerAudit(documentid, ministryrequestid, apimRequestID, "extractionsucceeded")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrsucceeded")
 			break
 		} else if getResponse.StatusCode == http.StatusAccepted {
 			fmt.Println("Processing... Please wait.")
-			//wrapDocReviewerAudit(documentid, ministryrequestid, apimRequestID, "extractionsucceeded")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobrunning")
 			continue
 		} else {
-			//wrapDocReviewerAudit(documentid, ministryrequestid, apimRequestID, "extractionsucceeded")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobfailed")
 			return result, fmt.Errorf("GET request failed: %d %s", getResponse.StatusCode, string(body))
 		}
 	}
 	return result, nil
+}
+
+func wrapDocReviewerUpdate(documentmasterid int64, ministryrequestid int64, apimRequestID string, status string) bool {
+	// ministryrequestid, minreqidconerr := strconv.ParseInt(ministryrequestidrequest, 10, 64)
+	// if minreqidconerr != nil {
+	// 	fmt.Sprint("Error while converting ministry request ID")
+	// }
+	docreviewaudit := types.DocReviewAudit{DocumentID: documentmasterid, MinistryRequestID: ministryrequestid,
+		Description: fmt.Sprintf(`{apimRequestID:%v}`, apimRequestID), Status: status}
+	returnstate := docreviewerocrservice.PushtoDocReviewer(docreviewaudit)
+	return returnstate
 }
 
 func uploadBytes(fileBytes []byte) error {
@@ -384,7 +396,7 @@ func uploadBytes(fileBytes []byte) error {
 // 	return data, nil
 // }
 
-func CallAzureOCRService(pdfData []byte) (types.AnalyzeResults, error) {
+func CallAzureOCRService(pdfData []byte, message types.QueueMessage) (types.AnalyzeResults, error) {
 	// Load environment variables
 	// azureEndpoint := os.Getenv("AZURE_ENDPOINT")
 	// azureAPIKey := os.Getenv("AZURE_API_KEY")
@@ -401,7 +413,7 @@ func CallAzureOCRService(pdfData []byte) (types.AnalyzeResults, error) {
 
 	service := NewAzureService(subscriptionKey, baseURL)
 	// Run the function
-	result, err := service.performOCR(pdfData)
+	result, err := service.performOCR(pdfData, message)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}

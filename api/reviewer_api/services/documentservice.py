@@ -98,6 +98,7 @@ class documentservice:
                 record["duplicatemasterid"],
                 record["duplicateof"],
             ) = self.__isduplicate(parentproperties, record)
+            print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
             if len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(

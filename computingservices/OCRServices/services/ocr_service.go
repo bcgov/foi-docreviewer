@@ -28,8 +28,17 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 			RecordJobEnd(message, true, errMsg)
 		}
 	}()
-	fmt.Printf("Just before pushing to activeMq-%v\n\n", message.CompressedS3FilePath)
-	response, err := pushDocsToActiveMQ(message)
+	ocrActiveMQMsg := models.OCRAzureMessage{
+		BCGovCode:            message.BCGovCode,
+		RequestNumber:        message.RequestNumber,
+		MinistryRequestID:    message.MinistryRequestID,
+		DocumentMasterID:     message.DocumentMasterID,
+		Trigger:              message.Trigger,
+		CompressedS3FilePath: message.CompressedS3FilePath,
+	}
+
+	fmt.Printf("Just before pushing to activeMq-%v\n\n", ocrActiveMQMsg.CompressedS3FilePath)
+	response, err := pushDocsToActiveMQ(&ocrActiveMQMsg)
 	fmt.Printf("Response from activemq: %v\n", response)
 	isError := false
 	errMsg := ""
@@ -56,7 +65,7 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 	// }
 }
 
-func pushDocsToActiveMQ(message *models.OCRProducerMessage) (*http.Response, error) {
+func pushDocsToActiveMQ(message *models.OCRAzureMessage) (*http.Response, error) {
 
 	url := ACTIVEMQ_URL
 	username := ACTIVEMQ_USERNAME

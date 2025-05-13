@@ -127,7 +127,7 @@ func castField(key string, value any) any {
 	strVal, _ := value.(string)
 	switch key {
 	case "jobid", "ministryrequestid", "documentmasterid",
-		"outputdocumentmasterid", "originaldocumentmasterid":
+		"outputdocumentmasterid", "originaldocumentmasterid", "documentid":
 		return parseInt(strVal)
 	case "attributes":
 		return parseAttributes(strVal)
