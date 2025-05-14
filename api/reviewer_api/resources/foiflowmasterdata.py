@@ -163,13 +163,14 @@ class FOIFlowS3PresignedList(Resource):
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/<redactionlayer>/<int:ministryrequestid>/<string:layertype>")
+@API.route("/foiflow/oss/presigned/<redactionlayer>/<int:ministryrequestid>/<string:layertype>/<int:phase>")
 class FOIFlowS3PresignedRedline(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
+    def post(ministryrequestid, redactionlayer="redline", layertype="redline", phase=None):
         try:            
             data = request.get_json()
             # print("data!:",data)
@@ -217,6 +218,10 @@ class FOIFlowS3PresignedRedline(Resource):
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
                             filepathlist[0], division_name, packagetype
                         )
+                        if packagetype == "redline" and phase is not None:
+                            filepath_put = "{0}/{3}/{1}/{0} - {2} - {1}.pdf".format(
+                                filepathlist[0], division_name, f"Redline - Phase {phase}", f"{packagetype}_phase{phase}"
+                            )
                         if packagetype == "consult":
                             filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
                                 filepathlist[0], division_name, 'Consult'
@@ -252,7 +257,6 @@ class FOIFlowS3PresignedRedline(Resource):
                                         if file_extension_get.lower() in originalextensions
                                         else "pdf"
                                 )
-
                         doc["s3path_load"] = s3client.generate_presigned_url(
                                         ClientMethod="get_object",
                                         Params={
@@ -279,9 +283,14 @@ class FOIFlowS3PresignedRedline(Resource):
                         # print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
                         # print("filename1:",filename)
-                        filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
-                            filepathlist[0],filename, packagetype
-                        )
+                        if packagetype == "redline" and phase is not None:
+                            filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
+                                filepathlist[0],filename, f"{packagetype}_phase{phase}", f"Redline - Phase {phase}"
+                            )
+                        else:
+                            filepath_put = "{0}/{2}/{1} - Redline.pdf".format(
+                                filepathlist[0],filename, packagetype
+                            )
                         # print("filepath_put:",filepath_put)
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
@@ -334,7 +343,9 @@ class FOIFlowS3PresignedResponsePackage(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(ministryrequestid):
         try:
-            data = request.get_json()
+            json_data = request.get_json()
+            data = json_data["documentsInfo"]
+            phase = json_data["phase"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["filepath"].split("/")[3]
             )
@@ -356,8 +367,12 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
-            filepath_put = "{0}/responsepackage/{1}.pdf".format(
-                filepathlist[0], filename
+            if phase is not None:
+                filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
+                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase {phase}")
+            else:
+                filepath_put = "{0}/responsepackage/{1}.pdf".format(
+                    filepathlist[0], filename
             )
 
             # filename_put, file_extension_put = os.path.splitext(filepath_put)

@@ -1,7 +1,7 @@
 from .db import  db, ma
 from datetime import datetime as datetime2
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import func
+from sqlalchemy import func, text
 import logging
 
 class PDFStitchPackage(db.Model):
@@ -38,9 +38,24 @@ class PDFStitchPackage(db.Model):
             db.session.close()
 
     @classmethod
+    def getpdfstitchpackages(cls, requestid, category):
+        try:
+            sql = """SELECT DISTINCT ON (category) * FROM public."PDFStitchPackage" 
+            WHERE category LIKE :category AND ministryrequestid = :requestid 
+            ORDER BY category, pdfstitchpackageid DESC;
+            """
+            res = db.session.execute(text(sql), {'category': category+'%', 'requestid': int(requestid)})
+            pdfstitchjobpackages = [{'category': row['category'], 'pdfstitchpackageid': row['pdfstitchpackageid'], 'ministryrequestid': row['ministryrequestid'], 'finalpackagepath': row['finalpackagepath'], 'createdat': row['createdat']} for row in res]
+            return pdfstitchjobpackages
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
+
+    @classmethod
     def isresponsepackagecreated(cls, requestid, generatedat):
         try:
-            query = db.session.query(func.count(PDFStitchPackage.pdfstitchpackageid)).filter(PDFStitchPackage.ministryrequestid == requestid, PDFStitchPackage.category == "responsepackage", PDFStitchPackage.createdat <= generatedat)
+            query = db.session.query(func.count(PDFStitchPackage.pdfstitchpackageid)).filter(PDFStitchPackage.ministryrequestid == requestid, func.lower(PDFStitchPackage.category).ilike("responsepackage%"), PDFStitchPackage.createdat <= generatedat)
             packagecount = query.scalar()
             return True if packagecount > 0 else False
         except Exception as ex:

@@ -152,6 +152,35 @@ class documentpageflag:
         finally:
             if conn is not None:
                 conn.close()
+    
+    @classmethod
+    def getoriginalpagecount_by_documentid(cls, ministryrequestid, documentids):
+        conn = getdbconnection()
+        docpgs = {}
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select documentid, originalpagecount  from "Documents" d 
+                where foiministryrequestid = %s::integer  
+                and documentid in %s;""",
+                (ministryrequestid, tuple(documentids)),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    docpgs[entry[0]] = {"pagecount": entry[1]}
+                return docpgs
+            return None
+
+        except Exception as error:
+            logging.error("Error in getting pagecount for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
 
     @classmethod
     def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos):
