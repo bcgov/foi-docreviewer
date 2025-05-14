@@ -17,12 +17,15 @@ import (
 var activeMQBaseURL = utils.ViperEnvVariable("activeMQBaseURL")
 var username = utils.ViperEnvVariable("activeMQUserName")
 var password = utils.ViperEnvVariable("activeMQPassword")
+var queueName = utils.ViperEnvVariable("foidococrqueue")
+var activemqclientid = utils.ViperEnvVariable("activemqclientid")
 
 // ProcessMessage fetches messages from the ActiveMQ queue using HTTP
 func ProcessMessage() ([]types.QueueMessage, error) {
-	queueName := "foidococr"
+	queueName := queueName
+	clientid := activemqclientid
 	// Construct the URL to fetch messages from the queue
-	url := fmt.Sprintf("%s/%s?type=queue", activeMQBaseURL, queueName)
+	url := fmt.Sprintf("%s://%s&clientId=%s", activeMQBaseURL, queueName, clientid)
 	messages := []types.QueueMessage{}
 	timeoutCounter := 0
 	maxTimeouts := 1
@@ -45,7 +48,7 @@ func ProcessMessage() ([]types.QueueMessage, error) {
 			fmt.Println("No more messages in the queue. Exiting...")
 			break
 		}
-		fmt.Printf("Extracted s3uri: %s\n", message.CompressedS3FilePath)
+		fmt.Printf("S3uri: %s\n", message.CompressedS3FilePath)
 		messages = append(messages, *message)
 	}
 	fmt.Println("All messages processed. Exiting.")

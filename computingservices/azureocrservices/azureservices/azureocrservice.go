@@ -2,6 +2,7 @@ package azureservices
 
 import (
 	"azureocrservice/docreviewerocrservice"
+	"azureocrservice/s3services"
 	"azureocrservice/types"
 	"azureocrservice/utils"
 	"bytes"
@@ -25,17 +26,17 @@ import (
 )
 
 // Replace with your Azure Form Recognizer details
-const (
-	endpoint    = "https://foidocintelservice-test.cognitiveservices.azure.com/"
-	apiKey      = "7jdjdOERNyfaULQcWmlmf6ogFcg46TmEduvDvZ3umkNYPODoPV2FJQQJ99BBACBsN54XJ3w3AAALACOGiJiJ"
-	region      = "us-east-1"
-	s3_endpoint = "citz-foi-prod.objectstore.gov.bc.ca" // Replace with your custom endpoint
-	accessKey   = ""
-	secretKey   = ""
-	bucketName  = "test123"
-	objectKey   = "Aparnatest/searchable.pdf"
-	s3Service   = "execute-api"
-)
+// const (
+// 	endpoint    = "https://foidocintelservice-test.cognitiveservices.azure.com/"
+// 	apiKey      = "7jdjdOERNyfaULQcWmlmf6ogFcg46TmEduvDvZ3umkNYPODoPV2FJQQJ99BBACBsN54XJ3w3AAALACOGiJiJ"
+// 	region      = "us-east-1"
+// 	s3_endpoint = "citz-foi-prod.objectstore.gov.bc.ca" // Replace with your custom endpoint
+// 	accessKey   = ""
+// 	secretKey   = ""
+// 	bucketName  = "test123"
+// 	objectKey   = "Aparnatest/searchable.pdf"
+// 	s3Service   = "execute-api"
+// )
 
 type AzureService struct {
 	SubscriptionKey string
@@ -110,13 +111,13 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (t
 	if err != nil {
 		return results, fmt.Errorf("failed to initiate document analysis: %w", err)
 	} else {
-		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "azureocrrequestcreated")
+		//wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "azureocrrequestcreated")
 	}
 	results, err = a.getAnalysisResults(resultLocation, message, apimRequestID)
 	if err != nil {
 		return results, fmt.Errorf("failed to fetch analysis results: %w", err)
 	}
-	results, err = a.downloadSearchablePDF(resultLocation)
+	results, err = a.downloadSearchablePDF(resultLocation, message.CompressedS3FilePath)
 	fmt.Printf("Analysis Results: %v\n", results)
 	return results, err
 	//postURL := fmt.Sprintf("%s/documentintelligence/documentModels/prebuilt-read:analyze?_overload=analyzeDocument&api-version=2024-07-31-preview&output=pdf", endpoint)
@@ -144,7 +145,7 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (t
 	// return nil
 }
 
-func (a *AzureService) downloadSearchablePDF(resultLocation string) (types.AnalyzeResults, error) {
+func (a *AzureService) downloadSearchablePDF(resultLocation string, s3FilePath string) (types.AnalyzeResults, error) {
 	var results types.AnalyzeResults
 	// Construct PDF retrieval URL
 	pdfURL1 := strings.Replace(resultLocation, "?api-version=2024-11-30", "", 1)
@@ -153,7 +154,7 @@ func (a *AzureService) downloadSearchablePDF(resultLocation string) (types.Analy
 
 	// Download the searchable PDF
 	pdfReq, _ := http.NewRequest("GET", pdfURL, nil)
-	pdfReq.Header.Set("Ocp-Apim-Subscription-Key", apiKey)
+	pdfReq.Header.Set("Ocp-Apim-Subscription-Key", a.SubscriptionKey)
 	pdfResp, err := a.Client.Do(pdfReq)
 	if err != nil {
 		return results, err
@@ -171,8 +172,16 @@ func (a *AzureService) downloadSearchablePDF(resultLocation string) (types.Analy
 	if len(pdfBody) == 0 {
 		return results, fmt.Errorf("Empty PDF response body")
 	}
+	fmt.Printf("\n Reached point\n")
 	//pdfBodyReader := bytes.NewReader(pdfBody)
-	err = uploadBytes(pdfBody)
+	// Step 3: Upload the compressed PDF back to S3
+	presignedUploadURL, err := s3services.GeneratePresignedUploadURL(s3FilePath)
+	if err != nil {
+		fmt.Println("Error generating presigned URL:", err)
+		return results, fmt.Errorf("failed to generate presigned url for upload PDF: %v", err)
+	}
+	err = s3services.UploadUsingPresignedURL(presignedUploadURL, pdfBody)
+	//err = uploadBytes(pdfBody, s3FilePath)
 	if err != nil {
 		return results, err
 	}
@@ -189,9 +198,9 @@ func (a *AzureService) createAnalysisRequest(postURL string, base64SourceData st
 
 	req, _ := http.NewRequest(http.MethodPost, postURL, requestBody)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Ocp-Apim-Subscription-Key", "7jdjdOERNyfaULQcWmlmf6ogFcg46TmEduvDvZ3umkNYPODoPV2FJQQJ99BBACBsN54XJ3w3AAALACOGiJiJ")
+	req.Header.Set("Ocp-Apim-Subscription-Key", a.SubscriptionKey)
 	resp, err := a.Client.Do(req)
-	//fmt.Printf("\nresp: %s\n", resp)
+	fmt.Printf("\nresp: %v\n", resp)
 	if err != nil {
 		fmt.Printf("client: error making http request: %s\n", err)
 		os.Exit(1)
@@ -204,11 +213,13 @@ func (a *AzureService) createAnalysisRequest(postURL string, base64SourceData st
 	}
 	// Extract "Operation-Location" from headers
 	resultLocation := resp.Header.Get("Operation-Location")
+	fmt.Printf("\nresultLocation: %s\n", resultLocation)
 	if resultLocation == "" {
 		return "", "", fmt.Errorf("Operation-Location header not found")
 	}
 
 	apimRequestID := resp.Header.Get("Apim-Request-Id")
+	fmt.Printf("\napimRequestID: %s\n", apimRequestID)
 
 	if apimRequestID == "" {
 		return "", "", fmt.Errorf("missing Apim-Request-Id in response header")
@@ -226,7 +237,7 @@ func (a *AzureService) getAnalysisResults(resultLocation string, message types.Q
 	for {
 		time.Sleep(5 * time.Second) // Wait before polling
 		getReq, _ := http.NewRequest("GET", resultLocation, nil)
-		getReq.Header.Set("Ocp-Apim-Subscription-Key", apiKey)
+		getReq.Header.Set("Ocp-Apim-Subscription-Key", a.SubscriptionKey)
 
 		getResponse, err := a.Client.Do(getReq)
 		if err != nil {
@@ -238,14 +249,14 @@ func (a *AzureService) getAnalysisResults(resultLocation string, message types.Q
 		body, _ := io.ReadAll(getResponse.Body)
 		if getResponse.StatusCode == http.StatusOK {
 			fmt.Println("OCR processing complete")
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrsucceeded")
+			//wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrsucceeded")
 			break
 		} else if getResponse.StatusCode == http.StatusAccepted {
 			fmt.Println("Processing... Please wait.")
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobrunning")
+			//wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobrunning")
 			continue
 		} else {
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobfailed")
+			//wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobfailed")
 			return result, fmt.Errorf("GET request failed: %d %s", getResponse.StatusCode, string(body))
 		}
 	}
@@ -263,11 +274,25 @@ func wrapDocReviewerUpdate(documentmasterid int64, ministryrequestid int64, apim
 	return returnstate
 }
 
-func uploadBytes(fileBytes []byte) error {
+func uploadBytes(fileBytes []byte, s3FilePath string) error {
+	endpoint := utils.ViperEnvVariable("s3endpoint") // Update with your S3-compatible endpoint
+	accessKey := utils.ViperEnvVariable("s3accesskey")
+	secretKey := utils.ViperEnvVariable("s3secretkey")
+	region := utils.ViperEnvVariable("region")
+	relativePath := s3FilePath
+	relativePath = strings.TrimPrefix(relativePath, "/")
+	bucketName, relativePath, found := strings.Cut(relativePath, "/")
+	if !found {
+		fmt.Println("Invalid URL format")
+		return nil
+	}
+	objectKey := relativePath
+	fmt.Printf("Bucket: %s, Key: %s\n", bucketName, objectKey)
+	bucketName = "/" + bucketName + "/"
 	// Create an AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(region),
-		Endpoint:         aws.String(s3_endpoint),
+		Endpoint:         aws.String(endpoint),
 		Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 		S3ForcePathStyle: aws.Bool(true),
 	})
@@ -379,23 +404,6 @@ func uploadBytes(fileBytes []byte) error {
 // 	return nil
 // }
 
-// func DownloadFile(url string) ([]byte, error) {
-// 	// Send an HTTP GET request to the URL
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error downloading file: %v", err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	// Read the file data into a byte slice
-// 	data, err := ioutil.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error reading downloaded file: %v", err)
-// 	}
-
-// 	return data, nil
-// }
-
 func CallAzureOCRService(pdfData []byte, message types.QueueMessage) (types.AnalyzeResults, error) {
 	// Load environment variables
 	// azureEndpoint := os.Getenv("AZURE_ENDPOINT")
@@ -410,7 +418,6 @@ func CallAzureOCRService(pdfData []byte, message types.QueueMessage) (types.Anal
 	// }
 	subscriptionKey := utils.ViperEnvVariable("azuresubcriptionkey")
 	baseURL := utils.ViperEnvVariable("azuredocumentocraiendpoint")
-
 	service := NewAzureService(subscriptionKey, baseURL)
 	// Run the function
 	result, err := service.performOCR(pdfData, message)
