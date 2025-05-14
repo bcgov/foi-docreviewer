@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// POST handler for adding a new OCRJob & ocr s3 filepath in master
+// POST handler for adding a new OCRJob & ocr s3 filepath in document master
 func updateDocreviewerTables(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -58,6 +58,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		allowedorigins := utils.ViperEnvVariable("AZDOCOCR_ALLOWED_ORIGINS")
+		fmt.Println("allowedorigins:", allowedorigins)
 		w.Header().Set("Access-Control-Allow-Origin", allowedorigins) // Allow all origins or specify a domain
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")

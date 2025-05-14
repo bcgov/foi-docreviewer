@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-type AzureExtract struct {
-	status        string
-	analyzeResult string
-}
-
 func main() {
 
 	start := time.Now()
@@ -29,8 +24,6 @@ func main() {
 		fmt.Printf("Received message: %+v\n", message)
 		//var jsonStrbytes []byte =
 		//var message types.QueueMessage
-		//https://citz-foi-prod.objectstore.gov.bc.ca/test123/Aparnatest/smudgedscanned_singlepage.pdf
-		//"https://citz-foi-prod.objectstore.gov.bc.ca/ecc-dev-e/ECC-0000-00000/20eac37b-392c-4bbc-b06e-8795c12af197COMPRESSED.pdf"
 		fmt.Printf("\nReceived URL: %+v\n", message.CompressedS3FilePath)
 		var s3Uribytes []byte = getBytesfromDocumentPath(message.CompressedS3FilePath)
 		analysisResults, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message)
@@ -57,14 +50,10 @@ func DownloadFile(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading downloaded file: %v", err)
 	}
-	//fmt.Println("\ndata-DownloadFile:", data)
 	return data, nil
 }
 
 func getBytesfromDocumentPath(documenturlpath string) []byte {
-	//path := strings.TrimPrefix(documenturlpath, "/")
-	//bucketName, relativePath, found := strings.Cut(path, "/")
-	//fmt.Printf("Bucket: %s, Key: %s\n", bucketName, relativePath)
 	s3url, err := s3services.GenerateDownloadPresignedURL(documenturlpath)
 	if err != nil {
 		log.Fatalf("Error generating presigned URL: %v", err)
@@ -76,10 +65,5 @@ func getBytesfromDocumentPath(documenturlpath string) []byte {
 		fmt.Println("Error downloading PDF:", err)
 		return nil
 	}
-	// jsonStr := `{
-	// 		"urlSource": "` + s3url + `"
-	// 	}`
-	//var jsonStrbytes = []byte(jsonStr)
-
 	return pdfData
 }

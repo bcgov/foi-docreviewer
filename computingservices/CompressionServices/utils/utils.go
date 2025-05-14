@@ -18,7 +18,6 @@ func ViperEnvVariable(key string) string {
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
-	// 👈 Add the correct relative path
 
 	// Find and read the config file
 	err := viper.ReadInConfig()

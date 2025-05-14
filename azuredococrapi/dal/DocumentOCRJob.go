@@ -18,13 +18,11 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 		ORDER BY version DESC 
 		LIMIT 1;
 	`
-
 	// Fetch the current version if it exists
-	err := db.conn.QueryRow(query, ocrJob.Documentid, ocrJob.Ministryrequestid).Scan(&currentVersion)
+	err := db.conn.QueryRow(query, ocrJob.DocumentId, ocrJob.MinistryRequestID).Scan(&currentVersion)
 	if err != nil && err != sql.ErrNoRows {
 		return -1, fmt.Errorf("error querying current version: %v", err)
 	}
-
 	// Determine the new version
 	var newVersion int
 	if currentVersion != nil {
@@ -32,7 +30,6 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	} else {
 		newVersion = 1
 	}
-
 	// Insert the new record
 	insertQuery := `
 		INSERT INTO public."DocumentOCRJob" 
@@ -40,8 +37,7 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 		VALUES ($1, $2, $3, $4, $5, NOW(), 'azureocrjob')
 		 RETURNING ocrjobid;
 	`
-
-	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.Documentid, ocrJob.Ministryrequestid, ocrJob.Status, ocrJob.Message)
+	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.DocumentId, ocrJob.MinistryRequestID, ocrJob.Status, ocrJob.Message)
 	if inserterr != nil {
 		return -1, fmt.Errorf("error inserting new record: %v", err)
 	}
@@ -49,89 +45,72 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	return 1, nil
 }
 
-func (db *DB) insertS3FilePath(message types.OCRJob) (int64, error) {
-	var currentDocumentMasterId *int // Use a pointer to check for NULL
+func (db *DB) insertOCRS3FilePath(message types.OCRJob) (int64, error) {
+	var currentDocumentMasterId int // Use a pointer to check for NULL
 	query := `
 		SELECT documentmasterid 
 		FROM public."Documents" 
-		WHERE documentid = $1 AND ministryrequestid = $2 
+		WHERE documentid = $1 AND foiministryrequestid = $2 
 		ORDER BY version DESC 
 		LIMIT 1;
 	`
 
 	// Fetch the current version if it exists
-	err := db.conn.QueryRow(query, message.Documentid, message.Ministryrequestid).Scan(&currentDocumentMasterId)
+	row := db.conn.QueryRow(query, message.DocumentId, message.MinistryRequestID)
+	err := row.Scan(&currentDocumentMasterId)
 	if err != nil && err != sql.ErrNoRows {
-		return -1, fmt.Errorf("error querying current version: %v", err)
+		return -1, fmt.Errorf("error querying current document master: %v", err)
 	}
-	if currentDocumentMasterId != nil {
-		insertQuery := `
+	log.Println("currentDocumentMasterId:", currentDocumentMasterId)
+	//if currentDocumentMasterId != nil {
+	insertQuery := `
 			UPDATE "DocumentMaster"
-			SET ocrfilepath = $2
-			WHERE documentmasterid = $1
-			AND EXISTS (
-				SELECT 1
-				FROM "OCRJob" oj
-				LEFT JOIN "DocumentDeleted" dd 
-					ON dd.ministryrequestid = $3
-					AND "DocumentMaster".filepath ILIKE dd.filepath || '%'
-				WHERE oj.documentmasterid = "DocumentMaster".documentmasterid
-					AND oj.status = 'completed'
-					AND (dd.filepath IS NULL OR dd.deleted IS FALSE OR dd.deleted IS NULL)
-			);
+			SET ocrfilepath = $2,
+			updated_at=NOW(),
+			updatedby='azureocrservice'
+			WHERE documentmasterid = $1 
+			AND ministryrequestid=$3
 		`
-		res, err := db.conn.Exec(
-			insertQuery,
-			currentDocumentMasterId,
-			message.OCRfilepath,       // $2
-			message.Ministryrequestid, // $3
-		)
-		if err != nil {
-			log.Printf("ERROR in Exec: %v\n", err)
-			return -1, fmt.Errorf("failed to update ocr file path in DocumentMaster: %w", err)
-		} else {
-			rowsAffected, _ := res.RowsAffected()
-			log.Printf("Rows updated: %d\n", rowsAffected)
-		}
-		log.Println("Update ocr file path in DocumentMaster")
+	res, err := db.conn.Exec(
+		insertQuery,
+		currentDocumentMasterId,
+		message.OCRFilePath,       // $2
+		message.MinistryRequestID, // $3
+	)
+	if err != nil {
+		log.Printf("ERROR in Exec: %v\n", err)
+		return -1, fmt.Errorf("failed to update ocr file path in DocumentMaster: %w", err)
+	} else {
+		rowsAffected, _ := res.RowsAffected()
+		log.Printf("Rows updated: %d\n", rowsAffected)
 	}
-	// Insert the new record
-	// insertQuery := `
-	// 	INSERT INTO public."DocumentOCRJob"
-	// 	(version, documentid, ministryrequestid, status, message, createdat, createdby)
-	// 	VALUES ($1, $2, $3, $4, $5, NOW(), 'azureextractjob')
-	// 	 RETURNING ocrjobid;
-	// `
-
-	// _, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.Documentid, ocrJob.Ministryrequestid, ocrJob.Status, ocrJob.Message)
-	// if inserterr != nil {
-	// 	return -1, fmt.Errorf("error inserting new record: %v", err)
-	// }
+	log.Println("Updated ocr file path in DocumentMaster")
 	db.Close()
 	return 1, nil
 }
 
 func UpdateDocreviewerTables(ocrJob types.OCRJob) (int64, error) {
-	// Replace with your PostgreSQL connection string
+	// Replace with PostgreSQL connection string
 	dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		utils.ViperEnvVariable("AZDOCOCR_FOIDOCREVIEWER_DB_HOST"), utils.ViperEnvVariable("AZDOCOCR_FOIDOCREVIEWER_DB_PORT"),
 		utils.ViperEnvVariable("AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME"), utils.ViperEnvVariable("AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD"),
 		utils.ViperEnvVariable("AZDOCOCR_FOIDOCREVIEWER_DB_NAME"),
 	)
-
 	// Initialize the database connection
 	db, err := NewDB(dataSource)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
-	id, err := db.insertocrjobdata(ocrJob)
-	if err != nil {
-		log.Fatalf("Failed to insert ocr job data: %v", err)
-		return -1, err
-	}
-	if ocrJob.Status == "ocrsucceeded" && ocrJob.OCRfilepath != "" {
-		_, err = db.insertS3FilePath(ocrJob)
+	var id int64
+	if ocrJob.Status != "ocrfileuploadsuccess" && ocrJob.OCRFilePath == "" {
+		id, err = db.insertocrjobdata(ocrJob)
+		if err != nil {
+			log.Fatalf("Failed to insert ocr job data: %v", err)
+			return -1, err
+		}
+	} else if ocrJob.Status == "ocrfileuploadsuccess" && ocrJob.OCRFilePath != "" {
+		id, err = db.insertOCRS3FilePath(ocrJob)
 		if err != nil {
 			log.Fatalf("Failed to insert ocr s3 filepath: %v", err)
 			return -1, err
