@@ -35,6 +35,7 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 		DocumentMasterID:     message.DocumentMasterID,
 		Trigger:              message.Trigger,
 		CompressedS3FilePath: message.CompressedS3FilePath,
+		DocumentID:           message.DocumentID,
 	}
 
 	fmt.Printf("Just before pushing to activeMq-%v\n\n", ocrActiveMQMsg.CompressedS3FilePath)
