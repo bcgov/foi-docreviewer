@@ -13,13 +13,16 @@ def processmessage(message):
     recordjobstart(message)
     try:
         hashcode, _pagecount = gets3documenthashcode(message)
-        newdocumentid, is_created= savedocumentdetails(message, hashcode, _pagecount)
+        newdocumentid, _= savedocumentdetails(message, hashcode, _pagecount)
         print("Document created-",newdocumentid)
+        hashcode, _pagecount, needs_ocr = gets3documenthashcode(message)
+        savedocumentdetails(message, hashcode, _pagecount, needs_ocr)
         recordjobend(message, False)
         #updateredactionstatus(message)
         _incompatible = True if str(message.incompatible).lower() == 'true' else False
         if not _incompatible:
             message.documentid= newdocumentid
+            message.needsocr= needs_ocr
             print("Message!!!",to_json(message))
             #compressionmessage =  compressionproducerservice().createcompressionproducermessage(message, _pagecount)
             compressionjobid = compressionjobstart(message)

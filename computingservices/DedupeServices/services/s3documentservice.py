@@ -28,6 +28,8 @@ from utils import (
     dedupe_s3_env,
     request_management_api,
     file_conversion_types,
+    needs_ocr,
+    has_fillable_forms,
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -480,7 +482,6 @@ def gets3documenthashcode(producermessage):
         producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
         ):
         reader = PdfReader(BytesIO(response.content))
-        
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
         attachments = []
@@ -534,6 +535,8 @@ def gets3documenthashcode(producermessage):
                 )
                 saveresponse.raise_for_status()   
         fitz_reader.close()
+        # check to see if pdf file needs ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
         # clear metadata
         try:
             filenamewithextension=_filename+extension.lower()
@@ -547,8 +550,14 @@ def gets3documenthashcode(producermessage):
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
+        # check to see if converted pdf file needs ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
+    
+    else:
+        # check to see if non-pdf file need ocr service
+        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -557,7 +566,7 @@ def gets3documenthashcode(producermessage):
     for line in response.iter_lines():
         sig.update(line)
 
-    return (sig.hexdigest(), pagecount)
+    return (sig.hexdigest(), pagecount, is_searchable_pdf)
 
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
@@ -598,6 +607,13 @@ def __converttoPST(creationdate):
     except Exception as e:
         print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
         return "Unknown PST"
-
-
-
+    
+def verify_pdf_for_ocr(content, message):
+    try:
+        if (message.incompatible.lower() == 'true'):
+            return None
+        with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
+            ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
+            return not ocr_required
+    except Exception as e:
+        print(f"Error in ocr validation: {e}")
