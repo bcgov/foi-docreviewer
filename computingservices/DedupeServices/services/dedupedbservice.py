@@ -4,7 +4,7 @@ from utils.basicutils import to_json
 from datetime import datetime
 import json
 
-def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, is_searchable_pdf = None):
+def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, needs_ocr = None):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
@@ -12,9 +12,9 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, is_searc
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount, is_searchable_pdf) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer,%s::bool) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount, needs_ocr) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer,%s::bool) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount,is_searchable_pdf))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount,needs_ocr))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 

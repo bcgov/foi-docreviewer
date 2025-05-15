@@ -32,18 +32,22 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		if updateError != nil {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
 		}
-		//ADD:-logic check for needs_ocr field
-		//if not _incompatible:
-		//print("Message!!!",to_json(message))
-		fmt.Printf("\nStarting OCR!!")
-		ocrjobid, err := RecordOCRJobStart(message)
-		if err != nil {
-			fmt.Printf("Failed to record OCR job: %v\n", err)
+		//Logic check for needs_ocr field
+		needsOCR := false
+		if message.NeedsOCR != nil {
+			needsOCR = *message.NeedsOCR
 		}
-		id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
-		if streamerr != nil {
-			fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
+		if needsOCR {
+			fmt.Printf("\nStarting OCR!!")
+			ocrjobid, err := RecordOCRJobStart(message)
+			if err != nil {
+				fmt.Printf("Failed to record OCR job: %v\n", err)
+			}
+			id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
+			if streamerr != nil {
+				fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
+			}
+			print("\nPushed to OCR Stream-", id)
 		}
-		print("\nPushed to OCR Stream-", id)
 	}
 }

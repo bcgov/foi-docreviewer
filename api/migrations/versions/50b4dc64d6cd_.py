@@ -1,7 +1,7 @@
 """Compression Job Table
 
 Revision ID: 50b4dc64d6cd
-Revises: 828d870c000f
+Revises: 5ace86cdb21d
 Create Date: 2025-04-04 11:40:38.782986
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '50b4dc64d6cd'
-down_revision = '828d870c000f'
+down_revision = '5ace86cdb21d'
 branch_labels = None
 depends_on = None
 

@@ -536,7 +536,7 @@ def gets3documenthashcode(producermessage):
                 saveresponse.raise_for_status()   
         fitz_reader.close()
         # check to see if pdf file needs ocr service
-        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
+        ocr_needed = verify_ocr_needed(response.content, producermessage)
         # clear metadata
         try:
             filenamewithextension=_filename+extension.lower()
@@ -551,13 +551,13 @@ def gets3documenthashcode(producermessage):
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
         # check to see if converted pdf file needs ocr service
-        is_searchable_pdf = verify_pdf_for_ocr(pdfresponseofconverted.content, producermessage)
+        ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
     
     else:
         # check to see if non-pdf file need ocr service
-        is_searchable_pdf = verify_pdf_for_ocr(response.content, producermessage)
+        ocr_needed = verify_ocr_needed(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -566,7 +566,7 @@ def gets3documenthashcode(producermessage):
     for line in response.iter_lines():
         sig.update(line)
 
-    return (sig.hexdigest(), pagecount, is_searchable_pdf)
+    return (sig.hexdigest(), pagecount, ocr_needed)
 
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:
@@ -608,12 +608,12 @@ def __converttoPST(creationdate):
         print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
         return "Unknown PST"
     
-def verify_pdf_for_ocr(content, message):
+def verify_ocr_needed(content, message):
     try:
         if (message.incompatible.lower() == 'true'):
             return None
         with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
-            return not ocr_required
+            return ocr_required
     except Exception as e:
         print(f"Error in ocr validation: {e}")
