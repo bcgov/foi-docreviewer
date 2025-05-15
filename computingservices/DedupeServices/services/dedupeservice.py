@@ -12,11 +12,9 @@ from utils.basicutils import to_json
 def processmessage(message):
     recordjobstart(message)
     try:
-        hashcode, _pagecount = gets3documenthashcode(message)
-        newdocumentid, _= savedocumentdetails(message, hashcode, _pagecount)
-        print("Document created-",newdocumentid)
         hashcode, _pagecount, needs_ocr = gets3documenthashcode(message)
-        savedocumentdetails(message, hashcode, _pagecount, needs_ocr)
+        newdocumentid, _= savedocumentdetails(message, hashcode, _pagecount, needs_ocr)
+        print("Document created-",newdocumentid)
         recordjobend(message, False)
         #updateredactionstatus(message)
         _incompatible = True if str(message.incompatible).lower() == 'true' else False

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/viper"
@@ -10,7 +9,6 @@ import (
 // use viper package to read .env file
 // return the value of the key
 func ViperEnvVariable(key string) string {
-	fmt.Printf("string: %s\n", key)
 	// SetConfigFile explicitly defines the path, name and extension of the config file.
 	// Viper will use this and not check any of the config paths.
 	// .env - It will search for the .env file in the current directory

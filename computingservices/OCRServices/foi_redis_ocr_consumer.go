@@ -130,12 +130,28 @@ func castField(key string, value any) any {
 		"outputdocumentmasterid", "originaldocumentmasterid", "documentid":
 		return parseInt(strVal)
 	case "attributes":
-		return parseAttributes(strVal)
-	case "incompatible":
+		switch v := value.(type) {
+		case string:
+			return parseAttributes(v) // stringified JSON — parse normally
+		case map[string]any:
+			return castAttributesMap(v) // already decoded — just cast fields
+		default:
+			return value // fallback
+		}
+		//return parseAttributes(strVal)
+	case "incompatible", "needsocr":
 		return castBool(value)
 	default:
 		return strVal
 	}
+}
+
+func castAttributesMap(raw map[string]any) map[string]any {
+	parsed := make(map[string]any)
+	for k, v := range raw {
+		parsed[k] = castAttributeField(k, v)
+	}
+	return parsed
 }
 
 func parseInt(s string) int {
@@ -143,12 +159,25 @@ func parseInt(s string) int {
 	return i
 }
 
+//	func parseAttributes(attrStr string) any {
+//		fmt.Printf("attrStr: %s\n", attrStr)
+//		var raw map[string]any
+//		if err := json.Unmarshal([]byte(attrStr), &raw); err != nil {
+//			// Log it or return nil, not the raw string
+//			fmt.Printf("Warning: Failed to parse attributes JSON: %v\n", err)
+//			return nil // or return empty map[string]any{}
+//		}
+//		parsed := make(map[string]any)
+//		for k, v := range raw {
+//			parsed[k] = castAttributeField(k, v)
+//		}
+//		return parsed
+//	}
 func parseAttributes(attrStr string) any {
+	fmt.Printf("attrStr: %s\n", attrStr)
 	var raw map[string]any
 	if err := json.Unmarshal([]byte(attrStr), &raw); err != nil {
-		// Log it or return nil, not the raw string
-		fmt.Printf("Warning: Failed to parse attributes JSON: %v\n", err)
-		return nil // or return empty map[string]any{}
+		return attrStr // fallback if not valid JSON
 	}
 	parsed := make(map[string]any)
 	for k, v := range raw {

@@ -133,7 +133,7 @@ func castField(key string, value any) any {
 		return parseInt(strVal)
 	case "attributes":
 		return parseAttributes(strVal)
-	case "incompatible":
+	case "incompatible", "needsocr":
 		return castBool(value)
 	default:
 		return strVal

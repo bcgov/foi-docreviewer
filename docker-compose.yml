@@ -377,21 +377,21 @@ services:
       - NOTIFICATION_STREAM_KEY=${NOTIFICATION_STREAM_KEY}
       - PAGECALCULATOR_STREAM_KEY=${PAGECALCULATOR_STREAM_KEY}
       - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL}
-  foi-docreviewer-azure-ocr:
-    container_name: foi-docreviewer-azure-ocr
+  foi-docreviewer-ocr:
+    container_name: foi-docreviewer-ocr
     depends_on:
       - foi-docreviewer-db
       - foi-docreviewer-redis
     build:
       context: ./computingservices/OCRServices
       dockerfile: Dockerfile.local
-    image: docreviewerazureocrimage
+    image: docreviewerocrimage
     stdin_open: true
     tty: true
     networks:
       services-network:
         aliases:
-          - docreviewerazureocr   
+          - docreviewerocr   
     environment:
       - REDIS_HOST=${OCR_REDIS_HOST}
       - REDIS_PASSWORD=${OCR_REDIS_PASSWORD}
