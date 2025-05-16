@@ -84,7 +84,7 @@ objects:
                   key: AZDOCOCR_ALLOWED_ORIGINS
 
           ports:
-          - containerPort: 62863
+          - containerPort: 52863
             protocol: TCP
           # envFrom:
           # - configMapRef:
@@ -117,10 +117,10 @@ objects:
       template: "${API_NAME}-deploy"
   spec:
     ports:
-    - name: 62863-tcp
+    - name: 52863-tcp
       protocol: TCP
-      port: 62863
-      targetPort: 62863
+      port: 52863
+      targetPort: 52863
     selector:
       app: "${API_NAME}"
     type: ClusterIP
@@ -141,7 +141,7 @@ objects:
       name: "${API_NAME}"
       weight: 100
     port:
-      targetPort: 62863-tcp
+      targetPort: 52863-tcp
     tls:
       termination: edge
     wildcardPolicy: None
@@ -152,7 +152,7 @@ parameters:
   description: The name assigned to all of the OpenShift resources associated to the
     server instance.
   required: true
-  value: azuredococrapi-rook
+  value: azuredococrapi-marshal
 - name: APP_GROUP
   displayName: App Group
   description: The name assigned to all of the deployments in this project.
@@ -173,14 +173,14 @@ parameters:
   displayName: API Secrets
   description: Name of secrets for all api values
   required: true
-  value: azuredococrapi-secret-test-rook
+  value: azuredococrapi-secret-test-marshal
 - name: IMAGE_NAME
   displayName:  image  name (eg "azuredococrapi")
   description: Includes ImageStream name 
   required: true
   value: azuredococrapi 
 - name: IMAGE_STREAM_NAME_FULL
-  displayName: Full image stream name (eg "azuredococrapi:test-rook")
+  displayName: Full image stream name (eg "azuredococrapi:test-marshal")
   description: Includes ImageStream name and tag
   required: true
-  value: azuredococrapi:test-rook
+  value: azuredococrapi:test-marshal
