@@ -177,7 +177,14 @@ class Document(db.Model):
 
             selectedcolumns = [
                 Document.documentid,
-                DocumentMaster.filepath
+                case(
+                    [
+                        (and_(DocumentMaster.ocrfilepath != None, DocumentMaster.ocrfilepath != ''), DocumentMaster.ocrfilepath),
+                        (and_(DocumentMaster.compressedfilepath != None, DocumentMaster.compressedfilepath != ''), DocumentMaster.compressedfilepath)
+                    ],
+                    else_=DocumentMaster.filepath
+                ).label("filepath")
+                #DocumentMaster.filepath
             ]
 
             query = _session.query(

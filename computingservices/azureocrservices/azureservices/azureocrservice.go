@@ -50,7 +50,7 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (t
 	if err != nil {
 		return results, fmt.Errorf("failed to initiate document analysis: %w", err)
 	} else {
-		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "azureocrrequestcreated", "")
+		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "azureocrrequestcreated", "")
 	}
 	results, err = a.getAnalysisResults(resultLocation, message, apimRequestID)
 	if err != nil {
@@ -58,7 +58,7 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (t
 	}
 	results, newOCRS3Url, err := a.uploadSearchablePDF(resultLocation, message.CompressedS3FilePath)
 	if err == nil {
-		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrfileuploadsuccess", newOCRS3Url)
+		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "ocrfileuploadsuccess", newOCRS3Url)
 	}
 	fmt.Printf("Analysis Results: %v\n", results)
 	return results, err
@@ -164,26 +164,26 @@ func (a *AzureService) getAnalysisResults(resultLocation string, message types.Q
 		body, _ := io.ReadAll(getResponse.Body)
 		if getResponse.StatusCode == http.StatusOK {
 			fmt.Println("OCR processing complete")
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrsucceeded", "")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "ocrjobsucceeded", "")
 			break
 		} else if getResponse.StatusCode == http.StatusAccepted {
 			fmt.Println("Processing... Please wait.")
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobrunning", "")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "ocrjobrunning", "")
 			continue
 		} else {
-			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), apimRequestID, "ocrjobfailed", "")
+			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "")
 			return result, fmt.Errorf("GET request failed: %d %s", getResponse.StatusCode, string(body))
 		}
 	}
 	return result, nil
 }
 
-func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, apimRequestID string, status string, ocrFilePath string) bool {
+func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, documentmasterid int64, apimRequestID string, status string, ocrFilePath string) bool {
 	// ministryrequestid, minreqidconerr := strconv.ParseInt(ministryrequestidrequest, 10, 64)
 	// if minreqidconerr != nil {
 	// 	fmt.Sprint("Error while converting ministry request ID")
 	// }
-	docreviewaudit := types.DocReviewAudit{DocumentID: documentid, MinistryRequestID: ministryrequestid,
+	docreviewaudit := types.DocReviewAudit{DocumentID: documentid, MinistryRequestID: ministryrequestid, DocumentMasterID: documentmasterid,
 		Description: fmt.Sprintf(`{apimRequestID:%v}`, apimRequestID), Status: status, OCRFilePath: ocrFilePath}
 	returnstate := docreviewerocrservice.PushtoDocReviewer(docreviewaudit)
 	return returnstate

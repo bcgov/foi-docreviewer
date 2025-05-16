@@ -4,6 +4,8 @@ from reviewer_api.models.FileConversionJob import FileConversionJob
 from reviewer_api.models.DeduplicationJob import DeduplicationJob
 from reviewer_api.models.PageCalculatorJob import PageCalculatorJob
 from reviewer_api.models.CompressionJob import CompressionJob
+from reviewer_api.models.OCRActiveMQJob import OCRActiveMQJob
+from reviewer_api.models.DocumentOCRJob import DocumentOCRJob
 from reviewer_api.models.DocumentProcesses import DocumentProcesses
 from datetime import datetime as datetime2, timezone
 from os import path
@@ -28,6 +30,8 @@ class documentservice:
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         compressions = CompressionJob.getcompressionstatus(requestid)
+        ocractivemqjobs = OCRActiveMQJob.getocractivemqstatus(requestid)
+        azureocrjobs = DocumentOCRJob.getazureocrjobstatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
         redactions = DocumentMaster.getredactionready(requestid)
         print("\n\nrecords :",records)
@@ -44,6 +48,8 @@ class documentservice:
             record = self.__updatecoversionstatus(conversions, record)
             record = self.__updatededupestatus(dedupes, record)
             record= self.__updatecompressionstatus(compressions, record)
+            record= self.__updateocractivemqstatus(ocractivemqjobs, record)
+            record= self.__updateazureocrstatus(azureocrjobs, record)
             record = self.__updateredactionstatus(redactions, record)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
@@ -276,6 +282,26 @@ class documentservice:
                 record["trigger"] = compression["trigger"]
                 if "message" not in record or record["message"] in (None, '') :
                     record["message"] = compression["message"]
+        return record
+    
+    def __updateocractivemqstatus(self, ocractivemqjobs, record):
+        for ocractivemqjob in ocractivemqjobs:
+            if record["documentmasterid"] == ocractivemqjob["documentmasterid"]:
+                record["ocractivemqstatus"] = ocractivemqjob["status"]
+                record["filename"] = ocractivemqjob["filename"]
+                record["trigger"] = ocractivemqjob["trigger"]
+                if "message" not in record or record["message"] in (None, '') :
+                    record["message"] = ocractivemqjob["message"]
+        return record
+    
+    def __updateazureocrstatus(self, azureocrjobs, record):
+        for azureocrjob in azureocrjobs:
+            if record["documentmasterid"] == azureocrjob["documentmasterid"]:
+                record["azureocrjobstatus"] = "error" if azureocrjob["status"]=="ocrjobfailed" else azureocrjob["status"]
+                #record["filename"] = azureocrjob["filename"]
+                #record["trigger"] = azureocrjob["trigger"]
+                if "message" not in record or record["message"] in (None, '') :
+                    record["message"] = azureocrjob["message"]
         return record
 
     # def __updateproperties_old(self, properties, records, record):
@@ -617,4 +643,7 @@ class documentservice:
         if recordretrieveversion == 'retrive_uncompressed' or "uncompressed" in recordretrieveversion:
             selectedfileprocessversion= DocumentProcesses.getdocumentprocessbyname("dedupe")
         return Document.updateselectedfileprocessversion(ministryrequestid,recordids,selectedfileprocessversion, userid)
+    
+    def getdocumentfilepath(self, documentid):
+        return DocumentMaster.getfilepathbydocumentid(documentid)
         

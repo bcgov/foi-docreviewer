@@ -33,11 +33,11 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	// Insert the new record
 	insertQuery := `
 		INSERT INTO public."DocumentOCRJob" 
-		(version, documentid, ministryrequestid, status, message, createdat, createdby) 
+		(version, documentid, ministryrequestid, documentmasterid, status, message, createdat, createdby) 
 		VALUES ($1, $2, $3, $4, $5, NOW(), 'azureocrjob')
 		 RETURNING ocrjobid;
 	`
-	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.DocumentId, ocrJob.MinistryRequestID, ocrJob.Status, ocrJob.Message)
+	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.DocumentId, ocrJob.MinistryRequestID, ocrJob.DocumentMasterID, ocrJob.Status, ocrJob.Message)
 	if inserterr != nil {
 		return -1, fmt.Errorf("error inserting new record: %v", err)
 	}
@@ -66,6 +66,7 @@ func (db *DB) insertOCRS3FilePath(message types.OCRJob) (int64, error) {
 	insertQuery := `
 			UPDATE "DocumentMaster"
 			SET ocrfilepath = $2,
+			isredactionready = true,
 			updated_at=NOW(),
 			updatedby='azureocrservice'
 			WHERE documentmasterid = $1 
