@@ -10,11 +10,9 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// Assuming you have a global redis client
 var rdb = utils.CreateRedisClient()
 var streamKey = utils.ViperEnvVariable("NOTIFICATION_STREAM_KEY")
 
-// NotificationPublishSchema is the Go equivalent of your notification schema
 type NotificationPublishSchema struct {
 	ServiceID         string `json:"serviceid"`
 	ErrorFlag         string `json:"errorflag"`
@@ -24,13 +22,12 @@ type NotificationPublishSchema struct {
 	Batch             string `json:"batch"`
 }
 
-// RedisStreamWriter struct holds the stream and other necessary data
 type RedisStreamWriter struct {
 	rdb                *redis.Client
 	notificationStream string
 }
 
-// NewRedisStreamWriter initializes and returns a new RedisStreamWriter
+// Initializes and returns a new RedisStreamWriter
 func NewRedisStreamWriter(redisClient *redis.Client) *RedisStreamWriter {
 	return &RedisStreamWriter{
 		rdb:                redisClient,
@@ -56,7 +53,7 @@ func (w *RedisStreamWriter) SendNotification(message *models.CompressionProducer
 		"batch":             message.Batch,
 	}
 
-	// Use XAdd to add message to the Redis stream
+	// XAdd to add message to the Redis stream
 	_, err := w.rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: w.notificationStream,
 		Values: notificationMsg,
@@ -69,33 +66,6 @@ func (w *RedisStreamWriter) SendNotification(message *models.CompressionProducer
 	}
 }
 
-// ReadFromStream reads messages from the Redis stream
-// func (w *RedisStreamWriter) ReadFromStream() {
-// 	ctx := context.Background()
-
-// 	// XReadGroup is used for reading from the stream as part of a consumer group
-// 	streams, err := w.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
-// 		Group:    "compression-group", // Replace with your group name
-// 		Consumer: "consumer1",         // Replace with your consumer name
-// 		Streams:  []string{w.notificationStream},
-// 		Block:    0, // Block indefinitely if no message is available
-// 		Count:    1, // Read only 1 message at a time
-// 	}).Result()
-
-// 	if err != nil {
-// 		log.Printf("Error while reading from the stream: %v", err)
-// 		return
-// 	}
-
-// 	// Handle the received message
-// 	for _, stream := range streams {
-// 		for _, message := range stream.Messages {
-// 			fmt.Printf("Received message: %v\n", message.Values)
-// 		}
-// 	}
-// }
-
-// Helper function to convert a boolean to "YES" or "NO" string
 func boolToStr(value bool) string {
 	if value {
 		return "YES"

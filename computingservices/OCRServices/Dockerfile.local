@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-    FROM golang:1.23.3-alpine AS builder
+    FROM golang:1.24.3-alpine AS builder
 
     WORKDIR /app
     
@@ -20,13 +20,8 @@
     COPY --from=builder /app/ocr-service .
 
     # Copy .env to the container
-    COPY .env .env
-
-    # COPY .env /app/.env
-
-    RUN chmod +x ./ocr-service
-    RUN chmod 644 .env
+    COPY .env .
     
-    # ENTRYPOINT ["/entrypoint.sh"]
+    RUN chmod +x ./ocr-service && chmod 644 .env
     
     CMD ["./ocr-service"]

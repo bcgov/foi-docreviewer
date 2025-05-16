@@ -15,7 +15,6 @@ import (
 	"compressionservices/utils"
 
 	"github.com/go-redis/redis/v8"
-	//"golang.org/x/exp/maps"
 )
 
 var (
@@ -32,8 +31,8 @@ const (
 	Latest    StartFrom = "$"
 )
 
-func Start(consumerID string, startFrom StartFrom, cfg *utils.Config) {
-	streamKey := cfg.CompressionStreamKey
+func Start(consumerID string, startFrom StartFrom) {
+	streamKey := utils.ViperEnvVariable("COMPRESSION_STREAM_KEY")
 	fmt.Printf("STREAM_KEY: %s\n", streamKey)
 
 	rdb := utils.CreateRedisClient()
@@ -83,7 +82,6 @@ func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessag
 			fmt.Printf("Recovered from panic while processing message ID %s: %v\n", msg.ID, r)
 		}
 	}()
-	fmt.Printf("Processing message: %v\n\n", msg)
 	messageJSON := make(map[string]any)
 	maps.Copy(messageJSON, msg.Values)
 	casted := castRedisMessage(messageJSON)

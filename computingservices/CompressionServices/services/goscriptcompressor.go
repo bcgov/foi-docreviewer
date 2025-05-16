@@ -9,7 +9,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -112,7 +111,7 @@ func compressPDF(inputPdfData []byte) ([]byte, error) {
 		inputTempFile.Name(),
 	)
 	// Print the command for debugging
-	fmt.Printf("Running command: %v\n", cmd)
+	//fmt.Printf("Running command: %v\n", cmd)
 	// Set up command's stderr to capture output
 	cmd.Stderr = &stderr
 	// Run the command
@@ -192,7 +191,7 @@ func uploadUsingPresignedURL(presignedURL string, fileData []byte) error {
 	defer resp.Body.Close()
 	// Check the response status
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
 	}
 	fmt.Println("Successfully uploaded the file using presigned URL.")

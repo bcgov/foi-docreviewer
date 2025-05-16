@@ -3,8 +3,8 @@ module compressionservices
 go 1.23.3
 
 require (
+	github.com/aws/aws-sdk-go v1.55.6
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -12,7 +12,6 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.55.6 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect

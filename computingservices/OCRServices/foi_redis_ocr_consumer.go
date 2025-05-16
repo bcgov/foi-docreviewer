@@ -31,7 +31,7 @@ const (
 )
 
 func Start(consumerID string, startFrom StartFrom) {
-	streamKey := utils.ViperEnvVariable("OCR_STREAM_KEY") //cfg.CompressionStreamKey
+	streamKey := utils.ViperEnvVariable("OCR_STREAM_KEY")
 	fmt.Printf("STREAM_KEY: %s\n", streamKey)
 
 	rdb := utils.CreateRedisClient()
@@ -84,7 +84,7 @@ func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessag
 	messageJSON := make(map[string]any)
 	maps.Copy(messageJSON, msg.Values)
 	casted := castRedisMessage(messageJSON)
-	fmt.Printf("casted: %v\n", casted)
+	//fmt.Printf("casted: %v\n", casted)
 	messageBytes, err := json.Marshal(casted)
 	if err != nil {
 		return fmt.Errorf("error marshaling message: %w", err)
@@ -174,7 +174,6 @@ func parseInt(s string) int {
 //		return parsed
 //	}
 func parseAttributes(attrStr string) any {
-	fmt.Printf("attrStr: %s\n", attrStr)
 	var raw map[string]any
 	if err := json.Unmarshal([]byte(attrStr), &raw); err != nil {
 		return attrStr // fallback if not valid JSON

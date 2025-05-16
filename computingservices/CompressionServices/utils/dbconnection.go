@@ -9,16 +9,13 @@ import (
 )
 
 func GetDBConnection() *sql.DB {
-	cfg := LoadConfig()
-	//fmt.Printf("\ncfg:%+v\n\n", cfg)
+	//cfg := LoadConfig()
 
-	//fmt.Printf("DedupeDBHost:%v\n", cfg.CompressionDBHost)
-
-	host := cfg.CompressionDBHost         //os.Getenv("DEDUPE_DB_HOST")
-	port := cfg.CompressionDBPort         //os.Getenv("DEDUPE_DB_PORT")
-	user := cfg.CompressionDBUser         //os.Getenv("DEDUPE_DB_USER")
-	password := cfg.CompressionDBPassword //os.Getenv("DEDUPE_DB_PASSWORD")
-	dbname := cfg.CompressionDBName       //os.Getenv("DEDUPE_DB_NAME")
+	host := ViperEnvVariable("COMPRESSION_DB_HOST")
+	port := ViperEnvVariable("COMPRESSION_DB_PORT")
+	user := ViperEnvVariable("COMPRESSION_DB_USER")
+	password := ViperEnvVariable("COMPRESSION_DB_PASSWORD")
+	dbname := ViperEnvVariable("COMPRESSION_DB_NAME")
 
 	psqlInfo := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",

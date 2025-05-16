@@ -41,24 +41,10 @@ func RecordCompressionJobStart(msg *models.CompressionProducerMessage) {
 			fmt.Printf("Error inserting CompressionJob start: %v\n", err)
 		}
 		return
-		// _, err := db.Exec(`
-		// 	INSERT INTO public."CompressionJob"
-		// 	(compressionjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
-		// 	VALUES ($1::integer, $2::integer, $3::integer, $4, $5, $6, $7, $8, $9)
-		// 	ON CONFLICT (compressionjobid, version) DO NOTHING;`,
-		// 	msg.JobID, 2, msg.MinistryRequestID, msg.Batch, "rank1", msg.Trigger,
-		// 	msg.DocumentMasterID, msg.Filename, "started",
-		// )
-		// if err != nil {
-		// 	fmt.Printf("Error inserting CompressionJob start: %v\n", err)
-		// 	panic(err)
-		// }
 	} else {
 		fmt.Printf("Compression Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 2)
 	}
 }
-
-//ADD LOGIC::if msg.Attributes.IsAttachment{}
 
 func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, isError bool, message string) error {
 	if s3FilePath == "" {
@@ -178,16 +164,6 @@ func IsBatchCompleted(batch string) (bool, bool) {
 
 func UpdateDocumentDetails(message *models.CompressionProducerMessage, compressedFileSize int, s3CompressedFilePath string) error {
 
-	// if message.Attributes.IsAttachment {
-
-	// }
-	// fmt.Println("\nOriginalDocumentMasterID:", message.OriginalDocumentMasterID)
-	// fmt.Println("\nOutputDocumentMasterID:", message.OutputDocumentMasterID)
-	// fmt.Println("\nDocumentMasterID:", message.DocumentMasterID)
-	// docMasterIdToBeUpdated := message.DocumentMasterID
-	// if message.OutputDocumentMasterID != nil {
-	// 	docMasterIdToBeUpdated = *message.OutputDocumentMasterID
-	// }
 	db := utils.GetDBConnection()
 	defer db.Close()
 	query := `
@@ -388,29 +364,6 @@ func RecordOCRJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, 
 	}
 }
 
-// func UpdateRecordIdInDocMaster(recordID *int, newDocumentMasterId int) error {
-// 	db := utils.GetDBConnection()
-// 	defer db.Close()
-// 	query := `
-// 		UPDATE public."DocumentMaster"
-// 		SET recordid = $1
-// 		WHERE documentmasterid = $2
-// 	`
-// 	_, err := db.Exec(query, recordID, newDocumentMasterId)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update documentmasterid: %w", err)
-// 	}
-// 	/**TO DO::Attachment logic needs to be added**/
-// 	log.Println("Recordid updated in new DocumentMaster entry for ", newDocumentMasterId)
-// 	return nil
-// }
-
-// func UpdateRedactionStatus(message *models.CompressionProducerMessage) error {
-// 	db := utils.GetDBConnection()
-// 	defer db.Close()
-// 	/**TO DO::Attachment logic needs to be added**/
-
-// 	//Marshal attributes to JSON
 // 	// attributesJSON, err := json.Marshal(msg.Attributes)
 // 	// if err != nil {
 // 	// 	return fmt.Errorf("failed to marshal attributes: %w", err)

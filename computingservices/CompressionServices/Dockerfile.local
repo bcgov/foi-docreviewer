@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-    FROM golang:1.23.3-alpine AS builder
+    FROM golang:1.24.3-alpine AS builder
 
     WORKDIR /app
     
@@ -19,18 +19,12 @@
     # Copy the binary from builder stage
     COPY --from=builder /app/compression-service .
 
-    # Make sure it’s executable
-    RUN chmod +x ./compression-service
-
     # Copy .env to the container
-    COPY .env .env
+    COPY .env .
 
-    # COPY .env /app/.env
-
-    RUN chmod +x ./compression-service
-    RUN chmod 644 .env
+    # Make sure it’s executable
+    RUN chmod +x ./compression-service && chmod 644 .env
     
-    # ENTRYPOINT ["/entrypoint.sh"]
     
     CMD ["./compression-service"]
     

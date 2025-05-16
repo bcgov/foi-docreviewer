@@ -19,27 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-// func GetFilefroms3(s3relativefileurl string) (string, error) {
-// 	s3Details, err := GetS3Details(s3relativefileurl)
-// 	if err != nil {
-// 		fmt.Println("Error in fetching S3 details")
-// 		return "", nil
-// 	}
-// 	// Define S3-compatible storage endpoint and credentials
-// 	//s3forcepathstyle, _ := strconv.ParseBool(utils.ViperEnvVariable("s3forcepathstyle"))
-// 	expiry := 15 * time.Minute // Presigned URL expiry time
-// 	// fmt.Printf("endpoint: %s, accessKey: %s, secretKey: %s, bucketName: %s, objectKey: %s, region: %s, expiry: %s\n",
-// 	// 	endpoint, accessKey, secretKey, bucketName, objectKey, region, expiry)
-
-// 	url, err := GeneratePresignedURL(s3relativefileurl)
-// 	if err != nil {
-// 		log.Fatalf("Error generating presigned URL: %v", err)
-// 	}
-
-// 	fmt.Println("Presigned URL:", url)
-// 	return url, nil
-// }
-
 func GenerateDownloadPresignedURL(s3relativefileurl string) (string, error) {
 	fmt.Printf("PAthhh%s\n", s3relativefileurl)
 	s3Details, err := GetS3Details(s3relativefileurl)

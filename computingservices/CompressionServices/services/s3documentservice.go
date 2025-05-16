@@ -1,50 +1,3 @@
-// from . import getdbconnection, gets3credentialsobject
-// from . import foidedupehashcalulator
-// from psycopg2 import sql
-// from os import path
-// from copy import deepcopy
-// import json
-// import psycopg2
-// import requests
-// from aws_requests_auth.aws_auth import AWSRequestsAuth
-// from pypdf import PdfReader, PdfWriter
-// from io import BytesIO
-// from html import escape
-// import hashlib
-// import uuid
-// import boto3
-// from botocore.config import Config
-// from re import sub
-// import fitz
-// import PyPDF2
-// import maya
-// import pytz
-// from utils import (
-//     gets3credentialsobject,
-//     dedupe_s3_region,
-//     dedupe_s3_host,
-//     dedupe_s3_service,
-//     dedupe_s3_env,
-//     request_management_api,
-//     file_conversion_types,
-// )
-// from reportlab.lib.pagesizes import letter
-// from reportlab.pdfgen import canvas
-// from reportlab.pdfbase.ttfonts import TTFont
-// from reportlab.pdfbase import pdfmetrics
-// from reportlab.lib.pagesizes import letter
-// import os
-// from decimal import Decimal
-
-// # Get the directory of the current Python file (inside the 'service' folder)
-// service_folder_path = os.path.dirname(os.path.abspath(__file__))
-// # Navigate to the parent directory (common folder)
-// common_folder_path = os.path.dirname(service_folder_path)
-// # Construct the path to the 'utils' folder & get the path to the 'BCSans-Bold.ttf' font file inside the 'utils' folder
-// utils_folder_path = os.path.join(common_folder_path, "utils")
-// font_path = os.path.join(utils_folder_path, "fonts", "BCSans-Regular_2f.ttf")
-// pdfmetrics.registerFont(TTFont('BC-Sans', font_path))
-
 package services
 
 import (
@@ -122,9 +75,6 @@ func generatePresignedURL(endpoint, accessKey, secretKey, bucketName, fullFilePa
 	//fmt.Printf("fullFilePath: %s\n", fullFilePath)
 	objectKey := strings.SplitN(fullFilePath, bucketName, 2)[1]
 	// fmt.Println("Object Key:", objectKey)
-
-	// fmt.Printf("Parsed bucket: %s\n", bucketName)
-	// fmt.Printf("Parsed object key: %s\n", objectKey)
 
 	// Create a new session with the provided credentials
 	sess, err := session.NewSession(&aws.Config{

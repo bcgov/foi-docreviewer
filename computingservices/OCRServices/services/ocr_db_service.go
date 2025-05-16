@@ -23,7 +23,6 @@ func RecordJobStart(msg *models.OCRProducerMessage) {
 		if err != nil {
 			fmt.Printf("Error inserting OCR Job start: %v\n", err)
 			panic(err)
-			//return
 		}
 		defer stmt.Close()
 		_, err = stmt.Exec(
@@ -37,22 +36,9 @@ func RecordJobStart(msg *models.OCRProducerMessage) {
 			msg.DocumentMasterID,
 		)
 		if err != nil {
-			//return fmt.Errorf("failed to execute insert: %w", err)
 			fmt.Printf("Error inserting OCR Job start: %v\n", err)
 		}
 		return
-		// _, err := db.Exec(`
-		// 	INSERT INTO public."CompressionJob"
-		// 	(compressionjobid, version, ministryrequestid, batch, type, trigger, documentmasterid, filename, status)
-		// 	VALUES ($1::integer, $2::integer, $3::integer, $4, $5, $6, $7, $8, $9)
-		// 	ON CONFLICT (compressionjobid, version) DO NOTHING;`,
-		// 	msg.JobID, 2, msg.MinistryRequestID, msg.Batch, "rank1", msg.Trigger,
-		// 	msg.DocumentMasterID, msg.Filename, "started",
-		// )
-		// if err != nil {
-		// 	fmt.Printf("Error inserting CompressionJob start: %v\n", err)
-		// 	panic(err)
-		// }
 	} else {
 		fmt.Printf("OCR Job already exists for file %s with JOB ID %d and version %d\n", msg.Filename, msg.JobID, 2)
 	}
@@ -85,14 +71,14 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 		}
 		defer stmt.Close()
 		_, err = stmt.Exec(
-			msg.JobID,             // $1
-			3,                     // $2
-			msg.MinistryRequestID, // $3
-			msg.Batch,             // $4
-			msg.Trigger,           // $5
-			msg.DocumentMasterID,  // $6
-			msg.Filename,          // $7
-			status,                // $8
+			msg.JobID,
+			3,
+			msg.MinistryRequestID,
+			msg.Batch,
+			msg.Trigger,
+			msg.DocumentMasterID,
+			msg.Filename,
+			status, // $8
 		)
 		if err != nil {
 			log.Printf("Error executing query: %v", err)
@@ -170,57 +156,3 @@ func IsBatchCompleted(batch string) (bool, bool) {
 	return compInProgress == 0, compError > 0
 	//return compInProgress == 0 &&dedupeInProgress == 0, (dedupeError + compError) > 0
 }
-
-// func UpdateRecordIdInDocMaster(recordID *int, newDocumentMasterId int) error {
-// 	db := utils.GetDBConnection()
-// 	defer db.Close()
-// 	query := `
-// 		UPDATE public."DocumentMaster"
-// 		SET recordid = $1
-// 		WHERE documentmasterid = $2
-// 	`
-// 	_, err := db.Exec(query, recordID, newDocumentMasterId)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update documentmasterid: %w", err)
-// 	}
-// 	/**TO DO::Attachment logic needs to be added**/
-// 	log.Println("Recordid updated in new DocumentMaster entry for ", newDocumentMasterId)
-// 	return nil
-// }
-
-// func UpdateRedactionStatus(message *models.CompressionProducerMessage) error {
-// 	db := utils.GetDBConnection()
-// 	defer db.Close()
-// 	/**TO DO::Attachment logic needs to be added**/
-
-// 	//Marshal attributes to JSON
-// 	// attributesJSON, err := json.Marshal(msg.Attributes)
-// 	// if err != nil {
-// 	// 	return fmt.Errorf("failed to marshal attributes: %w", err)
-// 	// }
-// 	/**TO DO:: Add compressedfilesize value in attributes-SET //attributes = $1 and**/
-// 	query := `
-// 		UPDATE "DocumentMaster" dm
-// 			SET isactive = false,
-// 				updatedby = 'compressionservice',
-// 				updated_at = NOW()
-// 			WHERE dm.documentmasterid = sq.inputdocumentmasterid
-// 			AND dm.ministryrequestid = $1::integer;
-// 	`
-// 	rows, err := db.Query(query, message.MinistryRequestID)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update DocumentMaster: %w", err)
-// 	}
-// 	defer rows.Close()
-// 	for rows.Next() {
-// 		var documentMasterID int
-// 		// You can add more fields if you need to print more data
-// 		err := rows.Scan(&documentMasterID /*, other fields */)
-// 		if err != nil {
-// 			log.Fatalf("Row scan failed: %v", err)
-// 		}
-// 		fmt.Printf("Updated DocumentMasterID: %d\n", documentMasterID)
-// 	}
-// 	log.Println("RedactionReady status updated successfully.")
-// 	return nil
-// }

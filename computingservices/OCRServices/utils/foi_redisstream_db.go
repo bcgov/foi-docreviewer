@@ -22,7 +22,6 @@ func CreateRedisClient() *redis.Client {
 		Password: password,
 		DB:       0,
 	})
-	// Optional: test connection
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect to Redis: %v", err))

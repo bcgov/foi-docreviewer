@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"ocrservices/models"
@@ -17,7 +17,7 @@ var ACTIVEMQ_PASSWORD string = utils.ViperEnvVariable("ACTIVEMQ_PASSWORD")
 var ACTIVEMQ_DESTINATION string = utils.ViperEnvVariableWithDefault("ACTIVEMQ_DESTINATION", "foidococr")
 
 func ProcessMessage(message *models.OCRProducerMessage) {
-	// Record cpmpressionjob start
+	// Record compressionjob start
 	RecordJobStart(message)
 	// Ensure recovery from any panic during the process
 	defer func() {
@@ -51,19 +51,6 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 	if response != nil {
 		RecordJobEnd(message, isError, errMsg)
 	}
-	//s3FilePath, compressedFileSize, isError, errMsg := StartCompression(message)
-	// errorMessage := ""
-	// if errMsg != nil {
-	// 	errorMessage = errMsg.Error()
-	// }
-	// errorMsg := RecordJobEnd(s3FilePath, message, isError, errorMessage)
-	// if errMsg == nil && errorMsg == nil {
-	// 	UpdateRedactionStatus(message)
-	// 	updateError := UpdateDocumentDetails(message, compressedFileSize, s3FilePath)
-	// 	if updateError != nil {
-	// 		fmt.Printf("Failed to update document details: %v\n", updateError)
-	// 	}
-	// }
 }
 
 func pushDocsToActiveMQ(message *models.OCRAzureMessage) (*http.Response, error) {
@@ -73,17 +60,11 @@ func pushDocsToActiveMQ(message *models.OCRAzureMessage) (*http.Response, error)
 	password := ACTIVEMQ_PASSWORD
 	params := "?destination=queue://" + ACTIVEMQ_DESTINATION
 	fmt.Println("\nACTIVEMQ_URL:", url)
-	fmt.Println("\nACTIVEMQ_USERNAME:", username)
 	if message != nil {
 		jsonBytes, err := json.Marshal(message)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal message: %v", err)
 		}
-		// formattedJSON, err := formatBatch(requestsForExtraction)
-		// if err != nil {
-		// 	return nil, fmt.Errorf("error formatting JSON: %v", err)
-		// }
-		// fmt.Println("\n\nFINAL JSON:", string(formattedJSON))
 		req, err := http.NewRequest("POST", url+params, bytes.NewBuffer(jsonBytes))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %v", err)
@@ -97,10 +78,9 @@ func pushDocsToActiveMQ(message *models.OCRAzureMessage) (*http.Response, error)
 			return nil, err
 		}
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
 			fmt.Println("Success:", string(body))
-			//updateDocumentsStatus(requestsForExtraction)
 		} else {
 			fmt.Printf("Error: %d, %s\n", resp.StatusCode, string(body))
 		}

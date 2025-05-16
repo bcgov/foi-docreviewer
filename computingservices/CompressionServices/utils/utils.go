@@ -12,7 +12,6 @@ func ViperEnvVariable(key string) string {
 	// SetConfigFile explicitly defines the path, name and extension of the config file.
 	// Viper will use this and not check any of the config paths.
 	// .env - It will search for the .env file in the current directory
-	//viper.SetConfigFile("./.env")
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
@@ -31,6 +30,23 @@ func ViperEnvVariable(key string) string {
 	// ok will make sure the program not break
 	if !ok {
 		log.Fatalf("Invalid type assertion")
+	}
+	return value
+}
+
+func ViperEnvVariableWithDefault(key string, defaultVal string) string {
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Printf("Warning: Error while reading config file: %s. Using default for %s", err, key)
+		return defaultVal
+	}
+	value, ok := viper.Get(key).(string)
+	if !ok || value == "" {
+		log.Printf("Warning: Config key '%s' not found or invalid. Using default: %s", key, defaultVal)
+		return defaultVal
 	}
 	return value
 }

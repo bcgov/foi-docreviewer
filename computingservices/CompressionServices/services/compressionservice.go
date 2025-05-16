@@ -18,7 +18,7 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 			RecordCompressionJobEnd("", message, true, errMsg)
 		}
 	}()
-	fmt.Printf("Just before compression-%v\n", message.S3FilePath)
+	//fmt.Printf("Just before compression-%v\n", message.S3FilePath)
 	s3FilePath, compressedFileSize, isError, errMsg := StartCompression(message)
 	errorMessage := ""
 	if errMsg != nil {

@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	ocrRedisHost        = utils.ViperEnvVariable("OCR_REDIS_HOST")
-	ocrRedisPort        = utils.ViperEnvVariable("OCR_REDIS_PORT")
-	ocrRedisPassword    = utils.ViperEnvVariable("OCR_REDIS_PASSWORD")
+	ocrRedisHost        = utils.ViperEnvVariable("REDIS_HOST")
+	ocrRedisPort        = utils.ViperEnvVariable("REDIS_PORT")
+	ocrRedisPassword    = utils.ViperEnvVariable("REDIS_PASSWORD")
 	ocrStreamKey        = utils.ViperEnvVariable("OCR_STREAM_KEY")
 	healthCheckInterval = utils.ViperEnvVariable("HEALTH_CHECK_INTERVAL")
 )
