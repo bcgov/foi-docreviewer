@@ -1089,12 +1089,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         isLoading: true,
       });
       let doc = docViewer.getDocument();
-      let _data = await doc.getFileData({
-          // export the document to arraybuffer
-          // xfdfString: xfdfString,
-          downloadType: "pdf",
-          flatten: true,
-        })
       for (const [key, value] of Object.entries(stitchDoc)) {        
         if (stitchlist[key].length <= 0) {          
           if (incompatableList[key]["incompatibleFiles"].length > 0) {
@@ -1102,6 +1096,14 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
           }
           continue
         }
+        let _data = await doc.getFileData({
+          // export the document to arraybuffer
+          // xfdfString: xfdfString,
+          downloadType: "pdf",
+          flatten: true,
+        })
+        const _arr = new Uint8Array(_data);
+        const _blob = new Blob([_arr], { type: "application/pdf" });
 
         await docInstance?.Core.createDocument(_data, {
           loadAsPDF: true,
