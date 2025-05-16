@@ -4,7 +4,7 @@ from utils.basicutils import to_json
 from datetime import datetime
 import json
 
-def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
+def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1, needs_ocr = None):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
@@ -12,9 +12,9 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
-        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer) RETURNING documentid;',
+        filename, documentmasterid,foiministryrequestid,createdby,created_at,statusid,incompatible, originalpagecount, pagecount, needs_ocr) VALUES(%s::integer, %s, %s,%s::integer,%s,%s,%s::integer,%s::bool,%s::integer,%s::integer,%s::bool) RETURNING documentid;',
         (1, dedupeproducermessage.filename, dedupeproducermessage.outputdocumentmasterid or dedupeproducermessage.documentmasterid,
-        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount))
+        dedupeproducermessage.ministryrequestid,'{"user":"dedupeservice"}',datetime.now(),1,_incompatible,pagecount,pagecount,needs_ocr))
         conn.commit()
         id_of_new_row = cursor.fetchone()
 
@@ -32,7 +32,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         conn.commit()
 
         cursor.close()
-        return True
+        return id_of_new_row[0], True
     except(Exception) as error:
         print("Exception while executing func savedocumentdetails (p5), Error : {0} ".format(error))
         raise
@@ -104,7 +104,7 @@ def updateredactionstatus(dedupeproducermessage):
     try:        
         cursor = conn.cursor()
         cursor.execute('''update "DocumentMaster" dm
-                        set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now() 
+                        set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now()
                         from(
                         select distinct on (documentmasterid) documentmasterid, version, status
                         from  "DeduplicationJob"
@@ -156,8 +156,25 @@ def isbatchcompleted(batch):
             (batch,)
         )
         (dedupeinprogress, dedupeerr, _dedupecompleted) = cursor.fetchone()
+        if dedupeinprogress > 0:
+            cursor.close()
+            conn.close()
+            return False, dedupeerr > 0
+        cursor.execute('''select count(1) filter (where status = 'pushedtostream' or status = 'started') as inprogress,
+            count(1) filter (where status = 'error') as error,
+            count(1) filter (where status = 'completed') as completed
+            from (select max(version) as version,  compressionjobid
+            from public."CompressionJob"
+            where batch = %s
+            group by compressionjobid) sq
+            join public."CompressionJob" dj
+                on dj.compressionjobid = sq.compressionjobid
+                and dj.version = sq.version;''',
+            (batch,)
+        )
+        (compressioninprogress, compressionerr, _compressioncompleted) = cursor.fetchone()
         cursor.close()
-        return dedupeinprogress == 0 and conversioninprogress == 0, dedupeerr+conversionerr > 0
+        return dedupeinprogress == 0 and conversioninprogress == 0 and compressioninprogress == 0, dedupeerr+conversionerr+compressionerr > 0
     except(Exception) as error:
         print("Exception while executing func isbatchcompleted (p2), Error : {0} ".format(error))
         raise
@@ -188,5 +205,23 @@ def pagecalculatorjobstart(message):
                 conn.close()
 
 
-
-
+def compressionjobstart(message):
+        conn = getdbconnection()
+        try:
+                    
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."CompressionJob"
+                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
+                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s) returning compressionjobid;''',
+                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid))
+            compressionjobid = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            print("Inserted compressionjobid:", compressionjobid)
+            return compressionjobid
+        except(Exception) as error:
+            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()

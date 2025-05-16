@@ -18,6 +18,8 @@ class DocumentMaster(db.Model):
     createdby = db.Column(db.String(120), unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     updatedby = db.Column(db.String(120), unique=False, nullable=True)
+    compressedfilepath = db.Column(db.String(500), nullable=True)
+    ocrfilepath = db.Column(db.String(500), nullable=True)
 
     @classmethod
     def create(cls, row):
@@ -34,9 +36,9 @@ class DocumentMaster(db.Model):
     def getdocumentmaster(cls, ministryrequestid):
         documentmasters = []
         try:
-            sql = """select dm.recordid, dm.parentid, d.filename as attachmentof, dm.filepath, dm.documentmasterid, da."attributes", 
-                    dm.created_at, dm.createdby  
-					from "DocumentMaster" dm
+            sql = """select dm.recordid, dm.parentid, d.filename as attachmentof, dm.filepath, dm.compressedfilepath, dm.ocrfilepath, dm.documentmasterid, da."attributes", 
+                    dm.created_at, dm.createdby, dm.processingparentid as processingparentid, dm.isredactionready as isredactionready, d.selectedfileprocessversion,
+                    d.needs_ocr	from "DocumentMaster" dm
 					join "DocumentAttributes" da on dm.documentmasterid = da.documentmasterid
 					left join "DocumentMaster" dm2 on dm2.processingparentid = dm.parentid
                     -- replace attachment will create 2 or more rows with the same processing parent id
@@ -51,8 +53,12 @@ class DocumentMaster(db.Model):
                     order by da.attributes->>'lastmodified' DESC, da.attributeid ASC"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
+                print("row:",row)
                 # if row["documentmasterid"] not in deleted:
-                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  "createdby": row["createdby"], "attachmentof": row["attachmentof"]})
+                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "compressedfilepath": row["compressedfilepath"], 
+                                        "ocrfilepath": row["ocrfilepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  
+                                        "createdby": row["createdby"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], 
+                                        "selectedfileprocessversion": row["selectedfileprocessversion"], "needs_ocr": row["needs_ocr"], "attachmentof": row["attachmentof"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -207,7 +213,7 @@ class DocumentMaster(db.Model):
     def getdocumentproperty(cls, ministryrequestid, deleted):
         documentmasters = []
         try:
-            sql = """select dm.documentmasterid,  dm.processingparentid, d.documentid, d.version,
+            sql = """select dm.documentmasterid,  dm.processingparentid, dm.createdby as createdby, d.documentid, d.version,
                         dhc.rank1hash, d.filename, d.originalpagecount, d.pagecount, dm.parentid from "DocumentMaster" dm, 
                         "Documents" d, "DocumentHashCodes" dhc  
                         where dm.ministryrequestid = :ministryrequestid and dm.ministryrequestid  = d.foiministryrequestid   
@@ -216,7 +222,7 @@ class DocumentMaster(db.Model):
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
                 if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
-                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "originalpagecount": row["originalpagecount"],"pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"]})
+                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"],"createdby": row["createdby"] ,"documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "originalpagecount": row["originalpagecount"],"pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -226,4 +232,5 @@ class DocumentMaster(db.Model):
         return documentmasters
 class DeduplicationJobSchema(ma.Schema):
     class Meta:
-        fields = ('documentmasterid', 'filepath', 'ministryrequestid', 'recordid', 'processingparentid', 'parentid', 'isredactionready', 'created_at', 'createdby', 'updated_at', 'updatedby')
+        fields = ('documentmasterid', 'filepath', 'ministryrequestid', 'recordid', 'processingparentid', 'parentid', 'isredactionready', 
+                  'created_at', 'createdby', 'updated_at', 'updatedby','compressedfilepath','ocrfilepath')

@@ -29,9 +29,6 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   const deletedDocPages = useAppSelector(
     (state) => state.documents?.deletedDocPages
   );
-  const requestStatus = useAppSelector(
-    (state) => state.documents?.requeststatus
-  );
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
   );
@@ -60,6 +57,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   const [pdftronDocObjectsForRedline, setPdftronDocObjectsForRedline] =
     useState([]);
   const [redlineZipperMessage, setRedlineZipperMessage] = useState(null);
+  const [includeComments, setIncludeComments] = useState(false);
   const [includeNRPages, setIncludeNRPages] = useState(false);
   const [includeDuplicatePages, setIncludeDuplicatePages] = useState(false);
   const [stichedfilesForRedline, setstichedfilesForRedline] = useState(null);
@@ -1476,16 +1474,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   };
   
   const checkSavingRedline = (redlineReadyAndValid, instance) => {
-    const validRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-      RequestStates["Peer Review"],
-    ].includes(requestStatus);
-    setEnableSavingRedline(redlineReadyAndValid && validRedlineStatus);
+    setEnableSavingRedline(redlineReadyAndValid);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
-        !redlineReadyAndValid || !validRedlineStatus;
+        !redlineReadyAndValid
     }
   };
   const checkSavingOIPCRedline = (
@@ -1493,18 +1486,13 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     instance,
     readyForSignOff
   ) => {
-    const validOIPCRedlineStatus = [
-      RequestStates["Records Review"],
-      RequestStates["Ministry Sign Off"],
-    ].includes(requestStatus);
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid && validOIPCRedlineStatus
+      oipcRedlineReadyAndValid
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_oipc").disabled =
         !oipcRedlineReadyAndValid ||
-        !validOIPCRedlineStatus ||
         !readyForSignOff;
     }
   };
@@ -1534,6 +1522,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     );
     setIncludeDuplicatePages(false);
     setIncludeNRPages(false);
+    setIncludeComments(false);
   };
   const prepareMessageForRedlineZipping = (
     divObj,
@@ -1548,7 +1537,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       files: [],
       includeduplicatepages: includeDuplicatePages,
       includenrpages: includeNRPages,
-      phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null
+      phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null,
+      includecomments: includeComments,
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -1673,7 +1663,7 @@ const stampPageNumberRedline = async (
       let xmlObj = parser.parseFromString(annotxml);
       let customfield = xmlObj.children.find(
         (xmlfield) => xmlfield.name === "trn-custom-data"
-      );
+      );    
       let flags = xmlObj.attributes.flags;
       let txt = domParser.parseFromString(
         customfield.attributes.bytes,
@@ -1701,7 +1691,7 @@ const stampPageNumberRedline = async (
           customData["parentRedaction"] ||
           (Object.entries(filteredComments).length > 0 &&
             checkFilter(xmlObj, _freeTextIds, _annoteIds))
-        )
+        ) 
           updatedXML.push(annotxml);
       }
     }
@@ -1724,12 +1714,11 @@ const stampPageNumberRedline = async (
   const checkFilter = (xmlObj, _freeTextIds, _annoteIds) => {
     //This method handles filtering of annotations in redline
     let filtered = false;
-
     const isType =
       filteredComments.types.includes(xmlObj.name) &&
       !_freeTextIds.includes(xmlObj.attributes.inreplyto);
     const isColor = filteredComments.colors.includes(
-      xmlObj.attributes.color.toLowerCase() + "ff"
+      xmlObj.attributes.color?.toLowerCase() + "ff"
     );
     const isAuthor = filteredComments.authors.includes(xmlObj.attributes.title);
 
@@ -1755,7 +1744,7 @@ const stampPageNumberRedline = async (
       filteredComments.colors?.includes(
         _annoteIds
           .find((obj) => obj.hasOwnProperty(xmlObj.attributes.inreplyto))
-          ?.[xmlObj.attributes.inreplyto].attributes.color.toLowerCase() + "ff"
+          ?.[xmlObj.attributes.inreplyto].attributes.color?.toLowerCase() + "ff"
       );
 
     const parentIsAuthor =
@@ -1971,7 +1960,7 @@ const stampPageNumberRedline = async (
   }, [initDocViewer]);
 
   const StitchAndUploadDocument = async () => {
-    const { PDFNet } = docInstance.Core;
+    const { PDFNet, annotationManager } = docInstance.Core;
     const downloadType = "pdf";
     let currentDivisionCount = 0;
     const divisionCountForToast = Object.keys(redlineStitchObject).length;
@@ -2065,10 +2054,10 @@ const stampPageNumberRedline = async (
                     s14annots.push(s14annoation);
                   }
             }
-  
+            
             let doc = docViewer.getDocument();
             await annotationManager.applyRedactions(s14annots);
-  
+                        
             /** apply redaction and save to s3 - newXfdfString is needed to display
              * the freetext(section name) on downloaded file.*/
             doc
@@ -2098,7 +2087,7 @@ const stampPageNumberRedline = async (
                     redlineStitchInfo[divisionid]["stitchpages"],
                     isSingleRedlinePackage
                   );
-  
+
                   docObj.getFileData({
                     // saves the document with annotations in it
                     xfdfString: xfdfString1,
@@ -2274,19 +2263,86 @@ const stampPageNumberRedline = async (
           }
           //Consults - Redlines + Redactions (Redact S.NR) Block : End
         else {
-        stitchObject
+          let filteredAnnotations = [];
+          let domParser = new DOMParser();
+          if(includeComments && Object.entries(filteredComments).length > 0) {
+            let formattedAnnotationXML = formatAnnotationsForRedline(
+              redlineDocumentAnnotations,
+              redlinepageMappings["divpagemappings"][divisionid],
+              redlineStitchInfo[divisionid]["documentids"]
+            );
+            const annotFiltered = Object.values(redlineDocumentAnnotations).flat();
+            const { _freeTextIds, _annoteIds } = constructFreeTextAndannoteIds(annotFiltered);
+            let xmlObjOne = parser.parseFromString(string.xfdfString);
+            let xmlObjTemp = parser.parseFromString('<parent>'+formattedAnnotationXML+'</parent>');
+            xmlObjTemp.children.forEach(childXmlObj => {
+              let customfield = childXmlObj.children.find(
+                (xmlfield) => xmlfield.name === "trn-custom-data"
+              );    
+              let txt = domParser.parseFromString(
+                customfield.attributes.bytes,
+                "text/html"
+              );
+              let customData = JSON.parse(txt.documentElement.textContent);
+              if (childXmlObj.name !== 'redact'
+                  && !customData["parentRedaction"] && checkFilter(childXmlObj, _freeTextIds, _annoteIds)
+              ) {
+                let annots = parser.parseFromString('<annots>' + parser.toString(childXmlObj) + '</annots>');
+                let annotsObj = xmlObjOne.getElementsByTagName('annots');
+                if (annotsObj.length > 0) {
+                  if (Array.isArray(annotsObj[0].children)) {
+                    annotsObj[0].children = [...annotsObj[0].children, ...(annots.children || [])];
+                  } else {
+                    console.error("annotsObj[0].children is not an array.");
+                  }
+                } else if (annots && annots.children) {
+                  xmlObjOne.children.push(annots);
+                } else {
+                  console.error("annots or annots.children is undefined.");
+                }
+              }
+            })
+            try {
+              let xfdfStringFiltered = parser.toString(xmlObjOne);
+              if (xfdfStringFiltered) {
+                filteredAnnotations = await annotationManager.importAnnotations(xfdfStringFiltered);
+              } else {
+                console.warn("Generated XFDF string is empty or invalid.");
+              }
+            } catch (error) {
+              console.error("Error importing annotations:", error);
+            }
+          }
+          let _data = await stitchObject
           .getFileData({
             // saves the document with annotations in it
             xfdfString: xfdfString,
             downloadType: downloadType,
-            //flatten: true, //commented this as part of #4862
+            flatten: true,
+          })
+          .then(async (_data) => {
+            return _data;
+          })
+          const _arr = new Uint8Array(_data);
+          const _blob = new Blob([_arr], { type: "application/pdf" });
+          let docObj = await docInstance?.Core.createDocument(_data, {
+            loadAsPDF: true,
+            useDownloader: false, // Added to fix BLANK page issue
+          }).then( async (docObj) => {
+            return docObj
+          })
+          const xfdfStringTwo = await annotationManager.exportAnnotations({annotationList:filteredAnnotations});
+          docObj
+            .getFileData({
+            // saves the document with annotations in it
+            xfdfString: xfdfStringTwo,
+            downloadType: downloadType,
           })
           .then(async (_data) => {
             const _arr = new Uint8Array(_data);
             const _blob = new Blob([_arr], {
-              type: "application/pdf",
-            });
-
+                type: "application/pdf",
+              }); 
             saveFilesinS3(
               { filepath: redlineStitchInfo[divisionid]["s3path"] },
               _blob,
@@ -2448,6 +2504,7 @@ const stampPageNumberRedline = async (
     includeDuplicatePages,
     setIncludeDuplicatePages,
     setIncludeNRPages,
+    setIncludeComments,
     saveRedlineDocument,
     enableSavingOipcRedline,
     enableSavingRedline,

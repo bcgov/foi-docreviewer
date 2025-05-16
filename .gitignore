@@ -27,6 +27,8 @@ computingservices/DedupeServices/env/*
 computingservices/PDFStitchServices/env/*
 computingservices/ZippingServices/env/*
 computingservices/PageCountCalculator/env/*
+computingservices/CompressionServices/env/*
+computingservices/OCRServices/env/*
 
 
 ################################################################################
@@ -108,3 +110,5 @@ MCS.FOI.S3FileConversion/MCS.FOI.CalendarToPDFUnitTests/SourceFiles/result_*.pdf
 openshift/templates/solrservices/cleardocsfromsolr/env/*
 azuredocextractapi/*.exe
 azuredocextractapi/main
+azuredococrapi/*.exe
+azuredococrapi/main

@@ -118,6 +118,7 @@ class FOIFlowS3PresignedList(Resource):
     def post():
         try:
             data = request.get_json()
+            print("\n\nFOIFlowS3PresignedList-Data:",data)
             documentmapper = redactionservice().getdocumentmapper(
                 data["documentobjs"][0]["file"]["filepath"].split("/")[3]
             )
@@ -137,8 +138,12 @@ class FOIFlowS3PresignedList(Resource):
             documentobjs = []
             documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
             documents = documentservice().getdocumentbyids(documentids)
+            print("\n\nFOIFlowS3PresignedList-documents:",documents)
             for documentinfo in data["documentobjs"]:
+                print("\n\nFOIFlowS3PresignedList-documentinfo:",documentinfo)
+                #s3filepath= documentservice().getdocumentfilepath(documentinfo)
                 filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                print("\n\nFOIFlowS3PresignedList-filepath:",filepath)
                 filename, file_extension = os.path.splitext(filepath)
                 documentinfo["s3url"] = s3client.generate_presigned_url(
                     ClientMethod="get_object",

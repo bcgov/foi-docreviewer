@@ -16,6 +16,8 @@ import {
 
 const tokenRefreshInterval = 180000; // how often we should check for token expiry --> 180000 = 3 mins
 const tokenUpdateThreshold = 600; // if token expires in less than 10 minutes (600 seconds), refresh token
+let keycloakInitialized = false;
+let keycloakInitPromise = null;
 
 /**
  * Initializes Keycloak instance and calls the provided callback function if successfully authenticated.
@@ -31,7 +33,17 @@ const getToken = () => KeycloakData.token;
 
 const initKeycloak = (store, ...rest) => {
   const done = rest.length ? rest[0] : () => {};
-  KeycloakData.init({
+
+    if (keycloakInitialized) {
+    if (keycloakInitPromise) {
+      keycloakInitPromise.then(() => done(null, KeycloakData));
+    }
+    return keycloakInitPromise;
+  }
+
+  keycloakInitialized = true;
+
+  keycloakInitPromise = KeycloakData.init({
     // onLoad: "check-sso",
     onLoad: "login-required",
     // silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
@@ -77,6 +89,9 @@ const refreshToken = (store) => {
           userLogout();
         });
   }, tokenRefreshInterval);
+
+    return keycloakInitPromise;
+
 };
 
 /**
