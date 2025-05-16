@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-   op.add_column('Documents', sa.Column('needs_ocr', sa.Boolean(), nullable=True))
+   op.add_column('Documents', sa.Column('needs_ocr', sa.Boolean(), nullable=True, server_default=sa.false()))
 
 def downgrade():
     op.drop_column('Documents', 'needs_ocr')
