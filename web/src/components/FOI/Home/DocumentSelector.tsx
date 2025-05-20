@@ -125,6 +125,7 @@ const DocumentSelector = React.memo(
               ];
             }
             treeRef?.current?.scrollToPage(event, newExpandedItems, pageId);
+            setCurrentPageInfo({ file, pageNumber });
             
           },
           scrollLeftPanelPosition(event: any)
