@@ -1,0 +1,170 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  annotations:
+    description: Deployment template for a compression service.
+    tags: "${APP_NAME}"
+  name: "${APP_NAME}-deploy"
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${APP_NAME}"
+    labels:
+      app: "${APP_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${APP_NAME}-deploy"
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - "${APP_NAME}"
+        from:
+          kind: ImageStreamTag
+          namespace: "${IMAGE_NAMESPACE}"
+          name: "${APP_NAME}:${TAG_NAME}"
+    - type: ConfigChange
+    replicas: 1
+    test: false
+    selector:
+      app: "${APP_NAME}"
+      deploymentconfig: "${APP_NAME}"
+    template:
+      metadata:
+        labels:
+          app: "${APP_NAME}"
+          app-group: "${APP_GROUP}"
+          deploymentconfig: "${APP_NAME}"
+          template: "${APP_NAME}-deploy"
+      spec:
+        containers:
+        - name: "${APP_NAME}"
+          image: "${APP_NAME}"
+          imagePullPolicy: Always
+          env:
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: REDIS_HOST
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: REDIS_PASSWORD
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: REDIS_PORT
+            - name: COMPRESSION_STREAM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_STREAM_KEY
+            - name: COMPRESSION_S3_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_S3_ENV
+            - name: COMPRESSION_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_DB_HOST
+            - name: COMPRESSION_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_DB_NAME
+            - name: COMPRESSION_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_DB_PORT
+            - name: COMPRESSION_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "${DB_SECRETS}"
+                  key: app-db-username
+            - name: COMPRESSION_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${DB_SECRETS}"
+                  key: app-db-password
+            - name: COMPRESSION_S3_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_S3_HOST
+            - name: COMPRESSION_S3_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_S3_REGION
+            - name: COMPRESSION_S3_SERVICE
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_S3_SERVICE
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "250Mi"
+            limits:
+              cpu: "150m"
+              memory: "500Mi"
+          terminationMessagePath: "/dev/termination-log"
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+  # status:
+  #   loadBalancer: {}
+parameters:
+- name: APP_NAME
+  displayName: Name
+  description: The name assigned to all of the OpenShift resources associated to the
+    server instance.
+  required: true
+  value: reviewer-compression
+- name: APP_GROUP
+  displayName: App Group
+  description: The name assigned to all of the deployments in this project.
+  required: true
+  value: foi-docreviewer
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  required: true
+  description: The namespace of the OpenShift project containing the imagestream for
+    the application.
+  value: d106d6-tools
+- name: TAG_NAME
+  displayName: Environment TAG name
+  description: The TAG name for this environment, e.g., dev, test, prod
+  required: true
+  value: dev
+- name: DB_SECRETS
+  displayName: Patroni DB Secrets
+  description: Name of secrets for all db values
+  required: true
+  value: patroni-docreviewer
+- name: SECRETS
+  displayName: Compression Secrets
+  description: Name of secrets for all compression values
+  required: true
+  value: compression-secret

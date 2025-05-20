@@ -47,6 +47,7 @@ def recordjobstatus(
             else assigncategory(pdfstitchmessage.category.lower())
         )
         status = "error" if error else status
+        attributes = pdfstitchmessage.attributes if pdfstitchmessage.category.lower() == 'harms' else json.loads(pdfstitchmessage.attributes)
 
         cursor.execute(
             """INSERT INTO public."PDFStitchJob"
@@ -57,7 +58,7 @@ def recordjobstatus(
                 version,
                 pdfstitchmessage.ministryrequestid,
                 category.lower(),
-                json.loads(pdfstitchmessage.attributes),
+                attributes,
                 json.dumps(outputfiles),
                 status,
                 message if error else "",
