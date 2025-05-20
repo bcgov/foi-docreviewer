@@ -57,17 +57,17 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_HOST
+                  key: COMPRESSION_REDIS_HOST
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_PASSWORD
+                  key: COMPRESSION_REDIS_PASSWORD
             - name: REDIS_PORT
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_PORT
+                  key: COMPRESSION_REDIS_PORT
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
                 secretKeyRef:
@@ -96,13 +96,13 @@ objects:
             - name: COMPRESSION_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: "${DB_SECRETS}"
-                  key: app-db-username
+                  name: "${SECRETS}"
+                  key: COMPRESSION_DB_USER
             - name: COMPRESSION_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "${DB_SECRETS}"
-                  key: app-db-password
+                  name: "${SECRETS}"
+                  key: COMPRESSION_DB_PASSWORD
             - name: COMPRESSION_S3_HOST
               valueFrom:
                 secretKeyRef:
@@ -141,7 +141,7 @@ parameters:
   description: The name assigned to all of the OpenShift resources associated to the
     server instance.
   required: true
-  value: reviewer-compression
+  value: reviewer-compression-marshal
 - name: APP_GROUP
   displayName: App Group
   description: The name assigned to all of the deployments in this project.
@@ -157,14 +157,9 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: dev
-- name: DB_SECRETS
-  displayName: Patroni DB Secrets
-  description: Name of secrets for all db values
-  required: true
-  value: patroni-docreviewer
+  value: test
 - name: SECRETS
   displayName: Compression Secrets
   description: Name of secrets for all compression values
   required: true
-  value: compression-secret
+  value: compression-secret-marshal
