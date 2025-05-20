@@ -260,7 +260,8 @@ function Home() {
     let lookup = pageMappedDocs.stitchedPageLookup[pageNo];
     let file = files.find(
       f => f.documentid === lookup.docid
-    );
+    );    
+    setIndividualDoc({ file: file, page: pageNo });
     setCurrentPageInfo({ file: file, page: lookup.page });
   };
 
