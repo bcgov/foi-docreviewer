@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-    FROM golang:1.24.3-alpine AS builder
+    FROM golang:1.23.3-alpine AS builder
 
     WORKDIR /app
     
@@ -10,21 +10,27 @@
     RUN go build -o compression-service .
     
     # ---------- Final Image ----------
-    FROM alpine:3.21
+    # FROM alpine:3.21
     
     RUN apk --no-cache add ca-certificates ghostscript
     
-    WORKDIR /root/
+    # WORKDIR /root/
     
-    # Copy the binary from builder stage
-    COPY --from=builder /app/compression-service .
+    # # Copy the binary from builder stage
+    # COPY --from=builder /app/compression-service .
 
-    # Copy .env to the container
-    COPY .env .
+    # # Make sure it’s executable
+    # RUN chmod +x ./compression-service
 
-    # Make sure it’s executable
-    RUN chmod +x ./compression-service && chmod 644 .env
+    # # Copy .env to the container
+    # COPY .env .env
+
+    # # COPY .env /app/.env
+
+    # RUN chmod +x ./compression-service
+    # RUN chmod 644 .env
     
+    # ENTRYPOINT ["/entrypoint.sh"]
     
     CMD ["./compression-service"]
     

@@ -56,6 +56,7 @@ func GetFilefroms3(message *models.CompressionProducerMessage) (string, *models.
 	}
 	// Define S3-compatible storage endpoint and credentials
 	endpoint := utils.ViperEnvVariable("COMPRESSION_S3_HOST") // Update with your S3-compatible endpoint
+	fmt.Println("endpoint:", endpoint)
 	accessKey := s3cred.S3AccessKey
 	secretKey := s3cred.S3SecretKey
 	bucketName := "/" + bucketname + "/"

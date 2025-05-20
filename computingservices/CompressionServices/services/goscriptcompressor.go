@@ -155,7 +155,7 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	compressedPdfData, error := processFile(inputPdfData, filename)
 	//fmt.Println("compressedPdfData:", compressedPdfData)
 	if error != nil {
-		return "", 0, fmt.Errorf("failed to compress PDF: %v", err)
+		return "", 0, fmt.Errorf("failed to compress PDF: %v", error)
 	}
 	expiration := 15 * time.Minute
 	// Step 3: Upload the compressed PDF back to S3

@@ -49,7 +49,7 @@ RUN go build -o azuredococrapi .
 # COPY --from=builder /app/azuredococrapi .
 
 # Expose the port your API will run on (default 8080 in most examples)
-EXPOSE 62863
+EXPOSE 52863
 
 # Command to run the API
 CMD ["./azuredococrapi"]
