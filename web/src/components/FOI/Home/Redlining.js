@@ -134,6 +134,8 @@ const Redlining = React.forwardRef(
     const [modalOpen, setModalOpen] = useState(false);
     const [messageModalOpen, setMessageModalOpen] = useState(false)
 
+    const [annottext,setannottext]=useState('')
+
     const [newRedaction, setNewRedaction] = useState(null);
     const [deleteQueue, setDeleteQueue] = useState([]);
     const [selectedSections, setSelectedSections] = useState([]);
@@ -1091,6 +1093,52 @@ const Redlining = React.forwardRef(
         }
       });
     };
+  let extractedTexts = [];
+  
+    const  extractRedlineText = async function _extractRedlineText(annotations) {
+      
+      if(annotations)
+      {
+          
+          for (const annotation of annotations) {
+          var annotpageNumber = annotation.PageNumber
+          var actualpagenum = pageMappedDocs?.stitchedPageLookup[annotpageNumber].page
+          var docid =   pageMappedDocs?.stitchedPageLookup[annotpageNumber].docid  
+          //const currentPageNum = annotpageNumber === -1 ? docViewer.getCurrentPage() : annotpageNumber; // 1-indexed
+          if(annotation.Subject === "Redact")
+          {
+            const rect = annotation.getRect();
+            const text =  await docViewer.getDocument().getTextByPageAndRect(annotpageNumber, rect);
+                 
+            //console.log(`Hey this is text ${text}`)
+           extractedTexts.push({
+              type: "RedlineContent",
+              text: text,
+              page: actualpagenum,
+              docid: docid,
+              annotationid:annotation.Id
+            });
+            setannottext(extractedTexts);
+          }
+          else if(annotation.Subject === "Free Text")
+          {
+            let _annottext=''           
+            //console.log(_annottext)
+            annottext?.push({
+              type: "RedlineContentSection",
+              text: annotation.getContents(),
+              page: actualpagenum,
+              docid: docid,
+              annotationid:annotation.Id
+            });
+            
+          }
+        }
+        
+        console.log(`extractedTexts: ${annottext}`)
+       
+      }
+    }
 
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
@@ -1256,7 +1304,9 @@ const Redlining = React.forwardRef(
               let displayedDoc;
               let individualPageNo;
 
-              await removeRedactAnnotationDocContent(annotations);
+              //await removeRedactAnnotationDocContent(annotations);
+
+              await extractRedlineText(annotations)
               
               if (annotations[0].Subject === "Redact") {
                 let pageSelectionList = [...pageSelections];
@@ -1274,7 +1324,7 @@ const Redlining = React.forwardRef(
                       docid: displayedDoc.docid,
                     });
                     annotManager.bringToBack(annotations[i]);
-
+                    
                     let parentRedaction;
                     let allAnnotations =
                       docInstance.Core.annotationManager.getAnnotationsList();
