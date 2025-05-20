@@ -257,6 +257,11 @@ function Home() {
 
   const scrollLeftPanel = (event, pageNo) => {
     selectorRef?.current?.scrollToPage(event, pageNo);
+    let lookup = pageMappedDocs.stitchedPageLookup[pageNo];
+    let file = files.find(
+      f => f.documentid === lookup.docid
+    );
+    setCurrentPageInfo({ file: file, page: pageNo });
   };
 
   const closeWarningMessage = () => {
