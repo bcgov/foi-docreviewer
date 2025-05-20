@@ -261,7 +261,7 @@ function Home() {
     let file = files.find(
       f => f.documentid === lookup.docid
     );
-    setCurrentPageInfo({ file: file, page: pageNo });
+    setCurrentPageInfo({ file: file, page: lookup.page });
   };
 
   const closeWarningMessage = () => {
