@@ -23,7 +23,7 @@
     COPY --from=builder /app/compression-service .
 
     # Make sure it’s executable
-    #RUN chmod +x ./compression-service
+    RUN chmod +x ./compression-service
 
     # Copy .env to the container
     #COPY .env .env
