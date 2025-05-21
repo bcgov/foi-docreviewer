@@ -102,6 +102,26 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: OCR_S3_SERVICE
+            - name: ACTIVEMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_URL
+            - name: ACTIVEMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_USERNAME
+            - name: ACTIVEMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_PASSWORD
+            - name: ACTIVEMQ_DESTINATION
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_DESTINATION
           resources:
             requests:
               cpu: "50m"
