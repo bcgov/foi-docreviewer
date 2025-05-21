@@ -393,6 +393,36 @@ const Redlining = React.forwardRef(
               )
             };
 
+            const textSelectorToggle = {
+              type: 'customElement',
+              render: () => (
+                <>
+                <input
+                  style={{"float": "left"}}
+                  type="checkbox"
+                  onChange={(e) => {
+                      if (e.target.checked) {
+                        redactionTool.cursor = "crosshair"
+                        instance.Core.Tools.RedactionCreateTool.disableAutoSwitch();
+                      } else {
+                        instance.Core.Tools.RedactionCreateTool.enableAutoSwitch();
+                      }
+                    } 
+                  }
+                  defaultChecked={false}
+                  id="textSelectorToggle"
+                >
+                </input>
+                <label 
+                  for="textSelectorToggle"
+                  style={{"top": "1px", "position": "relative", "margin-right": 10}}
+                >
+                  Disable Text Selection
+                </label>
+                </>
+              )
+            };
+
             const addSeparatorIfNotExists = (menu) => {
               // Check if the last child is already a separator
               if (!menu.lastChild || menu.lastChild.tagName !== "HR") {
@@ -433,6 +463,18 @@ const Redlining = React.forwardRef(
               0,
               //textSelectorToggle
               newCustomSettingsElement
+            );
+
+            header.headers.default.splice(
+              header.headers.default.length - 5,
+              0,
+              opacityToggle
+            );
+
+            header.headers.default.splice(
+              header.headers.default.length - 6,
+              0,
+              textSelectorToggle
             );
           });
 
