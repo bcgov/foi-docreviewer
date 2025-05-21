@@ -7,8 +7,8 @@ metadata:
     tags: "${APP_NAME}"
   name: "${APP_NAME}-deploy"
 objects:
-- kind: DeploymentConfig
-  apiVersion: v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: "${APP_NAME}"
     labels:
@@ -17,35 +17,19 @@ objects:
       template: "${APP_NAME}-deploy"
   spec:
     strategy:
-      type: Rolling
-      rollingParams:
-        updatePeriodSeconds: 1
-        intervalSeconds: 1
-        timeoutSeconds: 600
-        maxUnavailable: 25%
+      type: RollingUpdate
+      rollingUpdate:
         maxSurge: 25%
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - "${APP_NAME}"
-        from:
-          kind: ImageStreamTag
-          namespace: "${IMAGE_NAMESPACE}"
-          name: "${APP_NAME}:${TAG_NAME}"
-    - type: ConfigChange
+        maxUnavailable: 25%
     replicas: 1
-    test: false
     selector:
-      app: "${APP_NAME}"
-      deploymentconfig: "${APP_NAME}"
+       matchLabels:
+        app: "${APP_NAME}"
     template:
       metadata:
         labels:
           app: "${APP_NAME}"
           app-group: "${APP_GROUP}"
-          deploymentconfig: "${APP_NAME}"
           template: "${APP_NAME}-deploy"
       spec:
         containers:
@@ -157,7 +141,7 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: test
+  value: test-marshal
 - name: SECRETS
   displayName: Compression Secrets
   description: Name of secrets for all compression values
