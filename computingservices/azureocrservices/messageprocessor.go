@@ -4,10 +4,13 @@ import (
 	"azureocrservice/azureservices"
 	"azureocrservice/httpservices"
 	"azureocrservice/s3services"
+	"azureocrservice/utils"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +18,21 @@ func main() {
 
 	start := time.Now()
 	fmt.Println("Start Time :" + start.String())
+
+	y, m, d := start.Date()
+	filedate := strconv.Itoa(y) + "-" + strconv.Itoa(int(m)) + "-" + strconv.Itoa(d)
+	logfilepath := utils.ViperEnvVariable("logfilepath")
+	file, err := os.OpenFile(logfilepath+filedate+"dococrlog.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	defer file.Close()
+
+	// Redirect stdout to the file.
+	os.Stdout = file
+
 	dequeuedmessages, err := httpservices.ProcessMessage()
 	if err != nil {
 		log.Fatalf("Error fetching messages: %v", err)
