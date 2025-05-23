@@ -34,8 +34,7 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	insertQuery := `
 		INSERT INTO public."DocumentOCRJob" 
 		(version, documentid, ministryrequestid, documentmasterid, status, message, createdat, createdby) 
-		VALUES ($1, $2, $3, $4, $5, NOW(), 'azureocrjob')
-		 RETURNING ocrjobid;
+		VALUES ($1, $2, $3, $4, $5, NOW(), 'azureocrjob');
 	`
 	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.DocumentId, ocrJob.MinistryRequestID, ocrJob.DocumentMasterID, ocrJob.Status, ocrJob.Message)
 	if inserterr != nil {
