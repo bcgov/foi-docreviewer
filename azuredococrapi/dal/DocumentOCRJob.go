@@ -35,11 +35,11 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	insertQuery := `
 		INSERT INTO public."DocumentOCRJob" 
 		(version, documentid, ministryrequestid, documentmasterid, status, message, createdat, createdby) 
-		VALUES ($1, $2, $3, $4, $5, NOW(), 'azureocrjob');
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'azureocrjob');
 	`
 	_, inserterr := db.conn.Exec(insertQuery, newVersion, ocrJob.DocumentId, ocrJob.MinistryRequestID, ocrJob.DocumentMasterID, ocrJob.Status, ocrJob.Message)
 	if inserterr != nil {
-		return -1, fmt.Errorf("error inserting new record: %v", err)
+		return -1, fmt.Errorf("error inserting new record: %v", inserterr)
 	}
 	db.Close()
 	return 1, nil
