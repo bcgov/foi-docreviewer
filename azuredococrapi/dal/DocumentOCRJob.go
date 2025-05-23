@@ -30,6 +30,7 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	} else {
 		newVersion = 1
 	}
+	log.Println("newVersion:", newVersion)
 	// Insert the new record
 	insertQuery := `
 		INSERT INTO public."DocumentOCRJob" 
