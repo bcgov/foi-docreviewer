@@ -49,8 +49,7 @@ class RedlineContent(Resource):
         try:
             data = request.get_json()
             if not isinstance(data, list):
-                return jsonify({'error': 'Expected a list of redline content objects'}), 400
-           
+                return jsonify({'error': 'Expected a list of redline content objects'}), 400            
             result = redlinecontentservice().save_redline_content(data, createdby=AuthHelper.getuserid(),ministryrequestid=ministryrequestid)
             return jsonify({'status': 'success', 'result': result}), 200
         except KeyError as error:

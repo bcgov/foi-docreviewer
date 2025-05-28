@@ -18,10 +18,12 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        'redline_content',
+        'RedlineContents',
         sa.Column('id', sa.Integer, primary_key=True, autoincrement=True),
         sa.Column('ministryrequestid', sa.Integer, nullable=False),
         sa.Column('redlineid', sa.String(36), nullable=False),
+        sa.Column('annotationid', sa.String(36), nullable=True),
+        sa.Column('pagenumber', sa.Integer, nullable=True),
         sa.Column('documentid', sa.Integer, nullable=False),
         sa.Column('type', sa.String(250), nullable=False),
         sa.Column('section', sa.String(100), nullable=True),

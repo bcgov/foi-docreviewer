@@ -25,8 +25,9 @@ class redlinecontentservice:
                     "content": item.get('text'),  
                     "category": item.get('category'),
                     "createdby": createdby,
+                    "annotationid": item.get('annotationid'),
+                    "pagenumber": item.get('page'),
                     "createdat": None  # Let model/db default handle this if needed
-                })
-        print(f"Redline content items to save: {dict_items}")        
+                })                
         result = RedlineContent.save(dict_items)
         return result
