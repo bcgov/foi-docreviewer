@@ -174,11 +174,6 @@ parameters:
   description: Name of secrets for all api values
   required: true
   value: azuredococrapi-secret-test-marshal
-- name: IMAGE_NAME
-  displayName:  image  name (eg "azuredococrapi")
-  description: Includes ImageStream name 
-  required: true
-  value: azuredococrapi 
 - name: IMAGE_STREAM_NAME_FULL
   displayName: Full image stream name (eg "azuredococrapi:test-marshal")
   description: Includes ImageStream name and tag

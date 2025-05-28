@@ -31,6 +31,7 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		if message.NeedsOCR != nil {
 			needsOCR = *message.NeedsOCR
 		}
+		fmt.Println("\nneedsOCR-", needsOCR)
 		/**Redaction status - isredactionready is set
 		only for searchable pdfs. OCR'd documents status should be
 		updated after Azure AI OCR is finished*/
@@ -48,6 +49,7 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 			if err != nil {
 				fmt.Printf("Failed to record OCR job: %v\n", err)
 			}
+			message.JobID = ocrjobid
 			id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
 			if streamerr != nil {
 				fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)

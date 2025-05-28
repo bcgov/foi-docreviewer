@@ -196,10 +196,13 @@ class UpdateDocSelectedFileProcessVersion(Resource):
     def post():
         try:
             payload = request.get_json()
-            # print("payload personal: ", payload)
             result = documentservice().updateselectedfileprocessversion(payload, AuthHelper.getuserid())
+            if not result.success:
+                return {'status': False,'message': result.message,'id': result.identifier}, 500
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
         except KeyError as error:
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+        except Exception as ex:
+            return {'status': False, 'message': f"Unhandled error occurred: {str(ex)}"}, 500

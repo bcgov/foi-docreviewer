@@ -34,10 +34,9 @@ class documentservice:
         azureocrjobs = DocumentOCRJob.getazureocrjobstatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
         redactions = DocumentMaster.getredactionready(requestid)
-        print("\n\nrecords :",records)
+        #print("\n\nrecords :",records)
         #print("\nCompressions :",compressions)
 
-        print("\n\nproperties :",properties)
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
             record["ministryrequestid"] = requestid
@@ -55,7 +54,7 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            print("\n\neach RECORD:",record)
+            #print("\neach RECORD:",record)
             
         # Duplicate check
         finalresults = []
@@ -64,7 +63,9 @@ class documentservice:
             parentswithattachmentsrecords,
             attachmentsrecords,
         ) = self.__filterrecords(records)
+        #print("\nparentrecords:",parentrecords)
         parentproperties = self.__getrecordsproperties(parentrecords, properties)
+        #print("\nparentproperties:",parentproperties)
 
         for record in records:
             if record["recordid"] is not None:
@@ -77,8 +78,7 @@ class documentservice:
                     attachmentsrecords,
                 )
                 finalresults.append(finalresult)
-                print("\n\nid :",record["recordid"])
-                print("\n\nfinalresult :",finalresult)
+                print("\nfinalresult :",finalresult)
         return finalresults
 
     def __updateproperties(
@@ -98,13 +98,15 @@ class documentservice:
                 record["filename"],
                 record["documentid"],
                 record["version"],
+                record["needs_ocr"],
+                record["selectedfileprocessversion"]
             ) = self.__getpagecountandfilename(record, parentproperties)
             (
                 record["isduplicate"],
                 record["duplicatemasterid"],
                 record["duplicateof"],
             ) = self.__isduplicate(parentproperties, record)
-            print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
+            #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
             if len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(
@@ -154,7 +156,7 @@ class documentservice:
         parentswithattachments = []
         attchments = []
         for record in records:
-            print("record---",record)
+            #print("record---",record)
             if record["recordid"] is not None:
                 parentrecords.append(record)
             if "attachments" in record and len(record["attachments"]) > 0:
@@ -169,6 +171,8 @@ class documentservice:
         filename = record["filename"] if "filename" in record else None
         documentid = None
         version = 0
+        needs_ocr= False
+        selectedfileprocessversion=None
         for property in properties:
             if record["documentmasterid"] == property["processingparentid"] or (
                 property["processingparentid"] is None
@@ -179,7 +183,10 @@ class documentservice:
                 filename = property["filename"]
                 documentid = property["documentid"]
                 version = property["version"]
-        return originalpagecount, pagecount, filename, documentid, version
+                needs_ocr= property["needs_ocr"]
+                selectedfileprocessversion = property["selectedfileprocessversion"]
+
+        return originalpagecount, pagecount, filename, documentid, version, needs_ocr,selectedfileprocessversion
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []
@@ -230,7 +237,6 @@ class documentservice:
                     and record["documentmasterid"] == property["documentmasterid"]
                 )) or (property["createdby"]=="compressionservice" and record["documentmasterid"] == property["documentmasterid"]):
                     filtered.append(property)
-                    print("filtered?-",filtered)
         return filtered
 
     def __getattachmentproperties(self, attachments, properties):
@@ -360,21 +366,16 @@ class documentservice:
         return record
 
     def __isduplicate(self, properties, record):
-        print("parentproperties",properties)
-
         matchedhash = None
         isduplicate = False
         duplicatemasterid = record["documentmasterid"]
         duplicateof = record["filename"] if "filename" in record else None
         for property in properties:
-            print("property:",property)
-
             if property["processingparentid"] == record["documentmasterid"] or (
                 property["processingparentid"] is None
                 and record["documentmasterid"] == property["documentmasterid"]
             ):
                 matchedhash = property["rank1hash"]
-                print("\nmatchedhash:",matchedhash)
 
         filtered = []
         for x in properties:
@@ -385,7 +386,6 @@ class documentservice:
                     else x["documentmasterid"]
                 )
                 filtered.append(value)
-        print("\nFiltered:",filtered)
         if len(filtered) > 1 and filtered not in (None, []):
             originalid = min(filtered)
             if originalid != record["documentmasterid"]:
@@ -636,14 +636,16 @@ class documentservice:
         return generatedbefore if isresponsephasecompleted == True else None
     
     def updateselectedfileprocessversion(self, request_json, userid):
-        recordids = request_json["requestids"]
+        documentmasterids = request_json["documentmasterids"]
         ministryrequestid = request_json["ministryrequestid"]
         recordretrieveversion = request_json["recordretrieveversion"]
-        selectedfileprocessversion = DocumentProcesses.getdocumentprocessbyname("compression")
+        selectedfileprocessversion = DocumentProcesses.getdocumentprocessidbyname("compression")
         if recordretrieveversion == 'retrive_uncompressed' or "uncompressed" in recordretrieveversion:
-            selectedfileprocessversion= DocumentProcesses.getdocumentprocessbyname("dedupe")
-        return Document.updateselectedfileprocessversion(ministryrequestid,recordids,selectedfileprocessversion, userid)
-    
+            selectedfileprocessversion= DocumentProcesses.getdocumentprocessidbyname("dedupe")
+        print("selectedfileprocessversion:", selectedfileprocessversion)
+        return Document.updateselectedfileprocessversion(ministryrequestid,documentmasterids,selectedfileprocessversion, userid)
+
+
     def getdocumentfilepath(self, documentid):
         return DocumentMaster.getfilepathbydocumentid(documentid)
         

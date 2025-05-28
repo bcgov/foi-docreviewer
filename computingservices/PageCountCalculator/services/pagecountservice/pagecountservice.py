@@ -127,7 +127,7 @@ class pagecountservice():
             _att_in_properties = []
             (record["pagecount"], record["filename"]) = self.__getpagecountandfilename(record, parentproperties)
             record["isduplicate"], record["duplicatemasterid"] = self.__isduplicate(parentproperties, record)
-            print("isduplicate in __updateproperties-pagecalculatorservice",record["isduplicate"])
+            #print("isduplicate in __updateproperties-pagecalculatorservice",record["isduplicate"])
             if "attachments" in record and len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(parentswithattachmentsrecords, record["duplicatemasterid"])

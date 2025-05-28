@@ -13,6 +13,8 @@ from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES, DEDUPE_FILE
 import json, os
 import asyncio
 from reviewer_api.utils.util import pstformat
+from reviewer_api.models.CompressionJob import CompressionJob
+from reviewer_api.models.OCRActiveMQJob import OCRActiveMQJob
 
 class jobrecordservice:
     conversionstreamkey = os.getenv('FILE_CONVERSION_STREAM_KEY')
@@ -53,7 +55,37 @@ class jobrecordservice:
         for record in batchinfo['records']:
             _filename, extension = os.path.splitext(record['s3uripath'])
             extension = extension.lower()
-            if extension in FILE_CONVERSION_FILE_TYPES:
+            print("record:",record)
+            print("trggr:",batchinfo['trigger'])
+            if 'service' in record and record['service'] == 'compression' and batchinfo['trigger'] == 'recordretry':
+                masterid = record['documentmasterid']
+                row = CompressionJob(
+                    version=1,
+                    batch=batchinfo['batch'],
+                    ministryrequestid=batchinfo['ministryrequestid'],
+                    trigger=batchinfo['trigger'],
+                    documentmasterid=masterid,
+                    filename=record['filename'],
+                    status='pushedtostream'
+                )
+                job = CompressionJob.insert(row)
+                jobids[record['s3uripath']] = {'masterid': masterid, 'jobid': job.identifier}
+            elif 'service' in record and record['service'] == 'ocr' and batchinfo['trigger'] == 'recordretry':
+                masterid = record['documentmasterid']
+                print("masterid:",masterid)
+                row = OCRActiveMQJob(
+                    version=1,
+                    batch=batchinfo['batch'],
+                    ministryrequestid=batchinfo['ministryrequestid'],
+                    trigger=batchinfo['trigger'],
+                    documentmasterid=masterid,
+                    filename=record['filename'],
+                    status='pushedtostream'
+                )
+                job = OCRActiveMQJob.insert(row)
+                jobids[record['s3uripath']] = {'masterid': masterid, 'jobid': job.identifier}
+                print("jobids:",jobids)
+            elif extension in FILE_CONVERSION_FILE_TYPES:
                 if batchinfo['trigger'] == 'recordupload':
                     master = DocumentMaster.create(
                         DocumentMaster(

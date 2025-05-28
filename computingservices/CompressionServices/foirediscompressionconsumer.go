@@ -98,7 +98,7 @@ func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessag
 	services.ProcessMessage(producerMessage)
 	complete, hasError := services.IsBatchCompleted(producerMessage.Batch)
 	if hasError {
-		log.Fatalf("error checking batch completion")
+		fmt.Printf("Batch not yet complete")
 	}
 	fmt.Printf("Batch completed:%v\n", complete)
 	//Placeholder for notification logic

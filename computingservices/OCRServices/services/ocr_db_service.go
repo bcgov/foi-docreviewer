@@ -11,7 +11,7 @@ import (
 func RecordJobStart(msg *models.OCRProducerMessage) {
 	db := utils.GetDBConnection()
 	defer db.Close()
-
+	print("msg.JobID", msg.JobID)
 	exists := doesOCRActiveMQJobVersionExist(msg.JobID, 2)
 	if !exists {
 		stmt, err := db.Prepare(`

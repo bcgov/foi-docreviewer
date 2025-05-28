@@ -7,8 +7,8 @@ metadata:
     tags: "${APP_NAME}"
   name: "${APP_NAME}-deploy"
 objects:
-- kind: DeploymentConfig
-  apiVersion: v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: "${APP_NAME}"
     labels:
@@ -17,35 +17,19 @@ objects:
       template: "${APP_NAME}-deploy"
   spec:
     strategy:
-      type: Rolling
-      rollingParams:
-        updatePeriodSeconds: 1
-        intervalSeconds: 1
-        timeoutSeconds: 600
-        maxUnavailable: 25%
+      type: RollingUpdate
+      rollingUpdate:
         maxSurge: 25%
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - "${APP_NAME}"
-        from:
-          kind: ImageStreamTag
-          namespace: "${IMAGE_NAMESPACE}"
-          name: "${APP_NAME}:${TAG_NAME}"
-    - type: ConfigChange
+        maxUnavailable: 25%
     replicas: 1
-    test: false
     selector:
-      app: "${APP_NAME}"
-      deploymentconfig: "${APP_NAME}"
+      matchLabels:
+        app: "${APP_NAME}"
     template:
       metadata:
         labels:
           app: "${APP_NAME}"
           app-group: "${APP_GROUP}"
-          deploymentconfig: "${APP_NAME}"
           template: "${APP_NAME}-deploy"
       spec:
         containers:
@@ -57,17 +41,17 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_HOST
+                  key: OCR_REDIS_HOST
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_PASSWORD
+                  key: OCR_REDIS_PASSWORD
             - name: REDIS_PORT
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: REDIS_PORT
+                  key: OCR_REDIS_PORT
             - name: OCR_STREAM_KEY
               valueFrom:
                 secretKeyRef:
@@ -96,13 +80,13 @@ objects:
             - name: OCR_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: "${DB_SECRETS}"
-                  key: app-db-username
+                  name: "${SECRETS}"
+                  key: OCR_DB_USER
             - name: OCR_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "${DB_SECRETS}"
-                  key: app-db-password
+                  name: "${SECRETS}"
+                  key: OCR_DB_PASSWORD
             - name: OCR_S3_HOST
               valueFrom:
                 secretKeyRef:
@@ -118,6 +102,26 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: OCR_S3_SERVICE
+            - name: ACTIVEMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_URL
+            - name: ACTIVEMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_USERNAME
+            - name: ACTIVEMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_PASSWORD
+            - name: ACTIVEMQ_DESTINATION
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: ACTIVEMQ_DESTINATION
           resources:
             requests:
               cpu: "50m"
@@ -128,6 +132,7 @@ objects:
           terminationMessagePath: "/dev/termination-log"
           terminationMessagePolicy: File
           imagePullPolicy: Always
+          image: 'image-registry.openshift-image-registry.svc:5000/d106d6-tools/${IMAGE_STREAM_NAME_FULL}'
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
@@ -157,14 +162,14 @@ parameters:
   displayName: Environment TAG name
   description: The TAG name for this environment, e.g., dev, test, prod
   required: true
-  value: dev
-- name: DB_SECRETS
-  displayName: Patroni DB Secrets
-  description: Name of secrets for all db values
-  required: true
-  value: patroni-docreviewer
+  value: test-marshal
 - name: SECRETS
   displayName: OCR Secrets
   description: Name of secrets for all ocr values
   required: true
   value: ocr-secret
+- name: IMAGE_STREAM_NAME_FULL
+  displayName: Full image stream name (eg "reviewer-ocr:test-marshal")
+  description: Includes ImageStream name and tag
+  required: true
+  value: reviewer-ocr:test-marshal

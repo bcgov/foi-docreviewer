@@ -7,6 +7,6 @@ type OCRJob struct {
 	MinistryRequestID int    `json:"ministryrequestid"`
 	Status            string `json:"status"`
 	OCRFilePath       string `json:"ocrfilepath,omitempty"`
-	DocumentMasterID  string `json:"documentmasterid"`
+	DocumentMasterID  int    `json:"documentmasterid"`
 	Message           string `json:"message"`
 }

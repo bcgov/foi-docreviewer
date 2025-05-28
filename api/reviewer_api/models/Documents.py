@@ -434,31 +434,26 @@ class Document(db.Model):
             db.session.close()
 
     @classmethod
-    def updateselectedfileprocessversion(cls, ministryrequestid, recordids, selectedfileprocessversion, userid):
+    def updateselectedfileprocessversion(cls, ministryrequestid, documentmasterids, selectedfileprocessversion, userid):
         try:
-            # disable old rows
-            # sql =   """ update "Documents"
-            #             set isactive = False
-            #             where recordid in ("""+ ','.join([str(id) for id in recordids]) +""")
-            #         """
             sql =   """ update "Documents"
                         set selectedfileprocessversion = :selectedfileprocessversion,
-                        updatedby= :userid,
+                        updatedby= :updatedby,
                         updated_at=now()
-                        where 'ministryrequestid'= :ministryrequestid 
-                        and recordid in :recordids
-                        and a.isactive = True)
+                        where foiministryrequestid= :ministryrequestid 
+                        and documentmasterid in :documentmasterids
                     """
             db.session.execute(text(sql), 
-                    {'userid':userid,
+                    {'updatedby':json.dumps(userid),
                      'ministryrequestid': ministryrequestid, 
                      'selectedfileprocessversion':selectedfileprocessversion, 
-                     'recordids':tuple(recordids)})
+                     'documentmasterids':tuple(documentmasterids)})
 
             db.session.commit()
             return DefaultMethodResult(True,'Documentprocessversion updated for Documents')
         except Exception as ex:
             logging.error(ex)
+            raise ex
         finally:
             db.session.close()
 
