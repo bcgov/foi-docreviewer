@@ -38,7 +38,7 @@ CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 @cors_preflight('POST,OPTIONS')
 @API.route('/redlinecontent/save/<int:ministryrequestid>')
 class RedlineContent(Resource):
-    """Add document to deleted list.
+    """POST REDLINE CONTENT
     """
     @staticmethod
     @TRACER.trace()
