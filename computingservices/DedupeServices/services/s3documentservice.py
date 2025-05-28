@@ -557,7 +557,7 @@ def gets3documenthashcode(producermessage):
     
     else:
         # check to see if non-pdf file need ocr service
-        ocr_needed = verify_ocr_needed(response.content, producermessage)
+        ocr_needed = False #verify_ocr_needed(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -610,8 +610,8 @@ def __converttoPST(creationdate):
     
 def verify_ocr_needed(content, message):
     try:
-        if (message.incompatible.lower() == 'true'):
-            return None
+        if (message.incompatible is not None and message.incompatible.lower() == 'true'):
+            return False
         with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
             return ocr_required

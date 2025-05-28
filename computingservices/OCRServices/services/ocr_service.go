@@ -37,7 +37,6 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 		CompressedS3FilePath: message.CompressedS3FilePath,
 		DocumentID:           message.DocumentID,
 	}
-
 	fmt.Printf("Just before pushing to activeMq-%v\n\n", ocrActiveMQMsg.CompressedS3FilePath)
 	response, err := pushDocsToActiveMQ(&ocrActiveMQMsg)
 	fmt.Printf("Response from activemq: %v\n", response)
@@ -47,6 +46,7 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 		fmt.Printf("Failed to push to activemq: %v\n", err)
 		isError = true
 		errMsg = fmt.Sprintf("%v", err)
+		RecordJobEnd(message, true, errMsg)
 	}
 	if response != nil {
 		RecordJobEnd(message, isError, errMsg)

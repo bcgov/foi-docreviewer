@@ -15,21 +15,24 @@ class DocumentProcesses(db.Model):
     def getdocumentprocessbyid(cls, processid):
         try:
             documentstatus_schema = DocumentProcessesSchema(many=False)
-            query = db.session.query(DocumentProcesses).filter_by(and_(processid = processid, isactive = True)).first()
+            query = db.session.query(DocumentProcesses).filter(and_(DocumentProcesses.processid == processid, DocumentProcesses.isactive == True)).first()
             return documentstatus_schema.dump(query)
         except Exception as ex:
             logging.error(ex)
+            raise ex
         finally:
             db.session.close()
     
     @classmethod
-    def getdocumentprocessbyname(cls, name):
+    def getdocumentprocessidbyname(cls, name):
         try:
-            documentstatus_schema = DocumentProcessesSchema(many=False)
-            query = db.session.query(DocumentProcesses).filter_by(and_(name = name, isactive = True)).first()
-            return documentstatus_schema.dump(query)
+            query_result = db.session.query(DocumentProcesses).filter(
+                and_(DocumentProcesses.name == name, DocumentProcesses.isactive == True)
+            ).first()
+            return query_result.processid if query_result else None
         except Exception as ex:
             logging.error(ex)
+            raise ex
         finally:
             db.session.close()
 
