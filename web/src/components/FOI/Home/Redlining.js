@@ -21,6 +21,7 @@ import {
   saveRotateDocumentPage,
   deleteDocumentPages,
   savePageFlag,
+  saveRedlineContent
 } from "../../../apiManager/services/docReviewerService";
 import {
   PDFVIEWER_DISABLED_FEATURES,
@@ -154,6 +155,7 @@ const Redlining = React.forwardRef(
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     const [assignedPhases, setAssignedPhases] = useState(null);
     const [redlinePhase, setRedlinePhase] = useState(null);
+    const [annottext,setannottext]=useState([])
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -913,6 +915,63 @@ const Redlining = React.forwardRef(
       });
     };
 
+      let extractedTexts = [];
+  
+    const  extractRedlineText = async function _extractRedlineText(annotations) {
+      
+      if(annotations)
+      {
+          
+          for (const annotation of annotations) {
+          var annotpageNumber = annotation.PageNumber
+          var actualpagenum = pageMappedDocs?.stitchedPageLookup[annotpageNumber].page
+          var docid =   pageMappedDocs?.stitchedPageLookup[annotpageNumber].docid            
+          if(annotation.Subject === "Redact")
+          {
+            const rect = annotation.getRect();
+            const text =  await docViewer.getDocument().getTextByPageAndRect(annotpageNumber, rect);                           
+            extractedTexts.push({
+                type: "RedlineContent",
+                text: text,
+                page: actualpagenum,
+                documentid: docid,
+                annotationid:annotation.Id,
+                category:annotation.type              
+              });
+            setannottext(extractedTexts);
+          }
+          else if(annotation.Subject === "Free Text")
+          {
+            let _annottext=''           
+            //console.log(_annottext)
+            annottext?.push({
+              type: "RedlineContentSection",
+              text: annotation.getContents(),
+              page: actualpagenum,
+              documentid: docid,
+              annotationid:annotation.Id
+            });
+            
+          }
+        }
+        if (annottext.some(item => item.type === "RedlineContentSection")) {
+            saveRedlineContent(
+              requestid,
+              annottext,
+              (data) => {
+                console.log("Redline content posted successfully", data);
+              },
+              (err) => {
+                console.error("Error posting redline content", err);
+              }
+            );
+            setannottext([]);
+          }
+        console.log(`extractedTexts: ${annottext}`)
+       
+      }
+    }
+
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
         // If the event is triggered by importing then it can be ignored
@@ -1077,7 +1136,8 @@ const Redlining = React.forwardRef(
               let displayedDoc;
               let individualPageNo;
 
-              await removeRedactAnnotationDocContent(annotations);
+              //await removeRedactAnnotationDocContent(annotations);
+               await extractRedlineText(annotations);
               
               if (annotations[0].Subject === "Redact") {
                 let pageSelectionList = [...pageSelections];
