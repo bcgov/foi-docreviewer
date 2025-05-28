@@ -29,7 +29,7 @@ import logging
 from reviewer_api.services.redlineconentservice import redlinecontentservice
 
 
-API = Namespace('Redline Content Services', description='Endpoints for saving REDLINE Content with FOIPPA Sections')
+API = Namespace('FOI Document Reviewer Redline Content Services', description='Endpoints for saving REDLINE Content with FOIPPA Sections')
 TRACER = Tracer.get_instance()
 CUSTOM_KEYERROR_MESSAGE = "Key error has occured: "
 
