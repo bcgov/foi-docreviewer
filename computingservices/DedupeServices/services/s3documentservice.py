@@ -255,7 +255,7 @@ def __flattenfitz(docbytesarr):
         # Render the page text (keeping it searchable)
         rect = fitz.Rect(0, 0, w, h)
         outpage.show_pdf_page(rect, doc, page_num)
-        # outpage.set_rotation(0) # set rotation of new page to 0 (letter/vertical pdf position)
+        outpage.set_rotation(rotation) # set rotation of new page to match document page
         #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
