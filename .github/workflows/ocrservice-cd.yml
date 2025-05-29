@@ -103,8 +103,8 @@ jobs:
       - name: Tag image from tools to target env
         run: |
             oc tag --source=istag \
-            ${env.TOOLS_NAME}-tools/${env.APP_NAME}:latest \
-            ${env.TOOLS_NAME}-tools/${env.APP_NAME}:${env.TAG_NAME}
+            ${{ env.TOOLS_NAME }}-tools/${{ env.APP_NAME }}:latest \
+            ${{ env.TOOLS_NAME }}-tools/${{ env.APP_NAME }}:${{ env.TAG_NAME }}
 
       - name: Trigger rollout by updating deployment image
         run: |
