@@ -111,6 +111,8 @@ def getrequestswithstatus():
 
 
 def fetchdocumentsforextraction():
+    cursor = None
+    conn = None
     try:
         requestresults = getrequestswithstatus()
         #print("requestresults:",requestresults)
@@ -136,7 +138,7 @@ def fetchdocumentsforextraction():
                 LEFT JOIN "DocumentAttributes" da 
                 ON (dm.processingparentid IS NOT NULL AND dm.processingparentid = da.documentmasterid)
                 OR (dm.processingparentid IS NULL AND dm.documentmasterid = da.documentmasterid)
-                WHERE d.foiministryrequestid IN %s
+                WHERE d.foiministryrequestid IN %s AND d.incompatible = False
                 AND EXISTS (
                     SELECT 1 FROM "DocumentHashCodes" dhc
                     WHERE dhc.documentid = d.documentid
