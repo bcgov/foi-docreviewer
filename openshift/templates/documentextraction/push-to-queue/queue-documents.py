@@ -19,7 +19,7 @@ FOI_DB_USER= os.getenv('FOI_DB_USER')
 FOI_DB_PASSWORD= os.getenv('FOI_DB_PASSWORD') 
 FOI_DB_PORT= os.getenv('FOI_DB_PORT')
 REQUEST_STATUS =  os.getenv('REQUEST_STATUS', "Records Review")
-REQUEST_LIMIT =  os.getenv('REQUEST_LIMIT', 3)
+REQUEST_LIMIT =  int(os.getenv('REQUEST_LIMIT', 5))
 ACTIVEMQ_URL= os.getenv('ACTIVEMQ_URL')
 ACTIVEMQ_USERNAME=os.getenv('ACTIVEMQ_USERNAME')
 ACTIVEMQ_PASSWORD=os.getenv('ACTIVEMQ_PASSWORD')
@@ -161,10 +161,9 @@ def fetchdocumentsforextraction():
                 )
                 GROUP BY 
                     d.foiministryrequestid
-                ORDER BY 
-                    d.foiministryrequestid;
+                LIMIT %s;
             '''
-            parameters = (tuple(request_ids),)
+            parameters = (tuple(request_ids), REQUEST_LIMIT)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
             cursor.close()
