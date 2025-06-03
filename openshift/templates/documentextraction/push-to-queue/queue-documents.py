@@ -166,7 +166,7 @@ def fetchdocumentsforextraction():
                 ORDER BY 
                     d.foiministryrequestid;
             '''
-            parameters = (tuple(request_ids), '%')
+            parameters = (tuple(request_ids))
             # print("\nparameters:",parameters)
             # print("\nQuery:",query)
             cursor.execute(query, parameters)
