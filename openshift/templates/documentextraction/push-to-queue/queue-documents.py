@@ -50,8 +50,6 @@ def getrequestswithstatus():
         to_date = os.getenv("TO_DATE")
     else:
         to_date = datetime.now().strftime("%Y-%m-%d")
-    print("from_date:",from_date)
-    print("to_date:",to_date)
     conn = getfoidbconnection()
     try:
         cursor = conn.cursor()
@@ -125,10 +123,10 @@ def fetchdocumentsforextraction():
     conn = None
     try:
         requestresults = getrequestswithstatus()
-        #print("requestresults:",requestresults)
         if requestresults:
             request_ids = [item["foiministryrequestid"] for item in requestresults]
-            print("request_ids:",request_ids)
+            print("Total requests:", len(request_ids), "| Request IDs:", request_ids)
+
             conn = getdocreviewerdbconnection()
             cursor = conn.cursor()
             query = '''
@@ -167,24 +165,17 @@ def fetchdocumentsforextraction():
                     d.foiministryrequestid;
             '''
             parameters = (tuple(request_ids),)
-            # print("\nparameters:",parameters)
-            # print("\nQuery:",query)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
-            print("DOCUMENTS RESULT:",result)
-            #breakpoint()
             cursor.close()
             if result:
                 requestswithdocs=[]
                 for entry in result:
                     if entry[1]:
                         row={"foiministryrequestid": entry[0], "documents": entry[1]}
-                        print("\n\nROW:::",row)
                         requestswithdocs.append(row)
                         #requestsforextraction.append(formatdocumentsrequest(row, requestresults))
                 return requestresults, requestswithdocs
-                #print("Requests for extraction:",requestsforextraction)
-                logging.info("No documents to queue for extraction!")
             else:
                 print("No documents found for extraction!")
                 logging.info("No documents found for extraction!")
@@ -203,11 +194,10 @@ def fetchdocumentsforextraction():
 
 def formatdocumentsrequest(requestswithdocs,requestdetails):
     limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
-    print("\n\nlimited_requestdetails:",limited_requestdetails)
+    #print("\n\nlimited_requestdetails:",limited_requestdetails)
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
-        print("\n\nrequest:",request)
         formatted_documents=[]
         for document in requestdocuments[0]["documents"]:
             filename = document["filename"]
@@ -221,7 +211,6 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
             #     documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
             # else:
             documentdivision = {'DivisionID': 0,'Name': ""}
-            print("\ndocumentdivision:",documentdivision)
             formatted_documents.append(
                 {
                     "DocumentID": document["documentid"],
@@ -241,7 +230,7 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
             "RequestMiscInfo":"",
             "Documents": formatted_documents
         })
-        print("\n\nformatted_requests:",formatted_requests)
+        #print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
 
 def convert_datetime_dynamic(date_obj,datefield):
@@ -301,12 +290,9 @@ def pushdocstoactivemq(requestsforextraction):
     params = {
     "destination": "queue://"+ACTIVEMQ_DESTINATION
     }
-    print("\nACTIVEMQ_URL:",url)
-    print("\nACTIVEMQ_USERNAME:",username)
     try:
         if requestsforextraction:
             formattedjson= formatbatch(requestsforextraction)
-            print("\n\nFINAL JSON:", formattedjson)
             #Activemq POST request
             response = requests.post(url, auth=(username, password), params=params, json=formattedjson)
             if response.status_code == 200:
@@ -334,7 +320,7 @@ def updatedocumentsstatus(requestsforextraction):
         for request in requestsforextraction:
             for document in request.get("Documents", []):
                 document_ids.append(document["DocumentID"])
-        print("Extracted Document IDs:", document_ids)
+        print("Total documents:", len(document_ids), "| Extracted Document IDs:", document_ids)
         conn = getdocreviewerdbconnection()
         cursor = conn.cursor()
         cursor.execute('''update "Documents" SET statusid = (SELECT statusid
