@@ -235,20 +235,33 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
         #print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
 
-
-def reformat_datetime(input_date_str, datefield):
+    
+def reformat_datetime(input_date, datefield):
     try:
-        try:
-            dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
-        except ValueError:
-            dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S")
-        if datefield == "batchdate":
-            result = dt.strftime("%Y-%m-%dT%H:%M:%S")
+        if isinstance(input_date, datetime):
+            dt = input_date
         else:
-            result = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        return result
+            input_date_str = str(input_date)
+            formats_to_try = [
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S",
+            ]
+            for fmt in formats_to_try:
+                try:
+                    dt = datetime.strptime(input_date_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError("Unsupported date format")
+        if datefield == "batchdate":
+            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
     except Exception as e:
-        raise ValueError(f"Failed to reformat datetime '{input_date_str}' for field '{datefield}': {e}")
+        raise ValueError(f"Failed to reformat datetime '{input_date}' for field '{datefield}': {e}")
 
 
 # Keeping only sorting & removed the limit
