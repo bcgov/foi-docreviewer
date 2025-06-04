@@ -218,7 +218,7 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
                     "DocumentID": document["documentid"],
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
-                    "CreatedDate": convert_date_string_dynamic_preserve_time(document["created_at"]),
+                    "CreatedDate": reformat_datetime(document["created_at"], "created_at"),
                     "DocumentS3URL":document["filepath"],
                     "Divisions": documentdivision
                 }
@@ -226,7 +226,7 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
         formatted_requests.append({
             "RequestNumber": request["axisrequestid"],
             "RequestType": request["requesttype"],
-            "ReceivedDate": convert_datetime_dynamic(request["receiveddate"],"receiveddate"),
+            "ReceivedDate": reformat_datetime(request["receiveddate"],"receiveddate"),
             "MinistryRequestID": str(request["foiministryrequestid"]),
             "MinistryCode":request["programareacode"],
             "RequestMiscInfo":"",
@@ -235,26 +235,37 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
         #print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
 
-def convert_datetime_dynamic(date_obj,datefield):
-    # Example logic: Set to the 1st day of the next month
-    if date_obj.month == 12:
-        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
-    else:
-        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-    if datefield == "receiveddate":
-        result= updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-    else:
-        result= updated_date.strftime("%Y-%m-%dT%H:%M:%S")
-    return result
+# def convert_datetime_dynamic(date_obj,datefield):
+#     # Example logic: Set to the 1st day of the next month
+#     if date_obj.month == 12:
+#         updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+#     else:
+#         updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
+#     if datefield == "receiveddate":
+#         result= updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+#     else:
+#         result= updated_date.strftime("%Y-%m-%dT%H:%M:%S")
+#     return result
 
-def convert_date_string_dynamic_preserve_time(input_date_str):
-    date_obj = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
-    # Example logic: Increment the month and reset the day to 1
-    if date_obj.month == 12:
-        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+# def convert_date_string_dynamic_preserve_time(input_date_str):
+#     date_obj = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
+#     # Example logic: Increment the month and reset the day to 1
+#     if date_obj.month == 12:
+#         updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+#     else:
+#         updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
+#     return updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def reformat_datetime(input_date_str, datefield):
+    try:
+        dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
+    except ValueError:
+        dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S")
+    if datefield == "batchdate":
+        return dt.strftime("%Y-%m-%dT%H:%M:%S")
     else:
-        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-    return updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # Keeping only sorting & removed the limit
@@ -312,7 +323,7 @@ def pushdocstoactivemq(requestsforextraction):
 def formatbatch(requestsforextraction):
     return {
         "BatchID": str(uuid.uuid4()),
-        "Date": convert_datetime_dynamic(datetime.now(),"batchdate"),
+        "Date": reformat_datetime(datetime.now(),"batchdate"),
         "Requests": requestsforextraction
     }
 
