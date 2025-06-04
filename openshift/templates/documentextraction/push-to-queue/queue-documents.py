@@ -235,37 +235,20 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
         #print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
 
-# def convert_datetime_dynamic(date_obj,datefield):
-#     # Example logic: Set to the 1st day of the next month
-#     if date_obj.month == 12:
-#         updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
-#     else:
-#         updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-#     if datefield == "receiveddate":
-#         result= updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-#     else:
-#         result= updated_date.strftime("%Y-%m-%dT%H:%M:%S")
-#     return result
-
-# def convert_date_string_dynamic_preserve_time(input_date_str):
-#     date_obj = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
-#     # Example logic: Increment the month and reset the day to 1
-#     if date_obj.month == 12:
-#         updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
-#     else:
-#         updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-#     return updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-
 
 def reformat_datetime(input_date_str, datefield):
     try:
-        dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
-    except ValueError:
-        dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S")
-    if datefield == "batchdate":
-        return dt.strftime("%Y-%m-%dT%H:%M:%S")
-    else:
-        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        try:
+            dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
+        except ValueError:
+            dt = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S")
+        if datefield == "batchdate":
+            result = dt.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            result = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return result
+    except Exception as e:
+        raise ValueError(f"Failed to reformat datetime '{input_date_str}' for field '{datefield}': {e}")
 
 
 # Keeping only sorting & removed the limit
