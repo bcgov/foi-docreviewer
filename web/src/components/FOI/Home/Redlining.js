@@ -90,6 +90,7 @@ const Redlining = React.forwardRef(
       pageFlags, 
       syncPageFlagsOnAction,
       isPhasedRelease,
+      setIsAnnotationsLoading,
     },
     ref
   ) => {
@@ -830,6 +831,7 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
+            setIsAnnotationsLoading(true);
             fetchAnnotationsByPagination(
               requestid,
               1,
@@ -839,6 +841,7 @@ const Redlining = React.forwardRef(
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
+                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -868,11 +871,14 @@ const Redlining = React.forwardRef(
                       meta["next_num"],
                       meta["pages"]
                     );
+                  } else {
+                    setIsAnnotationsLoading(false);
                   }
                 }
               },
               (error) => {
                 console.log("Error:", error);
+                setIsAnnotationsLoading(false);
               },
               currentLayer.name.toLowerCase(),
               BIG_HTTP_GET_TIMEOUT
@@ -1662,23 +1668,40 @@ const Redlining = React.forwardRef(
       startPageIndex = 1,
       lastPageIndex = 1
     ) => {
+      setIsAnnotationsLoading(true);
+      const fetchPromises = [];
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
-        fetchAnnotationsByPagination(
+        const promise = new Promise((resolve, reject) => {
+          fetchAnnotationsByPagination(
           requestid,
           i,
           ANNOTATION_PAGE_SIZE,
           async (data) => {
             assignAnnotationsPagination(mappedDocs, data["data"], domParser);
+            resolve();
           },
           (error) => {
             console.log("Error:", error);
             setErrorMessage(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
+            reject(error);
           },
           currentLayer.name.toLowerCase(),
           BIG_HTTP_GET_TIMEOUT
+          );
+        });
+        fetchPromises.push(promise);
+      }
+      try {
+        await Promise.all(fetchPromises);
+      } catch (error) {
+        console.log("Error:", error);
+        setErrorMessage(
+          "Error occurred while fetching all annotations, please refresh browser and try again"
         );
+      } finally {
+        setIsAnnotationsLoading(false);
       }
     };
 
