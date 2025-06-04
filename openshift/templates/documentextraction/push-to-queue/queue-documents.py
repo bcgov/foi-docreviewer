@@ -152,7 +152,7 @@ def fetchdocumentsforextraction():
                         FROM "Documents" d_inner
                         JOIN "DocumentHashCodes" dhc_inner
                             ON dhc_inner.documentid = d_inner.documentid
-                        WHERE d_inner.foiministryrequestid IN %s
+                        WHERE d_inner.foiministryrequestid = d.foiministryrequestid
                         AND dhc_inner.rank1hash = dhc.rank1hash
                         AND dhc_inner.created_at < dhc.created_at
                     )
