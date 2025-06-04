@@ -143,20 +143,20 @@ def fetchdocumentsforextraction():
                 INNER JOIN "DocumentMaster" dm 
                 ON d.documentmasterid = dm.documentmasterid
                 WHERE d.foiministryrequestid IN %s AND d.incompatible = False
-                AND EXISTS (
-                    SELECT 1
-                    FROM "DocumentHashCodes" dhc
-                    WHERE dhc.documentid = d.documentid
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM "Documents" d_inner
-                        JOIN "DocumentHashCodes" dhc_inner
-                            ON dhc_inner.documentid = d_inner.documentid
-                        WHERE d_inner.foiministryrequestid = d.foiministryrequestid
-                        AND dhc_inner.rank1hash = dhc.rank1hash
-                        AND dhc_inner.created_at < dhc.created_at
-                    )
-                )
+                # AND EXISTS (
+                #     SELECT 1
+                #     FROM "DocumentHashCodes" dhc
+                #     WHERE dhc.documentid = d.documentid
+                #     AND NOT EXISTS (
+                #         SELECT 1
+                #         FROM "Documents" d_inner
+                #         JOIN "DocumentHashCodes" dhc_inner
+                #             ON dhc_inner.documentid = d_inner.documentid
+                #         WHERE d_inner.foiministryrequestid = d.foiministryrequestid
+                #         AND dhc_inner.rank1hash = dhc.rank1hash
+                #         AND dhc_inner.created_at < dhc.created_at
+                #     )
+                # )
                 AND EXISTS (
                     SELECT 1 FROM "DocumentStatus" ds
                     WHERE ds.statusid = d.statusid
