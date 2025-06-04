@@ -166,7 +166,7 @@ def fetchdocumentsforextraction():
                     d.foiministryrequestid
                 LIMIT %s;
             '''
-            parameters = (tuple(request_ids), tuple(request_ids), REQUEST_LIMIT)
+            parameters = (tuple(request_ids), REQUEST_LIMIT)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
             cursor.close()
