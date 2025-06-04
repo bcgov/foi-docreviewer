@@ -841,7 +841,6 @@ const Redlining = React.forwardRef(
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
-                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -872,7 +871,9 @@ const Redlining = React.forwardRef(
                       meta["pages"]
                     );
                   } else {
-                    setIsAnnotationsLoading(false);
+                    docViewer.addEventListener('annotationsLoaded', () => {
+                      setIsAnnotationsLoading(false);
+                    });
                   }
                 }
               },
@@ -1693,16 +1694,17 @@ const Redlining = React.forwardRef(
         });
         fetchPromises.push(promise);
       }
-      try {
-        await Promise.all(fetchPromises);
-      } catch (error) {
-        console.log("Error:", error);
-        setErrorMessage(
-          "Error occurred while fetching all annotations, please refresh browser and try again"
-        );
-      } finally {
+      Promise.all(fetchPromises)
+      .then((res) => {
+        docViewer.addEventListener('annotationsLoaded', () => {
+          setIsAnnotationsLoading(false);
+        });
+      })
+      .error((err) => {
+        console.error("Error:", err);
+        setErrorMessage("Error in fetching and applying all annotations, please refresh browser and try again");
         setIsAnnotationsLoading(false);
-      }
+      })
     };
 
     useEffect(() => {
