@@ -870,10 +870,6 @@ const Redlining = React.forwardRef(
                       meta["next_num"],
                       meta["pages"]
                     );
-                  } else {
-                    docViewer.addEventListener('annotationsLoaded', () => {
-                      setIsAnnotationsLoading(false);
-                    });
                   }
                 }
               },
@@ -1694,18 +1690,22 @@ const Redlining = React.forwardRef(
         });
         fetchPromises.push(promise);
       }
-      Promise.all(fetchPromises)
-      .then((res) => {
-        docViewer.addEventListener('annotationsLoaded', () => {
-          setIsAnnotationsLoading(false);
-        });
-      })
-      .error((err) => {
+      try {
+        await Promise.all(fetchPromises)
+      }
+      catch(err) {
         console.error("Error:", err);
         setErrorMessage("Error in fetching and applying all annotations, please refresh browser and try again");
         setIsAnnotationsLoading(false);
-      })
+      }
     };
+    
+    useEffect(() => {
+      if (!docViewer) return;
+      const handler = () => setIsAnnotationsLoading(false);
+      docViewer?.addEventListener('annotationsLoaded', handler);
+      return () => docViewer?.removeEventListener('annotationsLoaded', handler);
+    }, [docViewer]);
 
     useEffect(() => {
       if (errorMessage) {

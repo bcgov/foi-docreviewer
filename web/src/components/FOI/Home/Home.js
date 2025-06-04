@@ -317,7 +317,7 @@ function Home() {
               )
             // : <div>Loading</div>
           }
-          {!isStitchingLoaded && !isAnnotationsLoading && (
+          {!isStitchingLoaded || isAnnotationsLoading && (
             <div className="merging-overlay">
               <div>
                 <DocumentLoader />
