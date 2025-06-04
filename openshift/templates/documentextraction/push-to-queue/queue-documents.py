@@ -80,7 +80,7 @@ def getrequestswithstatus():
                     ON fmr.requeststatusid = frs.requeststatusid
                 JOIN "FOIRequests" fr 
                     ON fmr.foirequest_id = fr.foirequestid 
-                    AND fmr.version = fr.version
+                    AND fmr.foirequestversion_id = fr.version
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
                 WHERE fmr."isactive" = true 
@@ -152,7 +152,7 @@ def fetchdocumentsforextraction():
                         FROM "Documents" d_inner
                         JOIN "DocumentHashCodes" dhc_inner
                             ON dhc_inner.documentid = d_inner.documentid
-                        WHERE d_inner.foiministryrequestid = d.foiministryrequestid
+                        WHERE d_inner.foiministryrequestid IN %s
                         AND dhc_inner.rank1hash = dhc.rank1hash
                         AND dhc_inner.created_at < dhc.created_at
                     )
@@ -166,7 +166,7 @@ def fetchdocumentsforextraction():
                     d.foiministryrequestid
                 LIMIT %s;
             '''
-            parameters = (tuple(request_ids), REQUEST_LIMIT)
+            parameters = (tuple(request_ids), tuple(request_ids), REQUEST_LIMIT)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
             cursor.close()
