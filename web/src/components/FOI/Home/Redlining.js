@@ -841,6 +841,7 @@ const Redlining = React.forwardRef(
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
+                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -1702,16 +1703,6 @@ const Redlining = React.forwardRef(
         setIsAnnotationsLoading(false);
       }
     };
-    
-    // useEffect(() => {
-    //   if (!docViewer) return;
-    //   const handler = () => {
-    //     console.log("BANG ANNOTS LOADDED")
-    //     setIsAnnotationsLoading(false);
-    //   }
-    //   docViewer?.addEventListener('annotationsLoaded', handler);
-    //   return () => docViewer?.removeEventListener('annotationsLoaded', handler);
-    // }, [docViewer]);
 
     useEffect(() => {
       if (errorMessage) {
