@@ -35,26 +35,24 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		/**Redaction status - isredactionready is set
 		only for searchable pdfs. OCR'd documents status should be
 		updated after Azure AI OCR is finished*/
-		if !needsOCR {
-			UpdateRedactionStatus(message)
-		}
+		// if !needsOCR {
+		// 	UpdateRedactionStatus(message)
+		// }
 		updateError := UpdateDocumentDetails(message, compressedFileSize, s3FilePath)
 		if updateError != nil {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
 		}
-		//Logic check for needs_ocr field
-		if needsOCR {
-			fmt.Printf("\nStarting OCR!!")
-			ocrjobid, err := RecordOCRJobStart(message)
-			if err != nil {
-				fmt.Printf("Failed to record OCR job: %v\n", err)
-			}
-			message.JobID = ocrjobid
-			id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
-			if streamerr != nil {
-				fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
-			}
-			print("\nPushed to OCR Stream-", id)
+		/**Commenting logic check for needs_ocr field - if needsOCR*/
+		fmt.Printf("\nStarting OCR!!")
+		ocrjobid, err := RecordOCRJobStart(message)
+		if err != nil {
+			fmt.Printf("Failed to record OCR job: %v\n", err)
 		}
+		message.JobID = ocrjobid
+		id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
+		if streamerr != nil {
+			fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
+		}
+		print("\nPushed to OCR Stream-", id)
 	}
 }

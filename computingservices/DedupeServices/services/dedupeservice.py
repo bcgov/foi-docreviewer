@@ -12,21 +12,19 @@ from utils.basicutils import to_json
 def processmessage(message):
     recordjobstart(message)
     try:
-        hashcode, _pagecount, needs_ocr = gets3documenthashcode(message)
-        newdocumentid, _= savedocumentdetails(message, hashcode, _pagecount, needs_ocr)
-        print("Document created-",newdocumentid)
+        hashcode, _pagecount = gets3documenthashcode(message)
+        newdocumentid, _= savedocumentdetails(message, hashcode, _pagecount)
         recordjobend(message, False)
         #updateredactionstatus(message)
         _incompatible = True if str(message.incompatible).lower() == 'true' else False
         if not _incompatible:
             message.documentid= newdocumentid
-            message.needsocr= needs_ocr
-            print("Message!!!",to_json(message))
+            #message.needsocr= needs_ocr
+            #print("Message!!!",to_json(message))
             #compressionmessage =  compressionproducerservice().createcompressionproducermessage(message, _pagecount)
             compressionjobid = compressionjobstart(message)
             print("Pushed to Compression Stream!!!",compressionjobid)
             compressionproducerservice().producecompressionevent(message, compressionjobid)
-        #if not _incompatible:
             pagecalculatormessage = documentspagecalculatorproducerservice().createpagecalculatorproducermessage(message, _pagecount)
             pagecalculatorjobid = pagecalculatorjobstart(pagecalculatormessage)
             print("Pushed to Page Calculator Stream!!!", pagecalculatormessage)
