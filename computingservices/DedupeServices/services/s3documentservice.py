@@ -535,6 +535,7 @@ def gets3documenthashcode(producermessage):
                 )
                 saveresponse.raise_for_status()   
         fitz_reader.close()
+        print("\nverify_ocr_needed after dedupe")
         # check to see if pdf file needs ocr service
         ocr_needed = verify_ocr_needed(response.content, producermessage)
         # clear metadata
@@ -551,6 +552,7 @@ def gets3documenthashcode(producermessage):
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
         # check to see if converted pdf file needs ocr service
+        print("\nverify_ocr_needed after conversion")
         ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
@@ -613,6 +615,7 @@ def verify_ocr_needed(content, message):
         if (message.incompatible is not None and message.incompatible.lower() == 'true'):
             return False
         with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
+            print("\ninside verify_ocr_needed")
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
             return ocr_required
     except Exception as e:
