@@ -90,7 +90,9 @@ const Redlining = React.forwardRef(
       pageFlags, 
       syncPageFlagsOnAction,
       isPhasedRelease,
+      isAnnotationsLoading,
       setIsAnnotationsLoading,
+      setAreAnnotationsRendered,
     },
     ref
   ) => {
@@ -1769,6 +1771,17 @@ const Redlining = React.forwardRef(
         });
       }
     };
+
+    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
+    useEffect(() => {
+      if (!docViewer || !annotManager) return;
+      setAreAnnotationsRendered(false);
+      if (!isAnnotationsLoading) {
+        docViewer.getAnnotationsLoadedPromise().then(() => {
+          setAreAnnotationsRendered(true);
+        })
+      }
+    }, [docViewer, annotManager, fetchAnnotResponse, setAreAnnotationsRendered, isAnnotationsLoading]);
 
     useEffect(() => {
       if (docsForStitcing.length > 0) {
