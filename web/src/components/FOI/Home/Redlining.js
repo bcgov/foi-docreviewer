@@ -90,6 +90,9 @@ const Redlining = React.forwardRef(
       pageFlags, 
       syncPageFlagsOnAction,
       isPhasedRelease,
+      isAnnotationsLoading,
+      setIsAnnotationsLoading,
+      setAreAnnotationsRendered,
     },
     ref
   ) => {
@@ -830,6 +833,7 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
+            setIsAnnotationsLoading(true);
             fetchAnnotationsByPagination(
               requestid,
               1,
@@ -839,6 +843,7 @@ const Redlining = React.forwardRef(
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
+                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -868,11 +873,14 @@ const Redlining = React.forwardRef(
                       meta["next_num"],
                       meta["pages"]
                     );
+                  } else {
+                    setIsAnnotationsLoading(false);
                   }
                 }
               },
               (error) => {
                 console.log("Error:", error);
+                setIsAnnotationsLoading(false);
               },
               currentLayer.name.toLowerCase(),
               BIG_HTTP_GET_TIMEOUT
@@ -1662,23 +1670,39 @@ const Redlining = React.forwardRef(
       startPageIndex = 1,
       lastPageIndex = 1
     ) => {
+      setIsAnnotationsLoading(true);
+      const fetchPromises = [];
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
-        fetchAnnotationsByPagination(
+        const promise = new Promise((resolve, reject) => {
+          fetchAnnotationsByPagination(
           requestid,
           i,
           ANNOTATION_PAGE_SIZE,
           async (data) => {
             assignAnnotationsPagination(mappedDocs, data["data"], domParser);
+            resolve();
           },
           (error) => {
             console.log("Error:", error);
             setErrorMessage(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
+            reject(error);
           },
           currentLayer.name.toLowerCase(),
           BIG_HTTP_GET_TIMEOUT
-        );
+          );
+        });
+        fetchPromises.push(promise);
+      }
+      try {
+        await Promise.all(fetchPromises);
+        setIsAnnotationsLoading(false);
+      }
+      catch(err) {
+        console.error("Error:", err);
+        setErrorMessage("Error in fetching and applying all annotations, please refresh browser and try again");
+        setIsAnnotationsLoading(false);
       }
     };
 
@@ -1747,6 +1771,17 @@ const Redlining = React.forwardRef(
         });
       }
     };
+
+    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
+    useEffect(() => {
+      if (!docViewer || !annotManager) return;
+      setAreAnnotationsRendered(false);
+      if (!isAnnotationsLoading) {
+        docViewer.getAnnotationsLoadedPromise().then(() => {
+          setAreAnnotationsRendered(true);
+        })
+      }
+    }, [docViewer, annotManager, fetchAnnotResponse, setAreAnnotationsRendered, isAnnotationsLoading]);
 
     useEffect(() => {
       if (docsForStitcing.length > 0) {
