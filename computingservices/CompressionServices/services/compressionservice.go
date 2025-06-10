@@ -27,11 +27,10 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 	errorMsg := RecordCompressionJobEnd(s3FilePath, message, isError, errorMessage)
 	if errMsg == nil && errorMsg == nil {
 		message.CompressedS3FilePath = s3FilePath
-		needsOCR := false
-		if message.NeedsOCR != nil {
-			needsOCR = *message.NeedsOCR
-		}
-		fmt.Println("\nneedsOCR-", needsOCR)
+		// needsOCR := false
+		// if message.NeedsOCR != nil {
+		// 	needsOCR = *message.NeedsOCR
+		// }
 		/**Redaction status - isredactionready is set
 		only for searchable pdfs. OCR'd documents status should be
 		updated after Azure AI OCR is finished*/

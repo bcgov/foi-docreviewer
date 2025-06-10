@@ -215,7 +215,6 @@ func downloadFile(url string) ([]byte, error) {
 // processFile handles different types of files (PDF, JPG, PNG)
 func processFile(inputPdfData []byte, fileName string) ([]byte, error) {
 	ext := strings.ToLower(filepath.Ext(fileName))
-	fmt.Println("ext:", ext)
 	switch ext {
 	case ".pdf":
 		// return processPDF(inputFile, outputFile)
