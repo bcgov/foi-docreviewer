@@ -98,7 +98,6 @@ class documentservice:
                 record["filename"],
                 record["documentid"],
                 record["version"],
-                record["needs_ocr"],
                 record["selectedfileprocessversion"]
             ) = self.__getpagecountandfilename(record, parentproperties)
             (
@@ -148,6 +147,7 @@ class documentservice:
                         attachment["filename"],
                         attachment["documentid"],
                         attachment["version"],
+                        attachment["selectedfileprocessversion"]
                     ) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
 
@@ -171,7 +171,6 @@ class documentservice:
         filename = record["filename"] if "filename" in record else None
         documentid = None
         version = 0
-        needs_ocr= False
         selectedfileprocessversion=None
         for property in properties:
             if record["documentmasterid"] == property["processingparentid"] or (
@@ -183,10 +182,9 @@ class documentservice:
                 filename = property["filename"]
                 documentid = property["documentid"]
                 version = property["version"]
-                needs_ocr= property["needs_ocr"]
                 selectedfileprocessversion = property["selectedfileprocessversion"]
 
-        return originalpagecount, pagecount, filename, documentid, version, needs_ocr,selectedfileprocessversion
+        return originalpagecount, pagecount, filename, documentid, version,selectedfileprocessversion
 
     def __getduplicatemsgattachment(self, records, attachmentproperties, attachment):
         _occurances = []

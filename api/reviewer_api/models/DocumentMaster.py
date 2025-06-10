@@ -213,8 +213,8 @@ class DocumentMaster(db.Model):
         documentmasters = []
         try:
             sql = """select dm.documentmasterid,  dm.processingparentid, dm.createdby as createdby, d.documentid, d.version,
-                        dhc.rank1hash, d.filename, d.originalpagecount, d.pagecount, dm.parentid, d.selectedfileprocessversion,
-                        d.needs_ocr from "DocumentMaster" dm, 
+                        dhc.rank1hash, d.filename, d.originalpagecount, d.pagecount, dm.parentid, d.selectedfileprocessversion
+                        from "DocumentMaster" dm, 
                         "Documents" d, "DocumentHashCodes" dhc  
                         where dm.ministryrequestid = :ministryrequestid and dm.ministryrequestid  = d.foiministryrequestid   
                         and dm.documentmasterid = d.documentmasterid 
@@ -225,7 +225,7 @@ class DocumentMaster(db.Model):
                     documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"],"createdby": row["createdby"] ,
                                             "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "originalpagecount": row["originalpagecount"],
                                             "pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"],
-                                            "selectedfileprocessversion": row["selectedfileprocessversion"], "needs_ocr": row["needs_ocr"],})
+                                            "selectedfileprocessversion": row["selectedfileprocessversion"],})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

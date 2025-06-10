@@ -172,13 +172,10 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 		WHERE documentmasterid = $1::integer
 		AND isactive = true;
 	`
-	var recordID *int
 	_, err := db.Exec(query, message.DocumentMasterID, compressedFileSize)
 	if err != nil {
 		return fmt.Errorf("failed to update documentmasterid: %w", err)
 	}
-	fmt.Println("DocumentAttributes-attributes updated for documentid:", recordID)
-	/**TO DO::Attachment logic needs to be added**/
 	fmt.Printf("Type: %T, Value: %#v\n", compressedFileSize, compressedFileSize)
 	query = `
 		UPDATE "DocumentMaster"
@@ -195,20 +192,21 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 				AND (dd.filepath IS NULL OR dd.deleted IS FALSE OR dd.deleted IS NULL)
 		);
 	`
-	res, err := db.Exec(
+	_, error := db.Exec(
 		query,
 		message.DocumentMasterID,
 		s3CompressedFilePath,      // $2
 		message.MinistryRequestID, // $3
 	)
-	if err != nil {
-		log.Printf("ERROR in Exec: %v\n", err)
-		return fmt.Errorf("failed to update compressed file path in DocumentMaster: %w", err)
-	} else {
-		rowsAffected, _ := res.RowsAffected()
-		log.Printf("Rows updated: %d\n", rowsAffected)
+	if error != nil {
+		log.Printf("ERROR in Exec: %v\n", error)
+		return fmt.Errorf("failed to update compressed file path in DocumentMaster: %w", error)
 	}
-	log.Println("Update compressed file path in DocumentMaster")
+	// else {
+	// 	rowsAffected, _ := res.RowsAffected()
+	// 	log.Printf("Rows updated: %d\n", rowsAffected)
+	// }
+	log.Println("Updated compressed file path in DocumentMaster")
 	return nil
 }
 

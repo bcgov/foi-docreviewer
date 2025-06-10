@@ -15,7 +15,7 @@ class compressionproducermessage(object):
         self.usertoken=message.usertoken
         self.bcgovcode=message.bcgovcode
         self.attributes= json.dumps(message.attributes)
-        self.needsocr = str(bool(message.needsocr)).lower() 
+        #self.needsocr = str(bool(message.needsocr)).lower() 
         if message.documentid is not None:
             self.documentid= int(message.documentid)
         if message.outputdocumentmasterid is not None:

@@ -15,7 +15,6 @@ type OCRProducerMessage struct {
 	UserToken            *string `json:"usertoken,omitempty"`
 	CompressedS3FilePath string  `json:"compresseds3filepath,omitempty"`
 	DocumentID           int     `json:"documentid"`
-	NeedsOCR             *bool   `json:"needsocr"`
 }
 
 type Division struct {

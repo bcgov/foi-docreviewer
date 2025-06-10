@@ -165,7 +165,6 @@ def wrap_text(text, width, font, font_size, canvas):
                 else:
                     #If the word doesn't fit, append the current line and start a new one
                     if line:
-                        print("line::",line)
                         wrapped_lines.append(line)  # Append current line
                     line = ""  # Reset line
                     # Handle long words that need to be broken up
@@ -188,13 +187,11 @@ def wrap_text(text, width, font, font_size, canvas):
         print(f"Error in wrapping the text comments in each page: {e}")
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
-    print("\nInside clear Metadata!")
     # clear metadata
     reader2 = PyPDF2.PdfReader(BytesIO(response.content)) 
     _hasannotations = has_annotations(reader)   
     # Check if metadata exists.
     if reader2.metadata is not None or _hasannotations:
-        print("\n#Metadata!")
         # Create a new PDF file without metadata.
         writer = PyPDF2.PdfWriter()
         # Copy pages from the original PDF to the new PDF.
@@ -236,9 +233,7 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
 
 
 def __flattenfitz(docbytesarr):
-    print("\n__flattenfitz")
     doc = fitz.open(stream=BytesIO(docbytesarr), filetype="pdf")
-    print("\ndoc:",doc)
     out = fitz.open()  # output PDF
     for page_num in range(len(doc)):
         #page = doc[page_num]
@@ -248,20 +243,16 @@ def __flattenfitz(docbytesarr):
         w, h = page.rect.br  # page width and height
         # Create a new page in the output document with the same size
         outpage = out.new_page(width=w, height=h)
-        print("\noutpage:",outpage)
         # Render the page text (keeping it searchable)
         outpage.show_pdf_page(page.rect, doc, page_num)
-        #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
-        print("\nannot",annot)
         if widget_exist:
             print("\nwidget_exist:",widget_exist)
             pix = page.get_pixmap(dpi=150)  # set desired resolution
             outpage.insert_image(page.rect, pixmap=pix)
 
         while annot:
-            print("\nWhile Annot!")
             try:
                 annot_rect = annot.rect  # Get the annotation's rectangle
                 # Check for invalid annotation dimensions (zero width/height)
@@ -336,7 +327,6 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
             text = c.beginText(40, title_height-45)
             text.setFont(font, font_size)
             for line in comment_page:
-                print("\nLine:",line)
                 number = line['commentnumber']
                 text_content = line['text']
                 author = line.get('author', 'N/A') 
@@ -398,9 +388,7 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 author = annotation_obj["/T"] if "/T" in annotation_obj else ""
                 subject = annotation_obj["/Subj"] if "/Subj" in annotation_obj else ""
                 annotationdate=annotation_obj["/CreationDate"] if "/CreationDate" in annotation_obj else ""
-                #print(f'annotationdate:{annotationdate} , comment:{comment}')
                 creationdate= __converttoPST(annotationdate) if annotationdate else ""
-                #print("\ncreationdate:", creationdate)
                 comments.append({
                     'page': page_num + 1,
                     'text': comment,
@@ -536,7 +524,7 @@ def gets3documenthashcode(producermessage):
                 saveresponse.raise_for_status()   
         fitz_reader.close()
         # check to see if pdf file needs ocr service
-        ocr_needed = verify_ocr_needed(response.content, producermessage)
+        #ocr_needed = verify_ocr_needed(response.content, producermessage)
         # clear metadata
         try:
             filenamewithextension=_filename+extension.lower()
@@ -551,13 +539,12 @@ def gets3documenthashcode(producermessage):
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
         # check to see if converted pdf file needs ocr service
-        ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)
+        #ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
-    
-    else:
+    #else:
         # check to see if non-pdf file need ocr service
-        ocr_needed = False #verify_ocr_needed(response.content, producermessage)
+        #ocr_needed = False #verify_ocr_needed(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -566,7 +553,7 @@ def gets3documenthashcode(producermessage):
     for line in response.iter_lines():
         sig.update(line)
 
-    return (sig.hexdigest(), pagecount, ocr_needed)
+    return (sig.hexdigest(), pagecount)
 
 
 def get_page_properties(original_pdf, pagenum, font="BC-Sans") -> dict:

@@ -55,7 +55,6 @@ class documentgenerationservice:
             if summary_document_type_id is not None:             
                 summary_cdogs_hash_code=documenttemplate().gettemplatebytype(summary_document_type_id)
                 templatefromdb = {"document_type_id": summary_document_type_id, "cdogs_hash_code":summary_cdogs_hash_code}
-                #print("templatefromdb:",templatefromdb)
             return templatefromdb
         except (Exception) as error:
             print('error occured in document generation service - gettemplate method: ', error)
