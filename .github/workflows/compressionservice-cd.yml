@@ -84,35 +84,32 @@ jobs:
           echo "ENV_NAME=test" >> $GITHUB_ENV
           echo "ENV_TAG_NAME=rook" >> $GITHUB_ENV
 
-      - name: Login to OpenShift
+      - name: Login Openshift
+        shell: bash
         run: |
           oc login --server=${{ secrets.OPENSHIFT4_LOGIN_REGISTRY }} --token=${{ secrets.OPENSHIFT4_SA_TOKEN }}
 
-      - name: Switch to Tools project
+      - name: Tools project
+        shell: bash
         run: |
           oc project ${{ env.TOOLS_NAME }}-tools
 
-      - name: Patch Build Config with correct branch and context
+      - name: Build from ${{ env.BRANCH_NAME }} branch
+        shell: bash
         run: |
           oc patch bc/${{ env.APP_NAME }}-build -p '{"spec":{"source":{"contextDir":"/computingservices/CompressionServices","git":{"ref":"${{ env.BRANCH_NAME }}"}}}}'
 
-      - name: Start OpenShift Build
+      - name: Start Build Openshift
+        shell: bash
         run: |
           oc start-build ${{ env.APP_NAME }}-build --wait
 
-      - name: Tag image from tools to target env
+      - name: Tag+Deploy for ${{ env.TAG_NAME }}
+        shell: bash
         run: |
-            oc tag --source=istag \
-            ${{ env.TOOLS_NAME }}-tools/${{ env.APP_NAME }}:latest \
-            ${{ env.TOOLS_NAME }}-tools/${{ env.APP_NAME }}:${{ env.TAG_NAME }}
-
-      - name: Trigger rollout by updating deployment image
-        run: |
-          oc set image deployment/${{ env.APP_NAME }}-${{ env.ENV_TAG_NAME }} \
-            ${{ env.APP_NAME }}-${{ env.ENV_TAG_NAME }}=image-registry.openshift-image-registry.svc:5000/${{ env.TOOLS_NAME }}-tools/${{ env.APP_NAME }}:${{ env.TAG_NAME }} \
-            -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }}
+          oc tag ${{ env.APP_NAME }}:latest ${{ env.APP_NAME }}:${{ env.TAG_NAME }}
 
       - name: Watch new rollout (trigger by image change in Openshift)
         shell: bash
         run: |
-          oc rollout status deployment/${{ env.APP_NAME }}-${{ env.ENV_TAG_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
+          oc rollout restart deployment/${{ env.APP_NAME }}-${{ env.ENV_TAG_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }}
