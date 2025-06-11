@@ -1775,9 +1775,12 @@ const Redlining = React.forwardRef(
     //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
     useEffect(() => {
       if (!docViewer || !annotManager) return;
-      setAreAnnotationsRendered(false);
+      console.log("fetchAnnotResponse", fetchAnnotResponse)
       if (!isAnnotationsLoading) {
+        setAreAnnotationsRendered(false);
+        console.log("ANNOTATIONS LOADED, RENDERING ANNOTATIONS...");
         docViewer.getAnnotationsLoadedPromise().then(() => {
+          console.log("Annotations rendered successfully");
           setAreAnnotationsRendered(true);
         })
       }

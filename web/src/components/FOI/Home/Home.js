@@ -265,6 +265,11 @@ function Home() {
     setWarningModalOpen(false);
   };
 
+  console.log("isAnnotationsLoading", isAnnotationsLoading);
+  console.log("areAnnotationsRendered", areAnnotationsRendered);
+  console.log("isStitchingLoaded", isStitchingLoaded);
+  console.log("SPINNER LOADING", (!isStitchingLoaded || isAnnotationsLoading || !areAnnotationsRendered))
+
   return (
     <div className="App">
       <Grid container>
