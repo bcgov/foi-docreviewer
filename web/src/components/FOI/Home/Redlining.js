@@ -1777,8 +1777,8 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       if (!docViewer || !annotManager) return;
       setAreAnnotationsRendered(false);
-      if (!isAnnotationsLoading) {
-        console.log("ANNOTATIONS LOADED, RENDERING ANNOTATIONS...");
+      if (!isAnnotationsLoading && isStitchingLoaded) {
+        console.log("ANNOTATIONS LOADED AND STITCHING COMPLETEd, RENDERING ANNOTATIONS...");
         docViewer.getAnnotationsLoadedPromise().then(() => {
           console.log("Annotations rendered successfully");
           setAreAnnotationsRendered(true);
