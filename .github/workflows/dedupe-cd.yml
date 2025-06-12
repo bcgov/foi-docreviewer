@@ -113,4 +113,5 @@ jobs:
       - name: Watch new rollout (trigger by image change in Openshift)
         shell: bash
         run: |
-          oc rollout restart deployment/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }}
+          oc rollout restart deployment/${{ env.APP_NAME }} -n d106d6-dev
+          oc rollout restart deployment/${{ env.APP_NAME }}-largefiles -n d106d6-dev
