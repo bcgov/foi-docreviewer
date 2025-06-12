@@ -840,10 +840,13 @@ const Redlining = React.forwardRef(
               ANNOTATION_PAGE_SIZE,
               async (data) => {
                 let meta = data["meta"];
+                console.log("META", meta);
+                if (meta["has_next"] === false) { 
+                  setIsAnnotationsLoading(false);
+                }
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
-                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -873,8 +876,6 @@ const Redlining = React.forwardRef(
                       meta["next_num"],
                       meta["pages"]
                     );
-                  } else {
-                    setIsAnnotationsLoading(false);
                   }
                 }
               },
@@ -1775,16 +1776,15 @@ const Redlining = React.forwardRef(
     //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
     useEffect(() => {
       if (!docViewer || !annotManager) return;
-      console.log("fetchAnnotResponse", fetchAnnotResponse)
+      setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading) {
-        setAreAnnotationsRendered(false);
         console.log("ANNOTATIONS LOADED, RENDERING ANNOTATIONS...");
         docViewer.getAnnotationsLoadedPromise().then(() => {
           console.log("Annotations rendered successfully");
           setAreAnnotationsRendered(true);
         })
       }
-    }, [docViewer, annotManager, fetchAnnotResponse, setAreAnnotationsRendered, isAnnotationsLoading]);
+    }, [docViewer, annotManager, setAreAnnotationsRendered, isAnnotationsLoading]);
 
     useEffect(() => {
       if (docsForStitcing.length > 0) {
