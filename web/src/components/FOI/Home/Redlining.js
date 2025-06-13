@@ -1645,7 +1645,7 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const applyAnnotationsFunc = () => {
+    const applyAnnotationsFunc = async () => {
       let domParser = new DOMParser();
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
@@ -1655,7 +1655,7 @@ const Redlining = React.forwardRef(
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
-          fetchandApplyAnnotations(
+          await fetchandApplyAnnotations(
             pageMappedDocs,
             domParser,
             meta["next_num"],
@@ -1777,10 +1777,6 @@ const Redlining = React.forwardRef(
     useEffect(() => {
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
-      // if (fetchAnnotResponse["meta"]?.total === 0) {
-      //   setAreAnnotationsRendered(true);
-      //   return;
-      // }
       if (!isAnnotationsLoading && isStitchingLoaded) {
         console.log("ANNOTATIONS LOADED AND STITCHING COMPLETEd, RENDERING ANNOTATIONS...");
         docViewer.getAnnotationsLoadedPromise().then(() => {
@@ -1791,6 +1787,7 @@ const Redlining = React.forwardRef(
     }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);
 
     useEffect(() => {
+      const handleSingleFileDocumentLoaded = async () => {
       if (docsForStitcing.length > 0) {
         setDocumentList(getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file));
       }
@@ -1813,12 +1810,14 @@ const Redlining = React.forwardRef(
         }
         else if (doclistCopy.length === 1){
           
-          applyAnnotationsFunc();
+          await applyAnnotationsFunc();
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
         }
       }
+    }
+    handleSingleFileDocumentLoaded();
     }, [
       pdftronDocObjects,
       docsForStitcing,
@@ -1828,19 +1827,22 @@ const Redlining = React.forwardRef(
     ]);
 
     useEffect(() => {
+      const handleDivisionFileDocumentLoad = async () => {
       if (stitchPageCount === docsForStitcing.totalPageCount) {
         console.log(`Download and Stitching completed.... ${new Date()}`);
 
         if (stitchPageCount > 800) {
           docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
         }
-        applyAnnotationsFunc();
+        await applyAnnotationsFunc();
         setIsStitchingLoaded(true);
         setPagesRemoved([]);
         setSkipDeletePages(false);
         setpdftronDocObjects([]);
         setstichedfiles([]);
       }
+    }
+    handleDivisionFileDocumentLoad();
     }, [stitchPageCount]);
 
     useEffect(() => {
