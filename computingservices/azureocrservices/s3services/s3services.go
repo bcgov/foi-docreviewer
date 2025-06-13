@@ -20,7 +20,6 @@ import (
 )
 
 func GenerateDownloadPresignedURL(s3relativefileurl string) (string, error) {
-	fmt.Printf("PAthhh%s\n", s3relativefileurl)
 	s3Details, err := GetS3Details(s3relativefileurl)
 	if err != nil {
 		fmt.Println("Error in fetching S3 details:", err)
@@ -55,17 +54,16 @@ func GetS3Details(s3FilePath string) (types.S3Details, error) {
 	parsedURL, err := url.Parse(s3FilePath)
 	if err != nil {
 		//fmt.Println("Error in parsing URL")
-		return S3Details, fmt.Errorf("Error in parsing URL: %v", err)
+		return S3Details, fmt.Errorf("error in parsing URL: %v", err)
 	}
-	fmt.Printf("parsedURL:%s\n", parsedURL)
 	relativePath := parsedURL.Path
 	relativePath = strings.TrimPrefix(relativePath, "/")
 	bucketname, relativePath, found := strings.Cut(relativePath, "/")
 	if !found {
 		//fmt.Println("Invalid URL format")
-		return S3Details, fmt.Errorf("Invalid URL format")
+		return S3Details, fmt.Errorf("invalid URL format")
 	}
-	fmt.Printf("Bucket: %s, Key: %s\n", bucketname, relativePath)
+	//fmt.Printf("Bucket: %s, Key: %s\n", bucketname, relativePath)
 	S3Details = types.S3Details{
 		EndPoint:   utils.ViperEnvVariable("s3endpoint"),
 		AccessKey:  utils.ViperEnvVariable("s3accesskey"),
@@ -79,15 +77,14 @@ func GetS3Details(s3FilePath string) (types.S3Details, error) {
 }
 
 func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
-	s3Details, err := GetS3Details(fullFilePath)
-	fmt.Println("s3Details:", s3Details)
+	s3Details, s3Err := GetS3Details(fullFilePath)
+	if s3Err != nil {
+		return "", fmt.Errorf("error in s3 details: %v", s3Err)
+	}
 	fmt.Println("fullFilePath:", fullFilePath)
-	objectKey := strings.SplitN(fullFilePath, s3Details.BucketName, 2)[1]
-	fmt.Println("Object Key:", objectKey)
 	ext := filepath.Ext(s3Details.ObjectKey)             // e.g. ".pdf"
 	name := strings.TrimSuffix(s3Details.ObjectKey, ext) // e.g. "/some/path/file"
 	OCRKey := name + "OCR" + ext                         // e.g. "/some/path/file-compressed.pdf"
-	//fmt.Println("Compressed Object Key:", compressedKey)
 	// Create a new AWS session with credentials and config
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(s3Details.Region),
@@ -114,7 +111,6 @@ func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
 }
 
 func UploadUsingPresignedURL(presignedURL string, fileData []byte) error {
-	fmt.Println("\npresignedURL-UPLOAD:", presignedURL)
 	// Create the HTTP PUT request with the file data
 	req, err := http.NewRequest("PUT", presignedURL, bytes.NewReader(fileData))
 	if err != nil {

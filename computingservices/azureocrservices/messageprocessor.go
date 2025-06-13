@@ -17,7 +17,7 @@ import (
 func main() {
 
 	start := time.Now()
-	fmt.Println("Start Time :" + start.String())
+	fmt.Println("\nStart Time :" + start.String())
 
 	y, m, d := start.Date()
 	filedate := strconv.Itoa(y) + "-" + strconv.Itoa(int(m)) + "-" + strconv.Itoa(d)
@@ -29,7 +29,6 @@ func main() {
 		return
 	}
 	defer file.Close()
-
 	// Redirect stdout to the file.
 	os.Stdout = file
 
@@ -37,18 +36,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error fetching messages: %v", err)
 	}
-	// Print each message
 	for _, message := range dequeuedmessages {
 		fmt.Printf("Received message: %+v\n", message)
-		//var jsonStrbytes []byte =
-		//var message types.QueueMessage
-		fmt.Printf("\nReceived URL: %+v\n", message.CompressedS3FilePath)
+
 		var s3Uribytes []byte = getBytesfromDocumentPath(message.CompressedS3FilePath)
-		analysisResults, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message)
-		if _analyzeerr == nil && analysisResults.Status == "succeeded" {
+		_, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message)
+		//&& analysisResults.Status == "succeeded"
+		if _analyzeerr == nil {
 			fmt.Println("OCR finished successfully!")
 		}
-		fmt.Printf("################-------------------------------####################")
 	}
 	end := time.Now()
 	fmt.Println("End Time :" + end.String())
@@ -77,7 +73,6 @@ func getBytesfromDocumentPath(documenturlpath string) []byte {
 		log.Fatalf("Error generating presigned URL: %v", err)
 		return nil
 	}
-	fmt.Println("s3url:", s3url)
 	pdfData, err := DownloadFile(s3url)
 	if err != nil {
 		fmt.Println("Error downloading PDF:", err)
