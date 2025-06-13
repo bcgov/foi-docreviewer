@@ -1773,10 +1773,14 @@ const Redlining = React.forwardRef(
       }
     };
 
-    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
+    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE and documents stitched
     useEffect(() => {
-      if (!docViewer || !annotManager) return;
+      if (!docViewer) return;
       setAreAnnotationsRendered(false);
+      // if (fetchAnnotResponse["meta"]?.total === 0) {
+      //   setAreAnnotationsRendered(true);
+      //   return;
+      // }
       if (!isAnnotationsLoading && isStitchingLoaded) {
         console.log("ANNOTATIONS LOADED AND STITCHING COMPLETEd, RENDERING ANNOTATIONS...");
         docViewer.getAnnotationsLoadedPromise().then(() => {
@@ -1784,7 +1788,7 @@ const Redlining = React.forwardRef(
           setAreAnnotationsRendered(true);
         })
       }
-    }, [docViewer, annotManager, setAreAnnotationsRendered, isAnnotationsLoading]);
+    }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);
 
     useEffect(() => {
       if (docsForStitcing.length > 0) {
