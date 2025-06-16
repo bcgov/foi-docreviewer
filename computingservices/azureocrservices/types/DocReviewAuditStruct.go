@@ -9,4 +9,5 @@ type DocReviewAudit struct {
 	Status            string `json:"status"`
 	Description       string `json:"message"`
 	OCRFilePath       string `json:"ocrfilepath,omitempty"`
+	OCRFileSize       int64  `json:"ocrfilesize,omitempty"`
 }

@@ -9,4 +9,5 @@ type OCRJob struct {
 	OCRFilePath       string `json:"ocrfilepath,omitempty"`
 	DocumentMasterID  int    `json:"documentmasterid"`
 	Message           string `json:"message"`
+	OCRFileSize       int64  `json:"ocrfilesize,omitempty"`
 }

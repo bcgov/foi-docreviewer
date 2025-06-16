@@ -176,7 +176,6 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 	if err != nil {
 		return fmt.Errorf("failed to update documentmasterid: %w", err)
 	}
-	fmt.Printf("Type: %T, Value: %#v\n", compressedFileSize, compressedFileSize)
 	query = `
 		UPDATE "DocumentMaster"
 		SET compressedfilepath = $2

@@ -50,23 +50,25 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (s
 	if err != nil {
 		return result, fmt.Errorf("failed to initiate document analysis: %w", err)
 	} else {
-		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "azureocrrequestcreated", "")
+		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "azureocrrequestcreated", "", 0)
 	}
 	result, err = a.getAnalysisResults(resultLocation, message, apimRequestID)
 	if err != nil {
 		return result, fmt.Errorf("failed to fetch analysis results: %w", err)
 	}
-	results, newOCRS3Url, err := a.uploadSearchablePDF(resultLocation, message.CompressedS3FilePath)
+	results, newOCRS3Url, pdfSize, err := a.uploadSearchablePDF(resultLocation, message.CompressedS3FilePath)
+	ocrFileSize := int64(pdfSize)
 	fmt.Printf("newOCRS3Url: %s", newOCRS3Url)
 	if err == nil {
-		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID, "ocrfileuploadsuccess", newOCRS3Url)
+		wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId), int64(message.DocumentMasterID), apimRequestID,
+			"ocrfileuploadsuccess", newOCRS3Url, ocrFileSize)
 	}
 	fmt.Printf("Analysis Results: %v\n", results)
 	return result, err
 
 }
 
-func (a *AzureService) uploadSearchablePDF(resultLocation string, s3FilePath string) (string, string, error) {
+func (a *AzureService) uploadSearchablePDF(resultLocation string, s3FilePath string) (string, string, int, error) {
 	// Construct PDF retrieval URL
 	pdfURL1 := strings.Replace(resultLocation, "?api-version=2024-11-30", "", 1)
 	pdfURL := pdfURL1 + "/pdf?api-version=2024-11-30"
@@ -76,7 +78,7 @@ func (a *AzureService) uploadSearchablePDF(resultLocation string, s3FilePath str
 	pdfReq.Header.Set("Ocp-Apim-Subscription-Key", a.SubscriptionKey)
 	pdfResp, err := a.Client.Do(pdfReq)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	defer pdfResp.Body.Close()
 	// Check response status
@@ -85,31 +87,30 @@ func (a *AzureService) uploadSearchablePDF(resultLocation string, s3FilePath str
 		pdfResp.Body.Close()              // Then close
 
 		//body, _ := io.ReadAll(pdfResp.Body)
-		return "", "", fmt.Errorf("failed to retrieve PDF: %v", pdfResp.StatusCode)
+		return "", "", 0, fmt.Errorf("failed to retrieve PDF: %v", pdfResp.StatusCode)
 	}
 	pdfBody, err := io.ReadAll(pdfResp.Body)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read PDF body: %v", err)
+		return "", "", 0, fmt.Errorf("failed to read PDF body: %v", err)
 	}
-	// if len(pdfBody) == 0 {
-	// 	return results, "", fmt.Errorf("empty PDF response body")
-	// }
-	if len(pdfBody) == 0 || !bytes.HasPrefix(pdfBody, []byte("%PDF")) {
-		return "", "", fmt.Errorf("unexpected PDF content (possibly truncated or not a PDF)")
+	pdfSize := len(pdfBody) // in bytes
+	fmt.Printf("PDF size after OCR: %d bytes.", pdfSize)
+	if pdfSize == 0 || !bytes.HasPrefix(pdfBody, []byte("%PDF")) {
+		return "", "", 0, fmt.Errorf("unexpected PDF content (possibly truncated or not a PDF)")
 	}
 	//fmt.Printf("\n Reached point\n")
 	presignedUploadURL, err := s3services.GeneratePresignedUploadURL(s3FilePath)
 	if err != nil {
 		fmt.Println("Error generating presigned URL:", err)
-		return "", "", fmt.Errorf("failed to generate presigned url for upload PDF: %v", err)
+		return "", "", 0, fmt.Errorf("failed to generate presigned url for upload PDF: %v", err)
 	}
 	// Upload the compressed PDF back to S3
 	err = s3services.UploadUsingPresignedURL(presignedUploadURL, pdfBody)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	newOCRS3Url := strings.SplitN(presignedUploadURL, "?", 2)[0]
-	return pdfResp.Status, newOCRS3Url, nil
+	return pdfResp.Status, newOCRS3Url, pdfSize, nil
 }
 
 func (a *AzureService) createPOSTRequest(postURL string, base64SourceData string) (string, string, error) {
@@ -183,14 +184,14 @@ func (a *AzureService) getAnalysisResults(resultLocation string, message types.Q
 			fmt.Printf("\nocr job failed: %sv\n", err)
 
 			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId),
-				int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "")
+				int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "", 0)
 			return "", fmt.Errorf("failed to parse status: %v", err)
 		}
 		switch statusResp.Status {
 		case "notStarted", "running":
 			fmt.Printf("Processing document : %v Please wait.\n", message.DocumentID)
 			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId),
-				int64(message.DocumentMasterID), apimRequestID, "ocrjobrunning", "")
+				int64(message.DocumentMasterID), apimRequestID, "ocrjobrunning", "", 0)
 			continue
 
 		case "succeeded":
@@ -198,25 +199,26 @@ func (a *AzureService) getAnalysisResults(resultLocation string, message types.Q
 
 			if err := json.Unmarshal(body, &result); err != nil {
 				wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId),
-					int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "")
+					int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "", 0)
 				return getResponse.Status, fmt.Errorf("failed to unmarshal analysis results: %v", err)
 			}
 
 			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId),
-				int64(message.DocumentMasterID), apimRequestID, "ocrjobsucceeded", "")
+				int64(message.DocumentMasterID), apimRequestID, "ocrjobsucceeded", "", 0)
 			return getResponse.Status, nil
 
 		default:
 			wrapDocReviewerUpdate(int64(message.DocumentID), int64(message.MinistryRequestId),
-				int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "")
+				int64(message.DocumentMasterID), apimRequestID, "ocrjobfailed", "", 0)
 			return getResponse.Status, fmt.Errorf("OCR job failed or unknown status: %s", statusResp.Status)
 		}
 	}
 }
 
-func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, documentmasterid int64, apimRequestID string, status string, ocrFilePath string) bool {
+func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, documentmasterid int64, apimRequestID string,
+	status string, ocrFilePath string, pdfSize int64) bool {
 	docreviewaudit := types.DocReviewAudit{DocumentID: documentid, MinistryRequestID: ministryrequestid, DocumentMasterID: documentmasterid,
-		Description: fmt.Sprintf(`{apimRequestID:%v}`, apimRequestID), Status: status, OCRFilePath: ocrFilePath}
+		Description: fmt.Sprintf(`{apimRequestID:%v}`, apimRequestID), Status: status, OCRFilePath: ocrFilePath, OCRFileSize: pdfSize}
 	returnstate := docreviewerocrservice.PushtoDocReviewer(docreviewaudit)
 	return returnstate
 }
