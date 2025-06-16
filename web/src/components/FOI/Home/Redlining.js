@@ -840,7 +840,6 @@ const Redlining = React.forwardRef(
               ANNOTATION_PAGE_SIZE,
               async (data) => {
                 let meta = data["meta"];
-                console.log("META", meta);
                 if (meta["has_next"] === false) { 
                   setIsAnnotationsLoading(false);
                 }
@@ -1778,7 +1777,7 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        console.log("ANNOTATIONS LOADED AND STITCHING COMPLETEd, RENDERING ANNOTATIONS...");
+        console.log("Annotation rendering started....");
         docViewer.getAnnotationsLoadedPromise().then(() => {
           console.log("Annotations rendered successfully");
           setAreAnnotationsRendered(true);
