@@ -41,7 +41,7 @@ func (db *DB) insertocrjobdata(ocrJob types.OCRJob) (int64, error) {
 	if inserterr != nil {
 		return -1, fmt.Errorf("error inserting new record: %v", inserterr)
 	}
-	db.Close()
+	//db.Close()
 	return 1, nil
 }
 
@@ -104,7 +104,7 @@ func (db *DB) insertOCRS3FilePath(message types.OCRJob) (int64, error) {
 		log.Printf("Rows updated: %d\n", rowsAffected)
 	}
 	log.Println("Updated ocr file path in DocumentMaster")
-	db.Close()
+	//db.Close()
 	return 1, nil
 }
 
@@ -131,6 +131,7 @@ func (db *DB) updateFileSizeinDocAttributes(message types.OCRJob) (int64, error)
 	}
 	rowsAffected, _ := result.RowsAffected()
 	fmt.Printf("Rows updated in DocumentAttributes: %d\n", rowsAffected)
+	db.Close()
 	return 1, inserterr
 }
 
