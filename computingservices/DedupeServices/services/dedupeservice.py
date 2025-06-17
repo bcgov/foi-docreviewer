@@ -20,7 +20,7 @@ def processmessage(message):
         if not _incompatible:
             message.documentid= newdocumentid
             #message.needsocr= needs_ocr
-            #print("Message!!!",to_json(message))
+            print("Message-dedupe",to_json(message))
             #compressionmessage =  compressionproducerservice().createcompressionproducermessage(message, _pagecount)
             compressionjobid = compressionjobstart(message)
             print("Pushed to Compression Stream!!!",compressionjobid)
@@ -29,6 +29,8 @@ def processmessage(message):
             pagecalculatorjobid = pagecalculatorjobstart(pagecalculatormessage)
             print("Pushed to Page Calculator Stream!!!", pagecalculatormessage)
             documentspagecalculatorproducerservice().producepagecalculatorevent(pagecalculatormessage, _pagecount, pagecalculatorjobid)
+        else:
+            updateredactionstatus(message)
     except(Exception) as error:
         print("Exception while processing redis message, func processmessage(p3), Error : {0} ".format(error))
         recordjobend(message, True, error.args[0])

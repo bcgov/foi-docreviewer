@@ -19,7 +19,7 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		}
 	}()
 	//fmt.Printf("Just before compression-%v\n", message.S3FilePath)
-	s3FilePath, compressedFileSize, isError, errMsg := StartCompression(message)
+	s3FilePath, compressedFileSize, extension, isError, errMsg := StartCompression(message)
 	errorMessage := ""
 	if errMsg != nil {
 		errorMessage = errMsg.Error()
@@ -42,16 +42,21 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
 		}
 		/**Commenting logic check for needs_ocr field - if needsOCR*/
-		fmt.Printf("\nStarting OCR!!")
-		ocrjobid, err := RecordOCRJobStart(message)
-		if err != nil {
-			fmt.Printf("Failed to record OCR job: %v\n", err)
+		fmt.Printf("extension: %v", extension)
+		if extension == ".pdf" {
+			fmt.Printf("\nStarting OCR!!")
+			ocrjobid, err := RecordOCRJobStart(message)
+			if err != nil {
+				fmt.Printf("Failed to record OCR job: %v\n", err)
+			}
+			message.JobID = ocrjobid
+			id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
+			if streamerr != nil {
+				fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
+			}
+			print("\nPushed to OCR Stream-", id)
+		} else {
+			UpdateRedactionStatus(message)
 		}
-		message.JobID = ocrjobid
-		id, streamerr := NewOCRProducerService().ProduceOCREvent(message, ocrjobid)
-		if streamerr != nil {
-			fmt.Printf("Failed to push OCR job to stream: %v\n", streamerr)
-		}
-		print("\nPushed to OCR Stream-", id)
 	}
 }

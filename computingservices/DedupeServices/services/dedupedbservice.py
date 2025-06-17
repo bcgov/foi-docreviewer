@@ -8,7 +8,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
-
+        print("outputdocumentmasterid",dedupeproducermessage.outputdocumentmasterid)
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
