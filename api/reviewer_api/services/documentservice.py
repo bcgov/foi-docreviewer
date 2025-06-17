@@ -186,7 +186,7 @@ class documentservice:
                 documentid = property["documentid"]
                 version = property["version"]
                 selectedfileprocessversion = property["selectedfileprocessversion"]
-                converteddocmasterid= property["processingparentid"]
+                converteddocmasterid= property["documentmasterid"]
 
         return originalpagecount, pagecount, filename, documentid, version,selectedfileprocessversion, converteddocmasterid
 
