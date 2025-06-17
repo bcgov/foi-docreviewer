@@ -127,7 +127,7 @@ func (db *DB) updateFileSizeinDocAttributes(message types.OCRJob) (int64, error)
 	`
 	result, inserterr := db.conn.Exec(query, message.DocumentMasterID, message.OCRFileSize)
 	if inserterr != nil {
-		return -1, fmt.Errorf("failed to update documentmasterid: %w", inserterr)
+		return -1, fmt.Errorf("failed to update ocrfilesize in attributes: %w", inserterr)
 	}
 	rowsAffected, _ := result.RowsAffected()
 	fmt.Printf("Rows updated in DocumentAttributes: %d\n", rowsAffected)
