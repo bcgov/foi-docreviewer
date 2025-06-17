@@ -52,7 +52,6 @@ class DocumentMaster(db.Model):
                     order by da.attributes->>'lastmodified' DESC, da.attributeid ASC"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                print("row:",row)
                 # if row["documentmasterid"] not in deleted:
                 documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "compressedfilepath": row["compressedfilepath"], 
                                         "ocrfilepath": row["ocrfilepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  

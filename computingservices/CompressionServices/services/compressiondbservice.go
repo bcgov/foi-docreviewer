@@ -176,6 +176,12 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 	if err != nil {
 		return fmt.Errorf("failed to update documentmasterid: %w", err)
 	}
+	// var docMasterID int
+	// if message.OutputDocumentMasterID != nil {
+	// 	docMasterID = *message.OutputDocumentMasterID
+	// } else {
+	// 	docMasterID = message.DocumentMasterID
+	// }
 	query = `
 		UPDATE "DocumentMaster"
 		SET compressedfilepath = $2

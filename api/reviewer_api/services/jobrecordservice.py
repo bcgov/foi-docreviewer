@@ -55,8 +55,6 @@ class jobrecordservice:
         for record in batchinfo['records']:
             _filename, extension = os.path.splitext(record['s3uripath'])
             extension = extension.lower()
-            print("record:",record)
-            print("trggr:",batchinfo['trigger'])
             if 'service' in record and record['service'] == 'compression' and batchinfo['trigger'] == 'recordretry':
                 masterid = record['documentmasterid']
                 row = CompressionJob(

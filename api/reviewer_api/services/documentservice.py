@@ -78,7 +78,7 @@ class documentservice:
                     attachmentsrecords,
                 )
                 finalresults.append(finalresult)
-                print("\nfinalresult :",finalresult)
+                #print("\nfinalresult :",finalresult)
         return finalresults
 
     def __updateproperties(
@@ -230,10 +230,10 @@ class documentservice:
         filtered = []
         for record in records:
             for property in properties:
-                if (property["processingparentid"] == record["documentmasterid"] or (
+                if property["processingparentid"] == record["documentmasterid"] or (
                     property["processingparentid"] is None
                     and record["documentmasterid"] == property["documentmasterid"]
-                )) or (property["createdby"]=="compressionservice" and record["documentmasterid"] == property["documentmasterid"]):
+                ):
                     filtered.append(property)
         return filtered
 

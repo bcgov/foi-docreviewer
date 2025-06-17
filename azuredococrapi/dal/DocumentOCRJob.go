@@ -63,15 +63,29 @@ func (db *DB) insertOCRS3FilePath(message types.OCRJob) (int64, error) {
 	}
 	log.Println("currentDocumentMasterId:", currentDocumentMasterId)
 	//if currentDocumentMasterId != nil {
+	// insertQuery := `
+	// 		UPDATE "DocumentMaster"
+	// 		SET ocrfilepath = $2,
+	// 		isredactionready = true,
+	// 		updated_at=NOW(),
+	// 		updatedby='azureocrservice'
+	// 		WHERE documentmasterid = $1
+	// 		AND ministryrequestid=$3
+	// 	`
 	insertQuery := `
-			UPDATE "DocumentMaster"
-			SET ocrfilepath = $2,
+		UPDATE "DocumentMaster"
+		SET ocrfilepath = $2,
 			isredactionready = true,
-			updated_at=NOW(),
-			updatedby='azureocrservice'
-			WHERE documentmasterid = $1 
-			AND ministryrequestid=$3
-		`
+			updated_at = NOW(),
+			updatedby = 'azureocrservice'
+		WHERE documentmasterid = 
+			CASE 
+				WHEN processingparentid IS NOT NULL THEN processingparentid 
+				ELSE documentmasterid 
+			END
+		AND ministryrequestid = $3
+	`
+
 	res, err := db.conn.Exec(
 		insertQuery,
 		currentDocumentMasterId,
