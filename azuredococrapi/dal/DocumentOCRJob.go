@@ -79,10 +79,11 @@ func (db *DB) insertOCRS3FilePath(message types.OCRJob) (int64, error) {
 			updated_at = NOW(),
 			updatedby = 'azureocrservice'
 		WHERE documentmasterid = (
-			CASE 
-				WHEN processingparentid IS NOT NULL THEN processingparentid 
-				ELSE documentmasterid 
-			END
+			SELECT 
+				CASE 
+					WHEN processingparentid IS NOT NULL THEN processingparentid 
+					ELSE documentmasterid 
+				END
 			FROM "DocumentMaster"
 			WHERE documentmasterid = $1
 		)
