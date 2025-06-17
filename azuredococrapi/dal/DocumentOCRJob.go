@@ -113,7 +113,15 @@ func (db *DB) updateFileSizeinDocAttributes(message types.OCRJob) (int64, error)
 	query := `
 		UPDATE "DocumentAttributes"
 		SET attributes = (attributes::jsonb || jsonb_build_object('ocrfilesize', $2::integer))::json
-		WHERE documentmasterid = $1::integer
+		WHERE documentmasterid = (
+			SELECT 
+				CASE 
+					WHEN processingparentid IS NOT NULL THEN processingparentid 
+					ELSE documentmasterid 
+				END
+			FROM "DocumentMaster"
+			WHERE documentmasterid = $1::integer
+		)
 		AND isactive = true;
 	`
 	_, inserterr := db.conn.Exec(query, message.DocumentMasterID, message.OCRFileSize)
@@ -142,18 +150,18 @@ func UpdateDocreviewerTables(ocrJob types.OCRJob) (int64, error) {
 	if ocrJob.Status != "ocrfileuploadsuccess" && ocrJob.OCRFilePath == "" {
 		id, ocrJobErr = db.insertocrjobdata(ocrJob)
 		if ocrJobErr != nil {
-			log.Fatalf("Failed to insert ocr job data: %v", ocrJobErr)
+			log.Printf("Failed to insert ocr job data: %v", ocrJobErr)
 			return -1, ocrJobErr
 		}
 	} else if ocrJob.Status == "ocrfileuploadsuccess" && ocrJob.OCRFilePath != "" {
 		_, filepathUpdateErr := db.insertOCRS3FilePath(ocrJob)
 		if filepathUpdateErr != nil {
-			log.Fatalf("Failed to insert ocr s3 filepath: %v", filepathUpdateErr)
+			log.Printf("Failed to insert ocr s3 filepath: %v", filepathUpdateErr)
 			return -1, filepathUpdateErr
 		}
 		_, attributesDbErr := db.updateFileSizeinDocAttributes(ocrJob)
 		if attributesDbErr != nil {
-			log.Fatalf("Failed to insert ocr s3 filepath: %v", attributesDbErr)
+			log.Printf("Failed to insert ocr s3 filepath: %v", attributesDbErr)
 			return -1, attributesDbErr
 		}
 	}
