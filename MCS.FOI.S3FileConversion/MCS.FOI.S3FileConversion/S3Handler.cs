@@ -189,7 +189,8 @@ namespace MCS.FOI.S3FileConversion
             {
                 IsSinglePDFOutput = true,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
-                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount,
+                OpenFileWaitTimeInSeconds = ConversionSettings.OpenFileWaitTimeInSeconds
             };
             
             var (converted, message, output) = excelFileProcessor.ConvertToPDF();

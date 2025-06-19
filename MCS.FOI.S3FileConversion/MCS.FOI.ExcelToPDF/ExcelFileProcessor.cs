@@ -45,6 +45,11 @@ namespace MCS.FOI.ExcelToPDF
         /// </summary>
         public int WaitTimeinMilliSeconds { get; set; }
 
+        /// <summary>
+        /// Wait in seconds for opening excel file
+        /// </summary>
+        public int OpenFileWaitTimeInSeconds { get; set; }
+
         private MemoryStream? output = null;
        /// <summary>
        /// Main Conversion Method, including Sysnfusion components, Failure recovery attempts and PDF conversion
@@ -68,7 +73,7 @@ namespace MCS.FOI.ExcelToPDF
                         // Error Hanlding for workbooks that take more than X seconds to open (this will ensure this job is dropped and other conversion jobs in queue are handled correctly)
                         IWorkbook workbook = null;
                         var task = Task.Run(() => application.Workbooks.Open(SourceStream));
-                        if (task.Wait(TimeSpan.FromSeconds(ConversionSettings.OpenFileWaitTimeSeconds)))
+                        if (task.Wait(TimeSpan.FromSeconds(OpenFileWaitTimeInSeconds)))
                         {
                             if (task.IsFaulted)
                             {
