@@ -64,7 +64,23 @@ namespace MCS.FOI.ExcelToPDF
                     {
                         IApplication application = excelEngine.Excel;
                         SourceStream.Position = 0;
-                        IWorkbook workbook = application.Workbooks.Open(SourceStream);;
+
+                        // Error Hanlding for workbooks that take more than 120 seconds to open (this will ensure this job is dropped and other conversion jobs in queue are handled correctly)
+                        IWorkbook workbook = null;
+                        var task = Task.Run(() => application.Workbooks.Open(SourceStream));
+                        if (task.Wait(TimeSpan.FromSeconds(120)))
+                        {
+                            if (task.IsFaulted)
+                            {
+                                throw task.Exception.InnerException ?? task.Exception;
+                            }
+                            workbook = task.Result;
+                        }
+                        else
+                        {
+                            throw new TimeoutException("TimeoutError: Opening the Excel file exceeded the 2 minute timeout");
+                        }
+                            
 
                         for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
                         {
