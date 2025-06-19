@@ -37,6 +37,10 @@ namespace MCS.FOI.S3FileConversion
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FileWatcherMonitoringDelayInMilliSeconds").Value, out int fileWatcherMonitoringDelayInMilliSeconds);
                 ConversionSettings.FileWatcherMonitoringDelayInMilliSeconds = fileWatcherMonitoringDelayInMilliSeconds; // Delay between file directory fetch.
 
+                int.TryParse(Environment.GetEnvironmentVariable("FILE_CONVERSION_OPENFILE_WAITTIME"), out int _envvaropenFileWaitTimeSeconds);
+                int.TryParse(configurationbuilder.GetSection("ConversionSettings:OpenFileWaitTimeSeconds").Value, out int openFileWaitTimeSeconds);
+                ConversionSettings.OpenFileWaitTimeSeconds = _envvaropenFileWaitTimeSeconds == 0 ? openFileWaitTimeSeconds : _envvaropenFileWaitTimeSeconds; // Wait time for opening a file (specifically Excel)
+
                 string syncfusionLicense =  Environment.GetEnvironmentVariable("FILE_CONVERSION_SYNCFUSIONKEY");
                 //Fetching Syncfusion License from settings
                 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(string.IsNullOrEmpty(syncfusionLicense) ? ConversionSettings.SyncfusionLicense: syncfusionLicense);
