@@ -83,7 +83,7 @@ namespace MCS.FOI.ExcelToPDF
                         }
                         else
                         {
-                            throw new TimeoutException("TimeoutError: Opening the Excel file exceeded the maximum timeout");
+                            throw new TimeoutException($"TimeoutError: Opening the Excel file exceeded the {OpenFileWaitTimeInSeconds} second timeout limit");
                         }
                             
 
