@@ -32,6 +32,29 @@
     }
 }
 
+.file-upload-toast-annots {
+    .Toastify__toast-body {
+        > div:last-child {
+            white-space: pre-line;
+        }
+    }
+    .Toastify__close-button {
+        color: #757575!important;
+        stroke: #757575 !important;
+        fill: #757575 !important;
+    }
+    .Toastify__close-button--default {
+        color: #757575!important;
+        stroke: #757575 !important;
+        fill: #757575 !important;
+    }
+    .Toastify__close-button > svg {
+        color: #757575!important;
+        stroke: #757575 !important;
+        fill: #757575 !important;
+    }
+}
+
 .redact-all-marked {
     display: none;
 }
