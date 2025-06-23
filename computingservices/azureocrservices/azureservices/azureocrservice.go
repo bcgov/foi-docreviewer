@@ -104,7 +104,7 @@ func (a *AzureService) uploadSearchablePDF(resultLocation string, s3FilePath str
 		fmt.Println("Error generating presigned URL:", err)
 		return "", "", 0, fmt.Errorf("failed to generate presigned url for upload PDF: %v", err)
 	}
-	// Upload the compressed PDF back to S3
+	// Upload the compressed file back to S3
 	err = s3services.UploadUsingPresignedURL(presignedUploadURL, pdfBody)
 	if err != nil {
 		return "", "", 0, err
