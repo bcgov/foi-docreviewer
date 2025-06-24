@@ -1780,7 +1780,7 @@ const Redlining = React.forwardRef(
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
         const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
-          className: "file-upload-toast-annots",
+          className: "file-upload-toast",
           isLoading: true,
           hideProgressBar: true,
           draggable: true,

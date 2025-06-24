@@ -32,14 +32,6 @@
     }
 }
 
-.file-upload-toast-annots {
-    .Toastify__toast-body {
-        > div:last-child {
-            white-space: pre-line;
-        }
-    }
-}
-
 .redact-all-marked {
     display: none;
 }
