@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
+import { toast } from "react-toastify";
 import {
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
@@ -92,6 +93,7 @@ const Redlining = React.forwardRef(
       isPhasedRelease,
       isAnnotationsLoading,
       setIsAnnotationsLoading,
+      areAnnotationsRendered,
       setAreAnnotationsRendered,
     },
     ref
@@ -262,7 +264,7 @@ const Redlining = React.forwardRef(
             const menu = createResponsePDFMenu(document);
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
-            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
+            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal, areAnnotationsRendered);
             const consultPackageButton = createConsultPackageSelection(document, enableSavingConsults);
             redlineForOipcBtn.onclick = () => {
               handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
@@ -975,7 +977,7 @@ const Redlining = React.forwardRef(
             );
             setannottext([]);
           }
-        console.log(`extractedTexts: ${annottext}`)
+        // console.log(`extractedTexts: ${annottext}`)
        
       }
     }
@@ -1777,10 +1779,42 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        console.log("Annotation rendering started....");
+        const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
+          className: "file-upload-toast",
+          isLoading: true,
+          hideProgressBar: true,
+          draggable: true,
+          closeButton: true,
+          style: {background: "#9e9e9e", color: "white"}
+        });
         docViewer.getAnnotationsLoadedPromise().then(() => {
-          console.log("Annotations rendered successfully");
+          toast.dismiss(toastNotification);
+          toast.success("Annotations successfully rendered. Response Package creation enabled", {
+            type: "success",
+            className: "file-upload-toast",
+            isLoading: false,
+            autoClose: 3000,
+            hideProgressBar: true,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: true,
+          });
           setAreAnnotationsRendered(true);
+        })
+        .catch((err) => {
+          toast.dismiss(toastNotification);
+          toast.error("Error in rendering annotations, please refresh browser and try again", {
+            type: "error",
+            className: "file-upload-toast",
+            isLoading: false,
+            autoClose: 4000,
+            hideProgressBar: true,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: true,
+          });
         })
       }
     }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);
