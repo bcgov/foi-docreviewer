@@ -1783,9 +1783,9 @@ const Redlining = React.forwardRef(
           className: "file-upload-toast-annots",
           isLoading: true,
           hideProgressBar: true,
-          // draggable: true,
-          closeOnClick: true,
+          draggable: true,
           closeButton: true,
+          style: {background: "#757575", color: "white"}
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
           toast.dismiss(toastNotification);
