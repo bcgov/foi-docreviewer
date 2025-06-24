@@ -1785,7 +1785,7 @@ const Redlining = React.forwardRef(
           hideProgressBar: true,
           draggable: true,
           closeButton: true,
-          style: {background: "#757575", color: "white"}
+          style: {background: "#9e9e9e", color: "white"}
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
           toast.dismiss(toastNotification);
