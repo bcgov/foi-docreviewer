@@ -614,3 +614,24 @@ export const fetchPIIByPageNumDocumentID = (
   
  
 };
+
+export const checkIDIR = (  
+  callback: any,
+  errorCallback: any,
+  data:any
+) => {
+  let apiURL: string = `${API.IDIR_CHECK_URL}`;
+  
+  httpPOSTRequest({url: apiURL, data: data, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in checking IDIR");
+    });
+};
