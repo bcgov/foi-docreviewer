@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"slices"
 
 	"compressionservices/models"
 )
@@ -43,7 +44,8 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		}
 		/**Commenting logic check for needs_ocr field - if needsOCR*/
 		fmt.Printf("extension: %v", extension)
-		if extension == ".pdf" {
+		extensions := []string{".pdf", ".jpg", ".png", ".jpeg"}
+		if slices.Contains(extensions, extension) {
 			fmt.Printf("\nStarting OCR!!")
 			ocrjobid, err := RecordOCRJobStart(message)
 			if err != nil {
