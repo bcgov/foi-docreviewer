@@ -44,7 +44,7 @@ export const createOIPCForReviewSelection = (document, enableSave) => {
   return redlineForOipcBtn;
 };
 
-export const createFinalPackageSelection = (document, enableSave, areAnnotationsRendered) => {
+export const createFinalPackageSelection = (document, enableSave) => {
   const finalPackageBtn = document.createElement("button");
   finalPackageBtn.textContent = "Final Package for Applicant";
   finalPackageBtn.id = "final_package";
@@ -54,7 +54,7 @@ export const createFinalPackageSelection = (document, enableSave, areAnnotations
   finalPackageBtn.style.padding = "8px 8px 8px 10px";
   finalPackageBtn.style.cursor = "pointer";
   finalPackageBtn.style.alignItems = "left";
-  finalPackageBtn.disabled = !enableSave || !areAnnotationsRendered;
+  finalPackageBtn.disabled = !enableSave;
 
   return finalPackageBtn;
 };

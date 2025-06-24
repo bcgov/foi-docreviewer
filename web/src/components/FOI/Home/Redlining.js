@@ -264,7 +264,7 @@ const Redlining = React.forwardRef(
             const menu = createResponsePDFMenu(document);
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
-            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal, areAnnotationsRendered);
+            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
             const consultPackageButton = createConsultPackageSelection(document, enableSavingConsults);
             redlineForOipcBtn.onclick = () => {
               handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
@@ -1549,10 +1549,10 @@ const Redlining = React.forwardRef(
         setAssignedPhases(phaseCompletionObj);
         const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
-        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
+        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance, areAnnotationsRendered);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
-        checkSavingFinalPackage(redlineReadyAndValid, _instance);
+        checkSavingFinalPackage(redlineReadyAndValid, _instance, areAnnotationsRendered);
       }
       checkSavingConsults(documentList, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
@@ -1779,6 +1779,7 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
+        console.log("RENDERING ANNOTS")
         const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
           className: "file-upload-toast",
           isLoading: true,
@@ -1788,6 +1789,7 @@ const Redlining = React.forwardRef(
           style: {background: "#9e9e9e", color: "white"}
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
+          console.log("ANNOTS RENDERED")
           toast.dismiss(toastNotification);
           toast.success("Annotations successfully rendered. Response Package creation enabled", {
             type: "success",
