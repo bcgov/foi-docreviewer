@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import WebViewer from "@pdftron/webviewer";
 import XMLParser from "react-xml-parser";
+import { toast } from "react-toastify";
 import {
   fetchAnnotationsByPagination,
   fetchAnnotationsInfo,
@@ -92,6 +93,7 @@ const Redlining = React.forwardRef(
       isPhasedRelease,
       isAnnotationsLoading,
       setIsAnnotationsLoading,
+      areAnnotationsRendered,
       setAreAnnotationsRendered,
     },
     ref
@@ -975,7 +977,7 @@ const Redlining = React.forwardRef(
             );
             setannottext([]);
           }
-        console.log(`extractedTexts: ${annottext}`)
+        // console.log(`extractedTexts: ${annottext}`)
        
       }
     }
@@ -1539,20 +1541,20 @@ const Redlining = React.forwardRef(
       disableNRDuplicate();
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
-      const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
-      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      const redlineReadyAndValid = readyForSignOff && validRedlineDownload && areAnnotationsRendered;
+      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff && areAnnotationsRendered;
       if (!validoipcreviewlayer && isPhasedRelease) {
         const phasesOnRequest = findAllPhases();
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
         setAssignedPhases(phaseCompletionObj);
-        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
+        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid) && areAnnotationsRendered;
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
         checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
         checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
-      checkSavingConsults(documentList, _instance);
+      checkSavingConsults(documentList, _instance, areAnnotationsRendered);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
     };
 
@@ -1572,7 +1574,7 @@ const Redlining = React.forwardRef(
           document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
         }
       };
-    }, [pageFlags, isStitchingLoaded]);
+    }, [pageFlags, isStitchingLoaded, areAnnotationsRendered]);
 
     useEffect(() => {      
       if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
@@ -1777,10 +1779,46 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        console.log("Annotation rendering started....");
+        console.log("Rendering Annotations...");
+        const toastNotification = toast.loading("Annotations are now rendering. Package creation is currently disabled until annotations are rendered", {
+          className: "file-upload-toast",
+          isLoading: true,
+          hideProgressBar: true,
+          draggable: true,
+          closeButton: true,
+          style: {background: "#9e9e9e", color: "white"},
+          autoClose: false,
+          closeOnClick: false,
+        });
         docViewer.getAnnotationsLoadedPromise().then(() => {
-          console.log("Annotations rendered successfully");
+          console.log("Annotation rendering complete");
+          toast.dismiss(toastNotification);
+          toast.success("Annotations successfully rendered. Package creation is now enabled", {
+            type: "success",
+            className: "file-upload-toast",
+            isLoading: false,
+            hideProgressBar: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: false,
+          });
           setAreAnnotationsRendered(true);
+        })
+        .catch((err) => {
+          toast.dismiss(toastNotification);
+          toast.error("Error in rendering annotations, please refresh browser and try again", {
+            type: "error",
+            className: "file-upload-toast",
+            isLoading: false,
+            hideProgressBar: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: false,
+          });
         })
       }
     }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);

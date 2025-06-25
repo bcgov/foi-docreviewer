@@ -1102,8 +1102,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
           downloadType: "pdf",
           flatten: true,
         })
-        const _arr = new Uint8Array(_data);
-        const _blob = new Blob([_arr], { type: "application/pdf" });
+        // const _arr = new Uint8Array(_data);
+        // const _blob = new Blob([_arr], { type: "application/pdf" });
 
         await docInstance?.Core.createDocument(_data, {
           loadAsPDF: true,
@@ -1496,15 +1496,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         !readyForSignOff;
     }
   };
-  const checkSavingConsults = (documentList, instance) => {
+  const checkSavingConsults = (documentList, instance, areAnnotationsRendered) => {
     const publicBodyList = getPublicBodyList(documentList);
     setDocumentPublicBodies(publicBodyList);
     setEnableSavingConsults(
-      publicBodyList.length > 0
+      publicBodyList.length > 0 && areAnnotationsRendered
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
-      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0) || !areAnnotationsRendered;
     }
   }
   const triggerRedlineZipper = (
@@ -2068,8 +2068,8 @@ const stampPageNumberRedline = async (
                 flatten: true,
               })
               .then(async (_data) => {
-                const _arr = new Uint8Array(_data);
-                const _blob = new Blob([_arr], { type: "application/pdf" });
+                // const _arr = new Uint8Array(_data);
+                // const _blob = new Blob([_arr], { type: "application/pdf" });
   
                 await docInstance?.Core.createDocument(_data, {
                   loadAsPDF: true,
@@ -2175,8 +2175,8 @@ const stampPageNumberRedline = async (
               flatten: true,
             })
             .then(async (_data) => {
-              const _arr = new Uint8Array(_data);
-              const _blob = new Blob([_arr], { type: "application/pdf" });
+              // const _arr = new Uint8Array(_data);
+              // const _blob = new Blob([_arr], { type: "application/pdf" });
 
               await docInstance?.Core.createDocument(_data, {
                 loadAsPDF: true,
@@ -2323,8 +2323,8 @@ const stampPageNumberRedline = async (
           .then(async (_data) => {
             return _data;
           })
-          const _arr = new Uint8Array(_data);
-          const _blob = new Blob([_arr], { type: "application/pdf" });
+          // const _arr = new Uint8Array(_data);
+          // const _blob = new Blob([_arr], { type: "application/pdf" });
           let docObj = await docInstance?.Core.createDocument(_data, {
             loadAsPDF: true,
             useDownloader: false, // Added to fix BLANK page issue
