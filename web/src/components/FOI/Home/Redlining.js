@@ -1788,6 +1788,7 @@ const Redlining = React.forwardRef(
           closeButton: true,
           style: {background: "#9e9e9e", color: "white"},
           autoClose: false,
+          closeOnClick: false,
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
           console.log("Annotation rendering complete");
@@ -1801,6 +1802,7 @@ const Redlining = React.forwardRef(
             draggable: true,
             closeButton: true,
             autoClose: false,
+            closeOnClick: false,
           });
           setAreAnnotationsRendered(true);
         })
@@ -1815,6 +1817,7 @@ const Redlining = React.forwardRef(
             draggable: true,
             closeButton: true,
             autoClose: false,
+            closeOnClick: false,
           });
         })
       }
