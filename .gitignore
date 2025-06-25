@@ -108,3 +108,4 @@ MCS.FOI.S3FileConversion/MCS.FOI.CalendarToPDFUnitTests/SourceFiles/result_*.pdf
 openshift/templates/solrservices/cleardocsfromsolr/env/*
 azuredocextractapi/*.exe
 azuredocextractapi/main
+openshift/templates/documentextraction/push-to-queue/env/*

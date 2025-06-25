@@ -22,7 +22,8 @@ import {
   deleteDocumentPages,
   savePageFlag,
   fetchPIIByPageNumDocumentID,
-  getsolrauth
+  getsolrauth,
+  checkIDIR
 } from "../../../apiManager/services/docReviewerService";
 import {
   PDFVIEWER_DISABLED_FEATURES,
@@ -858,6 +859,40 @@ const Redlining = React.forwardRef(
       
    };
 
+   const SearchandHighlightPII = (textarray, docInstance, documentViewer,annots,annotationManager) => {
+
+
+     const Search = docInstance.Core.Search;
+                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
+                        const searchOptions = {
+                          fullSearch: true,
+                          onResult: result => {
+                            if (result.resultCode === Search.ResultCode.FOUND) {
+                              for (let quad of result.quads) {
+                                const textQuad = quad.getPoints();
+                                const annot = new annots.TextHighlightAnnotation({
+                                  PageNumber: individualDoc.page,
+                                  X: textQuad.x1,
+                                  Y: textQuad.y3,
+                                  Width: textQuad.x2 - textQuad.x1,
+                                  Height: textQuad.x2 - textQuad.x1,
+                                  Color: new annots.Color(255, 205, 69, 1),
+                                  Quads: [textQuad],
+                                });
+                                annot.setCustomData("PIIDetection", true);
+                                annot.setCustomData("trn-annot-preview", result.resultStr);
+                                
+                                annotationManager.addAnnotation(annot);
+                                annotationManager.redrawAnnotation(annot);
+                              }
+                            }
+                          },
+                          startPage: documentViewer.getCurrentPage(),
+                          endPage: documentViewer.getCurrentPage()
+                        };
+                        documentViewer.textSearchInit(textarray?.join("|"), mode, searchOptions);
+
+   }
 
     useEffect(() => {
       
@@ -874,50 +909,38 @@ const Redlining = React.forwardRef(
 
             if (Object.keys(individualDoc.file).length > 0) {
            
+              const doc = docInstance.Core.documentViewer.getDocument();
+               doc.loadPageText(individualDoc.page).then((text) => {
+               
+                text = text.replace("IDIR\\", 'IDIR\\ ').trim(); 
+                processWordsforIDIRDetection(text).then((words) => {
+
+                  if (words.length > 0) {
+
+                    checkIDIR(
+                      (onlyIDIRs) => {
+                        const idirNames = onlyIDIRs?.map(item => item.sAMAccountName);
+                       SearchandHighlightPII(idirNames,docInstance,documentViewer,_annotations,annotationManager);
+
+                    },
+                    (error)=>{
+                      console.log(`IDIR Detection error ${error}`)                      
+                    },                    
+                    words)
+
+                  }
+
+                })
+                })
+
+
+                 
               getsolrauth().then((solrauthtoken)=>{
                 fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
-      
-              
+                  
                   let textstohighlight = getPIITypeValues(response)
-
-                  let text = textstohighlight.join("|")
-
-                  let Search = docInstance.Core.Search;
-                  const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
-                  const searchOptions = {
-                    // If true, a search of the entire document will be performed. Otherwise, a single search will be performed.
-                    fullSearch: true,
-                    // The callback function that is called when the search returns a result.
-                    onResult: result => {
-                      // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
-                      if (result.resultCode === Search.ResultCode.FOUND) {
-                        for (let quad of result.quads) {
-                          const textQuad = quad.getPoints(); // getPoints will return Quad objects
-                          // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
-                          const annot = new annots.TextHighlightAnnotation({
-                            PageNumber: individualDoc.page,
-                            X: textQuad.x1,
-                            Y: textQuad.y3,
-                            Width: textQuad.x2 - textQuad.x1,
-                            Height: textQuad.x2 - textQuad.x1,
-                            Color: new annots.Color(255, 205, 69, 1),
-                            Quads: [
-                              textQuad
-                            ],
-                          });
-                          annot.setCustomData("PIIDetection", true)
-                          annot.setCustomData("trn-annot-preview", result.resultStr)
-                          
-                          annotationManager.addAnnotation(annot);
-                          // Always redraw annotation
-                          annotationManager.redrawAnnotation(annot);
-                        }
-                      }
-                    },
-                    startPage: documentViewer.getCurrentPage(),
-                    endPage: documentViewer.getCurrentPage()
-                  };
-                  documentViewer.textSearchInit(text, mode, searchOptions);
+                   SearchandHighlightPII(textstohighlight,docInstance,documentViewer,_annotations,annotationManager);
+                  
                 },(error) =>
                   console.log(error))
 
@@ -930,7 +953,14 @@ const Redlining = React.forwardRef(
     },[isPIIDetection,documentPageNo_pii,documentID_pii,individualDoc.page,PIICategories])
 
 
+    const processWordsforIDIRDetection = async (text) => {
+              if (!text || typeof text !== 'string') return [];
+              const forbiddenChars = /["\/\\\[\]:;\|=,\+\*\?<>\-]/;
 
+              return text
+                .split(/\s+/) // Split by whitespace
+                .filter(word => word.length > 3 && word.length < 18 && !forbiddenChars.test(word) && !((word.match(/-/g) || []).length > 1) && !word.includes(' '));
+   }
     const updateModalData = (newModalData) => {
       setRedlineCategory(newModalData.modalFor);
       setModalData(newModalData);
