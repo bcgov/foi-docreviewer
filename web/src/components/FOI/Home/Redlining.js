@@ -1574,7 +1574,7 @@ const Redlining = React.forwardRef(
           document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
         }
       };
-    }, [pageFlags, isStitchingLoaded]);
+    }, [pageFlags, isStitchingLoaded, areAnnotationsRendered]);
 
     useEffect(() => {      
       if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
@@ -1779,7 +1779,7 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        console.log("RENDERING ANNOTS")
+        console.log("Rendering Annotations...")
         const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
           className: "file-upload-toast",
           isLoading: true,
@@ -1789,15 +1789,13 @@ const Redlining = React.forwardRef(
           style: {background: "#9e9e9e", color: "white"}
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
-          console.log("ANNOTS RENDERED")
+          console.log("Annotation rendering complete")
           toast.dismiss(toastNotification);
-          toast.success("Annotations successfully rendered. Response Package creation enabled", {
+          toast.success("Annotations successfully rendered. Package creation enabled", {
             type: "success",
             className: "file-upload-toast",
             isLoading: false,
-            autoClose: 3000,
             hideProgressBar: true,
-            closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: true,
@@ -1810,9 +1808,7 @@ const Redlining = React.forwardRef(
             type: "error",
             className: "file-upload-toast",
             isLoading: false,
-            autoClose: 4000,
             hideProgressBar: true,
-            closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: true,
