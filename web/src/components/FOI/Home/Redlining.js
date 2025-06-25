@@ -1541,20 +1541,20 @@ const Redlining = React.forwardRef(
       disableNRDuplicate();
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
-      const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
-      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      const redlineReadyAndValid = readyForSignOff && validRedlineDownload && areAnnotationsRendered;
+      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff && areAnnotationsRendered;
       if (!validoipcreviewlayer && isPhasedRelease) {
         const phasesOnRequest = findAllPhases();
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
         setAssignedPhases(phaseCompletionObj);
-        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
+        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid) && areAnnotationsRendered;
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
-        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance, areAnnotationsRendered);
+        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
-        checkSavingFinalPackage(redlineReadyAndValid, _instance, areAnnotationsRendered);
+        checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
-      checkSavingConsults(documentList, _instance);
+      checkSavingConsults(documentList, _instance, areAnnotationsRendered);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
     };
 
@@ -1779,8 +1779,8 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        console.log("Rendering Annotations...")
-        const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
+        console.log("Rendering Annotations...");
+        const toastNotification = toast.loading("Annotations are now rendering. Package creation is currently disabled until annotations are rendered", {
           className: "file-upload-toast",
           isLoading: true,
           hideProgressBar: true,
@@ -1790,9 +1790,9 @@ const Redlining = React.forwardRef(
           autoClose: false,
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
-          console.log("Annotation rendering complete")
+          console.log("Annotation rendering complete");
           toast.dismiss(toastNotification);
-          toast.success("Annotations successfully rendered. Package creation enabled", {
+          toast.success("Annotations successfully rendered. Package creation is now enabled", {
             type: "success",
             className: "file-upload-toast",
             isLoading: false,

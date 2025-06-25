@@ -441,13 +441,13 @@ const useSaveResponsePackage = (redlinePhase) => {
       }
     );
   };
-  const checkSavingFinalPackage = (redlineReadyAndValid, instance, areAnnotationsRendered) => {
+  const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
-    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus && areAnnotationsRendered);
+    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("final_package").disabled =
-        !redlineReadyAndValid || !validFinalPackageStatus || !areAnnotationsRendered
+        !redlineReadyAndValid || !validFinalPackageStatus
     }
   };
 
