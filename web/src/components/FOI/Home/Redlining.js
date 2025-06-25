@@ -264,7 +264,7 @@ const Redlining = React.forwardRef(
             const menu = createResponsePDFMenu(document);
             const redlineForSignOffBtn = createRedlineForSignOffSelection(document, enableSavingRedline);
             const redlineForOipcBtn = createOIPCForReviewSelection(document, enableSavingOipcRedline);
-            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal, areAnnotationsRendered);
+            const finalPackageBtn = createFinalPackageSelection(document, enableSavingFinal);
             const consultPackageButton = createConsultPackageSelection(document, enableSavingConsults);
             redlineForOipcBtn.onclick = () => {
               handleRedlineForOipcClick(updateModalData, setRedlineModalOpen);
@@ -1541,20 +1541,20 @@ const Redlining = React.forwardRef(
       disableNRDuplicate();
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
-      const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
-      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      const redlineReadyAndValid = readyForSignOff && validRedlineDownload && areAnnotationsRendered;
+      const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff && areAnnotationsRendered;
       if (!validoipcreviewlayer && isPhasedRelease) {
         const phasesOnRequest = findAllPhases();
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
         setAssignedPhases(phaseCompletionObj);
-        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
+        const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid) && areAnnotationsRendered;
         checkSavingRedline(phasedRedlineReadyAndValid, _instance);
         checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
       } else {
         checkSavingRedline(redlineReadyAndValid, _instance);
         checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
-      checkSavingConsults(documentList, _instance);
+      checkSavingConsults(documentList, _instance, areAnnotationsRendered);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
     };
 
@@ -1574,7 +1574,7 @@ const Redlining = React.forwardRef(
           document.getElementById("create_response_pdf").removeEventListener("click", handleCreateResponsePDFClick)
         }
       };
-    }, [pageFlags, isStitchingLoaded]);
+    }, [pageFlags, isStitchingLoaded, areAnnotationsRendered]);
 
     useEffect(() => {      
       if (docInstance && documentList.length > 0 && !isWatermarkSet && docViewer && pageMappedDocs && pageFlags) {
@@ -1779,26 +1779,28 @@ const Redlining = React.forwardRef(
       if (!docViewer) return;
       setAreAnnotationsRendered(false);
       if (!isAnnotationsLoading && isStitchingLoaded) {
-        const toastNotification = toast.loading("Annotations fetched and are now rendering...", {
+        console.log("Rendering Annotations...");
+        const toastNotification = toast.loading("Annotations are now rendering. Package creation is currently disabled until annotations are rendered", {
           className: "file-upload-toast",
           isLoading: true,
           hideProgressBar: true,
           draggable: true,
           closeButton: true,
-          style: {background: "#9e9e9e", color: "white"}
+          style: {background: "#9e9e9e", color: "white"},
+          autoClose: false,
         });
         docViewer.getAnnotationsLoadedPromise().then(() => {
+          console.log("Annotation rendering complete");
           toast.dismiss(toastNotification);
-          toast.success("Annotations successfully rendered. Response Package creation enabled", {
+          toast.success("Annotations successfully rendered. Package creation is now enabled", {
             type: "success",
             className: "file-upload-toast",
             isLoading: false,
-            autoClose: 3000,
             hideProgressBar: true,
-            closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: true,
+            autoClose: false,
           });
           setAreAnnotationsRendered(true);
         })
@@ -1808,12 +1810,11 @@ const Redlining = React.forwardRef(
             type: "error",
             className: "file-upload-toast",
             isLoading: false,
-            autoClose: 4000,
             hideProgressBar: true,
-            closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: true,
+            autoClose: false,
           });
         })
       }
