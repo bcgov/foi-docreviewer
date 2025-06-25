@@ -859,34 +859,10 @@ const Redlining = React.forwardRef(
       
    };
 
+   const SearchandHighlightPII = (textarray, docInstance, documentViewer,annots,annotationManager) => {
 
-    useEffect(() => {
-      
-      var annotationManager=annotManager
-     
-      var documentViewer= docViewer
 
-      var _annotations = annots
-      deletePIIAnnotations(annotationManager)
-      if(isPIIDetection)
-      {
-            var pagenum= documentPageNo_pii ?? 1
-            var documentid = documentID_pii
-
-            if (Object.keys(individualDoc.file).length > 0) {
-           
-              const doc = docInstance.Core.documentViewer.getDocument();
-               doc.loadPageText(individualDoc.page).then((text) => {
-               
-                text = text.replace("IDIR\\", 'IDIR\\ ').trim(); 
-                processWordsforIDIRDetection(text).then((words) => {
-
-                  if (words.length > 0) {
-
-                    checkIDIR(
-                      (onlyIDIRs) => {
-                        const idirNames = onlyIDIRs?.map(item => item.sAMAccountName);
-                        const Search = docInstance.Core.Search;
+     const Search = docInstance.Core.Search;
                         const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
                         const searchOptions = {
                           fullSearch: true,
@@ -914,11 +890,41 @@ const Redlining = React.forwardRef(
                           startPage: documentViewer.getCurrentPage(),
                           endPage: documentViewer.getCurrentPage()
                         };
-                        documentViewer.textSearchInit(idirNames?.join("|"), mode, searchOptions);
+                        documentViewer.textSearchInit(textarray?.join("|"), mode, searchOptions);
+
+   }
+
+    useEffect(() => {
+      
+      var annotationManager=annotManager
+     
+      var documentViewer= docViewer
+
+      var _annotations = annots
+      deletePIIAnnotations(annotationManager)
+      if(isPIIDetection)
+      {
+            var pagenum= documentPageNo_pii ?? 1
+            var documentid = documentID_pii
+
+            if (Object.keys(individualDoc.file).length > 0) {
+           
+              const doc = docInstance.Core.documentViewer.getDocument();
+               doc.loadPageText(individualDoc.page).then((text) => {
+               
+                text = text.replace("IDIR\\", 'IDIR\\ ').trim(); 
+                processWordsforIDIRDetection(text).then((words) => {
+
+                  if (words.length > 0) {
+
+                    checkIDIR(
+                      (onlyIDIRs) => {
+                        const idirNames = onlyIDIRs?.map(item => item.sAMAccountName);
+                       SearchandHighlightPII(idirNames,docInstance,documentViewer,_annotations,annotationManager);
 
                     },
                     (error)=>{
-                      console.log(`${error}`)                      
+                      console.log(`IDIR Detection error ${error}`)                      
                     },                    
                     words)
 
@@ -928,55 +934,17 @@ const Redlining = React.forwardRef(
                 })
 
 
-              //TODO: This needs to uncommented after LOCAL IDIR CHECK DEMO    
-              // getsolrauth().then((solrauthtoken)=>{
-              //   fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
-      
-              
-              //     let textstohighlight = getPIITypeValues(response)
+                 
+              getsolrauth().then((solrauthtoken)=>{
+                fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
+                  
+                  let textstohighlight = getPIITypeValues(response)
+                   SearchandHighlightPII(textstohighlight,docInstance,documentViewer,_annotations,annotationManager);
+                  
+                },(error) =>
+                  console.log(error))
 
-              //     let text = textstohighlight.join("|")
-
-              //     let Search = docInstance.Core.Search;
-              //     const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
-              //     const searchOptions = {
-              //       // If true, a search of the entire document will be performed. Otherwise, a single search will be performed.
-              //       fullSearch: true,
-              //       // The callback function that is called when the search returns a result.
-              //       onResult: result => {
-              //         // with 'PAGE_STOP' mode, the callback is invoked after each page has been searched.
-              //         if (result.resultCode === Search.ResultCode.FOUND) {
-              //           for (let quad of result.quads) {
-              //             const textQuad = quad.getPoints(); // getPoints will return Quad objects
-              //             // now that we have the result Quads, it's possible to highlight text or create annotations on top of the text
-              //             const annot = new annots.TextHighlightAnnotation({
-              //               PageNumber: individualDoc.page,
-              //               X: textQuad.x1,
-              //               Y: textQuad.y3,
-              //               Width: textQuad.x2 - textQuad.x1,
-              //               Height: textQuad.x2 - textQuad.x1,
-              //               Color: new annots.Color(255, 205, 69, 1),
-              //               Quads: [
-              //                 textQuad
-              //               ],
-              //             });
-              //             annot.setCustomData("PIIDetection", true)
-              //             annot.setCustomData("trn-annot-preview", result.resultStr)
-                          
-              //             annotationManager.addAnnotation(annot);
-              //             // Always redraw annotation
-              //             annotationManager.redrawAnnotation(annot);
-              //           }
-              //         }
-              //       },
-              //       startPage: documentViewer.getCurrentPage(),
-              //       endPage: documentViewer.getCurrentPage()
-              //     };
-              //     documentViewer.textSearchInit(text, mode, searchOptions);
-              //   },(error) =>
-              //     console.log(error))
-
-              // })
+              })
             }
             
       }
