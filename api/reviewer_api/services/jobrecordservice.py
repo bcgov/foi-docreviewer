@@ -95,6 +95,7 @@ class jobrecordservice:
                         )
                     )
                     masterid = master.identifier
+                    print("Conversion-Attributes-replace:",record['attributes'])
                     DocumentAttributes.create(
                         DocumentAttributes(
                             documentmasterid=masterid,
@@ -135,6 +136,13 @@ class jobrecordservice:
                         )
                     )
                     masterid = master.identifier
+                    ## Since replace attachment uses the same s3 uri path
+                    ## need to set redactionready-false as the new file need to go through all the process again
+                    if batchinfo['trigger'] == 'recordreplace' and record['isattachment'] == True:
+                        _documentmasterid = record.get('documentmasterid')
+                        if _documentmasterid:
+                            DocumentMaster.updateredactionstatus(_documentmasterid, userid)
+                    print("Attributes-replace:",record['attributes'])
                     DocumentAttributes.create(
                         DocumentAttributes(
                             documentmasterid=masterid,
