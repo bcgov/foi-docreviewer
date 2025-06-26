@@ -1496,15 +1496,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         !readyForSignOff;
     }
   };
-  const checkSavingConsults = (documentList, instance, areAnnotationsRendered) => {
+  const checkSavingConsults = (documentList, instance) => {
     const publicBodyList = getPublicBodyList(documentList);
     setDocumentPublicBodies(publicBodyList);
     setEnableSavingConsults(
-      publicBodyList.length > 0 && areAnnotationsRendered
+      publicBodyList.length > 0
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
-      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0) || !areAnnotationsRendered;
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
     }
   }
   const triggerRedlineZipper = (
