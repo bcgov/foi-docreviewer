@@ -243,6 +243,7 @@ class DocumentMaster(db.Model):
                     """
             db.session.execute(text(sql), {'userid': userid, 'documentmasterid': documentmasterid})
             db.session.commit()
+            print("Redaction status updated")
             return DefaultMethodResult(True,'Redactionready status updated for document master id:', -1, [{"id": documentmasterid}])
         except Exception as ex:
             logging.error(ex)
