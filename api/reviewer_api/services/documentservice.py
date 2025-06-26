@@ -50,11 +50,13 @@ class documentservice:
             record= self.__updateocractivemqstatus(ocractivemqjobs, record)
             record= self.__updateazureocrstatus(azureocrjobs, record)
             record = self.__updateredactionstatus(redactions, record)
+            if "updated_at" in record and record["updated_at"] is not None:
+                record["updated_at"] = pstformat(record["updated_at"])
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            #print("\neach RECORD:",record)
+            ##print("\neach RECORD:",record)
             
         # Duplicate check
         finalresults = []
