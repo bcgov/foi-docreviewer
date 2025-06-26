@@ -447,7 +447,7 @@ const useSaveResponsePackage = (redlinePhase) => {
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("final_package").disabled =
-        !redlineReadyAndValid || !validFinalPackageStatus
+        !redlineReadyAndValid || !validFinalPackageStatus;
     }
   };
 
