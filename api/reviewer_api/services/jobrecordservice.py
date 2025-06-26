@@ -138,7 +138,8 @@ class jobrecordservice:
                     masterid = master.identifier
                     ## Since replace attachment uses the same s3 uri path
                     ## need to set redactionready-false as the new file need to go through all the process again
-                    if batchinfo['trigger'] == 'recordreplace' and record['isattachment'] == True:
+                    print("@@@record:",record)
+                    if batchinfo['trigger'] == 'recordreplace' and 'isattachment' in record and record['isattachment'] == True:
                         _documentmasterid = record.get('documentmasterid')
                         if _documentmasterid:
                             DocumentMaster.updateredactionstatus(_documentmasterid, userid)
