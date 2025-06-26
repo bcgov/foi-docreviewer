@@ -307,7 +307,6 @@ function Home() {
                   isStitchingLoaded={isStitchingLoaded}
                   setIsAnnotationsLoading={setIsAnnotationsLoading}
                   setAreAnnotationsRendered={setAreAnnotationsRendered}
-                  areAnnotationsRendered={areAnnotationsRendered}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
@@ -321,7 +320,7 @@ function Home() {
               )
             // : <div>Loading</div>
           }
-          {(!isStitchingLoaded || isAnnotationsLoading) && (
+          {(!isStitchingLoaded || isAnnotationsLoading || !areAnnotationsRendered) && (
             <div className="merging-overlay">
               <div>
                 <DocumentLoader />
