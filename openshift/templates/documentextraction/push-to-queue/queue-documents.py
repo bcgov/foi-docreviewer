@@ -136,12 +136,26 @@ def fetchdocumentsforextraction():
                         'documentid', d.documentid, 
                         'filename', d.filename, 
                         'created_at', d.created_at, 
-                        'filepath', dm.filepath 
+                        'filepath', dm.filepath,
+                        'compressedfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.compressedfilepath
+                                ELSE dm.compressedfilepath
+                            END
+                        ),
+                        'ocrfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.ocrfilepath
+                                ELSE dm.ocrfilepath
+                            END
+                        )
                     )
                 ) AS documents
                 FROM "Documents" d
                 INNER JOIN "DocumentMaster" dm 
                 ON d.documentmasterid = dm.documentmasterid
+                LEFT JOIN "DocumentMaster" parent_dm 
+                ON dm.processingparentid = parent_dm.documentmasterid
                 WHERE d.foiministryrequestid IN %s AND d.incompatible = False
                 AND NOT EXISTS (
                     SELECT 1 FROM "DocumentExtractionJob" dej WHERE dej.documentid = d.documentid
@@ -204,7 +218,15 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
                     "CreatedDate": reformat_datetime(document["created_at"], "created_at"),
-                    "DocumentS3URL":document["filepath"],
+                    "DocumentS3URL": (
+                        document["ocrfilepath"]
+                        if "ocrfilepath" in document and document["ocrfilepath"]
+                        else (
+                            document["compressedfilepath"]
+                            if "compressedfilepath" in document and document["compressedfilepath"]
+                            else document["filepath"]
+                        )
+                    ),
                     "Divisions": documentdivision
                 }
             )
