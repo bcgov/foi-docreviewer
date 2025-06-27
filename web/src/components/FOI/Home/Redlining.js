@@ -840,10 +840,12 @@ const Redlining = React.forwardRef(
               ANNOTATION_PAGE_SIZE,
               async (data) => {
                 let meta = data["meta"];
+                if (meta["has_next"] === false) { 
+                  setIsAnnotationsLoading(false);
+                }
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
-                  setIsAnnotationsLoading(false);
                 } else {
                   //oipc changes - begin
                   //Set to read only if oipc layer exists
@@ -873,8 +875,6 @@ const Redlining = React.forwardRef(
                       meta["next_num"],
                       meta["pages"]
                     );
-                  } else {
-                    setIsAnnotationsLoading(false);
                   }
                 }
               },
@@ -975,7 +975,7 @@ const Redlining = React.forwardRef(
             );
             setannottext([]);
           }
-        console.log(`extractedTexts: ${annottext}`)
+        // console.log(`extractedTexts: ${annottext}`)
        
       }
     }
@@ -1644,7 +1644,7 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const applyAnnotationsFunc = () => {
+    const applyAnnotationsFunc = async () => {
       let domParser = new DOMParser();
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
@@ -1654,7 +1654,7 @@ const Redlining = React.forwardRef(
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
-          fetchandApplyAnnotations(
+          await fetchandApplyAnnotations(
             pageMappedDocs,
             domParser,
             meta["next_num"],
@@ -1772,18 +1772,21 @@ const Redlining = React.forwardRef(
       }
     };
 
-    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE
+    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE and documents stitched
     useEffect(() => {
-      if (!docViewer || !annotManager) return;
+      if (!docViewer) return;
       setAreAnnotationsRendered(false);
-      if (!isAnnotationsLoading) {
+      if (!isAnnotationsLoading && isStitchingLoaded) {
+        console.log("Annotation loading started....");
         docViewer.getAnnotationsLoadedPromise().then(() => {
+          console.log("Annotation loading complete");
           setAreAnnotationsRendered(true);
         })
       }
-    }, [docViewer, annotManager, fetchAnnotResponse, setAreAnnotationsRendered, isAnnotationsLoading]);
+    }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);
 
     useEffect(() => {
+      const handleSingleFileDocumentLoaded = async () => {
       if (docsForStitcing.length > 0) {
         setDocumentList(getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file));
       }
@@ -1806,12 +1809,14 @@ const Redlining = React.forwardRef(
         }
         else if (doclistCopy.length === 1){
           
-          applyAnnotationsFunc();
+          await applyAnnotationsFunc();
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
         }
       }
+    }
+    handleSingleFileDocumentLoaded();
     }, [
       pdftronDocObjects,
       docsForStitcing,
@@ -1821,19 +1826,22 @@ const Redlining = React.forwardRef(
     ]);
 
     useEffect(() => {
+      const handleDivisionFileDocumentLoad = async () => {
       if (stitchPageCount === docsForStitcing.totalPageCount) {
         console.log(`Download and Stitching completed.... ${new Date()}`);
 
         if (stitchPageCount > 800) {
           docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
         }
-        applyAnnotationsFunc();
+        await applyAnnotationsFunc();
         setIsStitchingLoaded(true);
         setPagesRemoved([]);
         setSkipDeletePages(false);
         setpdftronDocObjects([]);
         setstichedfiles([]);
       }
+    }
+    handleDivisionFileDocumentLoad();
     }, [stitchPageCount]);
 
     useEffect(() => {
