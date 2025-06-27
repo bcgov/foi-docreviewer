@@ -181,3 +181,28 @@ class DeleteDocumenPage(Resource):
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
+        
+
+@cors_preflight('POST,OPTIONS')
+@API.route('/document/update/retrieveversion')
+class UpdateDocSelectedFileProcessVersion(Resource):
+    """Update selectedfileprocessversion field of Documents.
+    """
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.ismemberofgroups(getrequiredmemberships())
+    def post():
+        try:
+            payload = request.get_json()
+            result = documentservice().updateselectedfileprocessversion(payload, AuthHelper.getuserid())
+            if not result.success:
+                return {'status': False,'message': result.message,'id': result.identifier}, 500
+            return {'status': result.success, 'message':result.message,'id':result.identifier} , 200
+        except KeyError as error:
+            return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
+        except BusinessException as exception:
+            return {'status': exception.status_code, 'message':exception.message}, 500
+        except Exception as ex:
+            return {'status': False, 'message': f"Unhandled error occurred: {str(ex)}"}, 500

@@ -34,6 +34,7 @@ class Document(db.Model):
     originalpagecount = db.Column(db.Integer, nullable=True)
     pagecount = db.Column(db.Integer, nullable=True)
     incompatible = db.Column(db.Boolean, nullable=True)
+    selectedfileprocessversion= db.Column(db.Integer, db.ForeignKey('DocumentProcesses.processid'))
     documentstatus = relationship("DocumentStatus", backref=backref("DocumentStatus"), uselist=False)
     documentmaster = relationship("DocumentMaster", backref=backref("DocumentMaster"), uselist=False)
 
@@ -173,9 +174,30 @@ class Document(db.Model):
                 subquery_maxversion.c.max_version == Document.version,
             ]
 
+            parentdocumentmaster = aliased(DocumentMaster)
+
             selectedcolumns = [
                 Document.documentid,
-                DocumentMaster.filepath
+                case(
+                    [
+                        # (and_(DocumentMaster.ocrfilepath != None, DocumentMaster.ocrfilepath != ''), DocumentMaster.ocrfilepath),
+                        # (and_(DocumentMaster.compressedfilepath != None, DocumentMaster.compressedfilepath != ''), DocumentMaster.compressedfilepath)
+                        (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
+                        (and_(parentdocumentmaster.ocrfilepath != None, parentdocumentmaster.ocrfilepath != ''), parentdocumentmaster.ocrfilepath),
+                        (and_(parentdocumentmaster.compressedfilepath != None, parentdocumentmaster.compressedfilepath != ''), parentdocumentmaster.compressedfilepath),
+                        (DocumentMaster.processingparentid != None, DocumentMaster.filepath)
+                    ],
+                else_=case(
+                    [
+                        (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
+                        (and_(DocumentMaster.ocrfilepath != None, DocumentMaster.ocrfilepath != ''), DocumentMaster.ocrfilepath),
+                        (and_(DocumentMaster.compressedfilepath != None, DocumentMaster.compressedfilepath != ''), DocumentMaster.compressedfilepath)
+                    ],
+                    else_=DocumentMaster.filepath
+                )
+                    ## else_=DocumentMaster.filepath
+                ).label("filepath")
+                ##DocumentMaster.filepath
             ]
 
             query = _session.query(
@@ -186,6 +208,9 @@ class Document(db.Model):
                                 ).join(
                                     DocumentMaster,
                                     DocumentMaster.documentmasterid == Document.documentmasterid
+                                ).outerjoin(
+                                    parentdocumentmaster,
+                                    parentdocumentmaster.documentmasterid == DocumentMaster.processingparentid
                                 ).filter(
                                     Document.documentid.in_(idlist)
                                 ).all()
@@ -424,6 +449,31 @@ class Document(db.Model):
         finally:
             db.session.close()
 
+    @classmethod
+    def updateselectedfileprocessversion(cls, ministryrequestid, documentmasterids, selectedfileprocessversion, userid):
+        try:
+            sql =   """ update "Documents"
+                        set selectedfileprocessversion = :selectedfileprocessversion,
+                        updatedby= :updatedby,
+                        updated_at=now()
+                        where foiministryrequestid= :ministryrequestid 
+                        and documentmasterid in :documentmasterids
+                    """
+            db.session.execute(text(sql), 
+                    {'updatedby':json.dumps(userid),
+                     'ministryrequestid': ministryrequestid, 
+                     'selectedfileprocessversion':selectedfileprocessversion, 
+                     'documentmasterids':tuple(documentmasterids)})
+
+            db.session.commit()
+            return DefaultMethodResult(True,'Documentprocessversion updated for Documents')
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+
+
 class DocumentSchema(ma.Schema):
     class Meta:
-        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount')
+        fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount', 'selectedfileprocessversion')

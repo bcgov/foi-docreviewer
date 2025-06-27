@@ -27,6 +27,8 @@ computingservices/DedupeServices/env/*
 computingservices/PDFStitchServices/env/*
 computingservices/ZippingServices/env/*
 computingservices/PageCountCalculator/env/*
+computingservices/CompressionServices/env/*
+computingservices/OCRServices/env/*
 
 
 ################################################################################
@@ -109,3 +111,8 @@ openshift/templates/solrservices/cleardocsfromsolr/env/*
 azuredocextractapi/*.exe
 azuredocextractapi/main
 openshift/templates/documentextraction/push-to-queue/env/*
+
+azuredococrapi/*.exe
+azuredococrapi/main
+azuredococrapi/env/*
+
