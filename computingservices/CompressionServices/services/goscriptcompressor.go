@@ -55,6 +55,10 @@ func resizeImage(inputPath string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to open image file: %v", err)
 	}
 	defer file.Close()
+	fmt.Println("inputPath:", inputPath)
+
+	fmt.Println("file:", file)
+
 	// Decode the image and detect format
 	img, format, err := image.Decode(file)
 	if err != nil {
@@ -123,7 +127,7 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	// }
 	// Log the input temp file path
 	//fmt.Printf("Input Temp File: %s\n", inputTempFile.Name())
-	// Create the output file for the compressed PDF
+	// Create the output file for the compressed file
 	outputTempFile, err := os.CreateTemp("", "output_*.pdf")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp output file: %v", err)
@@ -195,7 +199,7 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	fmt.Println("filename:", filename)
 	ext := strings.ToLower(filepath.Ext(filename))
 	// Step 1: Download file from presigned URL
-	inputTempFile, err := downloadFile(inputUrl)
+	inputTempFile, err := downloadFile(inputUrl, ext)
 	if err != nil {
 		return "", 0, "", fmt.Errorf("failed to download file: %v", err)
 	}
@@ -205,19 +209,19 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	compressedPdfData, error := processFile(inputTempFile, ext)
 	//fmt.Println("compressedPdfData:", compressedPdfData)
 	if error != nil {
-		return "", 0, "", fmt.Errorf("failed to compress PDF: %v", error)
+		return "", 0, "", fmt.Errorf("failed to compress file: %v", error)
 	}
 	expiration := 15 * time.Minute
-	// Step 3: Upload the compressed PDF back to S3
+	// Step 3: Upload the compressed file back to S3
 	presignedURL, err := generatePresignedUploadURL(utils.ViperEnvVariable("COMPRESSION_S3_HOST"), accessKey, secretKey, bucket, key,
 		utils.ViperEnvVariable("COMPRESSION_S3_REGION"), expiration)
 	if err != nil {
 		fmt.Println("Error generating presigned URL:", err)
-		return "", 0, "", fmt.Errorf("failed to compress PDF: %v", err)
+		return "", 0, "", fmt.Errorf("failed to compress file: %v", err)
 	}
 	err = uploadUsingPresignedURL(presignedURL, compressedPdfData)
 	if err != nil {
-		return "", 0, "", fmt.Errorf("failed to upload compressed PDF to S3: %v", err)
+		return "", 0, "", fmt.Errorf("failed to upload compressed file to S3: %v", err)
 	}
 	compressedFileSize := len(compressedPdfData)
 	fmt.Printf("File successfully compressed with file size: %d bytes\n", compressedFileSize)
@@ -248,7 +252,7 @@ func uploadUsingPresignedURL(presignedURL string, fileData []byte) error {
 	return nil
 }
 
-func downloadFile(url string) (string, error) {
+func downloadFile(url string, ext string) (string, error) {
 	fmt.Println("Inside downloadFile")
 	resp, err := http.Get(url)
 	if err != nil {
@@ -259,7 +263,8 @@ func downloadFile(url string) (string, error) {
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	// Write to temp file
-	tmpFile, err := os.CreateTemp("", "downloaded_*.pdf")
+	// //tmpFile, err := os.CreateTemp("", "downloaded_*.pdf")
+	tmpFile, err := os.CreateTemp("", fmt.Sprintf("downloaded_*%s", ext))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
@@ -296,7 +301,7 @@ func processFile(inputTempFile string, ext string) ([]byte, error) {
 		fmt.Println("Before read file:", ext)
 		// return processPDF(inputFile, outputFile)
 		return processPDF(inputTempFile)
-	case ".jpg", ".png":
+	case ".jpg", ".png", ".jpeg":
 		// return processImage(inputFile, outputFile)
 		return processImage(inputTempFile)
 	default:
@@ -335,7 +340,7 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	//fmt.Printf("Initial CPU Usage: %.2f%%\n", initialCPU)
 	//fmt.Printf("Initial Memory Usage: %d MB\n", initialMemory/(1024*1024))
 	// Start the compression process
-	fmt.Println("Starting PDF compression...")
+	fmt.Println("Starting file compression...")
 	// Process the file from the presigned URL and get the compressed file size
 	presignedUrl, compressedFileSize, extension, error := processFileFromPresignedUrl(folderPath, bucketName, objectKey, s3cred)
 	if error != nil {
@@ -362,7 +367,7 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	// fmt.Printf("CPU Usage during compression: %.2f%%\n", cpuDifference)
 	// fmt.Printf("Memory Used during compression: %d MB\n", memoryDifference/(1024*1024))
 	// Success message
-	fmt.Printf("Saved compressed PDF & time taken for compression:%v\n", duration)
+	fmt.Printf("saved compressed file & time taken for compression:%v\n", duration)
 	// Return the S3 file path, compressed size, and the error flag
 	return s3FilePath, compressedFileSize, extension, false, nil
 }

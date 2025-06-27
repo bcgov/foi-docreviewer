@@ -37,7 +37,7 @@ class DocumentMaster(db.Model):
         documentmasters = []
         try:
             sql = """select dm.recordid, dm.parentid, d.filename as attachmentof, dm.filepath, dm.compressedfilepath, dm.ocrfilepath, dm.documentmasterid, da."attributes", 
-                    dm.created_at, dm.createdby, dm.processingparentid as processingparentid, dm.isredactionready as isredactionready from "DocumentMaster" dm
+                    dm.created_at, dm.createdby, dm.processingparentid as processingparentid, dm.isredactionready as isredactionready, dm.updated_at from "DocumentMaster" dm
 					join "DocumentAttributes" da on dm.documentmasterid = da.documentmasterid
 					left join "DocumentMaster" dm2 on dm2.processingparentid = dm.parentid
                     -- replace attachment will create 2 or more rows with the same processing parent id
@@ -55,7 +55,7 @@ class DocumentMaster(db.Model):
                 # if row["documentmasterid"] not in deleted:
                 documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "compressedfilepath": row["compressedfilepath"], 
                                         "ocrfilepath": row["ocrfilepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  
-                                        "createdby": row["createdby"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], 
+                                        "createdby": row["createdby"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "updated_at": row["updated_at"],
                                         "attachmentof": row["attachmentof"]})
         except Exception as ex:
             logging.error(ex)
@@ -232,6 +232,23 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
+    
+
+    @classmethod
+    def updateredactionstatus(cls, documentmasterid, userid):
+        try:
+            sql =   """ update "DocumentMaster"
+                        set isredactionready= false, updatedby  = :userid, updated_at = now()
+                        where documentmasterid = :documentmasterid
+                    """
+            db.session.execute(text(sql), {'userid': userid, 'documentmasterid': documentmasterid})
+            db.session.commit()
+            print("Redaction status updated")
+            return DefaultMethodResult(True,'Redactionready status updated for document master id:', -1, [{"id": documentmasterid}])
+        except Exception as ex:
+            logging.error(ex)
+        finally:
+            db.session.close()
 class DeduplicationJobSchema(ma.Schema):
     class Meta:
         fields = ('documentmasterid', 'filepath', 'ministryrequestid', 'recordid', 'processingparentid', 'parentid', 'isredactionready', 
