@@ -66,7 +66,7 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 		query := `
 					INSERT INTO "CompressionJob"
 					(compressionjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (compressionjobid, version) DO NOTHING;
 				`
 		stmt, err := db.Prepare(query)
 		if err != nil {
@@ -156,8 +156,8 @@ func IsBatchCompleted(batch string) (bool, bool) {
 		fmt.Printf("Error querying compression job state: %v\n", err)
 		panic(err)
 	}
-	fmt.Printf("compInProgress: %v\n", compInProgress)
-	fmt.Printf("compError: %v\n", compError)
+	// fmt.Printf("compInProgress: %v\n", compInProgress)
+	// fmt.Printf("compError: %v\n", compError)
 	return compInProgress == 0, compError > 0
 	//return compInProgress == 0 &&dedupeInProgress == 0, (dedupeError + compError) > 0
 }
@@ -283,7 +283,7 @@ func RecordOCRJobStart(msg *models.CompressionProducerMessage) (int, error) {
 			msg.Batch,
 			msg.Trigger,
 			msg.Filename,
-			"started",
+			"pushedtostream",
 			msg.DocumentMasterID,
 		)
 		if err != nil {

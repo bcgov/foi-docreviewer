@@ -15,7 +15,7 @@ class compressionproducerservice:
     def producecompressionevent(self, finalmessage, jobid):        
         try:
             _compressionrequest = self.createcompressionproducermessage(finalmessage, jobid=jobid)
-            print("_compressionrequest:",to_json(_compressionrequest))
+            #print("_compressionrequest:",to_json(_compressionrequest))
             _compressionredisstream = self.compressionredisstream                      
             if _compressionredisstream is not None:
                 # sanitized_data = {

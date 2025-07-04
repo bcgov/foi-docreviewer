@@ -62,7 +62,7 @@ func RecordJobEnd(msg *models.OCRProducerMessage, isError bool, message string) 
 		query := `
 					INSERT INTO "OCRActiveMQJob"
 					(ocractivemqjobid, version, ministryrequestid, batch, trigger, documentmasterid, filename, status)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (ocractivemqjobid, version) DO NOTHING;
 				`
 		stmt, err := db.Prepare(query)
 		if err != nil {
@@ -151,8 +151,8 @@ func IsBatchCompleted(batch string) (bool, bool) {
 		fmt.Printf("Error querying compression job state: %v\n", err)
 		panic(err)
 	}
-	fmt.Printf("compInProgress: %v\n", compInProgress)
-	fmt.Printf("compError: %v\n", compError)
+	// fmt.Printf("compInProgress: %v\n", compInProgress)
+	// fmt.Printf("compError: %v\n", compError)
 	return compInProgress == 0, compError > 0
 	//return compInProgress == 0 &&dedupeInProgress == 0, (dedupeError + compError) > 0
 }
