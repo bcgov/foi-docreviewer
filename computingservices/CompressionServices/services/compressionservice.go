@@ -42,7 +42,6 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
 		}
 		/**Commenting logic check for needs_ocr field - if needsOCR*/
-		fmt.Printf("extension: %v", extension)
 		//extensions := []string{".pdf", ".jpg", ".png", ".jpeg"}
 		if extension == ".pdf" {
 			//slices.Contains(extensions, extension) {

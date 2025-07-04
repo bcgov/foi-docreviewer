@@ -56,7 +56,7 @@ func (s *OCRProducerService) ProduceOCREvent(finalMessage *models.CompressionPro
 	// 	Message: finalMessage,
 	// }
 
-	fmt.Println("OCR Stream Key:", s.streamKey)
+	//fmt.Println("OCR Stream Key:", s.streamKey)
 
 	// Convert struct to map[string]interface{} for Redis XAdd
 	msgBytes, err := json.Marshal(finalMessage)
