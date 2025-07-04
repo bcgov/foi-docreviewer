@@ -19,11 +19,12 @@ FOI_DB_USER= os.getenv('FOI_DB_USER')
 FOI_DB_PASSWORD= os.getenv('FOI_DB_PASSWORD') 
 FOI_DB_PORT= os.getenv('FOI_DB_PORT')
 REQUEST_STATUS =  os.getenv('REQUEST_STATUS', "Records Review")
-REQUEST_LIMIT =  os.getenv('REQUEST_LIMIT', 3)
+REQUEST_LIMIT =  int(os.getenv('REQUEST_LIMIT', 5))
 ACTIVEMQ_URL= os.getenv('ACTIVEMQ_URL')
 ACTIVEMQ_USERNAME=os.getenv('ACTIVEMQ_USERNAME')
 ACTIVEMQ_PASSWORD=os.getenv('ACTIVEMQ_PASSWORD')
 ACTIVEMQ_DESTINATION= os.getenv('ACTIVEMQ_DESTINATION',"foidocextract")
+FULL_CONTROL = os.getenv("FULL_CONTROL", "false").lower() == "true"
 
 def getdocreviewerdbconnection():
     conn = psycopg2.connect(
@@ -43,6 +44,12 @@ def getfoidbconnection():
 
 
 def getrequestswithstatus():
+    from_date = os.getenv("FROM_DATE", "2025-02-20")
+
+    if FULL_CONTROL:
+        to_date = os.getenv("TO_DATE")
+    else:
+        to_date = datetime.now().strftime("%Y-%m-%d")
     conn = getfoidbconnection()
     try:
         cursor = conn.cursor()
@@ -73,11 +80,12 @@ def getrequestswithstatus():
                     ON fmr.requeststatusid = frs.requeststatusid
                 JOIN "FOIRequests" fr 
                     ON fmr.foirequest_id = fr.foirequestid 
-                    AND fmr.version = fr.version
+                    AND fmr.foirequestversion_id = fr.version
                 LEFT JOIN "ProgramAreas" pa 
                     ON fmr.programareaid = pa.programareaid
                 WHERE fmr."isactive" = true 
-                AND fr.receiveddate >=NOW() - INTERVAL '10 days'
+                AND fr.receiveddate >= %s
+                AND fr.receiveddate <= %s
                 AND EXISTS (
                     SELECT 1
                     FROM "FOIMinistryRequests" fm2
@@ -88,7 +96,7 @@ def getrequestswithstatus():
                 )
                 ORDER BY fmr.foiministryrequestid, fmr.version DESC;
         '''
-        parameters = (REQUEST_STATUS,)
+        parameters = (from_date, to_date, REQUEST_STATUS,)
         cursor.execute(query, parameters)
         result = cursor.fetchall()
         cursor.close()
@@ -115,10 +123,10 @@ def fetchdocumentsforextraction():
     conn = None
     try:
         requestresults = getrequestswithstatus()
-        #print("requestresults:",requestresults)
         if requestresults:
             request_ids = [item["foiministryrequestid"] for item in requestresults]
-            print("request_ids:",request_ids)
+            print("Total requests:", len(request_ids), "| Request IDs:", request_ids)
+
             conn = getdocreviewerdbconnection()
             cursor = conn.cursor()
             query = '''
@@ -128,60 +136,47 @@ def fetchdocumentsforextraction():
                         'documentid', d.documentid, 
                         'filename', d.filename, 
                         'created_at', d.created_at, 
-                        'filepath', dm.filepath, 
-                        'attributes', da.attributes
+                        'filepath', dm.filepath,
+                        'compressedfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.compressedfilepath
+                                ELSE dm.compressedfilepath
+                            END
+                        ),
+                        'ocrfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.ocrfilepath
+                                ELSE dm.ocrfilepath
+                            END
+                        )
                     )
                 ) AS documents
                 FROM "Documents" d
                 INNER JOIN "DocumentMaster" dm 
                 ON d.documentmasterid = dm.documentmasterid
-                LEFT JOIN "DocumentAttributes" da 
-                ON (dm.processingparentid IS NOT NULL AND dm.processingparentid = da.documentmasterid)
-                OR (dm.processingparentid IS NULL AND dm.documentmasterid = da.documentmasterid)
+                LEFT JOIN "DocumentMaster" parent_dm 
+                ON dm.processingparentid = parent_dm.documentmasterid
                 WHERE d.foiministryrequestid IN %s AND d.incompatible = False
-                AND EXISTS (
-                    SELECT 1 FROM "DocumentHashCodes" dhc
-                    WHERE dhc.documentid = d.documentid
-                    AND dhc.created_at = (
-                        SELECT MIN(dhc_inner.created_at)
-                        FROM "DocumentHashCodes" dhc_inner
-                        WHERE dhc_inner.documentid = d.documentid
-                    )
-                )
-                AND EXISTS (
-                    SELECT 1 FROM "DocumentStatus" ds
-                    WHERE ds.statusid = d.statusid
-                    AND ds.name IN ('new')
-                )
                 AND NOT EXISTS (
-                    SELECT 1 FROM "DocumentDeleted" dd
-                    WHERE dm.filepath LIKE dd.filepath || %s
-                    AND dd.deleted IS TRUE
+                    SELECT 1 FROM "DocumentExtractionJob" dej WHERE dej.documentid = d.documentid
+                    and dej.status = 'extractionsucceeded'
                 )
                 GROUP BY 
                     d.foiministryrequestid
-                ORDER BY 
-                    d.foiministryrequestid;
+                LIMIT %s;
             '''
-            parameters = (tuple(request_ids), '%')
-            # print("\nparameters:",parameters)
-            # print("\nQuery:",query)
+            parameters = (tuple(request_ids), REQUEST_LIMIT)
             cursor.execute(query, parameters)
             result = cursor.fetchall()
-            print("DOCUMENTS RESULT:",result)
-            #breakpoint()
             cursor.close()
             if result:
                 requestswithdocs=[]
                 for entry in result:
                     if entry[1]:
                         row={"foiministryrequestid": entry[0], "documents": entry[1]}
-                        print("\n\nROW:::",row)
                         requestswithdocs.append(row)
                         #requestsforextraction.append(formatdocumentsrequest(row, requestresults))
                 return requestresults, requestswithdocs
-                #print("Requests for extraction:",requestsforextraction)
-                logging.info("No documents to queue for extraction!")
             else:
                 print("No documents found for extraction!")
                 logging.info("No documents found for extraction!")
@@ -200,72 +195,85 @@ def fetchdocumentsforextraction():
 
 def formatdocumentsrequest(requestswithdocs,requestdetails):
     limited_requestdetails= sortandlimitrequests(requestswithdocs,requestdetails)
-    print("\n\nlimited_requestdetails:",limited_requestdetails)
+    #print("\n\nlimited_requestdetails:",limited_requestdetails)
     formatted_requests=[]
     for request in limited_requestdetails:
         requestdocuments = [item for item in requestswithdocs if item["foiministryrequestid"] == request["foiministryrequestid"]]
-        print("\n\nrequest:",request)
         formatted_documents=[]
         for document in requestdocuments[0]["documents"]:
             filename = document["filename"]
             fileextension = os.path.splitext(document["filename"])[1].lower()
             if fileextension not in [".png", ".jpg", ".jpeg", ".gif"]:
                 filename = os.path.splitext(filename)[0] + ".pdf"
-            request_divisions= request["divisions"]
-            print("\nREQUEST_DIVISIONS:",request_divisions)
-            print("\nDOCUMENT_DIVISIONS:",document["attributes"]["divisions"][0])
-            if request_divisions and document["attributes"]["divisions"][0]:
-                documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
-            else:
-                documentdivision = {'DivisionID': 0,'Name': ""}
-            #print("\ndocumentdivision:",documentdivision)
+            # request_divisions= request["divisions"]
+            # print("\nREQUEST_DIVISIONS:",request_divisions)
+            # print("\nDOCUMENT_DIVISIONS:",document["attributes"]["divisions"][0])
+            # if request_divisions and document["attributes"]["divisions"][0]:
+            #     documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
+            # else:
+            documentdivision = {'DivisionID': 0,'Name': ""}
             formatted_documents.append(
                 {
                     "DocumentID": document["documentid"],
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
-                    "CreatedDate": convert_date_string_dynamic_preserve_time(document["created_at"]),
-                    "DocumentS3URL":document["filepath"],
+                    "CreatedDate": reformat_datetime(document["created_at"], "created_at"),
+                    "DocumentS3URL": (
+                        document["ocrfilepath"]
+                        if "ocrfilepath" in document and document["ocrfilepath"]
+                        else (
+                            document["compressedfilepath"]
+                            if "compressedfilepath" in document and document["compressedfilepath"]
+                            else document["filepath"]
+                        )
+                    ),
                     "Divisions": documentdivision
                 }
             )
         formatted_requests.append({
             "RequestNumber": request["axisrequestid"],
             "RequestType": request["requesttype"],
-            "ReceivedDate": convert_datetime_dynamic(request["receiveddate"],"receiveddate"),
+            "ReceivedDate": reformat_datetime(request["receiveddate"],"receiveddate"),
             "MinistryRequestID": str(request["foiministryrequestid"]),
             "MinistryCode":request["programareacode"],
             "RequestMiscInfo":"",
             "Documents": formatted_documents
         })
-        print("\n\nformatted_requests:",formatted_requests)
+        #print("\n\nformatted_requests:",formatted_requests)
     return formatted_requests
 
-def convert_datetime_dynamic(date_obj,datefield):
-    # Example logic: Set to the 1st day of the next month
-    if date_obj.month == 12:
-        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
-    else:
-        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-    if datefield == "receiveddate":
-        result= updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-    else:
-        result= updated_date.strftime("%Y-%m-%dT%H:%M:%S")
-    return result
+    
+def reformat_datetime(input_date, datefield):
+    try:
+        if isinstance(input_date, datetime):
+            dt = input_date
+        else:
+            input_date_str = str(input_date)
+            formats_to_try = [
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S",
+            ]
+            for fmt in formats_to_try:
+                try:
+                    dt = datetime.strptime(input_date_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError("Unsupported date format")
+        if datefield == "batchdate":
+            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception as e:
+        raise ValueError(f"Failed to reformat datetime '{input_date}' for field '{datefield}': {e}")
 
-def convert_date_string_dynamic_preserve_time(input_date_str):
-    date_obj = datetime.strptime(input_date_str, "%Y-%m-%dT%H:%M:%S.%f")
-    # Example logic: Increment the month and reset the day to 1
-    if date_obj.month == 12:
-        updated_date = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
-    else:
-        updated_date = date_obj.replace(month=date_obj.month + 1, day=1)
-    return updated_date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-
-
+# Keeping only sorting & removed the limit
 def sortandlimitrequests(requestswithdocs, requestdetails):
-    request_limit= int(REQUEST_LIMIT)
+    #request_limit= int(REQUEST_LIMIT)
     valid_request_ids = {item["foiministryrequestid"] for item in requestswithdocs}
     # Sort the requestdetails by 'receiveddate' in descending order
     sorted_requestdetails = sorted(
@@ -277,8 +285,8 @@ def sortandlimitrequests(requestswithdocs, requestdetails):
         item for item in sorted_requestdetails if item["foiministryrequestid"] in valid_request_ids
     ]
     # Limit top most recent requests according to the limit given
-    limited_requestdetails = filtered_requestdetails[:request_limit]
-    return limited_requestdetails
+    #limited_requestdetails = filtered_requestdetails[:request_limit]
+    return filtered_requestdetails
 
 def fetchandqueuedocsforextraction():
     requestresults, requestswithdocs= fetchdocumentsforextraction()
@@ -298,12 +306,9 @@ def pushdocstoactivemq(requestsforextraction):
     params = {
     "destination": "queue://"+ACTIVEMQ_DESTINATION
     }
-    print("\nACTIVEMQ_URL:",url)
-    print("\nACTIVEMQ_USERNAME:",username)
     try:
         if requestsforextraction:
             formattedjson= formatbatch(requestsforextraction)
-            print("\n\nFINAL JSON:", formattedjson)
             #Activemq POST request
             response = requests.post(url, auth=(username, password), params=params, json=formattedjson)
             if response.status_code == 200:
@@ -321,7 +326,7 @@ def pushdocstoactivemq(requestsforextraction):
 def formatbatch(requestsforextraction):
     return {
         "BatchID": str(uuid.uuid4()),
-        "Date": convert_datetime_dynamic(datetime.now(),"batchdate"),
+        "Date": reformat_datetime(datetime.now(),"batchdate"),
         "Requests": requestsforextraction
     }
 
@@ -331,7 +336,7 @@ def updatedocumentsstatus(requestsforextraction):
         for request in requestsforextraction:
             for document in request.get("Documents", []):
                 document_ids.append(document["DocumentID"])
-        print("Extracted Document IDs:", document_ids)
+        print("Total documents:", len(document_ids), "| Extracted Document IDs:", document_ids)
         conn = getdocreviewerdbconnection()
         cursor = conn.cursor()
         cursor.execute('''update "Documents" SET statusid = (SELECT statusid
@@ -355,5 +360,4 @@ def updatedocumentsstatus(requestsforextraction):
 if __name__ == "__main__":
     fetchandqueuedocsforextraction()
     
-
 
