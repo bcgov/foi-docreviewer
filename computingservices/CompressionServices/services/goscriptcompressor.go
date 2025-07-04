@@ -114,7 +114,7 @@ func getCPUUsage() float64 {
 
 // Function to compress the PDF
 func compressPDF(inputTempFile string) ([]byte, error) {
-	fmt.Println("Inside compressPDF function")
+	//fmt.Println("Inside compressPDF function")
 	// Write the input file to a temporary file
 	// inputTempFile, err := os.CreateTemp("", "input_*.pdf")
 	// if err != nil {
@@ -134,8 +134,6 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	}
 	defer os.Remove(outputTempFile.Name())
 	defer outputTempFile.Close()
-	// Log the output temp file path
-	fmt.Printf("Output Temp File created")
 	// Ghostscript command to compress the PDF
 	var stderr bytes.Buffer
 	cmd := exec.Command(
@@ -158,11 +156,8 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 		"-sOutputFile="+outputTempFile.Name(),
 		inputTempFile,
 	)
-	// Print the command for debugging
-	//fmt.Printf("Running command: %v\n", cmd)
 	// Set up command's stderr to capture output
 	cmd.Stderr = &stderr
-	// Run the command
 	err = cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String())
@@ -190,24 +185,20 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	secretKey := s3cred.S3SecretKey
 	// Extract filename from the URL
 	urlParts := strings.Split(key, "/")
-	fmt.Println("inside processFileFromPresignedUrl:", urlParts)
 	if len(urlParts) == 0 {
 		return "", 0, "", fmt.Errorf("invalid URL format: %s", key)
 	}
 	filenameWithParams := urlParts[len(urlParts)-1]
 	filename := strings.Split(filenameWithParams, "?")[0]
-	fmt.Println("filename:", filename)
+	//fmt.Println("filename:", filename)
 	ext := strings.ToLower(filepath.Ext(filename))
 	// Step 1: Download file from presigned URL
 	inputTempFile, err := downloadFile(inputUrl, ext)
 	if err != nil {
 		return "", 0, "", fmt.Errorf("failed to download file: %v", err)
 	}
-	fmt.Println("processFile", inputTempFile)
 	// Step 2: Compress the downloaded PDF
-	//compressedPdfData, err := compressPDF(inputPdfData)
 	compressedPdfData, error := processFile(inputTempFile, ext)
-	//fmt.Println("compressedPdfData:", compressedPdfData)
 	if error != nil {
 		return "", 0, "", fmt.Errorf("failed to compress file: %v", error)
 	}
@@ -273,7 +264,7 @@ func downloadFile(url string, ext string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to write response to temp file: %v", err)
 	}
-	fmt.Println("Downloaded to:", tmpFile.Name())
+	//fmt.Println("Downloaded to:", tmpFile.Name())
 	return tmpFile.Name(), nil
 }
 
@@ -298,7 +289,6 @@ func downloadFile(url string, ext string) (string, error) {
 func processFile(inputTempFile string, ext string) ([]byte, error) {
 	switch ext {
 	case ".pdf":
-		fmt.Println("Before read file:", ext)
 		// return processPDF(inputFile, outputFile)
 		return processPDF(inputTempFile)
 	case ".jpg", ".png", ".jpeg":
@@ -352,7 +342,7 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	if idx := strings.Index(presignedUrl, "?"); idx != -1 {
 		s3FilePath = presignedUrl[:idx]
 	}
-	fmt.Println("s3FilePath URL:", s3FilePath)
+	//fmt.Println("s3FilePath URL:", s3FilePath)
 	// Record end time and calculate the time taken for compression
 	duration := time.Since(startTime)
 	//finalCPU := getCPUUsage()
