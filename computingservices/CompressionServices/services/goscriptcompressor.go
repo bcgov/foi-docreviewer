@@ -162,7 +162,6 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String())
 	}
-	fmt.Println("Command Run executed")
 
 	// Check if the output file was created
 	if _, err := os.Stat(outputTempFile.Name()); os.IsNotExist(err) {
@@ -239,7 +238,7 @@ func uploadUsingPresignedURL(presignedURL string, fileData []byte) error {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
 	}
-	fmt.Println("Successfully uploaded the file using presigned URL.")
+	//fmt.Println("Successfully uploaded the file using presigned URL.")
 	return nil
 }
 
