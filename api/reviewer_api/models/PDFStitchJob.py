@@ -98,7 +98,7 @@ class PDFStitchJob(db.Model):
                         PDFStitchJob.pdfstitchjobid == jobid,
                         PDFStitchJob.category == category,
                         PDFStitchJob.status.in_(["completed", "error"]),
-                        DocumentMaster.created_at > PDFStitchJob.createdat,
+                        DocumentMaster.updated_at > PDFStitchJob.createdat,
                     )
                 )
                 .group_by(PDFStitchJob.ministryrequestid, PDFStitchJob.category)
