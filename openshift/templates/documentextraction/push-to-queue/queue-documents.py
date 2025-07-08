@@ -135,7 +135,8 @@ def fetchdocumentsforextraction():
                     JSON_BUILD_OBJECT(
                         'documentid', d.documentid, 
                         'filename', d.filename, 
-                        'created_at', d.created_at, 
+                        'created_at', d.created_at,
+                        'selectedfileprocessversion', d.selectedfileprocessversion, 
                         'filepath', dm.filepath,
                         'compressedfilepath', (
                             CASE 
@@ -212,21 +213,21 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
             #     documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
             # else:
             documentdivision = {'DivisionID': 0,'Name': ""}
+            if "selectedfileprocessversion" in document and document["selectedfileprocessversion"] == 1:
+                document_s3_url = document["filepath"]
+            elif "ocrfilepath" in document and document["ocrfilepath"]:
+                document_s3_url = document["ocrfilepath"]
+            elif "compressedfilepath" in document and document["compressedfilepath"]:
+                document_s3_url = document["compressedfilepath"]
+            else:
+                document_s3_url = document["filepath"]
             formatted_documents.append(
                 {
                     "DocumentID": document["documentid"],
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
                     "CreatedDate": reformat_datetime(document["created_at"], "created_at"),
-                    "DocumentS3URL": (
-                        document["ocrfilepath"]
-                        if "ocrfilepath" in document and document["ocrfilepath"]
-                        else (
-                            document["compressedfilepath"]
-                            if "compressedfilepath" in document and document["compressedfilepath"]
-                            else document["filepath"]
-                        )
-                    ),
+                    "DocumentS3URL": document_s3_url,
                     "Divisions": documentdivision
                 }
             )

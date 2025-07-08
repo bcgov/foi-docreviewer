@@ -216,7 +216,15 @@ class FOIFlowS3PresignedRedline(Resource):
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     # print("filepathlist:" , div["documentlist"][0]["filepath"])
-                    filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                    if "selectedfileprocessversion" in div["documentlist"][0] and div["documentlist"][0]["selectedfileprocessversion"] == 1:
+                        document_s3_url = div["documentlist"][0]["filepath"]
+                    elif "ocrfilepath" in div["documentlist"][0] and div["documentlist"][0]["ocrfilepath"]:
+                        document_s3_url = div["documentlist"][0]["ocrfilepath"]
+                    elif "compressedfilepath" in div["documentlist"][0] and div["documentlist"][0]["compressedfilepath"]:
+                        document_s3_url = div["documentlist"][0]["compressedfilepath"]
+                    else:
+                        document_s3_url = div["documentlist"][0]["filepath"]
+                    filepathlist = document_s3_url.split("/")[4:]
                     if is_single_redline == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
@@ -284,7 +292,16 @@ class FOIFlowS3PresignedRedline(Resource):
                 if is_single_redline and singlepkgpath is None :
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
-                        filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                        if "selectedfileprocessversion" in div["documentlist"][0] and div["documentlist"][0]["selectedfileprocessversion"] == 1:
+                            document_s3_url = div["documentlist"][0]["filepath"]
+                        elif "ocrfilepath" in div["documentlist"][0] and div["documentlist"][0]["ocrfilepath"]:
+                            document_s3_url = div["documentlist"][0]["ocrfilepath"]
+                        elif "compressedfilepath" in div["documentlist"][0] and div["documentlist"][0]["compressedfilepath"]:
+                            document_s3_url = div["documentlist"][0]["compressedfilepath"]
+                        else:
+                            document_s3_url = div["documentlist"][0]["filepath"]
+                        filepathlist = document_s3_url.split("/")[4:]
+                        #filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
                         # print("filepathlist:",filepathlist)
                         filename = filepathlist[0]
                         # print("filename1:",filename)
@@ -316,8 +333,13 @@ class FOIFlowS3PresignedRedline(Resource):
                     if len(div["documentlist"]) > 0:
                         documentlist_copy = div["documentlist"][:]
                         for doc in documentlist_copy:
-                            if doc["filepath"] not in filepaths:
+                            if doc.get("filepath") in filepaths:
                                 filepaths.append(doc["filepath"])
+                            elif doc.get("ocrfilepath") in filepaths:
+                                filepaths.append(doc["ocrfilepath"])
+                            elif doc.get("compressedfilepath") in filepaths:
+                                filepaths.append(doc["compressedfilepath"])
+                            #if doc["filepath"] not in filepaths:
                             else:
                                 div["documentlist"].remove(doc)
                     if len(div["incompatableList"]) > 0:
