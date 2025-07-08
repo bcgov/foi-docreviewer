@@ -474,6 +474,40 @@ class Document(db.Model):
             db.session.close()
 
 
+    @classmethod
+    def updateredactionready(cls, ministryrequestid, documentmasterids, userid):
+        try:
+            sql =   """ update "DocumentMaster"
+                        set isredactionready = true,
+                        updatedby= :updatedby,
+                        updated_at=now()
+                        where documentmasterid IN (
+                            SELECT 
+                                CASE 
+                                    WHEN processingparentid IS NOT NULL THEN processingparentid 
+                                    ELSE documentmasterid 
+                                END
+                            FROM "DocumentMaster"
+                            WHERE isredactionready = false and
+                            documentmasterid IN :documentmasterids
+                        )
+                        AND ministryrequestid = :ministryrequestid
+                        RETURNING documentmasterid
+                    """
+            result= db.session.execute(text(sql), 
+                    {'updatedby':userid,
+                     'ministryrequestid': ministryrequestid, 
+                     'documentmasterids':tuple(documentmasterids)})
+            updated_ids = [row[0] for row in result.fetchall()]
+            print("Redaction Ready set to true for:",updated_ids)
+            db.session.commit()
+            return DefaultMethodResult(True,'Redaction Ready set to true for Documents')
+        except Exception as ex:
+            logging.error(ex)
+            raise ex
+        finally:
+            db.session.close()
+
 class DocumentSchema(ma.Schema):
     class Meta:
         fields = ('documentid', 'version', 'filename', 'documentmaster.filepath', 'attributes', 'foiministryrequestid', 'createdby', 'created_at', 'updatedby', 'updated_at', 'statusid', 'documentstatus.name', 'pagecount', 'selectedfileprocessversion')
