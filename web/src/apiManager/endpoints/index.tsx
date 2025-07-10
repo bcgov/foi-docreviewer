@@ -23,5 +23,6 @@ const API = {
     SOLR_API_URL:`${SOLR_API_BASE_URL}q=foidocumentpagenumber:<pagenum>%20AND%20foidocumentid:<documentid>&fl=foipiijson&wt=json`,
     FOI_SOLR_API_AUTH_URL: `${DOCREVIEWER_BASE_API_URL}/api/foicrosstextsearch/authstring`,
     IDIR_CHECK_URL: `${DOCREVIEWER_BASE_API_URL}/api/bcgovidir/check`,
+    DOCREVIEWER_SAVE_REDLINECONTENT:`${DOCREVIEWER_BASE_API_URL}/api/redlinecontent/save/<ministryrequestid>`,
 };
 export default API;

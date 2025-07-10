@@ -25,7 +25,8 @@ namespace MCS.FOI.S3FileConversion.Utilities
         public static string[] DedupeFormats { get; set; }
 
         public static string[] IncompatibleFormats{ get; set; }
-
+        
+        public static int OpenFileWaitTimeInSeconds { get; set; }
 
     }
 

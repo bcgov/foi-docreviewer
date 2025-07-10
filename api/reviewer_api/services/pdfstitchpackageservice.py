@@ -6,6 +6,8 @@ from reviewer_api.services.jobrecordservice import jobrecordservice
 class pdfstitchpackageservice:
     def getpdfstitchpackage(self, requestid, category):
         """Returns the active records"""
+        if category == "redlinephase" or category == "responsepackagephase":
+            return PDFStitchPackage.getpdfstitchpackages(requestid, category)
         return PDFStitchPackage.getpdfstitchpackage(requestid, category)
 
     def getrecordschanged(self, requestid, category):

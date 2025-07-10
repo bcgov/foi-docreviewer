@@ -135,13 +135,28 @@ def fetchdocumentsforextraction():
                     JSON_BUILD_OBJECT(
                         'documentid', d.documentid, 
                         'filename', d.filename, 
-                        'created_at', d.created_at, 
-                        'filepath', dm.filepath 
+                        'created_at', d.created_at,
+                        'selectedfileprocessversion', d.selectedfileprocessversion, 
+                        'filepath', dm.filepath,
+                        'compressedfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.compressedfilepath
+                                ELSE dm.compressedfilepath
+                            END
+                        ),
+                        'ocrfilepath', (
+                            CASE 
+                                WHEN dm.processingparentid IS NOT NULL THEN parent_dm.ocrfilepath
+                                ELSE dm.ocrfilepath
+                            END
+                        )
                     )
                 ) AS documents
                 FROM "Documents" d
                 INNER JOIN "DocumentMaster" dm 
                 ON d.documentmasterid = dm.documentmasterid
+                LEFT JOIN "DocumentMaster" parent_dm 
+                ON dm.processingparentid = parent_dm.documentmasterid
                 WHERE d.foiministryrequestid IN %s AND d.incompatible = False
                 AND NOT EXISTS (
                     SELECT 1 FROM "DocumentExtractionJob" dej WHERE dej.documentid = d.documentid
@@ -198,13 +213,21 @@ def formatdocumentsrequest(requestswithdocs,requestdetails):
             #     documentdivision = [item for item in request_divisions if item["DivisionID"] == document["attributes"]["divisions"][0]["divisionid"]]
             # else:
             documentdivision = {'DivisionID': 0,'Name': ""}
+            if "selectedfileprocessversion" in document and document["selectedfileprocessversion"] == 1:
+                document_s3_url = document["filepath"]
+            elif "ocrfilepath" in document and document["ocrfilepath"]:
+                document_s3_url = document["ocrfilepath"]
+            elif "compressedfilepath" in document and document["compressedfilepath"]:
+                document_s3_url = document["compressedfilepath"]
+            else:
+                document_s3_url = document["filepath"]
             formatted_documents.append(
                 {
                     "DocumentID": document["documentid"],
                     "DocumentName": filename ,
                     "DocumentType": fileextension[1:].upper(),
                     "CreatedDate": reformat_datetime(document["created_at"], "created_at"),
-                    "DocumentS3URL":document["filepath"],
+                    "DocumentS3URL": document_s3_url,
                     "Divisions": documentdivision
                 }
             )
@@ -338,5 +361,4 @@ def updatedocumentsstatus(requestsforextraction):
 if __name__ == "__main__":
     fetchandqueuedocsforextraction()
     
-
 

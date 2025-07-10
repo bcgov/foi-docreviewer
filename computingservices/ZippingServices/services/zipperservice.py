@@ -41,8 +41,11 @@ def processmessage(message):
         )
         if result.get("success"):
             logging.info("final document path = %s", result.get("documentpath"))
+            category = message.category
+            if message.phase not in ("", None) and ('phase' in category):
+                category = message.category.replace("_", "")
             savefinaldocumentpath(
-                result, message.ministryrequestid, message.category, message.createdby
+                result, message.ministryrequestid, category, message.createdby
             )
             recordjobstatus(
                 pdfstitchmessage=message,
@@ -84,10 +87,10 @@ def processmessage(message):
 def sendnotification(readyfornotification, producermessage):
     if readyfornotification == True and producermessage.category.lower() == "harms":
         notificationservice().sendharmsnotification(producermessage)
-    elif readyfornotification == True and producermessage.category.lower() in (
+    elif readyfornotification == True and (producermessage.category.lower() in (
         "redline",
         "responsepackage",
-    ):
+    ) or "phase" in producermessage.category.lower()):
         notificationservice().sendredlineresponsenotification(producermessage)
 
 
@@ -109,10 +112,12 @@ def __zipfilesandupload(_message, s3credentials):
                 _jsonfiles = json.loads(_message.filestozip)
                 print("\n_jsonfiles:",_jsonfiles)
                 for fileobj in _jsonfiles:
+                    # filename = fileobj["filename"].replace("%20", " ")
                     filename = fileobj["filename"]
                     print("\nfilename:",filename)
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
+                    
                     _formattedbytes = None
                     _filename, extension = path.splitext(fileobj["s3uripath"])
 

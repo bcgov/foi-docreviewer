@@ -119,6 +119,7 @@ class FOIFlowS3PresignedList(Resource):
     def post():
         try:
             data = request.get_json()
+            #print("\n\nFOIFlowS3PresignedList-Data:",data)
             documentmapper = redactionservice().getdocumentmapper(
                 data["documentobjs"][0]["file"]["filepath"].split("/")[3]
             )
@@ -138,8 +139,12 @@ class FOIFlowS3PresignedList(Resource):
             documentobjs = []
             documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
             documents = documentservice().getdocumentbyids(documentids)
+            #print("\n\nFOIFlowS3PresignedList-documents:",documents)
             for documentinfo in data["documentobjs"]:
+                #print("\n\nFOIFlowS3PresignedList-documentinfo:",documentinfo)
+                #s3filepath= documentservice().getdocumentfilepath(documentinfo)
                 filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
+                #print("\n\nFOIFlowS3PresignedList-filepath:",filepath)
                 filename, file_extension = os.path.splitext(filepath)
                 documentinfo["s3url"] = s3client.generate_presigned_url(
                     ClientMethod="get_object",
@@ -164,13 +169,14 @@ class FOIFlowS3PresignedList(Resource):
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/<redactionlayer>/<int:ministryrequestid>/<string:layertype>")
+@API.route("/foiflow/oss/presigned/<redactionlayer>/<int:ministryrequestid>/<string:layertype>/<int:phase>")
 class FOIFlowS3PresignedRedline(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid, redactionlayer="redline", layertype="redline"):
+    def post(ministryrequestid, redactionlayer="redline", layertype="redline", phase=None):
         try:            
             data = request.get_json()
             # print("data!:",data)
@@ -211,13 +217,25 @@ class FOIFlowS3PresignedRedline(Resource):
             for div in data["divdocumentList"]:
                 if len(div["documentlist"]) > 0:
                     # print("filepathlist:" , div["documentlist"][0]["filepath"])
-                    filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                    if "selectedfileprocessversion" in div["documentlist"][0] and div["documentlist"][0]["selectedfileprocessversion"] == 1:
+                        document_s3_url = div["documentlist"][0]["filepath"]
+                    elif "ocrfilepath" in div["documentlist"][0] and div["documentlist"][0]["ocrfilepath"] is not None:
+                        document_s3_url = div["documentlist"][0]["ocrfilepath"]
+                    elif "compressedfilepath" in div["documentlist"][0] and div["documentlist"][0]["compressedfilepath"] is not None:
+                        document_s3_url = div["documentlist"][0]["compressedfilepath"]
+                    else:
+                        document_s3_url = div["documentlist"][0]["filepath"]
+                    filepathlist = document_s3_url.split("/")[4:]
                     if is_single_redline == False:
                         division_name = div["divisionname"]
                         # generate save url for stitched file
                         filepath_put = "{0}/{2}/{1}/{0} - {2} - {1}.pdf".format(
                             filepathlist[0], division_name, packagetype
                         )
+                        if packagetype == "redline" and phase is not None:
+                            filepath_put = "{0}/{3}/{1}/{0} - {2} - {1}.pdf".format(
+                                filepathlist[0], division_name, f"Redline - Phase {phase}", f"{packagetype}_phase{phase}"
+                            )
                         if packagetype == "consult":
                             filepath_put = "{0}/{2}/{2} - {1} - {0}.pdf".format(
                                 filepathlist[0], division_name, 'Consult'
@@ -237,9 +255,17 @@ class FOIFlowS3PresignedRedline(Resource):
                         div["s3path_save"] = s3path_save
                     for doc in div["documentlist"]:
                         realfilepath = documentservice().getfilepathbydocumentid(doc["documentid"])
+                        if "selectedfileprocessversion" in realfilepath and realfilepath["selectedfileprocessversion"] == 1:
+                            document_s3_url = realfilepath["filepath"]
+                        elif "ocrfilepath" in realfilepath and realfilepath["ocrfilepath"] is not None:
+                            document_s3_url = realfilepath["ocrfilepath"]
+                        elif "compressedfilepath" in realfilepath and realfilepath["compressedfilepath"] is not None:
+                            document_s3_url = realfilepath["compressedfilepath"]
+                        else:
+                            document_s3_url = realfilepath["filepath"]
                         # filepathlist = doc["filepath"].split("/")[4:]
-                        filepathlist = realfilepath.split("/")[4:]
-                        
+                        filepathlist = document_s3_url.split("/")[4:]
+                        #print("filepathlist:",filepathlist)
                         # for load/get
                         filepath_get = "/".join(filepathlist)
                         
@@ -253,7 +279,6 @@ class FOIFlowS3PresignedRedline(Resource):
                                         if file_extension_get.lower() in originalextensions
                                         else "pdf"
                                 )
-
                         doc["s3path_load"] = s3client.generate_presigned_url(
                                         ClientMethod="get_object",
                                         Params={
@@ -276,13 +301,26 @@ class FOIFlowS3PresignedRedline(Resource):
                 if is_single_redline and singlepkgpath is None :
                     if len(div["documentlist"]) > 0 or len(div["incompatableList"]) > 0:
                         div = data["divdocumentList"][0] 
-                        filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
-                        # print("filepathlist:",filepathlist)
+                        if "selectedfileprocessversion" in div["documentlist"][0] and div["documentlist"][0]["selectedfileprocessversion"] == 1:
+                            doc_s3_url = div["documentlist"][0]["filepath"]
+                        elif "ocrfilepath" in div["documentlist"][0] and div["documentlist"][0]["ocrfilepath"] is not None:
+                            doc_s3_url = div["documentlist"][0]["ocrfilepath"]
+                        elif "compressedfilepath" in div["documentlist"][0] and div["documentlist"][0]["compressedfilepath"] is not None:
+                            doc_s3_url = div["documentlist"][0]["compressedfilepath"]
+                        else:
+                            doc_s3_url = div["documentlist"][0]["filepath"]
+                        filepathlist = doc_s3_url.split("/")[4:]
+                        #filepathlist = div["documentlist"][0]["filepath"].split("/")[4:]
+                        #print("filepathlist-is_single_redline:",filepathlist)
                         filename = filepathlist[0]
-                        # print("filename1:",filename)
-                        filepath_put = "{0}/{2}/{1}-Redline.pdf".format(
-                            filepathlist[0],filename, packagetype
-                        )
+                        if packagetype == "redline" and phase is not None:
+                            filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
+                                filepathlist[0],filename, f"{packagetype}_phase{phase}", f"Redline - Phase {phase}"
+                            )
+                        else:
+                            filepath_put = "{0}/{2}/{1} - Redline.pdf".format(
+                                filepathlist[0],filename, packagetype
+                            )
                         # print("filepath_put:",filepath_put)
                         s3path_save = s3client.generate_presigned_url(
                             ClientMethod="get_object",
@@ -303,8 +341,16 @@ class FOIFlowS3PresignedRedline(Resource):
                     if len(div["documentlist"]) > 0:
                         documentlist_copy = div["documentlist"][:]
                         for doc in documentlist_copy:
-                            if doc["filepath"] not in filepaths:
+                            if ("selectedfileprocessversion" in doc and doc.get("selectedfileprocessversion")==1 and 
+                                doc.get("filepath") not in filepaths):
                                 filepaths.append(doc["filepath"])
+                            elif "ocrfilepath" in doc and doc.get("ocrfilepath") not in filepaths:
+                                filepaths.append(doc["filepath"])
+                            elif "compressedfilepath" in doc and doc.get("compressedfilepath") not in filepaths:
+                                filepaths.append(doc["compressedfilepath"])
+                            elif doc.get("filepath") not in filepaths: 
+                                    filepaths.append(doc["filepath"])
+                            #if doc["filepath"] not in filepaths:
                             else:
                                 div["documentlist"].remove(doc)
                     if len(div["incompatableList"]) > 0:
@@ -335,7 +381,9 @@ class FOIFlowS3PresignedResponsePackage(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post(ministryrequestid):
         try:
-            data = request.get_json()
+            json_data = request.get_json()
+            data = json_data["documentsInfo"]
+            phase = json_data["phase"]
             documentmapper = redactionservice().getdocumentmapper(
                 data["filepath"].split("/")[3]
             )
@@ -357,8 +405,12 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
-            filepath_put = "{0}/responsepackage/{1}.pdf".format(
-                filepathlist[0], filename
+            if phase is not None:
+                filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
+                    filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase {phase}")
+            else:
+                filepath_put = "{0}/responsepackage/{1}.pdf".format(
+                    filepathlist[0], filename
             )
 
             # filename_put, file_extension_put = os.path.splitext(filepath_put)

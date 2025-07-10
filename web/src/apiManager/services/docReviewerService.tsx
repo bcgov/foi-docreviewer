@@ -634,4 +634,34 @@ export const checkIDIR = (
       console.log(error);
       errorCallback("Error in checking IDIR");
     });
+  }
+
+  export const saveRedlineContent = (
+  foiministryrquestid: string,
+  data: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = replaceUrl(
+    API.DOCREVIEWER_SAVE_REDLINECONTENT,
+    "<ministryrequestid>",
+    foiministryrquestid
+  )
+  
+  httpPOSTRequest({
+    url: apiUrlPost,
+    data: data,
+    token: UserService.getToken() ?? '',
+    isBearer: true
+  })
+    .then((res: any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error("Error while posting redline content");
+      }
+    })
+    .catch((error: any) => {
+      errorCallback("Error in posting redline content");
+    });
 };
