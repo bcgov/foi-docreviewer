@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"compressionservices/models"
-	"compressionservices/rstreamio"
 	"compressionservices/services"
 	"compressionservices/utils"
 
@@ -100,13 +99,13 @@ func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessag
 	if hasError {
 		fmt.Printf("Batch not yet complete")
 	}
-	//fmt.Printf("Batch completed:%v\n", complete)
+	fmt.Printf("Batch completed:%v\n", complete)
 	//Placeholder for notification logic
-	if complete {
-		rstreamio.SendNotification(producerMessage, hasError)
-	} else {
-		fmt.Printf("Batch not yet complete, no message sent")
-	}
+	// if complete {
+	// 	rstreamio.SendNotification(producerMessage, hasError)
+	// } else {
+	// 	fmt.Printf("Batch not yet complete, no message sent")
+	// }
 	// Update last processed ID
 	if err := rdb.Set(ctx, lastIDKey, msg.ID, 0).Err(); err != nil {
 		return fmt.Errorf("error saving last ID to Redis: %w", err)
