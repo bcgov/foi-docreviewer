@@ -181,6 +181,7 @@ const Redlining = React.forwardRef(
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     const [isPIIDetection,setPIIDetection] = useState(false);
+    const [PIICategories,setPIICategories] = useState(PII_CATEGORIES.split(','));
     const [assignedPhases, setAssignedPhases] = useState(null);
     const [redlinePhase, setRedlinePhase] = useState(null);
     const [annottext,setannottext]=useState([])
