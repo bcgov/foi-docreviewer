@@ -572,10 +572,6 @@ export const editPersonalAttributes = (
 )
     .then((res) => {
       if (res.data) {
-        //console.log("res:",res)
-        const result = res.data;
-        //store.dispatch(setSOLRAuth(res.data) as any);
-        //callback(result);
         return res.data; // ✅ Return the result for further use
       } else {
         console.log("No response from SOLR AUTH API");
