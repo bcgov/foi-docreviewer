@@ -40,6 +40,7 @@ from reviewer_api.utils.constants import FILE_CONVERSION_FILE_TYPES
 
 import requests
 import logging
+import base64
 
 API = Namespace(
     "FOI Flow Master Data", description="Endpoints for FOI Flow master data"
@@ -447,6 +448,28 @@ class WebveiwerLicense(Resource):
             return json.dumps({"license": webviewerlicense}), 200
         except BusinessException as exception:
             return {"status": exception.status_code, "message": exception.message}, 500
+        
+@cors_preflight('GET,OPTIONS')
+@API.route('/foicrosstextsearch/authstring')
+class FOISolr(Resource):
+    """Get users"""
+
+       
+    @staticmethod
+    @TRACER.trace()
+    @cross_origin(origins=allowedorigins())
+    @auth.require
+    @auth.hasusertype('iao')
+    def get():      
+        try:                        
+            usernamepassword ="%s:%s" % (os.getenv("FOI_SOLR_USERNAME"),os.getenv("FOI_SOLR_PASSWORD"))     
+            print("usernamepassword:",usernamepassword)       
+            unamepassword_bytes = usernamepassword.encode("utf-8")
+            # Encode the bytes to Base64
+            base64_encoded = base64.b64encode(unamepassword_bytes)
+            return base64_encoded, 200
+        except BusinessException as exception:            
+            return {'status': exception.status_code, 'message':exception.message}, 500
 
 
 @cors_preflight('GET,OPTIONS')

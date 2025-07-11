@@ -131,3 +131,17 @@ export const setFOIPersonalSections = (data: any) => (dispatch:any) =>{
         payload:data      
     })
   }
+
+  export const setSOLRAuth =  (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_SOLR_AUTH,
+        payload:data      
+    })
+  }
+
+  export const setPIIJSONList =  (data: any) => (dispatch:any) =>{
+    dispatch({
+        type:ACTION_CONSTANTS.FOI_SOLR_PII_VALUES,
+        payload:data      
+    })
+  }
