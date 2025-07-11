@@ -156,25 +156,8 @@ def isbatchcompleted(batch):
             (batch,)
         )
         (dedupeinprogress, dedupeerr, _dedupecompleted) = cursor.fetchone()
-        if dedupeinprogress > 0:
-            cursor.close()
-            conn.close()
-            return False, dedupeerr > 0
-        cursor.execute('''select count(1) filter (where status = 'pushedtostream' or status = 'started') as inprogress,
-            count(1) filter (where status = 'error') as error,
-            count(1) filter (where status = 'completed') as completed
-            from (select max(version) as version,  compressionjobid
-            from public."CompressionJob"
-            where batch = %s
-            group by compressionjobid) sq
-            join public."CompressionJob" dj
-                on dj.compressionjobid = sq.compressionjobid
-                and dj.version = sq.version;''',
-            (batch,)
-        )
-        (compressioninprogress, compressionerr, _compressioncompleted) = cursor.fetchone()
         cursor.close()
-        return dedupeinprogress == 0 and conversioninprogress == 0 and compressioninprogress == 0, dedupeerr+conversionerr+compressionerr > 0
+        return dedupeinprogress == 0 and conversioninprogress == 0, dedupeerr+conversionerr > 0
     except(Exception) as error:
         print("Exception while executing func isbatchcompleted (p2), Error : {0} ".format(error))
         raise
