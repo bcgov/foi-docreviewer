@@ -21,6 +21,7 @@ import {
   saveRotateDocumentPage,
   deleteDocumentPages,
   savePageFlag,
+  saveRedlineContent
 } from "../../../apiManager/services/docReviewerService";
 import {
   PDFVIEWER_DISABLED_FEATURES,
@@ -89,6 +90,9 @@ const Redlining = React.forwardRef(
       pageFlags, 
       syncPageFlagsOnAction,
       isPhasedRelease,
+      isAnnotationsLoading,
+      setIsAnnotationsLoading,
+      setAreAnnotationsRendered,
     },
     ref
   ) => {
@@ -154,6 +158,7 @@ const Redlining = React.forwardRef(
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
     const [assignedPhases, setAssignedPhases] = useState(null);
     const [redlinePhase, setRedlinePhase] = useState(null);
+    const [annottext,setannottext]=useState([])
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -828,12 +833,16 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
+            setIsAnnotationsLoading(true);
             fetchAnnotationsByPagination(
               requestid,
               1,
               ANNOTATION_PAGE_SIZE,
               async (data) => {
                 let meta = data["meta"];
+                if (meta["has_next"] === false) { 
+                  setIsAnnotationsLoading(false);
+                }
                 if (!fetchAnnotResponse) {
                   setMerge(true);
                   setFetchAnnotResponse(data);
@@ -871,6 +880,7 @@ const Redlining = React.forwardRef(
               },
               (error) => {
                 console.log("Error:", error);
+                setIsAnnotationsLoading(false);
               },
               currentLayer.name.toLowerCase(),
               BIG_HTTP_GET_TIMEOUT
@@ -912,6 +922,63 @@ const Redlining = React.forwardRef(
         }
       });
     };
+
+      let extractedTexts = [];
+  
+    const  extractRedlineText = async function _extractRedlineText(annotations) {
+      
+      if(annotations)
+      {
+          
+          for (const annotation of annotations) {
+          var annotpageNumber = annotation.PageNumber
+          var actualpagenum = pageMappedDocs?.stitchedPageLookup[annotpageNumber].page
+          var docid =   pageMappedDocs?.stitchedPageLookup[annotpageNumber].docid            
+          if(annotation.Subject === "Redact")
+          {
+            const rect = annotation.getRect();
+            const text =  await docViewer.getDocument().getTextByPageAndRect(annotpageNumber, rect);                           
+            extractedTexts.push({
+                type: "RedlineContent",
+                text: text,
+                page: actualpagenum,
+                documentid: docid,
+                annotationid:annotation.Id,
+                category:annotation.type              
+              });
+            setannottext(extractedTexts);
+          }
+          else if(annotation.Subject === "Free Text")
+          {
+            let _annottext=''           
+            //console.log(_annottext)
+            annottext?.push({
+              type: "RedlineContentSection",
+              text: annotation.getContents(),
+              page: actualpagenum,
+              documentid: docid,
+              annotationid:annotation.Id
+            });
+            
+          }
+        }
+        if (annottext.some(item => item.type === "RedlineContentSection")) {
+            saveRedlineContent(
+              requestid,
+              annottext,
+              (data) => {
+                console.log("Redline content posted successfully", data);
+              },
+              (err) => {
+                console.error("Error posting redline content", err);
+              }
+            );
+            setannottext([]);
+          }
+        // console.log(`extractedTexts: ${annottext}`)
+       
+      }
+    }
 
     const annotationChangedHandler = useCallback(
       (annotations, action, info) => {
@@ -1077,7 +1144,8 @@ const Redlining = React.forwardRef(
               let displayedDoc;
               let individualPageNo;
 
-              await removeRedactAnnotationDocContent(annotations);
+              //await removeRedactAnnotationDocContent(annotations);
+               await extractRedlineText(annotations);
               
               if (annotations[0].Subject === "Redact") {
                 let pageSelectionList = [...pageSelections];
@@ -1576,7 +1644,7 @@ const Redlining = React.forwardRef(
       }
     };
 
-    const applyAnnotationsFunc = () => {
+    const applyAnnotationsFunc = async () => {
       let domParser = new DOMParser();
       if (fetchAnnotResponse) {
         assignAnnotationsPagination(
@@ -1586,7 +1654,7 @@ const Redlining = React.forwardRef(
         );
         let meta = fetchAnnotResponse["meta"];
         if (meta["has_next"] === true) {
-          fetchandApplyAnnotations(
+          await fetchandApplyAnnotations(
             pageMappedDocs,
             domParser,
             meta["next_num"],
@@ -1602,23 +1670,39 @@ const Redlining = React.forwardRef(
       startPageIndex = 1,
       lastPageIndex = 1
     ) => {
+      setIsAnnotationsLoading(true);
+      const fetchPromises = [];
       for (let i = startPageIndex; i <= lastPageIndex; i++) {
-        fetchAnnotationsByPagination(
+        const promise = new Promise((resolve, reject) => {
+          fetchAnnotationsByPagination(
           requestid,
           i,
           ANNOTATION_PAGE_SIZE,
           async (data) => {
             assignAnnotationsPagination(mappedDocs, data["data"], domParser);
+            resolve();
           },
           (error) => {
             console.log("Error:", error);
             setErrorMessage(
               "Error occurred while fetching redaction details, please refresh browser and try again"
             );
+            reject(error);
           },
           currentLayer.name.toLowerCase(),
           BIG_HTTP_GET_TIMEOUT
-        );
+          );
+        });
+        fetchPromises.push(promise);
+      }
+      try {
+        await Promise.all(fetchPromises);
+        setIsAnnotationsLoading(false);
+      }
+      catch(err) {
+        console.error("Error:", err);
+        setErrorMessage("Error in fetching and applying all annotations, please refresh browser and try again");
+        setIsAnnotationsLoading(false);
       }
     };
 
@@ -1688,7 +1772,21 @@ const Redlining = React.forwardRef(
       }
     };
 
+    //useEffect that ensures that all annotations are rendered to FE Object after all annotations are fetched from BE and documents stitched
     useEffect(() => {
+      if (!docViewer) return;
+      setAreAnnotationsRendered(false);
+      if (!isAnnotationsLoading && isStitchingLoaded) {
+        console.log("Annotation loading started....");
+        docViewer.getAnnotationsLoadedPromise().then(() => {
+          console.log("Annotation loading complete");
+          setAreAnnotationsRendered(true);
+        })
+      }
+    }, [docViewer, setAreAnnotationsRendered, isAnnotationsLoading, isStitchingLoaded]);
+
+    useEffect(() => {
+      const handleSingleFileDocumentLoaded = async () => {
       if (docsForStitcing.length > 0) {
         setDocumentList(getDocumentsForStitching([...docsForStitcing])?.map(docs => docs.file));
       }
@@ -1711,12 +1809,14 @@ const Redlining = React.forwardRef(
         }
         else if (doclistCopy.length === 1){
           
-          applyAnnotationsFunc();
+          await applyAnnotationsFunc();
           setIsStitchingLoaded(true);
           setpdftronDocObjects([]);
           setstichedfiles([]);
         }
       }
+    }
+    handleSingleFileDocumentLoaded();
     }, [
       pdftronDocObjects,
       docsForStitcing,
@@ -1726,19 +1826,22 @@ const Redlining = React.forwardRef(
     ]);
 
     useEffect(() => {
+      const handleDivisionFileDocumentLoad = async () => {
       if (stitchPageCount === docsForStitcing.totalPageCount) {
         console.log(`Download and Stitching completed.... ${new Date()}`);
 
         if (stitchPageCount > 800) {
           docInstance.UI.setLayoutMode(docInstance.UI.LayoutMode.Single);
         }
-        applyAnnotationsFunc();
+        await applyAnnotationsFunc();
         setIsStitchingLoaded(true);
         setPagesRemoved([]);
         setSkipDeletePages(false);
         setpdftronDocObjects([]);
         setstichedfiles([]);
       }
+    }
+    handleDivisionFileDocumentLoad();
     }, [stitchPageCount]);
 
     useEffect(() => {

@@ -47,6 +47,8 @@ function Home() {
   const [pageFlags, setPageFlags]= useState([]);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
   const [outstandingBalance, setOutstandingBalance]= useState(0);
+  const [isAnnotationsLoading, setIsAnnotationsLoading] = useState(true);
+  const [areAnnotationsRendered, setAreAnnotationsRendered] = useState(false);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -303,9 +305,12 @@ function Home() {
                   pageMappedDocs={pageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
+                  setIsAnnotationsLoading={setIsAnnotationsLoading}
+                  setAreAnnotationsRendered={setAreAnnotationsRendered}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  isAnnotationsLoading={isAnnotationsLoading}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
@@ -315,7 +320,7 @@ function Home() {
               )
             // : <div>Loading</div>
           }
-          {!isStitchingLoaded && (
+          {(!isStitchingLoaded || isAnnotationsLoading || !areAnnotationsRendered) && (
             <div className="merging-overlay">
               <div>
                 <DocumentLoader />

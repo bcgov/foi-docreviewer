@@ -28,6 +28,8 @@ from utils import (
     dedupe_s3_env,
     request_management_api,
     file_conversion_types,
+    needs_ocr,
+    has_fillable_forms,
 )
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -163,7 +165,6 @@ def wrap_text(text, width, font, font_size, canvas):
                 else:
                     #If the word doesn't fit, append the current line and start a new one
                     if line:
-                        print("line::",line)
                         wrapped_lines.append(line)  # Append current line
                     line = ""  # Reset line
                     # Handle long words that need to be broken up
@@ -186,13 +187,11 @@ def wrap_text(text, width, font, font_size, canvas):
         print(f"Error in wrapping the text comments in each page: {e}")
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
-    print("\nInside clear Metadata!")
     # clear metadata
     reader2 = PyPDF2.PdfReader(BytesIO(response.content)) 
     _hasannotations = has_annotations(reader)   
     # Check if metadata exists.
     if reader2.metadata is not None or _hasannotations:
-        print("\n#Metadata!")
         # Create a new PDF file without metadata.
         writer = PyPDF2.PdfWriter()
         # Copy pages from the original PDF to the new PDF.
@@ -234,32 +233,36 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
 
 
 def __flattenfitz(docbytesarr):
-    print("\n__flattenfitz")
     doc = fitz.open(stream=BytesIO(docbytesarr), filetype="pdf")
-    print("\ndoc:",doc)
     out = fitz.open()  # output PDF
     for page_num in range(len(doc)):
         #page = doc[page_num]
         page = doc.load_page(page_num) 
         print("\nPage:",page)
-        widget_exist = page.first_widget is not None
-        w, h = page.rect.br  # page width and height
+        rotation = page.rotation
+        # print("\nRotation:",rotation)
+        # Reset rotation to 0 to ensure consistent rendering of page content
+        if rotation != 0:
+            page.set_rotation(0)
+        w = page.rect.width # page width
+        h = page.rect.height # page height
         # Create a new page in the output document with the same size
         outpage = out.new_page(width=w, height=h)
-        print("\noutpage:",outpage)
         # Render the page text (keeping it searchable)
-        outpage.show_pdf_page(page.rect, doc, page_num)
+        rect = fitz.Rect(0, 0, w, h)
+        outpage.show_pdf_page(rect, doc, page_num)
+        outpage.set_rotation(rotation) # set rotation of new page to match document page
         #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
         print("\nannot",annot)
+        widget_exist = page.first_widget is not None
         if widget_exist:
             print("\nwidget_exist:",widget_exist)
             pix = page.get_pixmap(dpi=150)  # set desired resolution
             outpage.insert_image(page.rect, pixmap=pix)
 
         while annot:
-            print("\nWhile Annot!")
             try:
                 annot_rect = annot.rect  # Get the annotation's rectangle
                 # Check for invalid annotation dimensions (zero width/height)
@@ -334,7 +337,6 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
             text = c.beginText(40, title_height-45)
             text.setFont(font, font_size)
             for line in comment_page:
-                print("\nLine:",line)
                 number = line['commentnumber']
                 text_content = line['text']
                 author = line.get('author', 'N/A') 
@@ -396,9 +398,7 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 author = annotation_obj["/T"] if "/T" in annotation_obj else ""
                 subject = annotation_obj["/Subj"] if "/Subj" in annotation_obj else ""
                 annotationdate=annotation_obj["/CreationDate"] if "/CreationDate" in annotation_obj else ""
-                #print(f'annotationdate:{annotationdate} , comment:{comment}')
                 creationdate= __converttoPST(annotationdate) if annotationdate else ""
-                #print("\ncreationdate:", creationdate)
                 comments.append({
                     'page': page_num + 1,
                     'text': comment,
@@ -480,7 +480,6 @@ def gets3documenthashcode(producermessage):
         producermessage.attributes.get("isattachment", False) and producermessage.trigger == "recordreplace"
         ):
         reader = PdfReader(BytesIO(response.content))
-        
         # "No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
         attachments = []
@@ -534,6 +533,8 @@ def gets3documenthashcode(producermessage):
                 )
                 saveresponse.raise_for_status()   
         fitz_reader.close()
+        # check to see if pdf file needs ocr service
+        #ocr_needed = verify_ocr_needed(response.content, producermessage)
         # clear metadata
         try:
             filenamewithextension=_filename+extension.lower()
@@ -547,8 +548,13 @@ def gets3documenthashcode(producermessage):
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
+        # check to see if converted pdf file needs ocr service
+        #ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)
         # "Converted PDF , No of pages in {0} is {1} ".format(_filename, len(reader.pages)))
         pagecount = len(reader.pages)
+    #else:
+        # check to see if non-pdf file need ocr service
+        #ocr_needed = False #verify_ocr_needed(response.content, producermessage)
 
     if reader:
         BytesIO().close()
@@ -598,6 +604,13 @@ def __converttoPST(creationdate):
     except Exception as e:
         print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
         return "Unknown PST"
-
-
-
+    
+def verify_ocr_needed(content, message):
+    try:
+        if (message.incompatible is not None and message.incompatible.lower() == 'true'):
+            return False
+        with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
+            ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
+            return ocr_required
+    except Exception as e:
+        print(f"Error in ocr validation: {e}")

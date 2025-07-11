@@ -443,7 +443,6 @@ const useSaveResponsePackage = (redlinePhase) => {
   };
   const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
-    //setEnableSavingFinal(true)
     setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
