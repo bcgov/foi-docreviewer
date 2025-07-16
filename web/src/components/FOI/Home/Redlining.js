@@ -21,6 +21,9 @@ import {
   saveRotateDocumentPage,
   deleteDocumentPages,
   savePageFlag,
+  fetchPIIByPageNumDocumentID,
+  getsolrauth,
+  checkIDIR,
   saveRedlineContent
 } from "../../../apiManager/services/docReviewerService";
 import {
@@ -29,7 +32,10 @@ import {
   REDACTION_SELECT_LIMIT,
   BIG_HTTP_GET_TIMEOUT,
   REDLINE_OPACITY,
-  REDACTION_SECTION_BUFFER
+  REDACTION_SECTION_BUFFER,
+  PII_CATEGORIES,
+  PII_BLACKLIST,
+  PII_NUM_ROWS
 } from "../../../constants/constants";
 import { errorToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
@@ -64,12 +70,24 @@ import {
   renderCustomButton,
   isValidRedlineDownload,
   isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+import {
+  createSettingsDropDownMenu,
+  createPIIToggleButton,
+  createCategorySelector,
+  renderCustomSettingsButton,
+  createTextToggle,
+  createOpacityToggle,
+  createSeperator,
+  createCategoryHeader
+
+} from "./SettingsMenu/SettingsMenu" 
 import useSaveRedlineForSignoff from "./CreateResponsePDF/useSaveRedlineForSignOff";
 import useSaveResponsePackage from "./CreateResponsePDF/useSaveResponsePackage";
 import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
 import FeeOverrideModal from "./FeeOverrideModal";
+import { ReactComponent as RedactLogo } from "../../../assets/images/mark-redact.svg";
 
 const Redlining = React.forwardRef(
   (
@@ -89,6 +107,8 @@ const Redlining = React.forwardRef(
       outstandingBalance,
       pageFlags, 
       syncPageFlagsOnAction,
+      documentPageNo_pii,
+      documentID_pii,
       isPhasedRelease,
       isAnnotationsLoading,
       setIsAnnotationsLoading,
@@ -97,6 +117,9 @@ const Redlining = React.forwardRef(
     ref
   ) => {
     const alpha = REDLINE_OPACITY;
+
+    const piiblacklist = PII_BLACKLIST.split(",")
+
     const requestnumber = useAppSelector(
       (state) => state.documents?.requestnumber
     );
@@ -106,7 +129,8 @@ const Redlining = React.forwardRef(
     const redactionInfo = useSelector(
       (state) => state.documents?.redactionInfo
     );
-    const sections = useSelector((state) => state.documents?.sections);
+    const solrauthtoken = useSelector((state) => state.documents?.foisolrauth);
+    const sections = useSelector((state) => state.documents?.sections);    
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
@@ -156,6 +180,8 @@ const Redlining = React.forwardRef(
     const [isOverride, setIsOverride]= useState(false);
     const [feeOverrideReason, setFeeOverrideReason]= useState("");   
     const [isWatermarkSet, setIsWatermarkSet] = useState(false);
+    const [isPIIDetection,setPIIDetection] = useState(false);
+    const [PIICategories,setPIICategories] = useState(PII_CATEGORIES.split(','));
     const [assignedPhases, setAssignedPhases] = useState(null);
     const [redlinePhase, setRedlinePhase] = useState(null);
     const [annottext,setannottext]=useState([])
@@ -194,6 +220,7 @@ const Redlining = React.forwardRef(
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
   
+    
 
     useEffect(() => {
       if (annotManager) {
@@ -213,6 +240,51 @@ const Redlining = React.forwardRef(
       }
 
     }, [isRedlineOpaque])
+
+   // Function to extract only "Person" entities
+    const getPIITypeValues = function (data) {
+      let piientities = [];
+
+      data.response.docs.forEach(doc => {
+        doc.foipiijson?.forEach(jsonString => {
+          const parsedData = JSON.parse(jsonString); // Convert string to JSON object
+          
+          parsedData.documents.forEach(document => {
+            document.entities.forEach(entity => {
+              var matches = false;
+              for (let category of PIICategories) {
+                if (category === 'Age') {
+                  if (entity.subcategory === 'Age') {
+                    matches = true;
+                    break;
+                  }
+                } else if (category === 'PassportNumber') {
+                  const regex = new RegExp(category)
+                  if (regex.test(entity.category)) {
+                    matches = true;
+                    break;
+                  }
+                } else {
+                  if (entity.category === category) {
+                    matches = true;
+                    break;
+                  }
+                }
+              }
+              if (matches) {
+                if(!piiblacklist.some(s => entity.text.includes(s)))
+                  { piientities.push(entity.text.replace(/[.*+?^${}()[\]\\]/g, '\\$&')); }
+              }
+            });
+          });
+        });
+      });
+
+      return piientities;
+    }
+
+   
+
 
     useEffect(() => {
       let initializeWebViewer = async () => {
@@ -242,7 +314,7 @@ const Redlining = React.forwardRef(
             annotationManager,
             Annotations,
             PDFNet,
-            Math,
+            Math                              
           } = instance.Core;
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
@@ -282,12 +354,21 @@ const Redlining = React.forwardRef(
             menu.appendChild(finalPackageBtn);
             menu.appendChild(consultPackageButton);
             parent.appendChild(menu);
+          
+
+            
+
 
             //Create render function to render custom Create Reseponse PDF button
             const newCustomElement = {
               type: "customElement",
               render: () => renderCustomButton(document, menu)
             };
+
+           
+
+            
+
             // insert dropdown button in front of search button
             header.headers.default.splice(
               header.headers.default.length - 3,
@@ -321,12 +402,6 @@ const Redlining = React.forwardRef(
               )
             };
 
-            header.headers.default.splice(
-              header.headers.default.length - 4,
-              0,
-              opacityToggle
-            );
-
             const textSelectorToggle = {
               type: 'customElement',
               render: () => (
@@ -357,11 +432,49 @@ const Redlining = React.forwardRef(
               )
             };
 
+            const addSeparatorIfNotExists = (menu) => {
+              // Check if the last child is already a separator
+              if (!menu.lastChild || menu.lastChild.tagName !== "HR") {
+                  const seperator = createSeperator(document)
+                  menu.appendChild(seperator);
+              }
+          };
+
+            const settingsMenu = createSettingsDropDownMenu(document)
+            
+
+            const doccontentoptions = createCategoryHeader(document,"Document Review")
+
+            const PIItogglebutton = createPIIToggleButton(document,setPIIDetection, isPIIDetection)     
+            // const categoryselector = createCategorySelector(document,setPIICategories)        
+            const texttogglebutton = createTextToggle(document,instance.Core.Tools.RedactionCreateTool)
+            const opacitytogglebutton = createOpacityToggle(document,setIsRedlineOpaque)
+            const aisettings = createCategoryHeader(document,"AI Settings")
+            
+            doccontentoptions.appendChild(texttogglebutton) 
+            doccontentoptions.appendChild(opacitytogglebutton)
+            settingsMenu.appendChild(doccontentoptions) 
+            addSeparatorIfNotExists(settingsMenu)
+
+            aisettings.appendChild(PIItogglebutton)
+            // aisettings.appendChild(categoryselector)
+            settingsMenu.appendChild(aisettings)
+                      
+            parent.appendChild(settingsMenu);
+
+            const newCustomSettingsElement = {
+              type: "customElement",
+              render: () => renderCustomSettingsButton(document, settingsMenu)
+            };
+
             header.headers.default.splice(
-              header.headers.default.length - 5,
+              header.headers.default.length - 4,
               0,
-              textSelectorToggle
+              //textSelectorToggle
+              newCustomSettingsElement
             );
+
+           
           });
 
           instance.UI.setHeaderItems(header => {
@@ -382,6 +495,48 @@ const Redlining = React.forwardRef(
             render: () => (
               <Edit instance={instance} editAnnotation={editAnnotation} />
             ),
+          });
+          instance.UI.annotationPopup.add({
+            type: "customElement",
+            title: "Mark for redaction",
+            render: () => {
+              let selectedAnnotations = annotationManager.getSelectedAnnotations();
+              const disabled = selectedAnnotations.some(
+                (obj) =>
+                  obj.getCustomData("PIIDetection") !== "true"
+              );
+              return (
+              <button
+                type="button"
+                className="Button ActionButton"
+                // style={disableEdit ? { cursor: "default" } : {}}
+                onClick={() => {                  
+                  let redactAnnotations = []
+                  selectedAnnotations.forEach((annotation) => {
+                    const redactAnnot = new Annotations.RedactionAnnotation({
+                      PageNumber: annotation.PageNumber,
+                      StrokeColor: new Annotations.Color(255, 0, 0),
+                      FillColor: new Annotations.Color(255, 255, 255),
+                      Quads: annotation.getQuads(),
+                    });
+                    redactAnnot.setCustomData('trn-annot-preview', annotation.getCustomData('trn-annot-preview'))
+                    redactAnnotations.push(redactAnnot)
+                  });
+                  annotationManager.deleteAnnotations(selectedAnnotations)
+                  annotationManager.addAnnotations(redactAnnotations);
+                  // need to draw the annotations otherwise they won't show up until the page is refreshed
+                  annotationManager.drawAnnotationsFromList(redactAnnotations);
+                }}                
+                disabled={disabled}
+              >
+                <div
+                  className="Icon"
+                  style={disabled ? { color: "#868e9587" } : {}}
+                >
+                  <RedactLogo />
+                </div>
+              </button>
+            )},
           });
           setDocInstance(instance);
 
@@ -566,6 +721,7 @@ const Redlining = React.forwardRef(
       "click",
       (e) => {
         document.getElementById("saving_menu").style.display = "none"; 
+        document.getElementById("setting_menu").style.display = "none";
         
         // toggle between notesPanel and redactionPanel handled here
         const toggleNotesButton = document.querySelector(
@@ -684,6 +840,124 @@ const Redlining = React.forwardRef(
     initializeWebViewer();
     }, []);
 
+    const deletePIIAnnotations = (_annotationManager) => {
+      if (!_annotationManager) return;
+  
+    
+      const piiAnnots = _annotationManager?.getAnnotationsList().filter(a => a.getCustomData("PIIDetection") === 'true');
+  
+      if (piiAnnots.length > 0) {
+        _annotationManager?.deleteAnnotations(piiAnnots, {          
+          force: true,
+          source: "PIIdetection",
+        });
+      }
+      
+   };
+
+   const SearchandHighlightPII = (textarray, docInstance, documentViewer,annots,annotationManager) => {
+
+
+     const Search = docInstance.Core.Search;
+                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
+                        const searchOptions = {
+                          fullSearch: true,
+                          onResult: result => {
+                            if (result.resultCode === Search.ResultCode.FOUND) {
+                              for (let quad of result.quads) {
+                                const textQuad = quad.getPoints();
+                                const annot = new annots.TextHighlightAnnotation({
+                                  PageNumber: individualDoc.page,
+                                  X: textQuad.x1,
+                                  Y: textQuad.y3,
+                                  Width: textQuad.x2 - textQuad.x1,
+                                  Height: textQuad.x2 - textQuad.x1,
+                                  Color: new annots.Color(255, 205, 69, 1),
+                                  Quads: [textQuad],
+                                  Author: "PIIDetection"
+                                });
+                                annot.setCustomData("PIIDetection", true);
+                                annot.setCustomData("trn-annot-preview", result.resultStr);
+                                
+                                annotationManager.addAnnotation(annot);
+                                annotationManager.redrawAnnotation(annot);
+                              }
+                            }
+                          },
+                          startPage: documentViewer.getCurrentPage(),
+                          endPage: documentViewer.getCurrentPage()
+                        };
+                        documentViewer.textSearchInit(textarray?.join("|"), mode, searchOptions);
+
+   }
+
+    useEffect(() => {
+      
+      var annotationManager=annotManager
+     
+      var documentViewer= docViewer
+
+      var _annotations = annots
+      deletePIIAnnotations(annotationManager)
+      if(isPIIDetection)
+      {
+            var pagenum= documentPageNo_pii ?? 1
+            var documentid = documentID_pii
+
+            if (Object.keys(individualDoc.file).length > 0) {
+           
+              const doc = docInstance.Core.documentViewer.getDocument();
+               doc.loadPageText(individualDoc.page).then((text) => {
+               
+                text = text.replace("IDIR\\", 'IDIR\\ ').trim(); 
+                processWordsforIDIRDetection(text).then((words) => {
+
+                  if (words.length > 0) {
+
+                    checkIDIR(
+                      (onlyIDIRs) => {
+                        const idirNames = onlyIDIRs?.map(item => item.sAMAccountName);
+                       SearchandHighlightPII(idirNames,docInstance,documentViewer,_annotations,annotationManager);
+
+                    },
+                    (error)=>{
+                      console.log(`IDIR Detection error ${error}`)                      
+                    },                    
+                    words)
+
+                  }
+
+                })
+                })
+
+
+                 
+              getsolrauth().then((solrauthtoken)=>{
+                fetchPIIByPageNumDocumentID(pagenum,documentid,solrauthtoken,PII_NUM_ROWS,(response)=>{
+                  
+                  let textstohighlight = getPIITypeValues(response)
+                   SearchandHighlightPII(textstohighlight,docInstance,documentViewer,_annotations,annotationManager);
+                  
+                },(error) =>
+                  console.log(error))
+
+              })
+            }
+            
+      }
+
+      
+    },[isPIIDetection,documentPageNo_pii,documentID_pii,individualDoc.page,PIICategories])
+
+
+    const processWordsforIDIRDetection = async (text) => {
+              if (!text || typeof text !== 'string') return [];
+              const forbiddenChars = /["\/\\\[\]:;\|=,\+\*\?<>\-]/;
+
+              return text
+                .split(/\s+/) // Split by whitespace
+                .filter(word => word.length > 3 && word.length < 18 && !forbiddenChars.test(word) && !((word.match(/-/g) || []).length > 1) && !word.includes(' '));
+   }
     const updateModalData = (newModalData) => {
       setRedlineCategory(newModalData.modalFor);
       setModalData(newModalData);
@@ -917,8 +1191,8 @@ const Redlining = React.forwardRef(
       annotations.forEach((_redactionannot) => {
         if (_redactionannot.Subject === "Redact") {
           let redactcontent = _redactionannot.getContents();
-          _redactionannot?.setContents("");
-          _redactionannot?.setCustomData("trn-annot-preview", "");
+          // _redactionannot?.setContents("");
+          // _redactionannot?.setCustomData("trn-annot-preview", "");
         }
       });
     };
@@ -986,6 +1260,9 @@ const Redlining = React.forwardRef(
         // This will happen when importing the initial annotations
         // from the server or individual changes from other users
 
+        if (annotations[0].getCustomData('PIIDetection') === 'true') {
+          return
+        }
 
         /**Fix for lengthy section cutoff issue with response pkg 
          * download - changed overlaytext to freetext annotations after 
@@ -1229,7 +1506,8 @@ const Redlining = React.forwardRef(
                 });
               } else {
                 let pageFlagObj = [];
-                for (let annot of annotations) {
+                var filteredAnnotations = annotations.filter(annot => annot.Author !== "PIIDetection");
+                for (let annot of filteredAnnotations) {
                   displayedDoc =
                     pageMappedDocs.stitchedPageLookup[Number(annot.PageNumber)];
                   const _sections = annot.getCustomData("sections");

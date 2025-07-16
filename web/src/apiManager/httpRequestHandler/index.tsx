@@ -15,6 +15,16 @@ export const httpGETRequest = (url: string, data: any, token: any, isBearer = tr
   });
 };
 
+export const httpGETRequestSOLR = (url: string, data: any, token: any) => {
+  return axios.get(url, {
+    params: data,
+    timeout: 60000,
+    headers: {     
+      Authorization: `Basic ${token}`,
+    },
+  });
+};
+
 export const httpGETBigRequest = async (url: string, data: any, token: any, timeout: number = 60000, isBearer = true) => {
   return axios.get(url, {
     params: data,

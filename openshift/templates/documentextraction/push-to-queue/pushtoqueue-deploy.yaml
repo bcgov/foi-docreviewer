@@ -102,6 +102,12 @@ objects:
                       value: ${REQUEST_STATUS}
                     - name: REQUEST_LIMIT
                       value: ${REQUEST_LIMIT}
+                    - name: FULL_CONTROL
+                      value: ${FULL_CONTROL}
+                    - name: FROM_DATE
+                      value: ${FROM_DATE}
+                    - name: TO_DATE
+                      value: ${TO_DATE}
               restartPolicy: OnFailure
 parameters:
   - name: NAME
@@ -139,4 +145,10 @@ parameters:
   - name: REQUEST_STATUS
     required: true
   - name: REQUEST_LIMIT
+    required: true
+  - name: FULL_CONTROL
+    required: true
+  - name: FROM_DATE
+    required: true
+  - name: TO_DATE
     required: true

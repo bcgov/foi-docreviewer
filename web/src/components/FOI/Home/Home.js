@@ -259,6 +259,12 @@ function Home() {
 
   const scrollLeftPanel = (event, pageNo) => {
     selectorRef?.current?.scrollToPage(event, pageNo);
+    let lookup = pageMappedDocs.stitchedPageLookup[pageNo];
+    let file = files.find(
+      f => f.documentid === lookup.docid
+    );    
+    setIndividualDoc({ file: file, page: pageNo });
+    setCurrentPageInfo({ file: file, page: lookup.page });
   };
 
   const closeWarningMessage = () => {
@@ -315,6 +321,8 @@ function Home() {
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
+                  documentPageNo_pii={currentPageInfo?.page}
+                  documentID_pii={currentPageInfo?.file.documentid}
                   isPhasedRelease={requestInfo?.isphasedrelease}
                 />
               )

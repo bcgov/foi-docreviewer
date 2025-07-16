@@ -29,7 +29,7 @@ computingservices/ZippingServices/env/*
 computingservices/PageCountCalculator/env/*
 computingservices/CompressionServices/env/*
 computingservices/OCRServices/env/*
-
+computingservices/ETLServices/env/*
 
 ################################################################################
 # The following is for file conversion
