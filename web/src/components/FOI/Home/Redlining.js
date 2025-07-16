@@ -874,6 +874,7 @@ const Redlining = React.forwardRef(
                                   Height: textQuad.x2 - textQuad.x1,
                                   Color: new annots.Color(255, 205, 69, 1),
                                   Quads: [textQuad],
+                                  Author: "PIIDetection"
                                 });
                                 annot.setCustomData("PIIDetection", true);
                                 annot.setCustomData("trn-annot-preview", result.resultStr);
