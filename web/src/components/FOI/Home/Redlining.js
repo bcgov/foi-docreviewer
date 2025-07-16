@@ -474,17 +474,7 @@ const Redlining = React.forwardRef(
               newCustomSettingsElement
             );
 
-            header.headers.default.splice(
-              header.headers.default.length - 5,
-              0,
-              opacityToggle
-            );
-
-            header.headers.default.splice(
-              header.headers.default.length - 6,
-              0,
-              textSelectorToggle
-            );
+           
           });
 
           instance.UI.setHeaderItems(header => {
