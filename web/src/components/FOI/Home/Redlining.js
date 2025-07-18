@@ -867,7 +867,29 @@ const Redlining = React.forwardRef(
                         const searchOptions = {
                           fullSearch: true,
                           onResult: result => {
-                            if (result.resultCode === Search.ResultCode.FOUND) {
+                            // if (result.resultCode === Search.ResultCode.FOUND) {
+                            //   for (let quad of result.quads) {
+                            //     const textQuad = quad.getPoints();
+                            //     const annot = new annots.TextHighlightAnnotation({
+                            //       PageNumber: individualDoc.page,
+                            //       X: textQuad.x1,
+                            //       Y: textQuad.y3,
+                            //       Width: textQuad.x2 - textQuad.x1,
+                            //       Height: textQuad.x2 - textQuad.x1,
+                            //       Color: new annots.Color(255, 205, 69, 1),
+                            //       Quads: [textQuad],
+                            //     });
+                            //     annot.setCustomData("PIIDetection", true);
+                            //     annot.setCustomData("trn-annot-preview", result.resultStr);
+                                
+                            //     annotationManager.addAnnotation(annot);
+                            //     annotationManager.redrawAnnotation(annot);
+                            //   }
+                            // }
+                          },
+                          onPageEnd: result => {
+                            console.log(`Search completed found this ${ result.resultStr}`);
+                             if (result.resultCode === Search.ResultCode.FOUND) {
                               for (let quad of result.quads) {
                                 const textQuad = quad.getPoints();
                                 const annot = new annots.TextHighlightAnnotation({
@@ -886,9 +908,6 @@ const Redlining = React.forwardRef(
                                 annotationManager.redrawAnnotation(annot);
                               }
                             }
-                          },
-                          onPageEnd: result => {
-                            console.log(`Search completed found this ${ result.resultStr}`);
                           },
                           startPage: documentViewer.getCurrentPage(),
                           endPage: documentViewer.getCurrentPage()
