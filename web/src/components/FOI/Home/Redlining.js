@@ -864,50 +864,51 @@ const Redlining = React.forwardRef(
 
      const Search = docInstance.Core.Search;
                         const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD,Search.Mode.AMBIENT_STRING];
+                        let searchAnnots=[]
                         const searchOptions = {
                           fullSearch: true,
-                          onResult: result => {
-                            // if (result.resultCode === Search.ResultCode.FOUND) {
-                            //   for (let quad of result.quads) {
-                            //     const textQuad = quad.getPoints();
-                            //     const annot = new annots.TextHighlightAnnotation({
-                            //       PageNumber: individualDoc.page,
-                            //       X: textQuad.x1,
-                            //       Y: textQuad.y3,
-                            //       Width: textQuad.x2 - textQuad.x1,
-                            //       Height: textQuad.x2 - textQuad.x1,
-                            //       Color: new annots.Color(255, 205, 69, 1),
-                            //       Quads: [textQuad],
-                            //     });
-                            //     annot.setCustomData("PIIDetection", true);
-                            //     annot.setCustomData("trn-annot-preview", result.resultStr);
-                                
-                            //     annotationManager.addAnnotation(annot);
-                            //     annotationManager.redrawAnnotation(annot);
-                            //   }
-                            // }
+                         onResult: result => {
+                            if (result.resultCode === Search.ResultCode.FOUND) {
+                              const resultText = result.resultStr;
+                              const context = result.ambientString || '';
+
+                              // Check if already exists in list
+                              const exists = searchAnnots.some(
+                                item => item.result === resultText && item.context === context
+                              );
+
+                              if (!exists) {
+                                // Add to list
+                                searchAnnots.push({
+                                  result: resultText,
+                                  context: context,
+                                });
+
+                                for (let quad of result.quads) {
+                                  const textQuad = quad.getPoints();
+                                  const annot = new annots.TextHighlightAnnotation({
+                                    PageNumber: individualDoc.page,
+                                    X: textQuad.x1,
+                                    Y: textQuad.y3,
+                                    Width: textQuad.x2 - textQuad.x1,
+                                    Height: textQuad.x2 - textQuad.x1,
+                                    Color: new annots.Color(255, 205, 69, 1),
+                                    Quads: [textQuad],
+                                  });
+
+                                  annot.setCustomData("PIIDetection", true);
+                                  annot.setCustomData("trn-annot-preview", resultText);
+                                  annot.setCustomData("trn-annot-context", context);
+
+                                  annotationManager.addAnnotation(annot);
+                                  annotationManager.redrawAnnotation(annot);
+                                }
+                              }
+                            }
                           },
                           onPageEnd: result => {
                             console.log(`Search completed found this ${ result.resultStr}`);
-                             if (result.resultCode === Search.ResultCode.FOUND) {
-                              for (let quad of result.quads) {
-                                const textQuad = quad.getPoints();
-                                const annot = new annots.TextHighlightAnnotation({
-                                  PageNumber: individualDoc.page,
-                                  X: textQuad.x1,
-                                  Y: textQuad.y3,
-                                  Width: textQuad.x2 - textQuad.x1,
-                                  Height: textQuad.x2 - textQuad.x1,
-                                  Color: new annots.Color(255, 205, 69, 1),
-                                  Quads: [textQuad],
-                                });
-                                annot.setCustomData("PIIDetection", true);
-                                annot.setCustomData("trn-annot-preview", result.resultStr);
-                                
-                                annotationManager.addAnnotation(annot);
-                                annotationManager.redrawAnnotation(annot);
-                              }
-                            }
+                             
                           },
                           startPage: documentViewer.getCurrentPage(),
                           endPage: documentViewer.getCurrentPage()
