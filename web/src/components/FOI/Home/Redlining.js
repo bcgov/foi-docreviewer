@@ -874,7 +874,7 @@ const Redlining = React.forwardRef(
 
                               // Check if already exists in list
                               const exists = searchAnnots.some(
-                                item => item.result === resultText && item.context === context
+                                item => item.result === resultText && item.context === context && context?.length > 0
                               );
 
                               if (!exists) {
