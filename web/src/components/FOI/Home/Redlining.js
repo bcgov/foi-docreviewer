@@ -863,11 +863,11 @@ const Redlining = React.forwardRef(
 
 
      const Search = docInstance.Core.Search;
-                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD];
+                        const mode = [Search.Mode.PAGE_STOP, Search.Mode.HIGHLIGHT, Search.Mode.REGEX, Search.Mode.CASE_SENSITIVE, Search.Mode.WHOLE_WORD,Search.Mode.AMBIENT_STRING];
                         const searchOptions = {
                           fullSearch: true,
                           onResult: result => {
-                            if (result.resultCode === Search.ResultCode.DONE) {
+                            if (result.resultCode === Search.ResultCode.FOUND) {
                               for (let quad of result.quads) {
                                 const textQuad = quad.getPoints();
                                 const annot = new annots.TextHighlightAnnotation({
@@ -886,6 +886,9 @@ const Redlining = React.forwardRef(
                                 annotationManager.redrawAnnotation(annot);
                               }
                             }
+                          },
+                          onPageEnd: result => {
+                            console.log(`Search completed found this ${ result.resultStr}`);
                           },
                           startPage: documentViewer.getCurrentPage(),
                           endPage: documentViewer.getCurrentPage()
