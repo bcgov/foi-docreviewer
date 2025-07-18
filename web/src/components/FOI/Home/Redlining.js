@@ -867,7 +867,7 @@ const Redlining = React.forwardRef(
                         const searchOptions = {
                           fullSearch: true,
                           onResult: result => {
-                            if (result.resultCode === Search.ResultCode.FOUND) {
+                            if (result.resultCode === Search.ResultCode.DONE) {
                               for (let quad of result.quads) {
                                 const textQuad = quad.getPoints();
                                 const annot = new annots.TextHighlightAnnotation({
