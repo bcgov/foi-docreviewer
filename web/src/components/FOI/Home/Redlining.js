@@ -870,7 +870,7 @@ const Redlining = React.forwardRef(
 
                               // Check if already exists in list
                               const exists = searchAnnots.some(
-                                item => item.result === resultText && item.context === context && context?.length > 0
+                                item => item.result === resultText  && (item.x1location === result.quads[0].x1location || Math.abs(item.x1location === result.quads[0].x1) < 4)
                               );
 
                               if (!exists) {
@@ -878,6 +878,7 @@ const Redlining = React.forwardRef(
                                 searchAnnots.push({
                                   result: resultText,
                                   context: context,
+                                  x1location:result.quads[0].x1,
                                 });
 
                                 for (let quad of result.quads) {
