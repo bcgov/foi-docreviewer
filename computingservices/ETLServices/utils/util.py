@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 def get_date_from_command_line():
     """
@@ -18,4 +18,5 @@ def get_date_from_command_line():
             print(f"Warning: Could not parse '{date_string}' as a valid date (YYYY-MM-DD). Using today's date.")
             return datetime.now().date().strftime('%Y-%m-%d')
     else:
-        return datetime.now().date().strftime('%Y-%m-%d')
+        # get previous day's date if no date is provided
+        return (date.today()-timedelta(days=1)).strftime('%Y-%m-%d')
