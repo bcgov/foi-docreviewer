@@ -32,6 +32,11 @@ pagecalculatorredisport = os.getenv('REDIS_PORT')
 pagecalculatorstreamkey = os.getenv('PAGECALCULATOR_STREAM_KEY')
 health_check_interval = os.getenv('HEALTH_CHECK_INTERVAL', 15)
 
+compressionredishost= os.getenv('REDIS_HOST')
+compressionredispassword= os.getenv('REDIS_PASSWORD')
+compressionredisport= os.getenv('REDIS_PORT')
+compressionstreamkey= os.getenv('COMPRESSION_STREAM_KEY')
+
 try:
     response = requests.request(
         method="GET",

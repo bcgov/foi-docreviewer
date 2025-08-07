@@ -34,7 +34,8 @@ class StartFrom(str, Enum):
 def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     rdb = redisstreamdb
     stream = rdb.Stream(STREAM_KEY)
-
+    print("consumer_id:",consumer_id)
+    print("start_from:",start_from)
     last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
     if last_id:
         print(f"Resume from ID: {last_id}")
@@ -47,13 +48,12 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
         if messages:
             for message_id, message in messages:
-                print(f"processing {message_id}::{message}")
+                #print(f"processing {message_id}::{message}")
                 if message is not None:
                     _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
                     try:
                         producermessage = jsonmessageparser.getdedupeproducermessage(_message)
                         processmessage(producermessage) 
-
                         # send message to notification stream if batch is complete
                         complete, err = isbatchcompleted(producermessage.batch)
                         if complete:

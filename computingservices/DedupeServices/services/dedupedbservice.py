@@ -8,7 +8,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     conn = getdbconnection()
     try:        
         cursor = conn.cursor()
-
+        print("outputdocumentmasterid",dedupeproducermessage.outputdocumentmasterid)
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
@@ -32,7 +32,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         conn.commit()
 
         cursor.close()
-        return True
+        return id_of_new_row[0], True
     except(Exception) as error:
         print("Exception while executing func savedocumentdetails (p5), Error : {0} ".format(error))
         raise
@@ -104,7 +104,7 @@ def updateredactionstatus(dedupeproducermessage):
     try:        
         cursor = conn.cursor()
         cursor.execute('''update "DocumentMaster" dm
-                        set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now() 
+                        set isredactionready = true, updatedby  = 'dedupeservice', updated_at = now()
                         from(
                         select distinct on (documentmasterid) documentmasterid, version, status
                         from  "DeduplicationJob"
@@ -188,5 +188,23 @@ def pagecalculatorjobstart(message):
                 conn.close()
 
 
-
-
+def compressionjobstart(message):
+        conn = getdbconnection()
+        try:
+                    
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO public."CompressionJob"
+                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
+                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s) returning compressionjobid;''',
+                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid))
+            compressionjobid = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            print("Inserted compressionjobid:", compressionjobid)
+            return compressionjobid
+        except(Exception) as error:
+            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            raise
+        finally:
+            if conn is not None:
+                conn.close()

@@ -1,6 +1,6 @@
 import {
     faCircleHalfStroke, faCircle, faCircleQuestion, faSpinner,
-    faCircleStop, faCircleXmark, faBookmark
+    faCircleStop, faCircleXmark, faBookmark, faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircle as filledCircle } from '@fortawesome/free-regular-svg-icons';
 
@@ -13,7 +13,8 @@ export const PAGE_FLAGS = {
     5:"Duplicate",
     6:"Not Responsive",
     7:"In Progress",
-    8:"Page Left Off"
+    8:"Page Left Off",
+    9:"Phase"    
 };
 
 export const pageFlagIcons: any = {
@@ -33,6 +34,8 @@ export const pageFlagIcons: any = {
     "In Progress": faSpinner,
     8: faBookmark,
     "Page Left Off": faBookmark,
+    9: faLayerGroup,
+    "Phase": faLayerGroup,
 };
 
 

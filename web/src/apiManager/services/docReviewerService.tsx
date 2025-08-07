@@ -1,13 +1,13 @@
  /* istanbul ignore file */
-import { httpGETRequest, httpGETBigRequest, httpPOSTRequest } from "../httpRequestHandler";
+import { httpGETRequest, httpGETBigRequest, httpPOSTRequest,httpGETRequestSOLR } from "../httpRequestHandler";
 import API from "../endpoints";
 import UserService from "../../services/UserService";
 import { setRedactionInfo, setIsPageLeftOff, setSections, 
   setDocumentList, setRequestStatus, setRedactionLayers, incrementLayerCount, setRequestNumber, setRequestInfo, setDeletedPages,
-  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies
+  setFOIPersonalSections, setFOIPersonalPeople, setFOIPersonalFiletypes, setFOIPersonalVolumes, setPublicBodies,setPIIJSONList,
+  setSOLRAuth
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
-import { number } from "yargs";
 import { pageFlagTypes } from "../../constants/enum";
 
 
@@ -101,11 +101,12 @@ export const fetchDocumentAnnotations = (
   redactionlayer: string,
   documentid: number,
   callback: any,
-  errorCallback: any
+  errorCallback: any,
+  timeout: number = 300000
 ) => {
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
   
-  httpGETRequest(apiUrlGet, {}, UserService.getToken())
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
     .then((res:any) => {
       if (res.data || res.data === "") {
         callback(res.data);
@@ -319,7 +320,7 @@ export const savePageFlag = (
   httpPOSTRequest({url: apiUrlPost, data: data, token: UserService.getToken() ?? '', isBearer: true})
     .then((res:any) => {
       if (res.data) {
-        callback(res.data);
+        callback(res.data, flagid);
       } else {
         throw new Error(`Error while saving page flag for requestid ${foiministryrquestid}`);
       }
@@ -559,5 +560,104 @@ export const editPersonalAttributes = (
     })
     .catch((error:any) => {
       errorCallback("Error in editing personal attributes");
+    });
+};
+
+ export const getsolrauth = () => {
+
+  return httpGETRequest(
+     API.FOI_SOLR_API_AUTH_URL,
+      {},
+   UserService.getToken()
+)
+    .then((res) => {
+      if (res.data) {
+        return res.data; // ✅ Return the result for further use
+      } else {
+        console.log("No response from SOLR AUTH API");
+      }
+    })
+    .catch((error) => {
+     
+      console.log(error);
+      throw error; // 
+    });
+};
+
+//SOLR FETCH PIIs by pagenum and documentid
+export const fetchPIIByPageNumDocumentID = (
+  pagenum: string,
+  documentid: string,
+  solrauthToken:any,
+  numsolrrows:number,
+  callback:any,
+  errorCallback: any
+) => {   
+  let apiUrlGet: string = replaceUrl(replaceUrl(API.SOLR_API_URL,"<pagenum>",pagenum),"<documentid>",documentid) + "&rows=" + numsolrrows; 
+  httpGETRequestSOLR(apiUrlGet, {}, solrauthToken)
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+        store.dispatch(setPIIJSONList(res.data) as any);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in fetching PII values in service, fetchPIIByPageNumDocumentID");
+    });
+  
+ 
+};
+
+export const checkIDIR = (  
+  callback: any,
+  errorCallback: any,
+  data:any
+) => {
+  let apiURL: string = `${API.IDIR_CHECK_URL}`;
+  
+  httpPOSTRequest({url: apiURL, data: data, token: UserService.getToken() ?? '', isBearer: true})
+    .then((res:any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error();
+      }
+    })
+    .catch((error:any) => {
+      console.log(error);
+      errorCallback("Error in checking IDIR");
+    });
+  }
+
+  export const saveRedlineContent = (
+  foiministryrquestid: string,
+  data: any,
+  callback: any,
+  errorCallback: any
+) => {
+  let apiUrlPost: string = replaceUrl(
+    API.DOCREVIEWER_SAVE_REDLINECONTENT,
+    "<ministryrequestid>",
+    foiministryrquestid
+  )
+  
+  httpPOSTRequest({
+    url: apiUrlPost,
+    data: data,
+    token: UserService.getToken() ?? '',
+    isBearer: true
+  })
+    .then((res: any) => {
+      if (res.data) {
+        callback(res.data);
+      } else {
+        throw new Error("Error while posting redline content");
+      }
+    })
+    .catch((error: any) => {
+      errorCallback("Error in posting redline content");
     });
 };
