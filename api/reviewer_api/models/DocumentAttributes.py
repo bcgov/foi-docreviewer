@@ -34,9 +34,12 @@ class DocumentAttributes(db.Model):
     def getdocumentattributesbyid(cls, documentmasterids):
         attributes = []
         try:
-            sql =   """select attributeid, version, documentmasterid, attributes, createdby, created_at, updatedby, updated_at, isactive
+            sql =   """ select attributeid, version, documentmasterid, attributes, createdby, created_at, updatedby, updated_at, isactive
                         from "DocumentAttributes"
-                        where documentmasterid in ("""+ ','.join([str(id) for id in documentmasterids]) +""") and isactive = True
+                        where attributeid in (select max(attributeid)
+                        from "DocumentAttributes"
+                        where documentmasterid in ("""+ ','.join([str(id) for id in documentmasterids]) +""")
+                        group by documentmasterid)  and isactive = True
                         order by documentmasterid
                     """
             rs = db.session.execute(text(sql))
@@ -74,10 +77,14 @@ class DocumentAttributes(db.Model):
 
 
     @classmethod
-    def update(cls, rows, oldrows):
+    def update(cls, rows, documentmasterids):
         try:
             # disable old rows
-            db.session.bulk_update_mappings(DocumentAttributes, oldrows)
+            sql =   """ update "DocumentAttributes"
+                        set isactive = False
+                        where documentmasterid in ("""+ ','.join([str(id) for id in documentmasterids]) +""")
+                    """
+            rs = db.session.execute(text(sql))
 
             db.session.add_all(rows)
             db.session.commit()

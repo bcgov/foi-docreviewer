@@ -15,6 +15,7 @@ from .notificationservice import notificationservice
 import json
 import traceback
 import PyPDF2
+from os import path
 
 def processmessage(message):
     try:
@@ -40,8 +41,11 @@ def processmessage(message):
         )
         if result.get("success"):
             logging.info("final document path = %s", result.get("documentpath"))
+            category = message.category
+            if message.phase not in ("", None) and ('phase' in category):
+                category = message.category.replace("_", "")
             savefinaldocumentpath(
-                result, message.ministryrequestid, message.category, message.createdby
+                result, message.ministryrequestid, category, message.createdby
             )
             recordjobstatus(
                 pdfstitchmessage=message,
@@ -83,10 +87,10 @@ def processmessage(message):
 def sendnotification(readyfornotification, producermessage):
     if readyfornotification == True and producermessage.category.lower() == "harms":
         notificationservice().sendharmsnotification(producermessage)
-    elif readyfornotification == True and producermessage.category.lower() in (
+    elif readyfornotification == True and (producermessage.category.lower() in (
         "redline",
         "responsepackage",
-    ):
+    ) or "phase" in producermessage.category.lower()):
         notificationservice().sendredlineresponsenotification(producermessage)
 
 
@@ -108,21 +112,25 @@ def __zipfilesandupload(_message, s3credentials):
                 _jsonfiles = json.loads(_message.filestozip)
                 print("\n_jsonfiles:",_jsonfiles)
                 for fileobj in _jsonfiles:
+                    # filename = fileobj["filename"].replace("%20", " ")
                     filename = fileobj["filename"]
                     print("\nfilename:",filename)
 
                     _docbytes = __getdocumentbytearray(fileobj, s3credentials)
-                    _formattedbytes = None
                     
-                    try:                           
-                        _formattedbytes = __removesensitivecontent(_docbytes)
-                        if _formattedbytes is not None:
-                            print("_formattedbytes length is {0}".format(len(_formattedbytes)))
-                        else:
-                           print("_formattedbytes is none")                                
-                    except Exception:
-                        print("error happened while removing sensitive content of {0} ".format(filename))
-                        print(traceback.format_exc())
+                    _formattedbytes = None
+                    _filename, extension = path.splitext(fileobj["s3uripath"])
+
+                    if extension.lower() == '.pdf':
+                        try:                           
+                            _formattedbytes = __removesensitivecontent(_docbytes)
+                            if _formattedbytes is not None:
+                                print("_formattedbytes length is {0}".format(len(_formattedbytes)))
+                            else:
+                               print("_formattedbytes is none")                                
+                        except Exception:
+                            print("error happened while removing sensitive content of {0} ".format(filename))
+                            print(traceback.format_exc())
                     #added a space to try out code merge on git. 18-Sept-2024    
                     zip.writestr(
                         filename, _docbytes if _formattedbytes is None else _formattedbytes

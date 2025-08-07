@@ -115,7 +115,7 @@ export const handleRedlineForSignOffClick = (
     modalFor: "redline",
     modalTitle: "Redline for Sign Off",
     modalMessage: [
-      "Are you sure want to create the redline PDF for ministry sign off?",
+      "Are you sure want to create the redline PDF for ministry sign off? Redactions/severing will be flattened by default, and will always be included. If you select ‘Include Comments’, any comments you filtered in the Comments pane will be included in the redline PDF.",
       <br key="lineBreak1" />,
       <br key="lineBreak2" />,
       <span key="modalDescription1">
@@ -257,7 +257,7 @@ export const isReadyForSignOff = (documentList, pageFlags) => {
         pageFlags.every((pageFlagInfo) => {
           if (docInfo.documentid === pageFlagInfo?.documentid) {
             const exceptConsult = pageFlagInfo.pageflag?.filter(
-              (flag) => flag.flagid !== pageFlagTypes["Consult"]
+              (flag) => flag.flagid !== pageFlagTypes["Consult"] && flag.flagid !== pageFlagTypes["Phase"]
             );
             if (docInfo.pagecount > exceptConsult?.length) {
               // not all page has flag set

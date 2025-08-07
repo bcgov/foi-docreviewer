@@ -53,16 +53,17 @@ class redactionsummaryservice():
                         
                     else:
                         filesobj= messageattributes[0]['files'][0]
-                        divisioname =  messageattributes[0]['divisionname'] if category not in ('responsepackage','oipcreviewredline', 'openinfo') else None  
+                        divisioname =  messageattributes[0]['divisionname'] if ('responsepackage' not in category and category != 'oipcreviewredline' and category != 'openinfo') else None  
                         
                     stitcheddocs3uri = filesobj['s3uripath']
-                    stitcheddocfilename = filesobj['filename'] 
+                    stitcheddocfilename = filesobj['filename']
                     if category == 'oipcreviewredline':
                         s3uricategoryfolder = "oipcreview"
                     else:
                         s3uricategoryfolder = category
                     s3uri = stitcheddocs3uri.split(s3uricategoryfolder+"/")[0] + s3uricategoryfolder+"/"
-                    filename =self.__get_summaryfilename(message.requestnumber, category, divisioname, stitcheddocfilename) 
+                    summary_category= category
+                    filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename, message.phase)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
                     upload_responses.append(uploadobj)
@@ -82,14 +83,19 @@ class redactionsummaryservice():
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
         
-    def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename):
+    def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename, phase):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
-        if category in 'responsepackage':
-            _filename = requestnumber
-        elif category == 'openinfo':
-            return "Redaction_Summary_" + requestnumber + ".pdf"
+        if 'responsepackage' in category:
+            if 'phase' in category and phase not in ("", None):
+                _filename = requestnumber+ f' - Phase {phase}'
+            else:
+                _filename = requestnumber
+        elif 'redline' in category and phase not in ("", None):
+            _filename = requestnumber+ f' - Redline - Phase {phase}'
         elif category == 'oipcreviewredline':
             _filename = requestnumber+ ' - Redline'
+        elif category == 'openinfo':
+                return "Redaction_Summary_" + requestnumber + ".pdf"
         else:
             _filename = requestnumber+" - "+category
             if divisionname not in (None, ''):
@@ -99,8 +105,8 @@ class redactionsummaryservice():
   
     def __get_pageflags(self, category):
         if category in ("responsepackage", "openinfo"):            
-            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate'])
-        return documentpageflag().get_all_pageflags(['Consult'])
+            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate', 'Phase'])
+        return documentpageflag().get_all_pageflags(['Consult', 'Phase'])
         
 
    

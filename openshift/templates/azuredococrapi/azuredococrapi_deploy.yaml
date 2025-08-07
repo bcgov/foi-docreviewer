@@ -1,0 +1,181 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  annotations:
+    description: Deployment template for a adjudication api service.
+    tags: "${API_NAME}"
+  name: "${API_NAME}-deploy"
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${API_NAME}"
+    labels:
+      app: "${API_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${API_NAME}-deploy"
+  spec:
+    strategy:
+      type: RollingUpdate
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+
+    replicas: 1
+    test: false
+    selector:
+       matchLabels:
+        app: "${API_NAME}"
+    template:
+      metadata:
+        labels:
+          app: "${API_NAME}"
+          app-group: "${APP_GROUP}"          
+          template: "${API_NAME}-deploy"
+          role: api
+      spec:
+        containers:
+        - name: "${API_NAME}"         
+          imagePullPolicy: Always
+          env:
+            - name: AZDOCOCR_FOIDOCREVIEWER_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_FOIDOCREVIEWER_DB_HOST
+            - name: AZDOCOCR_FOIDOCREVIEWER_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_FOIDOCREVIEWER_DB_PORT
+            - name: AZDOCOCR_FOIDOCREVIEWER_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_FOIDOCREVIEWER_DB_NAME
+            - name: AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME
+            - name: AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD
+            - name: AZDOCOCR_LISTENING_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_LISTENING_PORT
+            - name: AZDOCOCR_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_API_SECRET
+            - name: AZDOCOCR_ALLOWED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: AZDOCOCR_ALLOWED_ORIGINS
+
+          ports:
+          - containerPort: 52863
+            protocol: TCP
+          # envFrom:
+          # - configMapRef:
+          #     name: ${API_NAME}-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "250Mi"
+            limits:
+              cpu: "150m"
+              memory: "500Mi"
+          
+          terminationMessagePath: "/dev/termination-log"
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+          image: 'image-registry.openshift-image-registry.svc:5000/d106d6-tools/${IMAGE_STREAM_NAME_FULL}'
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${API_NAME}"
+    creationTimestamp: 
+    labels:
+      app: "${API_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${API_NAME}-deploy"
+  spec:
+    ports:
+    - name: 52863-tcp
+      protocol: TCP
+      port: 52863
+      targetPort: 52863
+    selector:
+      app: "${API_NAME}"
+    type: ClusterIP
+    sessionAffinity: None
+  # status:
+  #   loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "${API_NAME}"
+    labels:
+      app: "${API_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${API_NAME}-deploy"
+  spec:
+    to:
+      kind: Service
+      name: "${API_NAME}"
+      weight: 100
+    port:
+      targetPort: 52863-tcp
+    tls:
+      termination: edge
+    wildcardPolicy: None
+    host: "${TAG_NAME}-${API_NAME}.apps.silver.devops.gov.bc.ca"
+parameters:
+- name: API_NAME
+  displayName: Name
+  description: The name assigned to all of the OpenShift resources associated to the
+    server instance.
+  required: true
+  value: azuredococrapi-marshal
+- name: APP_GROUP
+  displayName: App Group
+  description: The name assigned to all of the deployments in this project.
+  required: true
+  value: foi-docreviewer
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  required: true
+  description: The namespace of the OpenShift project containing the imagestream for
+    the application.
+  value: d106d6-tools
+- name: TAG_NAME
+  displayName: Environment TAG name
+  description: The TAG name for this environment, e.g., dev, test, prod
+  required: true
+  value: test-marshal
+- name: SECRETS
+  displayName: API Secrets
+  description: Name of secrets for all api values
+  required: true
+  value: azuredococrapi-secret-test-marshal
+- name: IMAGE_STREAM_NAME_FULL
+  displayName: Full image stream name (eg "azuredococrapi:test-marshal")
+  description: Includes ImageStream name and tag
+  required: true
+  value: azuredococrapi:test-marshal

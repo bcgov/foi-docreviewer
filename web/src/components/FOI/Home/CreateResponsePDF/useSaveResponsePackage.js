@@ -10,7 +10,7 @@ import { triggerDownloadFinalPackage } from "../../../../apiManager/services/doc
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams } from "react-router-dom";
 
-const useSaveResponsePackage = () => {
+const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
   const requestnumber = useAppSelector(
     (state) => state.documents?.requestnumber
@@ -103,6 +103,7 @@ const useSaveResponsePackage = () => {
     };
     const zipDocObj = {
       files: [],
+      phase: redlinePhase ? redlinePhase : null
     };
     zipDocObj.files.push(file);
 
@@ -136,7 +137,6 @@ const useSaveResponsePackage = () => {
   const prepareresponseredlinesummarylist = (documentlist, bcgovcode, requestType) => {
     let summarylist = [];
     let alldocuments = [];
-    console.log("\ndocumentlist:", documentlist);
     let sorteddocids = [];
     if (bcgovcode?.toLowerCase() === 'mcf' && requestType == "personal") {
       let labelGroups = {};
@@ -226,6 +226,7 @@ const useSaveResponsePackage = () => {
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
       category: downloadPackageType,
+      //category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
@@ -238,6 +239,7 @@ const useSaveResponsePackage = () => {
       foiministryrequestid,
       documentList[0],
       downloadPackageType,
+      redlinePhase,
       async (res) => {
         const toastID = downloadPackageType == "openinfo" ?
           toast.loading("Start generating publication package..."): toast.loading("Start generating final package...");
@@ -248,15 +250,41 @@ const useSaveResponsePackage = () => {
         let annotList = annotationManager.getAnnotationsList();
         annotationManager.ungroupAnnotations(annotList);
         /** remove duplicate and not responsive pages */
-        let pagesToRemove = [];
+        var uniquePagesToRemove = new Set();
+        var phasedPagesArr = [];
         for (const infoForEachDoc of pageFlags) {
+          if (redlinePhase != null) {
+            phasedPagesArr = infoForEachDoc.pageflag?.filter(flagInfo => flagInfo.flagid === pageFlagTypes["Phase"] && 
+              flagInfo.phase.includes(redlinePhase)).map(flagInfo => flagInfo.page);
+              const allPages = documentList.find(entry => entry.documentid === infoForEachDoc.documentid)?.pages;
+              const allPagesWithFlags = Object.values(pageMappedDocs.stitchedPageLookup)
+                  .filter(entry => entry.docid === infoForEachDoc.documentid)
+                  .map(entry => entry.page);
+              if(allPages.length > 0){
+                //const missingPages = allPages.filter(page => !infoForEachDoc.pageflag?.has(page));
+                const pagesWithoutAnyFlags = allPagesWithFlags.filter(page => !infoForEachDoc.pageflag?.some(flagInfo => flagInfo.page === page));
+                if(pagesWithoutAnyFlags.length >0){ 
+                  for (const pageWithoutFlag of pagesWithoutAnyFlags){
+                    if(allPages.includes(pageWithoutFlag)){
+                      uniquePagesToRemove.add(
+                        getStitchedPageNoFromOriginal(
+                          infoForEachDoc.documentid,
+                          pageWithoutFlag,
+                          pageMappedDocs
+                        )
+                      );
+                    }
+                  }
+                }
+              }
+          }
           for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
             /** pageflag duplicate or not responsive */
             if (
               pageFlagsForEachDoc.flagid === pageFlagTypes["Duplicate"] ||
               pageFlagsForEachDoc.flagid === pageFlagTypes["Not Responsive"]
             ) {
-              pagesToRemove.push(
+              uniquePagesToRemove.add(
                 getStitchedPageNoFromOriginal(
                   infoForEachDoc.documentid,
                   pageFlagsForEachDoc.page,
@@ -264,13 +292,23 @@ const useSaveResponsePackage = () => {
                 )
               );
             }
+              if(redlinePhase != null && ((phasedPagesArr.length >0 && !phasedPagesArr?.includes(pageFlagsForEachDoc.page)) || phasedPagesArr.length <=0)){
+                uniquePagesToRemove.add(
+                  getStitchedPageNoFromOriginal(
+                    infoForEachDoc.documentid,
+                    pageFlagsForEachDoc.page,
+                    pageMappedDocs
+                  )
+                );
+              }
           }
         }
+        var pagesToRemove = [...uniquePagesToRemove];
         let doc = documentViewer.getDocument();
         await annotationManager.applyRedactions();
         /**must apply redactions before removing pages*/
         if (pagesToRemove.length > 0) {
-          await doc.removePages(pagesToRemove);
+          await doc?.removePages(pagesToRemove);
         }      
         doc.setWatermark({          
           diagonal: {
@@ -293,6 +331,28 @@ const useSaveResponsePackage = () => {
           render: "Saving section stamps...",
           isLoading: true,
         });
+        // update page mappings
+        for (var page of pagesToRemove) {
+          delete pageMappedDocs.stitchedPageLookup[page]
+        }
+        var updatedPageMapping = Object.entries(pageMappedDocs.stitchedPageLookup)
+        // remove withheld in full pages after page stamp has been applied
+        pagesToRemove = [];
+        for (const infoForEachDoc of pageFlags) {
+          for (const pageFlagsForEachDoc of infoForEachDoc.pageflag) {
+            if (pageFlagsForEachDoc.flagid === pageFlagTypes["Withheld in Full"]) {
+              var pageToRemove = updatedPageMapping.findIndex(p => p[1].docid === infoForEachDoc.documentid && p[1].page === pageFlagsForEachDoc.page) + 1
+              if(pageToRemove !== 0)
+                pagesToRemove.push(pageToRemove);
+            }
+          }
+        }
+
+        if (pagesToRemove.length > 0) {
+          await doc.removePages(pagesToRemove);
+        }
+
+
         /**Fixing section cutoff issue in response pkg-
          * (For showing section names-freetext annotations are
          * added once redactions are applied in the annotationChangedHandler)

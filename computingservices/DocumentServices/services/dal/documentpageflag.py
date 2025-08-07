@@ -34,7 +34,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
-        conn = getdbconnection()
+        conn = getfoidbconnection()
         programareas = {}
         try:
             cursor = conn.cursor()
@@ -152,6 +152,35 @@ class documentpageflag:
         finally:
             if conn is not None:
                 conn.close()
+    
+    @classmethod
+    def getoriginalpagecount_by_documentid(cls, ministryrequestid, documentids):
+        conn = getdbconnection()
+        docpgs = {}
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """select documentid, originalpagecount  from "Documents" d 
+                where foiministryrequestid = %s::integer  
+                and documentid in %s;""",
+                (ministryrequestid, tuple(documentids)),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    docpgs[entry[0]] = {"pagecount": entry[1]}
+                return docpgs
+            return None
+
+        except Exception as error:
+            logging.error("Error in getting pagecount for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
 
     @classmethod
     def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos):
@@ -225,9 +254,10 @@ class documentpageflag:
                 select redactionlayerid  
                 from "DocumentPageflags" 
                 where foiministryrequestid = %s::integer
-                and redactionlayerid != 4 
-                --openinfo layer is excluded latest redaction layer because it always uses the normal redaction summary
-                order by created_at desc limit 1;
+                and redactionlayerid != (select redactionlayerid from "RedactionLayers" where name in ('Response Package', 'Open Info'))
+                --openinfo layer is excluded latest redaction layer because it always uses the normal redaction summary & 
+                --exclude response package from layer query in document services disable context menu to prevent page flags from being created for response package
+                order by created_at, id desc limit 1;
             '''
             cursor.execute(query, (ministryrequestid,))
             layerid = cursor.fetchone()

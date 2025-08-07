@@ -42,11 +42,12 @@ def recordjobstatus(
         cursor = conn.cursor()
         outputfiles = pdfstitchmessage.finaloutput if finalmessage is not None else None
         category = (
-            pdfstitchmessage.category.lower() + "-zipper"
+            assigncategory(pdfstitchmessage.category.lower()) + "-zipper"
             if isziping
-            else pdfstitchmessage.category.lower()
+            else assigncategory(pdfstitchmessage.category.lower())
         )
         status = "error" if error else status
+        attributes = pdfstitchmessage.attributes if pdfstitchmessage.category.lower() == 'harms' else json.loads(pdfstitchmessage.attributes)
 
         cursor.execute(
             """INSERT INTO public."PDFStitchJob"
@@ -57,7 +58,7 @@ def recordjobstatus(
                 version,
                 pdfstitchmessage.ministryrequestid,
                 category.lower(),
-                json.dumps(pdfstitchmessage.attributes),
+                attributes,
                 json.dumps(outputfiles),
                 status,
                 message if error else "",
@@ -74,6 +75,14 @@ def recordjobstatus(
     finally:
         if conn is not None:
             conn.close()
+
+def assigncategory(category):
+    if "phase" in category:
+        if "redline" in category:
+            return "redline"
+        else:
+            return "responsepackage"
+    return category
 
 
 def ispdfstichjobcompleted(jobid, category):

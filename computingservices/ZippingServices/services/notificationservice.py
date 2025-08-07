@@ -25,14 +25,21 @@ class notificationservice:
             logging.info("pdfstitch not yet complete, no message sent")
 
     def sendredlineresponsenotification(self, producermessage):
-        complete, err = self.__isredlineresponsezipjobcompleted(
-            producermessage.jobid, producermessage.category.lower()
-        )
+        if "redline_phase" in producermessage.category.lower():
+            category = "redline"
+        elif "responsepackage_phase" in producermessage.category.lower():
+            category = "responsepackage"
+        else:
+            category = producermessage.category.lower()
 
+        complete, err = self.__isredlineresponsezipjobcompleted(
+            producermessage.jobid, category
+        )
         if complete or err:
-            if producermessage.category.lower() == "redline":
+            if category == "redline":
                 self.__redlinepublishtostream(producermessage, err)
-            elif producermessage.category.lower() == "responsepackage":
+            elif category == "responsepackage":
+                print("__responsepackagepublishtostream")
                 self.__responsepackagepublishtostream(producermessage, err)
         else:
             logging.info("redline zipping is not yet completed, no message to sent")
@@ -46,7 +53,7 @@ class notificationservice:
                 errorflag=self.__booltostr(error),
                 feeoverridereason= message.feeoverridereason
             )
-
+            print("notification_msg",notification_msg)
             logging.info(
                 "Response package Notification message = %s ", notification_msg.__dict__
             )
