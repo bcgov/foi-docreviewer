@@ -44,6 +44,24 @@ type OpenInfoRecord struct {
 	Foirequestid         int
 }
 
+type ProactiveDisclosureRecord struct {
+	Proactivedisclosureid int
+	Foiministryrequestid int
+	Description		  string
+	Published_date       string
+	Sitemap_pages		string
+	Type 			   string
+	AdditionalFiles      []AdditionalFile
+	Foirequestid		 int
+	BCgovcode		 string
+	Axisrequestid    string
+	PDcategory       string
+	Positiontitle   string
+	Individualname string
+	Stockexplanation string
+	Ministry string
+}
+
 func Conn(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -457,4 +475,188 @@ func LogError(db *sql.DB, foiministryrequestid int, publishingstatus string, mes
 	}
 
 	return err
+}
+
+func GetPDRecordsForPrePublishing(db *sql.DB) ([]ProactiveDisclosureRecord, error) {
+	var records []ProactiveDisclosureRecord
+
+	qry := fmt.Sprintf(``)
+	rows, err := db.Query(qry)
+	if err != nil {
+		return records, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	// Iterate through the rows and populate the records to pdrecords map (use a map to avoid duplicates based on foiministryrequestid)
+	pdRecordsMap := make(map[int]*ProactiveDisclosureRecord)
+	for rows.Next() {
+		var proactivedisclosureid, foiministryrequestid, foirequestid, additionalfileid sql.NullInt64
+		var axisrequestid, description, publisheddate, bcgovcode, sitemappages, queuetype, filename, s3uripath, pdcategory, individualname, positiontitle, stockexplanation, ministry sql.NullString
+		var isactive bool
+
+		err := rows.Scan(
+			&proactivedisclosureid,
+			&foiministryrequestid,
+			&foirequestid,
+			&axisrequestid,
+			&description,
+			&publisheddate,
+			&additionalfileid,
+			&filename,
+			&bcgovcode,
+			&sitemappages,
+			&queuetype,
+			&s3uripath,
+			&isactive,
+			&pdcategory,
+			&individualname,
+			&positiontitle,
+			&stockexplanation,
+			&ministry,
+		)
+		if err != nil {
+			return records, fmt.Errorf("failed to retrieve query result for prepublish: %w", err)
+		}
+
+		if proactivedisclosureid.Valid && foiministryrequestid.Valid && foirequestid.Valid && axisrequestid.Valid && description.Valid && publisheddate.Valid && bcgovcode.Valid && sitemappages.Valid && queuetype.Valid {
+			if _, exists := pdRecordsMap[int(foiministryrequestid.Int64)]; !exists {
+				pdRecordsMap[int(foiministryrequestid.Int64)] = &ProactiveDisclosureRecord{
+					Proactivedisclosureid: int(proactivedisclosureid.Int64),
+					Foiministryrequestid:  int(foiministryrequestid.Int64),
+					Foirequestid:          int(foirequestid.Int64),
+					Description:           description.String,
+					Published_date:        publisheddate.String,
+					BCgovcode:             bcgovcode.String,
+					Sitemap_pages:         sitemappages.String,
+					Type:                  queuetype.String,
+					Axisrequestid: 	   	   axisrequestid.String,
+					PDcategory:            pdcategory.String,
+					Individualname:        individualname.String,
+					Positiontitle:         positiontitle.String,
+					Stockexplanation:      stockexplanation.String,
+					Ministry:              ministry.String,
+				}
+			}
+
+			if additionalfileid.Valid && filename.Valid && s3uripath.Valid {
+				pdRecordsMap[int(foiministryrequestid.Int64)].Additionalfiles = append(pdRecordsMap[int(foiministryrequestid.Int64)].Additionalfiles, AdditionalFile{
+					Additionalfileid: int(additionalfileid.Int64),
+					Filename:         filename.String,
+					S3uripath:        s3uripath.String,
+					Isactive:         isactive,
+				})
+			}
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		return records, fmt.Errorf("failed to retrieve query result: %w", err)
+	}
+	for _, record := range pdRecordsMap {
+		records = append(records, *record)
+	}
+	return records, nil
+}
+
+func GetPDRecordsForUnpublishing(db *sql.DB) ([]ProactiveDisclosureRecord, error) {
+	var records []ProactiveDisclosureRecord
+
+	qry := fmt.Sprintf(``)
+	rows, err := db.Query(qry)
+	if err != nil {
+		return records, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var record ProactiveDisclosureRecord
+		err := rows.Scan(
+			&record.Proactivedisclosureid,
+			&record.Foiministryrequestid,
+			&record.Sitemap_pages,
+			&record.Type,
+			&record.Published_date,
+			&record.Axisrequestid,
+			&record.PDcategory,
+			&record.Individualname,
+			&record.Positiontitle,
+			&record.Stockexplanation,
+			&record.Ministry,
+		)
+		if err != nil {
+			return records, fmt.Errorf("failed to retrieve query result: %w", err)
+		}
+		records = append(records, record)
+	}
+	err = rows.Err()
+	if err != nil {
+		return records, fmt.Errorf("failed to retrieve query result: %w", err)
+	}
+	return records, nil
+}
+
+func UpdatePDRecordStatus(db *sql.DB, foiministryrequestid int, publishingstatus string, message string) error {
+
+	// Begin a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("Error beginning transaction: %v", err)
+	}
+
+	// Step 1: Set previous versions' isactive to false
+	_, err = tx.Exec(``, foiministryrequestid, time.Now())
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error updating previous versions: %v", err)
+	}
+
+	// Step 2: Insert a new version of the record
+	_, err = tx.Exec(``, foiministryrequestid, time.Now(), publishingstatus, message)
+	if err != nil {
+		tx.Rollback()
+		log.Fatalf("Error inserting new version for status: %v", err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Fatalf("Error committing transaction: %v", err)
+	}
+
+	return err
+}
+
+func GetPDRecordsForPublishing(db *sql.DB) ([]ProactiveDisclosureRecord, error) {
+	var records []ProactiveDisclosureRecord
+
+	qry := fmt.Sprintf(``)
+	rows, err := db.Query(qry)
+	if err != nil {
+		return records, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var record ProactiveDisclosureRecord
+		err := rows.Scan(
+			&record.Proactivedisclosureid,
+			&record.Foiministryrequestid,
+			&record.Foirequestid,
+			&record.Axisrequestid,
+			&record.Description,
+			&record.Published_date,
+			&record.BCgovcode
+		)
+		if err != nil {
+			return records, fmt.Errorf("failed to retrieve query result: %w", err)
+		}
+		records = append(records, record)
+		fmt.Printf("DB service - ID: %s, Description: %s, Published Date: %s\n", record.Axisrequestid, record.Description, record.Published_date)
+	}
+	err = rows.Err()
+	if err != nil {
+		return records, fmt.Errorf("failed to retrieve query result: %w", err)
+	}
+
+	return records, nil
 }

@@ -108,10 +108,12 @@ func main() {
 				continue
 			}
 
-			fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
-			fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
-			fmt.Printf("published_date: %s\n", msg.Published_date)
-			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles)
+			fmt.Printf("publication message: %d\n", msg)
+			// fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
+			// fmt.Printf("proactivedisclosureid: %d\n", msg.proactivedisclosureid)
+			// fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
+			// fmt.Printf("published_date: %s\n", msg.Published_date)
+			// fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles)
 
 			if msg.Type == "publish" {
 				oiservices.Publish(msg, db)
@@ -191,6 +193,73 @@ func main() {
 			redislib.WriteMessage(rdb, queueName, string(jsonData))
 		}
 
+	case "enqueueforpdpublish":
+		fmt.Println("pd publish")
+
+		// Connect to DB
+		db, err1 := dbservice.Conn(dsn)
+		if err1 != nil {
+			log.Fatalf("%v", err1)
+			return
+		}
+		defer db.Close()
+
+		// Gather proactive disclosure records for publishing
+		records, err := dbservice.GetPDRecordsForPrePublishing(db)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+
+		// Create Redis Client for Dequeue
+		rdb := redislib.CreateRedisClient()
+		queueName := queue
+		fmt.Println("Queue Name: ", queueName)
+
+		// Send PD records to the redis queue
+		for _, record := range records {
+			jsonData, err := json.Marshal(record)
+			if err != nil {
+				panic(err)
+			}
+			// Write a message to the queue
+			redislib.WriteMessage(rdb, queueName, string(jsonData))
+		}
+
+	case "enqueueforpdunpublish":
+		fmt.Println("pd unpublish")
+
+		// Connect DB
+		db, err1 := dbservice.Conn(dsn)
+		if err1 != nil {
+			log.Fatalf("%v", err1)
+			return
+		}
+		defer db.Close()
+
+		// Gather proactive disclosure records for unpublishing
+		records, err := dbservice.GetPDRecordsForUnpublishing(db)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+
+		// Create Redis Client for Dequeue
+		rdb := redislib.CreateRedisClient()
+		queueName := queue
+		fmt.Println("Queue Name: ", queueName)
+
+		// Send PD records to the redis queue
+		for _, item := range records {
+			jsonData, err := json.Marshal(item)
+			if err != nil {
+				panic(err)
+			}
+
+			// Write a message to the queue
+			redislib.WriteMessage(rdb, queueName, string(jsonData))
+		}
+
 	case "sitemap":
 		fmt.Println("sitemap")
 
@@ -208,6 +277,13 @@ func main() {
 			log.Fatalf("%v", err)
 			return
 		}
+		// Get the proactive disclosure record, which are ready for XML
+		pdRecords, pdErr := dbservice.GetPDRecordsForPublishing(db)
+		if pdErr != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+		records = append(records, pdRecords)
 
 		// Get the last sitemap_page from s3
 		destBucket := env + "-" + oibucket
@@ -227,7 +303,7 @@ func main() {
 
 		// Insert to XML
 		for i, item := range records {
-			fmt.Printf("main - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
+			fmt.Printf("main - ID: %s, Description: %s, Published Date: %s\n", item.Axisrequestid, item.Description, item.Published_date)
 
 			// Save sitemap_pages_.xml which reached 5000 limit
 			if len(urlset.Urls) >= sitemaplimit {
