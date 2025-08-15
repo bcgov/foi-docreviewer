@@ -1,7 +1,7 @@
 """Compression Job Table
 
 Revision ID: 50b4dc64d6cd
-Revises: 5ace86cdb21d
+Revises: 00e2b5eb7f75
 Create Date: 2025-04-04 11:40:38.782986
 
 """
