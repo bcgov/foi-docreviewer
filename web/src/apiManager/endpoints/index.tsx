@@ -24,5 +24,6 @@ const API = {
     FOI_SOLR_API_AUTH_URL: `${DOCREVIEWER_BASE_API_URL}/api/foicrosstextsearch/authstring`,
     IDIR_CHECK_URL: `${DOCREVIEWER_BASE_API_URL}/api/bcgovidir/check`,
     DOCREVIEWER_SAVE_REDLINECONTENT:`${DOCREVIEWER_BASE_API_URL}/api/redlinecontent/save/<ministryrequestid>`,
+    FOI_GET_S3DOCUMENT_PRESIGNEDURL_PUBLICATION_PACKAGE:`${DOCREVIEWER_BASE_API_URL}/api/foiflow/oss/presigned/publicationpackage`
 };
 export default API;

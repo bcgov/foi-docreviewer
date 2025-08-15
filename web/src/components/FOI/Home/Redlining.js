@@ -37,7 +37,7 @@ import {
   PII_BLACKLIST,
   PII_NUM_ROWS
 } from "../../../constants/constants";
-import { errorToast } from "../../../helper/helper";
+import { errorToast, warningToast } from "../../../helper/helper";
 import { useAppSelector } from "../../../hooks/hook";
 import { pageFlagTypes, RedactionTypes } from "../../../constants/enum";
 import {
@@ -67,9 +67,11 @@ import {
   handleRedlineForOipcClick, 
   handleRedlineForSignOffClick,
   handleConsultPackageClick,
+  handlePublicationPackageClick,
   renderCustomButton,
   isValidRedlineDownload,
-  isReadyForSignOff } from "./CreateResponsePDF/CreateResponsePDF";
+  isReadyForSignOff,
+  createPublicationPackageSelection } from "./CreateResponsePDF/CreateResponsePDF";
 import {
   createSettingsDropDownMenu,
   createPIIToggleButton,
@@ -87,6 +89,7 @@ import {ConfirmationModal} from "./ConfirmationModal";
 import { FOIPPASectionsModal } from "./FOIPPASectionsModal";
 import { NRWarningModal } from "./NRWarningModal";
 import FeeOverrideModal from "./FeeOverrideModal";
+import { toast } from "react-toastify";
 import { ReactComponent as RedactLogo } from "../../../assets/images/mark-redact.svg";
 
 const Redlining = React.forwardRef(
@@ -132,6 +135,8 @@ const Redlining = React.forwardRef(
     const solrauthtoken = useSelector((state) => state.documents?.foisolrauth);
     const sections = useSelector((state) => state.documents?.sections);    
     const currentLayer = useSelector((state) => state.documents?.currentLayer);
+    // Create a ref to store currentLayer
+    const currentLayerRef = useRef(currentLayer);
     const deletedDocPages = useAppSelector((state) => state.documents?.deletedDocPages);
     const validoipcreviewlayer = useAppSelector((state) => state.documents?.requestinfo?.validoipcreviewlayer);
     const requestType = useAppSelector((state) => state.documents?.requestinfo?.requesttype);
@@ -216,6 +221,8 @@ const Redlining = React.forwardRef(
       saveResponsePackage,
       checkSavingFinalPackage,
       enableSavingFinal,
+      checkSavingPublicationPackage,
+      enablePublication
     } = useSaveResponsePackage(redlinePhase);
 
     const [isRedlineOpaque, setIsRedlineOpaque] = useState(localStorage.getItem('isRedlineOpaque') === 'true')
@@ -287,6 +294,11 @@ const Redlining = React.forwardRef(
 
 
     useEffect(() => {
+      currentLayerRef.current = currentLayer;
+    }, [currentLayer]);
+
+
+    useEffect(() => {
       let initializeWebViewer = async () => {
         let currentDocumentS3Url = currentDocument?.currentDocumentS3Url;
         fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
@@ -353,6 +365,11 @@ const Redlining = React.forwardRef(
             menu.appendChild(redlineForSignOffBtn);
             menu.appendChild(finalPackageBtn);
             menu.appendChild(consultPackageButton);
+            const publicationPackageBtn= createPublicationPackageSelection(document, enablePublication);
+            publicationPackageBtn.onclick = () => {
+              handlePublicationPackageClick(updateModalData, setRedlineModalOpen)
+            }
+            menu.appendChild(publicationPackageBtn);
             parent.appendChild(menu);
           
 
@@ -493,7 +510,7 @@ const Redlining = React.forwardRef(
             type: "customElement",
             title: "Edit",
             render: () => (
-              <Edit instance={instance} editAnnotation={editAnnotation} />
+              <Edit instance={instance} editAnnotation={editAnnotation}/>
             ),
           });
           instance.UI.annotationPopup.add({
@@ -1128,6 +1145,7 @@ const Redlining = React.forwardRef(
             annotManager.drawAnnotationsFromList(newAnnots);
             annotManager.enableReadOnlyMode();
           } else {
+            fetchSections(requestid, currentLayer.name.toLowerCase(), (error) => console.log(error));
             setIsAnnotationsLoading(true);
             fetchAnnotationsByPagination(
               requestid,
@@ -1376,7 +1394,9 @@ const Redlining = React.forwardRef(
                       docversion: displayedDoc.docversion,
                       isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags);
+                    const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                      constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags)
+                      //:{};
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -1400,7 +1420,7 @@ const Redlining = React.forwardRef(
                       (data) => {
                         if(data.status == true){
                           const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag, pageFlags)
-                          if(updatedPageFlags?.length > 0)
+                          if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                             syncPageFlagsOnAction(updatedPageFlags);
                         }
                         // fetchPageFlag(
@@ -1542,7 +1562,9 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags);
+                  const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                    constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags)
+                    //:{};
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -1581,9 +1603,9 @@ const Redlining = React.forwardRef(
                   requestid,
                   astr,
                   (data) => {
-                    if(data.status == true){
+                    if(data.status == true && data.updatedpageflag){
                       const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                      if(updatedPageFlags?.length > 0)
+                      if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                         syncPageFlagsOnAction(updatedPageFlags);
                     }
                   },
@@ -1839,7 +1861,9 @@ const Redlining = React.forwardRef(
       const readyForSignOff = isReadyForSignOff(documentList, pageFlags);
       const validRedlineDownload = isValidRedlineDownload(pageFlags);
       const redlineReadyAndValid = readyForSignOff && validRedlineDownload;
+      const isOILayerSelected = currentLayer.name.toLowerCase() == "open info" ? true : false;
       const oipcRedlineReadyAndValid = (validoipcreviewlayer === true && currentLayer.name.toLowerCase() === "oipc") && readyForSignOff;
+      const isOITeam = user && user?.groups?.includes("/OI Team");
       if (!validoipcreviewlayer && isPhasedRelease) {
         const phasesOnRequest = findAllPhases();
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
@@ -1853,6 +1877,7 @@ const Redlining = React.forwardRef(
       }
       checkSavingConsults(documentList, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
+      checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance, isOITeam);
     };
 
     //useEffect to handle validation of all Response Package downloads
@@ -2059,12 +2084,25 @@ const Redlining = React.forwardRef(
           annotManager.redrawAnnotation(_annotation);
 
           annotManager.setPermissionCheckCallback((author, _annotation) => {
-            if (_annotation.Subject !== "Redact" && author !== username) {
+            console.log("Permission check!")
+            let annotationLayerId=_annotation.getCustomData('redactionlayerid')?
+                  parseInt(_annotation.getCustomData('redactionlayerid')):null
+            console.log(annotationLayerId)
+            const updatedLayer = currentLayerRef.current;
+            if ((_annotation.Subject !== "Redact" && author !== username) ||
+              updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId!= undefined && 
+              annotationLayerId != updatedLayer.redactionlayerid) {
               _annotation.NoResize = true;
             }
-            if (author !== username) {
+            if (author !== username || (updatedLayer?.name?.toLowerCase() === "open info" && 
+              annotationLayerId!= undefined && annotationLayerId != updatedLayer.redactionlayerid)) {
               _annotation.LockedContents = true;
             }
+            if (updatedLayer?.name?.toLowerCase() === "open info" && 
+            annotationLayerId!= undefined && annotationLayerId != updatedLayer.redactionlayerid) {
+            _annotation.Locked = true;
+            _annotation.NoDelete = true;
+          }
             return true;
           });
         });
@@ -2225,7 +2263,9 @@ const Redlining = React.forwardRef(
           docid: displayedDoc.docid,
           docversion: displayedDoc.docversion,
         }
-        const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
+        const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+          constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
+          //:{};
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -2263,7 +2303,7 @@ const Redlining = React.forwardRef(
             setPageSelections([]);
             if(data.status == true){
               const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-              if(updatedPageFlags?.length > 0)
+              if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                 syncPageFlagsOnAction(updatedPageFlags);
             }       
             // fetchPageFlag(
@@ -2406,10 +2446,12 @@ const Redlining = React.forwardRef(
                 pageSelectionList
               );
               const pageFlagObj = [];              
-              const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags);
-                  if (pageFlagsUpdated) {
-                    pageFlagObj.push(pageFlagsUpdated);
-                  }
+              const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
+                constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "edit", pageFlags)
+                //:{};
+              if (pageFlagsUpdated) {
+                pageFlagObj.push(pageFlagsUpdated);
+              }
               let pageFlagData = {};
               if (isObjectNotEmpty(pageFlagObj)) {
                 pageFlagData = createPageFlagPayload(pageFlagObj, currentLayer.redactionlayerid)
@@ -2422,7 +2464,7 @@ const Redlining = React.forwardRef(
                   setPageSelections([]);
                   if(data.status == true){
                     const updatedPageFlags = updatePageFlagOnPage(data.updatedpageflag,pageFlags)
-                    if(updatedPageFlags?.length > 0)
+                    if(updatedPageFlags?.length > 0 && currentLayer.name !== 'Open Info')
                       syncPageFlagsOnAction(updatedPageFlags);
                   }
                   // fetchPageFlag(
@@ -2628,19 +2670,27 @@ const Redlining = React.forwardRef(
       _annot.NoMove = true;
       return _annot;
     };
-
+    const toastId = React.useRef(null);
     const editAnnotation = (annotationManager, selectedAnnot) => {
+      const updatedLayer = currentLayerRef.current;
       selectedAnnot.then((astr) => {
         //parse annotation xml
         let jObj = parser.parseFromString(astr); // Assume xmlText contains thesetEditRedacts example XML
-        let annots = jObj.getElementsByTagName("annots");
-        let annot = annots[0].children[0];
-        setEditAnnot({
-          pages: annot.attributes.page,
-          names: [annot.attributes.name],
-          astr: astr,
-          type: annot.name,
-        });
+        const trnCustomData = decodeAstr(astr)
+        let annotationLayerId= parseInt(trnCustomData["redactionlayerid"])
+        if (updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId != updatedLayer.redactionlayerid){
+          warningToast("Changes to existing severing and flags can not be made.")
+        }
+        else{
+          let annots = jObj.getElementsByTagName("annots");
+          let annot = annots[0].children[0];
+          setEditAnnot({
+            pages: annot.attributes.page,
+            names: [annot.attributes.name],
+            astr: astr,
+            type: annot.name,
+          });
+        }
       });
       setAnnotManager(annotationManager);
     };
@@ -2824,6 +2874,7 @@ const Redlining = React.forwardRef(
 
     const handleSectionSelected = (e) => {
       let sectionID = e.target.getAttribute("data-sectionid");
+      console.log("sectionID:",sectionID)
       let newSelectedSections;
       if (e.target.checked) {
         newSelectedSections = [...selectedSections, Number(sectionID)];
@@ -2991,6 +3042,7 @@ const Redlining = React.forwardRef(
           );
           break;
         case "responsepackage":
+        case "openinfo":
           // Key phase logic: Phased packages must filter and map pages over docs with NO PAGE FLAGS, therefore a data set must include all docs (incl. ones with no page flags).
           let docPageFlags = redlinePhase ? documentList.map(doc => ({"documentversion": doc.version, "documentid": doc.documentid, "pageflag": doc.pageFlag ? doc.pageFlag : []})) : pageFlags;
           saveResponsePackage(
@@ -3002,6 +3054,7 @@ const Redlining = React.forwardRef(
             docPageFlags,
             feeOverrideReason,
             requestType,
+            modalFor
           );
           break;
         default:
@@ -3084,6 +3137,7 @@ const Redlining = React.forwardRef(
             defaultSections={defaultSections}
             saveDefaultSections={saveDefaultSections}
             clearDefaultSections={clearDefaultSections} 
+            currentLayer={currentLayerRef?.current}
           />
         {redlineModalOpen && 
           <ConfirmationModal 

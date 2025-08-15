@@ -8,11 +8,11 @@ class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
-        if _ismcfpersonalrequest and (message.category == "responsepackage" or  "responsepackage_phase" in message.category):
+        if _ismcfpersonalrequest and (message.category in ("responsepackage", "openinfo") or  "responsepackage_phase" in message.category):
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
         else:
             redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
-        if (message.category == "responsepackage" or "responsepackage_phase" in message.category) and _ismcfpersonalrequest == False:
+        if (message.category in ("responsepackage", "openinfo") or "responsepackage_phase" in message.category) and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
@@ -463,6 +463,8 @@ class redactionsummary():
     def __getredactionlayerid(self, message):
         if message.category == "responsepackage" or "responsepackage_phase" in message.category:
             return documentpageflag().getrecentredactionlayerid(message.ministryrequestid)
+        elif message.category == "openinfo":
+            return 1 # openinfo uses summary from redline layer
         return message.redactionlayerid 
 
     def __getdeletedpages(self, ministryid, ordereddocids):
@@ -524,7 +526,7 @@ class redactionsummary():
             range_sections = currentpg["sections"] if range_start == 0 else range_sections
             range_start = currentpg["stitchedpageno"] if range_start == 0 else range_start   
             range_consults = currentpg["consults"]        
-            skipconsult  = True if (category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage') or 'responsepackage_phase' in category) else False
+            skipconsult  = True if (category in ('oipcreviewredline','responsepackage', 'CFD_responsepackage','openinfo') or 'responsepackage_phase' in category) else False
             if (currentpg["stitchedpageno"]+1 == nextpg["stitchedpageno"] 
                 and (skipconsult == True or (skipconsult == False and currentpg["consults"] == nextpg["consults"]))
                 and currentpg["sections"] == nextpg["sections"]
@@ -576,7 +578,7 @@ class redactionsummary():
 
     def __get_skippagenos(self, _docpageflags, category, deletedpages, pageswithphases=[], pageswithnoflags=[]):
         skippages = set()
-        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
+        if category in ['responsepackage', 'CFD_responsepackage', 'oipcreviewredline', 'openinfo'] or "responsepackage_phase" in category:
             for x in _docpageflags:
                 if x['flagid'] in (5,6) and x['page'] not in skippages:
                     skippages.add(x['page'])
@@ -591,7 +593,7 @@ class redactionsummary():
                     
     def __calcstitchedpageno(self, pageno, totalpages, category, skippages, deletedpages):
         skipcount = 0
-        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline'] or "responsepackage_phase" in category:
+        if category in ["responsepackage", 'CFD_responsepackage', 'oipcreviewredline', 'openinfo'] or "responsepackage_phase" in category:
             skipcount =  self.__calculateskipcount(pageno, skippages) 
         skipcount =  self.__calculateskipcount(pageno, deletedpages, skipcount)
         return (pageno+totalpages)-skipcount

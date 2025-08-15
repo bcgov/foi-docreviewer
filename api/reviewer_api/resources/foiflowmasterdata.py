@@ -372,14 +372,14 @@ class FOIFlowS3PresignedRedline(Resource):
 
 
 @cors_preflight("POST,OPTIONS")
-@API.route("/foiflow/oss/presigned/responsepackage/<int:ministryrequestid>")
+@API.route("/foiflow/oss/presigned/<int:ministryrequestid>/<redactionlayer>")
 class FOIFlowS3PresignedResponsePackage(Resource):
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
-    def post(ministryrequestid):
+    def post(ministryrequestid, redactionlayer="responsepackage"):
         try:
             json_data = request.get_json()
             data = json_data["documentsInfo"]
@@ -405,9 +405,15 @@ class FOIFlowS3PresignedResponsePackage(Resource):
             # generate save url for stitched file
             filepathlist = data["filepath"].split("/")[4:]
             filename = filepathlist[0]
+
             if phase is not None:
                 filepath_put = "{0}/{2}/{1} - {3}.pdf".format(
                     filepathlist[0], filename,f"responsepackage_phase{phase}",f"Phase {phase}")
+            elif redactionlayer == "openinfo":
+                filename = "Response_Package_" + filename
+                filepath_put = "{0}/{2}/{1}.pdf".format(
+                    filepathlist[0], filename, redactionlayer
+            )
             else:
                 filepath_put = "{0}/responsepackage/{1}.pdf".format(
                     filepathlist[0], filename

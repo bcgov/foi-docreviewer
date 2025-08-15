@@ -21,6 +21,7 @@ const useSaveResponsePackage = (redlinePhase) => {
   const { foiministryrequestid } = useParams();
 
   const [enableSavingFinal, setEnableSavingFinal] = useState(false);
+  const [enablePublication, setEnablePublication] = useState(false);
 
   const stampPageNumberResponse = async (_docViwer, PDFNet) => {
     for (
@@ -219,11 +220,13 @@ const useSaveResponsePackage = (redlinePhase) => {
     pageFlags,
     feeOverrideReason,
     requestType,
+    downloadPackageType
   ) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
-      category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
+      category: downloadPackageType,
+      //category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
@@ -235,9 +238,11 @@ const useSaveResponsePackage = (redlinePhase) => {
     getResponsePackagePreSignedUrl(
       foiministryrequestid,
       documentList[0],
+      downloadPackageType,
       redlinePhase,
       async (res) => {
-        const toastID = toast.loading("Start generating final package...");
+        const toastID = downloadPackageType == "openinfo" ?
+          toast.loading("Start generating publication package..."): toast.loading("Start generating final package...");
         zipServiceMessage.requestnumber = res.requestnumber;
         zipServiceMessage.bcgovcode = res.bcgovcode;
         zipServiceMessage.summarydocuments= prepareresponseredlinesummarylist(documentList,zipServiceMessage.bcgovcode, requestType)
@@ -441,20 +446,32 @@ const useSaveResponsePackage = (redlinePhase) => {
       }
     );
   };
-  const checkSavingFinalPackage = (redlineReadyAndValid, instance) => {
+  const checkSavingFinalPackage = (redlineReadyAndValid, isOILayerSelected,instance) => {
     const validFinalPackageStatus = requestStatus === RequestStates["Response"];
-    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus);
+    //setEnableSavingFinal(true)
+    setEnableSavingFinal(redlineReadyAndValid && validFinalPackageStatus && !isOILayerSelected);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("final_package").disabled =
-        !redlineReadyAndValid || !validFinalPackageStatus;
+        !redlineReadyAndValid || !validFinalPackageStatus || isOILayerSelected;
     }
   };
+
+  const checkSavingPublicationPackage = (redlineReadyAndValid, isOILayerSelected, instance, isOITeam) =>{
+    setEnablePublication(redlineReadyAndValid && isOILayerSelected)
+    if (instance) {
+      const document = instance.UI.iframeWindow.document;
+      document.getElementById("publication_package").disabled =
+        !redlineReadyAndValid || !isOILayerSelected || !isOITeam;
+    }
+  }
 
   return {
     saveResponsePackage,
     checkSavingFinalPackage,
     enableSavingFinal,
+    checkSavingPublicationPackage,
+    enablePublication
   };
 };
 
