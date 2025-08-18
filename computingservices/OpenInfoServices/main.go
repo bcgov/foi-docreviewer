@@ -51,13 +51,14 @@ var (
 )
 
 func main() {
-
 	//Only enable when running locally for using .env
 	// setEnvForLocal(".env")
 
+	fmt.Printf("Program started with %d arguments: %v\n", len(os.Args), os.Args)
+	
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide a parameter: dequeue, enqueue, sitemap or unpublish")
-		return
+		os.Exit(1)
 	}
 
 	host, port, user, password, dbname = myconfig.GetDB()
