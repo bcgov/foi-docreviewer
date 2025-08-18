@@ -1488,7 +1488,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     readyForSignOff
   ) => {
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid && validOIPCRedlineStatus && !isOILayerSelected
+      oipcRedlineReadyAndValid && !isOILayerSelected
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
