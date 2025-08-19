@@ -1876,7 +1876,7 @@ const Redlining = React.forwardRef(
         checkSavingFinalPackage(redlineReadyAndValid, _instance);
       }
       checkSavingConsults(documentList, _instance);
-      checkSavingOIPCRedline(oipcRedlineReadyAndValid, _instance, readyForSignOff);
+      checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
       checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance, isOITeam);
     };
 
@@ -2084,10 +2084,10 @@ const Redlining = React.forwardRef(
           annotManager.redrawAnnotation(_annotation);
 
           annotManager.setPermissionCheckCallback((author, _annotation) => {
-            console.log("Permission check!")
+            // console.log("Permission check!")
             let annotationLayerId=_annotation.getCustomData('redactionlayerid')?
                   parseInt(_annotation.getCustomData('redactionlayerid')):null
-            console.log(annotationLayerId)
+            // console.log(annotationLayerId)
             const updatedLayer = currentLayerRef.current;
             if ((_annotation.Subject !== "Redact" && author !== username) ||
               updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId!= undefined && 
