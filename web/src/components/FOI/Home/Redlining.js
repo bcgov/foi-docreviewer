@@ -1869,13 +1869,13 @@ const Redlining = React.forwardRef(
         const phaseCompletionObj = checkPhaseCompletion(phasesOnRequest);
         setAssignedPhases(phaseCompletionObj);
         const phasedRedlineReadyAndValid = phaseCompletionObj.some(phase => phase.valid);
-        checkSavingRedline(phasedRedlineReadyAndValid, _instance);
-        checkSavingFinalPackage(phasedRedlineReadyAndValid, _instance);
+        checkSavingRedline(phasedRedlineReadyAndValid, isOILayerSelected, _instance);
+        checkSavingFinalPackage(phasedRedlineReadyAndValid, isOILayerSelected, _instance);
       } else {
-        checkSavingRedline(redlineReadyAndValid, _instance);
-        checkSavingFinalPackage(redlineReadyAndValid, _instance);
+        checkSavingRedline(redlineReadyAndValid, isOILayerSelected, _instance);
+        checkSavingFinalPackage(redlineReadyAndValid, isOILayerSelected, _instance);
       }
-      checkSavingConsults(documentList, _instance);
+      checkSavingConsults(documentList, isOILayerSelected, _instance);
       checkSavingOIPCRedline(oipcRedlineReadyAndValid, isOILayerSelected, _instance, readyForSignOff);
       checkSavingPublicationPackage(redlineReadyAndValid, isOILayerSelected, _instance, isOITeam);
     };
