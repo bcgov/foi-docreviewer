@@ -1472,14 +1472,9 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       redlinePhase
     );
   };
-
-  console.log("enableSavingRedline", enableSavingRedline)
-  console.log("enableSavingOipcRedline", enableSavingOipcRedline)
-  console.log("enableSavingConsults", enableSavingConsults)
   
   const checkSavingRedline = (redlineReadyAndValid, isOILayerSelected, instance) => {
     setEnableSavingRedline(redlineReadyAndValid && !isOILayerSelected);
-    console.log("checkSavingRedline", redlineReadyAndValid, isOILayerSelected);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
