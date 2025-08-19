@@ -211,7 +211,10 @@ func main() {
 		}
 
 		// Get the last sitemap_page from s3
-		destBucket := env + "-" + oibucket
+		destBucket := oibucket
+		if env != "" {
+			destBucket = env + "-" + oibucket
+		}
 		destPrefix := sitemapprefix
 
 		sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")

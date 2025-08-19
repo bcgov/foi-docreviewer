@@ -54,7 +54,9 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
 	env, _, _, _ = myconfig.GetOthers()
 
-	oibucket := env + "-" + oibucket
+	if env != "" {
+		oibucket = env + "-" + oibucket
+	}
 
 	// Get file info from s3 bucket folder
 	var result awslib.ScanResult
@@ -125,7 +127,10 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
 	env, _, _, _ = myconfig.GetOthers()
 
-	destBucket := env + "-" + oibucket
+	destBucket := oibucket
+	if env != "" {
+		destBucket = env + "-" + oibucket
+	}
 	destPrefix := oiprefix
 	err := awslib.RemoveFolderFromS3(destBucket, destPrefix+msg.Axisrequestid+"/") // Add a trailing slash to delete the folder
 	if err != nil {

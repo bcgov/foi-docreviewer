@@ -209,7 +209,10 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 	// bucket := "dev-openinfopub"
 	bucket := sourceBucket
 	prefix := sourcePrefix
-	destBucket := env + "-" + oibucket
+	destBucket := oibucket
+	if env != "" {
+		destBucket = env + "-" + oibucket
+	}
 	destPrefix := oiprefix
 
 	svc := CreateS3Client()
