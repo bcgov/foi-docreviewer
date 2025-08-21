@@ -1394,9 +1394,7 @@ const Redlining = React.forwardRef(
                       docversion: displayedDoc.docversion,
                       isFullPage: isFullPage
                     }
-                    const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
-                      constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags)
-                      //:{};
+                    const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "delete", pageFlags);
                     if (pageFlagsUpdated) {
                       pageFlagObj.push(pageFlagsUpdated);
                     }                    
@@ -1562,9 +1560,7 @@ const Redlining = React.forwardRef(
                     docid: displayedDoc.docid,
                     docversion: displayedDoc.docversion,
                   }
-                  const pageFlagsUpdated = //currentLayer.name.toLowerCase() != "open info" ?
-                    constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags)
-                    //:{};
+                  const pageFlagsUpdated = constructPageFlags(annotationsInfo, exisitngAnnotations, pageMappedDocs, pageFlagTypes, RedactionTypes, "add", pageFlags);
                   if (pageFlagsUpdated) {
                     pageFlagObj.push(pageFlagsUpdated);
                   }
@@ -2084,10 +2080,8 @@ const Redlining = React.forwardRef(
           annotManager.redrawAnnotation(_annotation);
 
           annotManager.setPermissionCheckCallback((author, _annotation) => {
-            // console.log("Permission check!")
             let annotationLayerId=_annotation.getCustomData('redactionlayerid')?
                   parseInt(_annotation.getCustomData('redactionlayerid')):null
-            // console.log(annotationLayerId)
             const updatedLayer = currentLayerRef.current;
             if ((_annotation.Subject !== "Redact" && author !== username) ||
               updatedLayer?.name?.toLowerCase() === "open info" && annotationLayerId!= undefined && 
@@ -2874,7 +2868,6 @@ const Redlining = React.forwardRef(
 
     const handleSectionSelected = (e) => {
       let sectionID = e.target.getAttribute("data-sectionid");
-      console.log("sectionID:",sectionID)
       let newSelectedSections;
       if (e.target.checked) {
         newSelectedSections = [...selectedSections, Number(sectionID)];

@@ -31,7 +31,7 @@ const LayerDropdown = ({
         let selectedlayerid = e.target.value;
         setLayer(selectedlayerid);
         let layer = layers.find((l: any) => l.redactionlayerid === selectedlayerid)
-        console.log("Selected layer:",layer)
+        // console.log("Selected layer:",layer)
         if (e.target.value > 2 && layer.count === 0) {
             setOpenModal(true);
         } else {
