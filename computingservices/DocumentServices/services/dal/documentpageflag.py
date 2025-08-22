@@ -254,7 +254,7 @@ class documentpageflag:
                 select redactionlayerid  
                 from "DocumentPageflags" 
                 where foiministryrequestid = %s::integer
-                and redactionlayerid != (select redactionlayerid from "RedactionLayers" where name in ('Response Package', 'Open Info'))
+                and redactionlayerid NOT IN (select redactionlayerid from "RedactionLayers" where name in ('Response Package', 'Open Info'))
                 --openinfo layer is excluded latest redaction layer because it always uses the normal redaction summary & 
                 --exclude response package from layer query in document services disable context menu to prevent page flags from being created for response package
                 order by created_at, id desc limit 1;
