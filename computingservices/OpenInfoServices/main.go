@@ -90,13 +90,10 @@ func main() {
 		for {
 			message, err := redislib.ReadMessage(rdb, queueName)
 			if err != nil {
-				if err == redis.Nil {
-					fmt.Println("No messages in queue")
-				} else {
-					// log.Fatalf("could not read message from queue: %v", err)
+				if err != redis.Nil {
 					log.Printf("could not read message from queue: %v", err)
 				}
-				time.Sleep(1 * time.Second)
+				Sleep(1 * time.Second)
 				continue
 			}
 
