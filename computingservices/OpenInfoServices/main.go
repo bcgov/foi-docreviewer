@@ -93,7 +93,7 @@ func main() {
 				if err != redis.Nil {
 					log.Printf("could not read message from queue: %v", err)
 				}
-				Sleep(1 * time.Second)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 
