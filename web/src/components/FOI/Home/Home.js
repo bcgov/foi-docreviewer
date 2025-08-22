@@ -47,6 +47,8 @@ function Home() {
   const [pageFlags, setPageFlags]= useState([]);
   const [isBalanceFeeOverrode , setIsBalanceFeeOverrode] = useState(false);
   const [outstandingBalance, setOutstandingBalance]= useState(0);
+  const [isAnnotationsLoading, setIsAnnotationsLoading] = useState(true);
+  const [areAnnotationsRendered, setAreAnnotationsRendered] = useState(false);
 
   const redliningRef = useRef();
   const selectorRef = useRef();
@@ -257,6 +259,12 @@ function Home() {
 
   const scrollLeftPanel = (event, pageNo) => {
     selectorRef?.current?.scrollToPage(event, pageNo);
+    let lookup = pageMappedDocs.stitchedPageLookup[pageNo];
+    let file = files.find(
+      f => f.documentid === lookup.docid
+    );    
+    setIndividualDoc({ file: file, page: pageNo });
+    setCurrentPageInfo({ file: file, page: lookup.page });
   };
 
   const closeWarningMessage = () => {
@@ -303,19 +311,24 @@ function Home() {
                   pageMappedDocs={pageMappedDocs}
                   setIsStitchingLoaded={setIsStitchingLoaded}
                   isStitchingLoaded={isStitchingLoaded}
+                  setIsAnnotationsLoading={setIsAnnotationsLoading}
+                  setAreAnnotationsRendered={setAreAnnotationsRendered}
                   incompatibleFiles={incompatibleFiles}
                   setWarningModalOpen={setWarningModalOpen}
                   scrollLeftPanel={scrollLeftPanel}
+                  isAnnotationsLoading={isAnnotationsLoading}
                   isBalanceFeeOverrode={isBalanceFeeOverrode}
                   outstandingBalance={outstandingBalance}
                   pageFlags={pageFlags}
                   syncPageFlagsOnAction={syncPageFlagsOnAction}
+                  documentPageNo_pii={currentPageInfo?.page}
+                  documentID_pii={currentPageInfo?.file.documentid}
                   isPhasedRelease={requestInfo?.isphasedrelease}
                 />
               )
             // : <div>Loading</div>
           }
-          {!isStitchingLoaded && (
+          {(!isStitchingLoaded || isAnnotationsLoading || !areAnnotationsRendered) && (
             <div className="merging-overlay">
               <div>
                 <DocumentLoader />

@@ -170,21 +170,57 @@ class DocumentMaster(db.Model):
         return documentmasters
     
 
+    # @classmethod
+    # def getfilepathbydocumentidold(cls, documentid):
+    #     try:
+    #         sql = """select dm.filepath
+    #                 from public."DocumentMaster" dm
+    #                 join public."Documents" d on d.documentmasterid = dm.documentmasterid
+    #                 where d.documentid = :documentid"""
+    #         rs = db.session.execute(text(sql), {'documentid': documentid}).first()
+    #     except Exception as ex:
+    #         logging.error(ex)
+    #         db.session.close()
+    #         raise ex
+    #     finally:
+    #         db.session.close()
+    #     return rs[0]
+
     @classmethod
     def getfilepathbydocumentid(cls, documentid):
         try:
-            sql = """select dm.filepath
-                    from public."DocumentMaster" dm
-                    join public."Documents" d on d.documentmasterid = dm.documentmasterid
-                    where d.documentid = :documentid"""
+            result= {}
+            sql = """SELECT 
+                        dm.filepath as filepath,
+                        d.selectedfileprocessversion as selectedfileprocessversion,
+                        CASE 
+                            WHEN dm.processingparentid IS NOT NULL THEN parent_dm.compressedfilepath
+                            ELSE dm.compressedfilepath
+                        END AS compressedfilepath,
+                        CASE 
+                            WHEN dm.processingparentid IS NOT NULL THEN parent_dm.ocrfilepath
+                            ELSE dm.ocrfilepath
+                        END AS ocrfilepath
+                    FROM public."DocumentMaster" dm
+                    JOIN public."Documents" d ON d.documentmasterid = dm.documentmasterid
+                    LEFT JOIN public."DocumentMaster" parent_dm ON dm.processingparentid = parent_dm.documentmasterid
+                    WHERE d.documentid = :documentid
+                """
             rs = db.session.execute(text(sql), {'documentid': documentid}).first()
+            result=  {
+                "filepath": rs[0],
+                "selectedfileprocessversion": rs[1],
+                "compressedfilepath": rs[2],
+                "ocrfilepath": rs[3],
+            }
         except Exception as ex:
             logging.error(ex)
             db.session.close()
             raise ex
         finally:
             db.session.close()
-        return rs[0]
+        return result
+        #return rs[0]
     
     @classmethod 
     def getredactionready(cls, ministryrequestid):

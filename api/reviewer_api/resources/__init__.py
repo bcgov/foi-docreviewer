@@ -37,6 +37,8 @@ from .pageflag import API as PAGEFLAG_API
 from .documentpageflag import API as DOCUMENTPAGEFLAG_API
 from .keyword import API as KEYWORD_API
 from .redactionlayer import API as REDACTIONLAYER_API
+from .IDIRService import API as IDIR_API
+from .redlinecontent import API as REDLINECONTENT_API
 
 __all__ = ('API_BLUEPRINT')
 
@@ -68,3 +70,5 @@ API.add_namespace(PAGEFLAG_API, path="/api")
 API.add_namespace(DOCUMENTPAGEFLAG_API, path="/api")
 API.add_namespace(KEYWORD_API, path="/api")
 API.add_namespace(REDACTIONLAYER_API, path="/api")
+API.add_namespace(IDIR_API, path="/api")
+API.add_namespace(REDLINECONTENT_API, path="/api")

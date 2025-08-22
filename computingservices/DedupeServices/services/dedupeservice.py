@@ -20,11 +20,10 @@ def processmessage(message):
         if not _incompatible:
             message.documentid= newdocumentid
             #message.needsocr= needs_ocr
-            print("Message-dedupe",to_json(message))
             #compressionmessage =  compressionproducerservice().createcompressionproducermessage(message, _pagecount)
             compressionjobid = compressionjobstart(message)
-            print("Pushed to Compression Stream!!!",compressionjobid)
             compressionproducerservice().producecompressionevent(message, compressionjobid)
+            print("Pushed to Compression Stream!!!",compressionjobid)
             pagecalculatormessage = documentspagecalculatorproducerservice().createpagecalculatorproducermessage(message, _pagecount)
             pagecalculatorjobid = pagecalculatorjobstart(pagecalculatormessage)
             print("Pushed to Page Calculator Stream!!!", pagecalculatormessage)

@@ -69,7 +69,7 @@ namespace MCS.FOI.S3FileConversion
                        
                         using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
                         response.EnsureSuccessStatusCode();
-                        using Stream responseStream = response.Content.ReadAsStream();
+                        using Stream responseStream = await response.Content.ReadAsStreamAsync();
 
                         // Convert File
                         string extension = Path.GetExtension(fileKey).ToLower();
@@ -189,7 +189,8 @@ namespace MCS.FOI.S3FileConversion
             {
                 IsSinglePDFOutput = true,
                 WaitTimeinMilliSeconds = ConversionSettings.WaitTimeInMilliSeconds,
-                FailureAttemptCount = ConversionSettings.FailureAttemptCount
+                FailureAttemptCount = ConversionSettings.FailureAttemptCount,
+                OpenFileWaitTimeInSeconds = ConversionSettings.OpenFileWaitTimeInSeconds
             };
             
             var (converted, message, output) = excelFileProcessor.ConvertToPDF();

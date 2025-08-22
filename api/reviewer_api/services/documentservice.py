@@ -571,7 +571,12 @@ class documentservice:
             # if document['attributes'].get('isportfolio', False) or document['attributes'].get('incompatible', False) or not document['isredactionready']:
             if (
                 document["attributes"].get("isportfolio", False)
-                or not document["isredactionready"]
+                or ( 
+                    not document["isredactionready"]
+                    and (
+                        ("selectedfileprocessversion" in document and document["selectedfileprocessversion"] != 1)
+                    or ("selectedfileprocessversion" not in document))
+                )
             ):
                 removeids.append(document["documentmasterid"])
             elif document.get("isduplicate", False):
@@ -646,8 +651,11 @@ class documentservice:
         selectedfileprocessversion = DocumentProcesses.getdocumentprocessidbyname("compression")
         if recordretrieveversion == 'retrive_uncompressed' or "uncompressed" in recordretrieveversion:
             selectedfileprocessversion= DocumentProcesses.getdocumentprocessidbyname("dedupe")
-        print("selectedfileprocessversion:", selectedfileprocessversion)
-        return Document.updateselectedfileprocessversion(ministryrequestid,documentmasterids,selectedfileprocessversion, userid)
+        #print("selectedfileprocessversion:", selectedfileprocessversion)
+        result= Document.updateselectedfileprocessversion(ministryrequestid,documentmasterids,selectedfileprocessversion, userid)
+        if result.success:
+            Document.updateredactionready(ministryrequestid,documentmasterids,userid)
+        return result
 
 
     def getdocumentfilepath(self, documentid):

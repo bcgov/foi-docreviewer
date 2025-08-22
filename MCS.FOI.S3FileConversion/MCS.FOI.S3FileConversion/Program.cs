@@ -37,6 +37,10 @@ namespace MCS.FOI.S3FileConversion
                 int.TryParse(configurationbuilder.GetSection("ConversionSettings:FileWatcherMonitoringDelayInMilliSeconds").Value, out int fileWatcherMonitoringDelayInMilliSeconds);
                 ConversionSettings.FileWatcherMonitoringDelayInMilliSeconds = fileWatcherMonitoringDelayInMilliSeconds; // Delay between file directory fetch.
 
+                int.TryParse(Environment.GetEnvironmentVariable("FILE_CONVERSION_OPENFILE_WAITTIME"), out int _envvaropenFileWaitTimeInSeconds);
+                int.TryParse(configurationbuilder.GetSection("ConversionSettings:OpenFileWaitTimeInSeconds").Value, out int openFileWaitTimeInSeconds);
+                ConversionSettings.OpenFileWaitTimeInSeconds = _envvaropenFileWaitTimeInSeconds == 0 ? openFileWaitTimeInSeconds : _envvaropenFileWaitTimeInSeconds; // Wait time for opening a file (specifically Excel)
+
                 string syncfusionLicense =  Environment.GetEnvironmentVariable("FILE_CONVERSION_SYNCFUSIONKEY");
                 //Fetching Syncfusion License from settings
                 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(string.IsNullOrEmpty(syncfusionLicense) ? ConversionSettings.SyncfusionLicense: syncfusionLicense);
@@ -197,7 +201,7 @@ namespace MCS.FOI.S3FileConversion
                                 }
                                 catch (Exception ex)
                                 {
-                                    var errorMessage = $" Error happpened while converting {message["s3filepath"]}. Exception message : {ex.Message}, StackTrace :{ex.StackTrace}";
+                                    var errorMessage = $" Error happened while converting {message["s3filepath"]}. Exception message : {ex.Message}, StackTrace :{ex.StackTrace}";
                                     Console.WriteLine(errorMessage);
                                     await dbhandler.recordJobEnd(message, true, errorMessage, new List<Dictionary<string, String>>());
                                 }
@@ -215,8 +219,8 @@ namespace MCS.FOI.S3FileConversion
             }
             catch (Exception ex)
             {
-                Console.WriteLine($" Error happpened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
-                Log.Information($" Error happpened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Console.WriteLine($" Error happened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Log.Information($" Error happened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
             }
             finally
             {

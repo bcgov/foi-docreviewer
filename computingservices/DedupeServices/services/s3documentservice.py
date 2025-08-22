@@ -239,14 +239,24 @@ def __flattenfitz(docbytesarr):
         #page = doc[page_num]
         page = doc.load_page(page_num) 
         print("\nPage:",page)
-        widget_exist = page.first_widget is not None
-        w, h = page.rect.br  # page width and height
+        rotation = page.rotation
+        # print("\nRotation:",rotation)
+        # Reset rotation to 0 to ensure consistent rendering of page content
+        if rotation != 0:
+            page.set_rotation(0)
+        w = page.rect.width # page width
+        h = page.rect.height # page height
         # Create a new page in the output document with the same size
         outpage = out.new_page(width=w, height=h)
         # Render the page text (keeping it searchable)
-        outpage.show_pdf_page(page.rect, doc, page_num)
+        rect = fitz.Rect(0, 0, w, h)
+        outpage.show_pdf_page(rect, doc, page_num)
+        outpage.set_rotation(rotation) # set rotation of new page to match document page
+        #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
+        print("\nannot",annot)
+        widget_exist = page.first_widget is not None
         if widget_exist:
             print("\nwidget_exist:",widget_exist)
             pix = page.get_pixmap(dpi=150)  # set desired resolution

@@ -37,7 +37,6 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 		CompressedS3FilePath: message.CompressedS3FilePath,
 		DocumentID:           message.DocumentID,
 	}
-	fmt.Printf("Just before pushing to activeMq-%v\n\n", ocrActiveMQMsg.CompressedS3FilePath)
 	response, err := pushDocsToActiveMQ(&ocrActiveMQMsg)
 	fmt.Printf("Response from activemq: %v\n", response)
 	isError := false
@@ -59,7 +58,7 @@ func pushDocsToActiveMQ(message *models.OCRAzureMessage) (*http.Response, error)
 	username := ACTIVEMQ_USERNAME
 	password := ACTIVEMQ_PASSWORD
 	params := "?destination=queue://" + ACTIVEMQ_DESTINATION
-	fmt.Println("\nACTIVEMQ_URL:", url)
+	//fmt.Println("\nACTIVEMQ_URL:", url)
 	if message != nil {
 		jsonBytes, err := json.Marshal(message)
 		if err != nil {
