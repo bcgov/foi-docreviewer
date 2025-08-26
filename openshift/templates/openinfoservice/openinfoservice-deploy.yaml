@@ -1,0 +1,237 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  annotations:
+    description: Deployment template for a open information service.
+    tags: "${APP_NAME}"
+  name: "${APP_NAME}-deploy"
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${APP_NAME}"
+    labels:
+      app: "${APP_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${APP_NAME}-deploy"
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - "${APP_NAME}"
+        from:
+          kind: ImageStreamTag
+          namespace: "${IMAGE_NAMESPACE}"
+          name: "${IMAGE_NAME}:${TAG_NAME}"
+    - type: ConfigChange
+    replicas: 1
+    test: false
+    selector:
+      app: "${APP_NAME}"
+      deploymentconfig: "${APP_NAME}"
+    template:
+      metadata:
+        labels:
+          app: "${APP_NAME}"
+          app-group: "${APP_GROUP}"
+          deploymentconfig: "${APP_NAME}"
+          template: "${APP_NAME}-deploy"
+      spec:
+        containers:
+        - name: "${APP_NAME}"
+          image: "${APP_NAME}"
+          imagePullPolicy: Always
+          args: ["dequeue"]
+          env:
+            - name: FOI_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOI_DB_USER
+            - name: FOI_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOI_DB_PASSWORD
+            - name: FOI_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOI_DB_NAME
+            - name: FOI_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOI_DB_HOST
+            - name: FOI_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOI_DB_PORT
+            - name: OI_REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_REDIS_HOST
+            - name: OI_REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_REDIS_PORT
+            - name: OI_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_REDIS_PASSWORD
+            - name: OI_QUEUE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_QUEUE_NAME
+            - name: OI_S3_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_S3_ENV
+            - name: OI_S3_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_S3_HOST
+            - name: OI_S3_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_S3_REGION
+            - name: OI_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_S3_BUCKET
+            - name: OI_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_ACCESS_KEY
+            - name: OI_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_SECRET_KEY
+            - name: OI_MIME_TYPEs
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_MIME_TYPEs
+            - name: OI_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: OI_PREFIX
+            - name: SITEMAP_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_PREFIX
+            - name: SITEMAP_PAGES_LIMIT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_PAGES_LIMIT
+            - name: KEYCLOAK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_URL
+            - name: KEYCLOAK_URL_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_URL_REALM
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_CLIENT_ID
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_CLIENT_SECRET
+            - name: KEYCLOAK_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_USER
+            - name: KEYCLOAK_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: KEYCLOAK_PASS
+            - name: FOIFLOW_BASE_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: FOIFLOW_BASE_API_URL
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "250Mi"
+            limits:
+              cpu: "150m"
+              memory: "500Mi"
+          terminationMessagePath: "/dev/termination-log"
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+  # status:
+  #   loadBalancer: {}
+parameters:
+- name: APP_NAME
+  displayName: Name
+  description: The name assigned to all of the OpenShift resources associated to the
+    server instance.
+  required: true
+  value: reviewer-openinfoservice
+- name: APP_GROUP
+  displayName: App Group
+  description: The name assigned to all of the deployments in this project.
+  required: true
+  value: foi-docreviewer
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  required: true
+  description: The namespace of the OpenShift project containing the imagestream for
+    the application.
+  value: d106d6-tools
+- name: IMAGE_NAME
+  displayName: Name
+  description: The name assigned to all of the OpenShift resources associated to the
+    server instance.
+  required: true
+  value: reviewer-openinfoservice
+- name: TAG_NAME
+  displayName: Environment TAG name
+  description: The TAG name for this environment, e.g., dev, test, prod
+  required: true
+  value: dev-rook
+- name: SECRETS
+  displayName: OpenInfo Secrets
+  description: Name of secrets for all openinfoservice values
+  required: true
+  value: openinfo-secret-rook

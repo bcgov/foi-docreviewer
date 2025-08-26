@@ -30,7 +30,10 @@ class cdogsapiservice:
         }
         url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}/render"
         #print("url:",url)
-        return self._post_generate_pdf(json_request_body, headers, url)
+        res =  self._post_generate_pdf(json_request_body, headers, url)
+        if res != 200:
+            print("cdogs api response:",res.status_code, res.content)
+        return res
 
     def _post_generate_pdf(self, json_request_body, headers, url):
         return requests.post(url, data= json_request_body, headers= headers)

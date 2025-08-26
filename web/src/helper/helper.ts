@@ -60,6 +60,12 @@ const isIntakeTeam = (userGroups: any) => {
   );
 };
 
+const isOITeam = (userGroups : any) => {
+  return (
+    userGroups?.map((userGroup : any) => userGroup.replace("/", "")).indexOf("OI Team") !== -1
+  );
+}
+
 const encrypt = (obj: any) => {
   return CryptoJS.AES.encrypt(
     JSON.stringify(obj),
@@ -176,6 +182,18 @@ const errorToast = (errorMessage: any) => {
   });
 };
 
+const warningToast = (warningMessage: any) => {
+  return toast.warn(warningMessage, {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+  });
+};
+
 export {
   replaceUrl,
   isMinistryCoordinator,
@@ -190,4 +208,6 @@ export {
   isIntakeTeam,
   encrypt,
   decrypt,
+  warningToast,
+  isOITeam
 };

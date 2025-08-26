@@ -1473,8 +1473,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     );
   };
   
-  const checkSavingRedline = (redlineReadyAndValid, instance) => {
-    setEnableSavingRedline(redlineReadyAndValid);
+  const checkSavingRedline = (redlineReadyAndValid, isOILayerSelected, instance) => {
+    setEnableSavingRedline(redlineReadyAndValid && !isOILayerSelected);
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_sign_off").disabled =
@@ -1483,28 +1483,30 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   };
   const checkSavingOIPCRedline = (
     oipcRedlineReadyAndValid,
+    isOILayerSelected,
     instance,
     readyForSignOff
   ) => {
     setEnableSavingOipcRedline(
-      oipcRedlineReadyAndValid
+      oipcRedlineReadyAndValid && !isOILayerSelected
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
       document.getElementById("redline_for_oipc").disabled =
         !oipcRedlineReadyAndValid ||
-        !readyForSignOff;
+        !readyForSignOff ||
+        isOILayerSelected;
     }
   };
-  const checkSavingConsults = (documentList, instance) => {
+  const checkSavingConsults = (documentList, isOILayerSelected, instance) => {
     const publicBodyList = getPublicBodyList(documentList);
     setDocumentPublicBodies(publicBodyList);
     setEnableSavingConsults(
-      publicBodyList.length > 0
+      publicBodyList.length > 0 || !isOILayerSelected
     );
     if (instance) {
       const document = instance.UI.iframeWindow.document;
-      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0);
+      document.getElementById("consult_package").disabled = !(publicBodyList.length > 0) || isOILayerSelected;
     }
   }
   const triggerRedlineZipper = (

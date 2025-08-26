@@ -74,6 +74,20 @@ export const createConsultPackageSelection = (document, enableSave)  => {
   return consultPackageButton;
 }
 
+export const createPublicationPackageSelection = (document, enableSave) => {
+  const publicationPackageBtn = document.createElement("button");
+  publicationPackageBtn.textContent = "Create Publication Package";
+  publicationPackageBtn.id = "publication_package";
+  publicationPackageBtn.className = "publication_package";
+  publicationPackageBtn.style.backgroundColor = "transparent";
+  publicationPackageBtn.style.border = "none";
+  publicationPackageBtn.style.padding = "8px 8px 8px 10px";
+  publicationPackageBtn.style.cursor = "pointer";
+  publicationPackageBtn.style.alignItems = "left";
+  publicationPackageBtn.disabled = !enableSave;
+  return publicationPackageBtn;
+};
+
 export const renderCustomButton = (document, menu) => {
   const menuBtn = document.createElement("button");
   menuBtn.textContent = "Create Response PDF";
@@ -213,6 +227,26 @@ export const handleConsultPackageClick = (
   setIncludeNRPages(true);
   setRedlineModalOpen(true);
 }
+
+export const handlePublicationPackageClick = (
+  updateModalData,
+  setRedlineModalOpen
+) => {
+  updateModalData({
+    modalFor: "openinfo",
+    modalTitle: "Create Publication Package",
+    modalMessage: [
+    "Are you sure you want to create the publication package?",
+    <br key="break1" />,
+    <br key="break1" />,
+    <span key="modalDescription2">
+      All redactions will be applied and NR/Duplicate pages will be removed.
+    </span>,
+  ],
+    modalButtonLabel: "Create Publication Package"
+  });
+  setRedlineModalOpen(true);
+};
 
 export const isReadyForSignOff = (documentList, pageFlags) => {
   let pageFlagArray = [];

@@ -1,4 +1,5 @@
 from reviewer_api.models.Sections import Section
+from reviewer_api.models.OIRedactionCodes import OIRedactionCodes
 from reviewer_api.services.annotationservice import annotationservice
 from reviewer_api.services.redactionlayerservice import redactionlayerservice
 import json
@@ -9,8 +10,23 @@ class sectionservice:
     def getsections(self):
         return Section.getall()
     
+    def getoiredactioncodes(self):
+        return OIRedactionCodes.getall()
+    
+    def normalise(self, name):
+        _name = name.replace(' ', '')
+        _name = _name.lower()
+        return _name
+    
     def getsections_by_ministryid(self, ministryid, redactionlayer):
-        globalsections = self.getsections()
+        if self.normalise(redactionlayer) == "openinfo":
+            formattedoicodes=[]          
+            globalsections = self.getoiredactioncodes()
+            for section in globalsections:
+                formattedoicodes.append({"id":section["redactioncodeid"], "section":section["redactioncode"], "description": section["description"], "count":0})
+            return formattedoicodes
+        else:
+            globalsections = self.getsections()
         redactionlayerid = redactionlayerservice().getredactionlayerid(redactionlayer)
         annotationsections = annotationservice().getannotationsections(ministryid, redactionlayerid)        
         requestsections = []

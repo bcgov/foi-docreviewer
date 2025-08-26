@@ -41,11 +41,16 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                 print(f"processing {message_id}::{message}")
                 if message is not None:
                     message = json.dumps({str(key.decode("utf-8")): str(value.decode("utf-8")) for (key, value) in message.items()})
+                    message_dict = json.loads(message)
+                    category = message_dict.get("category")
                     summaryfiles = []
-                    try:
-                        summaryfiles = redactionsummaryservice().processmessage(message)
-                    except(Exception) as error: 
-                        logging.exception(error) 
+                    # TO DO: Get response package summary url & push it to the
+                    # publication folder & zipper!
+                    if category != "publicationpackage":
+                        try:
+                            summaryfiles = redactionsummaryservice().processmessage(message)
+                        except(Exception) as error: 
+                            logging.exception(error) 
                     zippingservice().sendtozipper(summaryfiles, message)   
                     # simulate processing
                 time.sleep(random.randint(1, 3))
