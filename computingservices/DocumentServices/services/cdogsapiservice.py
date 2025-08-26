@@ -31,7 +31,7 @@ class cdogsapiservice:
         url = f"{cdogs_base_url}/api/v2/template/{template_hash_code}/render"
         #print("url:",url)
         res =  self._post_generate_pdf(json_request_body, headers, url)
-        if res != 200:
+        if res.status_code != 200:
             raise Exception("ERROR. PDF generation failed, CDOGs API response:",res.status_code, res.content)
         return res
 
