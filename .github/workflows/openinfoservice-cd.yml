@@ -112,7 +112,7 @@ jobs:
         run: |
           oc tag ${{ env.APP_NAME }}:latest ${{ env.APP_NAME }}:${{ env.TAG_NAME }}
 
-      # - name: Watch new rollout (trigger by image change in Openshift)
-      #   shell: bash
-      #   run: |
-      #     oc rollout status dc/${{ env.APP_NAME }}-{{ env.ENV_TAG_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} -w
+      - name: Watch new rollout (trigger by image change in Openshift)
+        shell: bash
+        run: |
+          oc rollout restart deployment/reviewer-openinfo -n d106d6-test
