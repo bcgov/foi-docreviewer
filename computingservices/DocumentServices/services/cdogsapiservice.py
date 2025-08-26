@@ -32,7 +32,7 @@ class cdogsapiservice:
         #print("url:",url)
         res =  self._post_generate_pdf(json_request_body, headers, url)
         if res != 200:
-            print("cdogs api response:",res.status_code, res.content)
+            raise Exception("ERROR. PDF generation failed, CDOGs API response:",res.status_code, res.content)
         return res
 
     def _post_generate_pdf(self, json_request_body, headers, url):
