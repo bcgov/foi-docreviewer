@@ -210,6 +210,10 @@ func CopyS3(sourceBucket string, sourcePrefix string, filemappings []AdditionalF
 	bucket := sourceBucket
 	prefix := sourcePrefix
 	destBucket := oibucket
+	// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
+	if env != "prod" {
+		destBucket = "dev" + "-" + oibucket
+	}
 	destPrefix := oiprefix
 
 	svc := CreateS3Client()

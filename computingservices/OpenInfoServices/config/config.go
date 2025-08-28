@@ -168,10 +168,6 @@ func GetS3() (string, string, string, string) {
 // GetS3 retrieves the S3 variables with lazy initialization
 func GetS3Path() (string, string, string, string, int) {
 	onceS3Path.Do(loadConfigS3Path) // Ensures loadConfig is called only once
-	// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
-	if env != "" {
-		oibucket = "dev" + "-" + oibucket
-	}
 	return s3url, oibucket, oiprefix, sitemapprefix, sitemaplimit
 }
 

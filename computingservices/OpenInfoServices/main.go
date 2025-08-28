@@ -209,6 +209,10 @@ func main() {
 
 		// Get the last sitemap_page from s3
 		destBucket := oibucket
+		// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
+		if env != "prod" {
+			destBucket = "dev" + "-" + oibucket
+		}
 		destPrefix := sitemapprefix
 
 		sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
