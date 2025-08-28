@@ -209,8 +209,9 @@ func main() {
 
 		// Get the last sitemap_page from s3
 		destBucket := oibucket
-		if env != "" {
-			destBucket = env + "-" + oibucket
+		// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
+		if env != "prod" {
+			destBucket = "dev" + "-" + oibucket
 		}
 		destPrefix := sitemapprefix
 
