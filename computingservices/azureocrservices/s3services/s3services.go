@@ -88,7 +88,7 @@ func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
 	// Azure OCR supported image formats: JPEG/JPG, PNG, BMP, HEIF, returns .pdf file
 	// Other supported OCR formats: PDF, TIFF, DOCX, XLSX, PPTX, HTML
 	switch strings.ToLower(ext) {
-	case ".jpeg", ".jpg", ".png", ".bmp", ".heif":
+	case ".jpeg", ".jpg", ".png", ".bmp":
 		ext = ".pdf"
 	}
 
