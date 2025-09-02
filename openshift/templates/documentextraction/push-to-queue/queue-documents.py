@@ -160,7 +160,7 @@ def fetchdocumentsforextraction():
                 WHERE d.foiministryrequestid IN %s AND d.incompatible = False
                 AND NOT EXISTS (
                     SELECT 1 FROM "DocumentExtractionJob" dej WHERE dej.documentid = d.documentid
-                    and dej.status = 'extractionsucceeded'
+                    and (dej.status = 'extractionsucceeded' OR dej.status = 'extractionjobfailed')
                 )
                 GROUP BY 
                     d.foiministryrequestid
