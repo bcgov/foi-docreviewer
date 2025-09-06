@@ -143,6 +143,7 @@ func main() {
 		// Define the queue name
 		queueName := queue
 
+		fmt.println("Publishing queue in process...")
 		for _, item := range records {
 			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Additionalfiles)
 
@@ -177,6 +178,7 @@ func main() {
 		// Define the queue name
 		queueName := queue
 
+		fmt.println("Unpublishing queue in process...")
 		for _, item := range records {
 			fmt.Printf("ID: %s, Sitemap_Pages: %s, Type: %s\n", item.Axisrequestid, item.Sitemap_pages, item.Type)
 
@@ -190,8 +192,6 @@ func main() {
 		}
 
 	case "sitemap":
-		fmt.Println("sitemap")
-
 		// Connect DB
 		db, err1 := dbservice.Conn(dsn)
 		if err1 != nil {
@@ -215,6 +215,7 @@ func main() {
 		}
 		destPrefix := sitemapprefix
 
+		fmt.println("Sitemap cron in process...")
 		sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
 		urlset := awslib.ReadSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml")
 
