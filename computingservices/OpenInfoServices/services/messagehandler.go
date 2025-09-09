@@ -178,4 +178,5 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 		log.Fatalf("%v", err)
 		return
 	}
+	fmt.Println("OIRecords in database successfully updated.")
 }
