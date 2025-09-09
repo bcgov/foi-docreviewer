@@ -326,8 +326,8 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 	for rows.Next() {
 		err := rows.Scan(
 			&record.Openinfoid,
-			&record.Foiministryrequestid,
 			&record.Axisrequestid,
+			&record.Foiministryrequestid,
 			&record.Sitemap_pages,
 			&record.Type,
 		)
