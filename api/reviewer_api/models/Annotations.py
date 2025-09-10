@@ -1,6 +1,6 @@
 from .db import db, ma
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import or_, and_, text
+from sqlalchemy import or_, and_, text, select, literal, exists
 from sqlalchemy.dialects.postgresql import JSON, insert
 from datetime import datetime
 from sqlalchemy.orm import relationship, backref, aliased
@@ -87,6 +87,20 @@ class Annotation(db.Model):
         cls, ministryrequestid, mappedlayerids, page, size
     ):
         _session = db.session
+
+        DM = aliased(DocumentMaster)
+        DD = aliased(DocumentDeleted)
+
+        deleted_exists = exists(
+            select(1)
+            .select_from(DM)
+            .join(DD, DM.filepath.like(DD.filepath + literal("%")))
+            .where(
+                DM.documentmasterid == Document.documentmasterid,
+                DM.ministryrequestid == ministryrequestid,
+            )
+        )
+
         _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
             DocumentMaster.processingparentid == None,
             DocumentMaster.ministryrequestid == ministryrequestid
@@ -99,11 +113,6 @@ class Annotation(db.Model):
             DocumentMaster.processingparentid != None,
             DocumentMaster.ministryrequestid == ministryrequestid
         ).group_by(DocumentMaster.processingparentid).subquery('sq3')
-        _deleted = _session.query(func.distinct(DocumentMaster.documentmasterid).label('documentmasterid')).join(
-            DocumentDeleted, DocumentMaster.filepath.like(DocumentDeleted.filepath + '%')
-        ).filter(
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).subquery('sq4')
         _subquery_annotation = (
             _session.query(
                 Annotation.pagenumber, Annotation.annotation, Document.documentid
@@ -127,16 +136,12 @@ class Annotation(db.Model):
                 _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
                 isouter=True
             )
-            .join(
-                _deleted, _deleted.c.documentmasterid == Document.documentmasterid,
-                isouter=True
-            )
             .filter(
                 Annotation.redactionlayerid.in_(mappedlayerids),
                 Annotation.isactive == True,
                 or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
                 _replacednoconversionfiles.c.processingparentid == None,
-                _deleted.c.documentmasterid == None
+                ~deleted_exists,
             )
             .order_by(
                 Document.documentid, Annotation.pagenumber, Annotation.annotationid
