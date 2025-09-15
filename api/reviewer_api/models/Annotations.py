@@ -94,7 +94,11 @@ class Annotation(db.Model):
         deleted_exists = exists(
             select(1)
             .select_from(DM)
-            .join(DD, DM.filepath.like(DD.filepath + literal("%")))
+            .join(
+                DD,
+                func.substring(DM.filepath, '[0-9a-fA-F\\-]{36}') ==
+                func.substring(DD.filepath, '[0-9a-fA-F\\-]{36}$')
+            )
             .where(
                 DM.documentmasterid == Document.documentmasterid,
                 DM.ministryrequestid == ministryrequestid,
