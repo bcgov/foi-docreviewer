@@ -56,9 +56,6 @@ func resizeImage(inputPath string) ([]byte, error) {
 	}
 	defer file.Close()
 	fmt.Println("inputPath:", inputPath)
-
-	fmt.Println("file:", file)
-
 	// Decode the image and detect format
 	img, format, err := image.Decode(file)
 	if err != nil {
@@ -71,8 +68,10 @@ func resizeImage(inputPath string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp output file: %v", err)
 	}
-	defer os.Remove(outputFile.Name()) // Clean up
-	defer outputFile.Close()
+	defer func() {
+		_ = outputFile.Close()
+		_ = os.Remove(outputFile.Name())
+	}()
 	// Encode the resized image to the temp file
 	switch strings.ToLower(format) {
 	case "jpeg", "jpg":
@@ -184,10 +183,15 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	filenameWithParams := urlParts[len(urlParts)-1]
 	filename := strings.Split(filenameWithParams, "?")[0]
 	ext := strings.ToLower(filepath.Ext(filename))
+	var cleanup func()
 	// Step 1: Download file from presigned URL
 	inputTempFile, cleanup, err := downloadFile(inputUrl, ext)
 	if err != nil {
 		return "", 0, "", fmt.Errorf("failed to download file: %v", err)
+	}
+	// Defer cleanup safely
+	if cleanup != nil {
+		defer cleanup()
 	}
 	// Step 2: Compress the downloaded PDF
 	compressedPdfData, error := processFile(inputTempFile, ext)
@@ -207,7 +211,6 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 		return "", 0, "", fmt.Errorf("failed to upload compressed file to S3: %v", err)
 	}
 	compressedFileSize := len(compressedPdfData)
-	defer cleanup()
 	fmt.Printf("File successfully compressed with file size: %d bytes\n", compressedFileSize)
 	return presignedURL, compressedFileSize, ext, nil
 }
@@ -235,18 +238,19 @@ func uploadUsingPresignedURL(presignedURL string, fileData []byte) error {
 
 func downloadFile(url string, ext string) (string, func(), error) {
 	fmt.Println("Inside downloadFile")
+	noOpCleanup := func() {}
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to download file: %v", err)
+		return "", noOpCleanup, fmt.Errorf("failed to download file: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return "", noOpCleanup, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	// Create a dedicated temp directory for this download
 	tmpDir, err := os.MkdirTemp("", "download_work_*")
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create temp dir: %v", err)
+		return "", noOpCleanup, fmt.Errorf("failed to create temp dir: %v", err)
 	}
 	// Write to temp file
 	// //tmpFile, err := os.CreateTemp("", "downloaded_*.pdf")
@@ -254,12 +258,12 @@ func downloadFile(url string, ext string) (string, func(), error) {
 	if err != nil {
 		// clean temp dir on error
 		os.RemoveAll(tmpDir)
-		return "", nil, fmt.Errorf("failed to create temp file: %v", err)
+		return "", noOpCleanup, fmt.Errorf("failed to create temp file: %v", err)
 	}
 	//defer tmpFile.Close()
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to write response to temp file: %v", err)
+		return "", noOpCleanup, fmt.Errorf("failed to write response to temp file: %v", err)
 	}
 	// Cleanup function to call after using the file
 	cleanup := func() {
