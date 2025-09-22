@@ -364,12 +364,21 @@ const useSaveResponsePackage = (redlinePhase) => {
         const filteredAnnotations = annotsAfterRedaction.filter(
           (annotation) => {
             if (_instance.Core.Annotations) {
-              return (
-                annotation instanceof
-                  _instance.Core.Annotations.FreeTextAnnotation ||
-                annotation instanceof
-                  _instance.Core.Annotations.WidgetAnnotation
-              );
+              if (currentLayer.name === "Open Info") {
+                return (
+                  (annotation instanceof
+                    _instance.Core.Annotations.FreeTextAnnotation ||
+                  annotation instanceof
+                    _instance.Core.Annotations.WidgetAnnotation) && !pagesToRemove.includes(annotation.PageNumber)
+                );
+              } else {
+                return (
+                  annotation instanceof
+                    _instance.Core.Annotations.FreeTextAnnotation ||
+                  annotation instanceof
+                    _instance.Core.Annotations.WidgetAnnotation
+                );
+              }
             }
             return false;
           }
