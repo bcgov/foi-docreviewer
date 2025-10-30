@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
+	"regexp"
 )
 
 var (
@@ -140,12 +141,18 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 	var filePath string = ""
 	var matched bool
 	// var fileType string = "unknown"
-	var err error
+	// var err error
 	var letterLinks []files.Link
 	var fileLinks []files.Link
 
 	// supportedFileTypes := []string{".pdf", ".xls", ".xlsx", ".csv", ".doc", ".docx", ".mp4", ".mp3", ".mpg", ".mpeg", ".avi", ".mov", ".wmv", ".wav"}
 
+	patternResponseLetter := `(?i)Response[_\-\s]*Letter`
+	regex, err := regexp.Compile(patternResponseLetter)
+	if err != nil {
+		log.Fatalf("error compiling regex pattern, %v", err)
+	}
+	
 	// Print file information
 	for _, item := range resp.Contents {
 
@@ -165,11 +172,9 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 		// fmt.Printf("Name: %s, Size: %d bytes\n", filePath, *item.Size)
 
 		// Find response letters
-		patternResponseLetter := "Response_Letter_*.pdf"
-		matched, err = filepath.Match(patternResponseLetter, base)
-		if err != nil {
-			log.Fatalf("error matching pattern, %v", err)
-		}
+		matched = regex.MatchString(base)
+		fmt.Println("MATCHED", matched)
+		fmt.Println("FILENAME", base)
 
 		if matched {
 			letterLinks = append(letterLinks, files.Link{FileName: base, URL: urlPrefix + base})
