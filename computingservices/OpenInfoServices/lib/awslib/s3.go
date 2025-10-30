@@ -147,6 +147,12 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 
 	// supportedFileTypes := []string{".pdf", ".xls", ".xlsx", ".csv", ".doc", ".docx", ".mp4", ".mp3", ".mpg", ".mpeg", ".avi", ".mov", ".wmv", ".wav"}
 
+	patternResponseLetter := `(?i)Response[_\-\s]*Letter`
+	regex, err := regexp.Compile(patternResponseLetter)
+	if err != nil {
+		log.Fatalf("error compiling regex pattern, %v", err)
+	}
+	
 	// Print file information
 	for _, item := range resp.Contents {
 
@@ -166,11 +172,6 @@ func ScanS3(openInfoBucket string, openInfoPrefix string, urlPrefix string, file
 		// fmt.Printf("Name: %s, Size: %d bytes\n", filePath, *item.Size)
 
 		// Find response letters
-		patternResponseLetter := `(?i)Response[_\-\s]*Letter`
-		regex, err := regexp.Compile(patternResponseLetter)
-		if err != nil {
-			log.Fatalf("error compiling regex pattern, %v", err)
-		}
 		matched = regex.MatchString(base)
 		fmt.Println("MATCHED", matched)
 		fmt.Println("FILENAME", base)
