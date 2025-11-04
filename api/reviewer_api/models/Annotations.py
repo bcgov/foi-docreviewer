@@ -90,21 +90,20 @@ class Annotation(db.Model):
         DM = aliased(DocumentMaster)
         DD = aliased(DocumentDeleted)
 
-        join_dm_dd = DM.join(
-            DD,
-            func.substring(DM.filepath, '[0-9a-fA-F\\-]{36}') ==
-            func.substring(DD.filepath, '[0-9a-fA-F\\-]{36}$')
-        )
-
-        deleted_exists = exists(
-            select([literal(1)])
-            .select_from(join_dm_dd)
-            .where(
-                and_(
-                    DM.documentmasterid == Document.documentmasterid,
-                    DM.ministryrequestid == ministryrequestid,
-                )
+        deleted_exists = (
+            db.session.query(literal(1))
+            .select_from(DM)
+            .join(
+                DD,
+                func.substring(DM.filepath, r'[0-9a-fA-F\-]{36}') ==
+                func.substring(DD.filepath, r'[0-9a-fA-F\-]{36}$')
             )
+            .filter(
+                DM.documentmasterid == Document.documentmasterid,
+                DM.ministryrequestid == ministryrequestid,
+                DD.deleted.is_(True),
+            )
+            .exists()
         ).correlate(Document)
 
         _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
