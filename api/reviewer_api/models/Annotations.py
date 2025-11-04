@@ -92,7 +92,7 @@ class Annotation(db.Model):
         DD = aliased(DocumentDeleted)
 
         deleted_exists = exists(
-            select(literal(1))
+            select([literal(1)])
             .select_from(DM)
             .join(
                 DD,
