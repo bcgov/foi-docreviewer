@@ -1,6 +1,6 @@
 from .db import db, ma
 from .default_method_result import DefaultMethodResult
-from sqlalchemy import or_, and_, text, select, literal, exists
+from sqlalchemy import or_, and_, text, select, literal, exists, func
 from sqlalchemy.dialects.postgresql import JSON, insert
 from datetime import datetime
 from sqlalchemy.orm import relationship, backref, aliased
@@ -10,7 +10,6 @@ from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
 from .DocumentDeleted import DocumentDeleted
-from sqlalchemy import func
 
 
 class Annotation(db.Model):
@@ -91,19 +90,22 @@ class Annotation(db.Model):
         DM = aliased(DocumentMaster)
         DD = aliased(DocumentDeleted)
 
+        join_dm_dd = DM.join(
+            DD,
+            func.substring(DM.filepath, '[0-9a-fA-F\\-]{36}') ==
+            func.substring(DD.filepath, '[0-9a-fA-F\\-]{36}$')
+        )
+
         deleted_exists = exists(
             select([literal(1)])
-            .select_from(DM)
-            .join(
-                DD,
-                func.substring(DM.filepath, '[0-9a-fA-F\\-]{36}') ==
-                func.substring(DD.filepath, '[0-9a-fA-F\\-]{36}$')
-            )
+            .select_from(join_dm_dd)
             .where(
-                DM.documentmasterid == Document.documentmasterid,
-                DM.ministryrequestid == ministryrequestid,
+                and_(
+                    DM.documentmasterid == Document.documentmasterid,
+                    DM.ministryrequestid == ministryrequestid,
+                )
             )
-        )
+        ).correlate(Document)
 
         _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
             DocumentMaster.processingparentid == None,
