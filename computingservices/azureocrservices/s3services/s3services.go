@@ -84,15 +84,7 @@ func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
 	fmt.Println("fullFilePath:", fullFilePath)
 	ext := filepath.Ext(s3Details.ObjectKey)             // e.g. ".pdf"
 	name := strings.TrimSuffix(s3Details.ObjectKey, ext) // e.g. "/some/path/file"
-
-	// Azure OCR supported image formats: JPEG/JPG, PNG, BMP, HEIF, returns .pdf file
-	// Other supported OCR formats: PDF, TIFF, DOCX, XLSX, PPTX, HTML
-	switch strings.ToLower(ext) {
-	case ".jpeg", ".jpg", ".png", ".bmp", ".heif":
-		ext = ".pdf"
-	}
-
-	OCRKey := name + "OCR" + ext // e.g. "/some/path/file-compressed.pdf"
+	OCRKey := name + "OCR" + ext                         // e.g. "/some/path/file-compressed.pdf"
 	// Create a new AWS session with credentials and config
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(s3Details.Region),
