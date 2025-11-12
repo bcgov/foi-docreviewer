@@ -91,7 +91,7 @@ class ProcessingTeamWithKeycloackGroup(Enum):
     mcfdpersonalteam = "MCFD Personals Team"
     socialtechteam = "Social Education"
     infrastructureteam = "Infrastructure Team"
-    resourceteam = "Resource Team" #Resource Team issue
+    resourceteam = "Resource Team"
     communityhealthteam = "Community and Health Team"
     childrenfamilyteam = "Children and Family Team"
     childreneducationteam = "Children and Education Team"
