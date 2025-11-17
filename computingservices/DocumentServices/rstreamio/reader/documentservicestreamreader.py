@@ -29,22 +29,23 @@ def start():
     except Exception as e:
         logging.warning(f"Failed to create consumer group {documentservice_group_name}: {e}")
 
-    claimed_messages = stream.autoclaim(
+    pending_messages = stream.read_group(
         documentservice_group_name, 
         CONSUMER_NAME,
-        documentservice_timeout,
-        '0-0', # Start from the beginning of the PEL
-        documentservice_batch_size
+        documentservice_batch_size,
+        documentservice_block_time,
+        '0' # Start from the beginning of the PEL
     )
 
-    if claimed_messages:
-        logging.warning(f"Claimed {len(claimed_messages)} stale messages from PEL.")
+    if pending_messages:
+        logging.warning(f"Claimed {len(pending_messages)} stale messages from PEL.")
         # Process the claimed messages immediately
-        for message_id, message in claimed_messages:
+        for message_id, message in pending_messages:
             print(f"**PEL CLAIMED** processing {message_id}::{message}")
             processmessage(message_id, message, stream)
-            stream.ack(documentservice_group_name, [message_id])
             print(f"**PEL CLAIMED** finished processing and ACKed {message_id}")
+    else:
+        logging.info("No pending messages found for this consumer instance.")
 
     while True:
         messages = stream.read_group(
