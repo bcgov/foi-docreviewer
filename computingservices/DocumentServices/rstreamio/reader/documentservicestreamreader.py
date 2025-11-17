@@ -5,14 +5,10 @@ import time
 import logging
 from enum import Enum
 from utils import redisstreamdb
-from utils.foidocumentserviceconfig import documentservice_stream_key
+from utils.foidocumentserviceconfig import documentservice_stream_key, documentservice_block_time, documentservice_group_name, documentservice_consumer_name_prefix, documentservice_batch_size, documentservice_pod_name
 from services.redactionsummaryservice import redactionsummaryservice
 from services.zippingservice import zippingservice
 
-
-LAST_ID_KEY = "{consumer_id}:lastid"
-BLOCK_TIME = 5000
-STREAM_KEY = documentservice_stream_key
 
 app = typer.Typer()
 
@@ -21,23 +17,22 @@ class StartFrom(str, Enum):
     latest = "$"
 
 @app.command()
-def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
+def start():
     rdb = redisstreamdb
-    stream = rdb.Stream(STREAM_KEY)
-    last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
-    if last_id:
-        print(f"Resume from ID: {last_id}")
-    else:
-        last_id = start_from.value
-        print(f"Starting from {start_from.name}")
+    stream = rdb.Stream(documentservice_stream_key)
 
     while True:
-        messages = stream.read(last_id=last_id, block=BLOCK_TIME)
+        messages = stream.read_group(
+            group=documentservice_group_name, 
+            consumer=documentservice_consumer_name_prefix+"_"+documentservice_pod_name, 
+            count=documentservice_batch_size, #5,  # Read a batch of messages
+            block=documentservice_block_time
+        )
+
         if messages:
-            for _message in messages:          
+            for message_id, message in messages:          
                 # message_id is the random id created to identify the message
                 # message is the actual data passed to the stream 
-                message_id, message = _message 
                 print(f"processing {message_id}::{message}")
                 if message is not None:
                     message = json.dumps({str(key.decode("utf-8")): str(value.decode("utf-8")) for (key, value) in message.items()})
@@ -54,8 +49,7 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                     zippingservice().sendtozipper(summaryfiles, message)   
                     # simulate processing
                 time.sleep(random.randint(1, 3))
-                last_id = message_id
-                rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
+                stream.ack(group=documentservice_group_name, message_ids=[message_id])
                 print(f"finished processing {message_id}")
         else:
-            logging.info(f"No new messages after ID: {last_id}")
+            logging.info(f"No new messages in stream {documentservice_stream_key}. Waiting...")
