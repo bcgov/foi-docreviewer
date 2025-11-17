@@ -43,7 +43,6 @@ def start():
         for message_id, message in claimed_messages:
             print(f"**PEL CLAIMED** processing {message_id}::{message}")
             processmessage(message_id, message, stream)
-            stream.ack(documentservice_group_name, [message_id])
             print(f"**PEL CLAIMED** finished processing and ACKed {message_id}")
 
     while True:
