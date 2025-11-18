@@ -4,7 +4,7 @@ import random
 import time
 import logging
 from enum import Enum
-from utils import redisstreamdbnew as redisstreamdb
+from utils.foiredisstreamdbnew import redisstreamdbnew
 from utils.foidocumentserviceconfig import documentservice_stream_key, documentservice_block_time, documentservice_group_name, documentservice_consumer_name_prefix, documentservice_batch_size, documentservice_pod_name, documentservice_timeout
 from services.redactionsummaryservice import redactionsummaryservice
 from services.zippingservice import zippingservice
@@ -19,7 +19,7 @@ app = typer.Typer()
 
 @app.command()
 def start():
-    rdb = redisstreamdb
+    rdb = redisstreamdbnew
     stream = rdb.Stream(documentservice_stream_key)
 
     try:
@@ -65,22 +65,28 @@ def start():
 
 def processmessage(message_id, message, stream):
     try:
-        print(f"processing {message_id}::{message}")
+        str_id = message_id.decode()
+        print(f"processing {str_id}::{message}")
         if message is not None:
-            message = json.dumps({str(key.decode("utf-8")): str(value.decode("utf-8")) for (key, value) in message.items()})
-            message_dict = json.loads(message)
+            # Decode keys and values from bytes to strings
+            message_dict = {
+                k.decode("utf-8"): v.decode("utf-8") for (k, v) in message.items()
+            }
+
+            # Re-serialize to JSON string for consumption by services
+            message_json_string = json.dumps(message_dict)
             category = message_dict.get("category")
             summaryfiles = []
             # TO DO: Get response package summary url & push it to the
             # publication folder & zipper!
             if category != "publicationpackage":
                 try:
-                    summaryfiles = redactionsummaryservice().processmessage(message)
+                    summaryfiles = redactionsummaryservice().processmessage(message_json_string)
                 except(Exception) as error: 
                     logging.exception(error) 
-            zippingservice().sendtozipper(summaryfiles, message)   
+            zippingservice().sendtozipper(summaryfiles, message_json_string)   
             # simulate processing
         stream.ack(documentservice_group_name, [message_id])
-        print(f"finished processing {message_id}")
+        print(f"finished processing {str_id}")
     except Exception as e:
-        logging.exception(f"Error processing message {message_id}: {e}")
+        logging.exception(f"Error processing message {message_id.decode()}: {e}")
