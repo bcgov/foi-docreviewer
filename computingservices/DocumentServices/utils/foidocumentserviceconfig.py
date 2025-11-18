@@ -10,7 +10,16 @@ load_dotenv()
 redishost = os.getenv("REDIS_HOST")
 redisport = os.getenv("REDIS_PORT")
 redispassword = os.getenv("REDIS_PASSWORD")
+
 documentservice_stream_key = os.getenv("DOCUMENTSERVICE_STREAM_KEY")
+documentservice_block_time = int(os.getenv("DOCUMENTSERVICE_BLOCK_TIME", 5000))
+documentservice_group_name = os.getenv("DOCUMENTSERVICE_GROUP_NAME")
+documentservice_consumer_name_prefix = os.getenv("DOCUMENTSERVICE_CONSUMER_NAME_PREFIX")
+documentservice_batch_size = int(os.getenv("DOCUMENTSERVICE_BATCH_SIZE", 1))
+documentservice_timeout = int(os.getenv("DOCUMENTSERVICE_TIMEOUT", 3600000)) # 1 hour
+# Number of messages to read in one batch, recommended to be 5-10
+# Set to 1, becasese some documents can be large and take time to process
+documentservice_pod_name = os.environ.get('HOSTNAME')
 
 docservice_db_host = os.getenv("DOCUMENTSERVICE_DB_HOST")
 docservice_db_name = os.getenv("DOCUMENTSERVICE_DB_NAME")
