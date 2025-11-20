@@ -209,15 +209,8 @@ const useSaveResponsePackage = (redlinePhase) => {
   
     return {"sorteddocuments": sorteddocids, "pkgdocuments": summarylist};
   };
-
-  const getPackageCategoryMsg = (packageType, phase) => {
-    if (packageType === "openinfo" || !phase) {
-      return packageType;
-    } else {
-       return `responsepackage_phase${phase}`;
-    }
-  }
   
+
   const saveResponsePackage = async (
     documentViewer,
     annotationManager,
@@ -232,7 +225,8 @@ const useSaveResponsePackage = (redlinePhase) => {
     const downloadType = "pdf";
     let zipServiceMessage = {
       ministryrequestid: foiministryrequestid,
-      category: getPackageCategoryMsg(downloadPackageType, redlinePhase),
+      category: downloadPackageType,
+      //category: redlinePhase ? `responsepackage_phase${redlinePhase}` : "responsepackage",
       attributes: [],
       requestnumber: "",
       bcgovcode: "",
