@@ -43,12 +43,9 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		}
 		/**Commenting logic check for needs_ocr field - if needsOCR*/
 		//extensions := []string{".pdf", ".jpg", ".png", ".jpeg"}
-		if extension == ".pdf" || extension == ".png" {
-			//add JPG and PNG and other scanned image files
+		if extension == ".pdf" {
 			//slices.Contains(extensions, extension) {
 			fmt.Printf("\nStarting OCR!!")
-			fmt.Printf("\nMESSAGE***")
-			fmt.Printf("\nmessage: \n%v", message)
 			ocrjobid, err := RecordOCRJobStart(message)
 			if err != nil {
 				fmt.Printf("Failed to record OCR job: %v\n", err)
