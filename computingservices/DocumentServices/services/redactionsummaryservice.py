@@ -45,9 +45,6 @@ class redactionsummaryservice():
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
                     print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
-                    print("summary Data", formattedsummary )
-                    print("documenttypename", documenttypename)
-                    print("template_path", template_path)
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                     divisioname = None
                     if len(messageattributes)>1:
