@@ -89,16 +89,14 @@ class ProcessingTeamWithKeycloackGroup(Enum):
     centralteam = "Central Team"
     justicehealthteam = "Justice Health Team"
     mcfdpersonalteam = "MCFD Personals Team"
+    resouceteam = "Resource Team"
     socialtechteam = "Social Education"
-    centraleconteam = "Central and Economy Team" # To remove
-    resourcejusticeteam = "Resource and Justice Team" # To remove
-    industryteam = "Industry Team"
-    resourceteam = "Resource Team"
+    centraleconteam = "Central and Economy Team"
+    resourcejusticeteam = "Resource and Justice Team"
     communityhealthteam = "Community and Health Team"
     childrenfamilyteam = "Children and Family Team"
     childreneducationteam = "Children and Education Team"
-    coordinatedresponseunit = "Coordinated Response Unit" # To remove
-    justiceteam = "Justice Team"
+    coordinatedresponseunit = "Coordinated Response Unit"
 
     @staticmethod
     def list():
