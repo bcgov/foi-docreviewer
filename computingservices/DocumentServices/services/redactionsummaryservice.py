@@ -24,10 +24,10 @@ class redactionsummaryservice():
             #Condition for handling oipcredline category
             bcgovcode= message.bcgovcode
             requesttype = message.requesttype
-            if bcgovcode == 'mcf' and requesttype == 'personal' and category in ('responsepackage', 'openinfo'):
+            if bcgovcode == 'mcf' and requesttype == 'personal' and ("responsepackage" in category or category == 'openinfo'):
                 documenttypename= 'CFD_responsepackage_redaction_summary'
             else:
-                documenttypename= "responsepackage_redaction_summary" if category in ('responsepackage', 'openinfo') else "redline_redaction_summary"
+                documenttypename= "responsepackage_redaction_summary" if ('responsepackage' in category or category == 'openinfo') else "redline_redaction_summary"
             print('\n 2. documenttypename', documenttypename)
             upload_responses=[]
             pageflags = self.__get_pageflags(category)
@@ -45,6 +45,9 @@ class redactionsummaryservice():
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
                     print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
+                    print("summary Data", formattedsummary )
+                    print("documenttypename", documenttypename)
+                    print("template_path", template_path)
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
                     divisioname = None
                     if len(messageattributes)>1:
