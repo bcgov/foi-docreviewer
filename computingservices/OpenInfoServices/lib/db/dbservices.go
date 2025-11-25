@@ -307,13 +307,14 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		SELECT
 			oi.foiopeninforequestid,
 			mr.axisrequestid,
+			mr.foiministryrequestid,
 			COALESCE(oi.sitemap_pages, '') as sitemap_pages,
 			'unpublish' as type
 		FROM public."FOIOpenInformationRequests" oi
 		INNER JOIN public."FOIMinistryRequests" mr on oi.foiministryrequest_id = mr.foiministryrequestid and mr.isactive = TRUE
 		INNER JOIN public."OpenInformationStatuses" oistatus on mr.oistatus_id = oistatus.oistatusid
 		INNER JOIN public."OpenInfoPublicationStatuses" oirequesttype on oi.oipublicationstatus_id = oirequesttype.oipublicationstatusid
-		WHERE oirequesttype.name = '%s' and oi.processingstatus != '%s' and oi.isactive = TRUE
+		WHERE oirequesttype.name = '%s' and (oi.processingstatus IS NULL or oi.processingstatus != '%s') and oi.isactive = TRUE
 	`, oirequesttype_unpublish, openstatus_unpublish)
 
 	rows, err := db.Query(qry)
@@ -326,6 +327,7 @@ func GetOIRecordsForUnpublishing(db *sql.DB) ([]OpenInfoRecord, error) {
 		err := rows.Scan(
 			&record.Openinfoid,
 			&record.Axisrequestid,
+			&record.Foiministryrequestid,
 			&record.Sitemap_pages,
 			&record.Type,
 		)

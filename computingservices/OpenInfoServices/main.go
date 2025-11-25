@@ -143,6 +143,7 @@ func main() {
 		// Define the queue name
 		queueName := queue
 
+		fmt.Println("Publishing queue in process...")
 		for _, item := range records {
 			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Additionalfiles)
 
@@ -177,6 +178,7 @@ func main() {
 		// Define the queue name
 		queueName := queue
 
+		fmt.Println("Unpublishing queue in process...")
 		for _, item := range records {
 			fmt.Printf("ID: %s, Sitemap_Pages: %s, Type: %s\n", item.Axisrequestid, item.Sitemap_pages, item.Type)
 
@@ -190,8 +192,6 @@ func main() {
 		}
 
 	case "sitemap":
-		fmt.Println("sitemap")
-
 		// Connect DB
 		db, err1 := dbservice.Conn(dsn)
 		if err1 != nil {
@@ -209,11 +209,13 @@ func main() {
 
 		// Get the last sitemap_page from s3
 		destBucket := oibucket
-		if env != "" {
-			destBucket = env + "-" + oibucket
+		// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
+		if env != "prod" {
+			destBucket = "dev" + "-" + oibucket
 		}
 		destPrefix := sitemapprefix
 
+		fmt.Println("Sitemap cron in process...")
 		sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
 		urlset := awslib.ReadSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml")
 
