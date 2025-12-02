@@ -1,0 +1,46 @@
+# Auto Label Git Action Config
+# https://github.com/marketplace/actions/labeler
+
+#################
+
+
+'Github Actions':
+  - .github/workflows/**/*
+
+'compression':
+  - computingservices/CompressionServices/*
+
+'deduplication':
+  - computingservices/DedupeServices/*
+
+'azure-ocr':
+  - computingservices/azureocrservice/*
+  - azuredococrapi/*
+
+'azure-doc-extract':
+  - azuredocextractapi/*
+
+'reviewer-api':
+  - api/*
+
+'reviewer-web':
+  - web/*
+
+'ETL cron':
+  - computingservices/ETLServices/*
+
+'OpenInfo Crons':
+  - computingservices/OpenInfoServices/*
+
+'document service':
+  - computingservices/DocumentServices/*
+
+'PDF Stitcher':
+  - computingservices/PDFStitchServices/*
+
+'Page Count Calculator':
+  - computingservices/PageCountCalculator/*
+
+'Zipping Service':
+  - computingservices/ZippingServices/*
+
