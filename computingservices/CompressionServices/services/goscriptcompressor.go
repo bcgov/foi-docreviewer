@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"bytes"
 	"compressionservices/models"
 	"compressionservices/utils"
@@ -111,6 +112,41 @@ func getCPUUsage() float64 {
 	return percent[0]
 }
 
+func hasJBIG2Images(pdfPath string) (bool, error) {
+	cmd := exec.Command("pdfimages", "-list", pdfPath)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return false, err
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Skip headers or empty lines
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "page") || strings.HasPrefix(line, "-") {
+			continue
+		}
+
+		if strings.Contains(strings.ToLower(line), "jbig2") {
+			return true, nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return false, err
+	}
+
+	return false, nil
+}
+
 // Function to compress the PDF
 func compressPDF(inputTempFile string) ([]byte, error) {
 	gsTmpDir, err := os.MkdirTemp("", "gs_work_*")
@@ -152,9 +188,27 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	cmd.Stderr = &stderr
 	// Force Ghostscript to use our temp dir for its intermediates
 	cmd.Env = append(os.Environ(), "TMPDIR="+gsTmpDir)
-	err = cmd.Run()
+	hasJBIG2, err := hasJBIG2Images(inputTempFile)
 	if err != nil {
-		return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String())
+		return nil, fmt.Errorf("error checking pdf: %v", err)
+	}
+	if hasJBIG2 {
+		fmt.Println("PDF contains JBIG2 images")
+		// This just saves the compressed file same as the origianl, but may want to skip compression altogether
+		compressedFileData, err := os.ReadFile(inputTempFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read compressed file: %v", err)
+		}
+		if len(compressedFileData) == 0 {
+			return nil, fmt.Errorf("compressed file is empty, Ghostscript may have failed to process")
+		}
+		return compressedFileData, nil
+	} else {
+		fmt.Println("PDF does NOT contain JBIG2 images")
+		err = cmd.Run()
+		if err != nil {
+			return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String())
+		}
 	}
 	// Check if the output file was created
 	if _, err := os.Stat(outputTempFile.Name()); os.IsNotExist(err) {
@@ -162,6 +216,13 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	}
 	// Read the compressed file data from the output file
 	compressedFileData, err := os.ReadFile(outputTempFile.Name())
+	// Check if output file size is smaller than original
+	compressedFileInfo, err := os.Stat(outputTempFile.Name())
+	originalFileSizeInBytes := len(inputTempFile) // or create temp file and use os.Stat
+	compressionRatio := float64(compressedFileInfo.Size()) / float64(originalFileSizeInBytes)
+	if compressionRatio > 0.9 {
+		return nil, fmt.Errorf("compressed file size is not much smaller than original, skipping compression")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read compressed file: %v", err)
 	}
