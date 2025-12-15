@@ -13,6 +13,7 @@ type OCRAzureMessage struct {
 	//Incompatible             *bool      `json:"incompatible,omitempty"`
 	//UserToken *string `json:"usertoken,omitempty"`
 	//Attributes               Attributes `json:"attributes"`
+	S3FilePath           string `json:"s3filepath,omitempty"`
 	CompressedS3FilePath string `json:"compresseds3filepath,omitempty"`
 	DocumentID           int    `json:"documentid"`
 }

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bufio"
 	"bytes"
 	"compressionservices/models"
 	"compressionservices/utils"
@@ -15,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -49,25 +49,26 @@ import (
 // 	return buf.Bytes(), nil
 // }
 
-func resizeImage(inputPath string) ([]byte, error) {
+func resizeImage(inputPath string) ([]byte, error, bool) {
+	skipCompression := false
 	// Open the file
 	file, err := os.Open(inputPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open image file: %v", err)
+		return nil, fmt.Errorf("failed to open image file: %v", err), skipCompression
 	}
 	defer file.Close()
 	fmt.Println("inputPath:", inputPath)
 	// Decode the image and detect format
 	img, format, err := image.Decode(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
+		return nil, fmt.Errorf("failed to decode image: %v", err), skipCompression
 	}
 	// Resize the image (800px width, preserve aspect ratio)
 	imgResized := resize.Resize(800, 0, img, resize.Lanczos3)
 	// Create a temp file for the resized image
 	outputFile, err := os.CreateTemp("", "resized_*.img")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp output file: %v", err)
+		return nil, fmt.Errorf("failed to create temp output file: %v", err), skipCompression
 	}
 	defer func() {
 		_ = outputFile.Close()
@@ -80,18 +81,18 @@ func resizeImage(inputPath string) ([]byte, error) {
 	case "png":
 		err = png.Encode(outputFile, imgResized)
 	default:
-		return nil, fmt.Errorf("unsupported image format: %s", format)
+		return nil, fmt.Errorf("unsupported image format: %s", format), skipCompression
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode resized image: %v", err)
+		return nil, fmt.Errorf("failed to encode resized image: %v", err), skipCompression
 	}
 	// Read resized image from file
 	resizedData, err := os.ReadFile(outputFile.Name())
 	if err != nil {
-		return nil, fmt.Errorf("failed to read resized image: %v", err)
+		return nil, fmt.Errorf("failed to read resized image: %v", err), skipCompression
 	}
 	fmt.Println("Image successfully resized.")
-	return resizedData, nil
+	return resizedData, nil, skipCompression
 }
 
 // Function to log current memory usage
@@ -112,53 +113,75 @@ func getCPUUsage() float64 {
 	return percent[0]
 }
 
-func hasJBIG2Images(pdfPath string) (bool, error) {
-	cmd := exec.Command("pdfimages", "-list", pdfPath)
-	stdout, err := cmd.StdoutPipe()
+func hasJBIG2Images(inputTempFile string) (bool, error) {
+	file, err := os.Open(inputTempFile)
 	if err != nil {
-		return false, err
+		return true, fmt.Errorf("error opening %s: %v", inputTempFile, err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		return false, err
+	content, err := io.ReadAll(file)
+	file.Close()
+	if err != nil {
+		return true, fmt.Errorf("error reading %s: %v", inputTempFile, err)
 	}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Skip headers or empty lines
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "page") || strings.HasPrefix(line, "-") {
-			continue
-		}
+	// Convert to string for searching
+	pdfContent := string(content)
 
-		if strings.Contains(strings.ToLower(line), "jbig2") {
-			return true, nil
-		}
+	// Pattern 1: /JBIG2Decode filter (most common)
+	// This appears in image object dictionaries like: /Filter [/JBIG2Decode]
+	jbig2DecodePattern := regexp.MustCompile(`/JBIG2Decode`)
+	if jbig2DecodePattern.MatchString(pdfContent) {
+		return true, nil
 	}
 
-	if err := scanner.Err(); err != nil {
-		return false, err
+	// Pattern 2: JBIG2Decode as a filter name
+	jbig2FilterPattern := regexp.MustCompile(`/Filter\s*\[?\s*/JBIG2Decode`)
+	if jbig2FilterPattern.MatchString(pdfContent) {
+		return true, nil
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return false, err
+	// Pattern 3: JBIG2 stream type (less common but possible)
+	// Some PDFs might reference JBIG2 streams directly
+	jbig2StreamPattern := regexp.MustCompile(`/Subtype\s*/JBIG2`)
+	if jbig2StreamPattern.MatchString(pdfContent) {
+		return true, nil
+	}
+
+	// Pattern 4: Check for JBIG2 in filter arrays
+	// PDFs can have multiple filters: /Filter [/ASCII85Decode /JBIG2Decode]
+	filterArrayPattern := regexp.MustCompile(`/Filter\s*\[[^\]]*JBIG2`)
+	if filterArrayPattern.MatchString(pdfContent) {
+		return true, nil
 	}
 
 	return false, nil
 }
 
 // Function to compress the PDF
-func compressPDF(inputTempFile string) ([]byte, error) {
+func compressPDF(inputTempFile string) ([]byte, error, bool) {
+	hasjbig2encoding, err := hasJBIG2Images(inputTempFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
+	}
+	skipCompression := false
+
+	if hasjbig2encoding {
+		fmt.Println("Has jbig2 encoding, skipping compression")
+		skipCompression = true
+		return nil, nil, skipCompression
+	}
+
 	gsTmpDir, err := os.MkdirTemp("", "gs_work_*")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp dir: %v", err)
+		return nil, fmt.Errorf("failed to create temp dir: %v", err), skipCompression
 	}
 	// Clean up everything in this dir at the end
 	defer os.RemoveAll(gsTmpDir)
 	// Create output file inside this dir
 	outputTempFile, err := os.CreateTemp(gsTmpDir, "output_*.pdf")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp output file: %v", err)
+		return nil, fmt.Errorf("failed to create temp output file: %v", err), skipCompression
 	}
 	//defer os.Remove(outputTempFile.Name())
 	defer outputTempFile.Close()
@@ -188,58 +211,53 @@ func compressPDF(inputTempFile string) ([]byte, error) {
 	cmd.Stderr = &stderr
 	// Force Ghostscript to use our temp dir for its intermediates
 	cmd.Env = append(os.Environ(), "TMPDIR="+gsTmpDir)
-	hasJBIG2, err := hasJBIG2Images(inputTempFile)
+	err = cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("error checking pdf: %v", err)
-	}
-	if hasJBIG2 {
-		fmt.Println("PDF contains JBIG2 images")
-		// This just saves the compressed file same as the origianl, but may want to skip compression altogether
-		compressedFileData, err := os.ReadFile(inputTempFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read compressed file: %v", err)
-		}
-		if len(compressedFileData) == 0 {
-			return nil, fmt.Errorf("compressed file is empty, Ghostscript may have failed to process")
-		}
-		return compressedFileData, nil
-	} else {
-		fmt.Println("PDF does NOT contain JBIG2 images")
-		err = cmd.Run()
-		if err != nil {
-			return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String())
-		}
+		return nil, fmt.Errorf("ghostscript error: %v\nStderr: %s", err, stderr.String()), skipCompression
 	}
 	// Check if the output file was created
 	if _, err := os.Stat(outputTempFile.Name()); os.IsNotExist(err) {
-		return nil, fmt.Errorf("ghostscript did not create output file: %v", err)
+		return nil, fmt.Errorf("ghostscript did not create output file: %v", err), skipCompression
 	}
 	// Read the compressed file data from the output file
 	compressedFileData, err := os.ReadFile(outputTempFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("failed to read compressed file: %w", err), false
+	}
 	// Check if output file size is smaller than original
 	compressedFileInfo, err := os.Stat(outputTempFile.Name())
-	originalFileSizeInBytes := len(inputTempFile) // or create temp file and use os.Stat
-	compressionRatio := float64(compressedFileInfo.Size()) / float64(originalFileSizeInBytes)
-	if compressionRatio > 0.9 {
-		return nil, fmt.Errorf("compressed file size is not much smaller than original, skipping compression")
-	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to read compressed file: %v", err)
+		return nil, fmt.Errorf("failed to stat compressed file: %w", err), false
+	}
+	originalFileInfo, err := os.Stat(inputTempFile) // use the string path directly
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat original file: %w", err), false
+	}
+	var compressionRatio float64
+	if originalFileInfo.Size() > 0 {
+		compressionRatio = float64(compressedFileInfo.Size()) / float64(originalFileInfo.Size())
+	} else {
+		compressionRatio = 0
+	}
+	if compressionRatio > 0.9 {
+		fmt.Println("Compression ratio too high, skipping compression")
+		skipCompression = true
+		return nil, nil, skipCompression
 	}
 	if len(compressedFileData) == 0 {
-		return nil, fmt.Errorf("compressed file is empty, Ghostscript may have failed to process")
+		return nil, fmt.Errorf("compressed file is empty, Ghostscript may have failed to process"), skipCompression
 	}
-	return compressedFileData, nil
+	return compressedFileData, nil, skipCompression
 }
 
-func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3cred *models.S3Credentials) (string, int, string, error) {
+func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3cred *models.S3Credentials) (string, int, string, error, bool) {
 
 	accessKey := s3cred.S3AccessKey
 	secretKey := s3cred.S3SecretKey
 	// Extract filename from the URL
 	urlParts := strings.Split(key, "/")
 	if len(urlParts) == 0 {
-		return "", 0, "", fmt.Errorf("invalid URL format: %s", key)
+		return "", 0, "", fmt.Errorf("invalid URL format: %s", key), false
 	}
 	filenameWithParams := urlParts[len(urlParts)-1]
 	filename := strings.Split(filenameWithParams, "?")[0]
@@ -248,16 +266,19 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 	// Step 1: Download file from presigned URL
 	inputTempFile, cleanup, err := downloadFile(inputUrl, ext)
 	if err != nil {
-		return "", 0, "", fmt.Errorf("failed to download file: %v", err)
+		return "", 0, "", fmt.Errorf("failed to download file: %v", err), false
 	}
 	// Defer cleanup safely
 	if cleanup != nil {
 		defer cleanup()
 	}
 	// Step 2: Compress the downloaded PDF
-	compressedPdfData, error := processFile(inputTempFile, ext)
+	compressedPdfData, error, skipCompression := processFile(inputTempFile, ext)
 	if error != nil {
-		return "", 0, "", fmt.Errorf("failed to compress file: %v", error)
+		return "", 0, "", fmt.Errorf("failed to compress file: %v", error), skipCompression
+	}
+	if skipCompression {
+		return "", 0, ext, nil, skipCompression
 	}
 	expiration := 15 * time.Minute
 	// Step 3: Upload the compressed file back to S3
@@ -265,15 +286,15 @@ func processFileFromPresignedUrl(inputUrl string, bucket string, key string, s3c
 		utils.ViperEnvVariable("COMPRESSION_S3_REGION"), expiration)
 	if err != nil {
 		fmt.Println("Error generating presigned URL:", err)
-		return "", 0, "", fmt.Errorf("failed to compress file: %v", err)
+		return "", 0, "", fmt.Errorf("failed to compress file: %v", err), skipCompression
 	}
 	err = uploadUsingPresignedURL(presignedURL, compressedPdfData)
 	if err != nil {
-		return "", 0, "", fmt.Errorf("failed to upload compressed file to S3: %v", err)
+		return "", 0, "", fmt.Errorf("failed to upload compressed file to S3: %v", err), skipCompression
 	}
 	compressedFileSize := len(compressedPdfData)
 	fmt.Printf("File successfully compressed with file size: %d bytes\n", compressedFileSize)
-	return presignedURL, compressedFileSize, ext, nil
+	return presignedURL, compressedFileSize, ext, nil, skipCompression
 }
 
 func uploadUsingPresignedURL(presignedURL string, fileData []byte) error {
@@ -351,7 +372,7 @@ func downloadFile(url string, ext string) (string, func(), error) {
 // }
 
 // processFile handles different types of files (PDF, JPG, PNG)
-func processFile(inputTempFile string, ext string) ([]byte, error) {
+func processFile(inputTempFile string, ext string) ([]byte, error, bool) {
 	switch ext {
 	case ".pdf":
 		// return processPDF(inputFile, outputFile)
@@ -361,12 +382,12 @@ func processFile(inputTempFile string, ext string) ([]byte, error) {
 		return processImage(inputTempFile)
 	default:
 		// If the file is neither PDF nor image, skip processing
-		return nil, fmt.Errorf("file cannot be compressed as it is neither PDF nor image")
+		return nil, fmt.Errorf("file cannot be compressed as it is neither PDF nor image"), false
 	}
 }
 
 // processPDF handles PDF compression based on file name length
-func processPDF(inputTempFile string) ([]byte, error) {
+func processPDF(inputTempFile string) ([]byte, error, bool) {
 	// if len(outputFile) > 250 {
 	// 	return compressLengthyNamePDF(inputFile, outputFile)
 	// }
@@ -374,16 +395,16 @@ func processPDF(inputTempFile string) ([]byte, error) {
 }
 
 // processImage handles image resizing
-func processImage(inputTempFile string) ([]byte, error) {
+func processImage(inputTempFile string) ([]byte, error, bool) {
 	return resizeImage(inputTempFile)
 }
 
-func StartCompression(message *models.CompressionProducerMessage) (string, int, string, bool, error) {
+func StartCompression(message *models.CompressionProducerMessage) (string, int, string, bool, error, bool) {
 
 	folderPath, s3cred, bucketname, err := GetFilefroms3(message)
 	if err != nil {
 		fmt.Printf("Error in GetFilefroms3 method: %v\n", err)
-		return "", 0, "", true, err // Return error flag as true if this step fails
+		return "", 0, "", true, err, false // Return error flag as true if this step fails
 	}
 	// Define S3 path
 	bucketName := "/" + bucketname + "/"
@@ -397,10 +418,10 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	// Start the compression process
 	fmt.Println("Starting file compression...")
 	// Process the file from the presigned URL and get the compressed file size
-	presignedUrl, compressedFileSize, extension, error := processFileFromPresignedUrl(folderPath, bucketName, objectKey, s3cred)
+	presignedUrl, compressedFileSize, extension, error, skipCompression := processFileFromPresignedUrl(folderPath, bucketName, objectKey, s3cred)
 	if error != nil {
 		fmt.Printf("Error in processing file from presigned URL: %v\n", error)
-		return "", 0, "", true, error // Return error flag as true if this step fails
+		return "", 0, "", true, error, skipCompression // Return error flag as true if this step fails
 	}
 	// Clean up the URL to remove query params if present
 	s3FilePath := presignedUrl
@@ -424,7 +445,7 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	// Success message
 	fmt.Printf("saved compressed file & time taken for compression:%v\n", duration)
 	// Return the S3 file path, compressed size, and the error flag
-	return s3FilePath, compressedFileSize, extension, false, nil
+	return s3FilePath, compressedFileSize, extension, false, nil, skipCompression
 }
 
 // func compressLengthyNamePDF(inputPdfPath string, outputPdfPath string) error {

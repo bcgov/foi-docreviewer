@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
@@ -46,7 +47,7 @@ func RecordCompressionJobStart(msg *models.CompressionProducerMessage) {
 	}
 }
 
-func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, isError bool, message string) error {
+func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerMessage, isError bool, message string, skipCompression bool) error {
 	if s3FilePath == "" {
 		s3FilePath = msg.S3FilePath
 	}
@@ -61,6 +62,8 @@ func RecordCompressionJobEnd(s3FilePath string, msg *models.CompressionProducerM
 	status := "completed"
 	if isError {
 		status = "error"
+	} else if skipCompression {
+		status = "skipped"
 	}
 	if !isError {
 		query := `
@@ -162,9 +165,20 @@ func IsBatchCompleted(batch string) (bool, bool) {
 	//return compInProgress == 0 &&dedupeInProgress == 0, (dedupeError + compError) > 0
 }
 
-func UpdateDocumentDetails(message *models.CompressionProducerMessage, compressedFileSize int, s3CompressedFilePath string) error {
+func UpdateDocumentDetails(message *models.CompressionProducerMessage, compressedFileSize int, s3CompressedFilePath string, skipCompression bool) error {
 
 	db := utils.GetDBConnection()
+	var compressedFileSizeWithType sql.NullInt64
+	if !skipCompression {
+		compressedFileSizeWithType = sql.NullInt64{
+			Int64: int64(compressedFileSize),
+			Valid: true,
+		}
+	} else {
+		compressedFileSizeWithType = sql.NullInt64{
+			Valid: false,
+		}
+	}
 	defer db.Close()
 	query := `
 		UPDATE "DocumentAttributes"
@@ -172,7 +186,7 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 		WHERE documentmasterid = $1::integer
 		AND isactive = true;
 	`
-	_, err := db.Exec(query, message.DocumentMasterID, compressedFileSize)
+	_, err := db.Exec(query, message.DocumentMasterID, compressedFileSizeWithType)
 	if err != nil {
 		return fmt.Errorf("failed to update documentmasterid: %w", err)
 	}
@@ -182,6 +196,21 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 	// } else {
 	// 	docMasterID = message.DocumentMasterID
 	// }
+	status := "completed"
+	var s3CompressedFilePathWithType sql.NullString
+	if skipCompression && s3CompressedFilePath == "" {
+		s3CompressedFilePathWithType = sql.NullString{
+			Valid: false,
+		}
+	} else {
+		s3CompressedFilePathWithType = sql.NullString{
+			String: s3CompressedFilePath,
+			Valid:  true,
+		}
+	}
+	if skipCompression {
+		status = "skipped"
+	}
 	query = `
 		UPDATE "DocumentMaster"
 		SET compressedfilepath = $2
@@ -193,15 +222,16 @@ func UpdateDocumentDetails(message *models.CompressionProducerMessage, compresse
 				ON dd.ministryrequestid = $3
 				AND "DocumentMaster".filepath ILIKE dd.filepath || '%'
 			WHERE cj.documentmasterid = "DocumentMaster".documentmasterid
-				AND cj.status = 'completed'
+				AND cj.status = $4
 				AND (dd.filepath IS NULL OR dd.deleted IS FALSE OR dd.deleted IS NULL)
 		);
 	`
 	_, error := db.Exec(
 		query,
 		message.DocumentMasterID,
-		s3CompressedFilePath,      // $2
-		message.MinistryRequestID, // $3
+		s3CompressedFilePathWithType, // $2
+		message.MinistryRequestID,    // $3
+		status,                       // $4
 	)
 	if error != nil {
 		log.Printf("ERROR in Exec: %v\n", error)

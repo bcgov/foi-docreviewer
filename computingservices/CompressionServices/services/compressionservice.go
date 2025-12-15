@@ -15,18 +15,20 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 			// Log the panic error and record the job end with failure status
 			fmt.Printf("Exception while processing redis message for compression, func ProcessMessage, Error: %v\n", r)
 			errMsg := fmt.Sprintf("%v", r)
-			RecordCompressionJobEnd("", message, true, errMsg)
+			RecordCompressionJobEnd("", message, true, errMsg, false)
 		}
 	}()
 	//fmt.Printf("Just before compression-%v\n", message.S3FilePath)
-	s3FilePath, compressedFileSize, extension, isError, errMsg := StartCompression(message)
+	s3FilePath, compressedFileSize, extension, isError, errMsg, skipCompression := StartCompression(message)
 	errorMessage := ""
 	if errMsg != nil {
 		errorMessage = errMsg.Error()
 	}
-	errorMsg := RecordCompressionJobEnd(s3FilePath, message, isError, errorMessage)
+	errorMsg := RecordCompressionJobEnd(s3FilePath, message, isError, errorMessage, skipCompression)
 	if errMsg == nil && errorMsg == nil {
-		message.CompressedS3FilePath = s3FilePath
+		if !skipCompression {
+			message.CompressedS3FilePath = s3FilePath
+		}
 		// needsOCR := false
 		// if message.NeedsOCR != nil {
 		// 	needsOCR = *message.NeedsOCR
@@ -37,7 +39,7 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		// if !needsOCR {
 		// 	UpdateRedactionStatus(message)
 		// }
-		updateError := UpdateDocumentDetails(message, compressedFileSize, s3FilePath)
+		updateError := UpdateDocumentDetails(message, compressedFileSize, s3FilePath, skipCompression)
 		if updateError != nil {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
 		}
