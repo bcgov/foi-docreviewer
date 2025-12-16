@@ -127,6 +127,8 @@ jobs:
       run: |
         POD_NAME = $(oc get pods -l "app=reviewer-compression" -o jsonpath="{.items[0].metadata.name}")
     
+# TODO IF FAILURE ON HEALTH CHECK - @ devops team in PR comment
+
 # Comment on Pull Request with URL to link directly to pod
     - name: Comment on PR
       uses: thollander/actions-comment-pull-request@v3
