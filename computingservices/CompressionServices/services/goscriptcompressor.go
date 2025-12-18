@@ -14,11 +14,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/nfnt/resize"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
@@ -113,46 +114,97 @@ func getCPUUsage() float64 {
 	return percent[0]
 }
 
-func hasJBIG2Images(inputTempFile string) (bool, error) {
-	file, err := os.Open(inputTempFile)
+// Fallback detection - can be used if pdfcpu is not able to validate pdf or with memory issues
+func detectJBIG2ImagesWithStreamingBytes(path string) (bool, error) {
+	const needle = "/JBIG2Decode"
+	const bufSize = 64 * 1024
+
+	file, err := os.Open(path)
 	if err != nil {
-		return true, fmt.Errorf("error opening %s: %v", inputTempFile, err)
+		return false, err
+	}
+	defer file.Close()
+
+	needleBytes := []byte(needle)
+	overlap := len(needleBytes) - 1
+
+	buf := make([]byte, bufSize)
+	var prev []byte
+
+	for {
+		n, err := file.Read(buf)
+		if n > 0 {
+			chunk := buf[:n]
+
+			// Prepend overlap from previous chunk
+			if len(prev) > 0 {
+				combined := append(prev, chunk...)
+				if bytes.Contains(combined, needleBytes) {
+					return true, nil
+				}
+
+				// Keep last overlap bytes
+				if len(combined) >= overlap {
+					prev = append([]byte{}, combined[len(combined)-overlap:]...)
+				} else {
+					prev = append([]byte{}, combined...)
+				}
+			} else {
+				if bytes.Contains(chunk, needleBytes) {
+					return true, nil
+				}
+
+				if len(chunk) >= overlap {
+					prev = append([]byte{}, chunk[len(chunk)-overlap:]...)
+				} else {
+					prev = append([]byte{}, chunk...)
+				}
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return false, err
+		}
 	}
 
-	content, err := io.ReadAll(file)
-	file.Close()
+	return false, nil
+}
+
+func detectJBIG2ImagesWithPdfcpu(inputTempFile string) (bool, error) {
+	ctx, err := api.ReadContextFile(inputTempFile)
 	if err != nil {
-		return true, fmt.Errorf("error reading %s: %v", inputTempFile, err)
+		// Fall back to string-based validation
+		fmt.Println("Reading file with pdfcpu failed, falling back to byte-based jbig2 encoding detection")
+		return detectJBIG2ImagesWithStreamingBytes(inputTempFile)
 	}
 
-	// Convert to string for searching
-	pdfContent := string(content)
+	// Iterate all objects in the PDF
+	for objNum, entry := range ctx.XRefTable.Table {
+		if entry.Free {
+			continue // entry.Free is an unused object
+		}
 
-	// Pattern 1: /JBIG2Decode filter (most common)
-	// This appears in image object dictionaries like: /Filter [/JBIG2Decode]
-	jbig2DecodePattern := regexp.MustCompile(`/JBIG2Decode`)
-	if jbig2DecodePattern.MatchString(pdfContent) {
-		return true, nil
-	}
+		obj := entry.Object
+		streamDict, ok := obj.(types.StreamDict)
+		if !ok {
+			continue
+		}
 
-	// Pattern 2: JBIG2Decode as a filter name
-	jbig2FilterPattern := regexp.MustCompile(`/Filter\s*\[?\s*/JBIG2Decode`)
-	if jbig2FilterPattern.MatchString(pdfContent) {
-		return true, nil
-	}
+		if streamDict.Subtype() == nil || *streamDict.Subtype() != "Image" {
+			continue
+		}
 
-	// Pattern 3: JBIG2 stream type (less common but possible)
-	// Some PDFs might reference JBIG2 streams directly
-	jbig2StreamPattern := regexp.MustCompile(`/Subtype\s*/JBIG2`)
-	if jbig2StreamPattern.MatchString(pdfContent) {
-		return true, nil
-	}
-
-	// Pattern 4: Check for JBIG2 in filter arrays
-	// PDFs can have multiple filters: /Filter [/ASCII85Decode /JBIG2Decode]
-	filterArrayPattern := regexp.MustCompile(`/Filter\s*\[[^\]]*JBIG2`)
-	if filterArrayPattern.MatchString(pdfContent) {
-		return true, nil
+		// Check filters from FilterPipeline for JBIG2 - this should catch all normal uses of JBIG2 encoding
+		filters := streamDict.FilterPipeline
+		for _, f := range filters {
+			if f.Name == "JBIG2Decode" {
+				fmt.Printf("JBIG2 image found in object %d\n", objNum)
+				return true, nil
+			}
+		}
 	}
 
 	return false, nil
@@ -160,7 +212,7 @@ func hasJBIG2Images(inputTempFile string) (bool, error) {
 
 // Function to compress the PDF
 func compressPDF(inputTempFile string) ([]byte, error, bool) {
-	hasjbig2encoding, err := hasJBIG2Images(inputTempFile)
+	hasjbig2encoding, err := detectJBIG2ImagesWithPdfcpu(inputTempFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
 	}
