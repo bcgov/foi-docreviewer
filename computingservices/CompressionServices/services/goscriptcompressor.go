@@ -210,12 +210,36 @@ func detectJBIG2ImagesWithPdfcpu(inputTempFile string) (bool, error) {
 
 // Function to compress the PDF
 func compressPDF(inputTempFile string) ([]byte, error, bool) {
-	hasjbig2encoding, err := detectJBIG2ImagesWithPdfcpu(inputTempFile)
+	var hasjbig2encoding bool
+	const maxPdfcpuSize = 500 << 20 // 500 MB
+
+	fileInfo, err := os.Stat(inputTempFile)
 	if err != nil {
-		fmt.Println("JBIG2 encoding detection with pdfcpu failed, falling back to bytes-based detection")
+		return nil, err, false
+	}
+
+	if fileInfo.Size() > maxPdfcpuSize { // Skip using pdfcpu for large files
 		hasjbig2encoding, err = detectJBIG2ImagesWithStreamingBytes(inputTempFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
+			return nil, fmt.Errorf("failed during jbig2 byte detection: %v", err), false
+		}
+	} else {
+		// Handle rare cases where pdfcpu panics
+		hasjbig2encoding, err = func() (bool, error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("pdfcpu panic: %v", r)
+				}
+			}()
+			return detectJBIG2ImagesWithPdfcpu(inputTempFile)
+		}()
+
+		if err != nil {
+			fmt.Println("JBIG2 encoding detection with pdfcpu failed, falling back to bytes-based detection")
+			hasjbig2encoding, err = detectJBIG2ImagesWithStreamingBytes(inputTempFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
+			}
 		}
 	}
 	skipCompression := false
