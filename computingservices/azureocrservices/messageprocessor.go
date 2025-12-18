@@ -38,9 +38,13 @@ func main() {
 	}
 	for _, message := range dequeuedmessages {
 		fmt.Printf("Received message: %+v\n", message)
+		filePathForOCR := message.CompressedS3FilePath
+		if message.CompressedS3FilePath == "" {
+			filePathForOCR = message.S3FilePath
+		}
 
-		var s3Uribytes []byte = getBytesfromDocumentPath(message.CompressedS3FilePath)
-		_, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message)
+		var s3Uribytes []byte = getBytesfromDocumentPath(filePathForOCR)
+		_, _analyzeerr := azureservices.CallAzureOCRService(s3Uribytes, message, filePathForOCR)
 		//&& analysisResults.Status == "succeeded"
 		if _analyzeerr == nil {
 			fmt.Println("OCR finished successfully!")

@@ -39,7 +39,7 @@ func pdfToBase64(pdfData []byte) string {
 }
 
 // createSearchablePDF
-func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (string, error) {
+func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage, filePathForOCR string) (string, error) {
 	var result string
 
 	// Convert pages to Base64
@@ -56,7 +56,7 @@ func (a *AzureService) performOCR(pdfData []byte, message types.QueueMessage) (s
 	if err != nil {
 		return result, fmt.Errorf("failed to fetch analysis results: %w", err)
 	}
-	results, newOCRS3Url, pdfSize, err := a.uploadSearchablePDF(resultLocation, message.CompressedS3FilePath)
+	results, newOCRS3Url, pdfSize, err := a.uploadSearchablePDF(resultLocation, filePathForOCR)
 	ocrFileSize := int64(pdfSize)
 	fmt.Printf("newOCRS3Url: %s", newOCRS3Url)
 	if err == nil {
@@ -223,13 +223,13 @@ func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, documentma
 	return returnstate
 }
 
-func CallAzureOCRService(pdfData []byte, message types.QueueMessage) (string, error) {
+func CallAzureOCRService(pdfData []byte, message types.QueueMessage, filePathForOCR string) (string, error) {
 	// Load environment variables
 	subscriptionKey := utils.ViperEnvVariable("azuresubcriptionkey")
 	baseURL := utils.ViperEnvVariable("azuredocumentocraiendpoint")
 	service := NewAzureService(subscriptionKey, baseURL)
 	// Run the function
-	result, err := service.performOCR(pdfData, message)
+	result, err := service.performOCR(pdfData, message, filePathForOCR)
 	if err != nil {
 		fmt.Println("Error while performing OCR:", err)
 	}
