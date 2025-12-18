@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -211,14 +212,18 @@ func detectJBIG2ImagesWithPdfcpu(inputTempFile string) (bool, error) {
 // Function to compress the PDF
 func compressPDF(inputTempFile string) ([]byte, error, bool) {
 	var hasjbig2encoding bool
-	const maxPdfcpuSize = 500 << 20 // 500 MB
 
 	fileInfo, err := os.Stat(inputTempFile)
 	if err != nil {
 		return nil, err, false
 	}
+	MAX_PDFCPU_SIZE, err := strconv.ParseInt(utils.ViperEnvVariable("COMPRESSION_MAX_PDFCPU_SIZE"), 10, 64)
+	if err != nil {
+		fmt.Println("Unsuccessful setting MAX_PDFCPU_SIZE from env, falling back to 500mb value")
+		MAX_PDFCPU_SIZE = 500 << 20 // 500 mb
+	}
 
-	if fileInfo.Size() > maxPdfcpuSize { // Skip using pdfcpu for large files
+	if fileInfo.Size() > MAX_PDFCPU_SIZE { // Skip using pdfcpu for large files
 		hasjbig2encoding, err = detectJBIG2ImagesWithStreamingBytes(inputTempFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed during jbig2 byte detection: %v", err), false
@@ -317,7 +322,12 @@ func compressPDF(inputTempFile string) ([]byte, error, bool) {
 	} else {
 		compressionRatio = 0
 	}
-	if compressionRatio > 0.9 {
+	COMPRESSION_RATIO_THRESHOLD, err := strconv.ParseFloat(utils.ViperEnvVariable("COMPRESSION_RATIO_THRESHOLD"), 64)
+	if err != nil {
+		fmt.Println("Unsuccessful setting COMPRESSION_RATIO_THRESHOLD from env, falling back to 0.9 hardcoded value")
+		COMPRESSION_RATIO_THRESHOLD = 0.9
+	}
+	if compressionRatio > COMPRESSION_RATIO_THRESHOLD {
 		fmt.Println("Compression ratio too high, skipping compression")
 		skipCompression = true
 		return nil, nil, skipCompression
