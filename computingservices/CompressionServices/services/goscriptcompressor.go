@@ -176,9 +176,7 @@ func detectJBIG2ImagesWithStreamingBytes(path string) (bool, error) {
 func detectJBIG2ImagesWithPdfcpu(inputTempFile string) (bool, error) {
 	ctx, err := api.ReadContextFile(inputTempFile)
 	if err != nil {
-		// Fall back to string-based validation
-		fmt.Println("Reading file with pdfcpu failed, falling back to byte-based jbig2 encoding detection")
-		return detectJBIG2ImagesWithStreamingBytes(inputTempFile)
+		return false, err
 	}
 
 	// Iterate all objects in the PDF
@@ -214,7 +212,11 @@ func detectJBIG2ImagesWithPdfcpu(inputTempFile string) (bool, error) {
 func compressPDF(inputTempFile string) ([]byte, error, bool) {
 	hasjbig2encoding, err := detectJBIG2ImagesWithPdfcpu(inputTempFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
+		fmt.Println("JBIG2 encoding detection with pdfcpu failed, falling back to bytes-based detection")
+		hasjbig2encoding, err = detectJBIG2ImagesWithStreamingBytes(inputTempFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed during jbig2 encoding detection: %v", err), false
+		}
 	}
 	skipCompression := false
 
