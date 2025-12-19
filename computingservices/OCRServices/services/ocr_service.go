@@ -34,6 +34,7 @@ func ProcessMessage(message *models.OCRProducerMessage) {
 		MinistryRequestID:    message.MinistryRequestID,
 		DocumentMasterID:     message.DocumentMasterID,
 		Trigger:              message.Trigger,
+		S3FilePath:           message.S3FilePath,
 		CompressedS3FilePath: message.CompressedS3FilePath,
 		DocumentID:           message.DocumentID,
 	}
