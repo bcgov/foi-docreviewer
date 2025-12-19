@@ -26,9 +26,6 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 	}
 	errorMsg := RecordCompressionJobEnd(s3FilePath, message, isError, errorMessage, skipCompression)
 	if errMsg == nil && errorMsg == nil {
-		if !skipCompression {
-			message.CompressedS3FilePath = s3FilePath
-		}
 		// needsOCR := false
 		// if message.NeedsOCR != nil {
 		// 	needsOCR = *message.NeedsOCR
@@ -42,6 +39,12 @@ func ProcessMessage(message *models.CompressionProducerMessage) {
 		updateError := UpdateDocumentDetails(message, compressedFileSize, s3FilePath, skipCompression)
 		if updateError != nil {
 			fmt.Printf("Failed to update document details: %v\n", updateError)
+		}
+		// For now, send the old filepath as compressed to OCR service - this should be handled in azure OCR ultimately
+		if skipCompression {
+			message.CompressedS3FilePath = message.S3FilePath
+		} else {
+			message.CompressedS3FilePath = s3FilePath
 		}
 		/**Commenting logic check for needs_ocr field - if needsOCR*/
 		//extensions := []string{".pdf", ".jpg", ".png", ".jpeg"}
