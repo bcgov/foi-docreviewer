@@ -531,7 +531,11 @@ func StartCompression(message *models.CompressionProducerMessage) (string, int, 
 	// fmt.Printf("CPU Usage during compression: %.2f%%\n", cpuDifference)
 	// fmt.Printf("Memory Used during compression: %d MB\n", memoryDifference/(1024*1024))
 	// Success message
-	fmt.Printf("saved compressed file & time taken for compression:%v\n", duration)
+	if skipCompression {
+		fmt.Printf("skipped saving compression file due to small difference between compressed and original file size")
+	} else {
+		fmt.Printf("saved compressed file & time taken for compression:%v\n", duration)
+	}
 	// Return the S3 file path, compressed size, and the error flag
 	return s3FilePath, compressedFileSize, extension, false, nil, skipCompression
 }
