@@ -33,30 +33,74 @@ class DocumentMaster(db.Model):
             db.session.close()
 
     @classmethod 
-    def getdocumentmaster(cls, ministryrequestid):
+    def getdocumentmaster(cls, ministryrequestid, recordgroups=None):
+
+        if recordgroups is None:
+            recordgroups = []
+
         documentmasters = []
         try:
-            sql = """select dm.recordid, dm.parentid, d.filename as attachmentof, dm.filepath, dm.compressedfilepath, dm.ocrfilepath, dm.documentmasterid, da."attributes", 
-                    dm.created_at, dm.createdby, dm.processingparentid as processingparentid, dm.isredactionready as isredactionready, dm.updated_at from "DocumentMaster" dm
-					join "DocumentAttributes" da on dm.documentmasterid = da.documentmasterid
-					left join "DocumentMaster" dm2 on dm2.processingparentid = dm.parentid
-                    -- replace attachment will create 2 or more rows with the same processing parent id
-                    -- we always take the first one since we only need the filename and user cannot update filename with replace anyways
-                    and dm2.createdby = 'conversionservice' 
-					left join  "Documents" d on dm2.documentmasterid = d.documentmasterid
-                    where dm.ministryrequestid = :ministryrequestid
-					and da.isactive = true
-                    and dm.documentmasterid not in (select distinct d.documentmasterid
-                        from "DocumentMaster" d , "DocumentDeleted" dd where  d.filepath like dd.filepath||'%'
-                        and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid)
-                    order by da.attributes->>'lastmodified' DESC, da.attributeid ASC"""
-            rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
+            sql = """
+                select
+                    dm.recordid,
+                    dm.parentid,
+                    d.filename as attachmentof,
+                    dm.filepath,
+                    dm.compressedfilepath,
+                    dm.ocrfilepath,
+                    dm.documentmasterid,
+                    da."attributes",
+                    dm.created_at,
+                    dm.createdby,
+                    dm.processingparentid as processingparentid,
+                    dm.isredactionready as isredactionready,
+                    dm.updated_at
+                from "DocumentMaster" dm
+                join "DocumentAttributes" da
+                    on dm.documentmasterid = da.documentmasterid
+                left join "DocumentMaster" dm2
+                    on dm2.processingparentid = dm.parentid
+                    and dm2.createdby = 'conversionservice'
+                left join "Documents" d
+                    on dm2.documentmasterid = d.documentmasterid
+                where dm.ministryrequestid = :ministryrequestid
+                and da.isactive = true
+                and dm.documentmasterid not in (
+                    select distinct d.documentmasterid
+                    from "DocumentMaster" d
+                    join "DocumentDeleted" dd
+                        on d.filepath like dd.filepath || '%'
+                    where d.ministryrequestid = :ministryrequestid
+                )
+            """
+
+            params = {"ministryrequestid": ministryrequestid}
+
+            if recordgroups:
+                sql += """
+                and dm.recordid = ANY(:recordgroups)
+                """
+                params["recordgroups"] = recordgroups
+
+            rs = db.session.execute(text(sql), params)
             for row in rs:
                 # if row["documentmasterid"] not in deleted:
-                documentmasters.append({"recordid": row["recordid"], "parentid": row["parentid"], "filepath": row["filepath"], "compressedfilepath": row["compressedfilepath"], 
-                                        "ocrfilepath": row["ocrfilepath"], "documentmasterid": row["documentmasterid"], "attributes": row["attributes"],  "created_at": row["created_at"],  
-                                        "createdby": row["createdby"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "updated_at": row["updated_at"],
-                                        "attachmentof": row["attachmentof"]})
+                documentmasters.append({
+                    "recordid": row["recordid"],
+                    "parentid": row["parentid"],
+                    "filepath": row["filepath"],
+                    "compressedfilepath": row["compressedfilepath"],
+                    "ocrfilepath": row["ocrfilepath"],
+                    "documentmasterid": row["documentmasterid"],
+                    "attributes": row["attributes"],
+                    "created_at": row["created_at"],
+                     "createdby": row["createdby"],
+                    "processingparentid": row["processingparentid"],
+                    "isredactionready": row["isredactionready"],
+                    "updated_at": row["updated_at"],
+                    "attachmentof": row["attachmentof"],
+                })
+
         except Exception as ex:
             logging.error(ex)
             db.session.close()
