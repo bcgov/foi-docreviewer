@@ -68,8 +68,15 @@ function Home() {
         console.log(error)
     );
 
+    let params = new URLSearchParams(window?.location?.search);
+    const rawSetId = params.get("documentsetid");
+    const documentSetId =
+        rawSetId !== null && !isNaN(Number(rawSetId))
+            ? Number(rawSetId)
+            : undefined;
+
     fetchDocuments(
-      parseInt(foiministryrequestid),
+    parseInt(foiministryrequestid),
       async (documents, documentDivisions, _requestInfo) => {
         setDivisions(documentDivisions);
         setOutstandingBalance(_requestInfo.outstandingbalance)
@@ -140,11 +147,11 @@ function Home() {
       },
       (error) => {
         console.log(error);
-      }
+      },
+        documentSetId
     );
+  }, [foiministryrequestid, window.location.search]);
 
-
-  }, []);
 
 
 
