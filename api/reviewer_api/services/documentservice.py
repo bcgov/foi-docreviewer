@@ -555,7 +555,7 @@ class documentservice:
         filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
-            for document in self.getdedupestatus(requestid)
+            for document in self.getdedupestatus(requestid, recordgroups)
         }
         attachments = []
         for documentid in documents:
