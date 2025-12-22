@@ -114,12 +114,27 @@ class GetDocuments(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
-            response = requests.request(
-                method='GET',
-                url= requestapiurl + "/api/foirequests/ministryrequestid/" + requestid + "/" + AuthHelper.getusertype(),
-                headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'},
+            documentsetid = request.args.get('documentsetid', type=int)
+
+            url = (
+                f"{requestapiurl}/api/foirequests/ministryrequestid/"
+                f"{requestid}/{AuthHelper.getusertype()}"
+            )
+
+            params = {}
+            if documentsetid is not None:
+                params["documentsetid"] = documentsetid
+
+            response = requests.get(
+                url=url,
+                params=params,
+                headers={
+                    'Authorization': AuthHelper.getauthtoken(),
+                    'Content-Type': 'application/json'
+                },
                 timeout=float(requestapitimeout)
             )
+
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
@@ -137,6 +152,12 @@ class GetDocuments(Resource):
                 "isphasedrelease": jsonobj["isphasedrelease"],
                 "requeststate":jsonobj["currentState"]
             }
+
+            recordgroups = []
+            raw_recordgroups = jsonobj.get("recordgroups")
+            if isinstance(raw_recordgroups, list):
+                recordgroups = [rg for rg in raw_recordgroups if isinstance(rg, int)]
+
             documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:

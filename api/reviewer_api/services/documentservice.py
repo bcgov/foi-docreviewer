@@ -24,9 +24,12 @@ requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class documentservice:
-    def getdedupestatus(self, requestid):
+    def getdedupestatus(self, requestid, recordgroups=None):
+        if recordgroups is None:
+            recordgroups = []
+
         deleted = DocumentMaster.getdeleted(requestid)
-        records = DocumentMaster.getdocumentmaster(requestid)
+        records = DocumentMaster.getdocumentmaster(requestid,recordgroups)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         compressions = CompressionJob.getcompressionstatus(requestid)
@@ -34,8 +37,6 @@ class documentservice:
         azureocrjobs = DocumentOCRJob.getazureocrjobstatus(requestid)
         properties = DocumentMaster.getdocumentproperty(requestid, deleted)
         redactions = DocumentMaster.getredactionready(requestid)
-        #print("\n\nrecords :",records)
-        #print("\nCompressions :",compressions)
 
         for record in records:
             record["duplicatemasterid"] = record["documentmasterid"]
@@ -538,9 +539,12 @@ class documentservice:
             )
 
         return DocumentAttributes.update(newRows, payload["documentmasterids"])
-    
-    
-    def getdocuments(self, requestid,bcgovcode):
+
+    def getdocuments(self, requestid, bcgovcode, recordgroups=None):
+
+        if recordgroups is None:
+            recordgroups = []
+
         divisions_data = requests.request(
                 method='GET',
                 url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode) + "/all",
