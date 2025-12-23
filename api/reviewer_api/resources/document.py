@@ -114,7 +114,7 @@ class GetDocuments(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
-            documentsetid = request.args.get('documentsetid', type=int)
+            documentsetid = request.args.get("documentsetid", type=int)
 
             url = (
                 f"{requestapiurl}/api/foirequests/ministryrequestid/"
@@ -129,12 +129,11 @@ class GetDocuments(Resource):
                 url=url,
                 params=params,
                 headers={
-                    'Authorization': AuthHelper.getauthtoken(),
-                    'Content-Type': 'application/json'
+                    "Authorization": AuthHelper.getauthtoken(),
+                    "Content-Type": "application/json",
                 },
-                timeout=float(requestapitimeout)
+                timeout=float(requestapitimeout),
             )
-
             response.raise_for_status()
             # get request status
             jsonobj = response.json()
