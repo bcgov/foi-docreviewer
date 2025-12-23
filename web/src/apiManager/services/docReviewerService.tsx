@@ -8,6 +8,8 @@ import { setRedactionInfo, setIsPageLeftOff, setSections,
   setSOLRAuth
 } from "../../actions/documentActions";
 import { store } from "../../services/StoreService";
+ import { pageFlagTypes } from "../../constants/enum";
+
  export const fetchDocuments = (
      foiministryrequestid: number,
      callback: any,
@@ -48,9 +50,6 @@ import { store } from "../../services/StoreService";
              errorCallback("Error in fetching documents for a request");
          });
  };
-
-
-import { pageFlagTypes } from "../../constants/enum";
 
 export const saveRotateDocumentPage = (
   foiministryrequestid: number,
