@@ -93,7 +93,7 @@ func processStreamMessage(rdb *redis.Client, lastIDKey string, msg redis.XMessag
 	if err != nil {
 		return fmt.Errorf("error decoding producer message: %w", err)
 	}
-	//fmt.Printf("producerMessage: %v\n", producerMessage)
+	fmt.Printf("producerMessage: %v\n", producerMessage)
 	// Only now — after all success — process the message
 	services.ProcessMessage(producerMessage)
 	complete, hasError := services.IsBatchCompleted(producerMessage.Batch)
