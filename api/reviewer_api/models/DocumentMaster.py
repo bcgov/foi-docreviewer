@@ -32,59 +32,147 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
 
-    @classmethod 
+    def build_non_document_set_query(self,
+            ministryrequestid: int,
+            only_redaction_ready: bool = True,
+    ):
+        sql = """
+              SELECT dm.recordid, \
+                     dm.parentid, \
+                     d.filename AS attachmentof, \
+                     dm.filepath, \
+                     dm.compressedfilepath, \
+                     dm.ocrfilepath, \
+                     dm.documentmasterid, \
+                     da."attributes", \
+                     dm.created_at, \
+                     dm.createdby, \
+                     dm.processingparentid, \
+                     dm.isredactionready, \
+                     dm.updated_at
+              FROM "DocumentMaster" dm
+                       JOIN "DocumentAttributes" da
+                            ON da.documentmasterid = dm.documentmasterid
+                                AND da.isactive = true
+                       LEFT JOIN "DocumentMaster" dm2
+                                 ON dm2.processingparentid = dm.parentid
+                                     AND dm2.createdby = 'conversionservice'
+                       LEFT JOIN "Documents" d
+                                 ON d.documentmasterid = dm2.documentmasterid
+              WHERE dm.ministryrequestid = :ministryrequestid \
+              """
+
+        params = {
+            "ministryrequestid": ministryrequestid,
+        }
+
+        if only_redaction_ready:
+            sql += "\n  AND dm.isredactionready = true"
+
+        sql += """
+        ORDER BY
+            da.attributes ->> 'lastmodified' DESC,
+            da.attributeid ASC
+        """
+
+        return sql, params
+
+    def build_document_set_query(self,
+            ministryrequestid: int,
+            recordgroups: list[int] | None = None,
+            only_redaction_ready: bool = True,
+    ):
+        recordgroups = recordgroups or []
+
+        sql = """
+              WITH RECURSIVE doc_tree AS (SELECT dm.*, \
+                                                 ARRAY[dm.documentmasterid] AS path, \
+                                                 0                          AS depth \
+                                          FROM "DocumentMaster" dm \
+                                          WHERE dm.ministryrequestid = :ministryrequestid \
+              """
+
+        params = {
+            "ministryrequestid": ministryrequestid,
+            "recordgroups": recordgroups,
+        }
+
+        if recordgroups:
+            sql += "\n  AND dm.recordid = ANY(:recordgroups)"
+
+        sql += """
+            UNION ALL
+            SELECT DISTINCT
+                child.*,
+                parent.path || child.documentmasterid,
+                parent.depth + 1
+            FROM "DocumentMaster" child
+            JOIN doc_tree parent
+              ON (
+                   child.processingparentid = parent.documentmasterid
+                OR child.parentid          = parent.documentmasterid
+              )
+            WHERE NOT (child.documentmasterid = ANY(parent.path))
+        )
+        SELECT
+            dm.recordid,
+            dm.parentid,
+            d.filename AS attachmentof,
+            dm.filepath,
+            dm.compressedfilepath,
+            dm.ocrfilepath,
+            dm.documentmasterid,
+            da."attributes",
+            dm.created_at,
+            dm.createdby,
+            dm.processingparentid,
+            dm.isredactionready,
+            dm.updated_at,
+            dm.depth
+        FROM doc_tree dm
+        LEFT JOIN "DocumentAttributes" da
+            ON da.documentmasterid = dm.documentmasterid
+           AND da.isactive = true
+        LEFT JOIN "Documents" d
+            ON d.documentmasterid = dm.documentmasterid
+        """
+
+        if only_redaction_ready:
+            sql += "\nWHERE dm.isredactionready = true"
+
+        sql += "\nORDER BY dm.depth, dm.created_at"
+
+        return sql, params
+
+    @classmethod
     def getdocumentmaster(cls, ministryrequestid, recordgroups=None):
 
-        if recordgroups is None:
-            recordgroups = []
+        # Normalize input
+        recordgroups = recordgroups or []
+
+        # Decision rule:
+        # - No recordgroups  -> legacy query
+        # - With recordgroups -> recursive query
+        use_recursive = bool(recordgroups)
 
         documentmasters = []
+
+        if use_recursive:
+            sql, params = cls.build_document_set_query(
+                ministryrequestid=ministryrequestid,
+                recordgroups=recordgroups,
+                only_redaction_ready=True,
+            )
+        else:
+            sql, params = cls.build_non_document_set_query(
+                ministryrequestid=ministryrequestid,
+                only_redaction_ready=True,
+            )
+
         try:
-            sql = """
-                select
-                    dm.recordid,
-                    dm.parentid,
-                    d.filename as attachmentof,
-                    dm.filepath,
-                    dm.compressedfilepath,
-                    dm.ocrfilepath,
-                    dm.documentmasterid,
-                    da."attributes",
-                    dm.created_at,
-                    dm.createdby,
-                    dm.processingparentid as processingparentid,
-                    dm.isredactionready as isredactionready,
-                    dm.updated_at
-                from "DocumentMaster" dm
-                join "DocumentAttributes" da
-                    on dm.documentmasterid = da.documentmasterid
-                left join "DocumentMaster" dm2
-                    on dm2.processingparentid = dm.parentid
-                    and dm2.createdby = 'conversionservice'
-                left join "Documents" d
-                    on dm2.documentmasterid = d.documentmasterid
-                where dm.ministryrequestid = :ministryrequestid
-                and da.isactive = true
-                and dm.documentmasterid not in (
-                    select distinct d.documentmasterid
-                    from "DocumentMaster" d
-                    join "DocumentDeleted" dd
-                        on d.filepath like dd.filepath || '%'
-                    where d.ministryrequestid = :ministryrequestid
-                )
-            """
-
-            params = {"ministryrequestid": ministryrequestid}
-
-            if recordgroups:
-                sql += """
-                and dm.recordid = ANY(:recordgroups)
-                """
-                params["recordgroups"] = recordgroups
-
             rs = db.session.execute(text(sql), params)
+
             for row in rs:
-                # if row["documentmasterid"] not in deleted:
                 documentmasters.append({
                     "recordid": row["recordid"],
                     "parentid": row["parentid"],
@@ -94,19 +182,19 @@ class DocumentMaster(db.Model):
                     "documentmasterid": row["documentmasterid"],
                     "attributes": row["attributes"],
                     "created_at": row["created_at"],
-                     "createdby": row["createdby"],
+                    "createdby": row["createdby"],
                     "processingparentid": row["processingparentid"],
                     "isredactionready": row["isredactionready"],
                     "updated_at": row["updated_at"],
                     "attachmentof": row["attachmentof"],
                 })
 
-        except Exception as ex:
-            logging.error(ex)
-            db.session.close()
-            raise ex
+        except Exception:
+            logging.exception("Failed to fetch DocumentMaster")
+            raise
         finally:
             db.session.close()
+
         return documentmasters
     
     @classmethod 
