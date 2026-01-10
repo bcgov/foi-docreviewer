@@ -32,7 +32,8 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
 
-    def build_non_document_set_query(self,
+    @classmethod
+    def build_non_document_set_query(cls,
             ministryrequestid: int,
             only_redaction_ready: bool = True,
     ):
@@ -77,7 +78,8 @@ class DocumentMaster(db.Model):
 
         return sql, params
 
-    def build_document_set_query(self,
+    @classmethod
+    def build_document_set_query(cls,
             ministryrequestid: int,
             recordgroups: list[int] | None = None,
             only_redaction_ready: bool = True,
