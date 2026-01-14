@@ -142,7 +142,10 @@ class DocumentMaster(db.Model):
         if only_redaction_ready:
             sql += "\nWHERE dm.isredactionready = true"
 
-        sql += "\nORDER BY dm.depth, dm.created_at"
+        sql += """
+            AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
+            ORDER BY dm.depth, dm.created_at
+        """
 
         return sql, params
 
