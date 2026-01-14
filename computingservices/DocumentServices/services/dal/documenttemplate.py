@@ -70,3 +70,39 @@ class documenttemplate:
             cursor.close()
             if conn is not None:
                 conn.close()
+
+    @classmethod
+    def getrecordgroupsbyrequestid(cls, request_id, record_ids):
+        """
+        Retrieve record_ids for record groups linked to an FOI request,
+        filtered by a list of record_ids.
+        """
+        conn = getfoidbconnection()
+        try:
+            cursor = conn.cursor()
+
+            query = """
+                    -- Retrieve record groups linked to an FOI request
+                    SELECT groups.record_id
+                    FROM "FOIRequestRecordGroup" AS req
+                             JOIN "FOIRequestRecordGroups" AS groups
+                                  ON groups.document_set_id = req.document_set_id
+                    WHERE req.request_id = %s
+                      AND groups.record_id = ANY (%s); 
+                    """
+
+            parameters = (request_id, record_ids)
+            cursor.execute(query, parameters)
+            
+            records = cursor.fetchall()
+            return [record[0] for record in records]
+
+        except Exception as error:
+            logging.error("Error in getrecordgroupsbyrequestid")
+            logging.error(error)
+            raise
+
+        finally:
+            cursor.close()
+            if conn is not None:
+                conn.close()

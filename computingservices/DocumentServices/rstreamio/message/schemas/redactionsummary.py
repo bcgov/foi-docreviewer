@@ -1,8 +1,7 @@
 
 from marshmallow import EXCLUDE, fields, Schema
 import json
-from rstreamio.message.schemas.baseinfo import baseobj, dict2obj
-from models.redactionsummary import redactionsummary
+
 """
 This class consolidates schemas of RedactionSummary Service.
 
@@ -29,8 +28,8 @@ class Summary(Schema):
 
 
 class RedactionSummaryMessage(object):
-    def __init__(self, jobid, requestid, ministryrequestid, category, requestnumber, 
-                 bcgovcode, createdby, filestozip, finaloutput, attributes, summarydocuments ,redactionlayerid, requesttype, feeoverridereason, phase=None) -> None:
+    def __init__(self, jobid, requestid, ministryrequestid, category, requestnumber,
+                 bcgovcode, createdby, filestozip, finaloutput, attributes, summarydocuments ,redactionlayerid, requesttype, feeoverridereason, phase=None,documentsetid=None) -> None:
         self.jobid = jobid
         self.requestid = requestid
         self.ministryrequestid = ministryrequestid
@@ -46,6 +45,8 @@ class RedactionSummaryMessage(object):
         self.requesttype = requesttype
         self.feeoverridereason = feeoverridereason
         self.phase = phase
+        self.documentsetid = documentsetid
+
 
 
 def get_in_redactionsummary_msg(producer_json): 
@@ -63,4 +64,3 @@ def get_in_summarypackage_object(producer_json):
 def __formatmsg(producer_json):
     j = json.loads(producer_json)
     return j
-
