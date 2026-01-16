@@ -144,6 +144,7 @@ class DocumentMaster(db.Model):
 
         sql += """
             AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
+            AND dm.created_by = 'conversionservice'
             ORDER BY dm.depth, dm.created_at
         """
 
