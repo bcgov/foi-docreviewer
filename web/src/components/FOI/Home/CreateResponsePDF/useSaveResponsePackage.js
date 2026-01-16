@@ -8,7 +8,7 @@ import {
 } from "../../../../apiManager/services/foiOSSService";
 import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom"; // Added useLocation
 
 const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -19,6 +19,11 @@ const useSaveResponsePackage = (redlinePhase) => {
     (state) => state.documents?.requeststatus
   );
   const { foiministryrequestid } = useParams();
+
+  // Extract documentsetid from URL query parameters
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const documentsetid = queryParams.get("documentsetid");
 
   const [enableSavingFinal, setEnableSavingFinal] = useState(false);
   const [enablePublication, setEnablePublication] = useState(false);
@@ -103,7 +108,8 @@ const useSaveResponsePackage = (redlinePhase) => {
     };
     const zipDocObj = {
       files: [],
-      phase: redlinePhase ? redlinePhase : null
+      phase: redlinePhase ? redlinePhase : null,
+      documentsetid: documentsetid, // Added documentsetid to the payload
     };
     zipDocObj.files.push(file);
 
