@@ -290,7 +290,7 @@ class FOIFlowS3PresignedList(Resource):
 
                 documentobjs_output.append(documentinfo)
 
-            return documentobjs_output, 200
+            return json.dumps(documentobjs_output), 200
 
         except BusinessException as exception:
             current_app.logger.warning(
