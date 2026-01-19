@@ -169,6 +169,7 @@ class FOIFlowS3Presigned(Resource):
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned")
 class FOIFlowS3PresignedList(Resource):
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
@@ -176,54 +177,132 @@ class FOIFlowS3PresignedList(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def post():
         try:
-            data = request.get_json()
-            #print("\n\nFOIFlowS3PresignedList-Data:",data)
-            documentmapper = redactionservice().getdocumentmapper(
-                data["documentobjs"][0]["file"]["filepath"].split("/")[3]
-            )
-            attribute = json.loads(documentmapper["attributes"])
+            data = request.get_json(silent=True)
 
-            current_app.logger.debug("Inside Presigned List api!!")
-            formsbucket = documentmapper["bucket"]
+            if not data or "documentobjs" not in data or not data["documentobjs"]:
+                return {"message": "documentobjs is required"}, 400
+
+            documentobjs_input = data["documentobjs"]
+
+            # ---- Validate first document (used to resolve mapper) ----
+            first_file = documentobjs_input[0].get("file")
+            if not first_file or not first_file.get("filepath"):
+                return {"message": "Invalid document file metadata"}, 400
+
+            path_parts = first_file["filepath"].split("/")
+            if len(path_parts) < 5:
+                return {"message": "Invalid document filepath"}, 400
+
+            mapper_key = path_parts[3]
+
+            documentmapper = redactionservice().getdocumentmapper(mapper_key)
+            if not documentmapper:
+                return {"message": "Document mapper not found"}, 404
+
+            try:
+                attributes = json.loads(documentmapper.get("attributes", "{}"))
+            except json.JSONDecodeError:
+                current_app.logger.error("Invalid document mapper attributes JSON")
+                return {"message": "Invalid document mapper configuration"}, 500
+
+            formsbucket = documentmapper.get("bucket")
+            accesskey = attributes.get("s3accesskey")
+            secretkey = attributes.get("s3secretkey")
+
+            if not all([formsbucket, accesskey, secretkey]):
+                return {"message": "S3 configuration incomplete"}, 500
+
             s3client = boto3.client(
                 "s3",
                 config=Config(signature_version="s3v4"),
-                endpoint_url="https://{0}/".format(s3host),
-                aws_access_key_id=attribute["s3accesskey"],
-                aws_secret_access_key=attribute["s3secretkey"],
+                endpoint_url=f"https://{s3host}/",
+                aws_access_key_id=accesskey,
+                aws_secret_access_key=secretkey,
                 region_name=s3region,
             )
 
-            documentobjs = []
-            documentids = [documentinfo["file"]["documentid"] for documentinfo in data["documentobjs"]]
-            documents = documentservice().getdocumentbyids(documentids)
-            #print("\n\nFOIFlowS3PresignedList-documents:",documents)
-            for documentinfo in data["documentobjs"]:
-                #print("\n\nFOIFlowS3PresignedList-documentinfo:",documentinfo)
-                #s3filepath= documentservice().getdocumentfilepath(documentinfo)
-                filepath = "/".join(documents[documentinfo["file"]["documentid"]].split("/")[4:])
-                #print("\n\nFOIFlowS3PresignedList-filepath:",filepath)
-                filename, file_extension = os.path.splitext(filepath)
-                documentinfo["s3url"] = s3client.generate_presigned_url(
-                    ClientMethod="get_object",
-                    Params={
-                        "Bucket": formsbucket,
-                        "Key": "{0}".format(filepath),
-                        "ResponseContentType": "{0}/{1}".format(
-                            "image"
-                            if file_extension.lower() in imageextensions
-                            else "application",
-                            file_extension.replace(".", ""),
-                        ),
-                    },
-                    ExpiresIn=3600,
-                    HttpMethod="GET",
-                )
-                documentobjs.append(documentinfo)
+            documentids = [
+                d.get("file", {}).get("documentid")
+                for d in documentobjs_input
+                if d.get("file", {}).get("documentid")
+            ]
 
-            return json.dumps(documentobjs), 200
+            if not documentids:
+                return {"message": "No valid document IDs provided"}, 400
+
+            documents = documentservice().getdocumentbyids(documentids)
+            if not documents:
+                return {"message": "Documents not found"}, 404
+
+            documentobjs_output = []
+
+            for documentinfo in documentobjs_input:
+                docid = documentinfo.get("file", {}).get("documentid")
+
+                if not docid or docid not in documents:
+                    current_app.logger.warning(
+                        "Skipping document with missing metadata",
+                        extra={"documentid": docid},
+                    )
+                    continue
+
+                fullpath = documents.get(docid)
+                if not fullpath:
+                    current_app.logger.warning(
+                        "Skipping document with empty filepath",
+                        extra={"documentid": docid},
+                    )
+                    continue
+
+                parts = fullpath.split("/")
+                if len(parts) < 5:
+                    current_app.logger.warning(
+                        "Skipping document with invalid filepath",
+                        extra={"documentid": docid, "filepath": fullpath},
+                    )
+                    continue
+
+                object_key = "/".join(parts[4:])
+                filename, file_extension = os.path.splitext(object_key)
+
+                content_type = "{}/{}".format(
+                    "image" if file_extension.lower() in imageextensions else "application",
+                    file_extension.replace(".", ""),
+                )
+
+                try:
+                    documentinfo["s3url"] = s3client.generate_presigned_url(
+                        ClientMethod="get_object",
+                        Params={
+                            "Bucket": formsbucket,
+                            "Key": object_key,
+                            "ResponseContentType": content_type,
+                        },
+                        ExpiresIn=3600,
+                        HttpMethod="GET",
+                    )
+                except Exception:
+                    current_app.logger.exception(
+                        "Failed to generate presigned URL",
+                        extra={"documentid": docid},
+                    )
+                    documentinfo["s3url"] = None
+
+                documentobjs_output.append(documentinfo)
+
+            return documentobjs_output, 200
+
         except BusinessException as exception:
-            return {"status": exception.status_code, "message": exception.message}, 500
+            current_app.logger.warning(
+                "Business exception in presigned list",
+                extra={"error": exception.message},
+            )
+            return {"message": exception.message}, exception.status_code
+
+        except Exception:
+            current_app.logger.exception("Unhandled error in presigned list")
+            return {"message": "Failed to generate presigned URLs"}, 500
+
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned/<redactionlayer>/<int:ministryrequestid>/<string:layertype>")
