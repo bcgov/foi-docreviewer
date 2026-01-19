@@ -137,6 +137,7 @@ class DocumentMaster(db.Model):
            AND da.isactive = true
         LEFT JOIN "Documents" d
             ON d.documentmasterid = dm.documentmasterid
+            AND dm.createdby = 'conversionservice'
         """
 
         if only_redaction_ready:
@@ -144,7 +145,6 @@ class DocumentMaster(db.Model):
 
         sql += """
             AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
-            AND dm.createdby = 'conversionservice'
             ORDER BY dm.depth, dm.created_at
         """
 
