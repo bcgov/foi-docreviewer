@@ -60,53 +60,111 @@ requestapitimeout = os.getenv("FOI_REQ_MANAGEMENT_API_TIMEOUT")
 @cors_preflight("GET,OPTIONS")
 @API.route("/foiflow/oss/presigned/<documentid>")
 class FOIFlowS3Presigned(Resource):
+
     @staticmethod
     @TRACER.trace()
     @cross_origin(origins=allowedorigins())
     @auth.require
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(documentid):
+
+        if not documentid:
+            return {"message": "documentid is required"}, 400
+
         try:
             document = documentservice().getdocument(documentid)
-            documentmapper = redactionservice().getdocumentmapper(
-                document["filepath"].split("/")[3]
-            )
-            attribute = json.loads(documentmapper["attributes"])
 
-            current_app.logger.debug("Inside Presigned api!!")
-            formsbucket = documentmapper["bucket"]
-            accesskey = attribute["s3accesskey"]
-            secretkey = attribute["s3secretkey"]
-            filepath = "/".join(document["filepath"].split("/")[4:])
+            if not document:
+                return {"message": "Document not found"}, 404
+
+            filepath = document.get("filepath")
+            if not filepath:
+                return {"message": "Document has no associated file"}, 400
+
+            path_parts = filepath.split("/")
+            if len(path_parts) < 5:
+                current_app.logger.warning(
+                    "Invalid filepath format",
+                    extra={"documentid": documentid, "filepath": filepath},
+                )
+                return {"message": "Invalid document filepath"}, 400
+
+            mapper_key = path_parts[3]
+
+            documentmapper = redactionservice().getdocumentmapper(mapper_key)
+            if not documentmapper:
+                return {"message": "Document mapper not found"}, 404
+
+            attributes_raw = documentmapper.get("attributes")
+            if not attributes_raw:
+                return {"message": "Document mapper attributes missing"}, 500
+
+            try:
+                attributes = json.loads(attributes_raw)
+            except json.JSONDecodeError:
+                current_app.logger.error(
+                    "Invalid document mapper attributes JSON",
+                    extra={"documentid": documentid},
+                )
+                return {"message": "Invalid document mapper configuration"}, 500
+
+            formsbucket = documentmapper.get("bucket")
+            accesskey = attributes.get("s3accesskey")
+            secretkey = attributes.get("s3secretkey")
+
+            if not all([formsbucket, accesskey, secretkey]):
+                current_app.logger.error(
+                    "Missing S3 configuration",
+                    extra={"documentid": documentid},
+                )
+                return {"message": "S3 configuration incomplete"}, 500
+
+            object_key = "/".join(path_parts[4:])
+            if not object_key:
+                return {"message": "Invalid S3 object key"}, 400
+
+            filename, file_extension = os.path.splitext(object_key)
+            content_type = "{}/{}".format(
+                "image" if file_extension.lower() in imageextensions else "application",
+                file_extension.replace(".", ""),
+            )
+
             s3client = boto3.client(
                 "s3",
                 config=Config(signature_version="s3v4"),
-                endpoint_url="https://{0}/".format(s3host),
+                endpoint_url=f"https://{s3host}/",
                 aws_access_key_id=accesskey,
                 aws_secret_access_key=secretkey,
                 region_name=s3region,
             )
 
-            filename, file_extension = os.path.splitext(filepath)
-            response = s3client.generate_presigned_url(
+            presigned_url = s3client.generate_presigned_url(
                 ClientMethod="get_object",
                 Params={
                     "Bucket": formsbucket,
-                    "Key": "{0}".format(filepath),
-                    "ResponseContentType": "{0}/{1}".format(
-                        "image"
-                        if file_extension.lower() in imageextensions
-                        else "application",
-                        file_extension.replace(".", ""),
-                    ),
+                    "Key": object_key,
+                    "ResponseContentType": content_type,
                 },
                 ExpiresIn=3600,
                 HttpMethod="GET",
             )
 
-            return json.dumps(response), 200
-        except BusinessException as exception:
-            return {"status": exception.status_code, "message": exception.message}, 500
+            return presigned_url, 200
+
+        except BusinessException as e:
+            current_app.logger.warning(
+                "Business exception generating presigned URL",
+                extra={"documentid": documentid, "error": str(e)},
+            )
+            return {"message": e.message}, e.status_code
+
+        except Exception as e:
+            current_app.logger.exception(
+                "Unhandled error generating presigned URL",
+                extra={"documentid": documentid},
+            )
+            return {"message": "Failed to generate presigned URL"}, 500
+
 
 @cors_preflight("POST,OPTIONS")
 @API.route("/foiflow/oss/presigned")
