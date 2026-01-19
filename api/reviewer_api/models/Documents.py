@@ -110,19 +110,41 @@ class Document(db.Model):
             raise ex
         finally:
             db.session.close()
-        
+
     @classmethod
     def getdocument(cls, documentid):
+        if not documentid:
+            raise ValueError("documentid is required")
+
         try:
+            query = (
+                db.session.query(Document, DocumentMaster.filepath)
+                .join(DocumentMaster, Document.documentmasterid == DocumentMaster.documentmasterid)
+                .filter(Document.documentid == documentid)
+                .order_by(Document.version.desc())
+                .first()
+            )
+
+            if not query:
+                return None
+
+            document, filepath = query
+
             document_schema = DocumentSchema(many=False)
-            query = db.session.query(Document).filter_by(documentid=documentid).order_by(Document.version.desc()).first()
-            document = document_schema.dump(query)
-            document['filepath'] = document['documentmaster.filepath']
-            del document['documentmaster.filepath']
-            return document
+            result = document_schema.dump(document)
+
+            # Explicit, guaranteed assignment
+            result["filepath"] = filepath
+
+            return result
+
         except Exception as ex:
-            logging.error(ex)
-            raise ex
+            logging.exception(
+                "Failed to fetch document",
+                extra={"documentid": documentid},
+            )
+            raise
+
         finally:
             db.session.close()
 
