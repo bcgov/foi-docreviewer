@@ -41,6 +41,13 @@ class GetDedupeStatus(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
+            # TODO: Refactor endpoint to accept ministryrequestid.
+            #       Expected route:
+            #       GET /dedupestatus/<ministryrequestid>/<requestid>?documentsetid=<id>
+            #
+            #       This is required to correctly resolve FOI record groups.
+            documentsetid = request.args.get('documentsetid', type=int)
+            recordgroups = []
             result = documentservice().getdedupestatus(requestid)
             return json.dumps(result), 200
         except KeyError as error:

@@ -20,7 +20,7 @@ import {
   triggerDownloadRedlines,
 } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import XMLParser from "react-xml-parser";
 import { BIG_HTTP_GET_TIMEOUT } from "../../../../constants/constants";
 
@@ -35,6 +35,11 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
   const allPublicBodies = useAppSelector((state) => state.documents?.allPublicBodies);
   const toastId = React.useRef(null);
   const { foiministryrequestid } = useParams();
+
+  // Extract documentsetid from URL query parameters
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const documentsetid = queryParams.get("documentsetid");
 
   //xml parser
   const parser = new XMLParser();
@@ -1274,7 +1279,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       if (publicBody) {
         publicBodies.push(publicBody);
       } else {
-        // Custom public bodies/consults will not exist in allPublicBodies data (BE data for program areas) as they are not stored in the BE as programe areas (but rather as basic pageflags)
+        // Custom public bodies/consults will not exist in allPublicBodies data (BE program area data) as they are not stored in the BE as programe areas (but rather as basic pageflags)
         const customPublicBody = {
           name: publicBodyId,
           programareaid: null,
@@ -1513,14 +1518,16 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     divObj,
     stitchedDocPath,
     divisionCountForToast,
-    isSingleRedlinePackage
+    isSingleRedlinePackage,
+    documentsetid
   ) => {
     prepareMessageForRedlineZipping(
       divObj,
       divisionCountForToast,
       redlineZipperMessage,
       isSingleRedlinePackage,
-      stitchedDocPath
+      stitchedDocPath,
+      documentsetid
     );
     setIncludeDuplicatePages(false);
     setIncludeNRPages(false);
@@ -1531,7 +1538,8 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     divisionCountForToast,
     zipServiceMessage,
     redlineSinglePkg,
-    stitchedDocPath = ""
+    stitchedDocPath = "",
+    documentsetid
   ) => {
     const zipDocObj = {
       divisionid: null,
@@ -1541,6 +1549,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       includenrpages: includeNRPages,
       phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null,
       includecomments: includeComments,
+      documentsetid: documentsetid,
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -1994,7 +2003,8 @@ const stampPageNumberRedline = async (
             redlineIncompatabileMappings[divisionid],
             null, // stitchObject == null then no stichedDocPath available
             divisionCountForToast,
-            isSingleRedlinePackage
+            isSingleRedlinePackage,
+            documentsetid
           );
         } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
@@ -2121,7 +2131,8 @@ const stampPageNumberRedline = async (
                           redlineIncompatabileMappings[divisionid],
                           redlineStitchInfo[divisionid]["s3path"],
                           divisionCountForToast,
-                          isSingleRedlinePackage
+                          isSingleRedlinePackage,
+                          documentsetid
                         );
                       },
                       (_err) => {
@@ -2240,7 +2251,8 @@ const stampPageNumberRedline = async (
                         redlineIncompatabileMappings[divisionid],
                         redlineStitchInfo[divisionid]["s3path"],
                         divisionCountForToast,
-                        isSingleRedlinePackage
+                        isSingleRedlinePackage,
+                        documentsetid
                       );
                     },
                     (_err) => {
@@ -2354,7 +2366,8 @@ const stampPageNumberRedline = async (
                   redlineIncompatabileMappings[divisionid],
                   redlineStitchInfo[divisionid]["s3path"],
                   divisionCountForToast,
-                  isSingleRedlinePackage
+                  isSingleRedlinePackage,
+                  documentsetid
                 );
               },
               (_err) => {

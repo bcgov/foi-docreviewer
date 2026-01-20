@@ -13,6 +13,7 @@ class AttributeSchema(Schema):
     includenrpages = fields.Boolean(data_key="includenrpages", allow_none=True)
     phase = fields.Int(data_key="phase", allow_none=True)
     includecomments = fields.Boolean(data_key="includecomments", allow_none=True)
+    documentsetid = fields.Int(data_key="documentsetid", allow_none=True)
 
 class SummaryPkgSchema(Schema):
     divisionid = fields.Int(data_key="divisionid", allow_none=True)

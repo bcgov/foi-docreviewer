@@ -8,6 +8,8 @@ from .s3documentservice import uploadbytes
 from services.dts.redactionsummary import redactionsummary
 from services.dal.documentpageflag import documentpageflag
 from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg, get_in_summary_object,get_in_summarypackage_object
+from services.dal.documenttemplate import documenttemplate
+
 class redactionsummaryservice():
 
     def processmessage(self,incomingmessage):
@@ -42,6 +44,10 @@ class redactionsummaryservice():
                     print("\n 5. entry['divisionid']:",entry['divisionid'])
                     divisionid = entry['divisionid']
                     documentids = entry['documentids']
+                    if message.documentsetid:
+                        _documentids = documenttemplate.getrecordgroupsbyrequestid(message.ministryrequestid, documentids)
+                        if _documentids:
+                            documentids = _documentids
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
                     print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'

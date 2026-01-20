@@ -110,19 +110,41 @@ class Document(db.Model):
             raise ex
         finally:
             db.session.close()
-        
+
     @classmethod
     def getdocument(cls, documentid):
+        if not documentid:
+            raise ValueError("documentid is required")
+
         try:
+            query = (
+                db.session.query(Document, DocumentMaster.filepath)
+                .join(DocumentMaster, Document.documentmasterid == DocumentMaster.documentmasterid)
+                .filter(Document.documentid == documentid)
+                .order_by(Document.version.desc())
+                .first()
+            )
+
+            if not query:
+                return None
+
+            document, filepath = query
+
             document_schema = DocumentSchema(many=False)
-            query = db.session.query(Document).filter_by(documentid=documentid).order_by(Document.version.desc()).first()
-            document = document_schema.dump(query)
-            document['filepath'] = document['documentmaster.filepath']
-            del document['documentmaster.filepath']
-            return document
+            result = document_schema.dump(document)
+
+            # Explicit, guaranteed assignment
+            result["filepath"] = filepath
+
+            return result
+
         except Exception as ex:
-            logging.error(ex)
-            raise ex
+            logging.exception(
+                "Failed to fetch document",
+                extra={"documentid": documentid},
+            )
+            raise
+
         finally:
             db.session.close()
 
@@ -161,70 +183,88 @@ class Document(db.Model):
             db.session.close()
         return []
 
-
     @classmethod
     def getdocumentsbyids(cls, idlist):
+        if not idlist:
+            return {}
+
+        # Remove NULLs defensively
+        idlist = [doc_id for doc_id in idlist if doc_id is not None]
+        if not idlist:
+            return {}
+
+        session = db.session
+
         try:
-            _session = db.session
+            subquery_maxversion = (
+                session.query(
+                    Document.documentid,
+                    func.max(Document.version).label("max_version")
+                )
+                .group_by(Document.documentid)
+                .subquery()
+            )
 
-            #subquery for getting latest version for documents for one foi ministry request
-            subquery_maxversion = _session.query(Document.documentid, func.max(Document.version).label('max_version')).group_by(Document.documentid).subquery()
-            joincondition_maxversion = [
-                subquery_maxversion.c.documentid == Document.documentid,
-                subquery_maxversion.c.max_version == Document.version,
-            ]
+            parent_dm = aliased(DocumentMaster)
 
-            parentdocumentmaster = aliased(DocumentMaster)
+            filepath_case = case(
+                [
+                    (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
 
-            selectedcolumns = [
-                Document.documentid,
-                case(
-                    [
-                        # (and_(DocumentMaster.ocrfilepath != None, DocumentMaster.ocrfilepath != ''), DocumentMaster.ocrfilepath),
-                        # (and_(DocumentMaster.compressedfilepath != None, DocumentMaster.compressedfilepath != ''), DocumentMaster.compressedfilepath)
-                        (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
-                        (and_(parentdocumentmaster.ocrfilepath != None, parentdocumentmaster.ocrfilepath != ''), parentdocumentmaster.ocrfilepath),
-                        (and_(parentdocumentmaster.compressedfilepath != None, parentdocumentmaster.compressedfilepath != ''), parentdocumentmaster.compressedfilepath),
-                        (DocumentMaster.processingparentid != None, DocumentMaster.filepath)
-                    ],
+                    (and_(parent_dm.ocrfilepath.isnot(None), parent_dm.ocrfilepath != ""), parent_dm.ocrfilepath),
+                    (and_(parent_dm.compressedfilepath.isnot(None), parent_dm.compressedfilepath != ""),
+                     parent_dm.compressedfilepath),
+
+                    (DocumentMaster.processingparentid.isnot(None), DocumentMaster.filepath),
+                ],
                 else_=case(
                     [
                         (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
-                        (and_(DocumentMaster.ocrfilepath != None, DocumentMaster.ocrfilepath != ''), DocumentMaster.ocrfilepath),
-                        (and_(DocumentMaster.compressedfilepath != None, DocumentMaster.compressedfilepath != ''), DocumentMaster.compressedfilepath)
+                        (and_(DocumentMaster.ocrfilepath.isnot(None), DocumentMaster.ocrfilepath != ""),
+                         DocumentMaster.ocrfilepath),
+                        (and_(DocumentMaster.compressedfilepath.isnot(None), DocumentMaster.compressedfilepath != ""),
+                         DocumentMaster.compressedfilepath),
                     ],
-                    else_=DocumentMaster.filepath
+                    else_=DocumentMaster.filepath,
+                ),
+            ).label("filepath")
+
+            rows = (
+                session.query(
+                    Document.documentid,
+                    filepath_case,
                 )
-                    ## else_=DocumentMaster.filepath
-                ).label("filepath")
-                ##DocumentMaster.filepath
-            ]
+                .join(
+                    subquery_maxversion,
+                    and_(
+                        subquery_maxversion.c.documentid == Document.documentid,
+                        subquery_maxversion.c.max_version == Document.version,
+                    ),
+                )
+                .join(
+                    DocumentMaster,
+                    DocumentMaster.documentmasterid == Document.documentmasterid,
+                )
+                .outerjoin(
+                    parent_dm,
+                    parent_dm.documentmasterid == DocumentMaster.processingparentid,
+                )
+                .filter(Document.documentid.in_(idlist))
+                .all()
+            )
 
-            query = _session.query(
-                                    *selectedcolumns
-                                ).join(
-                                    subquery_maxversion,
-                                    and_(*joincondition_maxversion)
-                                ).join(
-                                    DocumentMaster,
-                                    DocumentMaster.documentmasterid == Document.documentmasterid
-                                ).outerjoin(
-                                    parentdocumentmaster,
-                                    parentdocumentmaster.documentmasterid == DocumentMaster.processingparentid
-                                ).filter(
-                                    Document.documentid.in_(idlist)
-                                ).all()
-
-            documents = {
+            return {
                 row.documentid: row.filepath
-                for row in query
+                for row in rows
+                if row.filepath
             }
-            return documents
-        except Exception as ex:
-            logging.error(ex)
-            raise ex
-        finally:
-            db.session.close()
+
+        except Exception:
+            logging.exception(
+                "Failed to resolve document filepaths",
+                extra={"document_ids": idlist},
+            )
+            raise
 
     @classmethod
     def getdocumentsdedupestatus(cls, requestid):

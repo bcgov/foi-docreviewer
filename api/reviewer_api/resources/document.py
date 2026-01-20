@@ -114,11 +114,31 @@ class GetDocuments(Resource):
     @auth.ismemberofgroups(getrequiredmemberships())
     def get(requestid):
         try:
-            response = requests.request(
-                method='GET',
-                url= requestapiurl + "/api/foirequests/ministryrequestid/" + requestid + "/" + AuthHelper.getusertype(),
-                headers={'Authorization': AuthHelper.getauthtoken(), 'Content-Type': 'application/json'},
-                timeout=float(requestapitimeout)
+            documentsetid = request.args.get("documentsetid", type=int)
+
+            log_message = f"Fetching Documents for requestid: {requestid}"
+            if documentsetid is not None:
+                log_message += f", documentsetid: {documentsetid}"
+            logging.info(log_message)
+
+            url = (
+                f"{requestapiurl}/api/foirequests/ministryrequestid/"
+                f"{requestid}/{AuthHelper.getusertype()}"
+            )
+
+            params = {}
+            if documentsetid is not None:
+                params["documentsetid"] = documentsetid
+
+            logging.info(f"Calling Request Management API to fetch Documents using URL: {url} with params: {params}")
+            response = requests.get(
+                url=url,
+                params=params,
+                headers={
+                    "Authorization": AuthHelper.getauthtoken(),
+                    "Content-Type": "application/json",
+                },
+                timeout=float(requestapitimeout),
             )
             response.raise_for_status()
             # get request status
@@ -137,15 +157,27 @@ class GetDocuments(Resource):
                 "isphasedrelease": jsonobj["isphasedrelease"],
                 "requeststate":jsonobj["currentState"]
             }
-            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+
+            recordgroups = []
+            raw_recordgroups = jsonobj.get("recordgroups")
+            if isinstance(raw_recordgroups, list):
+                recordgroups = [rg for rg in raw_recordgroups if isinstance(rg, int)]
+            logging.info(f"Extracted recordgroups: {recordgroups}")
+            # Assuming documentservice().getdocuments can accept documentsetid as an optional parameter
+            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"], recordgroups)
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:
+            logging.error(f"KeyError in GetDocuments for requestid {requestid}: {error}")
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400
         except BusinessException as exception:
+            logging.error(f"BusinessException in GetDocuments for requestid {requestid}: {exception.message}", exc_info=True)
             return {'status': exception.status_code, 'message':exception.message}, 500
         except requests.exceptions.HTTPError as err:
-            logging.error("Request Management API returned the following message: {0} - {1}".format(err.response.status_code, err.response.text))
+            logging.error(f"Request Management API returned an HTTPError for requestid {requestid}: {err.response.status_code} - {err.response.text}", exc_info=True)
             return {'status': False, 'message': err.response.text}, err.response.status_code
+        except Exception as ex:
+            logging.error(f"An unexpected error occurred in GetDocuments for requestid {requestid}: {ex}", exc_info=True)
+            return {'status': False, 'message': f"An unexpected error occurred: {str(ex)}"}, 500
 
 
 @cors_preflight('POST,OPTIONS')
