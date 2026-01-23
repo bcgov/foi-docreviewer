@@ -10,6 +10,7 @@ class FileSchema(Schema):
 class AttributeSchema(Schema):
     files = fields.Nested(FileSchema, many=True, required=True, allow_none=False)
     phase = fields.Int(data_key="phase", allow_none=True)
+    documentsetid = fields.Str(data_key="documentsetid", allow_none=True)
 
 class FeeOverrideSchema(Schema):
     feeoverridereason = fields.Str(data_key="feeoverridereason", allow_none=True)
@@ -35,6 +36,7 @@ class FinalPackageSchema(Schema):
     redactionlayerid = fields.Int(data_key="redactionlayerid", allow_none=False)
     requesttype = fields.Str(data_key="requesttype", allow_none=False)
     pdfstitchjobattributes = fields.Nested(FeeOverrideSchema, allow_none=True, many=False)
+    documentsetid = fields.Str(data_key="documentsetid", allow_none=True)
 
 class SummaryRecordSchema(Schema):
     recordname = fields.Str(data_key="recordname", allow_none=True)
@@ -62,4 +64,3 @@ class MCFFinalPackageSchema(Schema):
     pdfstitchjobattributes = fields.Nested(FeeOverrideSchema, allow_none=True, many=False)
     requesttype = fields.Str(data_key="requesttype", allow_none=False)
     documentsetid = fields.Int(data_key="documentsetid", allow_none=True)
-
