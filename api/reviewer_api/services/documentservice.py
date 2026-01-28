@@ -1,5 +1,3 @@
-from pyparsing import empty
-
 from reviewer_api.models.Documents import Document
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.FileConversionJob import FileConversionJob
