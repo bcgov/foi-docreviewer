@@ -165,7 +165,8 @@ class GetDocuments(Resource):
             logging.info(f"Extracted recordgroups: {recordgroups}")
             # Assuming documentservice().getdocuments can accept documentsetid as an optional parameter
             documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"], recordgroups)
-            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
+            _requestnumber= jsonobj["idNumber"] if jsonobj["requestType"] == "proactive disclosure" else jsonobj["axisRequestId"]
+            return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":_requestnumber, "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:
             logging.error(f"KeyError in GetDocuments for requestid {requestid}: {error}")
             return {'status': False, 'message': CUSTOM_KEYERROR_MESSAGE + str(error)}, 400

@@ -57,7 +57,8 @@ class GetSections(Resource):
     @auth.require
     def get(ministryrequestid, redactionlayer):
         try:
-            data = sectionservice().getsections_by_ministryid(ministryrequestid, redactionlayer)
+            isproactive = request.args.get('isproactive', type=bool)
+            data = sectionservice().getsections_by_ministryid(ministryrequestid, redactionlayer,isproactive)
             return json.dumps(data) , 200
         except BusinessException as exception:
             return {'status': exception.status_code, 'message':exception.message}, 500
