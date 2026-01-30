@@ -306,8 +306,73 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
-    
 
+    @classmethod
+    def get_distinct_divisions_by_record(cls, ministryrequestid, recordids):
+        """
+        Returns distinct divisions (JSON shape preserved) per recordid,
+        based on documents sharing the same filename.
+        """
+        try:
+            sql = text("""
+                    WITH target_records AS (
+                        SELECT
+                            dm.recordid,
+                            d.filename
+                        FROM "DocumentMaster" dm
+                        JOIN "Documents" d
+                            ON d.documentmasterid = dm.documentmasterid
+                        WHERE dm.ministryrequestid = :ministryrequestid
+                          AND dm.recordid = ANY(:recordids)
+                    ),
+                    distinct_divisions AS (
+                        SELECT DISTINCT
+                            tr.recordid,
+                            (div->>'divisionid')::int AS divisionid
+                        FROM target_records tr
+                        JOIN "Documents" d2
+                            ON d2.filename = tr.filename
+                        JOIN "DocumentMaster" dm2
+                            ON dm2.documentmasterid = d2.documentmasterid
+                        JOIN "DocumentAttributes" da
+                            ON da.documentmasterid = dm2.documentmasterid
+                        CROSS JOIN LATERAL jsonb_array_elements(
+                            (da.attributes->'divisions')::jsonb
+                        ) AS div
+                        WHERE dm2.ministryrequestid = :ministryrequestid
+                          AND da.isactive = true
+                          AND div->>'divisionid' IS NOT NULL
+                    )
+                    SELECT
+                        recordid,
+                        jsonb_build_object(
+                            'divisions',
+                            jsonb_agg(
+                                jsonb_build_object('divisionid', divisionid)
+                                ORDER BY divisionid
+                            )
+                        ) AS divisions
+                    FROM distinct_divisions
+                    GROUP BY recordid
+                    ORDER BY recordid;
+                """)
+
+            result = db.session.execute(
+                sql,
+                {
+                    "ministryrequestid": ministryrequestid,
+                    "recordids": recordids
+                }
+            )
+
+            return result.fetchall()
+
+        except Exception as ex:
+            logging.error("Error retrieving divisions by recordid", exc_info=ex)
+            raise
+
+        finally:
+            db.session.close()
     # @classmethod
     # def getfilepathbydocumentidold(cls, documentid):
     #     try:

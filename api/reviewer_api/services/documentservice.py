@@ -557,6 +557,37 @@ class documentservice:
             document["documentmasterid"]: document
             for document in self.getdedupestatus(requestid, recordgroups)
         }
+
+        if recordgroups:
+            recordids = list({
+                doc["recordid"]
+                for doc in documents.values()
+                if doc.get("recordid") is not None
+            })
+
+            if recordids:
+                divisions_by_record = DocumentMaster.get_distinct_divisions_by_record(
+                    ministryrequestid=requestid,
+                    recordids=recordids
+                )
+
+                divisions_lookup = {
+                    row["recordid"]: row["divisions"]["divisions"]
+                    for row in divisions_by_record
+                    if row["divisions"] is not None
+                }
+
+                for document in documents.values():
+                    recordid = document.get("recordid")
+                    if recordid in divisions_lookup:
+                        attributes = document.get("attributes") or {}
+
+                        if isinstance(attributes, str):
+                            attributes = json.loads(attributes)
+
+                        attributes["divisions"] = divisions_lookup[recordid]
+                        document["attributes"] = attributes
+
         attachments = []
         for documentid in documents:
             _attachments = documents[documentid].pop("attachments", [])

@@ -82,14 +82,17 @@ class documenttemplate:
             cursor = conn.cursor()
 
             query = """
-                    -- Retrieve record groups linked to an FOI request
-                    SELECT groups.record_id
-                    FROM "FOIRequestRecordGroup" AS req
-                             JOIN "FOIRequestRecordGroups" AS groups
-                                  ON groups.document_set_id = req.document_set_id
-                    WHERE req.request_id = %s
-                      AND groups.record_id = ANY (%s); 
-                    """
+                -- Retrieve record groups linked to an FOI request
+                SELECT links.record_id
+                FROM "FOIRequestRecordGroup" AS group_def
+                         JOIN "FOIRequestRecordGroups" AS links
+                              ON links.document_set_id = group_def.document_set_id
+                         INNER JOIN "FOIRequestRecords" AS records
+                                    ON links.record_id = records.recordid
+                WHERE group_def.request_id = %s
+                  AND records.isactive = true
+                  AND links.record_id = ANY (%s);
+            """
 
             parameters = (request_id, record_ids)
             cursor.execute(query, parameters)
@@ -99,6 +102,36 @@ class documenttemplate:
 
         except Exception as error:
             logging.error("Error in getrecordgroupsbyrequestid")
+            logging.error(error)
+            raise
+
+        finally:
+            cursor.close()
+            if conn is not None:
+                conn.close()
+
+    @classmethod
+    def getrecordgroupnamesbydocumentsetid(cls, document_set_id):
+        """
+        Retrieve record group names for a given document_set_id.
+        """
+        conn = getfoidbconnection()
+        try:
+            cursor = conn.cursor()
+
+            query = """
+                    SELECT name
+                    FROM "FOIRequestRecordGroup"
+                    WHERE document_set_id = %s; 
+                    """
+
+            cursor.execute(query, (document_set_id,))
+            records = cursor.fetchall()
+
+            return [record[0] for record in records]
+
+        except Exception as error:
+            logging.error("Error in getrecordgroupnamesbydocumentsetid")
             logging.error(error)
             raise
 
