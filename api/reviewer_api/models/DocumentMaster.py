@@ -80,73 +80,121 @@ class DocumentMaster(db.Model):
 
     @classmethod
     def build_document_set_query(cls,
-            ministryrequestid: int,
-            recordgroups: list[int] | None = None,
-            only_redaction_ready: bool = True,
-    ):
+                                 ministryrequestid: int,
+                                 recordgroups: list[int] | None = None,
+                                 only_redaction_ready: bool = True,
+                                 ):
         recordgroups = recordgroups or []
 
-        sql = """
-              WITH RECURSIVE doc_tree AS (SELECT dm.*, \
-                                                 ARRAY[dm.documentmasterid] AS path, \
-                                                 0                          AS depth \
-                                          FROM "DocumentMaster" dm \
-                                          WHERE dm.ministryrequestid = :ministryrequestid \
-              """
+        # 1. Construct the Base Case WHERE clause dynamically based on recordgroups presence
+        base_where = "WHERE dm.ministryrequestid = :ministryrequestid"
+        if recordgroups:
+            base_where += " AND dm.recordid = ANY(:recordgroups)"
+
+        # 2. Build the main SQL string
+        sql = f"""
+        WITH RECURSIVE doc_tree AS (
+            -- 1. Base Case: Start with the top-level documents
+            SELECT dm.documentmasterid,
+                   dm.processingparentid,
+                   dm.parentid,
+                   ARRAY[dm.documentmasterid] AS path,
+                   0 as depth
+            FROM "DocumentMaster" dm
+            {base_where}
+
+            UNION ALL
+
+            -- 2. Recursive Step: Find children
+            SELECT child.documentmasterid,
+                   child.processingparentid,
+                   child.parentid,
+                   parent.path || child.documentmasterid,
+                   parent.depth + 1
+            FROM "DocumentMaster" child
+            JOIN doc_tree parent
+              ON (child.processingparentid = parent.documentmasterid
+                  OR child.parentid = parent.documentmasterid)
+            WHERE NOT (child.documentmasterid = ANY(parent.path))
+        ),
+
+        -- 3. Get filenames currently in the tree (and their depth for sorting)
+        tree_files AS (
+            SELECT DISTINCT d.filename, dt.depth
+            FROM doc_tree dt
+            JOIN "Documents" d ON d.documentmasterid = dt.documentmasterid
+        ),
+
+        -- 4. Gather ALL candidate versions (Tree Versions + History Versions)
+        all_versions AS (
+            -- A) The versions actually in the tree
+            SELECT dt.documentmasterid,
+                   tf.filename,
+                   dm.created_at
+            FROM doc_tree dt
+            JOIN "DocumentMaster" dm ON dm.documentmasterid = dt.documentmasterid
+            JOIN "Documents" d ON d.documentmasterid = dm.documentmasterid
+            JOIN tree_files tf ON tf.filename = d.filename
+
+            UNION ALL
+
+            -- B) The versions from DeduplicationJob (History)
+            --    Only for filenames that exist in our tree
+            SELECT fcj.documentmasterid,
+                   d.filename,
+                   fcj.createdat AS created_at
+            FROM "DeduplicationJob" fcj
+            JOIN "Documents" d ON d.documentmasterid = fcj.documentmasterid
+            WHERE fcj.ministryrequestid = :ministryrequestid
+              AND d.filename IN (SELECT filename FROM tree_files)
+        ),
+
+        -- 5. Pick ONLY the Oldest Version per Filename
+        unique_oldest_map AS (
+            SELECT DISTINCT ON (filename)
+                documentmasterid,
+                filename,
+                created_at
+            FROM all_versions
+            ORDER BY filename, created_at ASC
+        )
+
+        SELECT dm.recordid,
+               dm.parentid,
+               map.filename AS attachmentof,
+               dm.filepath,
+               dm.compressedfilepath,
+               dm.ocrfilepath,
+               dm.documentmasterid,
+               da."attributes",
+               dm.created_at,
+               dm.createdby,
+               dm.processingparentid,
+               dm.isredactionready,
+               dm.updated_at,
+               -- Preserve the depth from the original tree structure for sorting
+               COALESCE(tf.depth, 0) as depth
+        FROM unique_oldest_map map
+        JOIN "DocumentMaster" dm ON dm.documentmasterid = map.documentmasterid
+        LEFT JOIN "DocumentAttributes" da
+            ON da.documentmasterid = dm.documentmasterid
+           AND da.isactive = true
+        LEFT JOIN tree_files tf ON tf.filename = map.filename
+        WHERE 1=1
+        """
+
+        if only_redaction_ready:
+            sql += " AND dm.isredactionready = true"
+
+        sql += """
+          AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
+        ORDER BY depth, dm.created_at
+        """
 
         params = {
             "ministryrequestid": ministryrequestid,
             "recordgroups": recordgroups,
         }
-
-        if recordgroups:
-            sql += "\n  AND dm.recordid = ANY(:recordgroups)"
-
-        sql += """
-            UNION ALL
-            SELECT DISTINCT
-                child.*,
-                parent.path || child.documentmasterid,
-                parent.depth + 1
-            FROM "DocumentMaster" child
-            JOIN doc_tree parent
-              ON (
-                   child.processingparentid = parent.documentmasterid
-                OR child.parentid          = parent.documentmasterid
-              )
-            WHERE NOT (child.documentmasterid = ANY(parent.path))
-        )
-        SELECT
-            dm.recordid,
-            dm.parentid,
-            d.filename AS attachmentof,
-            dm.filepath,
-            dm.compressedfilepath,
-            dm.ocrfilepath,
-            dm.documentmasterid,
-            da."attributes",
-            dm.created_at,
-            dm.createdby,
-            dm.processingparentid,
-            dm.isredactionready,
-            dm.updated_at,
-            dm.depth
-        FROM doc_tree dm
-        LEFT JOIN "DocumentAttributes" da
-            ON da.documentmasterid = dm.documentmasterid
-           AND da.isactive = true
-        LEFT JOIN "Documents" d
-            ON d.documentmasterid = dm.documentmasterid
-            AND dm.createdby = 'conversionservice'
-        """
-
-        if only_redaction_ready:
-            sql += "\nWHERE dm.isredactionready = true"
-
-        sql += """
-            AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
-            ORDER BY dm.depth, dm.created_at
-        """
 
         return sql, params
 
