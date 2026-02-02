@@ -57,7 +57,18 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            ##print("\neach RECORD:",record)
+            if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
+                # Parse comma-separated string, remove recordid from the list, and convert back to string
+                duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
+                filtered_list = [x for x in duplicate_list if x != record["recordid"]]
+                record["duplicate_of"] = ", ".join(str(x) for x in filtered_list) if filtered_list else None
+
+        # Remove records that have duplicate_of value (these are duplicates being replaced)
+        records = [
+            record for record in records 
+            if record.get("duplicate_of") is None 
+            or not record.get("duplicate_of", "").strip()
+        ]
             
         # Duplicate check
         finalresults = []

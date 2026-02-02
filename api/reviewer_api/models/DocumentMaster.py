@@ -80,22 +80,21 @@ class DocumentMaster(db.Model):
 
     @classmethod
     def build_document_set_query(cls,
-                                 ministryrequestid: int,
-                                 recordgroups: list[int] | None = None,
-                                 only_redaction_ready: bool = True,
-                                 ):
+            ministryrequestid: int,
+            recordgroups: list[int] | None = None,
+            only_redaction_ready: bool = True,
+    ):
         recordgroups = recordgroups or []
 
-        # 1. Construct the Base Case WHERE clause dynamically based on recordgroups presence
         base_where = "WHERE dm.ministryrequestid = :ministryrequestid"
         if recordgroups:
             base_where += " AND dm.recordid = ANY(:recordgroups)"
 
-        # 2. Build the main SQL string
         sql = f"""
         WITH RECURSIVE doc_tree AS (
-            -- 1. Base Case: Start with the top-level documents
+            -- 1. Base Case: Get the requested records
             SELECT dm.documentmasterid,
+                   dm.recordid,
                    dm.processingparentid,
                    dm.parentid,
                    ARRAY[dm.documentmasterid] AS path,
@@ -105,8 +104,9 @@ class DocumentMaster(db.Model):
 
             UNION ALL
 
-            -- 2. Recursive Step: Find children
+            -- 2. Recursive Step: Get children
             SELECT child.documentmasterid,
+                   child.recordid,
                    child.processingparentid,
                    child.parentid,
                    parent.path || child.documentmasterid,
@@ -118,19 +118,16 @@ class DocumentMaster(db.Model):
             WHERE NOT (child.documentmasterid = ANY(parent.path))
         ),
 
-        -- 3. Get filenames currently in the tree (and their depth for sorting)
+        -- 3. Get filenames currently in the tree
         tree_files AS (
             SELECT DISTINCT d.filename, dt.depth
             FROM doc_tree dt
             JOIN "Documents" d ON d.documentmasterid = dt.documentmasterid
         ),
 
-        -- 4. Gather ALL candidate versions (Tree Versions + History Versions)
+        -- 4. Gather ALL candidate versions (Tree + History)
         all_versions AS (
-            -- A) The versions actually in the tree
-            SELECT dt.documentmasterid,
-                   tf.filename,
-                   dm.created_at
+            SELECT dt.documentmasterid, tf.filename, dm.created_at
             FROM doc_tree dt
             JOIN "DocumentMaster" dm ON dm.documentmasterid = dt.documentmasterid
             JOIN "Documents" d ON d.documentmasterid = dm.documentmasterid
@@ -138,11 +135,7 @@ class DocumentMaster(db.Model):
 
             UNION ALL
 
-            -- B) The versions from DeduplicationJob (History)
-            --    Only for filenames that exist in our tree
-            SELECT fcj.documentmasterid,
-                   d.filename,
-                   fcj.createdat AS created_at
+            SELECT fcj.documentmasterid, d.filename, fcj.createdat AS created_at
             FROM "DeduplicationJob" fcj
             JOIN "Documents" d ON d.documentmasterid = fcj.documentmasterid
             WHERE fcj.ministryrequestid = :ministryrequestid
@@ -159,6 +152,7 @@ class DocumentMaster(db.Model):
             ORDER BY filename, created_at ASC
         )
 
+        -- 6. Final Selection
         SELECT dm.recordid,
                dm.parentid,
                map.filename AS attachmentof,
@@ -172,8 +166,17 @@ class DocumentMaster(db.Model):
                dm.processingparentid,
                dm.isredactionready,
                dm.updated_at,
-               -- Preserve the depth from the original tree structure for sorting
-               COALESCE(tf.depth, 0) as depth
+               COALESCE(tf.depth, 0) as depth,
+               
+               -- Shows which Original Record ID this row is replacing
+               (
+                   SELECT string_agg(dt.recordid::text, ', ')
+                   FROM doc_tree dt
+                   JOIN "Documents" d_orig ON d_orig.documentmasterid = dt.documentmasterid
+                   WHERE d_orig.filename = map.filename
+                     AND dt.documentmasterid != dm.documentmasterid
+               ) AS duplicate_of
+               
         FROM unique_oldest_map map
         JOIN "DocumentMaster" dm ON dm.documentmasterid = map.documentmasterid
         LEFT JOIN "DocumentAttributes" da
@@ -205,7 +208,7 @@ class DocumentMaster(db.Model):
         recordgroups = recordgroups or []
 
         # Decision rule:
-        # - No recordgroups  -> legacy query
+        # - No recordgroups  -> no document Set query
         # - With recordgroups -> recursive query
         use_recursive = bool(recordgroups)
 
@@ -241,6 +244,7 @@ class DocumentMaster(db.Model):
                     "isredactionready": row["isredactionready"],
                     "updated_at": row["updated_at"],
                     "attachmentof": row["attachmentof"],
+                    "duplicate_of": row["duplicate_of"],
                 })
 
         except Exception:
