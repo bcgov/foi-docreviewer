@@ -50,7 +50,8 @@ class DocumentMaster(db.Model):
                      dm.createdby, \
                      dm.processingparentid, \
                      dm.isredactionready, \
-                     dm.updated_at
+                     dm.updated_at, \
+                     NULL AS duplicate_of
               FROM "DocumentMaster" dm
                        JOIN "DocumentAttributes" da
                             ON da.documentmasterid = dm.documentmasterid
