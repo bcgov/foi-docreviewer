@@ -50,7 +50,8 @@ class DocumentMaster(db.Model):
                      dm.createdby, \
                      dm.processingparentid, \
                      dm.isredactionready, \
-                     dm.updated_at
+                     dm.updated_at, \
+                     NULL AS duplicate_of
               FROM "DocumentMaster" dm
                        JOIN "DocumentAttributes" da
                             ON da.documentmasterid = dm.documentmasterid
@@ -243,8 +244,8 @@ class DocumentMaster(db.Model):
                     "processingparentid": row["processingparentid"],
                     "isredactionready": row["isredactionready"],
                     "updated_at": row["updated_at"],
-                    "attachmentof": row["attachmentof"],
-                    "duplicate_of": row["duplicate_of"],
+                    "attachmentof": row.get("attachmentof"),
+                    "duplicate_of": row.get("duplicate_of"),
                 })
 
         except Exception:
