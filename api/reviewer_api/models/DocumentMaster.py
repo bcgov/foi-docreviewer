@@ -202,6 +202,14 @@ class DocumentMaster(db.Model):
 
         return sql, params
 
+    @staticmethod
+    def safe_row_value(row, key):
+        """Safely get a value from a SQLAlchemy Row object, returning None if the key doesn't exist."""
+        try:
+            return row[key]
+        except (KeyError, AttributeError):
+            return None
+
     @classmethod
     def getdocumentmaster(cls, ministryrequestid, recordgroups=None):
 
@@ -244,8 +252,8 @@ class DocumentMaster(db.Model):
                     "processingparentid": row["processingparentid"],
                     "isredactionready": row["isredactionready"],
                     "updated_at": row["updated_at"],
-                    "attachmentof": row.get("attachmentof"),
-                    "duplicate_of": row.get("duplicate_of"),
+                    "attachmentof": cls.safe_row_value(row, "attachmentof"),
+                    "duplicate_of": cls.safe_row_value(row, "duplicate_of"),
                 })
 
         except Exception:
