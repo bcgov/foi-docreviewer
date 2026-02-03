@@ -50,7 +50,8 @@ class DocumentMaster(db.Model):
                      dm.createdby, \
                      dm.processingparentid, \
                      dm.isredactionready, \
-                     dm.updated_at
+                     dm.updated_at, \
+                     NULL AS duplicate_of
               FROM "DocumentMaster" dm
                        JOIN "DocumentAttributes" da
                             ON da.documentmasterid = dm.documentmasterid
@@ -86,67 +87,118 @@ class DocumentMaster(db.Model):
     ):
         recordgroups = recordgroups or []
 
-        sql = """
-              WITH RECURSIVE doc_tree AS (SELECT dm.*, \
-                                                 ARRAY[dm.documentmasterid] AS path, \
-                                                 0                          AS depth \
-                                          FROM "DocumentMaster" dm \
-                                          WHERE dm.ministryrequestid = :ministryrequestid \
-              """
+        base_where = "WHERE dm.ministryrequestid = :ministryrequestid"
+        if recordgroups:
+            base_where += " AND dm.recordid = ANY(:recordgroups)"
+
+        sql = f"""
+        WITH RECURSIVE doc_tree AS (
+            -- 1. Base Case: Get the requested records
+            SELECT dm.documentmasterid,
+                   dm.recordid,
+                   dm.processingparentid,
+                   dm.parentid,
+                   ARRAY[dm.documentmasterid] AS path,
+                   0 as depth
+            FROM "DocumentMaster" dm
+            {base_where}
+
+            UNION ALL
+
+            -- 2. Recursive Step: Get children
+            SELECT child.documentmasterid,
+                   child.recordid,
+                   child.processingparentid,
+                   child.parentid,
+                   parent.path || child.documentmasterid,
+                   parent.depth + 1
+            FROM "DocumentMaster" child
+            JOIN doc_tree parent
+              ON (child.processingparentid = parent.documentmasterid
+                  OR child.parentid = parent.documentmasterid)
+            WHERE NOT (child.documentmasterid = ANY(parent.path))
+        ),
+
+        -- 3. Get filenames currently in the tree
+        tree_files AS (
+            SELECT DISTINCT d.filename, dt.depth
+            FROM doc_tree dt
+            JOIN "Documents" d ON d.documentmasterid = dt.documentmasterid
+        ),
+
+        -- 4. Gather ALL candidate versions (Tree + History)
+        all_versions AS (
+            SELECT dt.documentmasterid, tf.filename, dm.created_at
+            FROM doc_tree dt
+            JOIN "DocumentMaster" dm ON dm.documentmasterid = dt.documentmasterid
+            JOIN "Documents" d ON d.documentmasterid = dm.documentmasterid
+            JOIN tree_files tf ON tf.filename = d.filename
+
+            UNION ALL
+
+            SELECT fcj.documentmasterid, d.filename, fcj.createdat AS created_at
+            FROM "DeduplicationJob" fcj
+            JOIN "Documents" d ON d.documentmasterid = fcj.documentmasterid
+            WHERE fcj.ministryrequestid = :ministryrequestid
+              AND d.filename IN (SELECT filename FROM tree_files)
+        ),
+
+        -- 5. Pick ONLY the Oldest Version per Filename
+        unique_oldest_map AS (
+            SELECT DISTINCT ON (filename)
+                documentmasterid,
+                filename,
+                created_at
+            FROM all_versions
+            ORDER BY filename, created_at ASC
+        )
+
+        -- 6. Final Selection
+        SELECT dm.recordid,
+               dm.parentid,
+               map.filename AS attachmentof,
+               dm.filepath,
+               dm.compressedfilepath,
+               dm.ocrfilepath,
+               dm.documentmasterid,
+               da."attributes",
+               dm.created_at,
+               dm.createdby,
+               dm.processingparentid,
+               dm.isredactionready,
+               dm.updated_at,
+               COALESCE(tf.depth, 0) as depth,
+               
+               -- Shows which Original Record ID this row is replacing
+               (
+                   SELECT string_agg(dt.recordid::text, ', ')
+                   FROM doc_tree dt
+                   JOIN "Documents" d_orig ON d_orig.documentmasterid = dt.documentmasterid
+                   WHERE d_orig.filename = map.filename
+                     AND dt.documentmasterid != dm.documentmasterid
+               ) AS duplicate_of
+               
+        FROM unique_oldest_map map
+        JOIN "DocumentMaster" dm ON dm.documentmasterid = map.documentmasterid
+        LEFT JOIN "DocumentAttributes" da
+            ON da.documentmasterid = dm.documentmasterid
+           AND da.isactive = true
+        LEFT JOIN tree_files tf ON tf.filename = map.filename
+        WHERE 1=1
+        """
+
+        if only_redaction_ready:
+            sql += " AND dm.isredactionready = true"
+
+        sql += """
+          AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
+        ORDER BY depth, dm.created_at
+        """
 
         params = {
             "ministryrequestid": ministryrequestid,
             "recordgroups": recordgroups,
         }
-
-        if recordgroups:
-            sql += "\n  AND dm.recordid = ANY(:recordgroups)"
-
-        sql += """
-            UNION ALL
-            SELECT DISTINCT
-                child.*,
-                parent.path || child.documentmasterid,
-                parent.depth + 1
-            FROM "DocumentMaster" child
-            JOIN doc_tree parent
-              ON (
-                   child.processingparentid = parent.documentmasterid
-                OR child.parentid          = parent.documentmasterid
-              )
-            WHERE NOT (child.documentmasterid = ANY(parent.path))
-        )
-        SELECT
-            dm.recordid,
-            dm.parentid,
-            d.filename AS attachmentof,
-            dm.filepath,
-            dm.compressedfilepath,
-            dm.ocrfilepath,
-            dm.documentmasterid,
-            da."attributes",
-            dm.created_at,
-            dm.createdby,
-            dm.processingparentid,
-            dm.isredactionready,
-            dm.updated_at,
-            dm.depth
-        FROM doc_tree dm
-        LEFT JOIN "DocumentAttributes" da
-            ON da.documentmasterid = dm.documentmasterid
-           AND da.isactive = true
-        LEFT JOIN "Documents" d
-            ON d.documentmasterid = dm.documentmasterid
-            AND dm.createdby = 'conversionservice'
-        """
-
-        if only_redaction_ready:
-            sql += "\nWHERE dm.isredactionready = true"
-
-        sql += """
-            AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
-            ORDER BY dm.depth, dm.created_at
-        """
 
         return sql, params
 
@@ -157,7 +209,7 @@ class DocumentMaster(db.Model):
         recordgroups = recordgroups or []
 
         # Decision rule:
-        # - No recordgroups  -> legacy query
+        # - No recordgroups  -> no document Set query
         # - With recordgroups -> recursive query
         use_recursive = bool(recordgroups)
 
@@ -192,7 +244,8 @@ class DocumentMaster(db.Model):
                     "processingparentid": row["processingparentid"],
                     "isredactionready": row["isredactionready"],
                     "updated_at": row["updated_at"],
-                    "attachmentof": row["attachmentof"],
+                    "attachmentof": row.get("attachmentof"),
+                    "duplicate_of": row.get("duplicate_of"),
                 })
 
         except Exception:
@@ -306,8 +359,73 @@ class DocumentMaster(db.Model):
         finally:
             db.session.close()
         return documentmasters
-    
 
+    @classmethod
+    def get_distinct_divisions_by_record(cls, ministryrequestid, recordids):
+        """
+        Returns distinct divisions (JSON shape preserved) per recordid,
+        based on documents sharing the same filename.
+        """
+        try:
+            sql = text("""
+                    WITH target_records AS (
+                        SELECT
+                            dm.recordid,
+                            d.filename
+                        FROM "DocumentMaster" dm
+                        JOIN "Documents" d
+                            ON d.documentmasterid = dm.documentmasterid
+                        WHERE dm.ministryrequestid = :ministryrequestid
+                          AND dm.recordid = ANY(:recordids)
+                    ),
+                    distinct_divisions AS (
+                        SELECT DISTINCT
+                            tr.recordid,
+                            (div->>'divisionid')::int AS divisionid
+                        FROM target_records tr
+                        JOIN "Documents" d2
+                            ON d2.filename = tr.filename
+                        JOIN "DocumentMaster" dm2
+                            ON dm2.documentmasterid = d2.documentmasterid
+                        JOIN "DocumentAttributes" da
+                            ON da.documentmasterid = dm2.documentmasterid
+                        CROSS JOIN LATERAL jsonb_array_elements(
+                            (da.attributes->'divisions')::jsonb
+                        ) AS div
+                        WHERE dm2.ministryrequestid = :ministryrequestid
+                          AND da.isactive = true
+                          AND div->>'divisionid' IS NOT NULL
+                    )
+                    SELECT
+                        recordid,
+                        jsonb_build_object(
+                            'divisions',
+                            jsonb_agg(
+                                jsonb_build_object('divisionid', divisionid)
+                                ORDER BY divisionid
+                            )
+                        ) AS divisions
+                    FROM distinct_divisions
+                    GROUP BY recordid
+                    ORDER BY recordid;
+                """)
+
+            result = db.session.execute(
+                sql,
+                {
+                    "ministryrequestid": ministryrequestid,
+                    "recordids": recordids
+                }
+            )
+
+            return result.fetchall()
+
+        except Exception as ex:
+            logging.error("Error retrieving divisions by recordid", exc_info=ex)
+            raise
+
+        finally:
+            db.session.close()
     # @classmethod
     # def getfilepathbydocumentidold(cls, documentid):
     #     try:

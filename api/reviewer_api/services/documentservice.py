@@ -57,7 +57,18 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            ##print("\neach RECORD:",record)
+            if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
+                # Parse comma-separated string, remove recordid from the list, and convert back to string
+                duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
+                filtered_list = [x for x in duplicate_list if x != record["recordid"]]
+                record["duplicate_of"] = ", ".join(str(x) for x in filtered_list) if filtered_list else None
+
+        # Remove records that have duplicate_of value (these are duplicates being replaced)
+        records = [
+            record for record in records 
+            if record.get("duplicate_of") is None 
+            or not record.get("duplicate_of", "").strip()
+        ]
             
         # Duplicate check
         finalresults = []
@@ -557,6 +568,37 @@ class documentservice:
             document["documentmasterid"]: document
             for document in self.getdedupestatus(requestid, recordgroups)
         }
+
+        if recordgroups:
+            recordids = list({
+                doc["recordid"]
+                for doc in documents.values()
+                if doc.get("recordid") is not None
+            })
+
+            if recordids:
+                divisions_by_record = DocumentMaster.get_distinct_divisions_by_record(
+                    ministryrequestid=requestid,
+                    recordids=recordids
+                )
+
+                divisions_lookup = {
+                    row["recordid"]: row["divisions"]["divisions"]
+                    for row in divisions_by_record
+                    if row["divisions"] is not None
+                }
+
+                for document in documents.values():
+                    recordid = document.get("recordid")
+                    if recordid in divisions_lookup:
+                        attributes = document.get("attributes") or {}
+
+                        if isinstance(attributes, str):
+                            attributes = json.loads(attributes)
+
+                        attributes["divisions"] = divisions_lookup[recordid]
+                        document["attributes"] = attributes
+
         attachments = []
         for documentid in documents:
             _attachments = documents[documentid].pop("attachments", [])

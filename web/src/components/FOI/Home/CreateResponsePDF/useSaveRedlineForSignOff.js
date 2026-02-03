@@ -20,7 +20,7 @@ import {
   triggerDownloadRedlines,
 } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
-import { useParams, useLocation } from "react-router-dom"; // Added useLocation
+import { useParams, useLocation } from "react-router-dom";
 import XMLParser from "react-xml-parser";
 import { BIG_HTTP_GET_TIMEOUT } from "../../../../constants/constants";
 
@@ -1519,7 +1519,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     stitchedDocPath,
     divisionCountForToast,
     isSingleRedlinePackage,
-    documentsetid // Added documentsetid
+    documentsetid
   ) => {
     prepareMessageForRedlineZipping(
       divObj,
@@ -1527,7 +1527,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       redlineZipperMessage,
       isSingleRedlinePackage,
       stitchedDocPath,
-      documentsetid // Pass documentsetid
+      documentsetid
     );
     setIncludeDuplicatePages(false);
     setIncludeNRPages(false);
@@ -1539,7 +1539,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     zipServiceMessage,
     redlineSinglePkg,
     stitchedDocPath = "",
-    documentsetid // Added documentsetid
+    documentsetid
   ) => {
     const zipDocObj = {
       divisionid: null,
@@ -1549,7 +1549,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
       includenrpages: includeNRPages,
       phase: redlinePhase && redlineCategory === "redline" ? redlinePhase : null,
       includecomments: includeComments,
-      documentsetid: documentsetid, // Added documentsetid to the payload
+      documentsetid: documentsetid,
     };
     if (stitchedDocPath) {
       const stitchedDocPathArray = stitchedDocPath?.split("/");
@@ -2004,7 +2004,7 @@ const stampPageNumberRedline = async (
             null, // stitchObject == null then no stichedDocPath available
             divisionCountForToast,
             isSingleRedlinePackage,
-            documentsetid // Pass documentsetid
+            documentsetid
           );
         } else {
           let formattedAnnotationXML = formatAnnotationsForRedline(
@@ -2132,7 +2132,7 @@ const stampPageNumberRedline = async (
                           redlineStitchInfo[divisionid]["s3path"],
                           divisionCountForToast,
                           isSingleRedlinePackage,
-                          documentsetid // Pass documentsetid
+                          documentsetid
                         );
                       },
                       (_err) => {
@@ -2252,7 +2252,7 @@ const stampPageNumberRedline = async (
                         redlineStitchInfo[divisionid]["s3path"],
                         divisionCountForToast,
                         isSingleRedlinePackage,
-                        documentsetid // Pass documentsetid
+                        documentsetid
                       );
                     },
                     (_err) => {
@@ -2367,7 +2367,7 @@ const stampPageNumberRedline = async (
                   redlineStitchInfo[divisionid]["s3path"],
                   divisionCountForToast,
                   isSingleRedlinePackage,
-                  documentsetid // Pass documentsetid
+                  documentsetid
                 );
               },
               (_err) => {

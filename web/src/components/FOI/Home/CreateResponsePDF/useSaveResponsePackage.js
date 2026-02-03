@@ -8,7 +8,7 @@ import {
 } from "../../../../apiManager/services/foiOSSService";
 import { triggerDownloadFinalPackage } from "../../../../apiManager/services/docReviewerService";
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
-import { useParams, useLocation } from "react-router-dom"; // Added useLocation
+import { useParams, useLocation } from "react-router-dom";
 
 const useSaveResponsePackage = (redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -109,7 +109,7 @@ const useSaveResponsePackage = (redlinePhase) => {
     const zipDocObj = {
       files: [],
       phase: redlinePhase ? redlinePhase : null,
-      documentsetid: documentsetid, // Added documentsetid to the payload
+      documentsetid: documentsetid,
     };
     zipDocObj.files.push(file);
 
