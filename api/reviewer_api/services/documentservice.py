@@ -109,59 +109,59 @@ class documentservice:
         parentswithattachmentsrecords,
         attachmentsrecords,
     ):
-        # Process records with recordid OR records without recordid (attachments/processing records)
-        _att_in_properties = []
-        (
-            record["originalpagecount"],
-            record["pagecount"],
-            record["filename"],
-            record["documentid"],
-            record["version"],
-            record["selectedfileprocessversion"],
-            record["converteddocmasterid"]
-        ) = self.__getpagecountandfilename(record, parentproperties)
-        (
-            record["isduplicate"],
-            record["duplicatemasterid"],
-            record["duplicateof"],
-        ) = self.__isduplicate(parentproperties, record)
-        #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
-        
-        # Only process attachments if record has a recordid
-        if record["recordid"] is not None and len(record["attachments"]) > 0:
-            if record["isduplicate"] == True:
-                duplicatemaster_attachments = self.__getduplicatemasterattachments(
-                    parentswithattachmentsrecords, record["duplicatemasterid"]
-                )
-                if duplicatemaster_attachments is None:
+        if record["recordid"] is not None:
+            _att_in_properties = []
+            (
+                record["originalpagecount"],
+                record["pagecount"],
+                record["filename"],
+                record["documentid"],
+                record["version"],
+                record["selectedfileprocessversion"],
+                record["converteddocmasterid"]
+            ) = self.__getpagecountandfilename(record, parentproperties)
+            (
+                record["isduplicate"],
+                record["duplicatemasterid"],
+                record["duplicateof"],
+            ) = self.__isduplicate(parentproperties, record)
+            #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
+            if len(record["attachments"]) > 0:
+                if record["isduplicate"] == True:
+                    duplicatemaster_attachments = self.__getduplicatemasterattachments(
+                        parentswithattachmentsrecords, record["duplicatemasterid"]
+                    )
+                    if duplicatemaster_attachments is None:
+                        _att_in_properties = self.__getattachmentproperties(
+                            record["attachments"], properties
+                        )
+                    else:
+                        _att_in_properties = self.__getattachmentproperties(
+                            duplicatemaster_attachments + record["attachments"],
+                            properties,
+                        )
+                elif len(record["attachments"]) > 0:
                     _att_in_properties = self.__getattachmentproperties(
                         record["attachments"], properties
                     )
-                else:
-                    _att_in_properties = self.__getattachmentproperties(
-                        duplicatemaster_attachments + record["attachments"],
-                        properties,
-                    )
-            elif len(record["attachments"]) > 0:
-                _att_in_properties = self.__getattachmentproperties(
-                    record["attachments"], properties
-                )
-            for attachment in record["attachments"]:
-                if len(_att_in_properties) > 1:
-                    if attachment["filepath"].endswith(".msg"):
-                        (
-                            attachment["isduplicate"],
-                            attachment["duplicatemasterid"],
-                            attachment["duplicateof"],
-                        ) = self.__getduplicatemsgattachment(
-                            attachmentsrecords, _att_in_properties, attachment
-                        )
-                    else:
-                        (
-                            attachment["isduplicate"],
-                            attachment["duplicatemasterid"],
-                            attachment["duplicateof"],
-                        ) = self.__isduplicate(_att_in_properties, attachment)
+                for attachment in record["attachments"]:
+                    if len(_att_in_properties) > 1:
+                        # Check if attachment needs conversion (office documents and email)
+                        conversion_extensions = (".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pptx")
+                        if attachment["filepath"].lower().endswith(conversion_extensions):
+                            (
+                                attachment["isduplicate"],
+                                attachment["duplicatemasterid"],
+                                attachment["duplicateof"],
+                            ) = self.__getduplicatemsgattachment(
+                                attachmentsrecords, _att_in_properties, attachment
+                            )
+                        else:
+                            (
+                                attachment["isduplicate"],
+                                attachment["duplicatemasterid"],
+                                attachment["duplicateof"],
+                            ) = self.__isduplicate(_att_in_properties, attachment)
 
                 (
                     attachment["originalpagecount"],
@@ -605,6 +605,14 @@ class documentservice:
 
                         attributes["divisions"] = divisions_lookup[recordid]
                         document["attributes"] = attributes
+                    elif document.get("attributes") is None and document.get("processingparentid"):
+                        # For processing records without attributes, try to inherit from parent
+                        parent_doc = documents.get(document["processingparentid"])
+                        if parent_doc and parent_doc.get("recordid") in divisions_lookup:
+                            document["attributes"] = {
+                                "divisions": divisions_lookup[parent_doc["recordid"]],
+                                "extension": path.splitext(document.get("filepath", ""))[1]
+                            }
 
         attachments = []
         for documentid in documents:
@@ -618,9 +626,10 @@ class documentservice:
         removeids = []
         for documentid in documents:
             document = documents[documentid]
-            # Skip records with no attributes (e.g., processing records)
+            # Skip records with no attributes only if recordgroups is not specified
             if document["attributes"] is None:
-                removeids.append(document["documentmasterid"])
+                if not recordgroups or len(recordgroups) == 0:
+                    removeids.append(document["documentmasterid"])
                 continue
             # removed "or document['attributes'].get('incompatible', False)" from below if condition
             # to include incompatible files as part of documents.
@@ -646,8 +655,11 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
-            # Skip if attributes is None (should have been filtered out above, but defensive check)
+            # Skip if attributes is None (processing records that couldn't inherit attributes)
             if document["attributes"] is None:
+                # Initialize with empty divisions for processing records
+                document["attributes"] = {"divisions": []}
+                document["divisions"] = []
                 continue
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
