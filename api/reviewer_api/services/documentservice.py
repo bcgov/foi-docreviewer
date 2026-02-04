@@ -53,10 +53,14 @@ class documentservice:
             record = self.__updateredactionstatus(redactions, record)
             if "updated_at" in record and record["updated_at"] is not None:
                 record["updated_at"] = pstformat(record["updated_at"])
+            # Get attachments for all records (needed for recordgroups)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
+            else:
+                # Initialize empty attachments for records without recordid
+                record["attachments"] = []
             if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
                 # Parse comma-separated string, remove recordid from the list, and convert back to string
                 duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
@@ -82,7 +86,8 @@ class documentservice:
         #print("\nparentproperties:",parentproperties)
 
         for record in records:
-            if record["recordid"] is not None:
+            # Include records if they have a recordid OR if recordgroups are specified
+            if record["recordid"] is not None or (recordgroups and len(recordgroups) > 0):
                 finalresult = self.__updateproperties(
                     records,
                     properties,
@@ -141,7 +146,9 @@ class documentservice:
                     )
                 for attachment in record["attachments"]:
                     if len(_att_in_properties) > 1:
-                        if attachment["filepath"].endswith(".msg"):
+                        # Check if attachment needs conversion (office documents and email)
+                        conversion_extensions = (".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pptx")
+                        if attachment["filepath"].lower().endswith(conversion_extensions):
                             (
                                 attachment["isduplicate"],
                                 attachment["duplicatemasterid"],
@@ -156,15 +163,15 @@ class documentservice:
                                 attachment["duplicateof"],
                             ) = self.__isduplicate(_att_in_properties, attachment)
 
-                    (
-                        attachment["originalpagecount"],
-                        attachment["pagecount"],
-                        attachment["filename"],
-                        attachment["documentid"],
-                        attachment["version"],
-                        attachment["selectedfileprocessversion"],
-                        attachment["converteddocmasterid"]
-                    ) = self.__getpagecountandfilename(attachment, _att_in_properties)
+                (
+                    attachment["originalpagecount"],
+                    attachment["pagecount"],
+                    attachment["filename"],
+                    attachment["documentid"],
+                    attachment["version"],
+                    attachment["selectedfileprocessversion"],
+                    attachment["converteddocmasterid"]
+                ) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
 
     def __filterrecords(self, records):
@@ -598,6 +605,14 @@ class documentservice:
 
                         attributes["divisions"] = divisions_lookup[recordid]
                         document["attributes"] = attributes
+                    elif document.get("attributes") is None and document.get("processingparentid"):
+                        # For processing records without attributes, try to inherit from parent
+                        parent_doc = documents.get(document["processingparentid"])
+                        if parent_doc and parent_doc.get("recordid") in divisions_lookup:
+                            document["attributes"] = {
+                                "divisions": divisions_lookup[parent_doc["recordid"]],
+                                "extension": path.splitext(document.get("filepath", ""))[1]
+                            }
 
         attachments = []
         for documentid in documents:
@@ -611,6 +626,11 @@ class documentservice:
         removeids = []
         for documentid in documents:
             document = documents[documentid]
+            # Skip records with no attributes only if recordgroups is not specified
+            if document["attributes"] is None:
+                if not recordgroups or len(recordgroups) == 0:
+                    removeids.append(document["documentmasterid"])
+                continue
             # removed "or document['attributes'].get('incompatible', False)" from below if condition
             # to include incompatible files as part of documents.
             # Related to redline download changes.
@@ -635,6 +655,12 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
+            # Skip if attributes is None (processing records that couldn't inherit attributes)
+            if document["attributes"] is None:
+                # Initialize with empty divisions for processing records
+                document["attributes"] = {"divisions": []}
+                document["divisions"] = []
+                continue
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
             )
