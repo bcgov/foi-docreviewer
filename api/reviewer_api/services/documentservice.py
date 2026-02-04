@@ -53,10 +53,14 @@ class documentservice:
             record = self.__updateredactionstatus(redactions, record)
             if "updated_at" in record and record["updated_at"] is not None:
                 record["updated_at"] = pstformat(record["updated_at"])
+            # Get attachments for all records (needed for recordgroups)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
+            else:
+                # Initialize empty attachments for records without recordid
+                record["attachments"] = []
             if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
                 # Parse comma-separated string, remove recordid from the list, and convert back to string
                 duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
@@ -82,7 +86,8 @@ class documentservice:
         #print("\nparentproperties:",parentproperties)
 
         for record in records:
-            if record["recordid"] is not None:
+            # Include records if they have a recordid OR if recordgroups are specified
+            if record["recordid"] is not None or (recordgroups and len(recordgroups) > 0):
                 finalresult = self.__updateproperties(
                     records,
                     properties,
@@ -104,67 +109,69 @@ class documentservice:
         parentswithattachmentsrecords,
         attachmentsrecords,
     ):
-        if record["recordid"] is not None:
-            _att_in_properties = []
-            (
-                record["originalpagecount"],
-                record["pagecount"],
-                record["filename"],
-                record["documentid"],
-                record["version"],
-                record["selectedfileprocessversion"],
-                record["converteddocmasterid"]
-            ) = self.__getpagecountandfilename(record, parentproperties)
-            (
-                record["isduplicate"],
-                record["duplicatemasterid"],
-                record["duplicateof"],
-            ) = self.__isduplicate(parentproperties, record)
-            #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
-            if len(record["attachments"]) > 0:
-                if record["isduplicate"] == True:
-                    duplicatemaster_attachments = self.__getduplicatemasterattachments(
-                        parentswithattachmentsrecords, record["duplicatemasterid"]
-                    )
-                    if duplicatemaster_attachments is None:
-                        _att_in_properties = self.__getattachmentproperties(
-                            record["attachments"], properties
-                        )
-                    else:
-                        _att_in_properties = self.__getattachmentproperties(
-                            duplicatemaster_attachments + record["attachments"],
-                            properties,
-                        )
-                elif len(record["attachments"]) > 0:
+        # Process records with recordid OR records without recordid (attachments/processing records)
+        _att_in_properties = []
+        (
+            record["originalpagecount"],
+            record["pagecount"],
+            record["filename"],
+            record["documentid"],
+            record["version"],
+            record["selectedfileprocessversion"],
+            record["converteddocmasterid"]
+        ) = self.__getpagecountandfilename(record, parentproperties)
+        (
+            record["isduplicate"],
+            record["duplicatemasterid"],
+            record["duplicateof"],
+        ) = self.__isduplicate(parentproperties, record)
+        #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
+        
+        # Only process attachments if record has a recordid
+        if record["recordid"] is not None and len(record["attachments"]) > 0:
+            if record["isduplicate"] == True:
+                duplicatemaster_attachments = self.__getduplicatemasterattachments(
+                    parentswithattachmentsrecords, record["duplicatemasterid"]
+                )
+                if duplicatemaster_attachments is None:
                     _att_in_properties = self.__getattachmentproperties(
                         record["attachments"], properties
                     )
-                for attachment in record["attachments"]:
-                    if len(_att_in_properties) > 1:
-                        if attachment["filepath"].endswith(".msg"):
-                            (
-                                attachment["isduplicate"],
-                                attachment["duplicatemasterid"],
-                                attachment["duplicateof"],
-                            ) = self.__getduplicatemsgattachment(
-                                attachmentsrecords, _att_in_properties, attachment
-                            )
-                        else:
-                            (
-                                attachment["isduplicate"],
-                                attachment["duplicatemasterid"],
-                                attachment["duplicateof"],
-                            ) = self.__isduplicate(_att_in_properties, attachment)
+                else:
+                    _att_in_properties = self.__getattachmentproperties(
+                        duplicatemaster_attachments + record["attachments"],
+                        properties,
+                    )
+            elif len(record["attachments"]) > 0:
+                _att_in_properties = self.__getattachmentproperties(
+                    record["attachments"], properties
+                )
+            for attachment in record["attachments"]:
+                if len(_att_in_properties) > 1:
+                    if attachment["filepath"].endswith(".msg"):
+                        (
+                            attachment["isduplicate"],
+                            attachment["duplicatemasterid"],
+                            attachment["duplicateof"],
+                        ) = self.__getduplicatemsgattachment(
+                            attachmentsrecords, _att_in_properties, attachment
+                        )
+                    else:
+                        (
+                            attachment["isduplicate"],
+                            attachment["duplicatemasterid"],
+                            attachment["duplicateof"],
+                        ) = self.__isduplicate(_att_in_properties, attachment)
 
-                    (
-                        attachment["originalpagecount"],
-                        attachment["pagecount"],
-                        attachment["filename"],
-                        attachment["documentid"],
-                        attachment["version"],
-                        attachment["selectedfileprocessversion"],
-                        attachment["converteddocmasterid"]
-                    ) = self.__getpagecountandfilename(attachment, _att_in_properties)
+                (
+                    attachment["originalpagecount"],
+                    attachment["pagecount"],
+                    attachment["filename"],
+                    attachment["documentid"],
+                    attachment["version"],
+                    attachment["selectedfileprocessversion"],
+                    attachment["converteddocmasterid"]
+                ) = self.__getpagecountandfilename(attachment, _att_in_properties)
         return record
 
     def __filterrecords(self, records):
@@ -611,6 +618,10 @@ class documentservice:
         removeids = []
         for documentid in documents:
             document = documents[documentid]
+            # Skip records with no attributes (e.g., processing records)
+            if document["attributes"] is None:
+                removeids.append(document["documentmasterid"])
+                continue
             # removed "or document['attributes'].get('incompatible', False)" from below if condition
             # to include incompatible files as part of documents.
             # Related to redline download changes.
@@ -635,6 +646,9 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
+            # Skip if attributes is None (should have been filtered out above, but defensive check)
+            if document["attributes"] is None:
+                continue
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
             )
