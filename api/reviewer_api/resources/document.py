@@ -158,13 +158,28 @@ class GetDocuments(Resource):
                 "requeststate":jsonobj["currentState"]
             }
 
+            # Get all documents (old version logic)
+            documentdivisionslist, result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+            
+            # Filter by recordgroups if provided
             recordgroups = []
             raw_recordgroups = jsonobj.get("recordgroups")
             if isinstance(raw_recordgroups, list):
                 recordgroups = [rg for rg in raw_recordgroups if isinstance(rg, int)]
-            logging.info(f"Extracted recordgroups: {recordgroups}")
-            # Assuming documentservice().getdocuments can accept documentsetid as an optional parameter
-            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"], recordgroups)
+            
+            if recordgroups:
+                logging.info(f"Filtering documents by recordgroups: {recordgroups}")
+                # Only return documents whose recordid is in the recordgroups list
+                result = [doc for doc in result if doc.get("recordid") in recordgroups]
+                
+                # Also filter divisions to only include those present in filtered documents
+                filtered_division_ids = set()
+                for doc in result:
+                    if "divisions" in doc:
+                        for div in doc["divisions"]:
+                            filtered_division_ids.add(div["divisionid"])
+                documentdivisionslist = [div for div in documentdivisionslist if div["divisionid"] in filtered_division_ids]
+            
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:
             logging.error(f"KeyError in GetDocuments for requestid {requestid}: {error}")

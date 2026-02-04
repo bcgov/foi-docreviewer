@@ -35,14 +35,14 @@ class DocumentMaster(db.Model):
     @classmethod
     def get_converted_references(cls, ministryrequestid: int, recordgroups: list[int]):
         """
-        Finds the output metadata for records that have successfully 
-        completed a conversion job.
+        Finds the output metadata for records that are being converted or have 
+        completed conversion, including in-progress conversions.
         """
         sql = """
             SELECT 
                 dm.recordid,
                 dm.parentid,
-                d.filename AS attachmentof,
+                COALESCE(d.filename, dm.attachmentof) AS attachmentof,
                 dm.filepath,
                 dm.compressedfilepath,
                 dm.ocrfilepath,
@@ -55,20 +55,17 @@ class DocumentMaster(db.Model):
                 dm.updated_at,
                 NULL AS duplicate_of 
             FROM "DocumentMaster" dm
-            INNER JOIN "FileConversionJob" fcj 
-                ON fcj.outputdocumentmasterid = dm.documentmasterid
             LEFT JOIN "Documents" d 
                 ON d.documentmasterid = dm.documentmasterid
             LEFT JOIN "DocumentAttributes" da 
                 ON da.documentmasterid = dm.documentmasterid AND da.isactive = true
-            WHERE fcj.inputdocumentmasterid IN (
+            WHERE dm.processingparentid IN (
                 SELECT documentmasterid 
                 FROM "DocumentMaster" 
                 WHERE recordid = ANY(:recordgroups)
                 AND ministryrequestid = :ministryrequestid
             )
-            AND fcj.status = 'completed'
-            AND fcj.ministryrequestid = :ministryrequestid
+            AND dm.ministryrequestid = :ministryrequestid
             ORDER BY dm.created_at;
         """
         params = {
@@ -277,29 +274,13 @@ class DocumentMaster(db.Model):
         }
 
     @classmethod
-    def getdocumentmaster(cls, ministryrequestid, recordgroups=None):
-
-        # Normalize input
-        recordgroups = recordgroups or []
-
-        # Decision rule:
-        # - No recordgroups  -> no document Set query
-        # - With recordgroups -> recursive query
-        use_recursive = bool(recordgroups)
-
+    def getdocumentmaster(cls, ministryrequestid):
         documentmasters = []
-
-        if use_recursive:
-            sql, params = cls.build_document_set_query(
-                ministryrequestid=ministryrequestid,
-                recordgroups=recordgroups,
-                only_redaction_ready=True,
-            )
-        else:
-            sql, params = cls.build_non_document_set_query(
-                ministryrequestid=ministryrequestid,
-                only_redaction_ready=True,
-            )
+        
+        sql, params = cls.build_non_document_set_query(
+            ministryrequestid=ministryrequestid,
+            only_redaction_ready=True,
+        )
 
         try:
             rs = db.session.execute(text(sql), params)
@@ -307,28 +288,11 @@ class DocumentMaster(db.Model):
             for row in rs:
                 documentmasters.append(cls._process_row_to_dict(row))
 
-            # When using recursive query, also include converted references
-            if use_recursive:
-                converted_sql, converted_params = cls.get_converted_references(
-                    ministryrequestid=ministryrequestid,
-                    recordgroups=recordgroups
-                )
-                converted_rs = db.session.execute(text(converted_sql), converted_params)
-                
-                for row in converted_rs:
-                    documentmasters.append(cls._process_row_to_dict(row))
-
         except Exception:
             logging.exception("Failed to fetch DocumentMaster")
             raise
         finally:
             db.session.close()
-
-        logging.info("Document masters:")
-        for documentmaster in documentmasters:
-            logging.info(documentmaster)
-        logging.info("Number of document masters:")
-        logging.info(len(documentmasters))
 
         return documentmasters
     
