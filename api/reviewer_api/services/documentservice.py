@@ -154,16 +154,17 @@ class documentservice:
                                 attachment["duplicatemasterid"],
                                 attachment["duplicateof"],
                             ) = self.__isduplicate(_att_in_properties, attachment)
-
-                (
-                    attachment["originalpagecount"],
-                    attachment["pagecount"],
-                    attachment["filename"],
-                    attachment["documentid"],
-                    attachment["version"],
-                    attachment["selectedfileprocessversion"],
-                    attachment["converteddocmasterid"]
-                ) = self.__getpagecountandfilename(attachment, _att_in_properties)
+                    
+                    # Always populate properties for attachments
+                    (
+                        attachment["originalpagecount"],
+                        attachment["pagecount"],
+                        attachment["filename"],
+                        attachment["documentid"],
+                        attachment["version"],
+                        attachment["selectedfileprocessversion"],
+                        attachment["converteddocmasterid"]
+                    ) = self.__getpagecountandfilename(attachment, properties)
         return record
 
     def __filterrecords(self, records):
