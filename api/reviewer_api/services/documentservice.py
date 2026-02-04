@@ -24,12 +24,9 @@ requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class documentservice:
-    def getdedupestatus(self, requestid, recordgroups=None):
-        if recordgroups is None:
-            recordgroups = []
-
+    def getdedupestatus(self, requestid):
         deleted = DocumentMaster.getdeleted(requestid)
-        records = DocumentMaster.getdocumentmaster(requestid,recordgroups)
+        records = DocumentMaster.getdocumentmaster(requestid)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         compressions = CompressionJob.getcompressionstatus(requestid)
@@ -53,14 +50,10 @@ class documentservice:
             record = self.__updateredactionstatus(redactions, record)
             if "updated_at" in record and record["updated_at"] is not None:
                 record["updated_at"] = pstformat(record["updated_at"])
-            # Get attachments for all records (needed for recordgroups)
             if record["recordid"] is not None:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            else:
-                # Initialize empty attachments for records without recordid
-                record["attachments"] = []
             if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
                 # Parse comma-separated string, remove recordid from the list, and convert back to string
                 duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
@@ -86,8 +79,7 @@ class documentservice:
         #print("\nparentproperties:",parentproperties)
 
         for record in records:
-            # Include records if they have a recordid OR if recordgroups are specified
-            if record["recordid"] is not None or (recordgroups and len(recordgroups) > 0):
+            if record["recordid"] is not None:
                 finalresult = self.__updateproperties(
                     records,
                     properties,
@@ -558,11 +550,7 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, payload["documentmasterids"])
 
-    def getdocuments(self, requestid, bcgovcode, recordgroups=None):
-
-        if recordgroups is None:
-            recordgroups = []
-
+    def getdocuments(self, requestid, bcgovcode):
         divisions_data = requests.request(
                 method='GET',
                 url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode) + "/all",
@@ -573,46 +561,8 @@ class documentservice:
         filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
-            for document in self.getdedupestatus(requestid, recordgroups)
+            for document in self.getdedupestatus(requestid)
         }
-
-        if recordgroups:
-            recordids = list({
-                doc["recordid"]
-                for doc in documents.values()
-                if doc.get("recordid") is not None
-            })
-
-            if recordids:
-                divisions_by_record = DocumentMaster.get_distinct_divisions_by_record(
-                    ministryrequestid=requestid,
-                    recordids=recordids
-                )
-
-                divisions_lookup = {
-                    row["recordid"]: row["divisions"]["divisions"]
-                    for row in divisions_by_record
-                    if row["divisions"] is not None
-                }
-
-                for document in documents.values():
-                    recordid = document.get("recordid")
-                    if recordid in divisions_lookup:
-                        attributes = document.get("attributes") or {}
-
-                        if isinstance(attributes, str):
-                            attributes = json.loads(attributes)
-
-                        attributes["divisions"] = divisions_lookup[recordid]
-                        document["attributes"] = attributes
-                    elif document.get("attributes") is None and document.get("processingparentid"):
-                        # For processing records without attributes, try to inherit from parent
-                        parent_doc = documents.get(document["processingparentid"])
-                        if parent_doc and parent_doc.get("recordid") in divisions_lookup:
-                            document["attributes"] = {
-                                "divisions": divisions_lookup[parent_doc["recordid"]],
-                                "extension": path.splitext(document.get("filepath", ""))[1]
-                            }
 
         attachments = []
         for documentid in documents:
@@ -626,11 +576,6 @@ class documentservice:
         removeids = []
         for documentid in documents:
             document = documents[documentid]
-            # Skip records with no attributes only if recordgroups is not specified
-            if document["attributes"] is None:
-                if not recordgroups or len(recordgroups) == 0:
-                    removeids.append(document["documentmasterid"])
-                continue
             # removed "or document['attributes'].get('incompatible', False)" from below if condition
             # to include incompatible files as part of documents.
             # Related to redline download changes.
@@ -655,12 +600,6 @@ class documentservice:
 
         for documentid in documents:
             document = documents[documentid]
-            # Skip if attributes is None (processing records that couldn't inherit attributes)
-            if document["attributes"] is None:
-                # Initialize with empty divisions for processing records
-                document["attributes"] = {"divisions": []}
-                document["divisions"] = []
-                continue
             documentdivisions = set(
                 map(lambda d: d["divisionid"], document["attributes"]["divisions"])
             )
