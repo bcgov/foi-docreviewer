@@ -169,8 +169,37 @@ class GetDocuments(Resource):
             
             if recordgroups:
                 logging.info(f"Filtering documents by recordgroups: {recordgroups}")
-                # Only return documents whose recordid is in the recordgroups list
-                result = [doc for doc in result if doc.get("recordid") in recordgroups]
+                
+                # Build a map of documentmasterid -> document for quick lookup
+                doc_map = {doc["documentmasterid"]: doc for doc in result}
+                
+                # Step 1: Get documents with recordid in recordgroups
+                filtered_docs = [doc for doc in result if doc.get("recordid") in recordgroups]
+                
+                # Step 2: Recursively get all attachments (and their attachments)
+                def get_all_attachments(parent_masterid, visited=None):
+                    if visited is None:
+                        visited = set()
+                    if parent_masterid in visited:
+                        return []
+                    visited.add(parent_masterid)
+                    
+                    attachments = []
+                    for doc in result:
+                        # Find documents that are children of this parent
+                        if doc.get("parentid") == parent_masterid and doc.get("recordid") is None:
+                            attachments.append(doc)
+                            # Recursively get attachments of this attachment
+                            attachments.extend(get_all_attachments(doc["documentmasterid"], visited))
+                    return attachments
+                
+                # Collect all attachments for each filtered document
+                all_attachments = []
+                for doc in filtered_docs:
+                    all_attachments.extend(get_all_attachments(doc["documentmasterid"]))
+                
+                # Combine filtered docs and their attachments
+                result = filtered_docs + all_attachments
                 
                 # Also filter divisions to only include those present in filtered documents
                 filtered_division_ids = set()
