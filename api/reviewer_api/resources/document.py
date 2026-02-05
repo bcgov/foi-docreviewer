@@ -158,13 +158,57 @@ class GetDocuments(Resource):
                 "requeststate":jsonobj["currentState"]
             }
 
+            # Get all documents (old version logic)
+            documentdivisionslist, result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"])
+            
+            # Filter by recordgroups if provided
             recordgroups = []
             raw_recordgroups = jsonobj.get("recordgroups")
             if isinstance(raw_recordgroups, list):
                 recordgroups = [rg for rg in raw_recordgroups if isinstance(rg, int)]
-            logging.info(f"Extracted recordgroups: {recordgroups}")
-            # Assuming documentservice().getdocuments can accept documentsetid as an optional parameter
-            documentdivisionslist,result = documentservice().getdocuments(requestid, requestinfo["bcgovcode"], recordgroups)
+            
+            if recordgroups:
+                logging.info(f"Filtering documents by recordgroups: {recordgroups}")
+                
+                # Build a map of documentmasterid -> document for quick lookup
+                doc_map = {doc["documentmasterid"]: doc for doc in result}
+                
+                # Step 1: Get documents with recordid in recordgroups
+                filtered_docs = [doc for doc in result if doc.get("recordid") in recordgroups]
+                
+                # Step 2: Recursively get all attachments (and their attachments)
+                def get_all_attachments(parent_masterid, visited=None):
+                    if visited is None:
+                        visited = set()
+                    if parent_masterid in visited:
+                        return []
+                    visited.add(parent_masterid)
+                    
+                    attachments = []
+                    for doc in result:
+                        # Find documents that are children of this parent
+                        if doc.get("parentid") == parent_masterid and doc.get("recordid") is None:
+                            attachments.append(doc)
+                            # Recursively get attachments of this attachment
+                            attachments.extend(get_all_attachments(doc["documentmasterid"], visited))
+                    return attachments
+                
+                # Collect all attachments for each filtered document
+                all_attachments = []
+                for doc in filtered_docs:
+                    all_attachments.extend(get_all_attachments(doc["documentmasterid"]))
+                
+                # Combine filtered docs and their attachments
+                result = filtered_docs + all_attachments
+                
+                # Also filter divisions to only include those present in filtered documents
+                filtered_division_ids = set()
+                for doc in result:
+                    if "divisions" in doc:
+                        for div in doc["divisions"]:
+                            filtered_division_ids.add(div["divisionid"])
+                documentdivisionslist = [div for div in documentdivisionslist if div["divisionid"] in filtered_division_ids]
+            
             return json.dumps({"requeststatuslabel": jsonobj["requeststatuslabel"], "documents": result, "requestnumber":jsonobj["axisRequestId"], "requestinfo":requestinfo, "documentdivisions":documentdivisionslist}), 200
         except KeyError as error:
             logging.error(f"KeyError in GetDocuments for requestid {requestid}: {error}")
