@@ -122,129 +122,6 @@ class DocumentMaster(db.Model):
 
         return sql, params
 
-    @classmethod
-    def build_document_set_query(cls,
-            ministryrequestid: int,
-            recordgroups: list[int] | None = None,
-            only_redaction_ready: bool = True,
-    ):
-        recordgroups = recordgroups or []
-
-        base_where = "WHERE dm.ministryrequestid = :ministryrequestid"
-        if recordgroups:
-            base_where += " AND dm.recordid = ANY(:recordgroups)"
-
-        sql = f"""
-        WITH RECURSIVE doc_tree AS (
-            -- 1. Base Case: Get the requested records
-            SELECT dm.documentmasterid,
-                   dm.recordid,
-                   dm.processingparentid,
-                   dm.parentid,
-                   ARRAY[dm.documentmasterid] AS path,
-                   0 as depth
-            FROM "DocumentMaster" dm
-            {base_where}
-
-            UNION ALL
-
-            -- 2. Recursive Step: Get children
-            SELECT child.documentmasterid,
-                   child.recordid,
-                   child.processingparentid,
-                   child.parentid,
-                   parent.path || child.documentmasterid,
-                   parent.depth + 1
-            FROM "DocumentMaster" child
-            JOIN doc_tree parent
-              ON (child.processingparentid = parent.documentmasterid
-                  OR child.parentid = parent.documentmasterid)
-            WHERE NOT (child.documentmasterid = ANY(parent.path))
-        ),
-
-        -- 3. Get filenames currently in the tree
-        tree_files AS (
-            SELECT DISTINCT d.filename, dt.depth
-            FROM doc_tree dt
-            JOIN "Documents" d ON d.documentmasterid = dt.documentmasterid
-        ),
-
-        -- 4. Gather ALL candidate versions (Tree + History)
-        all_versions AS (
-            SELECT dt.documentmasterid, tf.filename, dm.created_at
-            FROM doc_tree dt
-            JOIN "DocumentMaster" dm ON dm.documentmasterid = dt.documentmasterid
-            JOIN "Documents" d ON d.documentmasterid = dm.documentmasterid
-            JOIN tree_files tf ON tf.filename = d.filename
-
-            UNION ALL
-
-            SELECT fcj.documentmasterid, d.filename, fcj.createdat AS created_at
-            FROM "DeduplicationJob" fcj
-            JOIN "Documents" d ON d.documentmasterid = fcj.documentmasterid
-            WHERE fcj.ministryrequestid = :ministryrequestid
-              AND d.filename IN (SELECT filename FROM tree_files)
-        ),
-
-        -- 5. Pick ONLY the Oldest Version per Filename
-        unique_oldest_map AS (
-            SELECT DISTINCT ON (filename)
-                documentmasterid,
-                filename,
-                created_at
-            FROM all_versions
-            ORDER BY filename, created_at ASC
-        )
-
-        -- 6. Final Selection
-        SELECT dm.recordid,
-               dm.parentid,
-               map.filename AS attachmentof,
-               dm.filepath,
-               dm.compressedfilepath,
-               dm.ocrfilepath,
-               dm.documentmasterid,
-               da."attributes",
-               dm.created_at,
-               dm.createdby,
-               dm.processingparentid,
-               dm.isredactionready,
-               dm.updated_at,
-               COALESCE(tf.depth, 0) as depth,
-               
-               -- Shows which Original Record ID this row is replacing
-               (
-                   SELECT string_agg(dt.recordid::text, ', ')
-                   FROM doc_tree dt
-                   JOIN "Documents" d_orig ON d_orig.documentmasterid = dt.documentmasterid
-                   WHERE d_orig.filename = map.filename
-                     AND dt.documentmasterid != dm.documentmasterid
-               ) AS duplicate_of
-               
-        FROM unique_oldest_map map
-        JOIN "DocumentMaster" dm ON dm.documentmasterid = map.documentmasterid
-        LEFT JOIN "DocumentAttributes" da
-            ON da.documentmasterid = dm.documentmasterid
-           AND da.isactive = true
-        LEFT JOIN tree_files tf ON tf.filename = map.filename
-        WHERE 1=1
-        """
-
-        if only_redaction_ready:
-            sql += " AND dm.isredactionready = true"
-
-        sql += """
-          AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
-        ORDER BY depth, dm.created_at
-        """
-
-        params = {
-            "ministryrequestid": ministryrequestid,
-            "recordgroups": recordgroups,
-        }
-
-        return sql, params
-
     @staticmethod
     def safe_row_value(row, key):
         """Safely get a value from a SQLAlchemy Row object, returning None if the key doesn't exist."""
@@ -279,7 +156,7 @@ class DocumentMaster(db.Model):
         
         sql, params = cls.build_non_document_set_query(
             ministryrequestid=ministryrequestid,
-            only_redaction_ready=True,
+            only_redaction_ready=False,
         )
 
         try:
