@@ -24,12 +24,9 @@ requestapiurl = getenv("FOI_REQ_MANAGEMENT_API_URL")
 pagecalculatorstreamkey = getenv("PAGECALCULATOR_STREAM_KEY")
 
 class documentservice:
-    def getdedupestatus(self, requestid, recordgroups=None):
-        if recordgroups is None:
-            recordgroups = []
-
+    def getdedupestatus(self, requestid):
         deleted = DocumentMaster.getdeleted(requestid)
-        records = DocumentMaster.getdocumentmaster(requestid,recordgroups)
+        records = DocumentMaster.getdocumentmaster(requestid)
         conversions = FileConversionJob.getconversionstatus(requestid)
         dedupes = DeduplicationJob.getdedupestatus(requestid)
         compressions = CompressionJob.getcompressionstatus(requestid)
@@ -57,7 +54,18 @@ class documentservice:
                 record["attachments"] = self.__getattachments(
                     records, record["documentmasterid"], []
                 )
-            ##print("\neach RECORD:",record)
+            if record["duplicate_of"] is not None and record["duplicate_of"].strip() and record["recordid"] is not None: 
+                # Parse comma-separated string, remove recordid from the list, and convert back to string
+                duplicate_list = [int(x.strip()) for x in record["duplicate_of"].split(",") if x.strip()]
+                filtered_list = [x for x in duplicate_list if x != record["recordid"]]
+                record["duplicate_of"] = ", ".join(str(x) for x in filtered_list) if filtered_list else None
+
+        # Remove records that have duplicate_of value (these are duplicates being replaced)
+        records = [
+            record for record in records 
+            if record.get("duplicate_of") is None 
+            or not record.get("duplicate_of", "").strip()
+        ]
             
         # Duplicate check
         finalresults = []
@@ -130,7 +138,9 @@ class documentservice:
                     )
                 for attachment in record["attachments"]:
                     if len(_att_in_properties) > 1:
-                        if attachment["filepath"].endswith(".msg"):
+                        # Check if attachment needs conversion (office documents and email)
+                        conversion_extensions = (".doc", ".docx", ".xls", ".xlsx", ".ics", ".msg", ".pptx")
+                        if attachment["filepath"].lower().endswith(conversion_extensions):
                             (
                                 attachment["isduplicate"],
                                 attachment["duplicatemasterid"],
@@ -144,7 +154,8 @@ class documentservice:
                                 attachment["duplicatemasterid"],
                                 attachment["duplicateof"],
                             ) = self.__isduplicate(_att_in_properties, attachment)
-
+                    
+                    # Always populate properties for attachments
                     (
                         attachment["originalpagecount"],
                         attachment["pagecount"],
@@ -153,7 +164,7 @@ class documentservice:
                         attachment["version"],
                         attachment["selectedfileprocessversion"],
                         attachment["converteddocmasterid"]
-                    ) = self.__getpagecountandfilename(attachment, _att_in_properties)
+                    ) = self.__getpagecountandfilename(attachment, properties)
         return record
 
     def __filterrecords(self, records):
@@ -540,11 +551,7 @@ class documentservice:
 
         return DocumentAttributes.update(newRows, payload["documentmasterids"])
 
-    def getdocuments(self, requestid, bcgovcode, recordgroups=None):
-
-        if recordgroups is None:
-            recordgroups = []
-
+    def getdocuments(self, requestid, bcgovcode):
         divisions_data = requests.request(
                 method='GET',
                 url=requestapiurl + "/api/foiflow/divisions/{0}".format(bcgovcode) + "/all",
@@ -555,38 +562,8 @@ class documentservice:
         filtered_maps=[]
         documents = {
             document["documentmasterid"]: document
-            for document in self.getdedupestatus(requestid, recordgroups)
+            for document in self.getdedupestatus(requestid)
         }
-
-        if recordgroups:
-            recordids = list({
-                doc["recordid"]
-                for doc in documents.values()
-                if doc.get("recordid") is not None
-            })
-
-            if recordids:
-                divisions_by_record = DocumentMaster.get_distinct_divisions_by_record(
-                    ministryrequestid=requestid,
-                    recordids=recordids
-                )
-
-                divisions_lookup = {
-                    row["recordid"]: row["divisions"]["divisions"]
-                    for row in divisions_by_record
-                    if row["divisions"] is not None
-                }
-
-                for document in documents.values():
-                    recordid = document.get("recordid")
-                    if recordid in divisions_lookup:
-                        attributes = document.get("attributes") or {}
-
-                        if isinstance(attributes, str):
-                            attributes = json.loads(attributes)
-
-                        attributes["divisions"] = divisions_lookup[recordid]
-                        document["attributes"] = attributes
 
         attachments = []
         for documentid in documents:

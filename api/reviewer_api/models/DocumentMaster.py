@@ -33,6 +33,49 @@ class DocumentMaster(db.Model):
             db.session.close()
 
     @classmethod
+    def get_converted_references(cls, ministryrequestid: int, recordgroups: list[int]):
+        """
+        Finds the output metadata for records that are being converted or have 
+        completed conversion, including in-progress conversions.
+        """
+        sql = """
+            SELECT 
+                dm.recordid,
+                dm.parentid,
+                COALESCE(d.filename, dm.attachmentof) AS attachmentof,
+                dm.filepath,
+                dm.compressedfilepath,
+                dm.ocrfilepath,
+                dm.documentmasterid,
+                da."attributes",
+                dm.created_at,
+                dm.createdby,
+                dm.processingparentid,
+                dm.isredactionready,
+                dm.updated_at,
+                NULL AS duplicate_of 
+            FROM "DocumentMaster" dm
+            LEFT JOIN "Documents" d 
+                ON d.documentmasterid = dm.documentmasterid
+            LEFT JOIN "DocumentAttributes" da 
+                ON da.documentmasterid = dm.documentmasterid AND da.isactive = true
+            WHERE dm.processingparentid IN (
+                SELECT documentmasterid 
+                FROM "DocumentMaster" 
+                WHERE recordid = ANY(:recordgroups)
+                AND ministryrequestid = :ministryrequestid
+            )
+            AND dm.ministryrequestid = :ministryrequestid
+            ORDER BY dm.created_at;
+        """
+        params = {
+            "ministryrequestid": ministryrequestid,
+            "recordgroups": recordgroups
+        }
+
+        return sql, params
+
+    @classmethod
     def build_non_document_set_query(cls,
             ministryrequestid: int,
             only_redaction_ready: bool = True,
@@ -50,7 +93,8 @@ class DocumentMaster(db.Model):
                      dm.createdby, \
                      dm.processingparentid, \
                      dm.isredactionready, \
-                     dm.updated_at
+                     dm.updated_at, \
+                     NULL AS duplicate_of
               FROM "DocumentMaster" dm
                        JOIN "DocumentAttributes" da
                             ON da.documentmasterid = dm.documentmasterid
@@ -78,122 +122,48 @@ class DocumentMaster(db.Model):
 
         return sql, params
 
+    @staticmethod
+    def safe_row_value(row, key):
+        """Safely get a value from a SQLAlchemy Row object, returning None if the key doesn't exist."""
+        try:
+            return row[key]
+        except (KeyError, AttributeError):
+            return None
+
     @classmethod
-    def build_document_set_query(cls,
-            ministryrequestid: int,
-            recordgroups: list[int] | None = None,
-            only_redaction_ready: bool = True,
-    ):
-        recordgroups = recordgroups or []
-
-        sql = """
-              WITH RECURSIVE doc_tree AS (SELECT dm.*, \
-                                                 ARRAY[dm.documentmasterid] AS path, \
-                                                 0                          AS depth \
-                                          FROM "DocumentMaster" dm \
-                                          WHERE dm.ministryrequestid = :ministryrequestid \
-              """
-
-        params = {
-            "ministryrequestid": ministryrequestid,
-            "recordgroups": recordgroups,
+    def _process_row_to_dict(cls, row):
+        """Convert a SQLAlchemy Row object to a dictionary."""
+        return {
+            "recordid": row["recordid"],
+            "parentid": row["parentid"],
+            "filepath": row["filepath"],
+            "compressedfilepath": row["compressedfilepath"],
+            "ocrfilepath": row["ocrfilepath"],
+            "documentmasterid": row["documentmasterid"],
+            "attributes": row["attributes"],
+            "created_at": row["created_at"],
+            "createdby": row["createdby"],
+            "processingparentid": row["processingparentid"],
+            "isredactionready": row["isredactionready"],
+            "updated_at": row["updated_at"],
+            "attachmentof": cls.safe_row_value(row, "attachmentof"),
+            "duplicate_of": cls.safe_row_value(row, "duplicate_of"),
         }
 
-        if recordgroups:
-            sql += "\n  AND dm.recordid = ANY(:recordgroups)"
-
-        sql += """
-            UNION ALL
-            SELECT DISTINCT
-                child.*,
-                parent.path || child.documentmasterid,
-                parent.depth + 1
-            FROM "DocumentMaster" child
-            JOIN doc_tree parent
-              ON (
-                   child.processingparentid = parent.documentmasterid
-                OR child.parentid          = parent.documentmasterid
-              )
-            WHERE NOT (child.documentmasterid = ANY(parent.path))
-        )
-        SELECT
-            dm.recordid,
-            dm.parentid,
-            d.filename AS attachmentof,
-            dm.filepath,
-            dm.compressedfilepath,
-            dm.ocrfilepath,
-            dm.documentmasterid,
-            da."attributes",
-            dm.created_at,
-            dm.createdby,
-            dm.processingparentid,
-            dm.isredactionready,
-            dm.updated_at,
-            dm.depth
-        FROM doc_tree dm
-        LEFT JOIN "DocumentAttributes" da
-            ON da.documentmasterid = dm.documentmasterid
-           AND da.isactive = true
-        LEFT JOIN "Documents" d
-            ON d.documentmasterid = dm.documentmasterid
-            AND dm.createdby = 'conversionservice'
-        """
-
-        if only_redaction_ready:
-            sql += "\nWHERE dm.isredactionready = true"
-
-        sql += """
-            AND COALESCE((da."attributes"->>'incompatible')::boolean, false) = false
-            ORDER BY dm.depth, dm.created_at
-        """
-
-        return sql, params
-
     @classmethod
-    def getdocumentmaster(cls, ministryrequestid, recordgroups=None):
-
-        # Normalize input
-        recordgroups = recordgroups or []
-
-        # Decision rule:
-        # - No recordgroups  -> legacy query
-        # - With recordgroups -> recursive query
-        use_recursive = bool(recordgroups)
-
+    def getdocumentmaster(cls, ministryrequestid):
         documentmasters = []
-
-        if use_recursive:
-            sql, params = cls.build_document_set_query(
-                ministryrequestid=ministryrequestid,
-                recordgroups=recordgroups,
-                only_redaction_ready=True,
-            )
-        else:
-            sql, params = cls.build_non_document_set_query(
-                ministryrequestid=ministryrequestid,
-                only_redaction_ready=True,
-            )
+        
+        sql, params = cls.build_non_document_set_query(
+            ministryrequestid=ministryrequestid,
+            only_redaction_ready=False,
+        )
 
         try:
             rs = db.session.execute(text(sql), params)
 
             for row in rs:
-                documentmasters.append({
-                    "recordid": row["recordid"],
-                    "parentid": row["parentid"],
-                    "filepath": row["filepath"],
-                    "compressedfilepath": row["compressedfilepath"],
-                    "ocrfilepath": row["ocrfilepath"],
-                    "documentmasterid": row["documentmasterid"],
-                    "attributes": row["attributes"],
-                    "created_at": row["created_at"],
-                    "createdby": row["createdby"],
-                    "processingparentid": row["processingparentid"],
-                    "isredactionready": row["isredactionready"],
-                    "updated_at": row["updated_at"],
-                    "attachmentof": row["attachmentof"],
-                })
+                documentmasters.append(cls._process_row_to_dict(row))
 
         except Exception:
             logging.exception("Failed to fetch DocumentMaster")
