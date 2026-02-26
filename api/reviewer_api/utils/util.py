@@ -34,7 +34,7 @@ from reviewer_api.utils.enums import (
     ProcessingTeamWithKeycloackGroup,
 )
 import maya
-from reviewer_api.utils.constants import REDLINE_SINGLE_PKG_MINISTRIES, REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL
+from reviewer_api.utils.constants import REDLINE_SINGLE_PKG_MINISTRIES, REDLINE_SINGLE_PKG_MINISTRIES_PERSONAL,PROACTIVE_REDLINE_SINGLE_PKG
 
 def cors_preflight(methods):
     # Render an option method on the class.
@@ -141,6 +141,8 @@ def is_single_redline_package(bcgovcode, packagetype, requesttype):
         return False
     if (packagetype == "oipcreview"):
         return True
+    if requesttype == "proactive disclosure" and not PROACTIVE_REDLINE_SINGLE_PKG:
+        return False
     if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
         _pkg_ministries = REDLINE_SINGLE_PKG_MINISTRIES.replace(" ", "").split(',')
         if bcgovcode.upper() in _pkg_ministries:
