@@ -141,7 +141,6 @@ def is_single_redline_package(bcgovcode, packagetype, requesttype):
         return False
     if (packagetype == "oipcreview"):
         return True
-    print("requesttype", requesttype)
     if requesttype == "proactive disclosure" and not PROACTIVE_REDLINE_SINGLE_PKG:
         return False
     if REDLINE_SINGLE_PKG_MINISTRIES not in (None, ""):
