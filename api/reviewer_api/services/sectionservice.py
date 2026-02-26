@@ -1,3 +1,4 @@
+from sqlalchemy import false
 from reviewer_api.models.Sections import Section
 from reviewer_api.models.OIRedactionCodes import OIRedactionCodes
 from reviewer_api.services.annotationservice import annotationservice
@@ -18,8 +19,8 @@ class sectionservice:
         _name = _name.lower()
         return _name
     
-    def getsections_by_ministryid(self, ministryid, redactionlayer):
-        if self.normalise(redactionlayer) == "openinfo":
+    def getsections_by_ministryid(self, ministryid, redactionlayer,isproactive=false):
+        if self.normalise(redactionlayer) == "openinfo" or isproactive:
             formattedoicodes=[]          
             globalsections = self.getoiredactioncodes()
             for section in globalsections:

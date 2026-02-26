@@ -14,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from "@mui/material/IconButton";
 import { createOipcLayer, savePageFlag } from "../../../apiManager/services/docReviewerService";
-import {createPageFlagPayload} from "./utils";
+import { createPageFlagPayload } from "./utils";
 
 const LayerDropdown = ({
     ministryrequestid,
@@ -51,7 +51,7 @@ const LayerDropdown = ({
         if (layers.find((l: any) => l.redactionlayerid === layer).name === 'OIPC') {
             createOipcLayer(ministryrequestid, successCallback);
         }
-        else if( layers.find((l: any) => l.redactionlayerid === layer).name === 'Open Info' ){
+        else if (layers.find((l: any) => l.redactionlayerid === layer).name === 'Open Info') {
             store.dispatch(incrementLayerCount(layer) as any);
             /**saving pageflag value- {flagid: 0, page: 0, deleted: false} will 
              * get saved as {} in B.E. This is to make the OI layer persist  & increment the layer count value
@@ -59,29 +59,29 @@ const LayerDropdown = ({
              */
             let payload = {
                 documentpageflags: [] as Array<{
-                  documentid: number;
-                  version: number;
-                  pageflags: object;
-                  redactionlayerid: number;
+                    documentid: number;
+                    version: number;
+                    pageflags: object;
+                    redactionlayerid: number;
                 }>,
-              };
-              payload.documentpageflags.push({
+            };
+            payload.documentpageflags.push({
                 documentid: 1,
                 version: 1,
-                pageflags: [{flagid: 0, page: 0, deleted: false}],
+                pageflags: [{ flagid: 0, page: 0, deleted: false }],
                 redactionlayerid: layer,
-              });
+            });
             savePageFlag(
                 ministryrequestid,
                 0,
                 (data: any) => {
-                    if(data.status != true){
+                    if (data.status != true) {
                         console.log("success")
                     }
                 },
                 (error: any) => console.log(error),
                 payload
-              );
+            );
             successCallback();
         }
     }
@@ -92,6 +92,9 @@ const LayerDropdown = ({
     }
 
     const isLayerDisabled = (option: any) => {
+
+        if (requestInfo?.requesttype === "proactive disclosure" && !['Redline', 'Response Package'].includes(option.name))
+            return true;
 
         if (option.name === 'OIPC' && !validoipcreviewlayer)
             return true;
@@ -107,25 +110,25 @@ const LayerDropdown = ({
     return (
         <>
             <TextField
-                sx={{width: 188, "& .MuiInputBase-root": {height: 32}}}
-                InputLabelProps={{ shrink: false }}                
-                inputProps={{'aria-labelledby': 'layer-dropdown-label'}}
+                sx={{ width: 188, "& .MuiInputBase-root": { height: 32 } }}
+                InputLabelProps={{ shrink: false }}
+                inputProps={{ 'aria-labelledby': 'layer-dropdown-label' }}
                 select
                 // size="small"
                 value={layer}
                 onChange={handleSelect}
                 variant="outlined"
-            >                
+            >
                 {layers.map((option: any) => (
-                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={isLayerDisabled(option)} 
-                        style={{color: "#000000"}}>
-                    {
-                    option.redactionlayerid > 2
-                        && option.count === 0
-                        && option.redactionlayerid !== layer &&
-                        <FontAwesomeIcon icon={faCirclePlus} size='1x' style={{marginRight: 8}}/>
-                    }
-                    {option.description}
+                    <MenuItem key={option.redactionlayerid} value={option.redactionlayerid} disabled={isLayerDisabled(option)}
+                        style={{ color: "#000000" }}>
+                        {
+                            option.redactionlayerid > 2
+                            && option.count === 0
+                            && option.redactionlayerid !== layer &&
+                            <FontAwesomeIcon icon={faCirclePlus} size='1x' style={{ marginRight: 8 }} />
+                        }
+                        {option.description}
                     </MenuItem>
                 ))}
             </TextField>
@@ -152,7 +155,7 @@ const LayerDropdown = ({
                     </DialogContent>
                     <DialogActions>
                         <button className={`btn-bottom btn-save btnenabled`}
-                        onClick={handleModalContinue}>
+                            onClick={handleModalContinue}>
                             Continue
                         </button>
                         <button className="btn-bottom btn-cancel" onClick={handleModalCancel}>
