@@ -606,7 +606,6 @@ class FOISolr(Resource):
     def get():      
         try:                        
             usernamepassword ="%s:%s" % (os.getenv("FOI_SOLR_USERNAME"),os.getenv("FOI_SOLR_PASSWORD"))     
-            print("usernamepassword:",usernamepassword)       
             unamepassword_bytes = usernamepassword.encode("utf-8")
             # Encode the bytes to Base64
             base64_encoded = base64.b64encode(unamepassword_bytes)
