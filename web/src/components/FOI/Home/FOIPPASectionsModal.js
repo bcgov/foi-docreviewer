@@ -35,7 +35,8 @@ export const FOIPPASectionsModal= ({
     clearDefaultSections,
     pageSelectionsContainNRDup,
     setMessageModalOpen,
-    currentLayer
+    currentLayer,
+    isProactive
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
@@ -133,7 +134,7 @@ export const FOIPPASectionsModal= ({
           isOpen={modalOpen}
         >
           <DialogTitle disabletypography="true" id="state-change-dialog-title">
-            <h2 className="state-change-header">FOIPPA Sections</h2>
+            <h2 className="state-change-header">{isProactive ? "OI Redaction Codes": "FOIPPA Sections"}</h2>
             <IconButton className="title-col3" onClick={cancelRedaction}>
               <i className="dialog-close-button">Close</i>
               <CloseIcon />
