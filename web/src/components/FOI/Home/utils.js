@@ -140,10 +140,17 @@ export const sortDocList = (fullDocList, currentDoc, sortedDocList, requestInfo)
   }
 };
 
-export const getProgramAreas = (pageFlagList) => {
+export const getProgramAreas = (pageFlagList, requestInfo) => {
   let consult = pageFlagList.find((pageFlag) => pageFlag.name === "Consult");
-  return (({ others, programareas }) =>
+  let result = (({ others, programareas }) =>
     others ? { others, programareas } : { others: [], programareas })(consult);
+
+  if (requestInfo?.requesttype?.toLowerCase() === "proactive disclosure") {
+    result.programareas = result.programareas?.filter(
+      (value) => !["OCC", "TIC", "CLB", "CFD", "COR", "IIO", "LDB", "LSB", "MGC", "OBC"].includes(value?.iaocode)
+    );
+  }
+  return result;
 };
 
 // Helper function to sort files by lastmodified date

@@ -93,7 +93,6 @@ class UpdateDocumentPersonalAttributes(Resource):
     def post():
         try:
             payload = request.get_json()
-            # print("payload personal: ", payload)
             payload = FOIRequestUpdateRecordPersonalAttributesSchema().load(payload)
             result = documentservice().updatedocumentpersonalattributes(payload, AuthHelper.getuserid())
             return {'status': result.success, 'message':result.message,'id':result.identifier} , 200

@@ -454,7 +454,7 @@ const ContextMenu = ({
           openModal={openModal}
           setOpenModal={setOpenModal}
           savePageFlags={savePageFlags}
-          programAreaList={getProgramAreas(pageFlagList)}
+          programAreaList={getProgramAreas(pageFlagList, requestInfo)}
         />
       )}
       {(editTagModalOpen && requestInfo.bcgovcode === "MCF" && requestInfo.requesttype === "personal") &&

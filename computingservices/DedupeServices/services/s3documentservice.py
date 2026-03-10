@@ -124,7 +124,7 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
         pages = []
         current_page = []
         for comment in comments:
-            print("\n Each comment:",comment)
+            #print("\n Each comment:",comment)
             if 'text' in comment:
                 comment_text = f"{comment['text']}"
                 #comment_text = f"Page {comment['page']}: {comment['text']}\n"
@@ -138,7 +138,7 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
                         current_page = []   
         if current_page:  # Add any remaining comments to the last page
             pages.append(current_page)    
-        print("pages-split_comments_to_pages:",pages)
+        #print("pages-split_comments_to_pages:",pages)
         return pages
     except Exception as e:
         print(f"Error in splitting comments by pages: {e}")
@@ -255,7 +255,6 @@ def __flattenfitz(docbytesarr):
         #print("\n####")
         # Manually process each annotation
         annot = page.first_annot
-        print("\nannot",annot)
         widget_exist = page.first_widget is not None
         if widget_exist:
             print("\nwidget_exist:",widget_exist)
@@ -325,7 +324,7 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
         title_height=height-40
         comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
         for comment_page in comment_pages:
-            print("\ncomment_page:",comment_page)
+            #print("\ncomment_page:",comment_page)
             c.setFont(font, title_font_size)
             #c.setFont("Helvetica", 12)
             c.drawString(40, title_height, f"Summary of Comments on {filename}")
@@ -391,7 +390,6 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
         for annot in annotations:
             annotation_obj = annot.get_object()
             #subtype = annotation_obj["/Subtype"]
-            #print("\nAnnotation Object:", annotation_obj)
             #Flatten comments - collect all the annots with content
             if "/Contents" in annotation_obj:
                 comment = annotation_obj["/Contents"]
@@ -448,7 +446,6 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
             except Exception as e:
                 print(f"Error in rendering comments on new page in pdf: {e}")
     else:
-        #print("**NO Annotations here!!")
         writer.add_page(page)
     return pagecount, writer
 

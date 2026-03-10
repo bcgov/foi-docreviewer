@@ -3531,6 +3531,7 @@ const Redlining = React.forwardRef(
           saveDefaultSections={saveDefaultSections}
           clearDefaultSections={clearDefaultSections}
           currentLayer={currentLayerRef?.current}
+          isProactive={requestType === "proactive disclosure"}
         />
         {redlineModalOpen && (
           <ConfirmationModal

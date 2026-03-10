@@ -74,9 +74,7 @@ class documentservice:
             parentswithattachmentsrecords,
             attachmentsrecords,
         ) = self.__filterrecords(records)
-        #print("\nparentrecords:",parentrecords)
         parentproperties = self.__getrecordsproperties(parentrecords, properties)
-        #print("\nparentproperties:",parentproperties)
 
         for record in records:
             if record["recordid"] is not None:
@@ -89,7 +87,6 @@ class documentservice:
                     attachmentsrecords,
                 )
                 finalresults.append(finalresult)
-                #print("\nfinalresult :",finalresult)
         return finalresults
 
     def __updateproperties(
@@ -117,7 +114,6 @@ class documentservice:
                 record["duplicatemasterid"],
                 record["duplicateof"],
             ) = self.__isduplicate(parentproperties, record)
-            #print("isduplicate in __updateproperties-documentservice",record["isduplicate"])
             if len(record["attachments"]) > 0:
                 if record["isduplicate"] == True:
                     duplicatemaster_attachments = self.__getduplicatemasterattachments(
@@ -172,7 +168,6 @@ class documentservice:
         parentswithattachments = []
         attchments = []
         for record in records:
-            #print("record---",record)
             if record["recordid"] is not None:
                 parentrecords.append(record)
             if "attachments" in record and len(record["attachments"]) > 0:
@@ -663,7 +658,6 @@ class documentservice:
         selectedfileprocessversion = DocumentProcesses.getdocumentprocessidbyname("compression")
         if recordretrieveversion == 'retrive_uncompressed' or "uncompressed" in recordretrieveversion:
             selectedfileprocessversion= DocumentProcesses.getdocumentprocessidbyname("dedupe")
-        #print("selectedfileprocessversion:", selectedfileprocessversion)
         result= Document.updateselectedfileprocessversion(ministryrequestid,documentmasterids,selectedfileprocessversion, userid)
         if result.success:
             Document.updateredactionready(ministryrequestid,documentmasterids,userid)
