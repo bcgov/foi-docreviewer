@@ -340,12 +340,10 @@ class SaveFinalPackage(Resource):
     def post():
         try:
             requestjson = request.get_json()
-            #print("\nrequestjson:",requestjson)
             if(requestjson['bcgovcode'] == "mcf" and requestjson['requesttype'] == "personal"):
                 finalpackageschema = MCFFinalPackageSchema().load(requestjson) 
             else:
                 finalpackageschema = FinalPackageSchema().load(requestjson)
-            #print("\nfinalpackageschema:",finalpackageschema)
             result = redactionservice().triggerdownloadredlinefinalpackage(
                 finalpackageschema, AuthHelper.getuserinfo()
             )
