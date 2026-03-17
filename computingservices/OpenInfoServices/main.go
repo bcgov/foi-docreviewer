@@ -153,58 +153,58 @@ func main() {
 			redislib.WriteMessage(rdb, queueName, string(jsonData))
 		}
 
-	case "enqueueforunpublish":
-		//------------ Can remove this cronjob/case now. Replaced by unpublish API endpoint -----------
+	// case "enqueueforunpublish":
+	// 	//------------ Can remove this cronjob/case now. Replaced by unpublish API endpoint -----------
 
-		// Connect DB
-		db, err1 := dbservice.Conn(dsn)
-		if err1 != nil {
-			log.Fatalf("%v", err1)
-			return
-		}
-		defer db.Close()
+	// 	// Connect DB
+	// 	db, err1 := dbservice.Conn(dsn)
+	// 	if err1 != nil {
+	// 		log.Fatalf("%v", err1)
+	// 		return
+	// 	}
+	// 	defer db.Close()
 
-		// Get the open info record, which are ready for publishing
-		records, err := dbservice.GetOIRecordsForUnpublishing(db)
-		if err != nil {
-			log.Fatalf("%v", err)
-			return
-		}
+	// 	// Get the open info record, which are ready for publishing
+	// 	records, err := dbservice.GetOIRecordsForUnpublishing(db)
+	// 	if err != nil {
+	// 		log.Fatalf("%v", err)
+	// 		return
+	// 	}
 
-		// Create a Redis client
-		rdb := redislib.CreateRedisClient()
+	// 	// Create a Redis client
+	// 	rdb := redislib.CreateRedisClient()
 
-		// Define the queue name
-		queueName := queue
+	// 	// Define the queue name
+	// 	queueName := queue
 
-		for _, item := range records {
-			fmt.Printf("ID: %s, Sitemap_Pages: %s, Type: %s\n", item.Axisrequestid, item.Sitemap_pages, item.Type)
+	// 	for _, item := range records {
+	// 		fmt.Printf("ID: %s, Sitemap_Pages: %s, Type: %s\n", item.Axisrequestid, item.Sitemap_pages, item.Type)
 
-			jsonData, err := json.Marshal(item)
-			if err != nil {
-				panic(err)
-			}
+	// 		jsonData, err := json.Marshal(item)
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
 
-			// Write a message to the queue
-			redislib.WriteMessage(rdb, queueName, string(jsonData))
-		}
+	// 		// Write a message to the queue
+	// 		redislib.WriteMessage(rdb, queueName, string(jsonData))
+	// 	}
 
-	case "sitemap":
-		//------------ Can remove this cronjob/case now, publish will trigger sitemap update -----------
+	// case "sitemap":
+	// 	//------------ Can remove this cronjob/case now, publish will trigger sitemap update -----------
 
-		fmt.Println("sitemap")
+	// 	fmt.Println("sitemap")
 
-		// Connect DB
-		db, err1 := dbservice.Conn(dsn)
-		if err1 != nil {
-			log.Fatalf("%v", err1)
-			return
-		}
-		defer db.Close()
+	// 	// Connect DB
+	// 	db, err1 := dbservice.Conn(dsn)
+	// 	if err1 != nil {
+	// 		log.Fatalf("%v", err1)
+	// 		return
+	// 	}
+	// 	defer db.Close()
 
-		oiservices.UpdateSitemap(db)
+	// 	oiservices.UpdateSitemap(db)
 
-		fmt.Println("sitemap end")
+	// 	fmt.Println("sitemap end")
 	case "test":
 		//----- put testing script here for manual test -----
 
