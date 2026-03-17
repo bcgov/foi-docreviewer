@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,6 +22,9 @@ const (
 	openstatus_ready_message     = "html ready"
 	openstatus_unpublish         = "unpublished"
 	openstatus_unpublish_message = "entry removed from sitemap"
+	openstatus_sitemap           = "ready for crawling"
+	openstatus_sitemap_message   = "sitemap ready"
+	oistatus_published           = "Published"
 )
 
 type OpenInfoMessage struct {
@@ -45,8 +49,10 @@ var (
 	oibucket      string
 	oiprefix      string
 	sitemapprefix string
+	sitemaplimit  int
 
-	env string
+	env        string
+	foiflowapi string
 )
 
 func Publish(msg OpenInfoMessage, db *sql.DB) {
@@ -54,9 +60,8 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	s3url, oibucket, oiprefix, sitemapprefix, _ = myconfig.GetS3Path()
 	env, _, _, _ = myconfig.GetOthers()
 
-	// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
-	if env != "prod" {
-		oibucket = "dev" + "-" + oibucket
+	if env != "" {
+		oibucket = env + "-" + oibucket
 	}
 
 	// Get file info from s3 bucket folder
@@ -120,6 +125,10 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 		log.Fatalf("%v", err)
 		return
 	}
+
+	fmt.Println("sitemap")
+	UpdateSitemap(db)
+	fmt.Println("sitemap end")
 }
 
 func Unpublish(msg OpenInfoMessage, db *sql.DB) {
@@ -129,9 +138,8 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	env, _, _, _ = myconfig.GetOthers()
 
 	destBucket := oibucket
-	// For testing, destination bucket for opeinfo (oibucket) is always dev-openinfo
-	if env != "prod" {
-		destBucket = "dev" + "-" + oibucket
+	if env != "" {
+		destBucket = env + "-" + oibucket
 	}
 	destPrefix := oiprefix
 	err := awslib.RemoveFolderFromS3(destBucket, destPrefix+msg.Axisrequestid+"/") // Add a trailing slash to delete the folder
@@ -178,5 +186,100 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 		log.Fatalf("%v", err)
 		return
 	}
-	fmt.Println("OIRecords in database successfully updated.")
+}
+
+func UpdateSitemap(db *sql.DB) {
+	fmt.Println("sitemap")
+
+	// Get the open info record, which are ready for XML
+	records, err := dbservice.GetOIRecordsForPublishing(db)
+	if err != nil {
+		log.Fatalf("%v", err)
+		return
+	}
+
+	// Get the last sitemap_page from s3
+	destBucket := oibucket
+	if env != "" {
+		destBucket = env + "-" + oibucket
+	}
+	destPrefix := sitemapprefix
+
+	sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
+	urlset := awslib.ReadSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml")
+
+	initialSitemapsCount := len(sitemapindex.Sitemaps)
+
+	// Get the current time
+	now := time.Now()
+	lastMod := now.Format(dateformat)
+
+	fmt.Printf("Records: %v\n", records)
+	// time.Sleep(60 * time.Second)
+
+	// Insert to XML
+	for i, item := range records {
+		fmt.Printf("main - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees)
+
+		// Save sitemap_pages_.xml which reached 5000 limit
+		if len(urlset.Urls) >= sitemaplimit {
+			// Save sitemap_pages_.xml
+			err = awslib.SaveSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml", urlset)
+			if err != nil {
+				log.Fatalf("failed to save sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml: %v", err)
+				return
+			}
+
+			// Update sitemap index
+			sitemap := awslib.SiteMap{
+				Loc:     s3url + destBucket + "/" + destPrefix + "sitemap_pages_" + strconv.Itoa(len(sitemapindex.Sitemaps)+1) + ".xml",
+				LastMod: lastMod,
+			}
+			sitemapindex.Sitemaps = append(sitemapindex.Sitemaps, sitemap)
+
+			// Clear urlset for entries already saved into sitemap_pages
+			urlset.Urls = []awslib.Url{}
+		}
+
+		url := awslib.Url{
+			Loc:     s3url + destBucket + "/" + oiprefix + item.Axisrequestid + "/openinfo/" + item.Axisrequestid + ".html",
+			LastMod: lastMod,
+		}
+		urlset.Urls = append(urlset.Urls, url)
+
+		// Save sitemap_pages file name
+		records[i].Sitemap_pages = "sitemap_pages_" + strconv.Itoa(len(sitemapindex.Sitemaps)) + ".xml"
+	}
+
+	// Save new entries to sitemap_pages_.xml
+	err = awslib.SaveSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml", urlset)
+	if err != nil {
+		log.Fatalf("failed to save sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml: %v", err)
+		return
+	}
+
+	// Update sitemap_index.xml if there are new sitemap_pages_.xml created
+	if len(sitemapindex.Sitemaps) > initialSitemapsCount {
+		err = awslib.SaveSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml", sitemapindex)
+		if err != nil {
+			log.Fatalf("failed to save sitemap_index.xml: %v", err)
+			return
+		}
+	}
+
+	// Retrieve oipublicationstatus_id based on oistatus
+	var oistatusid int
+	err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_published).Scan(&oistatusid)
+	if err != nil {
+		log.Fatalf("Error retrieving oistatusid: %v", err)
+	}
+
+	// Update openinfo table status & sitemap_pages file name to DB
+	for _, item := range records {
+		err = dbservice.UpdateOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
+		if err != nil {
+			log.Fatalf("failed to update OI state: %v", err)
+			return
+		}
+	}
 }
