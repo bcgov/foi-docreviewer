@@ -131,6 +131,15 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	fmt.Println("sitemap end")
 }
 
+func PublishNow(msg OpenInfoMessage, db *sql.DB) {
+
+	Publish(msg, db)
+
+	fmt.Println("sitemap")
+	UpdateSitemap(db)
+	fmt.Println("sitemap end")
+}
+
 func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	// Remove folder from s3
 

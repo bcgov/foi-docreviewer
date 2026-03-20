@@ -109,11 +109,14 @@ func main() {
 			fmt.Printf("published_date: %s\n", msg.Published_date)
 			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles)
 
-			if msg.Type == "publish" {
+			switch msg.Type {
+			case "publish":
 				oiservices.Publish(msg, db)
-			} else if msg.Type == "unpublish" {
+			case "unpublish":
 				oiservices.Unpublish(msg, db)
-			} else {
+			case "publishnow":
+				oiservices.PublishNow(msg, db)
+			default:
 				fmt.Println("Unknown message type")
 			}
 		}
@@ -189,22 +192,20 @@ func main() {
 	// 		redislib.WriteMessage(rdb, queueName, string(jsonData))
 	// 	}
 
-	// case "sitemap":
-	// 	//------------ Can remove this cronjob/case now, publish will trigger sitemap update -----------
+	case "sitemap":
+		fmt.Println("sitemap")
 
-	// 	fmt.Println("sitemap")
+		// Connect DB
+		db, err1 := dbservice.Conn(dsn)
+		if err1 != nil {
+			log.Fatalf("%v", err1)
+			return
+		}
+		defer db.Close()
 
-	// 	// Connect DB
-	// 	db, err1 := dbservice.Conn(dsn)
-	// 	if err1 != nil {
-	// 		log.Fatalf("%v", err1)
-	// 		return
-	// 	}
-	// 	defer db.Close()
+		oiservices.UpdateSitemap(db)
 
-	// 	oiservices.UpdateSitemap(db)
-
-	// 	fmt.Println("sitemap end")
+		fmt.Println("sitemap end")
 	case "test":
 		//----- put testing script here for manual test -----
 
