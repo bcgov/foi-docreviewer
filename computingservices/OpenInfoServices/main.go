@@ -105,9 +105,10 @@ func main() {
 			}
 
 			fmt.Printf("openinfoid: %d\n", msg.Openinfoid)
+			fmt.Printf("proactivedisclosureid: %d\n", msg.Proactivedisclosureid)
 			fmt.Printf("foiministryrequestid: %d\n", msg.Foiministryrequestid)
 			fmt.Printf("published_date: %s\n", msg.Published_date)
-			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles)
+			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v, Category: %s\n", msg.Axisrequestid, msg.Description, msg.Published_date, msg.Contributor, msg.Applicant_type, msg.Fees, msg.AdditionalFiles, msg.Proactivedisclosurecategory)
 
 			switch msg.Type {
 			case "publish":
@@ -146,6 +147,25 @@ func main() {
 
 		for _, item := range records {
 			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Additionalfiles)
+
+			jsonData, err := json.Marshal(item)
+			if err != nil {
+				panic(err)
+			}
+
+			// Write a message to the queue
+			redislib.WriteMessage(rdb, queueName, string(jsonData))
+		}
+
+		// Get proactive disclosure record, which are ready for publishing
+		pdrecords, err := dbservice.GetPDOIRecordsForPrePublishing(db)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+
+		for _, item := range pdrecords {
+			fmt.Printf("ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Files: %v, Category: %s\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Additionalfiles, item.Proactivedisclosurecategory)
 
 			jsonData, err := json.Marshal(item)
 			if err != nil {
@@ -204,6 +224,7 @@ func main() {
 		defer db.Close()
 
 		oiservices.UpdateSitemap(db)
+		oiservices.UpdatePDSitemap(db)
 
 		fmt.Println("sitemap end")
 	case "test":

@@ -28,19 +28,22 @@ const (
 )
 
 type OpenInfoMessage struct {
-	Openinfoid           int                     `json:"openinfoid"`
-	Foiministryrequestid int                     `json:"foiministryrequestid"`
-	Foirequestid         int                     `json:"foirequestid"`
-	Axisrequestid        string                  `json:"axisrequestid"`
-	Description          string                  `json:"description"`
-	Published_date       string                  `json:"published_date"`
-	Contributor          string                  `json:"contributor"`
-	Applicant_type       string                  `json:"applicant_type"`
-	Fees                 float32                 `json:"fees"`
-	BCgovcode            string                  `json:"bcgovcode"`
-	Type                 string                  `json:"type"`
-	Sitemap_pages        string                  `json:"sitemap_pages"`
-	AdditionalFiles      []awslib.AdditionalFile `json:"additionalfiles"`
+	Openinfoid                  int                     `json:"openinfoid"` // Openinfoid for standard requests, 0 for proactive disclosure
+	Foiministryrequestid        int                     `json:"foiministryrequestid"`
+	Foirequestid                int                     `json:"foirequestid"`
+	Axisrequestid               string                  `json:"axisrequestid"`
+	Description                 string                  `json:"description"`
+	Published_date              string                  `json:"published_date"`
+	Contributor                 string                  `json:"contributor"`
+	Applicant_type              string                  `json:"applicant_type"`
+	Fees                        float32                 `json:"fees"`
+	BCgovcode                   string                  `json:"bcgovcode"`
+	Type                        string                  `json:"type"`
+	Sitemap_pages               string                  `json:"sitemap_pages"`
+	AdditionalFiles             []awslib.AdditionalFile `json:"additionalfiles"`
+	Proactivedisclosureid       int                     `json:"proactivedisclosureid"`       // Proactive disclosure ID, 0 for standard request
+	Proactivedisclosurecategory string                  `json:"proactivedisclosurecategory"` // Proactive disclosure category, empty for standard requests
+	Reportperiod                string                  `json:"reportperiod"`                // Report period for proactive disclosure, empty for standard requests
 }
 
 var (
@@ -80,33 +83,65 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	unixTimestamp := now.Unix()
 
 	// Define the data to be passed to the template
-	variables := files.TemplateVariables{
-		Title: msg.Axisrequestid,
-		MetaTags: []files.MetaTag{
-			{Name: "dc.title", Content: "FOI Request - " + msg.Axisrequestid},
-			{Name: "dc.description", Content: msg.Description},
-			{Name: "high_level_subject", Content: "FOI Request"},
-			{Name: "dc.subject", Content: "FOI Request"},
-			{Name: "dc.published_date", Content: msg.Published_date},
-			{Name: "timestamp", Content: fmt.Sprintf("%d", unixTimestamp)},
-			{Name: "dc.contributor", Content: msg.Contributor},
-			{Name: "recorduid", Content: msg.Axisrequestid},
-			{Name: "recordurl", Content: s3url + oibucket + "/" + oiprefix + msg.Axisrequestid + "/openinfo/" + msg.Axisrequestid + ".html"},
-			{Name: "month", Content: now.Format(dateformat_month)},
-			{Name: "year", Content: now.Format(dateformat_year)},
-			{Name: "letter", Content: result.LetterNames},
-			{Name: "letter_file_sizes", Content: result.LetterSizes},
-			{Name: "notes", Content: ""},
-			{Name: "notes_file_sizes", Content: ""},
-			{Name: "files", Content: result.FileNames},
-			{Name: "file_sizes", Content: result.FileSizes},
-			{Name: "applicant_type", Content: msg.Applicant_type},
-			{Name: "fees", Content: fmt.Sprintf("$%.2f", msg.Fees)},
-			{Name: "position_title", Content: " "},
-			{Name: "individual_name", Content: ""},
-		},
-		Links:   result.Links,
-		Content: "FOI Request - " + msg.Axisrequestid + " " + msg.Description,
+	variables := files.TemplateVariables{}
+	if msg.Proactivedisclosureid > 0 { //proactive disclosure
+		variables = files.TemplateVariables{
+			Title: msg.Axisrequestid,
+			MetaTags: []files.MetaTag{
+				{Name: "dc.title", Content: msg.Contributor + " - " + msg.Proactivedisclosurecategory + " - " + msg.Reportperiod},
+				{Name: "dc.description", Content: msg.Description},
+				{Name: "high_level_subject", Content: msg.Proactivedisclosurecategory},
+				{Name: "dc.subject", Content: ""},
+				{Name: "dc.published_date", Content: msg.Published_date},
+				{Name: "timestamp", Content: fmt.Sprintf("%d", unixTimestamp)},
+				{Name: "dc.contributor", Content: msg.Contributor},
+				{Name: "recorduid", Content: msg.Axisrequestid},
+				{Name: "recordurl", Content: s3url + oibucket + "/" + oiprefix + msg.Axisrequestid + "/openinfo/" + msg.Axisrequestid + ".html"},
+				{Name: "month", Content: now.Format(dateformat_month)},
+				{Name: "year", Content: now.Format(dateformat_year)},
+				{Name: "letter", Content: result.LetterNames},
+				{Name: "letter_file_sizes", Content: result.LetterSizes},
+				{Name: "notes", Content: ""},
+				{Name: "notes_file_sizes", Content: ""},
+				{Name: "files", Content: result.FileNames},
+				{Name: "file_sizes", Content: result.FileSizes},
+				{Name: "applicant_type", Content: msg.Applicant_type},
+				{Name: "fees", Content: fmt.Sprintf("$%.2f", msg.Fees)},
+				{Name: "position_title", Content: " "},
+				{Name: "individual_name", Content: ""},
+			},
+			Links:   result.Links,
+			Content: msg.Contributor + " - " + msg.Proactivedisclosurecategory + " - " + msg.Reportperiod + " " + msg.Description,
+		}
+	} else {
+		variables = files.TemplateVariables{
+			Title: msg.Axisrequestid,
+			MetaTags: []files.MetaTag{
+				{Name: "dc.title", Content: "FOI Request - " + msg.Axisrequestid},
+				{Name: "dc.description", Content: msg.Description},
+				{Name: "high_level_subject", Content: "FOI Request"},
+				{Name: "dc.subject", Content: "FOI Request"},
+				{Name: "dc.published_date", Content: msg.Published_date},
+				{Name: "timestamp", Content: fmt.Sprintf("%d", unixTimestamp)},
+				{Name: "dc.contributor", Content: msg.Contributor},
+				{Name: "recorduid", Content: msg.Axisrequestid},
+				{Name: "recordurl", Content: s3url + oibucket + "/" + oiprefix + msg.Axisrequestid + "/openinfo/" + msg.Axisrequestid + ".html"},
+				{Name: "month", Content: now.Format(dateformat_month)},
+				{Name: "year", Content: now.Format(dateformat_year)},
+				{Name: "letter", Content: result.LetterNames},
+				{Name: "letter_file_sizes", Content: result.LetterSizes},
+				{Name: "notes", Content: ""},
+				{Name: "notes_file_sizes", Content: ""},
+				{Name: "files", Content: result.FileNames},
+				{Name: "file_sizes", Content: result.FileSizes},
+				{Name: "applicant_type", Content: msg.Applicant_type},
+				{Name: "fees", Content: fmt.Sprintf("$%.2f", msg.Fees)},
+				{Name: "position_title", Content: " "},
+				{Name: "individual_name", Content: ""},
+			},
+			Links:   result.Links,
+			Content: "FOI Request - " + msg.Axisrequestid + " " + msg.Description,
+		}
 	}
 
 	buf := files.CreateHTML(variables)
@@ -120,15 +155,23 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 	awslib.CopyS3(msg.BCgovcode+"-"+env+"-e", msg.Axisrequestid+"/openinfo/", msg.AdditionalFiles)
 
 	// Update open info status in DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_ready, openstatus_ready_message)
-	if err != nil {
-		log.Fatalf("%v", err)
-		return
+	if msg.Proactivedisclosureid > 0 { //proactive disclosure
+		err = dbservice.UpdatePDOIRecordStatus(db, msg.Foiministryrequestid, openstatus_ready, openstatus_ready_message)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+	} else {
+		err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_ready, openstatus_ready_message)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
 	}
 
-	fmt.Println("sitemap")
-	UpdateSitemap(db)
-	fmt.Println("sitemap end")
+	// fmt.Println("sitemap")
+	// UpdateSitemap(db)
+	// fmt.Println("sitemap end")
 }
 
 func PublishNow(msg OpenInfoMessage, db *sql.DB) {
@@ -137,6 +180,7 @@ func PublishNow(msg OpenInfoMessage, db *sql.DB) {
 
 	fmt.Println("sitemap")
 	UpdateSitemap(db)
+	UpdatePDSitemap(db)
 	fmt.Println("sitemap end")
 }
 
@@ -190,11 +234,20 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 	}
 
 	// Update unpublish status to DB
-	err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_unpublish, openstatus_unpublish_message)
-	if err != nil {
-		log.Fatalf("%v", err)
-		return
+	if msg.Proactivedisclosureid > 0 { //proactive disclosure
+		err = dbservice.UpdatePDOIRecordStatus(db, msg.Foiministryrequestid, openstatus_unpublish, openstatus_unpublish_message)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+	} else {
+		err = dbservice.UpdateOIRecordStatus(db, msg.Foiministryrequestid, openstatus_unpublish, openstatus_unpublish_message)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
 	}
+
 }
 
 func UpdateSitemap(db *sql.DB) {
@@ -286,6 +339,103 @@ func UpdateSitemap(db *sql.DB) {
 	// Update openinfo table status & sitemap_pages file name to DB
 	for _, item := range records {
 		err = dbservice.UpdateOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
+		if err != nil {
+			log.Fatalf("failed to update OI state: %v", err)
+			return
+		}
+	}
+}
+
+// for proactive disclosure
+func UpdatePDSitemap(db *sql.DB) {
+	fmt.Println("sitemap for proactive disclosure")
+
+	// Get proactive disclosure record, which are ready for XML
+	records, err := dbservice.GetPDOIRecordsForPublishing(db)
+	if err != nil {
+		log.Fatalf("%v", err)
+		return
+	}
+
+	// Get the last sitemap_page from s3
+	destBucket := oibucket
+	if env != "" {
+		destBucket = env + "-" + oibucket
+	}
+	destPrefix := sitemapprefix
+
+	sitemapindex := awslib.ReadSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml")
+	urlset := awslib.ReadSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml")
+
+	initialSitemapsCount := len(sitemapindex.Sitemaps)
+
+	// Get the current time
+	now := time.Now()
+	lastMod := now.Format(dateformat)
+
+	fmt.Printf("Records: %v\n", records)
+	// time.Sleep(60 * time.Second)
+
+	// Insert to XML
+	for i, item := range records {
+		fmt.Printf("main - ID: %s, Description: %s, Published Date: %s, Contributor: %s, Applicant Type: %s, Fees: %v, Category: %s\n", item.Axisrequestid, item.Description, item.Published_date, item.Contributor, item.Applicant_type, item.Fees, item.Proactivedisclosurecategory)
+
+		// Save sitemap_pages_.xml which reached 5000 limit
+		if len(urlset.Urls) >= sitemaplimit {
+			// Save sitemap_pages_.xml
+			err = awslib.SaveSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml", urlset)
+			if err != nil {
+				log.Fatalf("failed to save sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml: %v", err)
+				return
+			}
+
+			// Update sitemap index
+			sitemap := awslib.SiteMap{
+				Loc:     s3url + destBucket + "/" + destPrefix + "sitemap_pages_" + strconv.Itoa(len(sitemapindex.Sitemaps)+1) + ".xml",
+				LastMod: lastMod,
+			}
+			sitemapindex.Sitemaps = append(sitemapindex.Sitemaps, sitemap)
+
+			// Clear urlset for entries already saved into sitemap_pages
+			urlset.Urls = []awslib.Url{}
+		}
+
+		url := awslib.Url{
+			Loc:     s3url + destBucket + "/" + oiprefix + item.Axisrequestid + "/openinfo/" + item.Axisrequestid + ".html",
+			LastMod: lastMod,
+		}
+		urlset.Urls = append(urlset.Urls, url)
+
+		// Save sitemap_pages file name
+		records[i].Sitemap_pages = "sitemap_pages_" + strconv.Itoa(len(sitemapindex.Sitemaps)) + ".xml"
+	}
+
+	// Save new entries to sitemap_pages_.xml
+	err = awslib.SaveSiteMapPageS3(destBucket, destPrefix, "sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml", urlset)
+	if err != nil {
+		log.Fatalf("failed to save sitemap_pages_"+strconv.Itoa(len(sitemapindex.Sitemaps))+".xml: %v", err)
+		return
+	}
+
+	// Update sitemap_index.xml if there are new sitemap_pages_.xml created
+	if len(sitemapindex.Sitemaps) > initialSitemapsCount {
+		err = awslib.SaveSiteMapIndexS3(destBucket, destPrefix, "sitemap_index.xml", sitemapindex)
+		if err != nil {
+			log.Fatalf("failed to save sitemap_index.xml: %v", err)
+			return
+		}
+	}
+
+	// Retrieve oipublicationstatus_id based on oistatus
+	var oistatusid int
+	err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_published).Scan(&oistatusid)
+	if err != nil {
+		log.Fatalf("Error retrieving oistatusid: %v", err)
+	}
+
+	// Update openinfo table status & sitemap_pages file name to DB
+	for _, item := range records {
+		err = dbservice.UpdatePDOIRecordState(db, foiflowapi, item.Foiministryrequestid, item.Foirequestid, openstatus_sitemap, openstatus_sitemap_message, item.Sitemap_pages, oistatusid)
 		if err != nil {
 			log.Fatalf("failed to update OI state: %v", err)
 			return
