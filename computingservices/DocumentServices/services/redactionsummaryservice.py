@@ -1,6 +1,7 @@
-
 import traceback
 import json
+import time
+import logging
 from services.dal.pdfstitchjobactivity import pdfstitchjobactivity
 from services.dts.redactionsummary import redactionsummary
 from .documentgenerationservice import documentgenerationservice
@@ -13,6 +14,7 @@ from services.dal.documenttemplate import documenttemplate
 class redactionsummaryservice():
 
     def processmessage(self,incomingmessage):
+        start_total = time.time()
         summaryfilestozip = []
         message = get_in_redactionsummary_msg(incomingmessage)
         print('\n 1. get_in_redactionsummary_msg is : {0}'.format(message))
@@ -32,13 +34,23 @@ class redactionsummaryservice():
                 documenttypename= "responsepackage_redaction_summary" if ('responsepackage' in category or category == 'openinfo') else "redline_redaction_summary"
             print('\n 2. documenttypename', documenttypename)
             upload_responses=[]
+            start_pageflags = time.time()
             pageflags = self.__get_pageflags(category)
+            elapsed_pageflags = time.time() - start_pageflags
+            logging.info(f"[PERF] redactionsummaryservice.__get_pageflags category={category} elapsed={elapsed_pageflags:.3f}s")
+            
+            start_progareas = time.time()
             programareas = documentpageflag().get_all_programareas()
+            elapsed_progareas = time.time() - start_progareas
+            logging.info(f"[PERF] redactionsummaryservice.get_all_programareas elapsed={elapsed_progareas:.3f}s")
+            
             messageattributes= json.loads(message.attributes)
             print("\n 3. messageattributes:",messageattributes)
             divisiondocuments = get_in_summary_object(summarymsg).pkgdocuments
+            logging.info(f"[PERF] redactionsummaryservice divisiondocuments count={len(divisiondocuments)}")
             print("\n 4. divisiondocuments:",divisiondocuments)
             for entry in divisiondocuments:
+                start_division = time.time()
                 #print("\n entry:",entry)
                 if 'documentids' in entry and len(entry['documentids']) > 0 :
                     print("\n 5. entry['divisionid']:",entry['divisionid'])
@@ -48,10 +60,20 @@ class redactionsummaryservice():
                         _documentids = documenttemplate.getrecordgroupsbyrequestid(message.ministryrequestid, documentids)
                         if _documentids:
                             documentids = _documentids
+                    
+                    start_prepare = time.time()
                     formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
+                    elapsed_prepare = time.time() - start_prepare
+                    logging.info(f"[PERF] redactionsummaryservice prepareredactionsummary divisionid={divisionid} docs={len(documentids)} elapsed={elapsed_prepare:.3f}s")
+                    
                     print("\n 6. formattedsummary", formattedsummary)
                     template_path='templates/'+documenttypename+'.docx'
+                    
+                    start_generate = time.time()
                     redaction_summary= documentgenerationservice().generate_pdf(formattedsummary, documenttypename,template_path)
+                    elapsed_generate = time.time() - start_generate
+                    logging.info(f"[PERF] redactionsummaryservice generate_pdf divisionid={divisionid} template={documenttypename} elapsed={elapsed_generate:.3f}s")
+                    
                     divisioname = None
                     if len(messageattributes)>1:
                         filesobj=(next(item for item in messageattributes if item['divisionid'] == divisionid))['files'][0]
@@ -71,7 +93,12 @@ class redactionsummaryservice():
                     summary_category= category
                     filename =self.__get_summaryfilename(message.requestnumber, summary_category, divisioname, stitcheddocfilename, message.phase)
                     print("\n redaction_summary.content length: {0}".format(len(redaction_summary.content)))
+                    
+                    start_upload = time.time()
                     uploadobj= uploadbytes(filename,redaction_summary.content,s3uri)
+                    elapsed_upload = time.time() - start_upload
+                    logging.info(f"[PERF] redactionsummaryservice uploadbytes divisionid={divisionid} size={len(redaction_summary.content)} elapsed={elapsed_upload:.3f}s")
+                    
                     upload_responses.append(uploadobj)
                     if uploadobj["uploadresponse"].status_code == 200:
                         summaryuploaderror= False    
@@ -82,6 +109,13 @@ class redactionsummaryservice():
                     pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryuploaded",summaryuploaderror,summaryuploaderrormsg)
                     # print("\ns3uripath:",uploadobj["documentpath"])
                     summaryfilestozip.append({"filename": uploadobj["filename"], "s3uripath":uploadobj["documentpath"]})
+                
+                if 'documentids' in entry and len(entry['documentids']) > 0:
+                    elapsed_division = time.time() - start_division
+                    logging.info(f"[PERF] redactionsummaryservice division loop complete divisionid={divisionid} elapsed={elapsed_division:.3f}s")
+                    
+            elapsed_total = time.time() - start_total
+            logging.info(f"[PERF] redactionsummaryservice.processmessage total processing finished elapsed={elapsed_total:.3f}s")
             return summaryfilestozip
         except (Exception) as error:
             traceback.print_exc()

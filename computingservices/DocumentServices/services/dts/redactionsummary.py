@@ -3,10 +3,13 @@ from rstreamio.message.schemas.redactionsummary import get_in_summary_object,get
 import json
 from collections import defaultdict
 import traceback
+import time
+import logging
 
 class redactionsummary():
 
     def prepareredactionsummary(self, message, documentids, pageflags, programareas):
+        start_time = time.time()
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
         if _ismcfpersonalrequest and (message.category in ("responsepackage", "openinfo") or  "responsepackage_phase" in message.category):
             redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
@@ -17,7 +20,9 @@ class redactionsummary():
             for entry in redactionsummary['data']:
                 consolidated_redactions += entry['sections']
             sortedredactions = sorted(consolidated_redactions, key=lambda x: self.__getrangenumber(x["range"])) 
+            logging.info(f"[PERF] DTS prepareredactionsummary (standard sort) elapsed={time.time() - start_time:.3f}s")
             return {"requestnumber": message.requestnumber, "data": sortedredactions}
+        logging.info(f"[PERF] DTS prepareredactionsummary elapsed={time.time() - start_time:.3f}s")
         return redactionsummary
 
     def __getrangenumber(self, rangeval):
@@ -26,6 +31,7 @@ class redactionsummary():
         return int(rangestart)
 
     def __packaggesummary(self, message, documentids, pageflags, programareas):
+        start_time = time.time()
         try:
             print("\nInside __packaggesummary")
             redactionlayerid = self.__getredactionlayerid(message)
@@ -114,6 +120,7 @@ class redactionsummary():
             except (Exception) as err:
                 traceback.print_exc()
                 print('error occured in __packaggesummary redaction dts service: ', err)
+            logging.info(f"[PERF] DTS __packaggesummary elapsed={time.time() - start_time:.3f}s")
             return {"requestnumber": message.requestnumber, "data": summarydata}
         except (Exception) as error:
             traceback.print_exc()
@@ -122,6 +129,7 @@ class redactionsummary():
 
 
     def __packagesummaryforcfdrequests(self, message, documentids):
+        start_time = time.time()
         try:
             print("\nInside logic for __packagesummaryforcfdrequests")
             redactionlayerid = self.__getredactionlayerid(message)
@@ -184,6 +192,7 @@ class redactionsummary():
 
             # print("\n summarydata:",summarydata)
             sortedredactions = sorted(summarydata, key=lambda x: self.__getrangenumber(x["sections"][0]["range"]) if '-' in x["sections"][0]["range"] else int(x["sections"][0]["range"])) 
+            logging.info(f"[PERF] DTS __packagesummaryforcfdrequests elapsed={time.time() - start_time:.3f}s")
             return {"requestnumber": message.requestnumber, "data": sortedredactions}
 
         except Exception as error:
@@ -191,13 +200,16 @@ class redactionsummary():
             traceback.print_exc()
 
     def removeduplicatepageswithphase(self, mapped_flags, phase):
+        start_time = time.time()
         # Keep only entries (page, pageFlag) where page has an assocaited phase flag (and remove pages with flagid=9)
         if phase is not None and phase !="":
             # Identify pages where flagid=9 exists
             pages_with_flagid_9 = {(entry['docid'], entry['originalpageno']) for entry in mapped_flags if entry['flagid'] == 9}
-            return [entry for entry in mapped_flags if entry['flagid'] != 9 and (entry['docid'], entry['originalpageno']) in pages_with_flagid_9]
+            result = [entry for entry in mapped_flags if entry['flagid'] != 9 and (entry['docid'], entry['originalpageno']) in pages_with_flagid_9]
         else:
-            return mapped_flags
+            result = mapped_flags
+        logging.info(f"[PERF] DTS removeduplicatepageswithphase flags={len(mapped_flags)} elapsed={time.time() - start_time:.3f}s")
+        return result
 
 
 
@@ -218,6 +230,7 @@ class redactionsummary():
     
 
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
+        start_time = time.time()
         document_pages= self.get_sorted_original_pages_by_docid(mapped_flags)
         # print("document_pages:",document_pages)
         for item in document_pages:
@@ -228,6 +241,7 @@ class redactionsummary():
                         if flag['docid'] == doc_id and flag['flagid'] == 3:
                             flag['sections']= self.__get_sections_mcf1(docpagesections, flag['dbpageno'])
                             #self.__get_pagesection_mapping_cfd1(mapped_flags, docpagesections)
+        logging.info(f"[PERF] DTS assignfullpagesections docs={len(document_pages)} elapsed={time.time() - start_time:.3f}s")
 
     def __get_sections_mcf1(self, docpagesections, pageno):
         sections = []
@@ -278,6 +292,7 @@ class redactionsummary():
         return [result], total_page_count, end_page
     
     def count_pages_per_doc(self, mapped_flags):
+        start_time = time.time()
         page_counts = {}
         #track pages per document
         processed_pages = {}
@@ -297,6 +312,7 @@ class redactionsummary():
             else:
                 page_counts[doc_id] = 1
 
+        logging.info(f"[PERF] DTS count_pages_per_doc flags={len(mapped_flags)} elapsed={time.time() - start_time:.3f}s")
         return page_counts
 
     
@@ -327,6 +343,7 @@ class redactionsummary():
         return pagecount
     
     def process_page_flags(self, docpageflags, deletedpages):
+        start_time = time.time()
         result = []
         current_stitched_page = 1  
         for doc_id, details in docpageflags.items():
@@ -351,6 +368,7 @@ class redactionsummary():
                     'stitchedpageno': stitchedpageno,
                     'flagid': flag['flagid']
                 })
+        logging.info(f"[PERF] DTS process_page_flags docs={len(docpageflags)} elapsed={time.time() - start_time:.3f}s")
         return result
 
 
