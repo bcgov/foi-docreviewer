@@ -61,7 +61,7 @@ def start():
                 processmessage(message_id, message, stream)
                 # time.sleep(random.randint(1, 3))
         else:
-            logging.info(f"No new messages in stream {documentservice_stream_key}. Waiting...")
+            logging.debug(f"No new messages in stream {documentservice_stream_key}. Waiting...")
 
 def processmessage(message_id, message, stream):
     try:
