@@ -21,7 +21,7 @@ class documenttemplate:
         FROM "Documents" d
         JOIN "DocumentMaster" dm ON d.documentmasterid = dm.documentmasterid
         LEFT JOIN "DocumentDeleted" dd
-            ON dm.filepath LIKE '%' || dd.filepath || '%'
+            ON dm.filepath LIKE '%%' || dd.filepath || '%%'
             AND dm.ministryrequestid = dd.ministryrequestid
         WHERE d.documentid = ANY(%s)
           AND (d.incompatible IS FALSE OR d.incompatible IS NULL)
