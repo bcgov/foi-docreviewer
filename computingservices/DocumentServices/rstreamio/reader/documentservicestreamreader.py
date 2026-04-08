@@ -61,9 +61,10 @@ def start():
                 processmessage(message_id, message, stream)
                 # time.sleep(random.randint(1, 3))
         else:
-            logging.info(f"No new messages in stream {documentservice_stream_key}. Waiting...")
+            logging.debug(f"No new messages in stream {documentservice_stream_key}. Waiting...")
 
 def processmessage(message_id, message, stream):
+    msg_received_at = time.time()
     try:
         str_id = message_id.decode()
         print(f"processing {str_id}::{message}")
@@ -81,12 +82,17 @@ def processmessage(message_id, message, stream):
             # publication folder & zipper!
             if category != "publicationpackage":
                 try:
+                    start_summary = time.time()
                     summaryfiles = redactionsummaryservice().processmessage(message_json_string)
+                    elapsed_summary = time.time() - start_summary
+                    logging.info(f"[PERF] redactionsummaryservice().processmessage category={category} elapsed={elapsed_summary:.3f}s")
                 except(Exception) as error: 
                     logging.exception(error) 
             zippingservice().sendtozipper(summaryfiles, message_json_string)   
             # simulate processing
         stream.ack(documentservice_group_name, [message_id])
+        elapsed_total = time.time() - msg_received_at
+        logging.info(f"[PERF] processmessage {str_id} category={message_dict.get('category')} total_elapsed={elapsed_total:.3f}s")
         print(f"finished processing {str_id}")
     except Exception as e:
         logging.exception(f"Error processing message {message_id.decode()}: {e}")

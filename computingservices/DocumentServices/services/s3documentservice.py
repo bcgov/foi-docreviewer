@@ -7,6 +7,7 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from utils.jsonmessageparser import gets3credentialsobject
 from utils.foidocumentserviceconfig import docservice_db_user,docservice_db_port,docservice_s3_host,docservice_db_name,docservice_s3_region,docservice_s3_service,docservice_failureattempt
 import logging
+import time
 
 def getcredentialsbybucketname(bucketname):
     _conn = getdbconnection()
@@ -50,8 +51,10 @@ def uploadbytes(filename, filebytes, s3uri):
             }
 
             #upload to S3
+            upload_start = time.time()
             uploadresponse= requests.put(s3uri, data=filebytes, headers=header)
             uploadobj = {"uploadresponse": uploadresponse, "filename": filename, "documentpath": s3uri}
+            logging.info(f"[PERF] S3 uploadbytes filename={filename} bytes={len(filebytes) if filebytes else 0} elapsed={time.time() - upload_start:.3f}s")
             return uploadobj
         except Exception as ex:
             if retry > int(docservice_failureattempt):

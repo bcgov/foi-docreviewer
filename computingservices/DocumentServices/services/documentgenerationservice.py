@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 import requests
 import mimetypes
+import time
 
 
 
@@ -33,19 +34,34 @@ class documentgenerationservice:
         
 
     def generate_pdf(self, data, documenttypename='redline_redaction_summary', template_path='templates/redline_redaction_summary.docx'):
+        start_total = time.time()
+        
+        start_token = time.time()
         access_token= cdogsapiservice()._get_access_token()
+        logging.info(f"[PERF] CDOGS _get_access_token elapsed={time.time() - start_token:.3f}s")
+        
         template_cached = False
         templatefromdb= self.__gettemplate(documenttypename)
         if templatefromdb is not None and templatefromdb["cdogs_hash_code"] is not None:
+            start_check = time.time()
             template_cached = cdogsapiservice().check_template_cached(templatefromdb["cdogs_hash_code"], access_token)
+            logging.info(f"[PERF] CDOGS check_template_cached elapsed={time.time() - start_check:.3f}s")
             templatecdogshashcode = templatefromdb["cdogs_hash_code"]
             
         if templatefromdb is None or templatefromdb["cdogs_hash_code"] is None or not template_cached:
+            start_upload = time.time()
             templatecdogshashcode = cdogsapiservice().upload_template(template_path, access_token)
+            logging.info(f"[PERF] CDOGS upload_template elapsed={time.time() - start_upload:.3f}s")
             if templatefromdb is not None and templatefromdb["document_type_id"] is not None:
                 templatefromdb["cdogs_hash_code"] = templatecdogshashcode
                 documenttemplate().updatecdogshashcode(templatefromdb["document_type_id"], templatefromdb["cdogs_hash_code"])
-        return cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
+        
+        start_pdf = time.time()
+        result = cdogsapiservice().generate_pdf(templatecdogshashcode, data,access_token)
+        logging.info(f"[PERF] CDOGS generate_pdf payload={len(data)} elapsed={time.time() - start_pdf:.3f}s")
+        
+        logging.info(f"[PERF] documentgenerationservice.generate_pdf total elapsed={time.time() - start_total:.3f}s")
+        return result
     
     def __gettemplate(self,documenttypename='redline_redaction_summary'):
         try:

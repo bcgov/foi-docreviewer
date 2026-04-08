@@ -1,11 +1,13 @@
 from utils import getdbconnection, getfoidbconnection
 import logging
 import json
+import time
 
 class documentpageflag:
 
     @classmethod
     def get_all_pageflags(cls, ignoreflags):
+        start_time = time.time()
         conn = getdbconnection()
         pageflags = []
         try:
@@ -21,7 +23,9 @@ class documentpageflag:
                 for entry in result:
                     if entry[1] not in ignoreflags:
                         pageflags.append({"pageflagid": entry[0], "name": entry[1], "description": entry[2]})
+                logging.info(f"[PERF] DAL get_all_pageflags elapsed={time.time() - start_time:.3f}s")
                 return pageflags
+            logging.info(f"[PERF] DAL get_all_pageflags elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -34,6 +38,7 @@ class documentpageflag:
 
     @classmethod
     def get_all_programareas(cls):
+        start_time = time.time()
         conn = getfoidbconnection()
         programareas = {}
         try:
@@ -49,7 +54,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     programareas[entry[0]] = {"bcgovcode": entry[1], "iaocode": entry[2]}
+                logging.info(f"[PERF] DAL get_all_programareas elapsed={time.time() - start_time:.3f}s")
                 return programareas
+            logging.info(f"[PERF] DAL get_all_programareas elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -62,6 +69,7 @@ class documentpageflag:
 
     @classmethod
     def get_documentpageflag(cls, ministryrequestid, redactionlayerid, documentids):
+        start_time = time.time()
         conn = getdbconnection()
         documentpageflags = {}
         try:
@@ -80,7 +88,9 @@ class documentpageflag:
                 for entry in result:
                     sortedpageflags = sorted(entry[2], key=lambda x: x["page"]) 
                     documentpageflags[entry[0]] = {"pageflag": sortedpageflags , "attributes": entry[3]}
+                logging.info(f"[PERF] DAL get_documentpageflag request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
                 return documentpageflags
+            logging.info(f"[PERF] DAL get_documentpageflag request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -93,6 +103,7 @@ class documentpageflag:
 
     @classmethod
     def get_documents_lastmodified(cls, ministryrequestid, documentids):
+        start_time = time.time()
         conn = getdbconnection()
         docids = []
         try:
@@ -112,7 +123,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     docids.append(entry[0])
+                logging.info(f"[PERF] DAL get_documents_lastmodified request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
                 return docids
+            logging.info(f"[PERF] DAL get_documents_lastmodified request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -126,6 +139,7 @@ class documentpageflag:
 
     @classmethod
     def getpagecount_by_documentid(cls, ministryrequestid, documentids):
+        start_time = time.time()
         conn = getdbconnection()
         docpgs = {}
         try:
@@ -142,7 +156,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     docpgs[entry[0]] = {"pagecount": entry[1]}
+                logging.info(f"[PERF] DAL getpagecount_by_documentid request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
                 return docpgs
+            logging.info(f"[PERF] DAL getpagecount_by_documentid request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -155,6 +171,7 @@ class documentpageflag:
     
     @classmethod
     def getoriginalpagecount_by_documentid(cls, ministryrequestid, documentids):
+        start_time = time.time()
         conn = getdbconnection()
         docpgs = {}
         try:
@@ -171,7 +188,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     docpgs[entry[0]] = {"pagecount": entry[1]}
+                logging.info(f"[PERF] DAL getoriginalpagecount_by_documentid request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
                 return docpgs
+            logging.info(f"[PERF] DAL getoriginalpagecount_by_documentid request={ministryrequestid} docs={len(documentids)} elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -184,6 +203,7 @@ class documentpageflag:
 
     @classmethod
     def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos):
+        start_time = time.time()
         conn = getdbconnection()
         sections = []
         try:
@@ -204,7 +224,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     sections.append({"pageno": entry[0], "section": entry[1]})
+                logging.info(f"[PERF] DAL getsections_by_documentid_pageno layer={redactionlayerid} doc={documentid} pages={len(pagenos)} elapsed={time.time() - start_time:.3f}s")
                 return sections
+            logging.info(f"[PERF] DAL getsections_by_documentid_pageno layer={redactionlayerid} doc={documentid} pages={len(pagenos)} elapsed={time.time() - start_time:.3f}s")
             return None
 
         except Exception as error:
@@ -217,6 +239,7 @@ class documentpageflag:
 
     @classmethod
     def getdeletedpages(cls, ministryrequestid, docids):
+        start_time = time.time()
         conn = getdbconnection()
         deldocpages = []
         try:
@@ -234,7 +257,9 @@ class documentpageflag:
             if result is not None:
                 for entry in result:
                     deldocpages.append({"id": entry[0], "documentid": entry[1], "pagemetadata": entry[2]})
+                logging.info(f"[PERF] DAL getdeletedpages request={ministryrequestid} docs={len(docids)} elapsed={time.time() - start_time:.3f}s")
                 return deldocpages
+            logging.info(f"[PERF] DAL getdeletedpages request={ministryrequestid} docs={len(docids)} elapsed={time.time() - start_time:.3f}s")
             return None
         except Exception as error:
             logging.error("Error in getting deletedpages for requestid")
@@ -246,6 +271,7 @@ class documentpageflag:
 
     @classmethod
     def getrecentredactionlayerid(cls, ministryrequestid):
+        start_time = time.time()
         conn = getdbconnection()
         layerid = 1
         try:
@@ -261,6 +287,7 @@ class documentpageflag:
             '''
             cursor.execute(query, (ministryrequestid,))
             layerid = cursor.fetchone()
+            logging.info(f"[PERF] DAL getrecentredactionlayerid request={ministryrequestid} elapsed={time.time() - start_time:.3f}s")
             return layerid
         except Exception as error:
             logging.error("Error in getting recentredactionlayerid for requestid")
