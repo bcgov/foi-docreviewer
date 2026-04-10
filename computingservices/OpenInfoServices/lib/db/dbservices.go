@@ -470,15 +470,23 @@ func UpdatePDOIRecordStatus(db *sql.DB, foiministryrequestid int, publishingstat
 		log.Fatalf("Error updating previous versions: %v", err)
 	}
 
+	// Adjust oipublicationstatus_id for FOIPDRequest based on publishingstatus
+	var oipublicationstatusid int;
+	if publishingstatus == "unpublished" {
+		oipublicationstatusid = 3
+	} else {
+		oipublicationstatusid = 2
+	}
+
 	// Insert a new version of the record
 	_, err = tx.Exec(`
         INSERT INTO public."FOIProactiveDisclosureRequests" (foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, created_at, createdby, updated_at, updatedby, version, oipublicationstatus_id, earliesteligiblepublicationdate, processingstatus, processingmessage, sitemap_pages, isactive)
-        SELECT foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, $2, 'publishingservice', NULL, NULL, version + 1, oipublicationstatus_id, earliesteligiblepublicationdate, $3, $4, sitemap_pages, true
+        SELECT foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, $2, 'publishingservice', NULL, NULL, version + 1, $5, earliesteligiblepublicationdate, $3, $4, sitemap_pages, true
         FROM public."FOIProactiveDisclosureRequests"
         WHERE foiministryrequest_id = $1 AND isactive = false
         ORDER BY version DESC
         LIMIT 1
-    `, foiministryrequestid, time.Now(), publishingstatus, message)
+    `, foiministryrequestid, time.Now(), publishingstatus, message, oipublicationstatusid)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalf("Error inserting new version for status: %v", err)
