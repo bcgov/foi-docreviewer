@@ -4,6 +4,18 @@ import json
 
 
 class documenttemplate:
+    _ACTIVE_DOCUMENT_IDS_QUERY = """
+        SELECT d.documentid
+        FROM "Documents" d
+        JOIN "DocumentMaster" dm ON d.documentmasterid = dm.documentmasterid
+        LEFT JOIN "DocumentDeleted" dd
+            ON dm.filepath LIKE '%%' || dd.filepath || '%%'
+            AND dm.ministryrequestid = dd.ministryrequestid
+        WHERE d.documentid = ANY(%s)
+          AND (d.incompatible IS FALSE OR d.incompatible IS NULL)
+          AND (dd.deleted IS FALSE OR dd.deleted IS NULL);
+    """
+
     _DOCREVIEWER_RECORD_MAPPING_QUERY = """
         SELECT d.documentid, dm.recordid
         FROM "Documents" d
@@ -111,6 +123,25 @@ class documenttemplate:
         valid_record_ids = cls._get_active_foi_record_ids(request_id, record_ids)
         valid_document_ids = cls._map_valid_records_to_document_ids(valid_record_ids, recordid_to_docids)
         return list(set(valid_document_ids))  # Ensure unique document_ids
+
+    @classmethod
+    def getcompatibledocumentids(cls, document_ids):
+        if not document_ids:
+            return []
+
+        doc_conn = getdbconnection()
+        try:
+            doc_cursor = doc_conn.cursor()
+            doc_cursor.execute(cls._ACTIVE_DOCUMENT_IDS_QUERY, (document_ids,))
+            return [document_id for (document_id,) in doc_cursor.fetchall()]
+        except Exception as error:
+            logging.error("Error retrieving compatible document ids")
+            logging.error(error)
+            raise
+        finally:
+            doc_cursor.close()
+            if doc_conn is not None:
+                doc_conn.close()
 
     @classmethod
     def _get_docreviewer_record_mapping(cls, document_ids):
