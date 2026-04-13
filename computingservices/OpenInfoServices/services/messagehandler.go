@@ -25,6 +25,7 @@ const (
 	openstatus_sitemap           = "ready for crawling"
 	openstatus_sitemap_message   = "sitemap ready"
 	oistatus_published           = "Published"
+	oistatus_unpublished         = "Unpublished"
 )
 
 type OpenInfoMessage struct {
@@ -176,6 +177,8 @@ func Publish(msg OpenInfoMessage, db *sql.DB) {
 
 func PublishNow(msg OpenInfoMessage, db *sql.DB) {
 
+	//IMPORTANT!!! -> POTENTIAL BUG IS THAT PUBLISH NOW (WHICH SHOULD ONLY PUBLISH 1 REQUEST) MAY TRIGGER A SITEMAP/PUBLISH UPDATE FOR ALL RECORDS WHEN IT SHOULD ONLY UPDATE ONE ENTRY
+	// THE TWO UPDATESITEMAP FUNCTIONS ON LINE 185 AND 186 WILL CAUSE THIS ISSUE POSSIBLY. NEED TO TEST AND ADDRESS
 	Publish(msg, db)
 
 	fmt.Println("sitemap")
@@ -248,6 +251,18 @@ func Unpublish(msg OpenInfoMessage, db *sql.DB) {
 		}
 	}
 
+	// Retrieve oistatusid based on oipublicationstatuoiss_id
+	var oistatusid int
+	err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_unpublished).Scan(&oistatusid)
+	if err != nil {
+		log.Fatalf("Error retrieving oistatusid: %v", err)
+	}
+	// Update request state in FOIMinistryRequests
+	flowapierr := dbservice.HTTPPostFOIFlowSection(foiflowapi, msg.Foirequestid, msg.Foiministryrequestid, oistatusid)
+	if flowapierr != nil {
+		log.Fatalf("failed to update OI state: %v", flowapierr)
+		return
+	}
 }
 
 func UpdateSitemap(db *sql.DB) {
@@ -329,7 +344,7 @@ func UpdateSitemap(db *sql.DB) {
 		}
 	}
 
-	// Retrieve oipublicationstatus_id based on oistatus
+	// Retrieve oistatusid based on oipublicationstatuoiss_id
 	var oistatusid int
 	err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_published).Scan(&oistatusid)
 	if err != nil {
@@ -426,7 +441,7 @@ func UpdatePDSitemap(db *sql.DB) {
 		}
 	}
 
-	// Retrieve oipublicationstatus_id based on oistatus
+	// Retrieve oistatusid based on oipublicationstatuoiss_id
 	var oistatusid int
 	err = db.QueryRow(`SELECT oistatusid FROM public."OpenInformationStatuses" WHERE name = $1 and isactive = TRUE`, oistatus_published).Scan(&oistatusid)
 	if err != nil {

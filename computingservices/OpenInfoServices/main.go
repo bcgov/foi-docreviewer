@@ -227,6 +227,7 @@ func main() {
 		oiservices.UpdatePDSitemap(db)
 
 		fmt.Println("sitemap end")
+	
 	case "test":
 		//----- put testing script here for manual test -----
 

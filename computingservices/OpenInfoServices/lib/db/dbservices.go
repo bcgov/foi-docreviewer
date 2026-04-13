@@ -382,14 +382,7 @@ func UpdateOIRecordState(db *sql.DB, foiflowapi string, foiministryrequestid int
 	}
 
 	// Update request state in FOIMinistryRequests
-	// endpoint
-	section := "oistatusid"
-	endpoint := fmt.Sprintf("%s/api/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, foirequestid, foiministryrequestid, section)
-	fmt.Println(endpoint)
-
-	// payload
-	payload := map[string]int{"oistatusid": oistatusid}
-	_, err = httpservice.HttpPost(endpoint, payload)
+	err = HTTPPostFOIFlowSection(foiflowapi, foiministryrequestid, foirequestid, oistatusid)
 
 	return err
 }
@@ -470,23 +463,15 @@ func UpdatePDOIRecordStatus(db *sql.DB, foiministryrequestid int, publishingstat
 		log.Fatalf("Error updating previous versions: %v", err)
 	}
 
-	// Adjust oipublicationstatus_id for FOIPDRequest based on publishingstatus
-	var oipublicationstatusid int;
-	if publishingstatus == "unpublished" {
-		oipublicationstatusid = 3
-	} else {
-		oipublicationstatusid = 2
-	}
-
 	// Insert a new version of the record
 	_, err = tx.Exec(`
         INSERT INTO public."FOIProactiveDisclosureRequests" (foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, created_at, createdby, updated_at, updatedby, version, oipublicationstatus_id, earliesteligiblepublicationdate, processingstatus, processingmessage, sitemap_pages, isactive)
-        SELECT foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, $2, 'publishingservice', NULL, NULL, version + 1, $5, earliesteligiblepublicationdate, $3, $4, sitemap_pages, true
+        SELECT foiministryrequest_id, foiministryrequestversion_id, proactivedisclosurecategoryid, reportperiod, publicationdate, $2, 'publishingservice', NULL, NULL, version + 1, oipublicationstatus_id, earliesteligiblepublicationdate, $3, $4, sitemap_pages, true
         FROM public."FOIProactiveDisclosureRequests"
         WHERE foiministryrequest_id = $1 AND isactive = false
         ORDER BY version DESC
         LIMIT 1
-    `, foiministryrequestid, time.Now(), publishingstatus, message, oipublicationstatusid)
+    `, foiministryrequestid, time.Now(), publishingstatus, message)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalf("Error inserting new version for status: %v", err)
@@ -738,15 +723,8 @@ func UpdatePDOIRecordState(db *sql.DB, foiflowapi string, foiministryrequestid i
 	}
 
 	// Update request state in FOIMinistryRequests
-	// endpoint
-	section := "oistatusid"
-	endpoint := fmt.Sprintf("%s/api/foirequests/%d/ministryrequest/%d/section/%s", foiflowapi, foirequestid, foiministryrequestid, section)
-	fmt.Println(endpoint)
-
-	// payload
-	payload := map[string]int{"oistatusid": oistatusid}
-	_, err = httpservice.HttpPost(endpoint, payload)
-
+	err = HTTPPostFOIFlowSection(foiflowapi, foiministryrequestid, foirequestid, oistatusid)
+	
 	return err
 }
 
@@ -784,6 +762,15 @@ func LogPDError(db *sql.DB, foiministryrequestid int, publishingstatus string, m
 	if err != nil {
 		log.Fatalf("Error committing transaction: %v", err)
 	}
+
+	return err
+}
+
+func HTTPPostFOIFlowSection(foiflowapi, foiministryrequestid, foirequestid, oistatusid) {
+	endpoint := fmt.Sprintf("%s/api/foirequests/%d/ministryrequest/%d/section/oistatusid", foiflowapi, foirequestid, foiministryrequestid)
+	fmt.Println(endpoint)
+	payload := map[string]int{"oistatusid": oistatusid}
+	_, err = httpservice.HttpPost(endpoint, payload)
 
 	return err
 }
