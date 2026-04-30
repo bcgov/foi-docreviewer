@@ -121,6 +121,33 @@ func TestWriter_WritesFirstURLAndIndex(t *testing.T) {
 	}
 }
 
+func TestWriter_AppendsBucketAndPrefixToPublicBaseURL(t *testing.T) {
+	target := Target{
+		Bucket:          "dev-openinfopub",
+		Prefix:          "sitemap/",
+		PublicBaseURL:   "https://citz-foi-prod.objectstore.gov.bc.ca",
+		IndexFileName:   "sitemap_index.xml",
+		PageFilePattern: "sitemap_pages_%d.xml",
+		PageLimit:       2,
+	}
+	store := &fakeStore{objects: map[string][]byte{}}
+	repo := &fakeResultStore{}
+	w := NewWriter(store, repo, map[pub.Kind]Target{pub.KindOpenInfoSitemap: target})
+
+	got, err := w.Handle(context.Background(), testRequest())
+	if err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+	wantURL := "https://citz-foi-prod.objectstore.gov.bc.ca/dev-openinfopub/sitemap/sitemap_pages_1.xml"
+	if got.SitemapPageURL != wantURL {
+		t.Fatalf("SitemapPageURL = %q", got.SitemapPageURL)
+	}
+	index := string(store.objects["dev-openinfopub/sitemap/sitemap_index.xml"])
+	if !strings.Contains(index, wantURL) {
+		t.Fatalf("index missing sitemap page URL:\n%s", index)
+	}
+}
+
 func TestWriter_ReturnsAlreadyPresentForCompletedPublication(t *testing.T) {
 	existing := existingSitemapResult()
 	existing.Status = StatusAlreadyPresent
@@ -195,5 +222,79 @@ func TestWriter_DoesNotMarkSucceededWhenUploadFails(t *testing.T) {
 	}
 	if len(repo.marked) != 0 {
 		t.Fatalf("expected no MarkSucceeded calls, got %d", len(repo.marked))
+	}
+}
+
+func TestSitemapLocKey_DoesNotDoublePrefixRelativePath(t *testing.T) {
+	target := Target{
+		Prefix:        "dev-openinfopub/sitemap/",
+		PublicBaseURL: "https://example.gov.bc.ca/",
+	}
+
+	got, err := sitemapLocKey(target, "https://example.gov.bc.ca/dev-openinfopub/sitemap/sitemap_pages_1.xml")
+	if err != nil {
+		t.Fatalf("sitemapLocKey: %v", err)
+	}
+	if got != "dev-openinfopub/sitemap/sitemap_pages_1.xml" {
+		t.Fatalf("sitemapLocKey = %q", got)
+	}
+}
+
+func TestSitemapLocKey_StripsBucketFromPathStylePublicBaseURL(t *testing.T) {
+	target := Target{
+		Bucket:        "dev-openinfopub",
+		Prefix:        "sitemap/",
+		PublicBaseURL: "https://citz-foi-prod.objectstore.gov.bc.ca",
+	}
+
+	got, err := sitemapLocKey(target, "https://citz-foi-prod.objectstore.gov.bc.ca/dev-openinfopub/sitemap/sitemap_pages_1.xml")
+	if err != nil {
+		t.Fatalf("sitemapLocKey: %v", err)
+	}
+	if got != "sitemap/sitemap_pages_1.xml" {
+		t.Fatalf("sitemapLocKey = %q", got)
+	}
+}
+
+func TestWriter_NormalizesExistingDuplicatedSitemapPageURL(t *testing.T) {
+	target := Target{
+		Bucket:          "dev-openinfopub",
+		Prefix:          "sitemap/",
+		PublicBaseURL:   "https://citz-foi-prod.objectstore.gov.bc.ca",
+		IndexFileName:   "sitemap_index.xml",
+		PageFilePattern: "sitemap_pages_%d.xml",
+		PageLimit:       2,
+	}
+	store := &fakeStore{objects: map[string][]byte{
+		"dev-openinfopub/sitemap/sitemap_index.xml": []byte(`<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://citz-foi-prod.objectstore.gov.bc.ca/dev-openinfopub/sitemap/dev-openinfopub/sitemap/sitemap_pages_1.xml</loc>
+    <lastmod>2026-04-01</lastmod>
+  </sitemap>
+</sitemapindex>`),
+		"dev-openinfopub/sitemap/sitemap_pages_1.xml": []byte(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.gov.bc.ca/openinfopub/existing.html</loc>
+    <lastmod>2026-04-01</lastmod>
+  </url>
+</urlset>`),
+	}}
+	repo := &fakeResultStore{}
+	w := NewWriter(store, repo, map[pub.Kind]Target{pub.KindOpenInfoSitemap: target})
+
+	got, err := w.Handle(context.Background(), testRequest())
+	if err != nil {
+		t.Fatalf("Handle: %v", err)
+	}
+	wantURL := "https://citz-foi-prod.objectstore.gov.bc.ca/dev-openinfopub/sitemap/sitemap_pages_1.xml"
+	if got.SitemapPageURL != wantURL {
+		t.Fatalf("SitemapPageURL = %q", got.SitemapPageURL)
+	}
+	index := string(store.objects["dev-openinfopub/sitemap/sitemap_index.xml"])
+	if strings.Contains(index, "/sitemap/dev-openinfopub/sitemap/") {
+		t.Fatalf("index still contains duplicated sitemap URL:\n%s", index)
+	}
+	if !strings.Contains(index, wantURL) {
+		t.Fatalf("index missing normalized sitemap URL:\n%s", index)
 	}
 }

@@ -220,15 +220,21 @@ func (w *Writer) selectPage(ctx context.Context, target Target, req Request) (pa
 	if err != nil {
 		return pageSelection{}, err
 	}
+	pageURL := sitemapPageURL(target, pageKey)
+	indexUpdated := false
+	if pageURL != last.Loc {
+		index.Sitemaps[len(index.Sitemaps)-1].Loc = pageURL
+		indexUpdated = true
+	}
 	if pageSet.Contains(req.PublicURL) {
 		return pageSelection{
 			Index:        index,
 			Page:         pageSet,
 			IndexKey:     indexKey,
 			PageKey:      pageKey,
-			PageURL:      last.Loc,
+			PageURL:      pageURL,
 			Status:       StatusAlreadyPresent,
-			IndexUpdated: false,
+			IndexUpdated: indexUpdated,
 		}, nil
 	}
 	if len(pageSet.URLs) < target.PageLimit {
@@ -237,9 +243,9 @@ func (w *Writer) selectPage(ctx context.Context, target Target, req Request) (pa
 			Page:         pageSet,
 			IndexKey:     indexKey,
 			PageKey:      pageKey,
-			PageURL:      last.Loc,
+			PageURL:      pageURL,
 			Status:       StatusWritten,
-			IndexUpdated: false,
+			IndexUpdated: indexUpdated,
 		}, nil
 	}
 	return w.newPageSelection(index, target, req, indexKey, len(index.Sitemaps)+1)
@@ -248,7 +254,7 @@ func (w *Writer) selectPage(ctx context.Context, target Target, req Request) (pa
 func (w *Writer) newPageSelection(index SitemapIndex, target Target, req Request, indexKey string, pageNumber int) (pageSelection, error) {
 	pageName := fmt.Sprintf(target.PageFilePattern, pageNumber)
 	pageKey := objectKey(target.Prefix, pageName)
-	pageURL := joinURL(target.PublicBaseURL, pageName)
+	pageURL := sitemapPageURL(target, pageKey)
 	index.Append(SitemapEntry{
 		Loc:     pageURL,
 		LastMod: req.LastModified.Format("2006-01-02"),
@@ -277,13 +283,60 @@ func joinURL(base, key string) string {
 	return strings.TrimRight(base, "/") + "/" + strings.TrimLeft(key, "/")
 }
 
+func sitemapPageURL(target Target, pageKey string) string {
+	base := strings.TrimRight(target.PublicBaseURL, "/")
+	key := strings.TrimLeft(pageKey, "/")
+	prefix := strings.Trim(target.Prefix, "/")
+	bucket := strings.Trim(target.Bucket, "/")
+	if prefix != "" && strings.HasSuffix(base, "/"+prefix) {
+		return joinURL(base, path.Base(key))
+	}
+	if bucket != "" && strings.HasSuffix(base, "/"+bucket) {
+		return joinURL(base, key)
+	}
+	if bucket != "" && !strings.HasPrefix(key, bucket+"/") {
+		key = bucket + "/" + key
+	}
+	return joinURL(base, key)
+}
+
 func sitemapLocKey(target Target, loc string) (string, error) {
 	base := strings.TrimRight(target.PublicBaseURL, "/") + "/"
 	if strings.HasPrefix(loc, base) {
-		return objectKey(target.Prefix, strings.TrimPrefix(loc, base)), nil
+		return sitemapRelativeLocKey(target, strings.TrimPrefix(loc, base)), nil
 	}
-	if strings.Contains(loc, target.Prefix) {
-		return objectKey(target.Prefix, path.Base(loc)), nil
+	prefix := strings.Trim(target.Prefix, "/")
+	if prefix != "" {
+		if i := strings.Index(loc, prefix+"/"); i >= 0 {
+			return strings.TrimLeft(loc[i:], "/"), nil
+		}
+		if strings.HasSuffix(strings.TrimRight(loc, "/"), prefix) {
+			return prefix, nil
+		}
 	}
 	return "", pub.NewPermanent("sitemapping: sitemap loc outside configured public base url")
+}
+
+func sitemapRelativeLocKey(target Target, relative string) string {
+	relative = strings.TrimLeft(relative, "/")
+	prefix := strings.Trim(target.Prefix, "/")
+	bucket := strings.Trim(target.Bucket, "/")
+	if target.Bucket != "" {
+		bucketPrefix := bucket + "/"
+		relative = strings.TrimPrefix(relative, bucketPrefix)
+	}
+	if prefix != "" && bucket != "" {
+		duplicatedPrefix := prefix + "/" + bucket + "/" + prefix + "/"
+		relative = strings.TrimPrefix(relative, duplicatedPrefix)
+		if !strings.HasPrefix(relative, prefix+"/") && relative != prefix {
+			relative = prefix + "/" + relative
+		}
+	}
+	if prefix == "" || relative == "" {
+		return relative
+	}
+	if relative == prefix || strings.HasPrefix(relative, prefix+"/") {
+		return relative
+	}
+	return path.Join(prefix, relative)
 }
