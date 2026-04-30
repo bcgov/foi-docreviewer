@@ -23,10 +23,8 @@ oc process -f publicationservice-secrets.yaml \
   -p S3_ACCESS_KEY_ID='...' \
   -p S3_SECRET_ACCESS_KEY='...' \
   -p S3_PUBLIC_URL='...' \
-  -p SITEMAP_OPENINFO_BUCKET='...' \
-  -p SITEMAP_OPENINFO_PUBLIC_BASE_URL='...' \
-  -p SITEMAP_PD_BUCKET='...' \
-  -p SITEMAP_PD_PUBLIC_BASE_URL='...' \
+  -p SITEMAP_BUCKET='...' \
+  -p SITEMAP_PUBLIC_BASE_URL='...' \
   | oc apply -f -
 
 oc process -f publicationservice-build.yaml | oc apply -f -

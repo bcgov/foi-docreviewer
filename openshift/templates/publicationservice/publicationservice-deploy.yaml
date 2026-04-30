@@ -66,28 +66,30 @@ objects:
                   key: REDIS_PASSWORD
             - name: REDIS_TLS
               value: "${REDIS_TLS}"
-            - name: REDIS_STREAM_REQUESTED
-              value: "${REDIS_STREAM_REQUESTED}"
-            - name: REDIS_STREAM_COMPLETED
-              value: "${REDIS_STREAM_COMPLETED}"
-            - name: REDIS_CONSUMER_GROUP
-              value: "${REDIS_CONSUMER_GROUP}"
-            - name: REDIS_CONSUMER_NAME
+            - name: REDIS_STREAM_PUBLISH_REQUESTED
+              value: "${REDIS_STREAM_PUBLISH_REQUESTED}"
+            - name: REDIS_STREAM_PUBLISH_COMPLETED
+              value: "${REDIS_STREAM_PUBLISH_COMPLETED}"
+            - name: REDIS_PUBLISH_CONSUMER_GROUP
+              value: "${REDIS_PUBLISH_CONSUMER_GROUP}"
+            - name: REDIS_PUBLISH_CONSUMER_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: REDIS_STREAM_PD_REQUESTED
-              value: "${REDIS_STREAM_PD_REQUESTED}"
-            - name: REDIS_STREAM_PD_COMPLETED
-              value: "${REDIS_STREAM_PD_COMPLETED}"
-            - name: REDIS_PD_CONSUMER_GROUP
-              value: "${REDIS_PD_CONSUMER_GROUP}"
-            - name: REDIS_PD_CONSUMER_NAME
+            - name: REDIS_STREAM_UNPUBLISH_REQUESTED
+              value: "${REDIS_STREAM_UNPUBLISH_REQUESTED}"
+            - name: REDIS_STREAM_UNPUBLISH_COMPLETED
+              value: "${REDIS_STREAM_UNPUBLISH_COMPLETED}"
+            - name: REDIS_UNPUBLISH_CONSUMER_GROUP
+              value: "${REDIS_UNPUBLISH_CONSUMER_GROUP}"
+            - name: REDIS_UNPUBLISH_CONSUMER_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
             - name: SOURCE_ALLOWLIST
               value: "${SOURCE_ALLOWLIST}"
+            - name: UNPUBLISH_SOURCE_ALLOWLIST
+              value: "${UNPUBLISH_SOURCE_ALLOWLIST}"
             - name: CONSUMER_WORKERS
               value: "${CONSUMER_WORKERS}"
             - name: MAX_IN_FLIGHT_EVENTS
@@ -138,51 +140,29 @@ objects:
               value: "${AWS_REQUEST_CHECKSUM_CALCULATION}"
             - name: AWS_RESPONSE_CHECKSUM_VALIDATION
               value: "${AWS_RESPONSE_CHECKSUM_VALIDATION}"
-            - name: SITEMAP_OPENINFO_BUCKET
+            - name: SITEMAP_BUCKET
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: SITEMAP_OPENINFO_BUCKET
-            - name: SITEMAP_OPENINFO_PREFIX
-              value: "${SITEMAP_OPENINFO_PREFIX}"
-            - name: SITEMAP_OPENINFO_PUBLIC_BASE_URL
+                  key: SITEMAP_BUCKET
+            - name: SITEMAP_PREFIX
+              value: "${SITEMAP_PREFIX}"
+            - name: SITEMAP_PUBLIC_BASE_URL
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
-                  key: SITEMAP_OPENINFO_PUBLIC_BASE_URL
-            - name: SITEMAP_PD_BUCKET
-              valueFrom:
-                secretKeyRef:
-                  name: "${SECRETS}"
-                  key: SITEMAP_PD_BUCKET
-            - name: SITEMAP_PD_PREFIX
-              value: "${SITEMAP_PD_PREFIX}"
-            - name: SITEMAP_PD_PUBLIC_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: "${SECRETS}"
-                  key: SITEMAP_PD_PUBLIC_BASE_URL
+                  key: SITEMAP_PUBLIC_BASE_URL
             - name: SITEMAP_PAGE_LIMIT
               value: "${SITEMAP_PAGE_LIMIT}"
             - name: SITEMAP_SOURCE_ALLOWLIST
               value: "${SITEMAP_SOURCE_ALLOWLIST}"
-            - name: REDIS_STREAM_OI_SITEMAP_REQUESTED
-              value: "${REDIS_STREAM_OI_SITEMAP_REQUESTED}"
-            - name: REDIS_STREAM_OI_SITEMAP_COMPLETED
-              value: "${REDIS_STREAM_OI_SITEMAP_COMPLETED}"
-            - name: REDIS_OI_SITEMAP_CONSUMER_GROUP
-              value: "${REDIS_OI_SITEMAP_CONSUMER_GROUP}"
-            - name: REDIS_OI_SITEMAP_CONSUMER_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: REDIS_STREAM_PD_SITEMAP_REQUESTED
-              value: "${REDIS_STREAM_PD_SITEMAP_REQUESTED}"
-            - name: REDIS_STREAM_PD_SITEMAP_COMPLETED
-              value: "${REDIS_STREAM_PD_SITEMAP_COMPLETED}"
-            - name: REDIS_PD_SITEMAP_CONSUMER_GROUP
-              value: "${REDIS_PD_SITEMAP_CONSUMER_GROUP}"
-            - name: REDIS_PD_SITEMAP_CONSUMER_NAME
+            - name: REDIS_STREAM_SITEMAP_REQUESTED
+              value: "${REDIS_STREAM_SITEMAP_REQUESTED}"
+            - name: REDIS_STREAM_SITEMAP_COMPLETED
+              value: "${REDIS_STREAM_SITEMAP_COMPLETED}"
+            - name: REDIS_SITEMAP_CONSUMER_GROUP
+              value: "${REDIS_SITEMAP_CONSUMER_GROUP}"
+            - name: REDIS_SITEMAP_CONSUMER_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
@@ -311,34 +291,38 @@ parameters:
   displayName: Redis TLS
   required: true
   value: "false"
-- name: REDIS_STREAM_REQUESTED
-  displayName: OpenInfo Publish Requested Stream
+- name: REDIS_STREAM_PUBLISH_REQUESTED
+  displayName: Publish Requested Stream
   required: true
-  value: openinfo.publish.requested
-- name: REDIS_STREAM_COMPLETED
-  displayName: OpenInfo Publish Completed Stream
+  value: publication.publish.requested
+- name: REDIS_STREAM_PUBLISH_COMPLETED
+  displayName: Publish Completed Stream
   required: true
-  value: openinfo.publish.completed
-- name: REDIS_CONSUMER_GROUP
-  displayName: OpenInfo Publish Consumer Group
+  value: publication.publish.completed
+- name: REDIS_PUBLISH_CONSUMER_GROUP
+  displayName: Publish Consumer Group
   required: true
-  value: openinfo-publish
-- name: REDIS_STREAM_PD_REQUESTED
-  displayName: Proactive Disclosure Publish Requested Stream
+  value: publication-publish
+- name: REDIS_STREAM_UNPUBLISH_REQUESTED
+  displayName: Unpublish Requested Stream
   required: true
-  value: proactivedisclosure.publish.requested
-- name: REDIS_STREAM_PD_COMPLETED
-  displayName: Proactive Disclosure Publish Completed Stream
+  value: publication.unpublish.requested
+- name: REDIS_STREAM_UNPUBLISH_COMPLETED
+  displayName: Unpublish Completed Stream
   required: true
-  value: proactivedisclosure.publish.completed
-- name: REDIS_PD_CONSUMER_GROUP
-  displayName: Proactive Disclosure Publish Consumer Group
+  value: publication.unpublish.completed
+- name: REDIS_UNPUBLISH_CONSUMER_GROUP
+  displayName: Unpublish Consumer Group
   required: true
-  value: proactivedisclosure-publish
+  value: publication-unpublish
 - name: SOURCE_ALLOWLIST
   displayName: Publish Source Allowlist
   required: true
   value: openinfo.enqueue.service,openinfo.publish.service,proactivedisclosure.enqueue.service,proactivedisclosure.publish.service
+- name: UNPUBLISH_SOURCE_ALLOWLIST
+  displayName: Unpublish Source Allowlist
+  required: true
+  value: openinfo.workflow.service,proactivedisclosure.workflow.service
 - name: CONSUMER_WORKERS
   displayName: Consumer Workers
   required: true
@@ -399,14 +383,10 @@ parameters:
   displayName: AWS Response Checksum Validation
   required: true
   value: WHEN_REQUIRED
-- name: SITEMAP_OPENINFO_PREFIX
-  displayName: OpenInfo Sitemap Prefix
+- name: SITEMAP_PREFIX
+  displayName: Sitemap Prefix
   required: true
-  value: openinfopub/sitemap/
-- name: SITEMAP_PD_PREFIX
-  displayName: Proactive Disclosure Sitemap Prefix
-  required: true
-  value: proactivedisclosure/sitemap/
+  value: sitemap/
 - name: SITEMAP_PAGE_LIMIT
   displayName: Sitemap Page Limit
   required: true
@@ -415,30 +395,18 @@ parameters:
   displayName: Sitemap Source Allowlist
   required: true
   value: openinfo.workflow.service,proactivedisclosure.workflow.service
-- name: REDIS_STREAM_OI_SITEMAP_REQUESTED
-  displayName: OpenInfo Sitemap Requested Stream
+- name: REDIS_STREAM_SITEMAP_REQUESTED
+  displayName: Sitemap Requested Stream
   required: true
-  value: openinfo.sitemapping.requested
-- name: REDIS_STREAM_OI_SITEMAP_COMPLETED
-  displayName: OpenInfo Sitemap Completed Stream
+  value: publication.sitemapping.requested
+- name: REDIS_STREAM_SITEMAP_COMPLETED
+  displayName: Sitemap Completed Stream
   required: true
-  value: openinfo.sitemapping.completed
-- name: REDIS_OI_SITEMAP_CONSUMER_GROUP
-  displayName: OpenInfo Sitemap Consumer Group
+  value: publication.sitemapping.completed
+- name: REDIS_SITEMAP_CONSUMER_GROUP
+  displayName: Sitemap Consumer Group
   required: true
-  value: openinfo-sitemapping
-- name: REDIS_STREAM_PD_SITEMAP_REQUESTED
-  displayName: Proactive Disclosure Sitemap Requested Stream
-  required: true
-  value: proactivedisclosure.sitemapping.requested
-- name: REDIS_STREAM_PD_SITEMAP_COMPLETED
-  displayName: Proactive Disclosure Sitemap Completed Stream
-  required: true
-  value: proactivedisclosure.sitemapping.completed
-- name: REDIS_PD_SITEMAP_CONSUMER_GROUP
-  displayName: Proactive Disclosure Sitemap Consumer Group
-  required: true
-  value: proactivedisclosure-sitemapping
+  value: publication-sitemapping
 - name: CPU_REQUEST
   displayName: CPU Request
   required: true
