@@ -13,7 +13,7 @@ on:
     branches:
       - main
       - dev
-      - FOIMOD-4334_publication_service
+      - FOIMOD-4334
     paths:
       - "computingservices/publication-service/**"
       - ".github/workflows/publicationservice-ci.yml"

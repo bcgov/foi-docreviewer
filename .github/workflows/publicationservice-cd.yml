@@ -57,12 +57,12 @@ jobs:
           echo "ENV_NAME=test" >> $GITHUB_ENV
 
       - name: Set ENV variables for FOIMOD-4334 publication service branch
-        if: ${{ github.ref_name == 'FOIMOD-4334_publication_service' }}
+        if: ${{ github.ref_name == 'FOIMOD-4334' }}
         shell: bash
         run: |
           echo "For ${{ github.ref_name }} branch"
           echo "TAG_NAME=dev" >> $GITHUB_ENV
-          echo "BRANCH_NAME=FOIMOD-4334_publication_service" >> $GITHUB_ENV
+          echo "BRANCH_NAME=FOIMOD-4334" >> $GITHUB_ENV
           echo "ENV_NAME=dev" >> $GITHUB_ENV
 
       - name: Set build metadata
