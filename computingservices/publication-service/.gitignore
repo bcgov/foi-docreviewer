@@ -1,0 +1,40 @@
+# Binary builds and toolchain
+bin/
+out/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage files
+*.out
+*.test
+*.prof
+
+# Dependency directories 
+# (Vendoring is usually not committed unless specifically required)
+vendor/
+
+# Environment variables and secrets
+# (Never commit these!)
+.env
+.env.local
+.env.*.local
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# Docker/Podman
+.docker/
+
+# Git worktrees
+.worktrees/

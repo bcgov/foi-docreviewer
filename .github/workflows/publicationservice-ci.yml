@@ -1,0 +1,56 @@
+name: Publication Service CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - FOIMOD-4334
+    paths:
+      - "computingservices/publication-service/**"
+      - ".github/workflows/publicationservice-ci.yml"
+  pull_request:
+    branches:
+      - main
+      - dev
+      - FOIMOD-4334_publication_service
+    paths:
+      - "computingservices/publication-service/**"
+      - ".github/workflows/publicationservice-ci.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./computingservices/publication-service
+
+jobs:
+  docker-build-check:
+    runs-on: ubuntu-latest
+    name: Build dockerfile to ensure it works
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Docker build to check strictness
+        id: docker-build
+        run: |
+          docker build -f Dockerfile .
+
+  go-build-check:
+    runs-on: ubuntu-latest
+    name: Build and test Go application
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.0"
+          cache-dependency-path: computingservices/publication-service/go.sum
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Build the application
+        run: go build -v ./cmd/api
+      - name: Test the application
+        run: go test -shuffle=on ./...

@@ -116,3 +116,11 @@ azuredococrapi/*.exe
 azuredococrapi/main
 azuredococrapi/env/*
 
+# IDE
+.idea/
+
+# Python virtual env
+.venv/
+
+# Go
+.gocache/

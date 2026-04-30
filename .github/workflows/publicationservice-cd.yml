@@ -1,0 +1,108 @@
+name: Publication Service CD
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - FOIMOD-4334
+    paths:
+      - "computingservices/publication-service/**"
+      - ".github/workflows/publicationservice-cd.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./computingservices/publication-service
+
+env:
+  APP_NAME: "reviewer-publication-service"
+  TOOLS_NAME: "${{ secrets.OPENSHIFT4_REPOSITORY }}"
+
+jobs:
+  publicationservice-cd-by-push:
+    runs-on: ubuntu-24.04
+
+    if: github.event_name == 'push' && github.repository == 'bcgov/foi-docreviewer'
+    steps:
+      - name: Install oc
+        shell: bash
+        working-directory: .
+        run: |
+          mkdir -p "${RUNNER_TEMP}/oc"
+          curl -fsSL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.6/openshift-client-linux.tar.gz" -o "${RUNNER_TEMP}/oc/openshift-client-linux.tar.gz"
+          tar -xzf "${RUNNER_TEMP}/oc/openshift-client-linux.tar.gz" -C "${RUNNER_TEMP}/oc" oc
+          chmod +x "${RUNNER_TEMP}/oc/oc"
+          echo "${RUNNER_TEMP}/oc" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/oc/oc" version --client
+
+      - uses: actions/checkout@v6
+
+      - name: Set ENV variables for dev branch
+        if: ${{ github.ref_name == 'dev' }}
+        shell: bash
+        run: |
+          echo "For ${{ github.ref_name }} branch"
+          echo "TAG_NAME=dev" >> $GITHUB_ENV
+          echo "BRANCH_NAME=dev" >> $GITHUB_ENV
+          echo "ENV_NAME=dev" >> $GITHUB_ENV
+
+      - name: Set ENV variables for main branch
+        if: ${{ github.ref_name == 'main' }}
+        shell: bash
+        run: |
+          echo "For ${{ github.ref_name }} branch"
+          echo "TAG_NAME=test" >> $GITHUB_ENV
+          echo "BRANCH_NAME=main" >> $GITHUB_ENV
+          echo "ENV_NAME=test" >> $GITHUB_ENV
+
+      - name: Set ENV variables for FOIMOD-4334 publication service branch
+        if: ${{ github.ref_name == 'FOIMOD-4334_publication_service' }}
+        shell: bash
+        run: |
+          echo "For ${{ github.ref_name }} branch"
+          echo "TAG_NAME=dev" >> $GITHUB_ENV
+          echo "BRANCH_NAME=FOIMOD-4334_publication_service" >> $GITHUB_ENV
+          echo "ENV_NAME=dev" >> $GITHUB_ENV
+
+      - name: Set build metadata
+        shell: bash
+        run: |
+          echo "VERSION=${BRANCH_NAME}" >> $GITHUB_ENV
+          echo "COMMIT=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+      - name: Login Openshift
+        shell: bash
+        run: |
+          oc login --server=${{ secrets.OPENSHIFT4_LOGIN_REGISTRY }} --token=${{ secrets.OPENSHIFT4_SA_TOKEN }}
+
+      - name: Tools project
+        shell: bash
+        run: |
+          oc project ${{ env.TOOLS_NAME }}-tools
+
+      - name: Build from ${{ env.BRANCH_NAME }} branch
+        shell: bash
+        run: |
+          oc patch bc/${{ env.APP_NAME }}-build -p "{\"spec\":{\"source\":{\"contextDir\":\"/computingservices/publication-service\",\"git\":{\"ref\":\"${BRANCH_NAME}\"}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"dockerfilePath\":\"Dockerfile\",\"buildArgs\":[{\"name\":\"VERSION\",\"value\":\"${VERSION}\"},{\"name\":\"COMMIT\",\"value\":\"${COMMIT}\"},{\"name\":\"BUILD_DATE\",\"value\":\"${BUILD_DATE}\"}]}}}}"
+
+      - name: Start Build Openshift
+        shell: bash
+        run: |
+          oc start-build ${{ env.APP_NAME }}-build --wait
+
+      - name: Tag+Deploy for ${{ env.TAG_NAME }}
+        shell: bash
+        run: |
+          oc tag ${{ env.APP_NAME }}:latest ${{ env.APP_NAME }}:${{ env.TAG_NAME }}
+
+      - name: Restart deployment rollout
+        shell: bash
+        run: |
+          oc rollout restart deployment/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }}
+
+      - name: Watch deployment rollout
+        shell: bash
+        run: |
+          oc rollout status deployment/${{ env.APP_NAME }} -n ${{ env.TOOLS_NAME }}-${{ env.ENV_NAME }} --watch

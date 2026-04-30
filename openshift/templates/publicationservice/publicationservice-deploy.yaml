@@ -1,0 +1,457 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  annotations:
+    description: Deployment template for the publication service.
+    tags: "${APP_NAME}"
+  name: "${APP_NAME}-deploy"
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${APP_NAME}"
+    labels:
+      app: "${APP_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${APP_NAME}-deploy"
+  spec:
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 25%
+        maxSurge: 25%
+    replicas: 1
+    selector:
+      matchLabels:
+        app: "${APP_NAME}"
+    template:
+      metadata:
+        labels:
+          app: "${APP_NAME}"
+          app-group: "${APP_GROUP}"
+          template: "${APP_NAME}-deploy"
+          role: publication-service
+      spec:
+        containers:
+        - name: "${APP_NAME}"
+          image: "image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${IMAGE_STREAM_NAME_FULL}"
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 9085
+            protocol: TCP
+          env:
+            - name: PORT
+              value: "${PORT}"
+            - name: SERVICE_NAME
+              value: "${SERVICE_NAME}"
+            - name: ENVIRONMENT
+              value: "${ENVIRONMENT}"
+            - name: LOG_LEVEL
+              value: "${LOG_LEVEL}"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: POSTGRES_URL
+            - name: REDIS_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: REDIS_ADDR
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: REDIS_PASSWORD
+            - name: REDIS_TLS
+              value: "${REDIS_TLS}"
+            - name: REDIS_STREAM_REQUESTED
+              value: "${REDIS_STREAM_REQUESTED}"
+            - name: REDIS_STREAM_COMPLETED
+              value: "${REDIS_STREAM_COMPLETED}"
+            - name: REDIS_CONSUMER_GROUP
+              value: "${REDIS_CONSUMER_GROUP}"
+            - name: REDIS_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: REDIS_STREAM_PD_REQUESTED
+              value: "${REDIS_STREAM_PD_REQUESTED}"
+            - name: REDIS_STREAM_PD_COMPLETED
+              value: "${REDIS_STREAM_PD_COMPLETED}"
+            - name: REDIS_PD_CONSUMER_GROUP
+              value: "${REDIS_PD_CONSUMER_GROUP}"
+            - name: REDIS_PD_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SOURCE_ALLOWLIST
+              value: "${SOURCE_ALLOWLIST}"
+            - name: CONSUMER_WORKERS
+              value: "${CONSUMER_WORKERS}"
+            - name: MAX_IN_FLIGHT_EVENTS
+              value: "${MAX_IN_FLIGHT_EVENTS}"
+            - name: HANDLER_TIMEOUT
+              value: "${HANDLER_TIMEOUT}"
+            - name: RETRY_MAX_ATTEMPTS
+              value: "${RETRY_MAX_ATTEMPTS}"
+            - name: POISON_REPEAT_THRESHOLD
+              value: "${POISON_REPEAT_THRESHOLD}"
+            - name: SCHEDULER_INTERVAL
+              value: "${SCHEDULER_INTERVAL}"
+            - name: STUCK_TIMEOUT
+              value: "${STUCK_TIMEOUT}"
+            - name: OUTBOX_INTERVAL
+              value: "${OUTBOX_INTERVAL}"
+            - name: STREAM_MAXLEN
+              value: "${STREAM_MAXLEN}"
+            - name: STREAM_TRIM_INTERVAL
+              value: "${STREAM_TRIM_INTERVAL}"
+            - name: S3_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: S3_ENDPOINT
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: S3_ACCESS_KEY_ID
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: S3_SECRET_ACCESS_KEY
+            - name: S3_PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: S3_PUBLIC_URL
+            - name: S3_REGION
+              value: "${S3_REGION}"
+            - name: S3_USE_PATH_STYLE
+              value: "${S3_USE_PATH_STYLE}"
+            - name: S3_REQUEST_TIMEOUT
+              value: "${S3_REQUEST_TIMEOUT}"
+            - name: AWS_REQUEST_CHECKSUM_CALCULATION
+              value: "${AWS_REQUEST_CHECKSUM_CALCULATION}"
+            - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+              value: "${AWS_RESPONSE_CHECKSUM_VALIDATION}"
+            - name: SITEMAP_OPENINFO_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_OPENINFO_BUCKET
+            - name: SITEMAP_OPENINFO_PREFIX
+              value: "${SITEMAP_OPENINFO_PREFIX}"
+            - name: SITEMAP_OPENINFO_PUBLIC_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_OPENINFO_PUBLIC_BASE_URL
+            - name: SITEMAP_PD_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_PD_BUCKET
+            - name: SITEMAP_PD_PREFIX
+              value: "${SITEMAP_PD_PREFIX}"
+            - name: SITEMAP_PD_PUBLIC_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: SITEMAP_PD_PUBLIC_BASE_URL
+            - name: SITEMAP_PAGE_LIMIT
+              value: "${SITEMAP_PAGE_LIMIT}"
+            - name: SITEMAP_SOURCE_ALLOWLIST
+              value: "${SITEMAP_SOURCE_ALLOWLIST}"
+            - name: REDIS_STREAM_OI_SITEMAP_REQUESTED
+              value: "${REDIS_STREAM_OI_SITEMAP_REQUESTED}"
+            - name: REDIS_STREAM_OI_SITEMAP_COMPLETED
+              value: "${REDIS_STREAM_OI_SITEMAP_COMPLETED}"
+            - name: REDIS_OI_SITEMAP_CONSUMER_GROUP
+              value: "${REDIS_OI_SITEMAP_CONSUMER_GROUP}"
+            - name: REDIS_OI_SITEMAP_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: REDIS_STREAM_PD_SITEMAP_REQUESTED
+              value: "${REDIS_STREAM_PD_SITEMAP_REQUESTED}"
+            - name: REDIS_STREAM_PD_SITEMAP_COMPLETED
+              value: "${REDIS_STREAM_PD_SITEMAP_COMPLETED}"
+            - name: REDIS_PD_SITEMAP_CONSUMER_GROUP
+              value: "${REDIS_PD_SITEMAP_CONSUMER_GROUP}"
+            - name: REDIS_PD_SITEMAP_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              cpu: "${CPU_REQUEST}"
+              memory: "${MEMORY_REQUEST}"
+            limits:
+              cpu: "${CPU_LIMIT}"
+              memory: "${MEMORY_LIMIT}"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9085
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9085
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: "/dev/termination-log"
+          terminationMessagePolicy: File
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${APP_NAME}"
+    creationTimestamp:
+    labels:
+      app: "${APP_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${APP_NAME}-deploy"
+  spec:
+    ports:
+    - name: 9085-tcp
+      protocol: TCP
+      port: 9085
+      targetPort: 9085
+    selector:
+      app: "${APP_NAME}"
+    type: ClusterIP
+    sessionAffinity: None
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    name: "${APP_NAME}"
+    labels:
+      app: "${APP_NAME}"
+      app-group: "${APP_GROUP}"
+      template: "${APP_NAME}-deploy"
+  spec:
+    to:
+      kind: Service
+      name: "${APP_NAME}"
+      weight: 100
+    port:
+      targetPort: 9085-tcp
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    wildcardPolicy: None
+    host: "${TAG_NAME}-${APP_NAME}.apps.silver.devops.gov.bc.ca"
+parameters:
+- name: APP_NAME
+  displayName: Name
+  description: The name assigned to all of the OpenShift resources associated to the service instance.
+  required: true
+  value: reviewer-publication-service
+- name: APP_GROUP
+  displayName: App Group
+  description: The name assigned to all of the deployments in this project.
+  required: true
+  value: foi-docreviewer
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  description: The namespace of the OpenShift project containing the imagestream for the application.
+  required: true
+  value: d106d6-tools
+- name: IMAGE_STREAM_NAME_FULL
+  displayName: Full image stream name
+  description: Includes ImageStream name and tag, for example reviewer-publication-service:dev.
+  required: true
+  value: reviewer-publication-service:dev
+- name: TAG_NAME
+  displayName: Environment Tag Name
+  description: The tag name for this environment, e.g. dev, test, prod.
+  required: true
+  value: dev
+- name: SECRETS
+  displayName: Publication Service Secrets
+  description: Name of the secret containing publication-service values.
+  required: true
+  value: publication-service-secret
+- name: PORT
+  displayName: Port
+  required: true
+  value: "9085"
+- name: SERVICE_NAME
+  displayName: Service Name
+  required: true
+  value: publication-service
+- name: ENVIRONMENT
+  displayName: Environment
+  required: true
+  value: dev
+- name: LOG_LEVEL
+  displayName: Log Level
+  description: Structured application log level.
+  required: true
+  value: INFO
+- name: REDIS_TLS
+  displayName: Redis TLS
+  required: true
+  value: "false"
+- name: REDIS_STREAM_REQUESTED
+  displayName: OpenInfo Publish Requested Stream
+  required: true
+  value: openinfo.publish.requested
+- name: REDIS_STREAM_COMPLETED
+  displayName: OpenInfo Publish Completed Stream
+  required: true
+  value: openinfo.publish.completed
+- name: REDIS_CONSUMER_GROUP
+  displayName: OpenInfo Publish Consumer Group
+  required: true
+  value: openinfo-publish
+- name: REDIS_STREAM_PD_REQUESTED
+  displayName: Proactive Disclosure Publish Requested Stream
+  required: true
+  value: proactivedisclosure.publish.requested
+- name: REDIS_STREAM_PD_COMPLETED
+  displayName: Proactive Disclosure Publish Completed Stream
+  required: true
+  value: proactivedisclosure.publish.completed
+- name: REDIS_PD_CONSUMER_GROUP
+  displayName: Proactive Disclosure Publish Consumer Group
+  required: true
+  value: proactivedisclosure-publish
+- name: SOURCE_ALLOWLIST
+  displayName: Publish Source Allowlist
+  required: true
+  value: openinfo.enqueue.service,openinfo.publish.service,proactivedisclosure.enqueue.service,proactivedisclosure.publish.service
+- name: CONSUMER_WORKERS
+  displayName: Consumer Workers
+  required: true
+  value: "1"
+- name: MAX_IN_FLIGHT_EVENTS
+  displayName: Max In Flight Events
+  required: true
+  value: "64"
+- name: HANDLER_TIMEOUT
+  displayName: Handler Timeout
+  required: true
+  value: 30s
+- name: RETRY_MAX_ATTEMPTS
+  displayName: Retry Max Attempts
+  required: true
+  value: "5"
+- name: POISON_REPEAT_THRESHOLD
+  displayName: Poison Repeat Threshold
+  required: true
+  value: "3"
+- name: SCHEDULER_INTERVAL
+  displayName: Scheduler Interval
+  required: true
+  value: 5s
+- name: STUCK_TIMEOUT
+  displayName: Stuck Timeout
+  required: true
+  value: 2m
+- name: OUTBOX_INTERVAL
+  displayName: Outbox Interval
+  required: true
+  value: 1s
+- name: STREAM_MAXLEN
+  displayName: Stream Max Length
+  required: true
+  value: "100000"
+- name: STREAM_TRIM_INTERVAL
+  displayName: Stream Trim Interval
+  required: true
+  value: 1h
+- name: S3_REGION
+  displayName: S3 Region
+  required: true
+  value: us-east-1
+- name: S3_USE_PATH_STYLE
+  displayName: S3 Use Path Style
+  required: true
+  value: "true"
+- name: S3_REQUEST_TIMEOUT
+  displayName: S3 Request Timeout
+  required: true
+  value: 30s
+- name: AWS_REQUEST_CHECKSUM_CALCULATION
+  displayName: AWS Request Checksum Calculation
+  required: true
+  value: WHEN_REQUIRED
+- name: AWS_RESPONSE_CHECKSUM_VALIDATION
+  displayName: AWS Response Checksum Validation
+  required: true
+  value: WHEN_REQUIRED
+- name: SITEMAP_OPENINFO_PREFIX
+  displayName: OpenInfo Sitemap Prefix
+  required: true
+  value: openinfopub/sitemap/
+- name: SITEMAP_PD_PREFIX
+  displayName: Proactive Disclosure Sitemap Prefix
+  required: true
+  value: proactivedisclosure/sitemap/
+- name: SITEMAP_PAGE_LIMIT
+  displayName: Sitemap Page Limit
+  required: true
+  value: "50000"
+- name: SITEMAP_SOURCE_ALLOWLIST
+  displayName: Sitemap Source Allowlist
+  required: true
+  value: openinfo.workflow.service,proactivedisclosure.workflow.service
+- name: REDIS_STREAM_OI_SITEMAP_REQUESTED
+  displayName: OpenInfo Sitemap Requested Stream
+  required: true
+  value: openinfo.sitemapping.requested
+- name: REDIS_STREAM_OI_SITEMAP_COMPLETED
+  displayName: OpenInfo Sitemap Completed Stream
+  required: true
+  value: openinfo.sitemapping.completed
+- name: REDIS_OI_SITEMAP_CONSUMER_GROUP
+  displayName: OpenInfo Sitemap Consumer Group
+  required: true
+  value: openinfo-sitemapping
+- name: REDIS_STREAM_PD_SITEMAP_REQUESTED
+  displayName: Proactive Disclosure Sitemap Requested Stream
+  required: true
+  value: proactivedisclosure.sitemapping.requested
+- name: REDIS_STREAM_PD_SITEMAP_COMPLETED
+  displayName: Proactive Disclosure Sitemap Completed Stream
+  required: true
+  value: proactivedisclosure.sitemapping.completed
+- name: REDIS_PD_SITEMAP_CONSUMER_GROUP
+  displayName: Proactive Disclosure Sitemap Consumer Group
+  required: true
+  value: proactivedisclosure-sitemapping
+- name: CPU_REQUEST
+  displayName: CPU Request
+  required: true
+  value: "50m"
+- name: MEMORY_REQUEST
+  displayName: Memory Request
+  required: true
+  value: "250Mi"
+- name: CPU_LIMIT
+  displayName: CPU Limit
+  required: true
+  value: "150m"
+- name: MEMORY_LIMIT
+  displayName: Memory Limit
+  required: true
+  value: "500Mi"
