@@ -33,11 +33,8 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 	htmlFile := d.RequestID + ".html"
 	htmlURL := base + htmlFile
 
-	allLinks := append(letterLinks, htmlindex.Link{URL: htmlURL, FileName: htmlFile})
+	allLinks := letterLinks
 	allLinks = append(allLinks, otherLinks...)
-
-	allFileNames := append([]string{htmlFile}, fileNames...)
-	allFileSizes := append([]string{"0.00"}, fileSizes...)
 
 	titlePrefix, subject := kindLabels(d.Kind)
 
@@ -57,8 +54,8 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 		{Name: "letter_file_sizes", Content: strings.Join(letterSizes, ",")},
 		{Name: "notes", Content: ""},
 		{Name: "notes_file_sizes", Content: ""},
-		{Name: "files", Content: strings.Join(allFileNames, ",")},
-		{Name: "file_sizes", Content: strings.Join(allFileSizes, ",")},
+		{Name: "files", Content: strings.Join(fileNames, ",")},
+		{Name: "file_sizes", Content: strings.Join(fileSizes, ",")},
 		{Name: "applicant_type", Content: d.ApplicantType},
 		{Name: "fees", Content: fmt.Sprintf("$%.2f", float64(d.Fees)/100)},
 		{Name: "position_title", Content: " "},
