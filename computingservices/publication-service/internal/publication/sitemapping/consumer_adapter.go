@@ -48,7 +48,7 @@ func (a *NormalizerAdapter) Normalize(env *events.Envelope) (
 		return nil
 	})
 	completion := messaging.CompletionBuilder(func() (string, []byte, error) {
-		payload, err := json.Marshal(completionPayload(result))
+		payload, err := json.Marshal(completionPayload(req, result))
 		if err != nil {
 			return "", nil, err
 		}
@@ -72,8 +72,8 @@ func (a *NormalizerAdapter) Normalize(env *events.Envelope) (
 	return info, handler, completion, nil
 }
 
-func completionPayload(result shared.Result) map[string]any {
-	return map[string]any{
+func completionPayload(req shared.Request, result shared.Result) map[string]any {
+	m := map[string]any{
 		"tenant_id":              result.TenantID,
 		"publication_id":         result.PublicationID,
 		"public_url":             result.PublicURL,
@@ -86,6 +86,13 @@ func completionPayload(result shared.Result) map[string]any {
 		"publication_result_ref": result.PublicationResultRef,
 		"kind":                   kindToPayloadKind(result.Kind),
 	}
+	if req.FOIMinistryRequestID != nil {
+		m["foiministryrequest_id"] = *req.FOIMinistryRequestID
+	}
+	if req.FOIRequestID != nil {
+		m["foirequest_id"] = *req.FOIRequestID
+	}
+	return m
 }
 
 func kindToPayloadKind(k pub.Kind) string {

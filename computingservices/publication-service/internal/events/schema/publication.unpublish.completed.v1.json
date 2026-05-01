@@ -15,7 +15,9 @@
     "sitemap_index_key": { "type": "string" },
     "sitemap_page_key": { "type": "string" },
     "sitemap_result": { "type": "string", "minLength": 1 },
-    "kind": { "type": "string", "enum": ["openinfo", "proactivedisclosure"] }
+    "kind": { "type": "string", "enum": ["openinfo", "proactivedisclosure"] },
+    "foiministryrequest_id": { "type": "integer" },
+    "foirequest_id": { "type": "integer" }
   },
   "additionalProperties": true
 }

@@ -28,6 +28,8 @@
     "result": {"type": "string", "enum": ["written", "already_present"]},
     "index_updated": {"type": "boolean"},
     "publication_result_ref": {"type": "string", "minLength": 1},
-    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]}
+    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]},
+    "foiministryrequest_id": {"type": "integer"},
+    "foirequest_id": {"type": "integer"}
   }
 }

@@ -119,7 +119,7 @@ Used for publishing documents to the Open Information or Proactive Disclosure po
 - **Producer:** Publication Service
 - **Consumer:** Workflow Service / external subscribers
 - **Semantics:** Emitted through the outbox after the publish handler and inline sitemap write both succeed.
-- **Payload Fields:** `tenant_id`, `request_event_id`, `correlation_id`, `publication_id`, `public_url`, `html_key`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_page_url`, `sitemap_result`, `sitemap_index_updated`, `kind`.
+- **Payload Fields:** `tenant_id`, `request_event_id`, `correlation_id`, `publication_id`, `public_url`, `html_key`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_page_url`, `sitemap_result`, `sitemap_index_updated`, `kind`, `foiministryrequest_id` (optional), `foirequest_id` (optional).
 
 **Full Example Message:**
 ```json
@@ -142,7 +142,9 @@ Used for publishing documents to the Open Information or Proactive Disclosure po
     "sitemap_page_url": "https://openinfo.example.gov.bc.ca/sitemap_pages_1.xml",
     "sitemap_result": "written",
     "sitemap_index_updated": true,
-    "kind": "openinfo"
+    "kind": "openinfo",
+    "foiministryrequest_id": 22318,
+    "foirequest_id": 22318
   },
   "meta": { "retry_count": 0, "first_seen_at": "2026-04-23T10:05:00Z" }
 }
@@ -156,7 +158,7 @@ The Redis/event-driven flow emits `publication.unpublish.completed` after succes
 #### `publication.unpublish.requested`
 - **Producer:** Workflow Service
 - **Consumer:** Publication Service
-- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `public_repository`, `last_modified`.
+- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `public_repository`, `last_modified`, `foiministryrequest_id` (optional), `foirequest_id` (optional).
 
 **Full Example Message:**
 ```json
@@ -176,7 +178,9 @@ The Redis/event-driven flow emits `publication.unpublish.completed` after succes
       "bucket": "public-bucket",
       "prefix": "openinfo/EDU-2024-12345/"
     },
-    "last_modified": "2026-04-27"
+    "last_modified": "2026-04-27",
+    "foiministryrequest_id": 22318,
+    "foirequest_id": 22318
   },
   "meta": { "retry_count": 0, "first_seen_at": "2026-04-27T10:00:00Z" }
 }
@@ -186,7 +190,7 @@ The Redis/event-driven flow emits `publication.unpublish.completed` after succes
 - **Producer:** Publication Service
 - **Consumer:** Workflow Service / external subscribers
 - **Semantics:** Emitted through the outbox after object deletion and sitemap removal both succeed.
-- **Payload Fields:** `tenant_id`, `publication_id`, `request_event_id`, `status`, `public_repository_bucket`, `public_repository_prefix`, `objects_deleted`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_result`, `kind`.
+- **Payload Fields:** `tenant_id`, `publication_id`, `request_event_id`, `status`, `public_repository_bucket`, `public_repository_prefix`, `objects_deleted`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_result`, `kind`, `foiministryrequest_id` (optional), `foirequest_id` (optional).
 
 **Full Example Message:**
 ```json
@@ -208,7 +212,9 @@ The Redis/event-driven flow emits `publication.unpublish.completed` after succes
     "sitemap_index_key": "openinfopub/sitemap/sitemap_index.xml",
     "sitemap_page_key": "openinfopub/sitemap/sitemap_pages_1.xml",
     "sitemap_result": "removed",
-    "kind": "openinfo"
+    "kind": "openinfo",
+    "foiministryrequest_id": 22318,
+    "foirequest_id": 22318
   },
   "meta": { "retry_count": 0, "first_seen_at": "2026-04-27T10:05:00Z" }
 }
@@ -220,7 +226,7 @@ Used for standalone sitemap generation and updates for the Open Information and 
 #### `publication.sitemapping.requested`
 - **Producer:** Legacy or isolated sitemap workflow
 - **Consumer:** Publication Service standalone sitemap adapter
-- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `last_modified`, `publication_result_ref`.
+- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `last_modified`, `publication_result_ref`, `foiministryrequest_id` (optional), `foirequest_id` (optional).
 
 **Full Example Message:**
 ```json
@@ -237,7 +243,9 @@ Used for standalone sitemap generation and updates for the Open Information and 
     "publication_id": "OI-2024-12345",
     "public_url": "https://openinfo.example.gov.bc.ca/search/details/OI-2024-12345",
     "last_modified": "2026-04-23",
-    "publication_result_ref": "pub-res-123"
+    "publication_result_ref": "pub-res-123",
+    "foiministryrequest_id": 22318,
+    "foirequest_id": 22318
   },
   "meta": { "retry_count": 0, "first_seen_at": "2026-04-23T12:00:00Z" }
 }
@@ -246,7 +254,7 @@ Used for standalone sitemap generation and updates for the Open Information and 
 #### `publication.sitemapping.completed`
 - **Producer:** Publication Service standalone sitemap adapter
 - **Consumer:** External subscribers
-- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `last_modified`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_page_url`, `result`, `index_updated`, `publication_result_ref`.
+- **Payload Fields:** `tenant_id`, `kind`, `publication_id`, `public_url`, `last_modified`, `sitemap_index_key`, `sitemap_page_key`, `sitemap_page_url`, `result`, `index_updated`, `publication_result_ref`, `foiministryrequest_id` (optional), `foirequest_id` (optional).
 
 **Full Example Message:**
 ```json
@@ -268,7 +276,9 @@ Used for standalone sitemap generation and updates for the Open Information and 
     "sitemap_page_url": "https://openinfo.example.gov.bc.ca/sitemaps/sitemap-1.xml",
     "result": "written",
     "index_updated": true,
-    "publication_result_ref": "pub-res-123"
+    "publication_result_ref": "pub-res-123",
+    "foiministryrequest_id": 22318,
+    "foirequest_id": 22318
   },
   "meta": { "retry_count": 0, "first_seen_at": "2026-04-23T12:05:00Z" }
 }

@@ -19,9 +19,11 @@ type Request struct {
 	PublicationID    string
 	PublicURL        string
 	PublicRepository PublicRepositoryLocation
-	LastModified     time.Time
-	SourceEventID    string
-	CorrelationID    string
+	LastModified         time.Time
+	SourceEventID        string
+	CorrelationID        string
+	FOIMinistryRequestID *int
+	FOIRequestID         *int
 }
 
 type Result struct {

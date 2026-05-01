@@ -67,3 +67,48 @@ func TestNormalize_RejectsBadDate(t *testing.T) {
 		t.Fatal("expected error for bad date")
 	}
 }
+
+func TestNormalize_FOIIDs_PresentWhenProvided(t *testing.T) {
+	payload, _ := json.Marshal(map[string]any{
+		"tenant_id":              "a7d9b2f1-4c3e-4e8b-9a21-1c2e8f7b9d10",
+		"publication_id":         "HTH-001",
+		"public_url":             "https://public.example/foi-published/out/a7d9b2f1/HTH-001.html",
+		"last_modified":          "2025-04-01",
+		"publication_result_ref": "ref-123",
+		"kind":                   "openinfo",
+		"foiministryrequest_id":  22318,
+		"foirequest_id":          22319,
+	})
+	env := &events.Envelope{
+		EventID:       "evt-sm-001",
+		EventType:     events.TypePublicationSitemappingRequested,
+		SchemaVersion: events.SchemaVersionV1,
+		CorrelationID: "corr-sm-001",
+		Source:        "test",
+		Payload:       payload,
+	}
+	req, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if req.FOIMinistryRequestID == nil || *req.FOIMinistryRequestID != 22318 {
+		t.Errorf("FOIMinistryRequestID = %v, want 22318", req.FOIMinistryRequestID)
+	}
+	if req.FOIRequestID == nil || *req.FOIRequestID != 22319 {
+		t.Errorf("FOIRequestID = %v, want 22319", req.FOIRequestID)
+	}
+}
+
+func TestNormalize_FOIIDs_NilWhenAbsent(t *testing.T) {
+	env := goodSitemapEnvelope("openinfo")
+	req, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if req.FOIMinistryRequestID != nil {
+		t.Errorf("FOIMinistryRequestID = %v, want nil", req.FOIMinistryRequestID)
+	}
+	if req.FOIRequestID != nil {
+		t.Errorf("FOIRequestID = %v, want nil", req.FOIRequestID)
+	}
+}

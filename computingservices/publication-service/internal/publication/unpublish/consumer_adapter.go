@@ -73,7 +73,7 @@ func (a *NormalizerAdapter) Normalize(env *events.Envelope) (
 }
 
 func completionPayload(req shared.Request, result shared.Result) map[string]any {
-	return map[string]any{
+	m := map[string]any{
 		"tenant_id":                result.TenantID,
 		"publication_id":           result.PublicationID,
 		"request_event_id":         req.SourceEventID,
@@ -86,6 +86,13 @@ func completionPayload(req shared.Request, result shared.Result) map[string]any 
 		"sitemap_result":           result.SitemapResult,
 		"kind":                     kindToPayloadKind(req.Kind),
 	}
+	if req.FOIMinistryRequestID != nil {
+		m["foiministryrequest_id"] = *req.FOIMinistryRequestID
+	}
+	if req.FOIRequestID != nil {
+		m["foirequest_id"] = *req.FOIRequestID
+	}
+	return m
 }
 
 func kindToPayloadKind(k pub.Kind) string {

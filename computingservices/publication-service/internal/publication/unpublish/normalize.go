@@ -18,8 +18,10 @@ type requestedPayloadV1 struct {
 		Bucket string `json:"bucket"`
 		Prefix string `json:"prefix"`
 	} `json:"public_repository"`
-	LastModified string `json:"last_modified"`
-	Kind         string `json:"kind"`
+	LastModified         string `json:"last_modified"`
+	Kind                 string `json:"kind"`
+	FOIMinistryRequestID *int   `json:"foiministryrequest_id"`
+	FOIRequestID         *int   `json:"foirequest_id"`
 }
 
 func Normalize(env *events.Envelope) (shared.Request, error) {
@@ -47,9 +49,11 @@ func Normalize(env *events.Envelope) (shared.Request, error) {
 			Bucket: p.PublicRepository.Bucket,
 			Prefix: p.PublicRepository.Prefix,
 		},
-		LastModified:  lastModified,
-		SourceEventID: env.EventID,
-		CorrelationID: env.CorrelationID,
+		LastModified:         lastModified,
+		SourceEventID:        env.EventID,
+		CorrelationID:        env.CorrelationID,
+		FOIMinistryRequestID: p.FOIMinistryRequestID,
+		FOIRequestID:         p.FOIRequestID,
 	})
 }
 

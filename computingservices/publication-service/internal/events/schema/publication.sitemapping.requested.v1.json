@@ -11,6 +11,8 @@
     "public_url": {"type": "string", "format": "uri"},
     "last_modified": {"type": "string", "format": "date"},
     "publication_result_ref": {"type": "string", "minLength": 1},
-    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]}
+    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]},
+    "foiministryrequest_id": {"type": "integer"},
+    "foirequest_id": {"type": "integer"}
   }
 }
