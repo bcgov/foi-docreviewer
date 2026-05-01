@@ -77,7 +77,7 @@ func (a *NormalizerAdapter) Normalize(env *events.Envelope) (
 	})
 
 	completion := messaging.CompletionBuilder(func() (string, []byte, error) {
-		payload, err := publishcompletion.BuildPayload(d.TenantID, d.EventID, d.CorrelationID, publishResult, sitemapResult)
+		payload, err := publishcompletion.BuildPayload(d.TenantID, d.EventID, d.CorrelationID, d.FOIMinistryRequestID, d.FOIRequestID, publishResult, sitemapResult)
 		if err != nil {
 			return "", nil, err
 		}

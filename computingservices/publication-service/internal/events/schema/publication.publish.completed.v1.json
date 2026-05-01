@@ -17,6 +17,8 @@
     "sitemap_page_url": {"type": "string", "format": "uri"},
     "sitemap_result": {"type": "string"},
     "sitemap_index_updated": {"type": "boolean"},
-    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]}
+    "kind": {"type": "string", "enum": ["openinfo", "proactivedisclosure"]},
+    "foiministryrequest_id": {"type": "integer"},
+    "foirequest_id": {"type": "integer"}
   }
 }
