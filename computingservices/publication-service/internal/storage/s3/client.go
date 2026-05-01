@@ -96,12 +96,17 @@ func (c *Client) Copy(ctx context.Context, src, dst publish.S3Location) (publish
 			destKey := dst.Prefix + rel
 			copySource := src.Bucket + "/" + url.PathEscape(key)
 
-			copyCtx, copyCancel := context.WithTimeout(ctx, c.timeout)
-			_, err := c.api.CopyObject(copyCtx, &s3sdk.CopyObjectInput{
+			copyInput := &s3sdk.CopyObjectInput{
 				Bucket:     &dst.Bucket,
 				Key:        &destKey,
 				CopySource: &copySource,
-			})
+			}
+			if acl := publicReadACLForBucket(dst.Bucket); acl != nil {
+				copyInput.ACL = *acl
+			}
+
+			copyCtx, copyCancel := context.WithTimeout(ctx, c.timeout)
+			_, err := c.api.CopyObject(copyCtx, copyInput)
 			copyCancel()
 			if err != nil {
 				return res, classifyS3Error(err)
@@ -123,16 +128,31 @@ func (c *Client) Copy(ctx context.Context, src, dst publish.S3Location) (publish
 func (c *Client) Upload(ctx context.Context, bucket, key string, body []byte, contentType string) error {
 	uploadCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
-	_, err := c.api.PutObject(uploadCtx, &s3sdk.PutObjectInput{
+	putInput := &s3sdk.PutObjectInput{
 		Bucket:      &bucket,
 		Key:         &key,
 		Body:        bytes.NewReader(body),
 		ContentType: &contentType,
-	})
+	}
+	if acl := publicReadACLForBucket(bucket); acl != nil {
+		putInput.ACL = *acl
+	}
+
+	_, err := c.api.PutObject(uploadCtx, putInput)
 	if err != nil {
 		return classifyS3Error(err)
 	}
 	return nil
+}
+
+func publicReadACLForBucket(bucket string) *s3types.ObjectCannedACL {
+	switch bucket {
+	case "dev-openinfopub", "openinfopub":
+		acl := s3types.ObjectCannedACLPublicRead
+		return &acl
+	default:
+		return nil
+	}
 }
 
 // Get reads bucket/key into memory.
