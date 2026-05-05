@@ -45,6 +45,8 @@ type Request struct {
 	PublicationResultRef string
 	SourceEventID        string
 	CorrelationID        string
+	FOIMinistryRequestID *int
+	FOIRequestID         *int
 }
 
 // Result is stored in workflow_request.result after a sitemap request succeeds.

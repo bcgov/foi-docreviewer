@@ -103,16 +103,22 @@ func TestBuildTemplateVars_SeparatesLetters(t *testing.T) {
 
 	vars := buildTemplateVars(d, res, "https://cdn.example", now)
 
-	if len(vars.Links) != 3 {
-		t.Fatalf("expected 3 links, got %d", len(vars.Links))
+	if len(vars.Links) != 2 {
+		t.Fatalf("expected 2 links, got %d", len(vars.Links))
 	}
 	if vars.Links[0].FileName != "Response_Letter_1.pdf" {
 		t.Errorf("first link = %q, want letter", vars.Links[0].FileName)
 	}
-	if vars.Links[1].FileName != "X-001.html" {
-		t.Errorf("second link = %q, want HTML index", vars.Links[1].FileName)
+	if vars.Links[1].FileName != "record.pdf" {
+		t.Errorf("second link = %q, want other file", vars.Links[1].FileName)
 	}
-	if vars.Links[2].FileName != "record.pdf" {
-		t.Errorf("third link = %q, want other file", vars.Links[2].FileName)
+
+	for _, m := range vars.MetaTags {
+		if m.Name == "files" && m.Content != "record.pdf" {
+			t.Errorf("files meta = %q, want copied files only", m.Content)
+		}
+		if m.Name == "file_sizes" && m.Content != "0.98" {
+			t.Errorf("file_sizes meta = %q, want copied file sizes only", m.Content)
+		}
 	}
 }

@@ -74,6 +74,43 @@ func TestNormalize_OpenInfoPayload(t *testing.T) {
 	}
 }
 
+func TestNormalize_FOIIDs_PresentWhenProvided(t *testing.T) {
+	env := goodEnvelope()
+	env.Payload = json.RawMessage(`{
+		"tenant_id":       "a7d9b2f1-4c3e-4e8b-9a21-1c2e8f7b9d10",
+		"source":          {"bucket": "foi-raw",       "prefix": "incoming/a7d9b2f1/"},
+		"destination":     {"bucket": "foi-published", "prefix": "out/a7d9b2f1/"},
+		"axis_request_id": "HTH-2025-52023",
+		"kind":            "openinfo",
+		"foiministryrequest_id": 22318,
+		"foirequest_id": 22319
+	}`)
+	d, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if d.FOIMinistryRequestID == nil || *d.FOIMinistryRequestID != 22318 {
+		t.Errorf("FOIMinistryRequestID = %v, want 22318", d.FOIMinistryRequestID)
+	}
+	if d.FOIRequestID == nil || *d.FOIRequestID != 22319 {
+		t.Errorf("FOIRequestID = %v, want 22319", d.FOIRequestID)
+	}
+}
+
+func TestNormalize_FOIIDs_NilWhenAbsent(t *testing.T) {
+	env := goodEnvelope()
+	d, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if d.FOIMinistryRequestID != nil {
+		t.Errorf("FOIMinistryRequestID = %v, want nil", d.FOIMinistryRequestID)
+	}
+	if d.FOIRequestID != nil {
+		t.Errorf("FOIRequestID = %v, want nil", d.FOIRequestID)
+	}
+}
+
 func TestNormalize_PDPayload(t *testing.T) {
 	env := goodEnvelope()
 	env.Payload = goodPDPayload()

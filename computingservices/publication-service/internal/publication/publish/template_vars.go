@@ -33,11 +33,8 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 	htmlFile := d.RequestID + ".html"
 	htmlURL := base + htmlFile
 
-	allLinks := append(letterLinks, htmlindex.Link{URL: htmlURL, FileName: htmlFile})
+	allLinks := letterLinks
 	allLinks = append(allLinks, otherLinks...)
-
-	allFileNames := append([]string{htmlFile}, fileNames...)
-	allFileSizes := append([]string{"0.00"}, fileSizes...)
 
 	titlePrefix, subject := kindLabels(d.Kind)
 	var metaTags []htmlindex.MetaTag

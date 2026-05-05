@@ -82,3 +82,48 @@ func TestNormalize_PrefixNormalization(t *testing.T) {
 		t.Errorf("Prefix = %q, want %q", req.PublicRepository.Prefix, want)
 	}
 }
+
+func TestNormalize_FOIIDs_PresentWhenProvided(t *testing.T) {
+	payload, _ := json.Marshal(map[string]any{
+		"tenant_id":              "tenant-1",
+		"publication_id":         "EDU-2024-12345",
+		"public_url":             "https://example/public/EDU-2024-12345.html",
+		"public_repository":      map[string]string{"bucket": "public-bucket", "prefix": "openinfo/EDU-2024-12345"},
+		"last_modified":          "2026-04-27",
+		"kind":                   "openinfo",
+		"foiministryrequest_id":  22318,
+		"foirequest_id":          22319,
+	})
+	env := &events.Envelope{
+		EventID:       "event-1",
+		EventType:     events.TypePublicationUnpublishRequested,
+		SchemaVersion: events.SchemaVersionV1,
+		CorrelationID: "corr-1",
+		Source:        "test",
+		Payload:       payload,
+	}
+	req, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if req.FOIMinistryRequestID == nil || *req.FOIMinistryRequestID != 22318 {
+		t.Errorf("FOIMinistryRequestID = %v, want 22318", req.FOIMinistryRequestID)
+	}
+	if req.FOIRequestID == nil || *req.FOIRequestID != 22319 {
+		t.Errorf("FOIRequestID = %v, want 22319", req.FOIRequestID)
+	}
+}
+
+func TestNormalize_FOIIDs_NilWhenAbsent(t *testing.T) {
+	env := goodUnpublishEnvelope("openinfo")
+	req, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if req.FOIMinistryRequestID != nil {
+		t.Errorf("FOIMinistryRequestID = %v, want nil", req.FOIMinistryRequestID)
+	}
+	if req.FOIRequestID != nil {
+		t.Errorf("FOIRequestID = %v, want nil", req.FOIRequestID)
+	}
+}

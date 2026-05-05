@@ -14,6 +14,7 @@ func TestBuildPayload(t *testing.T) {
 		"tenant-1",
 		"request-event-1",
 		"corr-1",
+		nil, nil,
 		pub.PublishResult{
 			PublicationID: "pub-123",
 			HTMLKey:       "publications/pub-123/index.html",
@@ -55,5 +56,55 @@ func TestBuildPayload(t *testing.T) {
 		if got[key] != expected {
 			t.Fatalf("%s = %#v, want %#v", key, got[key], expected)
 		}
+	}
+}
+
+func TestBuildPayload_FOIIDs(t *testing.T) {
+	ministryID := 22318
+	requestID := 22319
+	payload, err := BuildPayload(
+		"tenant-1", "req-1", "corr-1",
+		&ministryID, &requestID,
+		pub.PublishResult{PublicationID: "pub-1", HTMLKey: "k", PublicURL: "https://x"},
+		sitemapping.Result{Status: sitemapping.StatusWritten},
+	)
+	if err != nil {
+		t.Fatalf("BuildPayload: %v", err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(payload, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if v, ok := got["foiministryrequest_id"]; !ok {
+		t.Error("missing foiministryrequest_id")
+	} else if int(v.(float64)) != 22318 {
+		t.Errorf("foiministryrequest_id = %v, want 22318", v)
+	}
+	if v, ok := got["foirequest_id"]; !ok {
+		t.Error("missing foirequest_id")
+	} else if int(v.(float64)) != 22319 {
+		t.Errorf("foirequest_id = %v, want 22319", v)
+	}
+}
+
+func TestBuildPayload_FOIIDs_OmittedWhenNil(t *testing.T) {
+	payload, err := BuildPayload(
+		"tenant-1", "req-1", "corr-1",
+		nil, nil,
+		pub.PublishResult{PublicationID: "pub-1", HTMLKey: "k", PublicURL: "https://x"},
+		sitemapping.Result{Status: sitemapping.StatusWritten},
+	)
+	if err != nil {
+		t.Fatalf("BuildPayload: %v", err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(payload, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := got["foiministryrequest_id"]; ok {
+		t.Error("foiministryrequest_id should be absent when nil")
+	}
+	if _, ok := got["foirequest_id"]; ok {
+		t.Error("foirequest_id should be absent when nil")
 	}
 }

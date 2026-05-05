@@ -25,23 +25,27 @@ type Domain struct {
 	ApplicantType string
 
 	// PD-specific (zero-valued for openinfo)
-	Category     string
-	ReportPeriod string
+	Category             string
+	ReportPeriod         string
+	FOIMinistryRequestID *int
+	FOIRequestID         *int
 }
 
 type requestedPayloadV1 struct {
-	TenantID      string          `json:"tenant_id"`
-	Kind          string          `json:"kind"`
-	Source        rawLocation     `json:"source"`
-	Destination   rawLocation     `json:"destination"`
-	AxisRequestID string          `json:"axis_request_id"`
-	Description   string          `json:"description"`
-	PublishedDate string          `json:"published_date"`
-	Contributor   string          `json:"contributor"`
-	Fees          int             `json:"fees"`
-	ApplicantType json.RawMessage `json:"applicant_type"`
-	Category      string          `json:"proactivedisclosure_category"`
-	ReportPeriod  string          `json:"report_period"`
+	TenantID             string          `json:"tenant_id"`
+	Kind                 string          `json:"kind"`
+	Source               rawLocation     `json:"source"`
+	Destination          rawLocation     `json:"destination"`
+	AxisRequestID        string          `json:"axis_request_id"`
+	Description          string          `json:"description"`
+	PublishedDate        string          `json:"published_date"`
+	Contributor          string          `json:"contributor"`
+	Fees                 int             `json:"fees"`
+	ApplicantType        json.RawMessage `json:"applicant_type"`
+	Category             string          `json:"proactivedisclosure_category"`
+	ReportPeriod         string          `json:"report_period"`
+	FOIMinistryRequestID *int            `json:"foiministryrequest_id"`
+	FOIRequestID         *int            `json:"foirequest_id"`
 }
 
 type rawLocation struct {
@@ -90,20 +94,22 @@ func Normalize(env *events.Envelope) (*Domain, error) {
 	}
 
 	return &Domain{
-		EventID:       env.EventID,
-		CorrelationID: env.CorrelationID,
-		TenantID:      p.TenantID,
-		Kind:          kind,
-		Source:        src,
-		Destination:   dst,
-		RequestID:     p.AxisRequestID,
-		Description:   p.Description,
-		PublishedDate: p.PublishedDate,
-		Contributor:   p.Contributor,
-		Fees:          p.Fees,
-		ApplicantType: applicantType,
-		Category:      p.Category,
-		ReportPeriod:  p.ReportPeriod,
+		EventID:              env.EventID,
+		CorrelationID:        env.CorrelationID,
+		TenantID:             p.TenantID,
+		Kind:                 kind,
+		Source:               src,
+		Destination:          dst,
+		RequestID:            p.AxisRequestID,
+		Description:          p.Description,
+		PublishedDate:        p.PublishedDate,
+		Contributor:          p.Contributor,
+		Fees:                 p.Fees,
+		ApplicantType:        applicantType,
+		Category:             p.Category,
+		ReportPeriod:         p.ReportPeriod,
+		FOIMinistryRequestID: p.FOIMinistryRequestID,
+		FOIRequestID:         p.FOIRequestID,
 	}, nil
 }
 

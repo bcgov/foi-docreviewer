@@ -181,6 +181,13 @@ Successful responses include the publication ID, public HTML URL, HTML object ke
 
 This REST path does not publish Redis events and does not emit `*.unpublish.completed` messages. The Redis consumer flow remains separate.
 
+Unpublish removes content in two separate steps:
+
+1. Public repository cleanup deletes every object under `public_repository.bucket` and `public_repository.prefix`. The prefix is normalized by trimming leading/trailing slashes and adding one trailing slash before deletion. For example, `bucket=dev-openinfopub` and `prefix=proactivedisclosure/PD-ECC-2026-047540` deletes objects under `s3://dev-openinfopub/proactivedisclosure/PD-ECC-2026-047540/`.
+2. Sitemap cleanup removes the entry whose `<loc>` exactly matches `public_url`. The `publication_id` is used for tracking, idempotency, and response data; it is not used to find the sitemap entry. If the sitemap contains a different URL string, including a different domain, path, or trailing slash, the sitemap result is `already_absent`.
+
+The service does not validate that the `public_url` domain matches `kind`. A `kind=proactivedisclosure` request with an `openinfo.gov.bc.ca` URL still attempts to remove that exact URL from the configured sitemap.
+
 OpenInfo example:
 
 ```bash

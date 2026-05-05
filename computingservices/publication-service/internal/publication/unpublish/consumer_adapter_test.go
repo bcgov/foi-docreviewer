@@ -145,4 +145,65 @@ func TestConsumerAdapter_CompletionPayloadFields(t *testing.T) {
 	if deleted, ok := payload["objects_deleted"].(float64); !ok || int(deleted) != 5 {
 		t.Errorf("objects_deleted = %v, want 5", payload["objects_deleted"])
 	}
+	if _, ok := payload["foiministryrequest_id"]; ok {
+		t.Error("foiministryrequest_id should be absent when not provided")
+	}
+	if _, ok := payload["foirequest_id"]; ok {
+		t.Error("foirequest_id should be absent when not provided")
+	}
+}
+
+func TestConsumerAdapter_FOIIDsInCompletionPayload(t *testing.T) {
+	adapter := NewNormalizerAdapter(&fakeService{
+		result: shared.Result{TenantID: "tenant-1", PublicationID: "EDU-2024-12345"},
+	})
+	payload, _ := json.Marshal(map[string]any{
+		"tenant_id":              "tenant-1",
+		"publication_id":         "EDU-2024-12345",
+		"public_url":             "https://example/public/EDU-2024-12345.html",
+		"public_repository":      map[string]string{"bucket": "public-bucket", "prefix": "openinfo/EDU-2024-12345"},
+		"last_modified":          "2026-04-27",
+		"kind":                   "openinfo",
+		"foiministryrequest_id":  22318,
+		"foirequest_id":          22319,
+	})
+	env := &events.Envelope{
+		EventID:       "event-1",
+		EventType:     events.TypePublicationUnpublishRequested,
+		SchemaVersion: events.SchemaVersionV1,
+		CorrelationID: "corr-1",
+		Source:        "test",
+		Payload:       payload,
+	}
+
+	_, handler, buildCompletion, err := adapter.Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if err := handler(context.Background()); err != nil {
+		t.Fatalf("handler: %v", err)
+	}
+
+	_, completionBytes, err := buildCompletion()
+	if err != nil {
+		t.Fatalf("buildCompletion: %v", err)
+	}
+	var completion events.Envelope
+	if err := json.Unmarshal(completionBytes, &completion); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	var completionPayload map[string]any
+	if err := json.Unmarshal(completion.Payload, &completionPayload); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+	if v, ok := completionPayload["foiministryrequest_id"]; !ok {
+		t.Error("missing foiministryrequest_id")
+	} else if int(v.(float64)) != 22318 {
+		t.Errorf("foiministryrequest_id = %v, want 22318", v)
+	}
+	if v, ok := completionPayload["foirequest_id"]; !ok {
+		t.Error("missing foirequest_id")
+	} else if int(v.(float64)) != 22319 {
+		t.Errorf("foirequest_id = %v, want 22319", v)
+	}
 }

@@ -17,6 +17,8 @@ type requestedPayloadV1 struct {
 	LastModified         string `json:"last_modified"`
 	PublicationResultRef string `json:"publication_result_ref"`
 	Kind                 string `json:"kind"`
+	FOIMinistryRequestID *int   `json:"foiministryrequest_id"`
+	FOIRequestID         *int   `json:"foirequest_id"`
 }
 
 func Normalize(env *events.Envelope) (shared.Request, error) {
@@ -44,6 +46,8 @@ func Normalize(env *events.Envelope) (shared.Request, error) {
 		PublicationResultRef: p.PublicationResultRef,
 		SourceEventID:        env.EventID,
 		CorrelationID:        env.CorrelationID,
+		FOIMinistryRequestID: p.FOIMinistryRequestID,
+		FOIRequestID:         p.FOIRequestID,
 	}, nil
 }
 
