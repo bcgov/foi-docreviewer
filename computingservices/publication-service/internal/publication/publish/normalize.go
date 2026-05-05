@@ -21,8 +21,12 @@ type Domain struct {
 	Description   string
 	PublishedDate string
 	Contributor   string
-	Fees          int
+	Fees          *int
 	ApplicantType string
+
+	// Title is the caller-supplied dc.title value.
+	// When empty the template falls back to "<kind> - <RequestID>".
+	Title string
 
 	// PD-specific (zero-valued for openinfo)
 	Category             string
@@ -40,8 +44,9 @@ type requestedPayloadV1 struct {
 	Description          string          `json:"description"`
 	PublishedDate        string          `json:"published_date"`
 	Contributor          string          `json:"contributor"`
-	Fees                 int             `json:"fees"`
+	Fees                 *int            `json:"fees"`
 	ApplicantType        json.RawMessage `json:"applicant_type"`
+	Title                string          `json:"title"`
 	Category             string          `json:"proactivedisclosure_category"`
 	ReportPeriod         string          `json:"report_period"`
 	FOIMinistryRequestID *int            `json:"foiministryrequest_id"`
@@ -106,6 +111,7 @@ func Normalize(env *events.Envelope) (*Domain, error) {
 		Contributor:          p.Contributor,
 		Fees:                 p.Fees,
 		ApplicantType:        applicantType,
+		Title:                p.Title,
 		Category:             p.Category,
 		ReportPeriod:         p.ReportPeriod,
 		FOIMinistryRequestID: p.FOIMinistryRequestID,

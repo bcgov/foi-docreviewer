@@ -7,6 +7,8 @@ import (
 	pub "publication-service/internal/publish"
 )
 
+func intPtr(v int) *int { return &v }
+
 func TestBuildTemplateVars_OpenInfo(t *testing.T) {
 	d := &Domain{
 		Kind:          pub.KindOpenInfo,
@@ -14,7 +16,7 @@ func TestBuildTemplateVars_OpenInfo(t *testing.T) {
 		Description:   "Test request",
 		PublishedDate: "2025-04-01",
 		Contributor:   "Ministry of Test",
-		Fees:          150,
+		Fees:          intPtr(150),
 		ApplicantType: "Business",
 		Destination:   pub.S3Location{Bucket: "foi-published", Prefix: "out/a7d9b2f1/"},
 	}
@@ -87,6 +89,56 @@ func TestBuildTemplateVars_ProactiveDisclosure(t *testing.T) {
 	if vars.Content != "Proactive Disclosure - PD-2025-001 PD test" {
 		t.Errorf("Content = %q", vars.Content)
 	}
+}
+
+func TestBuildTemplateVars_ExplicitTitle(t *testing.T) {
+	d := &Domain{
+		Kind:          pub.KindOpenInfo,
+		RequestID:     "HTH-2025-52023",
+		Title:         "Custom Title From Event",
+		Description:   "Test request",
+		PublishedDate: "2025-04-01",
+		Contributor:   "Ministry of Test",
+		Destination:   pub.S3Location{Bucket: "foi-published", Prefix: "out/a7d9b2f1/"},
+	}
+	res := pub.CopyResult{Objects: []pub.CopiedObject{{Key: "doc.pdf", Size: 1048576}}}
+	now := time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)
+
+	vars := buildTemplateVars(d, res, "https://public.example", now)
+
+	for _, m := range vars.MetaTags {
+		if m.Name == "dc.title" {
+			if m.Content != "Custom Title From Event" {
+				t.Errorf("dc.title = %q, want %q", m.Content, "Custom Title From Event")
+			}
+		}
+	}
+	if vars.Content != "Custom Title From Event Test request" {
+		t.Errorf("Content = %q", vars.Content)
+	}
+}
+
+func TestBuildTemplateVars_NilFeesRendersSpace(t *testing.T) {
+	d := &Domain{
+		Kind:        pub.KindOpenInfo,
+		RequestID:   "X-001",
+		Fees:        nil,
+		Destination: pub.S3Location{Bucket: "b", Prefix: "p/"},
+	}
+	res := pub.CopyResult{}
+	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	vars := buildTemplateVars(d, res, "https://public.example", now)
+
+	for _, m := range vars.MetaTags {
+		if m.Name == "fees" {
+			if m.Content != " " {
+				t.Errorf("fees = %q, want %q", m.Content, " ")
+			}
+			return
+		}
+	}
+	t.Error("fees meta tag not found")
 }
 
 func TestBuildTemplateVars_SeparatesLetters(t *testing.T) {

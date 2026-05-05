@@ -207,6 +207,36 @@ func TestNormalize_PDRequiresCategoryAndReportPeriod(t *testing.T) {
 	}
 }
 
+func TestNormalize_TitlePassedThrough(t *testing.T) {
+	env := goodEnvelope()
+	env.Payload = json.RawMessage(`{
+		"tenant_id":       "a7d9b2f1-4c3e-4e8b-9a21-1c2e8f7b9d10",
+		"source":          {"bucket": "foi-raw",       "prefix": "incoming/a7d9b2f1/"},
+		"destination":     {"bucket": "foi-published", "prefix": "out/a7d9b2f1/"},
+		"axis_request_id": "HTH-2025-52023",
+		"kind":            "openinfo",
+		"title":           "Custom Title"
+	}`)
+	d, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if d.Title != "Custom Title" {
+		t.Errorf("Title = %q, want %q", d.Title, "Custom Title")
+	}
+}
+
+func TestNormalize_TitleEmptyWhenAbsent(t *testing.T) {
+	env := goodEnvelope()
+	d, err := Normalize(env)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if d.Title != "" {
+		t.Errorf("Title = %q, want empty", d.Title)
+	}
+}
+
 func TestNormalize_EmptyPrefixPreserved(t *testing.T) {
 	env := goodEnvelope()
 	env.Payload = json.RawMessage(`{

@@ -38,8 +38,13 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 
 	titlePrefix, subject := kindLabels(d.Kind)
 
+	dcTitle := d.Title
+	if dcTitle == "" {
+		dcTitle = titlePrefix + " - " + d.RequestID
+	}
+
 	metaTags := []htmlindex.MetaTag{
-		{Name: "dc.title", Content: titlePrefix + " - " + d.RequestID},
+		{Name: "dc.title", Content: dcTitle},
 		{Name: "dc.description", Content: d.Description},
 		{Name: "high_level_subject", Content: subject},
 		{Name: "dc.subject", Content: subject},
@@ -57,7 +62,7 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 		{Name: "files", Content: strings.Join(fileNames, ",")},
 		{Name: "file_sizes", Content: strings.Join(fileSizes, ",")},
 		{Name: "applicant_type", Content: d.ApplicantType},
-		{Name: "fees", Content: fmt.Sprintf("$%.2f", float64(d.Fees)/100)},
+		{Name: "fees", Content: formatFees(d.Fees)},
 		{Name: "position_title", Content: " "},
 		{Name: "individual_name", Content: ""},
 	}
@@ -73,8 +78,15 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 		Title:    d.RequestID,
 		MetaTags: metaTags,
 		Links:    allLinks,
-		Content:  titlePrefix + " - " + d.RequestID + " " + d.Description,
+		Content:  dcTitle + " " + d.Description,
 	}
+}
+
+func formatFees(fees *int) string {
+	if fees == nil {
+		return " "
+	}
+	return fmt.Sprintf("$%.2f", float64(*fees)/100)
 }
 
 func kindLabels(k pub.Kind) (titlePrefix, subject string) {
