@@ -29,7 +29,6 @@ namespace MCS.FOI.ExcelToPDF
         /// </summary>
         public Stream SourceStream { get; set; }
 
-
         /// <summary>
         /// Flag to indicate to Syncfusion Xls to PDF Conversion, whether its a single page output for all spreadsheets
         /// </summary>
@@ -72,17 +71,21 @@ namespace MCS.FOI.ExcelToPDF
 
                         // Error Hanlding for workbooks that take more than X seconds to open (this will ensure this job is dropped and other conversion jobs in queue are handled correctly)
                         IWorkbook workbook = null;
+                        Log.Information("Attempting to open workbook");
                         var task = Task.Run(() => application.Workbooks.Open(SourceStream));
                         if (task.Wait(TimeSpan.FromSeconds(OpenFileWaitTimeInSeconds)))
                         {
                             if (task.IsFaulted)
                             {
+                                Log.Error(task.Exception, "Workbook opening faulted");
                                 throw task.Exception.InnerException ?? task.Exception;
                             }
                             workbook = task.Result;
+                            Log.Information("Workbook opened successfully");
                         }
                         else
                         {
+                            Log.Error("Timeout opening workbook after {TimeoutSeconds}s", OpenFileWaitTimeInSeconds);
                             throw new TimeoutException($"TimeoutError: Opening the Excel file exceeded the {OpenFileWaitTimeInSeconds} second timeout limit");
                         }
                             
@@ -106,6 +109,7 @@ namespace MCS.FOI.ExcelToPDF
                                             {
                                                 if (worksheet.Visibility == WorksheetVisibility.Visible)
                                                 {
+                                                    Log.Debug("Converting worksheet: {WorksheetName}", worksheet.Name);
                                                     output = SaveToPdf(worksheet, output);
                                                 }
                                             }
@@ -126,16 +130,17 @@ namespace MCS.FOI.ExcelToPDF
 
                                     converted = true;
                                     message = $"File processed successfully!";
+                                    Log.Information("Excel conversion succeeded");
                                     workbook.Close();
                             }
                             catch(Exception e)
                             {
+                                Log.Warning(e, "Conversion attempt {Attempt}/{MaxAttempts} failed", attempt, FailureAttemptCount);
                                 message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                                Log.Error(message);
-                                Console.WriteLine(message);
                                 workbook.Close();
                                 if (attempt == FailureAttemptCount)
                                 {
+                                    Log.Error(e, "All {MaxAttempts} conversion attempts exhausted", FailureAttemptCount);
                                     throw;
                                 }
                                 Thread.Sleep(WaitTimeinMilliSeconds);
@@ -145,18 +150,15 @@ namespace MCS.FOI.ExcelToPDF
                 }
                 else
                 {
-                    message = $"Excel File does not exist!";
+                    message = "Excel file stream is null or empty";
                     Log.Error(message);
                 }
             }
             catch (Exception ex)
             {
                 converted = false;
-                string errorMessage = $"Exception occured while coverting an excel file, exception :  {ex.Message}";
-                string error = $"{errorMessage} , stacktrace : {ex.StackTrace}";
-                Log.Error(error);
-                Console.WriteLine(error);
-                throw new Exception(errorMessage);
+                Log.Error(ex, "Unhandled error during Excel conversion");
+                throw new Exception($"Exception occured while coverting an excel file, exception :  {ex.Message}");
             }
 
             return (converted, message, output);
@@ -171,18 +173,18 @@ namespace MCS.FOI.ExcelToPDF
         {
             try
             {
+                Log.Debug("Rendering worksheet {WorksheetName} to PDF", worksheet.Name);
                 XlsIORenderer renderer = new XlsIORenderer();
                 worksheet.PageSetup.PrintComments = ExcelPrintLocation.PrintSheetEnd;
                 using var pdfDocument = renderer.ConvertToPDF(worksheet, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.PageSettings.Margins = new Syncfusion.Pdf.Graphics.PdfMargins() { All = 10 };
                 pdfDocument.Compression = PdfCompressionLevel.Normal;
                 pdfDocument.Save(output);
-               
+                Log.Debug("Worksheet {WorksheetName} rendered successfully", worksheet.Name);
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                Log.Error(ex, "Error rendering worksheet {WorksheetName} to PDF", worksheet.Name);
                 throw;
             }
             return output;
@@ -196,14 +198,15 @@ namespace MCS.FOI.ExcelToPDF
         {
             try
             {
+                Log.Debug("Rendering workbook to PDF");
                 XlsIORenderer renderer = new XlsIORenderer();
                 using PdfDocument pdfDocument = renderer.ConvertToPDF(workbook, new XlsIORendererSettings() { LayoutOptions = LayoutOptions.FitAllColumnsOnOnePage });
                 pdfDocument.Save(output);
+                Log.Debug("Workbook rendered to PDF successfully");
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting Excel file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                Log.Error(ex, "Error rendering workbook to PDF");
                 throw;
             }
             return output;

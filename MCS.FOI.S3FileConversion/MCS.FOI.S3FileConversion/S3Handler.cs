@@ -9,6 +9,7 @@ using MCS.FOI.ExcelToPDF;
 using MCS.FOI.MSGToPDF;
 using MCS.FOI.S3FileConversion.Utilities;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using StackExchange.Redis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -66,16 +67,17 @@ namespace MCS.FOI.S3FileConversion
                         var fileKey = filePath.Split(S3Host + '/')[1];
                         var presignedGetURL = GetPresignedURL(s3, fileKey, HttpVerb.GET);
 
-                       
+                        Log.Information("Fetching file from S3");
                         using HttpResponseMessage response = await client.GetAsync(presignedGetURL);
                         response.EnsureSuccessStatusCode();
                         using Stream responseStream = await response.Content.ReadAsStreamAsync();
-
+                        Log.Information("Successfully fetched file from S3");
                         // Convert File
                         string extension = Path.GetExtension(fileKey).ToLower();
 
                         output = new MemoryStream();
                         attachments = new();
+                        Log.Information("Starting conversion of {extension} file", extension);
                         switch (extension)
                         {
                             case ".xls":
@@ -98,18 +100,22 @@ namespace MCS.FOI.S3FileConversion
                                 break;
                         }
 
+                        Log.Information("Conversion complete, converted filesize: {ConvertedBytes} bytes", output.Length);
 
                         // Save converted pdf back to s3
                         var newKey = Path.ChangeExtension(fileKey, ".pdf");
                         var presignedPutURL = GetPresignedURL(s3, newKey, HttpVerb.PUT);
 
+                        Log.Information("Uploading converted file to S3: {NewKey}", newKey);
                         output.Position = 0;
                         convertedSize = output.Length;
                         using (StreamContent strm = new(output))
                         {
                             strm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                             using HttpResponseMessage putRespMsg = await client.PutAsync(presignedPutURL, strm);
-                            
+                            putRespMsg.EnsureSuccessStatusCode();
+                            Log.Information("Successfully uploaded converted file: {NewKey}", newKey);
+
                             if (attachments != null && attachments.Count > 0)
                             {
                                 
@@ -135,12 +141,14 @@ namespace MCS.FOI.S3FileConversion
                                     var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                                     attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
                                     returnAttachments.Add(attachment.Value);
+                                    Log.Information("Uploading attachment {Filename} to S3: {AttachmentKey}", attachment.Value["filename"], newAttachmentKey);
                                     using (StreamContent attachmentstrm = new StreamContent(attachment.Key))
                                     {
                                         attachmentstrm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                                         using (HttpResponseMessage attachementresponse = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm))
                                         {
                                             attachementresponse.EnsureSuccessStatusCode();
+                                            Log.Information("Successfully uploaded attachment: {AttachmentKey}", newAttachmentKey);
                                         }
 
                                     }
@@ -156,11 +164,13 @@ namespace MCS.FOI.S3FileConversion
             catch (AmazonS3Exception s3ex)
             {
                 Console.WriteLine($"Error encountered on server. Message:'{s3ex.Message}' getting list of objects.");
+                Log.Error(s3ex, "S3 error processing file");
                 throw s3ex;
             }
             catch (Exception exception)
             {
                 Console.WriteLine($"Error encountered on server. Message:'{exception.Message}' getting list of objects.");
+                Log.Error(exception, "Error processing file");
                 throw;
             }
             finally

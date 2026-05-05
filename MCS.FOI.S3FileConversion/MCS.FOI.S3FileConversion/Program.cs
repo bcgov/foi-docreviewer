@@ -1,7 +1,9 @@
 ﻿using MCS.FOI.S3FileConversion.Utilities;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using Serilog.Context;
 using StackExchange.Redis;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -14,12 +16,15 @@ namespace MCS.FOI.S3FileConversion
 
             try
             {
-                Log.Information("MCS FOI S3FileConversion Service is up");
-                Console.WriteLine("MCS FOI S3FileConversion Service is up");
                 var configurationbuilder = new ConfigurationBuilder()
                         .AddJsonFile($"appsettings.json", true, true)
                         .AddEnvironmentVariables().Build();
 
+                Log.Logger = new LoggerConfiguration()
+                    .ReadFrom.Configuration(configurationbuilder)
+                    .CreateLogger();
+
+                Log.Information("MCS FOI S3FileConversion Service is up");
 
                 //Fetching Configuration values from setting file { appsetting.{ environment_platform}.json}
                 ConversionSettings.SyncfusionLicense = configurationbuilder.GetSection("ConversionSettings:SyncfusionLicense").Value;
@@ -85,12 +90,20 @@ namespace MCS.FOI.S3FileConversion
                 try
                 {
                     db.StreamCreateConsumerGroup(streamKey, consumerGroup, "$");
+                    Log.Information("Redis consumer group {ConsumerGroup} created on stream {StreamKey}",
+                        consumerGroup.Trim(), streamKey);
                 }
                 catch (Exception ex)
                 {
                     if (ex.Message != "BUSYGROUP Consumer Group name already exists")
                     {
-                        Console.WriteLine($"Error happened while accessing REDIS Stream : {streamKey} | Consumergrourp : {consumerGroup} | Host : {eventHubHost} | | HostPort : {eventHubPort}");
+                        Log.Error(ex, "Error creating Redis consumer group {ConsumerGroup} on stream {StreamKey} at {Host}:{Port}",
+                            consumerGroup, streamKey, eventHubHost, eventHubPort);
+                    }
+                    else
+                    {
+                        Log.Information("Redis consumer group {ConsumerGroup} already exists on stream {StreamKey}",
+                            consumerGroup.Trim(), streamKey);
                     }
                 }
 
@@ -101,21 +114,32 @@ namespace MCS.FOI.S3FileConversion
                     {
                         foreach (StreamEntry message in messages)
                         {
+                            using var _rn = LogContext.PushProperty("RequestNumber", (string)message["requestnumber"]);
+                            using var _bc = LogContext.PushProperty("BCGovCode", (string)message["bcgovcode"]);
+                            using var _mr = LogContext.PushProperty("MinistryRequestId", (string)message["ministryrequestid"]);
+                            using var _ji = LogContext.PushProperty("JobId", (string)message["jobid"]);
+                            using var _fn = LogContext.PushProperty("Filename", (string)message["filename"]);
+                            using var _fp = LogContext.PushProperty("Filepath", (string)message["s3filepath"]);
+
                             using (DBHandler dbhandler = new DBHandler())
                             {
                                 try
                                 {
                                     // Console.WriteLine("Message ID: {0} Converting: {1}", message.Id, message["s3filepath"]);
 
-
                                     ValidateMessage(message);
                                     await dbhandler.recordJobStart(message);
+                                    Log.Information("Job started");
                                     using (S3Handler s3handler = new S3Handler())
                                     {
                                         var filePath = (string)message["s3filepath"];
                                         string bucket = filePath.Split("/")[3];
                                         S3AccessKeys s3AccessKeys = await dbhandler.getAccessKeyFromDB(bucket);
+                                        var sw = Stopwatch.StartNew();
                                         var (attachments, convertedSize) = await s3handler.ConvertFile(message, s3AccessKeys);
+                                        sw.Stop();
+                                        Log.Information("File conversion completed in {Duration}ms", sw.Elapsed.TotalMilliseconds);
+
                                         // Record any child tasks before sending them to Redis Streams
                                         Dictionary<string, Dictionary<string, string>> jobIDs = await dbhandler.recordJobEnd(message, false, "", attachments);
                                         if (attachments != null && attachments.Count > 0)
@@ -148,6 +172,8 @@ namespace MCS.FOI.S3FileConversion
                                                         new("createdby", message["createdby"]),
                                                         new("usertoken", message["usertoken"])
                                                     });
+                                                    Log.Information("Queued attachment to DEDUPE STREAM {TargetStream}: {AttachmentFilename} ({AttachmentExtension})", dedupeStreamKey,
+                                                        attachments[i]["filename"], attachments[i]["extension"]);
                                                 }
                                                 else
                                                 {
@@ -168,6 +194,8 @@ namespace MCS.FOI.S3FileConversion
                                                         new("createdby", message["createdby"]),
                                                         new("usertoken", message["usertoken"])
                                                     });
+                                                    Log.Information("Queued attachment to CONVERSION STREAM {TargetStream}: {AttachmentFilename} ({AttachmentExtension})",
+                                                        streamKey, attachments[i]["filename"], attachments[i]["extension"]);
                                                 }
                                             }
                                         }
@@ -190,19 +218,21 @@ namespace MCS.FOI.S3FileConversion
                                             new("createdby", message["createdby"]),
                                             new("usertoken", message["usertoken"])
                                         });
+                                        Log.Information("Queued converted file to DEDUPE STREAM {TargetStream}", dedupeStreamKey);
                                         latest = message.Id;
                                         db.StringSet($"{latest}:lastid", latest);
                                         db.StreamAcknowledge(streamKey, consumerGroup, message.Id);
+                                        Log.Information("Job completed successfully");
                                     }
                                 }
                                 catch (MissingFieldException ex)
                                 {
-                                    Console.WriteLine(ex.Message);
+                                    Log.Warning(ex, "Job skipped — missing required field");
                                 }
                                 catch (Exception ex)
                                 {
                                     var errorMessage = $" Error happened while converting {message["s3filepath"]}. Exception message : {ex.Message}, StackTrace :{ex.StackTrace}";
-                                    Console.WriteLine(errorMessage);
+                                    Log.Error(ex, "Error converting file");
                                     await dbhandler.recordJobEnd(message, true, errorMessage, new List<Dictionary<string, String>>());
                                 }
 
@@ -219,13 +249,11 @@ namespace MCS.FOI.S3FileConversion
             }
             catch (Exception ex)
             {
-                Console.WriteLine($" Error happened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
-                Log.Information($" Error happened while running the FOI File Conversion service. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Log.Fatal(ex, "Unhandled error in FOI File Conversion service");
             }
             finally
             {
-                Console.WriteLine("Press enter to exit.");
-                Console.ReadLine();
+                Log.CloseAndFlush();
             }
         }
 
