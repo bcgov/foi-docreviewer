@@ -38,6 +38,7 @@ namespace MCS.FOI.MSGToPDF
             string outputpath = string.Empty;
             output = new();
             attachmentsObj = new();
+            SerilogNS.Log.Information("Starting MSG conversion");
             try
             {
                 if (SourceStream != null && SourceStream.Length > 0)
@@ -133,6 +134,7 @@ namespace MCS.FOI.MSGToPDF
                             }
                             ////WordDocument doc = GetEmailMetatdata(msg);
 
+                            SerilogNS.Log.Information("MSG parsed. Attachment count: {AttachmentCount}", attachmentsObj.Count);
                             var msgReader = new Reader();
                             string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", false);
                             var options = RegexOptions.None;
@@ -292,6 +294,7 @@ namespace MCS.FOI.MSGToPDF
 
                             bool isConverted;
                             (output, isConverted) = ConvertHTMLtoPDF(bodyreplaced, output);
+                            SerilogNS.Log.Information("MSG conversion succeeded");
 
                             //    //byte[] byteArray = Encoding.ASCII.GetBytes(bodyreplaced);
                             //    //using (MemoryStream messageStream = new MemoryStream(byteArray))
@@ -431,13 +434,12 @@ namespace MCS.FOI.MSGToPDF
                         }
                         catch (Exception e)
                         {
-                            string errorMessage = $"Exception occured while coverting a message file, exception :  {e.Message}";
                             message = $"Exception happened while accessing the File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                            SerilogNS.Log.Error(message);
-                            Console.WriteLine(message);
+                            SerilogNS.Log.Warning(e, "Conversion attempt {Attempt}/{MaxAttempts} failed", attempt, FailureAttemptCount);
                             if (attempt == FailureAttemptCount)
                             {
-                                throw new Exception(errorMessage);
+                                SerilogNS.Log.Error(e, "All {MaxAttempts} conversion attempts exhausted", FailureAttemptCount);
+                                throw;
                             }
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
@@ -445,13 +447,13 @@ namespace MCS.FOI.MSGToPDF
                 }
                 else
                 {
-                    message = $"SourceStream does not exist!";
+                    message = "SourceStream is null or empty";
                     SerilogNS.Log.Error(message);
                 }
             }
             catch (Exception ex)
             {
-                SerilogNS.Log.Error($"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}");
+                SerilogNS.Log.Error(ex, "Unhandled error during MSG conversion");
                 message = $"Error happened while moving attachments on MSG File, Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
                 throw;
@@ -571,8 +573,7 @@ namespace MCS.FOI.MSGToPDF
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                SerilogNS.Log.Error(ex, "Error generating HTML from MSG");
                 throw;
             }
         }
@@ -580,6 +581,7 @@ namespace MCS.FOI.MSGToPDF
         private (MemoryStream, bool) ConvertHTMLtoPDF(string strHTML, MemoryStream output)
         {
             bool isConverted;
+            SerilogNS.Log.Information("Converting HTML to PDF");
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
@@ -588,6 +590,7 @@ namespace MCS.FOI.MSGToPDF
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
+                settings.BlinkPath = @"/usr/lib/chromium/chromium";
                 settings.Scale = 1.0F;
                 htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
@@ -596,13 +599,13 @@ namespace MCS.FOI.MSGToPDF
                 document.Save(output);
                 document.Close(true);
                 isConverted = true;
+                SerilogNS.Log.Information("HTML to PDF conversion succeeded");
 
             }
             catch (Exception ex)
             {
                 isConverted = false;
-                string error = $"Exception Occured while coverting file to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                SerilogNS.Log.Error(ex, "Error converting HTML to PDF");
                 throw;
             }
 

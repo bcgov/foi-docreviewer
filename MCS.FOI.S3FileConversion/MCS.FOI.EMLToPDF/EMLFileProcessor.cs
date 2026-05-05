@@ -54,6 +54,7 @@ namespace MCS.FOI.EMLToPDF
             string outputpath = string.Empty;
             MemoryStream output = new MemoryStream();
             PdfDocument document = new PdfDocument();
+            Log.Information("Starting EML conversion for {FileName}", MSGFileName);
             try
             {
                 Dictionary<string, Object> problematicFiles = null;
@@ -90,6 +91,9 @@ namespace MCS.FOI.EMLToPDF
                             }
                         }
 
+                        Log.Information("EML parsed. Attachment count: {AttachmentCount}, Problematic: {ProblematicCount}",
+                            attachments.Count, problematicFiles?.Count ?? 0);
+
                         if (problematicFiles != null)
                         {
                             
@@ -123,20 +127,20 @@ namespace MCS.FOI.EMLToPDF
                             message = string.Concat($"{cnt} problematic files moved", outputpath);
                         }
                         (output, document) = ConvertHTMLtoPDF(htmlString, output, attachmentList);
+                        Log.Information("EML conversion succeeded for {FileName}", MSGFileName);
                         break;
                     }
                     catch(Exception e)
                     {
                         message = $"Exception happened while accessing File {SourceStream}, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                        Log.Error(message);
-                        Console.WriteLine(message);                            
+                        Log.Warning(e, "Conversion attempt {Attempt}/{MaxAttempts} failed for {FileName}", attempt, FailureAttemptCount, MSGFileName);
                         Thread.Sleep(WaitTimeinMilliSeconds);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Error happened while moving attachments on {MSGSourceFilePath}\\{MSGFileName} , Exception message : {ex.Message} , details : {ex.StackTrace}");
+                Log.Error(ex, "Unhandled error during EML conversion for {FileName}", MSGFileName);
                 message = $"Error happened while moving attachments on {MSGSourceFilePath}\\{MSGFileName} , Exception message : {ex.Message} , details : {ex.StackTrace}";
                 moved = false;
                 throw;
@@ -267,10 +271,8 @@ namespace MCS.FOI.EMLToPDF
             }
             catch (Exception ex)
             {
-                string error = $"Exception Occured while coverting file at {SourceStream} to HTML , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                Log.Error(ex, "Error generating HTML from EML for {FileName}", MSGFileName);
                 throw;
-                return error;
             }
         }
 
@@ -279,6 +281,7 @@ namespace MCS.FOI.EMLToPDF
             bool isConverted;
             FileStream fileStream = null;
             PdfDocument document = new PdfDocument();
+            Log.Information("Converting HTML to PDF for {FileName}", MSGFileName);
             try
             {
                 //Initialize HTML to PDF converter with Blink rendering engine
@@ -308,12 +311,12 @@ namespace MCS.FOI.EMLToPDF
                 document.Close(true);
                 
                 isConverted = true;
+                Log.Information("HTML to PDF conversion succeeded for {FileName}", MSGFileName);
             }
             catch (Exception ex)
             {
                 isConverted = false;
-                string error = $"Exception Occured while coverting file at {SourceStream} to PDF , exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Console.WriteLine(error);
+                Log.Error(ex, "Error converting HTML to PDF for {FileName}", MSGFileName);
                 throw;
             }
             finally

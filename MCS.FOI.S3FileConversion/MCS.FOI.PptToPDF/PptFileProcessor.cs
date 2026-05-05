@@ -37,6 +37,7 @@ namespace MCS.FOI.PPTToPDF
             string message = string.Empty;
             bool _isSinglePDFOutput = IsSinglePDFOutput;
             output = new MemoryStream();
+            Log.Information("Starting PPT conversion");
             try
             {
                 for (int attempt = 1; attempt <= FailureAttemptCount && !converted; attempt++)
@@ -72,19 +73,19 @@ namespace MCS.FOI.PPTToPDF
                                 pdfDocument.Save(output);
                                 pdfDocument.Close(true);
                                 converted = true;
+                                Log.Information("PPT conversion succeeded");
 
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        string errorMessage = $"Exception occured while coverting a document file, exception :  {e.Message}";
                         message = $"Exception happened while accessing File, re-attempting count : {attempt} , Error Message : {e.Message} , Stack trace : {e.StackTrace}";
-                        Log.Error(message);
-                        Console.WriteLine(message);
+                        Log.Warning(e, "Conversion attempt {Attempt}/{MaxAttempts} failed", attempt, FailureAttemptCount);
                         if (attempt == FailureAttemptCount)
                         {
-                            throw new Exception(errorMessage);
+                            Log.Error(e, "All {MaxAttempts} conversion attempts exhausted", FailureAttemptCount);
+                            throw;
                         }
                         Thread.Sleep(WaitTimeinMilliSeconds);
                     }
@@ -93,9 +94,7 @@ namespace MCS.FOI.PPTToPDF
             catch (Exception ex)
             {
                 converted = false;
-                string error = $"Exception occured while coverting Doc file, exception :  {ex.Message} , stacktrace : {ex.StackTrace}";
-                Log.Error(error);
-                Console.WriteLine(error);
+                Log.Error(ex, "Unhandled error during PPT conversion");
                 throw;
             }
             return (converted, output);

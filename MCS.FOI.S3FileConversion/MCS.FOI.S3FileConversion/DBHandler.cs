@@ -7,6 +7,7 @@ using System.Text.Json;
 using Ical.Net.DataTypes;
 using MCS.FOI.S3FileConversion.Utilities;
 using NpgsqlTypes;
+using Serilog;
 using StackExchange.Redis;
 
 
@@ -38,6 +39,7 @@ namespace MCS.FOI.S3FileConversion
             catch (Exception ex)
             {
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Log.Error(ex, "Database error in getAccessKeyFromDB for bucket {Bucket}", bucket);
                 throw;
             }
             finally 
@@ -79,6 +81,7 @@ namespace MCS.FOI.S3FileConversion
             catch (Exception ex)
             {
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Log.Error(ex, "Database error in recordJobStart");
                 throw;
             }
             finally
@@ -287,6 +290,7 @@ namespace MCS.FOI.S3FileConversion
             catch (Exception ex)
             {
                 Console.WriteLine($" Error happpened while accessing DB. Exception message : {ex.Message} , StackTrace :{ex.StackTrace}");
+                Log.Error(ex, "Database error in recordJobEnd");
                 throw;
             }
             finally
