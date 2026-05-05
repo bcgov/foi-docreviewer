@@ -38,6 +38,7 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 
 	titlePrefix, subject := kindLabels(d.Kind)
 	var metaTags []htmlindex.MetaTag
+	reportPeriodArr := strings.Fields(d.ReportPeriod)
 	if (d.Kind == pub.KindProactiveDisclosure) {
 		metaTags := []htmlindex.MetaTag{
 			{Name: "dc.title", Content: d.Contributor + " - " + d.Category + " - " + d.ReportPeriod},
@@ -49,8 +50,8 @@ func buildTemplateVars(d *Domain, res pub.CopyResult, publicURL string, now time
 			{Name: "dc.contributor", Content: d.Contributor},
 			{Name: "recorduid", Content: d.RequestID},
 			{Name: "recordurl", Content: htmlURL},
-			{Name: "month", Content: generatePdMonth(d.ReportPeriod)},
-			{Name: "year", Content: generatePdYear(d.ReportPeriod)},
+			{Name: "month", Content: generatePdMonth(reportPeriodArr)},
+			{Name: "year", Content: generatePdYear(reportPeriodArr)},
 			{Name: "letter", Content: ""},
 			{Name: "letter_file_sizes", Content: ""},
 			{Name: "notes", Content: ""},
@@ -105,7 +106,7 @@ func kindLabels(k pub.Kind) (titlePrefix, subject string) {
 	}
 }
 
-func generatePDDescription(pdCategory, ministry, reportPeriod string) {
+func generatePDDescription(pdCategory, ministry, reportPeriod string) (string) {
 	switch pdCategory {
 	case "Direct Award Contracts":
 		return fmt.Sprintf("This document is a summary of directly-awarded contracts for the %s for the time period of %d. ", ministry, reportPeriod)
@@ -128,8 +129,7 @@ func generatePDDescription(pdCategory, ministry, reportPeriod string) {
 	}
 }
 
-func generatePdMonth(reportPeriod string) (int, error) {
-	textArr := strings.Fields(reportPeriod)
+func generatePdMonth(textArr []string) (int, error) {
 	if textArr[0] == "Quarter" {
 		quarter := textArr[1]
 		switch quarter {
@@ -151,8 +151,7 @@ func generatePdMonth(reportPeriod string) (int, error) {
 	}
 }
 
-func generatePdYear(reportPeriod string) (string, err) {
-	textArr := strings.Fields(reportPeriod)
+func generatePdYear(textArr []string) (string, err) {
 	if (textArr[0] == "Quarter") {
 		quarter := textArr[1]
 		currentYear, nextYear, found := strings.Cut(textArr[2], "-")
