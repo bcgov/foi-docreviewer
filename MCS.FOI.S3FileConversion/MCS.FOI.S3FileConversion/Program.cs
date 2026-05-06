@@ -85,6 +85,8 @@ namespace MCS.FOI.S3FileConversion
                  });
 
                 var db = redis.GetDatabase();
+                Log.Information("Connecting to Redis stream {StreamKey} on {Host}:{Port} with consumer group {ConsumerGroup}",
+                    streamKey, eventHubHost, eventHubPort, consumerGroup);
 
                 string latest = "$";
                 try
