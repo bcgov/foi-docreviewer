@@ -10,6 +10,21 @@ from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
 from .DocumentDeleted import DocumentDeleted
+import re
+
+
+_ANNOTATION_TYPE_PATTERN = re.compile(
+    r'^\s*(?:<\?xml[^>]*\?>\s*)?<([A-Za-z_][A-Za-z0-9_.:-]*)(?:\s|/|>)'
+)
+
+
+def get_annotation_type(annotation_xml):
+    if not annotation_xml:
+        return None
+    match = _ANNOTATION_TYPE_PATTERN.search(annotation_xml)
+    if match is None:
+        return None
+    return match.group(1).split(":")[-1].lower()
 
 
 class Annotation(db.Model):
