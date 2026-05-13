@@ -81,3 +81,11 @@ def test_getredactionsbydocumentpages_filters_by_annotation_type():
     assert "Annotation.annotationtype == \"redact\"" in source
     assert "Annotation.annotation.ilike" not in source
     assert "%<redact %" not in source
+
+
+def test_getredactedsectionsbyrequest_prefilters_by_annotation_type():
+    source = inspect.getsource(AnnotationSections.AnnotationSection.getredactedsectionsbyrequest)
+
+    assert "a.annotationtype = 'freetext'" in source
+    assert "a.annotation LIKE '%%freetext%%'" not in source
+    assert "a.annotation like '%%freetext%%'" not in source
