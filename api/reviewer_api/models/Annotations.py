@@ -236,7 +236,7 @@ class Annotation(db.Model):
                         Annotation.isactive == True,
                         Annotation.pagenumber == _pagenum - 1,
                         Annotation.redactionlayerid == redactionlayerid,
-                        Annotation.annotation.ilike("%<redact %"),
+                        Annotation.annotationtype == "redact",
                     )
                 )
                 .order_by(Annotation.annotationid.asc())
@@ -590,7 +590,7 @@ class Annotation(db.Model):
                         Annotation.isactive == True,
                         Annotation.pagenumber.in_(_pages),
                         Annotation.redactionlayerid == redactionlayerid,
-                        Annotation.annotation.ilike("%<redact %"),
+                        Annotation.annotationtype == "redact",
                     )
                 )
                 .order_by(Annotation.annotationid.asc())

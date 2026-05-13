@@ -65,3 +65,19 @@ def test_update_annotation_values_include_annotation_type():
 
     assert values["annotationtype"] == "redact"
     assert values["documentversion"] == 2
+
+
+def test_getredactionsbypage_filters_by_annotation_type():
+    source = inspect.getsource(Annotation.getredactionsbypage)
+
+    assert "Annotation.annotationtype == \"redact\"" in source
+    assert "Annotation.annotation.ilike" not in source
+    assert "%<redact %" not in source
+
+
+def test_getredactionsbydocumentpages_filters_by_annotation_type():
+    source = inspect.getsource(Annotation.getredactionsbydocumentpages)
+
+    assert "Annotation.annotationtype == \"redact\"" in source
+    assert "Annotation.annotation.ilike" not in source
+    assert "%<redact %" not in source
