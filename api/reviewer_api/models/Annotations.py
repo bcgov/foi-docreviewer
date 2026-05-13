@@ -36,6 +36,7 @@ class Annotation(db.Model):
     documentid = db.Column(db.Integer, db.ForeignKey("Documents.documentid"))
     documentversion = db.Column(db.Integer, db.ForeignKey("Documents.version"))
     annotation = db.Column(db.Text, unique=False, nullable=False)
+    annotationtype = db.Column(db.String(40), unique=False, nullable=True)
     pagenumber = db.Column(db.Integer, nullable=False)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     createdby = db.Column(JSON, unique=False, nullable=True)
