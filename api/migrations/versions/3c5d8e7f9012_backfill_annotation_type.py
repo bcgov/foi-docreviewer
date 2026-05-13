@@ -14,20 +14,45 @@ down_revision = '2b4c7d6e8f90'
 branch_labels = None
 depends_on = None
 
+BATCH_SIZE = 50000
+
 
 def upgrade():
-    op.execute(
-        """
-        UPDATE public."Annotations"
-        SET annotationtype = lower(
-            substring(
-                annotation FROM '^\\s*(?:<\\?xml[^>]*\\?>\\s*)?<([A-Za-z_][A-Za-z0-9_.:-]*)[\\s>/]'
-            )
-        )
-        WHERE annotationtype IS NULL;
-        """
-    )
+    bind = op.get_bind()
+
+    with op.get_context().autocommit_block():
+        while True:
+            updated_count = bind.execute(
+                sa.text(
+                    """
+                    WITH batch AS (
+                        SELECT annotationid, version
+                        FROM public."Annotations"
+                        WHERE annotationtype IS NULL
+                        ORDER BY annotationid, version
+                        LIMIT :batch_size
+                    ),
+                    updated AS (
+                        UPDATE public."Annotations" a
+                        SET annotationtype = lower(
+                            substring(
+                                a.annotation FROM '^\\s*(?:<\\?xml[^>]*\\?>\\s*)?<([A-Za-z_][A-Za-z0-9_.:-]*)[\\s>/]'
+                            )
+                        )
+                        FROM batch
+                        WHERE a.annotationid = batch.annotationid
+                          AND a.version = batch.version
+                        RETURNING 1
+                    )
+                    SELECT count(*) FROM updated;
+                    """
+                ),
+                {"batch_size": BATCH_SIZE},
+            ).scalar()
+
+            if updated_count == 0:
+                break
 
 
 def downgrade():
-    op.execute('UPDATE public."Annotations" SET annotationtype = NULL;')
+    pass
