@@ -1334,11 +1334,13 @@ const Redlining = React.forwardRef(
                   setIsAnnotationsLoading(false);
                 }
               },
-              (error) => {
-                console.log("Error:", error);
+              (error, errorContext) => {
+                const resolvedError = errorContext || error;
+                console.log("Error:", resolvedError);
                 setErrorMessage(
-                  error?.response?.message ||
-                    error?.message ||
+                  resolvedError?.response?.message ||
+                    resolvedError?.message ||
+                    (typeof error === "string" ? error : null) ||
                     "Error occurred while fetching redaction details, please refresh browser and try again",
                 );
                 setIsAnnotationsLoading(false);
