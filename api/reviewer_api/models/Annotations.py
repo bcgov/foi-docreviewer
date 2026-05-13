@@ -27,6 +27,26 @@ def get_annotation_type(annotation_xml):
     return match.group(1).split(":")[-1].lower()
 
 
+def _build_annotation_values(
+    annot, redactionlayerid, userinfo, version, documentversion, annotationid=None
+):
+    values = {
+        "annotationname": annot["name"],
+        "documentid": annot["docid"],
+        "documentversion": documentversion,
+        "annotation": annot["xml"],
+        "annotationtype": get_annotation_type(annot["xml"]),
+        "pagenumber": annot["page"],
+        "createdby": userinfo,
+        "isactive": True,
+        "version": version,
+        "redactionlayerid": redactionlayerid,
+    }
+    if annotationid is not None:
+        values["annotationid"] = annotationid
+    return values
+
+
 class Annotation(db.Model):
     __tablename__ = "Annotations"
     # Defining the columns
@@ -291,10 +311,10 @@ class Annotation(db.Model):
             sql = """
                     insert into "Annotations" (annotationname, documentid , documentversion, 
                     annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
-                    redactionlayerid, "version")                     
+                    redactionlayerid, "version", annotationtype)                     
                     select annotationname, documentid , documentversion, 
                     annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
-                    :targetlayer, 1 from "Annotations" a 
+                    :targetlayer, 1, annotationtype from "Annotations" a 
                     where redactionlayerid in :sourceredactionlayers and isactive = true and documentid in :documentids;
        
                 """
@@ -366,17 +386,13 @@ class Annotation(db.Model):
     def __newannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
             values = [
-                {
-                    "annotationname": annot["name"],
-                    "documentid": annot["docid"],
-                    "documentversion": 1,
-                    "annotation": annot["xml"],
-                    "pagenumber": annot["page"],
-                    "createdby": userinfo,
-                    "isactive": True,
-                    "version": 1,
-                    "redactionlayerid": redactionlayerid,
-                }
+                _build_annotation_values(
+                    annot,
+                    redactionlayerid,
+                    userinfo,
+                    version=1,
+                    documentversion=1,
+                )
             ]
             insertstmt = insert(Annotation).values(values)
             upsertstmt = insertstmt.on_conflict_do_update(
@@ -422,18 +438,14 @@ class Annotation(db.Model):
                     _pkvannots[annot["name"]] if _pkvannots not in (None, {}) else None
                 )
                 datalist.append(
-                    {
-                        "annotationname": annot["name"],
-                        "documentid": annot["docid"],
-                        "documentversion": 1,
-                        "annotation": annot["xml"],
-                        "pagenumber": annot["page"],
-                        "createdby": userinfo,
-                        "isactive": True,
-                        "redactionlayerid": redactionlayerid,
-                        "version": pkkey["version"] + 1 if pkkey is not None and "version" in pkkey else 1,
-                        "annotationid": pkkey["annotationid"] if pkkey is not None and "annotationid" in pkkey else None
-                    }
+                    _build_annotation_values(
+                        annot,
+                        redactionlayerid,
+                        userinfo,
+                        version=pkkey["version"] + 1 if pkkey is not None and "version" in pkkey else 1,
+                        documentversion=1,
+                        annotationid=pkkey["annotationid"] if pkkey is not None and "annotationid" in pkkey else None,
+                    )
                 )
                 idxannots.append(annot["name"])
             db.session.bulk_insert_mappings(Annotation, datalist)
@@ -454,18 +466,14 @@ class Annotation(db.Model):
                     True, "Unable to Save Annotation", annot["name"]
                 )
             values = [
-                {
-                    "annotationid": id,
-                    "annotationname": annot["name"],
-                    "documentid": annot["docid"],
-                    "documentversion": annot["docversion"],
-                    "annotation": annot["xml"],
-                    "pagenumber": annot["page"],
-                    "createdby": userinfo,
-                    "isactive": True,
-                    "version": version + 1,
-                    "redactionlayerid": redactionlayerid,
-                }
+                _build_annotation_values(
+                    annot,
+                    redactionlayerid,
+                    userinfo,
+                    version=version + 1,
+                    documentversion=annot["docversion"],
+                    annotationid=id,
+                )
             ]
             insertstmt = insert(Annotation).values(values)
             annotstmt = insertstmt.on_conflict_do_nothing()
