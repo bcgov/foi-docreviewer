@@ -5,6 +5,7 @@ from reviewer_api.models.Annotations import Annotation
 from reviewer_api.models.AnnotationSections import AnnotationSection
 from reviewer_api.models.DocumentMaster import DocumentMaster
 from reviewer_api.models.DocumentPageflags import DocumentPageflag
+from reviewer_api.models.db import db
 
 from reviewer_api.schemas.annotationrequest import SectionAnnotationSchema
 
@@ -41,19 +42,22 @@ class annotationservice:
     def getrequestannotationspagination(
         self, ministryrequestid, mappedlayerids, page, size
     ):
-        result = Annotation.get_request_annotations_pagination(
-            ministryrequestid, mappedlayerids, page, size
-        )
-        meta = {
-            "page": result.page,
-            "pages": result.pages,
-            "total": result.total,
-            "prev_num": result.prev_num,
-            "next_num": result.next_num,
-            "has_next": result.has_next,
-            "has_prev": result.has_prev,
-        }
-        return {"data": self.__formatannotations(result.items), "meta": meta}
+        try:
+            result = Annotation.get_request_annotations_pagination(
+                ministryrequestid, mappedlayerids, page, size
+            )
+            meta = {
+                "page": result.page,
+                "pages": result.pages,
+                "total": result.total,
+                "prev_num": result.prev_num,
+                "next_num": result.next_num,
+                "has_next": result.has_next,
+                "has_prev": result.has_prev,
+            }
+            return {"data": self.__formatannotations(result.items), "meta": meta}
+        finally:
+            db.session.close()
     
     def getdocumentannotations(self, ministryrequestid, mappedlayerids, documentid):
         result = Annotation.get_document_annotations(ministryrequestid, mappedlayerids, documentid)
