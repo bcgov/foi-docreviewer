@@ -121,75 +121,78 @@ class Annotation(db.Model):
     def get_request_annotations_pagination(
         cls, ministryrequestid, mappedlayerids, page, size
     ):
-        _session = db.session
+        try:
+            _session = db.session
 
-        DM = aliased(DocumentMaster)
-        DD = aliased(DocumentDeleted)
+            DM = aliased(DocumentMaster)
+            DD = aliased(DocumentDeleted)
 
-        deleted_exists = (
-            db.session.query(literal(1))
-            .select_from(DM)
-            .join(
-                DD,
-                func.substring(DM.filepath, r'[0-9a-fA-F\-]{36}') ==
-                func.substring(DD.filepath, r'[0-9a-fA-F\-]{36}$')
-            )
-            .filter(
-                DM.documentmasterid == Document.documentmasterid,
-                DM.ministryrequestid == ministryrequestid,
-                DD.deleted.is_(True),
-            )
-            .exists()
-        ).correlate(Document)
+            deleted_exists = (
+                db.session.query(literal(1))
+                .select_from(DM)
+                .join(
+                    DD,
+                    func.substring(DM.filepath, r'[0-9a-fA-F\-]{36}') ==
+                    func.substring(DD.filepath, r'[0-9a-fA-F\-]{36}$')
+                )
+                .filter(
+                    DM.documentmasterid == Document.documentmasterid,
+                    DM.ministryrequestid == ministryrequestid,
+                    DD.deleted.is_(True),
+                )
+                .exists()
+            ).correlate(Document)
 
-        _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
-            DocumentMaster.processingparentid == None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).subquery('sq')
-        _replacednoconversionfiles = _session.query(DocumentMaster.processingparentid).filter(
-            DocumentMaster.processingparentid != None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).subquery('sq2')
-        _replacedotherfiles = _session.query(func.max(DocumentMaster.documentmasterid).label('documentmasterid')).filter(
-            DocumentMaster.processingparentid != None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).group_by(DocumentMaster.processingparentid).subquery('sq3')
-        _subquery_annotation = (
-            _session.query(
-                Annotation.pagenumber, Annotation.annotation, Document.documentid
+            _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
+                DocumentMaster.processingparentid == None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).subquery('sq')
+            _replacednoconversionfiles = _session.query(DocumentMaster.processingparentid).filter(
+                DocumentMaster.processingparentid != None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).subquery('sq2')
+            _replacedotherfiles = _session.query(func.max(DocumentMaster.documentmasterid).label('documentmasterid')).filter(
+                DocumentMaster.processingparentid != None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).group_by(DocumentMaster.processingparentid).subquery('sq3')
+            _subquery_annotation = (
+                _session.query(
+                    Annotation.pagenumber, Annotation.annotation, Document.documentid
+                )
+                .join(
+                    Document,
+                    and_(
+                        Annotation.documentid == Document.documentid,
+                        Document.foiministryrequestid == ministryrequestid,
+                    ),
+                )
+                .join(
+                    _originalnodonversionfiles, _originalnodonversionfiles.c.documentmasterid == Document.documentmasterid,
+                    isouter=True
+                )
+                .join(
+                    _replacedotherfiles, _replacedotherfiles.c.documentmasterid == Document.documentmasterid,
+                    isouter=True
+                )
+                .join(
+                    _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
+                    isouter=True
+                )
+                .filter(
+                    Annotation.redactionlayerid.in_(mappedlayerids),
+                    Annotation.isactive == True,
+                    or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
+                    _replacednoconversionfiles.c.processingparentid == None,
+                    ~deleted_exists,
+                )
+                .order_by(
+                    Document.documentid, Annotation.pagenumber, Annotation.annotationid
+                )
             )
-            .join(
-                Document,
-                and_(
-                    Annotation.documentid == Document.documentid,
-                    Document.foiministryrequestid == ministryrequestid,
-                ),
-            )
-            .join(
-                _originalnodonversionfiles, _originalnodonversionfiles.c.documentmasterid == Document.documentmasterid,
-                isouter=True
-            )
-            .join(
-                _replacedotherfiles, _replacedotherfiles.c.documentmasterid == Document.documentmasterid,
-                isouter=True
-            )
-            .join(
-                _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
-                isouter=True
-            )
-            .filter(
-                Annotation.redactionlayerid.in_(mappedlayerids),
-                Annotation.isactive == True,
-                or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
-                _replacednoconversionfiles.c.processingparentid == None,
-                ~deleted_exists,
-            )
-            .order_by(
-                Document.documentid, Annotation.pagenumber, Annotation.annotationid
-            )
-        )
-        result = _subquery_annotation.paginate(page=page, per_page=size)
-        return result
+            result = _subquery_annotation.paginate(page=page, per_page=size)
+            return result
+        finally:
+            db.session.close()
     
     @classmethod
     def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
