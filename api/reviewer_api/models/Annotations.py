@@ -121,6 +121,7 @@ class Annotation(db.Model):
     def get_request_annotations_pagination(
         cls, ministryrequestid, mappedlayerids, page, size
     ):
+        _session = None
         try:
             _session = db.session
 
@@ -128,7 +129,7 @@ class Annotation(db.Model):
             DD = aliased(DocumentDeleted)
 
             deleted_exists = (
-                db.session.query(literal(1))
+                _session.query(literal(1))
                 .select_from(DM)
                 .join(
                     DD,
@@ -192,7 +193,8 @@ class Annotation(db.Model):
             result = _subquery_annotation.paginate(page=page, per_page=size)
             return result
         finally:
-            db.session.close()
+            if _session is not None:
+                _session.close()
     
     @classmethod
     def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
