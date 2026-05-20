@@ -353,7 +353,9 @@ class documentpageflag:
                 order by created_at, id desc limit 1;
             '''
             cursor.execute(query, (ministryrequestid,))
-            layerid = cursor.fetchone()
+            result = cursor.fetchone()
+            if result is not None:
+                layerid = result[0]
             logging.info(f"[PERF] DAL getrecentredactionlayerid request={ministryrequestid} elapsed={time.time() - start_time:.3f}s")
             return layerid
         except Exception as error:

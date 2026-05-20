@@ -5,60 +5,16 @@ import types
 import unittest
 from pathlib import Path
 
+from unittests.redactionsummary_test_utils import load_redactionsummary_module
 
-REDACTION_SUMMARY_PATH = Path(__file__).resolve().parents[1] / "services" / "dts" / "redactionsummary.py"
 DOCUMENT_PAGE_FLAG_PATH = Path(__file__).resolve().parents[1] / "services" / "dal" / "documentpageflag.py"
 
 
 def _load_redactionsummary_module(fake_documentpageflag):
-    module_name = "DocumentServices.services.dts.redactionsummary_batch_under_test"
-
-    for name in [
-        module_name,
-        "services",
-        "services.dal",
-        "services.dal.documentpageflag",
-        "rstreamio",
-        "rstreamio.message",
-        "rstreamio.message.schemas",
-        "rstreamio.message.schemas.redactionsummary",
-    ]:
-        sys.modules.pop(name, None)
-
-    services_pkg = types.ModuleType("services")
-    services_pkg.__path__ = []
-    sys.modules["services"] = services_pkg
-
-    services_dal_pkg = types.ModuleType("services.dal")
-    services_dal_pkg.__path__ = []
-    sys.modules["services.dal"] = services_dal_pkg
-
-    documentpageflag_module = types.ModuleType("services.dal.documentpageflag")
-    documentpageflag_module.documentpageflag = fake_documentpageflag
-    sys.modules["services.dal.documentpageflag"] = documentpageflag_module
-
-    rstreamio_pkg = types.ModuleType("rstreamio")
-    rstreamio_pkg.__path__ = []
-    sys.modules["rstreamio"] = rstreamio_pkg
-
-    message_pkg = types.ModuleType("rstreamio.message")
-    message_pkg.__path__ = []
-    sys.modules["rstreamio.message"] = message_pkg
-
-    schemas_pkg = types.ModuleType("rstreamio.message.schemas")
-    schemas_pkg.__path__ = []
-    sys.modules["rstreamio.message.schemas"] = schemas_pkg
-
-    schema_module = types.ModuleType("rstreamio.message.schemas.redactionsummary")
-    schema_module.get_in_summary_object = lambda payload: types.SimpleNamespace(**json.loads(payload))
-    schema_module.get_in_summarypackage_object = lambda payload: types.SimpleNamespace(**json.loads(payload))
-    sys.modules["rstreamio.message.schemas.redactionsummary"] = schema_module
-
-    spec = importlib.util.spec_from_file_location(module_name, REDACTION_SUMMARY_PATH)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
+    return load_redactionsummary_module(
+        "DocumentServices.services.dts.redactionsummary_batch_under_test",
+        fake_documentpageflag,
+    )
 
 
 def _load_documentpageflag_module(fake_connection):
@@ -209,6 +165,85 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
 
         self.assertEqual(1, CountingRedactionSummary.assign_calls)
         self.assertEqual("MCF-2026-0001", result["requestnumber"])
+
+    def test_non_mcf_responsepackage_uses_one_batch_section_query(self):
+        class FakeDocumentPageFlag:
+            batch_calls = []
+            single_calls = []
+
+            def getrecentredactionlayerid(self, ministryrequestid, conn=None):
+                return 99
+
+            def getpagecount_by_documentid(self, ministryrequestid, documentids, conn=None):
+                return {
+                    10: {"pagecount": 2},
+                    20: {"pagecount": 2},
+                }
+
+            def get_documentpageflag(self, ministryrequestid, redactionlayerid, documentids, conn=None):
+                return {
+                    10: {
+                        "pageflag": [
+                            {"page": 1, "flagid": 1},
+                            {"page": 2, "flagid": 2},
+                        ],
+                        "attributes": {},
+                    },
+                    20: {
+                        "pageflag": [
+                            {"page": 1, "flagid": 1},
+                            {"page": 2, "flagid": 2},
+                        ],
+                        "attributes": {},
+                    },
+                }
+
+            def getdeletedpages(self, ministryrequestid, docids, conn=None):
+                return []
+
+            def getsections_batch(self, redactionlayerid, document_pages, conn=None):
+                type(self).batch_calls.append((redactionlayerid, document_pages, conn))
+                return [
+                    {"documentid": 10, "pageno": 0, "section": "22"},
+                    {"documentid": 10, "pageno": 1, "section": "15"},
+                    {"documentid": 20, "pageno": 0, "section": "13"},
+                    {"documentid": 20, "pageno": 1, "section": "21"},
+                ]
+
+            def getsections_by_documentid_pageno(self, redactionlayerid, documentid, pagenos, conn=None):
+                type(self).single_calls.append((redactionlayerid, documentid, pagenos, conn))
+                return []
+
+        module = _load_redactionsummary_module(FakeDocumentPageFlag)
+        message = types.SimpleNamespace(
+            bcgovcode="EDU",
+            requesttype="general",
+            category="responsepackage",
+            ministryrequestid=500,
+            requestnumber="EDU-2026-0001",
+            redactionlayerid=7,
+            phase=None,
+            summarydocuments=json.dumps(
+                {
+                    "sorteddocuments": [10, 20],
+                    "pkgdocuments": [{"divisionid": 1, "documentids": [10, 20]}],
+                }
+            ),
+        )
+        pageflags = [
+            {"pageflagid": 1, "name": "Full Disclosure", "description": "Full Disclosure"},
+            {"pageflagid": 2, "name": "Partial Disclosure", "description": "Partial Disclosure"},
+        ]
+        doc_conn = object()
+
+        result = module.redactionsummary().prepareredactionsummary(
+            message, [10, 20], pageflags, {}, doc_conn=doc_conn
+        )
+
+        self.assertEqual([(99, {10: [0, 1], 20: [0, 1]}, doc_conn)], FakeDocumentPageFlag.batch_calls)
+        self.assertEqual([], FakeDocumentPageFlag.single_calls)
+        self.assertEqual("EDU-2026-0001", result["requestnumber"])
+        self.assertEqual(4, len(result["data"]))
 
 
 if __name__ == "__main__":
