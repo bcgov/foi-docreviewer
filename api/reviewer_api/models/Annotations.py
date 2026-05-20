@@ -10,6 +10,41 @@ from reviewer_api.utils.util import split, getbatchconfig
 from .Documents import Document
 from .DocumentMaster import DocumentMaster
 from .DocumentDeleted import DocumentDeleted
+import re
+
+
+_ANNOTATION_TYPE_PATTERN = re.compile(
+    r'^\s*(?:<\?xml[^>]*\?>\s*)?<([A-Za-z_][A-Za-z0-9_.:-]*)(?:\s|/|>)'
+)
+
+
+def get_annotation_type(annotation_xml):
+    if not annotation_xml:
+        return None
+    match = _ANNOTATION_TYPE_PATTERN.search(annotation_xml)
+    if match is None:
+        return None
+    return match.group(1).split(":")[-1].lower()
+
+
+def _build_annotation_values(
+    annot, redactionlayerid, userinfo, version, documentversion, annotationid=None
+):
+    values = {
+        "annotationname": annot["name"],
+        "documentid": annot["docid"],
+        "documentversion": documentversion,
+        "annotation": annot["xml"],
+        "annotationtype": get_annotation_type(annot["xml"]),
+        "pagenumber": annot["page"],
+        "createdby": userinfo,
+        "isactive": True,
+        "version": version,
+        "redactionlayerid": redactionlayerid,
+    }
+    if annotationid is not None:
+        values["annotationid"] = annotationid
+    return values
 
 
 class Annotation(db.Model):
@@ -21,6 +56,7 @@ class Annotation(db.Model):
     documentid = db.Column(db.Integer, db.ForeignKey("Documents.documentid"))
     documentversion = db.Column(db.Integer, db.ForeignKey("Documents.version"))
     annotation = db.Column(db.Text, unique=False, nullable=False)
+    annotationtype = db.Column(db.String(40), unique=False, nullable=True)
     pagenumber = db.Column(db.Integer, nullable=False)
     isactive = db.Column(db.Boolean, unique=False, nullable=False)
     createdby = db.Column(JSON, unique=False, nullable=True)
@@ -85,75 +121,80 @@ class Annotation(db.Model):
     def get_request_annotations_pagination(
         cls, ministryrequestid, mappedlayerids, page, size
     ):
-        _session = db.session
+        _session = None
+        try:
+            _session = db.session
 
-        DM = aliased(DocumentMaster)
-        DD = aliased(DocumentDeleted)
+            DM = aliased(DocumentMaster)
+            DD = aliased(DocumentDeleted)
 
-        deleted_exists = (
-            db.session.query(literal(1))
-            .select_from(DM)
-            .join(
-                DD,
-                func.substring(DM.filepath, r'[0-9a-fA-F\-]{36}') ==
-                func.substring(DD.filepath, r'[0-9a-fA-F\-]{36}$')
-            )
-            .filter(
-                DM.documentmasterid == Document.documentmasterid,
-                DM.ministryrequestid == ministryrequestid,
-                DD.deleted.is_(True),
-            )
-            .exists()
-        ).correlate(Document)
+            deleted_exists = (
+                _session.query(literal(1))
+                .select_from(DM)
+                .join(
+                    DD,
+                    func.substring(DM.filepath, r'[0-9a-fA-F\-]{36}') ==
+                    func.substring(DD.filepath, r'[0-9a-fA-F\-]{36}$')
+                )
+                .filter(
+                    DM.documentmasterid == Document.documentmasterid,
+                    DM.ministryrequestid == ministryrequestid,
+                    DD.deleted.is_(True),
+                )
+                .exists()
+            ).correlate(Document)
 
-        _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
-            DocumentMaster.processingparentid == None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).subquery('sq')
-        _replacednoconversionfiles = _session.query(DocumentMaster.processingparentid).filter(
-            DocumentMaster.processingparentid != None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).subquery('sq2')
-        _replacedotherfiles = _session.query(func.max(DocumentMaster.documentmasterid).label('documentmasterid')).filter(
-            DocumentMaster.processingparentid != None,
-            DocumentMaster.ministryrequestid == ministryrequestid
-        ).group_by(DocumentMaster.processingparentid).subquery('sq3')
-        _subquery_annotation = (
-            _session.query(
-                Annotation.pagenumber, Annotation.annotation, Document.documentid
+            _originalnodonversionfiles = _session.query(DocumentMaster.documentmasterid).filter(
+                DocumentMaster.processingparentid == None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).subquery('sq')
+            _replacednoconversionfiles = _session.query(DocumentMaster.processingparentid).filter(
+                DocumentMaster.processingparentid != None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).subquery('sq2')
+            _replacedotherfiles = _session.query(func.max(DocumentMaster.documentmasterid).label('documentmasterid')).filter(
+                DocumentMaster.processingparentid != None,
+                DocumentMaster.ministryrequestid == ministryrequestid
+            ).group_by(DocumentMaster.processingparentid).subquery('sq3')
+            _subquery_annotation = (
+                _session.query(
+                    Annotation.pagenumber, Annotation.annotation, Document.documentid
+                )
+                .join(
+                    Document,
+                    and_(
+                        Annotation.documentid == Document.documentid,
+                        Document.foiministryrequestid == ministryrequestid,
+                    ),
+                )
+                .join(
+                    _originalnodonversionfiles, _originalnodonversionfiles.c.documentmasterid == Document.documentmasterid,
+                    isouter=True
+                )
+                .join(
+                    _replacedotherfiles, _replacedotherfiles.c.documentmasterid == Document.documentmasterid,
+                    isouter=True
+                )
+                .join(
+                    _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
+                    isouter=True
+                )
+                .filter(
+                    Annotation.redactionlayerid.in_(mappedlayerids),
+                    Annotation.isactive == True,
+                    or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
+                    _replacednoconversionfiles.c.processingparentid == None,
+                    ~deleted_exists,
+                )
+                .order_by(
+                    Document.documentid, Annotation.pagenumber, Annotation.annotationid
+                )
             )
-            .join(
-                Document,
-                and_(
-                    Annotation.documentid == Document.documentid,
-                    Document.foiministryrequestid == ministryrequestid,
-                ),
-            )
-            .join(
-                _originalnodonversionfiles, _originalnodonversionfiles.c.documentmasterid == Document.documentmasterid,
-                isouter=True
-            )
-            .join(
-                _replacedotherfiles, _replacedotherfiles.c.documentmasterid == Document.documentmasterid,
-                isouter=True
-            )
-            .join(
-                _replacednoconversionfiles, _replacednoconversionfiles.c.processingparentid == Document.documentmasterid,
-                isouter=True
-            )
-            .filter(
-                Annotation.redactionlayerid.in_(mappedlayerids),
-                Annotation.isactive == True,
-                or_(_originalnodonversionfiles.c.documentmasterid != None, _replacedotherfiles.c.documentmasterid != None),
-                _replacednoconversionfiles.c.processingparentid == None,
-                ~deleted_exists,
-            )
-            .order_by(
-                Document.documentid, Annotation.pagenumber, Annotation.annotationid
-            )
-        )
-        result = _subquery_annotation.paginate(page=page, per_page=size)
-        return result
+            result = _subquery_annotation.paginate(page=page, per_page=size)
+            return result
+        finally:
+            if _session is not None:
+                _session.close()
     
     @classmethod
     def get_document_annotations(cls, ministryrequestid, mappedlayerids, documentid):
@@ -200,7 +241,7 @@ class Annotation(db.Model):
                         Annotation.isactive == True,
                         Annotation.pagenumber == _pagenum - 1,
                         Annotation.redactionlayerid == redactionlayerid,
-                        Annotation.annotation.ilike("%<redact %"),
+                        Annotation.annotationtype == "redact",
                     )
                 )
                 .order_by(Annotation.annotationid.asc())
@@ -275,10 +316,10 @@ class Annotation(db.Model):
             sql = """
                     insert into "Annotations" (annotationname, documentid , documentversion, 
                     annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
-                    redactionlayerid, "version")                     
+                    redactionlayerid, "version", annotationtype)                     
                     select annotationname, documentid , documentversion, 
                     annotation, pagenumber, isactive, createdby, created_at, updatedby, updated_at, 
-                    :targetlayer, 1 from "Annotations" a 
+                    :targetlayer, 1, annotationtype from "Annotations" a 
                     where redactionlayerid in :sourceredactionlayers and isactive = true and documentid in :documentids;
        
                 """
@@ -350,17 +391,13 @@ class Annotation(db.Model):
     def __newannotation(cls, annot, redactionlayerid, userinfo) -> DefaultMethodResult:
         try:
             values = [
-                {
-                    "annotationname": annot["name"],
-                    "documentid": annot["docid"],
-                    "documentversion": 1,
-                    "annotation": annot["xml"],
-                    "pagenumber": annot["page"],
-                    "createdby": userinfo,
-                    "isactive": True,
-                    "version": 1,
-                    "redactionlayerid": redactionlayerid,
-                }
+                _build_annotation_values(
+                    annot,
+                    redactionlayerid,
+                    userinfo,
+                    version=1,
+                    documentversion=1,
+                )
             ]
             insertstmt = insert(Annotation).values(values)
             upsertstmt = insertstmt.on_conflict_do_update(
@@ -406,18 +443,14 @@ class Annotation(db.Model):
                     _pkvannots[annot["name"]] if _pkvannots not in (None, {}) else None
                 )
                 datalist.append(
-                    {
-                        "annotationname": annot["name"],
-                        "documentid": annot["docid"],
-                        "documentversion": 1,
-                        "annotation": annot["xml"],
-                        "pagenumber": annot["page"],
-                        "createdby": userinfo,
-                        "isactive": True,
-                        "redactionlayerid": redactionlayerid,
-                        "version": pkkey["version"] + 1 if pkkey is not None and "version" in pkkey else 1,
-                        "annotationid": pkkey["annotationid"] if pkkey is not None and "annotationid" in pkkey else None
-                    }
+                    _build_annotation_values(
+                        annot,
+                        redactionlayerid,
+                        userinfo,
+                        version=pkkey["version"] + 1 if pkkey is not None and "version" in pkkey else 1,
+                        documentversion=1,
+                        annotationid=pkkey["annotationid"] if pkkey is not None and "annotationid" in pkkey else None,
+                    )
                 )
                 idxannots.append(annot["name"])
             db.session.bulk_insert_mappings(Annotation, datalist)
@@ -438,18 +471,14 @@ class Annotation(db.Model):
                     True, "Unable to Save Annotation", annot["name"]
                 )
             values = [
-                {
-                    "annotationid": id,
-                    "annotationname": annot["name"],
-                    "documentid": annot["docid"],
-                    "documentversion": annot["docversion"],
-                    "annotation": annot["xml"],
-                    "pagenumber": annot["page"],
-                    "createdby": userinfo,
-                    "isactive": True,
-                    "version": version + 1,
-                    "redactionlayerid": redactionlayerid,
-                }
+                _build_annotation_values(
+                    annot,
+                    redactionlayerid,
+                    userinfo,
+                    version=version + 1,
+                    documentversion=annot["docversion"],
+                    annotationid=id,
+                )
             ]
             insertstmt = insert(Annotation).values(values)
             annotstmt = insertstmt.on_conflict_do_nothing()
@@ -566,7 +595,7 @@ class Annotation(db.Model):
                         Annotation.isactive == True,
                         Annotation.pagenumber.in_(_pages),
                         Annotation.redactionlayerid == redactionlayerid,
-                        Annotation.annotation.ilike("%<redact %"),
+                        Annotation.annotationtype == "redact",
                     )
                 )
                 .order_by(Annotation.annotationid.asc())
