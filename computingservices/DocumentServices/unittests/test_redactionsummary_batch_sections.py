@@ -128,14 +128,14 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
             batch_calls = []
             single_calls = []
 
-            def getsections_batch(self, redactionlayerid, document_pages):
+            def getsections_batch(self, redactionlayerid, document_pages, conn=None):
                 type(self).batch_calls.append((redactionlayerid, document_pages))
                 return [
                     {"documentid": 10, "pageno": 0, "section": "22, 15"},
                     {"documentid": 20, "pageno": 2, "section": "13"},
                 ]
 
-            def getsections_by_documentid_pageno(self, redactionlayerid, documentid, pagenos):
+            def getsections_by_documentid_pageno(self, redactionlayerid, documentid, pagenos, conn=None):
                 type(self).single_calls.append((redactionlayerid, documentid, pagenos))
                 return []
 
@@ -157,19 +157,19 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
 
     def test_mcf_personal_summary_assigns_full_page_sections_once(self):
         class FakeDocumentPageFlag:
-            def getrecentredactionlayerid(self, ministryrequestid):
+            def getrecentredactionlayerid(self, ministryrequestid, conn=None):
                 return 99
 
-            def getpagecount_by_documentid(self, ministryrequestid, documentids):
+            def getpagecount_by_documentid(self, ministryrequestid, documentids, conn=None):
                 return {10: {"pagecount": 1}, 20: {"pagecount": 1}}
 
-            def get_documentpageflag(self, ministryrequestid, redactionlayerid, documentids):
+            def get_documentpageflag(self, ministryrequestid, redactionlayerid, documentids, conn=None):
                 return {
                     10: {"pageflag": [{"page": 1, "flagid": 3}], "attributes": {}},
                     20: {"pageflag": [{"page": 1, "flagid": 3}], "attributes": {}},
                 }
 
-            def getdeletedpages(self, ministryrequestid, docids):
+            def getdeletedpages(self, ministryrequestid, docids, conn=None):
                 return []
 
         module = _load_redactionsummary_module(FakeDocumentPageFlag)
@@ -177,7 +177,7 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
         class CountingRedactionSummary(module.redactionsummary):
             assign_calls = 0
 
-            def assignfullpagesections(self, redactionlayerid, mapped_flags):
+            def assignfullpagesections(self, redactionlayerid, mapped_flags, doc_conn=None):
                 type(self).assign_calls += 1
                 for flag in mapped_flags:
                     if flag["flagid"] == 3:
