@@ -591,6 +591,12 @@ class redactionsummary():
             entry["consults"] = docpageconsults[entry['originalpageno']] if entry['originalpageno'] in docpageconsults else None
         return docpages
 
+    def __get_pagesection_mapping_from_index(self, docpages, sections_by_pageno, docpageconsults):
+        for entry in docpages:
+            entry["sections"] = sections_by_pageno.get(entry['originalpageno'], [])
+            entry["consults"] = docpageconsults[entry['originalpageno']] if entry['originalpageno'] in docpageconsults else None
+        return docpages
+
     def __assign_batched_pagesections(self, redactionlayerid, document_pages, pending_mappings, doc_conn=None):
         if not pending_mappings:
             return
@@ -604,17 +610,17 @@ class redactionsummary():
             return
 
         all_sections = documentpageflag().getsections_batch(redactionlayerid, document_pages, conn=doc_conn)
-        sections_by_docid = defaultdict(list)
+        sections_by_docid = defaultdict(lambda: defaultdict(list))
         for section in all_sections:
-            sections_by_docid[section["documentid"]].append({
-                "pageno": section["pageno"],
-                "section": section["section"],
-            })
+            for value in section["section"].split(","):
+                cleaned = value.strip()
+                if cleaned:
+                    sections_by_docid[section["documentid"]][section["pageno"]].append(cleaned)
 
         for mapping in pending_mappings:
             mapping["pageflag"]["docpageflags"] = (
                 mapping["pageflag"]["docpageflags"]
-                + self.__get_pagesection_mapping(
+                + self.__get_pagesection_mapping_from_index(
                     mapping["filteredpages"],
                     sections_by_docid[mapping["docid"]],
                     mapping["docpageconsults"],
