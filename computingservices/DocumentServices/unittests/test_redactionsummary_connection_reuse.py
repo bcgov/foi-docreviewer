@@ -5,9 +5,10 @@ import types
 import unittest
 from pathlib import Path
 
+from unittests.redactionsummary_test_utils import load_redactionsummary_module as load_redactionsummary_with_fake_dal
+
 
 DOCUMENT_PAGE_FLAG_PATH = Path(__file__).resolve().parents[1] / "services" / "dal" / "documentpageflag.py"
-REDACTION_SUMMARY_PATH = Path(__file__).resolve().parents[1] / "services" / "dts" / "redactionsummary.py"
 
 
 class FakeCursor:
@@ -67,53 +68,10 @@ def load_documentpageflag_module(created_connections):
 
 
 def load_redactionsummary_module(fake_documentpageflag):
-    module_name = "DocumentServices.services.dts.redactionsummary_connection_reuse_under_test"
-    for name in [
-        module_name,
-        "services",
-        "services.dal",
-        "services.dal.documentpageflag",
-        "rstreamio",
-        "rstreamio.message",
-        "rstreamio.message.schemas",
-        "rstreamio.message.schemas.redactionsummary",
-    ]:
-        sys.modules.pop(name, None)
-
-    services_pkg = types.ModuleType("services")
-    services_pkg.__path__ = []
-    sys.modules["services"] = services_pkg
-
-    services_dal_pkg = types.ModuleType("services.dal")
-    services_dal_pkg.__path__ = []
-    sys.modules["services.dal"] = services_dal_pkg
-
-    documentpageflag_module = types.ModuleType("services.dal.documentpageflag")
-    documentpageflag_module.documentpageflag = fake_documentpageflag
-    sys.modules["services.dal.documentpageflag"] = documentpageflag_module
-
-    rstreamio_pkg = types.ModuleType("rstreamio")
-    rstreamio_pkg.__path__ = []
-    sys.modules["rstreamio"] = rstreamio_pkg
-
-    message_pkg = types.ModuleType("rstreamio.message")
-    message_pkg.__path__ = []
-    sys.modules["rstreamio.message"] = message_pkg
-
-    schemas_pkg = types.ModuleType("rstreamio.message.schemas")
-    schemas_pkg.__path__ = []
-    sys.modules["rstreamio.message.schemas"] = schemas_pkg
-
-    schema_module = types.ModuleType("rstreamio.message.schemas.redactionsummary")
-    schema_module.get_in_summary_object = lambda payload: types.SimpleNamespace(**json.loads(payload))
-    schema_module.get_in_summarypackage_object = lambda payload: types.SimpleNamespace(**json.loads(payload))
-    sys.modules["rstreamio.message.schemas.redactionsummary"] = schema_module
-
-    spec = importlib.util.spec_from_file_location(module_name, REDACTION_SUMMARY_PATH)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
+    return load_redactionsummary_with_fake_dal(
+        "DocumentServices.services.dts.redactionsummary_connection_reuse_under_test",
+        fake_documentpageflag,
+    )
 
 
 class DocumentPageFlagConnectionReuseTests(unittest.TestCase):
@@ -136,6 +94,26 @@ class DocumentPageFlagConnectionReuseTests(unittest.TestCase):
 
         self.assertEqual(1, len(created_connections))
         self.assertTrue(created_connections[0].closed)
+
+    def test_getrecentredactionlayerid_returns_scalar_from_cursor_row(self):
+        created_connections = []
+        module = load_documentpageflag_module(created_connections)
+        caller_conn = FakeConnection([(42,)])
+
+        result = module.documentpageflag.getrecentredactionlayerid(500, conn=caller_conn)
+
+        self.assertEqual(42, result)
+        self.assertFalse(caller_conn.closed)
+
+    def test_getrecentredactionlayerid_defaults_when_no_row_returned(self):
+        created_connections = []
+        module = load_documentpageflag_module(created_connections)
+        caller_conn = FakeConnection([])
+
+        result = module.documentpageflag.getrecentredactionlayerid(500, conn=caller_conn)
+
+        self.assertEqual(1, result)
+        self.assertFalse(caller_conn.closed)
 
 
 class RedactionSummaryConnectionReuseTests(unittest.TestCase):
@@ -163,9 +141,9 @@ class RedactionSummaryConnectionReuseTests(unittest.TestCase):
                 received_connections.append(conn)
                 return []
 
-            def getsections_by_documentid_pageno(self, redactionlayerid, documentid, pagenos, conn=None):
+            def getsections_batch(self, redactionlayerid, document_pages, conn=None):
                 received_connections.append(conn)
-                return [{"pageno": 0, "section": "22"}]
+                return [{"documentid": 10, "pageno": 0, "section": "22"}]
 
         module = load_redactionsummary_module(FakeDocumentPageFlag)
         sentinel_conn = object()

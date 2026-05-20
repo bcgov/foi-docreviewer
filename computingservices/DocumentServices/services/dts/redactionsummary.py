@@ -69,6 +69,8 @@ class redactionsummary():
             skippages= []     
             pagecount = 0
             try:
+                section_document_pages = defaultdict(list)
+                pending_section_mappings = []
                 for docid in ordereddocids:
                     if docid in documentids:
                         docdeletedpages = deletedpages[docid] if docid in deletedpages else []
@@ -90,9 +92,14 @@ class redactionsummary():
                                 print("\nfilteredpages:",filteredpages)
                                 if len(filteredpages) > 0:
                                     originalpagenos = [pg['originalpageno'] for pg in filteredpages]
-                                    docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos, conn=doc_conn)
+                                    section_document_pages[docid].extend(originalpagenos)
                                     docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                                    pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                                    pending_section_mappings.append({
+                                        "docid": docid,
+                                        "pageflag": pageflag,
+                                        "filteredpages": filteredpages,
+                                        "docpageconsults": docpageconsults,
+                                    })
                             skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category, docdeletedpages, pageswithphases,pageswithnoflags)
                         elif docid not in docpageflags.keys() or len(docpageflags[docid]["pageflag"]) == 0:
                             # to handle scenarios in phased release packages where documents will have no page flags at all (either empty pageflag array or no pageflag property)
@@ -100,6 +107,12 @@ class redactionsummary():
                                 skippages = [x for x in range(1, stitchedpagedata[docid]["pagecount"]+1)]
                     if stitchedpagedata is not None:
                         pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
+                self.__assign_batched_pagesections(
+                    redactionlayerid,
+                    section_document_pages,
+                    pending_section_mappings,
+                    doc_conn=doc_conn,
+                )
                 print("\n_pageflags1",_pageflags)
                 for pageflag in _pageflags:
                     _data = {}
@@ -577,6 +590,36 @@ class redactionsummary():
             entry["sections"] = self.__get_sections(docpagesections, entry['originalpageno'])
             entry["consults"] = docpageconsults[entry['originalpageno']] if entry['originalpageno'] in docpageconsults else None
         return docpages
+
+    def __assign_batched_pagesections(self, redactionlayerid, document_pages, pending_mappings, doc_conn=None):
+        if not pending_mappings:
+            return
+
+        document_pages = {
+            docid: sorted(set(pages))
+            for docid, pages in document_pages.items()
+            if pages
+        }
+        if not document_pages:
+            return
+
+        all_sections = documentpageflag().getsections_batch(redactionlayerid, document_pages, conn=doc_conn)
+        sections_by_docid = defaultdict(list)
+        for section in all_sections:
+            sections_by_docid[section["documentid"]].append({
+                "pageno": section["pageno"],
+                "section": section["section"],
+            })
+
+        for mapping in pending_mappings:
+            mapping["pageflag"]["docpageflags"] = (
+                mapping["pageflag"]["docpageflags"]
+                + self.__get_pagesection_mapping(
+                    mapping["filteredpages"],
+                    sections_by_docid[mapping["docid"]],
+                    mapping["docpageconsults"],
+                )
+            )
     
     
     def __get_sections(self, docpagesections, pageno):
