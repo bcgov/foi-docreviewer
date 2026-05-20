@@ -175,6 +175,8 @@ class redactionsummary():
             # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
+            if pagecounts:
+                self.assignfullpagesections(redactionlayerid, mapped_flags)
             end_page = 0
             for record in records:
                 for document_id in record["documentids"]:
@@ -183,7 +185,6 @@ class redactionsummary():
                         record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
                         #     &&& end_page-{end_page}")
-                        self.assignfullpagesections(redactionlayerid, mapped_flags)
                         # print("\nfilteredpages::",filteredpages)
                         range_result = self.__calculate_range(filteredpages, document_id)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
@@ -232,16 +233,25 @@ class redactionsummary():
     def assignfullpagesections(self, redactionlayerid, mapped_flags):
         start_time = time.time()
         document_pages= self.get_sorted_original_pages_by_docid(mapped_flags)
-        # print("document_pages:",document_pages)
-        for item in document_pages:
-            for doc_id, pages in item.items():
-                docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, doc_id, pages)
-                # print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
-                for flag in mapped_flags:
-                        if flag['docid'] == doc_id and flag['flagid'] == 3:
-                            flag['sections']= self.__get_sections_mcf1(docpagesections, flag['dbpageno'])
-                            #self.__get_pagesection_mapping_cfd1(mapped_flags, docpagesections)
-        logging.info(f"[PERF] DTS assignfullpagesections docs={len(document_pages)} elapsed={time.time() - start_time:.3f}s")
+        if not document_pages:
+            logging.info(f"[PERF] DTS assignfullpagesections docs=0 elapsed={time.time() - start_time:.3f}s")
+            return
+
+        docpagesections = documentpageflag().getsections_batch(redactionlayerid, document_pages)
+        sections_by_doc_page = defaultdict(list)
+        for section in docpagesections:
+            sections_by_doc_page[(section["documentid"], section["pageno"])].extend(
+                [value.strip() for value in section["section"].split(",")]
+            )
+
+        for flag in mapped_flags:
+            if flag["flagid"] == 3:
+                flag["sections"] = list(filter(None, sections_by_doc_page[(flag["docid"], flag["dbpageno"])]))
+
+        logging.info(
+            f"[PERF] DTS assignfullpagesections docs={len(document_pages)} "
+            f"flags={len(mapped_flags)} elapsed={time.time() - start_time:.3f}s"
+        )
 
     def __get_sections_mcf1(self, docpagesections, pageno):
         sections = []
@@ -265,13 +275,7 @@ class redactionsummary():
 
             pages_by_docid[docid].append(original_page)
 
-        # Sort the original pages for each docid
-        for docid in pages_by_docid:
-            pages_by_docid[docid].sort()
-
-        # Convert to the desired format
-        result = [{docid: pages} for docid, pages in pages_by_docid.items()]
-        return result
+        return {docid: sorted(set(pages)) for docid, pages in pages_by_docid.items()}
 
     def __createrecordpagerange(self, record, pagecounts, doc_id, previous_end_page=0):
         total_page_count = pagecounts[doc_id]
@@ -629,4 +633,3 @@ class redactionsummary():
         for entry in data:
             totalpages=totalpages+data[entry]['pagecount']
         return totalpages
-

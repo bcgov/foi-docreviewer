@@ -238,6 +238,66 @@ class documentpageflag:
                 conn.close()
 
     @classmethod
+    def getsections_batch(cls, redactionlayerid, document_pages):
+        start_time = time.time()
+        if not document_pages:
+            return []
+
+        requested_pairs = [
+            (int(documentid), int(pageno))
+            for documentid, pagenos in document_pages.items()
+            for pageno in sorted(set(pagenos))
+        ]
+        if not requested_pairs:
+            return []
+
+        conn = getdbconnection()
+        sections = []
+        try:
+            cursor = conn.cursor()
+            documentids = [pair[0] for pair in requested_pairs]
+            pagenumbers = [pair[1] for pair in requested_pairs]
+            cursor.execute(
+                """
+                WITH requested_pages AS (
+                    SELECT *
+                    FROM unnest(%s::integer[], %s::integer[]) AS rp(documentid, pagenumber)
+                )
+                SELECT a.documentid,
+                       a.pagenumber,
+                       unnest(xpath('//contents/text()', a.annotation::xml))::text AS sections
+                FROM "Annotations" a
+                JOIN requested_pages rp
+                  ON rp.documentid = a.documentid
+                 AND rp.pagenumber = a.pagenumber
+                WHERE a.isactive = true
+                  AND a.redactionlayerid = %s::integer
+                  AND a.annotationtype = 'freetext'
+                ORDER BY a.documentid, a.pagenumber;
+                """,
+                (documentids, pagenumbers, redactionlayerid),
+            )
+
+            result = cursor.fetchall()
+            cursor.close()
+            if result is not None:
+                for entry in result:
+                    sections.append({"documentid": entry[0], "pageno": entry[1], "section": entry[2]})
+            logging.info(
+                f"[PERF] DAL getsections_batch layer={redactionlayerid} docs={len(document_pages)} "
+                f"pages={len(requested_pairs)} elapsed={time.time() - start_time:.3f}s"
+            )
+            return sections
+
+        except Exception as error:
+            logging.error("Error in getting batched sections for requestid")
+            logging.error(error)
+            raise
+        finally:
+            if conn is not None:
+                conn.close()
+
+    @classmethod
     def getdeletedpages(cls, ministryrequestid, docids):
         start_time = time.time()
         conn = getdbconnection()
