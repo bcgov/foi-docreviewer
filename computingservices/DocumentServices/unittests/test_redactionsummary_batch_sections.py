@@ -79,6 +79,30 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
         self.assertIn("unnest(%s::integer[], %s::integer[])", FakeCursor.executed_sql)
         self.assertEqual(([10, 10, 20], [0, 1, 2], 99), FakeCursor.executed_params)
 
+    def test_getsections_batch_closes_cursor_when_query_fails(self):
+        class FakeCursor:
+            closed = False
+
+            def execute(self, sql, params):
+                raise RuntimeError("query failed")
+
+            def close(self):
+                type(self).closed = True
+
+        class FakeConnection:
+            def cursor(self):
+                return FakeCursor()
+
+            def close(self):
+                return None
+
+        module = _load_documentpageflag_module(FakeConnection())
+
+        with self.assertRaises(RuntimeError):
+            module.documentpageflag.getsections_batch(99, {10: [0]})
+
+        self.assertTrue(FakeCursor.closed)
+
     def test_assignfullpagesections_uses_one_batch_query_for_all_documents(self):
         class FakeDocumentPageFlag:
             batch_calls = []
