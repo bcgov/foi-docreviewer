@@ -245,6 +245,66 @@ class RedactionSummaryBatchSectionTests(unittest.TestCase):
         self.assertEqual("EDU-2026-0001", result["requestnumber"])
         self.assertEqual(4, len(result["data"]))
 
+    def test_batched_pagesections_are_indexed_by_page_before_mapping(self):
+        class FakeDocumentPageFlag:
+            def getsections_batch(self, redactionlayerid, document_pages, conn=None):
+                return [
+                    {"documentid": 10, "pageno": 0, "section": "22"},
+                    {"documentid": 10, "pageno": 0, "section": "15"},
+                    {"documentid": 10, "pageno": 1, "section": "13"},
+                ]
+
+        module = _load_redactionsummary_module(FakeDocumentPageFlag)
+        summary = module.redactionsummary()
+
+        def fail_if_linear_scan_is_used(*args, **kwargs):
+            raise AssertionError("batched section mapping should use a page index")
+
+        summary._redactionsummary__get_sections = fail_if_linear_scan_is_used
+        pageflag = {"docpageflags": []}
+        pending_mappings = [
+            {
+                "docid": 10,
+                "pageflag": pageflag,
+                "filteredpages": [
+                    {"originalpageno": 0, "stitchedpageno": 1},
+                    {"originalpageno": 1, "stitchedpageno": 2},
+                    {"originalpageno": 2, "stitchedpageno": 3},
+                ],
+                "docpageconsults": {1: "IAO"},
+            }
+        ]
+
+        summary._redactionsummary__assign_batched_pagesections(
+            99,
+            {10: [0, 1, 2]},
+            pending_mappings,
+        )
+
+        self.assertEqual(
+            [
+                {
+                    "originalpageno": 0,
+                    "stitchedpageno": 1,
+                    "sections": ["22", "15"],
+                    "consults": None,
+                },
+                {
+                    "originalpageno": 1,
+                    "stitchedpageno": 2,
+                    "sections": ["13"],
+                    "consults": "IAO",
+                },
+                {
+                    "originalpageno": 2,
+                    "stitchedpageno": 3,
+                    "sections": [],
+                    "consults": None,
+                },
+            ],
+            pageflag["docpageflags"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
