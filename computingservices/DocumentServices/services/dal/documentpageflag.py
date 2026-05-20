@@ -259,6 +259,7 @@ class documentpageflag:
 
         conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         sections = []
+        cursor = None
         try:
             cursor = conn.cursor()
             documentids = [pair[0] for pair in requested_pairs]
@@ -285,7 +286,6 @@ class documentpageflag:
             )
 
             result = cursor.fetchall()
-            cursor.close()
             if result is not None:
                 for entry in result:
                     sections.append({"documentid": entry[0], "pageno": entry[1], "section": entry[2]})
@@ -300,6 +300,8 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
+            if cursor is not None:
+                cursor.close()
             if should_close_conn and conn is not None:
                 conn.close()
 
