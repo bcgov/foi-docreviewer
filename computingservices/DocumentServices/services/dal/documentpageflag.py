@@ -5,10 +5,16 @@ import time
 
 class documentpageflag:
 
+    @staticmethod
+    def __resolve_connection(connection_factory, conn=None):
+        if conn is not None:
+            return conn, False
+        return connection_factory(), True
+
     @classmethod
-    def get_all_pageflags(cls, ignoreflags):
+    def get_all_pageflags(cls, ignoreflags, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         pageflags = []
         try:
             cursor = conn.cursor()
@@ -33,13 +39,13 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def get_all_programareas(cls):
+    def get_all_programareas(cls, conn=None):
         start_time = time.time()
-        conn = getfoidbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getfoidbconnection, conn)
         programareas = {}
         try:
             cursor = conn.cursor()
@@ -64,13 +70,13 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def get_documentpageflag(cls, ministryrequestid, redactionlayerid, documentids):
+    def get_documentpageflag(cls, ministryrequestid, redactionlayerid, documentids, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         documentpageflags = {}
         try:
             cursor = conn.cursor()
@@ -98,7 +104,7 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
@@ -138,9 +144,9 @@ class documentpageflag:
 
 
     @classmethod
-    def getpagecount_by_documentid(cls, ministryrequestid, documentids):
+    def getpagecount_by_documentid(cls, ministryrequestid, documentids, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         docpgs = {}
         try:
             cursor = conn.cursor()
@@ -166,13 +172,13 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
     
     @classmethod
-    def getoriginalpagecount_by_documentid(cls, ministryrequestid, documentids):
+    def getoriginalpagecount_by_documentid(cls, ministryrequestid, documentids, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         docpgs = {}
         try:
             cursor = conn.cursor()
@@ -198,13 +204,13 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos):
+    def getsections_by_documentid_pageno(cls, redactionlayerid, documentid, pagenos, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         sections = []
         try:
             cursor = conn.cursor()
@@ -234,11 +240,11 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def getsections_batch(cls, redactionlayerid, document_pages):
+    def getsections_batch(cls, redactionlayerid, document_pages, conn=None):
         start_time = time.time()
         if not document_pages:
             return []
@@ -251,7 +257,7 @@ class documentpageflag:
         if not requested_pairs:
             return []
 
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         sections = []
         try:
             cursor = conn.cursor()
@@ -294,13 +300,13 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def getdeletedpages(cls, ministryrequestid, docids):
+    def getdeletedpages(cls, ministryrequestid, docids, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         deldocpages = []
         try:
             cursor = conn.cursor()
@@ -326,14 +332,15 @@ class documentpageflag:
             logging.error(error)
             raise
         finally:
-            if conn is not None:
+            if should_close_conn and conn is not None:
                 conn.close()
 
     @classmethod
-    def getrecentredactionlayerid(cls, ministryrequestid):
+    def getrecentredactionlayerid(cls, ministryrequestid, conn=None):
         start_time = time.time()
-        conn = getdbconnection()
+        conn, should_close_conn = cls.__resolve_connection(getdbconnection, conn)
         layerid = 1
+        cursor = None
         try:
             cursor = conn.cursor()
             query = '''
@@ -353,6 +360,7 @@ class documentpageflag:
             logging.error("Error in getting recentredactionlayerid for requestid")
             logging.error(error)
         finally:
-            cursor.close()
-            if conn is not None:
+            if cursor is not None:
+                cursor.close()
+            if should_close_conn and conn is not None:
                 conn.close()
