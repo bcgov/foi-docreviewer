@@ -9,6 +9,7 @@ from services.dts.redactionsummary import redactionsummary
 from services.dal.documentpageflag import documentpageflag
 from rstreamio.message.schemas.redactionsummary import get_in_redactionsummary_msg, get_in_summary_object,get_in_summarypackage_object
 from services.dal.documenttemplate import documenttemplate
+from utils import getdbconnection, getfoidbconnection
 
 class redactionsummaryservice():
 
@@ -16,12 +17,16 @@ class redactionsummaryservice():
         start_total = time.time()
         summaryfilestozip = []
         message = get_in_redactionsummary_msg(incomingmessage)
+        doc_conn = None
+        foi_conn = None
         print('\n 1. get_in_redactionsummary_msg is : {0}'.format(message))
         try:
             category = message.category 
             #Condition to handle consults packaages (no summary files to be created)
             if category == "consultpackage": 
                 return summaryfilestozip
+            doc_conn = getdbconnection()
+            foi_conn = getfoidbconnection()
             pdfstitchjobactivity().recordjobstatus(message,3,"redactionsummarystarted")                      
             summarymsg = message.summarydocuments
             #Condition for handling oipcredline category
@@ -34,12 +39,12 @@ class redactionsummaryservice():
             print('\n 2. documenttypename', documenttypename)
             upload_responses=[]
             start_pageflags = time.time()
-            pageflags = self.__get_pageflags(category)
+            pageflags = self.__get_pageflags(category, doc_conn=doc_conn)
             elapsed_pageflags = time.time() - start_pageflags
             logging.info(f"[PERF] redactionsummaryservice.__get_pageflags category={category} elapsed={elapsed_pageflags:.3f}s")
 
             start_progareas = time.time()
-            programareas = documentpageflag().get_all_programareas()
+            programareas = documentpageflag().get_all_programareas(conn=foi_conn)
             elapsed_progareas = time.time() - start_progareas
             logging.info(f"[PERF] redactionsummaryservice.get_all_programareas elapsed={elapsed_progareas:.3f}s")
 
@@ -64,7 +69,7 @@ class redactionsummaryservice():
                     if not documentids:
                         continue
                     start_prepare = time.time()
-                    formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas)
+                    formattedsummary = redactionsummary().prepareredactionsummary(message, documentids, pageflags, programareas, doc_conn=doc_conn)
                     elapsed_prepare = time.time() - start_prepare
                     logging.info(f"[PERF] redactionsummaryservice prepareredactionsummary divisionid={divisionid} docs={len(documentids)} elapsed={elapsed_prepare:.3f}s")
 
@@ -124,6 +129,11 @@ class redactionsummaryservice():
             print('error occured in redaction summary service: ', error)
             pdfstitchjobactivity().recordjobstatus(message,4,"redactionsummaryfailed",str(error),"summary generation failed")
             return summaryfilestozip
+        finally:
+            if foi_conn is not None:
+                foi_conn.close()
+            if doc_conn is not None:
+                doc_conn.close()
         
     def __get_summaryfilename(self, requestnumber, category, divisionname, stitcheddocfilename, phase):
         stitchedfilepath = stitcheddocfilename[:stitcheddocfilename.rfind( '/')+1]
@@ -145,10 +155,10 @@ class redactionsummaryservice():
         # print("---->",stitchedfilepath+_filename+" - summary.pdf")   
         return stitchedfilepath+_filename+" - summary.pdf"
   
-    def __get_pageflags(self, category):
+    def __get_pageflags(self, category, doc_conn=None):
         if category in ("responsepackage", "openinfo"):            
-            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate', 'Phase'])
-        return documentpageflag().get_all_pageflags(['Consult', 'Phase'])
+            return documentpageflag().get_all_pageflags(['Consult', 'Not Responsive', 'Duplicate', 'Phase'], conn=doc_conn)
+        return documentpageflag().get_all_pageflags(['Consult', 'Phase'], conn=doc_conn)
         
 
    
