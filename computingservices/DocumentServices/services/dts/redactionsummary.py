@@ -8,13 +8,13 @@ import logging
 
 class redactionsummary():
 
-    def prepareredactionsummary(self, message, documentids, pageflags, programareas):
+    def prepareredactionsummary(self, message, documentids, pageflags, programareas, doc_conn=None):
         start_time = time.time()
         _ismcfpersonalrequest = True if message.bcgovcode == 'mcf' and message.requesttype == 'personal' else False
         if _ismcfpersonalrequest and (message.category in ("responsepackage", "openinfo") or  "responsepackage_phase" in message.category):
-            redactionsummary = self.__packagesummaryforcfdrequests(message, documentids)
+            redactionsummary = self.__packagesummaryforcfdrequests(message, documentids, doc_conn=doc_conn)
         else:
-            redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas)
+            redactionsummary = self.__packaggesummary(message, documentids, pageflags, programareas, doc_conn=doc_conn)
         if (message.category in ("responsepackage", "openinfo") or "responsepackage_phase" in message.category) and _ismcfpersonalrequest == False:
             consolidated_redactions = []
             for entry in redactionsummary['data']:
@@ -30,17 +30,17 @@ class redactionsummary():
         rangestart = str(rangestart).split('(')[0]
         return int(rangestart)
 
-    def __packaggesummary(self, message, documentids, pageflags, programareas):
+    def __packaggesummary(self, message, documentids, pageflags, programareas, doc_conn=None):
         start_time = time.time()
         try:
             print("\nInside __packaggesummary")
-            redactionlayerid = self.__getredactionlayerid(message)
+            redactionlayerid = self.__getredactionlayerid(message, doc_conn=doc_conn)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
-            stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
+            stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids, conn=doc_conn)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
-            originalpagedata = None if "responsepackage_phase" not in message.category else documentpageflag().getoriginalpagecount_by_documentid(message.ministryrequestid, ordereddocids)
+            originalpagedata = None if "responsepackage_phase" not in message.category else documentpageflag().getoriginalpagecount_by_documentid(message.ministryrequestid, ordereddocids, conn=doc_conn)
             print("\n __packaggesummary stitchedpagedata",stitchedpagedata)
             print("\n __packaggesummary totalpagecount",totalpagecount)
             if totalpagecount <=0:
@@ -48,7 +48,7 @@ class redactionsummary():
             _pageflags = self.__transformpageflags(pageflags)
             print("\n_pageflags",_pageflags)
             summarydata = []
-            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids, conn=doc_conn)
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
             if phase is not None and phase !="" and 'redline_phase' in message.category:
@@ -65,10 +65,12 @@ class redactionsummary():
                     pageflags = docpageflags[docid]['pageflag']
                     docpageflags[docid]['pageflag'] = [flagobj for flagobj in pageflags if docid in docpagephase_map and flagobj['page'] in docpagephase_map[docid]]
             print("\n docpageflags",docpageflags)
-            deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
+            deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids, doc_conn=doc_conn)
             skippages= []     
             pagecount = 0
             try:
+                section_document_pages = defaultdict(list)
+                pending_section_mappings = []
                 for docid in ordereddocids:
                     if docid in documentids:
                         docdeletedpages = deletedpages[docid] if docid in deletedpages else []
@@ -90,9 +92,14 @@ class redactionsummary():
                                 print("\nfilteredpages:",filteredpages)
                                 if len(filteredpages) > 0:
                                     originalpagenos = [pg['originalpageno'] for pg in filteredpages]
-                                    docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, docid, originalpagenos)
+                                    section_document_pages[docid].extend(originalpagenos)
                                     docpageconsults = self.__get_consults_by_pageno(programareas, docpageflag["pageflag"], filteredpages)
-                                    pageflag['docpageflags'] = pageflag['docpageflags'] + self.__get_pagesection_mapping(filteredpages, docpagesections, docpageconsults)
+                                    pending_section_mappings.append({
+                                        "docid": docid,
+                                        "pageflag": pageflag,
+                                        "filteredpages": filteredpages,
+                                        "docpageconsults": docpageconsults,
+                                    })
                             skippages = self.__get_skippagenos(docpageflag['pageflag'], message.category, docdeletedpages, pageswithphases,pageswithnoflags)
                         elif docid not in docpageflags.keys() or len(docpageflags[docid]["pageflag"]) == 0:
                             # to handle scenarios in phased release packages where documents will have no page flags at all (either empty pageflag array or no pageflag property)
@@ -100,6 +107,12 @@ class redactionsummary():
                                 skippages = [x for x in range(1, stitchedpagedata[docid]["pagecount"]+1)]
                     if stitchedpagedata is not None:
                         pagecount = (pagecount+stitchedpagedata[docid]["pagecount"])-len(skippages)
+                self.__assign_batched_pagesections(
+                    redactionlayerid,
+                    section_document_pages,
+                    pending_section_mappings,
+                    doc_conn=doc_conn,
+                )
                 print("\n_pageflags1",_pageflags)
                 for pageflag in _pageflags:
                     _data = {}
@@ -128,15 +141,15 @@ class redactionsummary():
 
 
 
-    def __packagesummaryforcfdrequests(self, message, documentids):
+    def __packagesummaryforcfdrequests(self, message, documentids, doc_conn=None):
         start_time = time.time()
         try:
             print("\nInside logic for __packagesummaryforcfdrequests")
-            redactionlayerid = self.__getredactionlayerid(message)
+            redactionlayerid = self.__getredactionlayerid(message, doc_conn=doc_conn)
             summarymsg = message.summarydocuments
             summaryobject = get_in_summary_object(summarymsg)
             ordereddocids = summaryobject.sorteddocuments
-            stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids)
+            stitchedpagedata = documentpageflag().getpagecount_by_documentid(message.ministryrequestid, ordereddocids, conn=doc_conn)
             totalpagecount = self.__calculate_totalpages(stitchedpagedata)
 
             if totalpagecount <= 0:
@@ -146,7 +159,7 @@ class redactionsummary():
             records = pkgdocuments[0].get('records', [])
             summarydata = []
 
-            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids)
+            docpageflags = documentpageflag().get_documentpageflag(message.ministryrequestid, redactionlayerid, ordereddocids, conn=doc_conn)
             # this will remove any pages from docpageflags[pageflags] that are not associated with the redline phase for each doc
             phase = message.phase
             if phase is not None and phase !="":
@@ -165,7 +178,7 @@ class redactionsummary():
             
             sorted_docpageflags = {k: docpageflags[k] for k in ordereddocids if k in docpageflags}
             # print("============>sorted_docpageflags:", sorted_docpageflags)
-            deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids)
+            deletedpages = self.__getdeletedpages(message.ministryrequestid, ordereddocids, doc_conn=doc_conn)
             # print("============>deletedpages:", deletedpages)
             mapped_flags = self.process_page_flags(sorted_docpageflags,deletedpages)
             print("###mapped_flags1:",mapped_flags)
@@ -175,6 +188,8 @@ class redactionsummary():
             # print("pagecounts:",pagecounts)
             #document_pages = self.__get_document_pages(docpageflags)
             #original_pages = self.__adjust_original_pages(document_pages)
+            if pagecounts:
+                self.assignfullpagesections(redactionlayerid, mapped_flags, doc_conn=doc_conn)
             end_page = 0
             for record in records:
                 for document_id in record["documentids"]:
@@ -183,7 +198,6 @@ class redactionsummary():
                         record_range, total_page_count,end_page  = self.__createrecordpagerange(record, pagecounts, document_id, end_page)
                         # print(f"Range for each record- record_range:{record_range} &&& total_page_count:{total_page_count} \
                         #     &&& end_page-{end_page}")
-                        self.assignfullpagesections(redactionlayerid, mapped_flags)
                         # print("\nfilteredpages::",filteredpages)
                         range_result = self.__calculate_range(filteredpages, document_id)
                         recordwise_pagecount = next((record["pagecount"] for record in record_range if record["recordname"] == record['recordname'].upper()), 0)
@@ -229,19 +243,28 @@ class redactionsummary():
         return {"range": f"{min_stitched_page} - {max_stitched_page}" if min_stitched_page != max_stitched_page else f"{min_stitched_page}", "flagged_range":ranges}
     
 
-    def assignfullpagesections(self, redactionlayerid, mapped_flags):
+    def assignfullpagesections(self, redactionlayerid, mapped_flags, doc_conn=None):
         start_time = time.time()
         document_pages= self.get_sorted_original_pages_by_docid(mapped_flags)
-        # print("document_pages:",document_pages)
-        for item in document_pages:
-            for doc_id, pages in item.items():
-                docpagesections = documentpageflag().getsections_by_documentid_pageno(redactionlayerid, doc_id, pages)
-                # print(f"\n doc_id-{doc_id}, docpagesections-{docpagesections}")
-                for flag in mapped_flags:
-                        if flag['docid'] == doc_id and flag['flagid'] == 3:
-                            flag['sections']= self.__get_sections_mcf1(docpagesections, flag['dbpageno'])
-                            #self.__get_pagesection_mapping_cfd1(mapped_flags, docpagesections)
-        logging.info(f"[PERF] DTS assignfullpagesections docs={len(document_pages)} elapsed={time.time() - start_time:.3f}s")
+        if not document_pages:
+            logging.info(f"[PERF] DTS assignfullpagesections docs=0 elapsed={time.time() - start_time:.3f}s")
+            return
+
+        docpagesections = documentpageflag().getsections_batch(redactionlayerid, document_pages, conn=doc_conn)
+        sections_by_doc_page = defaultdict(list)
+        for section in docpagesections:
+            sections_by_doc_page[(section["documentid"], section["pageno"])].extend(
+                [value.strip() for value in section["section"].split(",")]
+            )
+
+        for flag in mapped_flags:
+            if flag["flagid"] == 3:
+                flag["sections"] = list(filter(None, sections_by_doc_page[(flag["docid"], flag["dbpageno"])]))
+
+        logging.info(
+            f"[PERF] DTS assignfullpagesections docs={len(document_pages)} "
+            f"flags={len(mapped_flags)} elapsed={time.time() - start_time:.3f}s"
+        )
 
     def __get_sections_mcf1(self, docpagesections, pageno):
         sections = []
@@ -265,13 +288,7 @@ class redactionsummary():
 
             pages_by_docid[docid].append(original_page)
 
-        # Sort the original pages for each docid
-        for docid in pages_by_docid:
-            pages_by_docid[docid].sort()
-
-        # Convert to the desired format
-        result = [{docid: pages} for docid, pages in pages_by_docid.items()]
-        return result
+        return {docid: sorted(set(pages)) for docid, pages in pages_by_docid.items()}
 
     def __createrecordpagerange(self, record, pagecounts, doc_id, previous_end_page=0):
         total_page_count = pagecounts[doc_id]
@@ -478,15 +495,15 @@ class redactionsummary():
         return formatted_section_list
 
     
-    def __getredactionlayerid(self, message):
+    def __getredactionlayerid(self, message, doc_conn=None):
         if message.category == "responsepackage" or "responsepackage_phase" in message.category:
-            return documentpageflag().getrecentredactionlayerid(message.ministryrequestid)
+            return documentpageflag().getrecentredactionlayerid(message.ministryrequestid, conn=doc_conn)
         elif message.category == "openinfo":
             return 1 # openinfo uses summary from redline layer
         return message.redactionlayerid 
 
-    def __getdeletedpages(self, ministryid, ordereddocids):
-        deletedpages = documentpageflag().getdeletedpages(ministryid, ordereddocids)
+    def __getdeletedpages(self, ministryid, ordereddocids, doc_conn=None):
+        deletedpages = documentpageflag().getdeletedpages(ministryid, ordereddocids, conn=doc_conn)
         documentpages = {}
         if deletedpages: 
             for entry in deletedpages:
@@ -573,6 +590,42 @@ class redactionsummary():
             entry["sections"] = self.__get_sections(docpagesections, entry['originalpageno'])
             entry["consults"] = docpageconsults[entry['originalpageno']] if entry['originalpageno'] in docpageconsults else None
         return docpages
+
+    def __get_pagesection_mapping_from_index(self, docpages, sections_by_pageno, docpageconsults):
+        for entry in docpages:
+            entry["sections"] = sections_by_pageno.get(entry['originalpageno'], [])
+            entry["consults"] = docpageconsults[entry['originalpageno']] if entry['originalpageno'] in docpageconsults else None
+        return docpages
+
+    def __assign_batched_pagesections(self, redactionlayerid, document_pages, pending_mappings, doc_conn=None):
+        if not pending_mappings:
+            return
+
+        document_pages = {
+            docid: sorted(set(pages))
+            for docid, pages in document_pages.items()
+            if pages
+        }
+        if not document_pages:
+            return
+
+        all_sections = documentpageflag().getsections_batch(redactionlayerid, document_pages, conn=doc_conn)
+        sections_by_docid = defaultdict(lambda: defaultdict(list))
+        for section in all_sections:
+            for value in section["section"].split(","):
+                cleaned = value.strip()
+                if cleaned:
+                    sections_by_docid[section["documentid"]][section["pageno"]].append(cleaned)
+
+        for mapping in pending_mappings:
+            mapping["pageflag"]["docpageflags"] = (
+                mapping["pageflag"]["docpageflags"]
+                + self.__get_pagesection_mapping_from_index(
+                    mapping["filteredpages"],
+                    sections_by_docid[mapping["docid"]],
+                    mapping["docpageconsults"],
+                )
+            )
     
     
     def __get_sections(self, docpagesections, pageno):
@@ -629,4 +682,3 @@ class redactionsummary():
         for entry in data:
             totalpages=totalpages+data[entry]['pagecount']
         return totalpages
-
