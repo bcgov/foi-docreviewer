@@ -19,6 +19,7 @@ def _load_service_module():
         "services",
         "services.dal",
         "services.dts",
+        "utils",
         "rstreamio",
         "rstreamio.message",
         "rstreamio.message.schemas",
@@ -45,6 +46,33 @@ def _load_service_module():
     services_dts_pkg.__path__ = []
     sys.modules["services.dts"] = services_dts_pkg
 
+    class FakeConnection:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    fake_utils = types.ModuleType("utils")
+    fake_utils.doc_connection = None
+    fake_utils.foi_connection = None
+    fake_utils.doc_connection_count = 0
+    fake_utils.foi_connection_count = 0
+
+    def getdbconnection():
+        fake_utils.doc_connection_count += 1
+        fake_utils.doc_connection = FakeConnection()
+        return fake_utils.doc_connection
+
+    def getfoidbconnection():
+        fake_utils.foi_connection_count += 1
+        fake_utils.foi_connection = FakeConnection()
+        return fake_utils.foi_connection
+
+    fake_utils.getdbconnection = getdbconnection
+    fake_utils.getfoidbconnection = getfoidbconnection
+    sys.modules["utils"] = fake_utils
+
     rstreamio_pkg = types.ModuleType("rstreamio")
     rstreamio_pkg.__path__ = []
     sys.modules["rstreamio"] = rstreamio_pkg
@@ -70,9 +98,11 @@ def _load_service_module():
 
     class FakeRedactionSummary:
         calls = []
+        last_doc_conn = None
 
-        def prepareredactionsummary(self, message, documentids, pageflags, programareas):
+        def prepareredactionsummary(self, message, documentids, pageflags, programareas, doc_conn=None):
             type(self).calls.append(list(documentids))
+            type(self).last_doc_conn = doc_conn
             return {"requestnumber": message.requestnumber, "data": []}
 
     redactionsummary_module.redactionsummary = FakeRedactionSummary
@@ -109,10 +139,15 @@ def _load_service_module():
     documentpageflag_module = types.ModuleType("services.dal.documentpageflag")
 
     class FakeDocumentPageFlag:
+        last_pageflags_conn = None
+        last_programareas_conn = None
+
         def get_all_pageflags(self, *args, **kwargs):
+            type(self).last_pageflags_conn = kwargs.get("conn")
             return []
 
         def get_all_programareas(self, *args, **kwargs):
+            type(self).last_programareas_conn = kwargs.get("conn")
             return []
 
     documentpageflag_module.documentpageflag = FakeDocumentPageFlag
@@ -153,17 +188,20 @@ def _load_service_module():
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
-    return module, FakeDocumentTemplate, FakeRedactionSummary
+    return module, FakeDocumentTemplate, FakeRedactionSummary, FakeDocumentPageFlag, fake_utils
 
 
 class RedactionSummaryServiceTests(unittest.TestCase):
     def setUp(self):
-        self.module, self.documenttemplate, self.redactionsummary = _load_service_module()
+        self.module, self.documenttemplate, self.redactionsummary, self.documentpageflag, self.fake_utils = _load_service_module()
         self.documenttemplate.compatible_document_ids = []
         self.documenttemplate.record_group_document_ids = []
         self.documenttemplate.compatible_calls = []
         self.documenttemplate.record_group_calls = []
         self.redactionsummary.calls = []
+        self.redactionsummary.last_doc_conn = None
+        self.documentpageflag.last_pageflags_conn = None
+        self.documentpageflag.last_programareas_conn = None
 
     def test_filters_non_document_set_ids_before_generating_summary(self):
         self.documenttemplate.compatible_document_ids = [102432, 102439]
@@ -199,6 +237,45 @@ class RedactionSummaryServiceTests(unittest.TestCase):
         self.assertEqual([[102432, 102439]], self.redactionsummary.calls)
         self.assertEqual([[102432, 102433, 102439]], self.documenttemplate.compatible_calls)
         self.assertEqual([], self.documenttemplate.record_group_calls)
+
+    def test_reuses_one_document_and_foi_connection_for_summary_generation(self):
+        self.documenttemplate.compatible_document_ids = [102432]
+        message = {
+            "jobid": 1,
+            "requestid": 1,
+            "ministryrequestid": 520,
+            "category": "responsepackage",
+            "requestnumber": "EDU-2023-04040757",
+            "bcgovcode": "EDU",
+            "createdby": "foiedu@idir",
+            "filestozip": [],
+            "finaloutput": {},
+            "attributes": json.dumps([{
+                "divisionname": "Learning and Education Programs",
+                "divisionid": 3,
+                "files": [{"s3uripath": "https://example/bucket/responsepackage/source.pdf", "filename": "source.pdf"}],
+            }]),
+            "summarydocuments": json.dumps({
+                "sorteddocuments": [102432],
+                "pkgdocuments": [{"divisionid": 3, "documentids": [102432]}],
+            }),
+            "redactionlayerid": 1,
+            "requesttype": "general",
+            "feeoverridereason": None,
+            "phase": None,
+            "documentsetid": None,
+        }
+
+        service = self.module.redactionsummaryservice()
+        service.processmessage(json.dumps(message))
+
+        self.assertEqual(1, self.fake_utils.doc_connection_count)
+        self.assertEqual(1, self.fake_utils.foi_connection_count)
+        self.assertTrue(self.fake_utils.doc_connection.closed)
+        self.assertTrue(self.fake_utils.foi_connection.closed)
+        self.assertIs(self.documentpageflag.last_pageflags_conn, self.fake_utils.doc_connection)
+        self.assertIs(self.documentpageflag.last_programareas_conn, self.fake_utils.foi_connection)
+        self.assertIs(self.redactionsummary.last_doc_conn, self.fake_utils.doc_connection)
 
 
 if __name__ == "__main__":
