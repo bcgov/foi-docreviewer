@@ -590,7 +590,6 @@ namespace MCS.FOI.MSGToPDF
                 //Set command line arguments to run without sandbox.
                 settings.CommandLineArguments.Add("--no-sandbox");
                 settings.CommandLineArguments.Add("--disable-setuid-sandbox");
-                settings.BlinkPath = @"/usr/lib/chromium/chromium";
                 settings.Scale = 1.0F;
                 htmlConverter.ConverterSettings = settings;
                 //Convert HTML string to PDF
