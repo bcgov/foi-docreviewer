@@ -10,15 +10,23 @@ export const runWithConcurrencyLimit = async (tasks, limit) => {
   const concurrency = Math.max(1, Math.min(limit || 1, tasks.length));
   const results = new Array(tasks.length);
   let nextIndex = 0;
+  let firstError;
 
   const worker = async () => {
-    while (nextIndex < tasks.length) {
+    while (!firstError) {
       const currentIndex = nextIndex;
+      if (currentIndex >= tasks.length) return;
       nextIndex += 1;
-      results[currentIndex] = await tasks[currentIndex]();
+
+      try {
+        results[currentIndex] = await tasks[currentIndex]();
+      } catch (err) {
+        firstError = err;
+        throw err;
+      }
     }
   };
 
-  await Promise.all(Array.from({ length: concurrency }, worker));
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
   return results;
 };
