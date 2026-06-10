@@ -1019,13 +1019,22 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     let documentRedlineAnnotations = {};
     let docCounter = 0;
     for (let documentid of documentids) {
-      fetchDocumentAnnotations(requestid, layer, documentid, async (data) => {
-        docCounter++;
-        documentRedlineAnnotations[documentid] = data[documentid];
-        if (docCounter === documentids.length) {
-          setRedlineDocumentAnnotations(documentRedlineAnnotations);
-        }
-      }, BIG_HTTP_GET_TIMEOUT);
+      fetchDocumentAnnotations(
+        requestid,
+        layer,
+        documentid,
+        async (data) => {
+          docCounter++;
+          documentRedlineAnnotations[documentid] = data[documentid];
+          if (docCounter === documentids.length) {
+            setRedlineDocumentAnnotations(documentRedlineAnnotations);
+          }
+        },
+        (error) => {
+          console.error("Error fetching document annotations:", error);
+        },
+        BIG_HTTP_GET_TIMEOUT
+      );
     }
   };
   const getzipredlinecategory = (layertype) => {
