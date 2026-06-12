@@ -16,7 +16,7 @@ depends_on = None
 
 def upgrade():
     op.execute("""
-               INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES ('', 'Settlement Privilege', 27, True, 'System');
+               INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES ('SP', 'Settlement Privilege', 27, True, 'System');
                """)
     op.execute("""
                UPDATE public."Sections" SET sortorder = sortorder + 1 WHERE sortorder >= 6;
