@@ -22,7 +22,7 @@ def upgrade():
                UPDATE public."Sections" SET sortorder = sortorder + 1 WHERE sortorder >= 6;
                """)
     op.execute("""
-               INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES ('s.16.1', 'Judicial Comments', 6, True, 'System');
+               INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby) VALUES ('s. 16.1', 'Judicial Comments', 6, True, 'System');
                """)
 
 
