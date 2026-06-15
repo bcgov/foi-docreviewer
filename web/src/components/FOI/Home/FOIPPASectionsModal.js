@@ -103,9 +103,9 @@ export const FOIPPASectionsModal= ({
       const compareValues = (a, b) => {
         if (modalSortNumbered) {
           if (modalSortAsc) {
-            return a.id - b.id;
+            return a.sortorder - b.sortorder;
           } else {
-            return b.id - a.id;
+            return b.sortorder - a.sortorder;
           }
         } else {
           return b.count - a.count;
