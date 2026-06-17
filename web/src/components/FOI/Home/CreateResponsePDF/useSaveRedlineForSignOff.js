@@ -23,6 +23,7 @@ import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams, useLocation } from "react-router-dom";
 import XMLParser from "react-xml-parser";
 import { BIG_HTTP_GET_TIMEOUT } from "../../../../constants/constants";
+import { runWithConcurrencyLimit } from "./annotationFetchQueue";
 
 const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) => {
   const currentLayer = useAppSelector((state) => state.documents?.currentLayer);
@@ -1016,16 +1017,47 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
     documentids,
     layer
   ) => {
-    let documentRedlineAnnotations = {};
-    let docCounter = 0;
-    for (let documentid of documentids) {
-      fetchDocumentAnnotations(requestid, layer, documentid, async (data) => {
-        docCounter++;
-        documentRedlineAnnotations[documentid] = data[documentid];
-        if (docCounter === documentids.length) {
-          setRedlineDocumentAnnotations(documentRedlineAnnotations);
-        }
-      }, BIG_HTTP_GET_TIMEOUT);
+    const documentRedlineAnnotations = {};
+    const annotationFetchConcurrency = 5;
+
+    const fetchTasks = documentids.map((documentid) => {
+      return () =>
+        new Promise((resolve, reject) => {
+          fetchDocumentAnnotations(
+            requestid,
+            layer,
+            documentid,
+            async (data) => {
+              documentRedlineAnnotations[documentid] = data[documentid] || [];
+              resolve();
+            },
+            (error) => {
+              console.error("Error fetching document annotations:", error);
+              reject(error);
+            },
+            BIG_HTTP_GET_TIMEOUT
+          );
+        });
+    });
+
+    try {
+      await runWithConcurrencyLimit(fetchTasks, annotationFetchConcurrency);
+      setRedlineDocumentAnnotations(documentRedlineAnnotations);
+      return true;
+    } catch (error) {
+      toast.update(toastId.current, {
+        render: "Error fetching annotations for package generation",
+        type: "error",
+        className: "file-upload-toast",
+        isLoading: false,
+        autoClose: 5000,
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        closeButton: true,
+      });
+      return false;
     }
   };
   const getzipredlinecategory = (layertype) => {
@@ -1334,8 +1366,15 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
         );
         let IncompatableList = prepareRedlineIncompatibleMapping(res);
         setIncompatableList(IncompatableList);
-        fetchDocumentRedlineAnnotations(foiministryrequestid, documentids, currentLayer.name.toLowerCase());
-        
+        const annotationsFetched = await fetchDocumentRedlineAnnotations(
+          foiministryrequestid,
+          documentids,
+          currentLayer.name.toLowerCase()
+        );
+        if (!annotationsFetched) {
+          return;
+        }
+
         let stitchDocuments = {};
         let documentsObjArr = [];
         let divisionstitchpages = [];
