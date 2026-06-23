@@ -1,0 +1,20 @@
+services:
+  - name: zipping-service
+    path: computingservices/ZippingServices
+    image: reviewer-zippingservice
+
+  - name: document-service
+    path: computingservices/DocumentServices
+    image: reviewer-documentservice
+
+  - name: reviewer-conversion
+    path: MCS.FOI.S3FileConversion
+    image: reviewer-conversion
+
+  - name: reviewer-pdfstitch
+    path: computingservices/PDFStitchServices
+    image: reviewer-pdfstitch
+
+  - name: reviewer-api
+    path: api
+    image: reviewer-api
