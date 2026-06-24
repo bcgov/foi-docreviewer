@@ -75,3 +75,5 @@ RUN apt-get update && \
 COPY --from=build-env /app/MCS.FOI.S3FileConversion/out ./
 RUN chmod a+rwx -R /app
 ENTRYPOINT ["dotnet", "MCS.FOI.S3FileConversion.dll"]
+
+#TEST CI BUILD

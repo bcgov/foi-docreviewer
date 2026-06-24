@@ -16,3 +16,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 USER app_user
 COPY . .
 ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]
+
+#TEST CI BUILD
