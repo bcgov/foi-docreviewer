@@ -22,3 +22,5 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 RUN chmod u+x /app/entrypoint.sh
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
+
+#TEST CI BUILD
