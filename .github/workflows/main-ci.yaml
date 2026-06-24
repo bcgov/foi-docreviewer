@@ -1,4 +1,4 @@
-name: CI: Dynamic Service Builder
+name: CI Dynamic Service Builder
 
 on:
   pull_request:
