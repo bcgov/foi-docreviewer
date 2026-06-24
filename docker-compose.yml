@@ -113,7 +113,7 @@ services:
       - foi-docreviewer-redis
     build:
       context: ./MCS.FOI.S3FileConversion/
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
     environment:
       - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
       - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
