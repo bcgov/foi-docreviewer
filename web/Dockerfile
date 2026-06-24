@@ -60,7 +60,7 @@ RUN npm install --unsafe-perm --force
 COPY . /web
 RUN npm run build
 
-FROM artifacts.developer.gov.bc.ca/docker-remote/nginx:1.25.2 as production-stage
+FROM nginx:1.25.2 as production-stage
 RUN mkdir /app
 COPY --from=build-stage /web/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
