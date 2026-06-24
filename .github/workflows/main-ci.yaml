@@ -1,0 +1,154 @@
+name: CI Dynamic Service Builder
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches:
+      - dev
+      - main
+
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service name or all'
+        required: false
+        default: all
+
+      image_tag:
+        description: 'Image Tag'
+        required: true
+
+env:
+  IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag || github.event.pull_request.number }}
+
+jobs:
+
+  detect-services:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - id: generate
+        name: Generate Build Matrix
+        shell: bash
+        run: |
+          # --- CASE 1: Manual Workflow Execution ---
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+
+            SELECTED="${{ github.event.inputs.service }}" # Grabs your UI input value
+
+            if [ "$SELECTED" = "all" ]; then
+              # Converts the entire YAML list of services under '.services' into a JSON matrix object: {"include": [...]}
+              MATRIX=$(yq -o=json '.services | {include:.}' .github/configuration/service-catalog.yaml)
+            else
+              # Filters the YAML file for only the service matching your manual input name, then wraps it in a JSON matrix structure
+              MATRIX=$(yq -o=json ".services | map(select(.name == \"$SELECTED\")) | {include:.}" .github/configuration/service-catalog.yaml)
+            fi
+
+          # --- CASE 2: Pull Request Execution ( Detection) ---
+          else
+            # Finds files changed between the target branch (e.g., dev/main) and your PR branch
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+            echo "Changed files:"
+            echo "$CHANGED"
+
+            TMP='{"include":[' # Initialize a manual JSON string configuration
+            FIRST=true
+
+            # Counts how many services are documented in your service-catalog.yaml file
+            COUNT=$(yq '.services | length' .github/configuration/service-catalog.yaml)
+
+            # Loop over every service entry in your configuration file
+            for ((i=0;i<COUNT;i++))
+            do
+              # Extracts fields for the specific service at index i
+              NAME=$(yq ".services[$i].name" .github/configuration/service-catalog.yaml)
+              PATH_VALUE=$(yq ".services[$i].path" .github/configuration/service-catalog.yaml)
+              IMAGE=$(yq ".services[$i].image" .github/configuration/service-catalog.yaml)
+
+              # Checks if any changed files start with the service's designated path directory
+              if echo "$CHANGED" | grep -q "^${PATH_VALUE}/"; then
+
+                if [ "$FIRST" = false ]; then
+                  TMP="${TMP}," # Formats commas correctly between JSON objects
+                fi
+
+                # Appends this service's details into the build list
+                TMP="${TMP}{\"name\":\"${NAME}\",\"path\":\"${PATH_VALUE}\",\"image\":\"${IMAGE}\"}"
+                FIRST=false
+              fi
+            done
+
+            TMP="${TMP}]}" # Closes out the JSON array and object
+            MATRIX="$TMP"
+          fi
+
+          echo "$MATRIX"
+
+          # Compresses the JSON using jq and pipes it to the special $GITHUB_OUTPUT file to share with other jobs
+          echo "matrix=$(echo "$MATRIX" | jq -c .)" >> $GITHUB_OUTPUT
+
+  image-build:
+
+    needs: detect-services
+
+    if: ${{ fromJson(needs.detect-services.outputs.matrix).include[0] != null }}
+
+    strategy:
+      fail-fast: false # If one service image fails to build, don't cancel the other service builds
+      matrix: ${{ fromJson(needs.detect-services.outputs.matrix) }} # Expands into dynamic concurrent jobs using the JSON object
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to Openshift Docker
+        run: |
+          echo "${{ secrets.OPENSHIFT_SA_TOOLS_TOKEN }}" | docker login ${{ secrets.PUBLIC_IMAGE_REPOSITORY }} -u ${{ secrets.OPENSHIFT_SA_NAME }} --password-stdin
+
+      - name: Build Image
+        working-directory: ./${{ matrix.path }}
+        run: |
+          docker build \
+            -t ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}/${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }} \
+            .
+
+      - name: Push Image
+        run: |
+          docker push \
+          ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}/${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+
+  pr-comment:
+
+    if: github.event_name == 'pull_request'
+
+    needs: image-build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Comment on PR
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            Images built successfully.
+
+            Tag: `${{ env.IMAGE_TAG }}`
