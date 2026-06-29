@@ -111,6 +111,7 @@ jobs:
     strategy:
       fail-fast: false # If one service image fails to build, don't cancel the other service builds
       matrix: ${{ fromJson(needs.detect-services.outputs.matrix) }} # Expands into dynamic concurrent jobs using the JSON object
+      max-parallel: 3 # limit parallel job to 3 to avoid gettng timeout from OpenShift API 
 
     runs-on: ubuntu-latest
 
