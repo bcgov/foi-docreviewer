@@ -1,8 +1,5 @@
-# For more information, please refer to https://aka.ms/vscode-docker-python
-# FROM python:3.8
-
-# Necessary to pull images from bcgov and not hit Dockerhub quotas.
-FROM artifacts.developer.gov.bc.ca/docker-remote/python:3.10.8-buster
+# Since We are using Github Actions to build images and push to Openshift, we can use the public image there will be no rate limiting.
+FROM python:3.10.8
 EXPOSE 6402
 
 # Keeps Python from generating .pyc files in the container
