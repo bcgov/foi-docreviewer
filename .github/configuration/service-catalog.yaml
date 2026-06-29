@@ -18,3 +18,35 @@ services:
   - name: reviewer-api
     path: api
     image: reviewer-api
+
+  - name: reviewer-pagecountcalculator
+    path: computingservices/PageCountCalculator
+    image: reviewer-pagecountcalculator
+
+  - name: reviewer-ocr
+    path: computingservices/OCRServices
+    image: reviewer-ocr
+
+  - name: reviewer-etlservices
+    path: computingservices/ETLServices
+    image: reviewer-etlservices
+
+  - name: reviewer-dedupe
+    path: computingservices/DedupeServices
+    image: reviewer-dedupe
+
+  - name: reviewer-compression
+    path: computingservices/CompressionServices
+    image: reviewer-compression
+
+  - name: azuredocextractauditapi
+    path: azuredocextractapi
+    image: azuredocextractauditapi
+
+  - name: azuredococrapi
+    path: azuredococrapi
+    image: azuredococrapi
+
+  - name: reviewer-web
+    path: web
+    image: reviewer-web
