@@ -2,7 +2,7 @@
 # FROM node:14.17.0-alpine as build-stage
 # Trying something below
 #FROM artifacts.developer.gov.bc.ca/docker-remote/node:20.8.0-alpine as build-stage
-FROM node:20.19.2-alpine as build-stage
+FROM node:22.23.1-alpine3.24 as build-stage
 
 # set working directory
 WORKDIR /web
