@@ -179,7 +179,12 @@ jobs:
         run: |
 
           MAX_RETRIES=5
-          RETRY_DELAY_SECONDS=15
+
+          # Random startup delay to avoid multiple matrix jobs hitting the registry simultaneously
+          STARTUP_DELAY=$((RANDOM % 30))
+
+          echo "Waiting ${STARTUP_DELAY}s before registry login to avoid connection spikes..."
+          sleep $STARTUP_DELAY
 
 
           for attempt in $(seq 1 $MAX_RETRIES)
@@ -200,16 +205,20 @@ jobs:
             fi
 
 
-            echo "Registry login failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
-            sleep $RETRY_DELAY_SECONDS
+            if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+
+              RETRY_DELAY_SECONDS=$((15 * 2 ** (attempt - 1)))
+
+              echo "Registry login failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
+              sleep $RETRY_DELAY_SECONDS
+
+            fi
 
           done
 
 
-          echo "Unable to authenticate with OpenShift registry"
+          echo "Unable to authenticate with OpenShift registry after ${MAX_RETRIES} attempts"
           exit 1
-
-
 
       - name: Build container image
         working-directory: ./${{ matrix.path }}
@@ -227,10 +236,15 @@ jobs:
         run: |
 
           MAX_RETRIES=5
-          RETRY_DELAY_SECONDS=15
-
 
           IMAGE="${{ secrets.PUBLIC_IMAGE_REPOSITORY }}/${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}"
+
+
+          # Random startup delay to prevent multiple matrix jobs pushing simultaneously
+          STARTUP_DELAY=$((RANDOM % 30))
+
+          echo "Service ${{ matrix.name }} waiting ${STARTUP_DELAY}s before image push..."
+          sleep $STARTUP_DELAY
 
 
           for attempt in $(seq 1 $MAX_RETRIES)
@@ -247,8 +261,14 @@ jobs:
             fi
 
 
-            echo "Image push failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
-            sleep $RETRY_DELAY_SECONDS
+            if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+
+              RETRY_DELAY_SECONDS=$((15 * 2 ** (attempt - 1)))
+
+              echo "Image push failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
+              sleep $RETRY_DELAY_SECONDS
+
+            fi
 
           done
 
