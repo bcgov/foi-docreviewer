@@ -24,12 +24,9 @@ jobs:
 
       - name: Validate Release Label
         shell: bash
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-
-          PR_BODY=$(cat <<EOF
-          ${{ github.event.pull_request.body }}
-          EOF
-          )
 
           RELEASE_LABEL=$(echo "$PR_BODY" \
             | sed -n 's/^Release Label:[[:space:]]*//p' \
