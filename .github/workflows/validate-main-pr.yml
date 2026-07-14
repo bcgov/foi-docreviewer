@@ -1,0 +1,55 @@
+name: Validate Main Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev # adding main just for testing, TO DO: remove dev.
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+
+  validate-release-label:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Validate Release Label
+        shell: bash
+        run: |
+
+          PR_BODY=$(cat <<EOF
+          ${{ github.event.pull_request.body }}
+          EOF
+          )
+
+          RELEASE_LABEL=$(echo "$PR_BODY" \
+            | sed -n 's/^Release Label:[[:space:]]*//p' \
+            | head -1)
+
+          if [ -z "$RELEASE_LABEL" ]; then
+            echo "::error::Release Label is required for pull requests targeting 'main'."
+            exit 1
+          fi
+
+          #
+          # Expected format:
+          #   25.4-rc
+          #   25.10-rc
+          #   26.1-rc
+          #
+          if ! [[ "$RELEASE_LABEL" =~ ^[0-9]{2}\.[0-9]+-rc$ ]]; then
+            echo "::error::Invalid Release Label '$RELEASE_LABEL'."
+            echo "::error::Expected format: <YY>.<Release>-rc (example: 25.4-rc)"
+            exit 1
+          fi
+
+          echo "Release Label: $RELEASE_LABEL"

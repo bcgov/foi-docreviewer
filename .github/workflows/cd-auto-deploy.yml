@@ -1,0 +1,117 @@
+name: CD - Automatic Deploy
+
+on:
+  pull_request:
+    types:
+      # - closed #Commenting for now to test it on opening on pull request, TO DO: remove all other types except closed.
+      - opened
+      - edited
+      - synchronize
+      - reopened
+    branches:
+      - dev
+      - main
+
+env:
+  IMAGE_TAG: ${{ github.event.pull_request.number }}
+
+jobs:
+
+  prepare-deployment:
+    if: github.event.pull_request.merged == true
+
+    outputs:
+      environment: ${{ steps.generate.outputs.environment }}
+      matrix: ${{ steps.generate.outputs.matrix }}
+      release_label: ${{ steps.generate.outputs.release_label }}
+
+    steps:
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Generate Deployment Configuration
+        id: generate
+        shell: bash
+        run: |
+          # Determine the target environment (dev or test).
+          # Set the image tag (PR number).
+          # Extract release label from the PR (main branch only).
+          # Generate the deployment matrix from service-catalog.yaml.
+           
+          # if [[ "${GITHUB_REF_NAME}" == "dev" ]]; then
+
+          #   TARGET_ENVIRONMENT="dev"
+
+          # else
+
+          #   TARGET_ENVIRONMENT="test"
+
+          # read the release label from the pr
+          PR_BODY=$(cat <<'EOF'
+          ${{ github.event.pull_request.body }}
+          EOF
+          )
+
+          RELEASE_LABEL=$(echo "$PR_BODY" | awk '
+            /^Release Label:/ { getline; print; exit }
+          ' | xargs)
+
+          echo "release_label=${RELEASE_LABEL}" >> "$GITHUB_OUTPUT" 
+
+          # fi
+
+          # generate deployment matrix 
+          # Files modified by the merged pull request
+          CHANGED_FILES=$(cat <<EOF
+          ${{ join(github.event.pull_request.changed_files, '
+          ') }}
+          EOF
+          )
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          TMP='{"include":[' # Initialize a manual JSON string configuration
+          FIRST=true
+
+          # Counts how many services are documented in your service-catalog.yaml file
+          COUNT=$(yq '.services | length' .github/configuration/service-catalog.yaml)
+
+          # Loop over every service entry in your configuration file
+          for ((i=0;i<COUNT;i++))
+          do
+            # Extracts fields for the specific service at index i
+            NAME=$(yq ".services[$i].name" .github/configuration/service-catalog.yaml)
+            PATH_VALUE=$(yq ".services[$i].path" .github/configuration/service-catalog.yaml)
+            IMAGE=$(yq ".services[$i].image" .github/configuration/service-catalog.yaml)
+
+            # Checks if any changed files start with the service's designated path directory
+            if echo "$CHANGED_FILES" | grep -q "^${PATH_VALUE}/"; then
+
+              if [ "$FIRST" = false ]; then
+                TMP="${TMP}," # Formats commas correctly between JSON objects
+              fi
+
+              # Appends this service's details into the build list
+              TMP="${TMP}{\"name\":\"${NAME}\",\"path\":\"${PATH_VALUE}\",\"image\":\"${IMAGE}\"}"
+              FIRST=false
+            fi
+          done
+
+          TMP="${TMP}]}" # Closes out the JSON array and object
+          MATRIX="$TMP"
+
+          echo "environment=${TARGET_ENVIRONMENT}" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(echo "$MATRIX" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+  # deploy:
+  #   needs: prepare-deployment
+
+  # verify-rollout:
+  #   needs: deploy
+
+  # comment-pr:
+  #   needs: verify-rollout
