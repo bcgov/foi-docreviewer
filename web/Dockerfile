@@ -53,7 +53,7 @@ RUN apk update && apk upgrade && \
 # package-lock.json commented out due to issues with node-canvas on alpine (musl issue)
 COPY package-lock.json /web/package-lock.json
 COPY package.json /web/package.json
-
+#test commit
 
 RUN npm install --unsafe-perm --force
 #RUN npm install react-scripts@3.0.1 -g --silent
