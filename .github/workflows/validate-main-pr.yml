@@ -50,3 +50,4 @@ jobs:
           fi
 
           echo "Release Label: $RELEASE_LABEL"
+          
