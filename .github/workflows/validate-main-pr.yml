@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - main
-      - dev # adding main just for testing, TO DO: remove dev.
     types:
       - opened
       - edited
