@@ -34,7 +34,10 @@ jobs:
   generate-build-matrix:
 
     name: Detect Services Requiring Build
-
+    
+    permissions:
+      contents: read
+      
     runs-on: ubuntu-latest
 
     outputs:
@@ -148,6 +151,9 @@ jobs:
 
     name: Build and Push ${{ matrix.name }}
 
+    permissions:
+      contents: read
+      
     needs: generate-build-matrix
 
     if: ${{ fromJson(needs.generate-build-matrix.outputs.matrix).include[0] != null }}
@@ -176,6 +182,10 @@ jobs:
 
       - name: Login to OpenShift registry
         shell: bash
+        env:
+          REGISTRY: ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}
+          USERNAME: ${{ secrets.OPENSHIFT_SA_NAME }}
+          PASSWORD: ${{ secrets.OPENSHIFT_SA_TOOLS_TOKEN }}
         run: |
 
           MAX_RETRIES=5
@@ -184,94 +194,80 @@ jobs:
           STARTUP_DELAY=$((RANDOM % 30))
 
           echo "Waiting ${STARTUP_DELAY}s before registry login to avoid connection spikes..."
-          sleep $STARTUP_DELAY
-
+          sleep "$STARTUP_DELAY"
 
           for attempt in $(seq 1 $MAX_RETRIES)
           do
-
             echo "Registry login attempt ${attempt}/${MAX_RETRIES}"
 
-
-            if echo "${{ secrets.OPENSHIFT_SA_TOOLS_TOKEN }}" | \
-              docker login \
-              "${{ secrets.PUBLIC_IMAGE_REPOSITORY }}" \
-              --username "${{ secrets.OPENSHIFT_SA_NAME }}" \
+            if echo "$PASSWORD" | docker login \
+              "$REGISTRY" \
+              --username "$USERNAME" \
               --password-stdin; then
 
               echo "Registry login successful"
               exit 0
-
             fi
 
-
             if [ "$attempt" -lt "$MAX_RETRIES" ]; then
-
               RETRY_DELAY_SECONDS=$((15 * 2 ** (attempt - 1)))
 
               echo "Registry login failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
-              sleep $RETRY_DELAY_SECONDS
-
+              sleep "$RETRY_DELAY_SECONDS"
             fi
-
           done
-
 
           echo "Unable to authenticate with OpenShift registry after ${MAX_RETRIES} attempts"
           exit 1
 
       - name: Build container image
         working-directory: ./${{ matrix.path }}
+        env:
+          REGISTRY: ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}
+          NAMESPACE: ${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}
         run: |
 
+          IMAGE="$REGISTRY/$NAMESPACE/${{ matrix.image }}:${{ env.IMAGE_TAG }}"
+
           docker build \
-            --tag \
-            ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}/${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }} \
+            --tag "$IMAGE" \
             .
 
 
 
       - name: Push container image
         shell: bash
+        env:
+          REGISTRY: ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}
+          NAMESPACE: ${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}
         run: |
 
           MAX_RETRIES=5
 
-          IMAGE="${{ secrets.PUBLIC_IMAGE_REPOSITORY }}/${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}"
-
+          IMAGE="$REGISTRY/$NAMESPACE/${{ matrix.image }}:${{ env.IMAGE_TAG }}"
 
           # Random startup delay to prevent multiple matrix jobs pushing simultaneously
           STARTUP_DELAY=$((RANDOM % 30))
 
           echo "Service ${{ matrix.name }} waiting ${STARTUP_DELAY}s before image push..."
-          sleep $STARTUP_DELAY
-
+          sleep "$STARTUP_DELAY"
 
           for attempt in $(seq 1 $MAX_RETRIES)
           do
-
             echo "Push attempt ${attempt}/${MAX_RETRIES}: ${IMAGE}"
 
-
             if docker push "$IMAGE"; then
-
               echo "Image push successful"
               exit 0
-
             fi
 
-
             if [ "$attempt" -lt "$MAX_RETRIES" ]; then
-
               RETRY_DELAY_SECONDS=$((15 * 2 ** (attempt - 1)))
 
               echo "Image push failed. Retrying in ${RETRY_DELAY_SECONDS}s..."
-              sleep $RETRY_DELAY_SECONDS
-
+              sleep "$RETRY_DELAY_SECONDS"
             fi
-
           done
-
 
           echo "Unable to push image after ${MAX_RETRIES} attempts"
           exit 1
@@ -279,7 +275,6 @@ jobs:
 
 
   notify-pr:
-
     name: Report Build Result
 
     if: github.event_name == 'pull_request'
@@ -288,12 +283,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
-
       - name: Add build summary comment
-        uses: thollander/actions-comment-pull-request@v3
-
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b
         with:
           message: |
             ✅ Container images built successfully.
