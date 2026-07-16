@@ -235,7 +235,7 @@ jobs:
 
 
 
-            - name: Push container image
+      - name: Push container image
         shell: bash
         env:
           REGISTRY: ${{ secrets.PUBLIC_IMAGE_REPOSITORY }}
@@ -289,7 +289,7 @@ jobs:
 
     steps:
       - name: Add build summary comment
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b
         with:
           message: |
             ✅ Container images built successfully.
