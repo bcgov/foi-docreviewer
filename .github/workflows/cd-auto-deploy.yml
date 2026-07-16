@@ -12,11 +12,6 @@ on:
       - main
 
 
-permissions:
-  pull-requests: write
-  contents: read
-
-
 env:
   # CI tags images using the PR number.
   # The same tag is deployed after merge.
@@ -32,6 +27,10 @@ jobs:
   prepare-deployment:
 
     if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: read
+      pull-requests: read
 
     runs-on: ubuntu-latest
 
@@ -145,6 +144,9 @@ jobs:
 
     name: Update GitOps Repository
 
+    permissions:
+      contents: read
+      
     needs: prepare-deployment
 
     runs-on: ubuntu-latest
@@ -153,6 +155,17 @@ jobs:
 
 
     steps:
+
+      # Add deploy key to runner
+      - name: Setup SSH
+        shell: bash
+        env:
+          MANIFEST_REPO_DEPLOY_KEY: ${{ secrets.MANIFEST_REPO_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${MANIFEST_REPO_DEPLOY_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
       - name: Update GitOps manifests
 
@@ -199,6 +212,8 @@ jobs:
 
           done
 
+          git config user.email "manish.sihag@gov.bc.ca"
+          git config user.name "ManishSihag"
 
           git add "$VALUES_FILE"
 
@@ -212,21 +227,16 @@ jobs:
 
           for attempt in $(seq 1 5)
           do
-
             if git push origin main; then
               exit 0
             fi
 
-
             sleep "${RETRY_DELAYS[$((attempt-1))]}"
 
-            git pull --rebase origin main
-
+            git pull --rebase origin main || exit 1
           done
 
-
           exit 1
-
 
 
   # Confirms OpenShift is running the expected image
@@ -260,30 +270,46 @@ jobs:
 
 
       - name: Verify Deployment
-
+        shell: bash
         run: |
 
           oc project d106d6-${{ needs.prepare-deployment.outputs.environment }}
 
-
-          # Ensure the new image tag reached the cluster.
+          # Wait for the rollout to complete.
           oc rollout status \
             deployment/${{ matrix.name }} \
             --watch=true \
             --timeout=10m
 
+          # Verify the deployment is running the expected image tag.
+          DEPLOYED_IMAGE=$(oc get deployment "${{ matrix.name }}" \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')
 
+          echo "Running image: ${DEPLOYED_IMAGE}"
 
-  # Adds deployment result back to the PR.
+          EXPECTED_TAG=":${{ env.IMAGE_TAG }}"
+
+          if [[ "${DEPLOYED_IMAGE}" != *"${EXPECTED_TAG}" ]]; then
+            echo "::error::Expected image tag ${EXPECTED_TAG}, but deployment is using ${DEPLOYED_IMAGE}"
+            exit 1
+          fi
+
+          echo "Deployment is running the expected image tag."
+
+      # Adds deployment result back to the PR.
   comment-pr:
 
     name: Comment on Pull Request
+
+    permissions:
+      contents: read
+      pull-requests: write
 
     needs:
       - prepare-deployment
       - validate-deployment
 
-    if: always()
+    if: success()
 
     runs-on: ubuntu-latest
 
@@ -327,6 +353,6 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Comment on Pull Request
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b
         with:
           message: ${{ steps.summary.outputs.comment }}
