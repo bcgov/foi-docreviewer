@@ -6,7 +6,10 @@ on:
   # main -> deploy to test environment with release label
   pull_request:
     types:
-      - closed
+      # - closed
+      - opened
+      - synchronize
+      - ready_for_review
     branches:
       - dev
       - main
@@ -58,6 +61,7 @@ jobs:
         shell: bash
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }} 
 
         run: |
 
