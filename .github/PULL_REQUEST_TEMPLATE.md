@@ -1,4 +1,6 @@
-# Release Information (Required for PRs targeting `main`)
+<!-- Describe the changes in this pull request. -->
+
+---
 
 > **This section is required only for pull requests targeting the `main` branch.**
 
@@ -7,13 +9,9 @@
 <!--
 Enter the release label exactly as it should be applied to the deployed services.
 
-Example:
+Examples:
 25.4-rc
 25.4.1-rc
 -->
 
-Release Label:
-
-```
-<YOUR-RELEASE-LABEL>
-```
+Release Label: <YOUR-RELEASE-LABEL>
