@@ -249,6 +249,7 @@ jobs:
       - prepare-deployment
       - deploy
 
+    permissions: {}
 
     strategy:
       fail-fast: false
