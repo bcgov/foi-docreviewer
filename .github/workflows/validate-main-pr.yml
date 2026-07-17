@@ -24,17 +24,29 @@ jobs:
       - name: Validate Release Label
         shell: bash
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+
+          # Fetch latest PR description.
+          # This works correctly even when the workflow is manually re-run.
+          PR_BODY=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            --jq '.body')
+
+
+          echo "Validating release label from current PR description"
+
 
           RELEASE_LABEL=$(echo "$PR_BODY" \
             | sed -n 's/^Release Label:[[:space:]]*//p' \
             | head -1)
 
+
           if [ -z "$RELEASE_LABEL" ]; then
             echo "::error::Release Label is required for pull requests targeting 'main'."
             exit 1
           fi
+
 
           #
           # Expected format:
@@ -48,5 +60,5 @@ jobs:
             exit 1
           fi
 
+
           echo "Release Label: $RELEASE_LABEL"
-          
