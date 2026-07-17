@@ -1,0 +1,80 @@
+name: Validate Main Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: read
+
+jobs:
+
+  validate-release-label:
+
+    name: Validate Release Label
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Validate Release Label
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        run: |
+
+          # Fetch latest PR description.
+          # This ensures manual reruns use the current PR body.
+          PR_BODY=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            --jq '.body')
+
+
+          echo "Validating release label from current PR description"
+
+
+          # Extract value after:
+          # Release Label:
+          #
+          # Example:
+          # Release Label: 99.99.99-rc
+          #
+          RELEASE_LABEL=$(echo "$PR_BODY" \
+            | sed -n 's/^Release Label:[[:space:]]*//p' \
+            | head -1)
+
+
+          if [ -z "$RELEASE_LABEL" ]; then
+            echo "::error::Release Label is required for pull requests targeting 'main'."
+            exit 1
+          fi
+
+
+          #
+          # Expected format:
+          #   <major>.<minor>.<patch>-<suffix>
+          #
+          # Examples:
+          #   99.99.99-rc
+          #   25.4.1-test
+          #   1.0.0-dev
+          #
+          if ! [[ "$RELEASE_LABEL" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.+$ ]]; then
+
+            echo "::error::Invalid Release Label '$RELEASE_LABEL'."
+            echo "::error::Expected format: <major>.<minor>.<patch>-<suffix>"
+            echo "::error::Example: 99.99.99-rc"
+
+            exit 1
+
+          fi
+
+
+          echo "Release Label validation passed: $RELEASE_LABEL"

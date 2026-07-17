@@ -113,7 +113,7 @@ services:
       - foi-docreviewer-redis
     build:
       context: ./MCS.FOI.S3FileConversion/
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
     environment:
       - DATABASE_USERNAME=${FOI_DATABASE_USERNAME}
       - DATABASE_PASSWORD=${FOI_DATABASE_PASSWORD}
@@ -336,7 +336,7 @@ services:
         - foi-docreviewer-db
       build:
         context: ./azuredocextractapi/
-        dockerfile: DockerFile
+        dockerfile: Dockerfile
       image: foiazuredocextractstatusapi
       ports:
       - "${AZDOCEXTRACT_LISTENING_PORT}:${AZDOCEXTRACT_LISTENING_PORT}"
@@ -431,7 +431,7 @@ services:
         - foi-docreviewer-db
       build:
         context: ./azuredococrapi/
-        dockerfile: DockerFile
+        dockerfile: Dockerfile
       image: foiazuredococrstatusapi
       ports:
       - "${AZDOCOCR_LISTENING_PORT}:${AZDOCOCR_LISTENING_PORT}"

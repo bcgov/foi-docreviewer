@@ -1,4 +1,4 @@
-FROM artifacts.developer.gov.bc.ca/docker-remote/python:3.10.8-buster
+FROM python:3.10.8
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
