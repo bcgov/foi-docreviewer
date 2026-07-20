@@ -115,6 +115,14 @@ jobs:
             PATH_VALUE=$(yq ".services[$i].path" .github/configuration/service-catalog.yaml)
             IMAGE=$(yq ".services[$i].image" .github/configuration/service-catalog.yaml)
 
+            # Override the deployment name for environments that differ.
+            OVERRIDE=$(yq ".services[$i].deploymentOverride.${TARGET_ENVIRONMENT}" \
+              .github/configuration/service-catalog.yaml)
+
+            if [[ "$OVERRIDE" != "null" ]]; then
+              NAME="$OVERRIDE"
+            fi
+
 
             if echo "$CHANGED_FILES" | grep -q "^${PATH_VALUE}/"; then
 
