@@ -1,9 +1,11 @@
 services:
-  - name: zipping-service
+  - name: reviewer-zippingservice
     path: computingservices/ZippingServices
     image: reviewer-zippingservice
+    deploymentOveride:
+      test: reviewer-zippingservice-test
 
-  - name: document-service
+  - name: reviewer-documentservice
     path: computingservices/DocumentServices
     image: reviewer-documentservice
 
@@ -42,8 +44,12 @@ services:
   - name: azuredocextractauditapi
     path: azuredocextractapi
     image: azuredocextractauditapi
+    deploymentOveride:
+      dev: azuredocextractauditapi-dev
+      test: azuredocextractauditapi-test
+      prod: azuredocextractauditapi-prod
 
-  - name: azuredococrapi
+  - name: azure-doc-ocr-api
     path: azuredococrapi
     image: azuredococrapi
 
