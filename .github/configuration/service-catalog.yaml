@@ -2,49 +2,60 @@ services:
   - name: reviewer-zippingservice
     path: computingservices/ZippingServices
     image: reviewer-zippingservice
-    deploymentOveride:
+    kind: deployment
+    deploymentOverride:
       test: reviewer-zippingservice-test
 
   - name: reviewer-documentservice
     path: computingservices/DocumentServices
     image: reviewer-documentservice
+    kind: deployment
 
   - name: reviewer-conversion
     path: MCS.FOI.S3FileConversion
     image: reviewer-conversion
+    kind: deployment
+    largefiles: true
 
   - name: reviewer-pdfstitch
     path: computingservices/PDFStitchServices
     image: reviewer-pdfstitch
+    kind: deployment
+    largefiles: true
 
   - name: reviewer-api
     path: api
     image: reviewer-api
+    kind: deployment
 
   - name: reviewer-pagecountcalculator
     path: computingservices/PageCountCalculator
     image: reviewer-pagecountcalculator
+    kind: deployment
 
   - name: reviewer-ocr
     path: computingservices/OCRServices
     image: reviewer-ocr
-
-  - name: reviewer-etlservices
-    path: computingservices/ETLServices
-    image: reviewer-etlservices
+    kind: deployment
+    largefiles: true
 
   - name: reviewer-dedupe
     path: computingservices/DedupeServices
     image: reviewer-dedupe
+    kind: deployment
+    largefiles: true
 
   - name: reviewer-compression
     path: computingservices/CompressionServices
     image: reviewer-compression
+    kind: deployment
+    largefiles: true
 
   - name: azuredocextractauditapi
     path: azuredocextractapi
     image: azuredocextractauditapi
-    deploymentOveride:
+    kind: deployment
+    deploymentOverride:
       dev: azuredocextractauditapi-dev
       test: azuredocextractauditapi-test
       prod: azuredocextractauditapi-prod
@@ -52,7 +63,14 @@ services:
   - name: azure-doc-ocr-api
     path: azuredococrapi
     image: azuredococrapi
+    kind: deployment
 
   - name: reviewer-web
     path: web
     image: reviewer-web
+    kind: deployment
+
+  - name: etl-task
+    path: computingservices/ETLServices
+    image: reviewer-etlservices
+    kind: cronjob
