@@ -215,12 +215,17 @@ jobs:
 
             echo "Updating ${NAME}"
             
-            KIND=$(echo "$SERVICE" | jq -r '.kind // "deployments"')
-
+            KIND=$(echo "$SERVICE" | jq -r '.kind // "deployment"')
+            
+            if [[ "${KIND}" == "cronjob" ]]; then
+              GITOPS_SECTION="cronJobs"
+            else 
+              GITOPS_SECTION="deployments"
+            fi
 
             # Update image tag.
             yq e \
-              ".${KIND}.${NAME}.image.tag = \"${{ env.IMAGE_TAG }}\"" \
+              ".${GITOPS_SECTION}.${NAME}.image.tag = \"${{ env.IMAGE_TAG }}\"" \
               -i "$VALUES_FILE"
 
 
@@ -228,7 +233,7 @@ jobs:
             if [[ "${{ needs.prepare-deployment.outputs.environment }}" == "test" ]]; then
 
               yq e \
-                ".${KIND}.${NAME}.labels.releaseLabel = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
+                ".${GITOPS_SECTION}.${NAME}.labels.releaseLabel = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
                 -i "$VALUES_FILE"
 
             fi
@@ -303,7 +308,7 @@ jobs:
 
           oc project d106d6-${{ needs.prepare-deployment.outputs.environment }}
 
-          if [[ "${{ matrix.kind }}" == "deployments" ]]; then
+          if [[ "${{ matrix.kind }}" == "deployment" ]]; then
 
             oc rollout status \
               deployment/${{ matrix.name }} \
@@ -317,17 +322,8 @@ jobs:
           fi
 
           # Verify the deployment is running the expected image tag.
-          if [[ "${{ matrix.kind }}" == "deployment" ]]; then
-
-            DEPLOYED_IMAGE=$(oc get deployment/${{ matrix.name }} \
-              -o jsonpath='{.spec.template.spec.containers[0].image}')
-
-          else
-
-            DEPLOYED_IMAGE=$(oc get cronjob/${{ matrix.name }} \
-              -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}')
-
-          fi
+          DEPLOYED_IMAGE=$(oc get ${{ matrix.kind }}/${{ matrix.name }} \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')
 
           echo "Running image: ${DEPLOYED_IMAGE}"
 
