@@ -114,6 +114,7 @@ jobs:
             NAME=$(yq ".services[$i].name" .github/configuration/service-catalog.yaml)
             PATH_VALUE=$(yq ".services[$i].path" .github/configuration/service-catalog.yaml)
             IMAGE=$(yq ".services[$i].image" .github/configuration/service-catalog.yaml)
+            KIND=$(yq ".services[$i].kind // \"deployment\"" .github/configuration/service-catalog.yaml)
 
             # Override the deployment name for environments that differ.
             OVERRIDE=$(yq ".services[$i].deploymentOverride.${TARGET_ENVIRONMENT}" \
@@ -124,20 +125,31 @@ jobs:
             fi
 
 
+            # Some services also deploy a companion "-largefiles" deployment
+            # using the same container image.
+            LARGEFILES=$(yq ".services[$i].largefiles // false" \
+              .github/configuration/service-catalog.yaml)
+
+
             if echo "$CHANGED_FILES" | grep -q "^${PATH_VALUE}/"; then
 
-              if [ "$FIRST" = false ]; then
+              if [[ "$FIRST" == false ]]; then
                 MATRIX="${MATRIX},"
               fi
 
-              MATRIX="${MATRIX}{\"name\":\"${NAME}\",\"path\":\"${PATH_VALUE}\",\"image\":\"${IMAGE}\"}"
-
+              # Primary deployment.
+              MATRIX="${MATRIX}{\"name\":\"${NAME}\",\"path\":\"${PATH_VALUE}\",\"image\":\"${IMAGE}\",\"kind\":\"${KIND}\"}"
               FIRST=false
+
+              # Companion largefiles deployment.
+              if [[ "$LARGEFILES" == "true" ]]; then
+                MATRIX="${MATRIX},"
+                MATRIX="${MATRIX}{\"name\":\"${NAME}-largefiles\",\"path\":\"${PATH_VALUE}\",\"image\":\"${IMAGE}\",\"kind\":\"${KIND}\"}"
+              fi
 
             fi
 
           done
-
 
           MATRIX="${MATRIX}]}"
 
@@ -202,11 +214,13 @@ jobs:
 
 
             echo "Updating ${NAME}"
+            
+            KIND=$(echo "$SERVICE" | jq -r '.kind // "deployments"')
 
 
             # Update image tag.
             yq e \
-              ".deployments.${NAME}.image.tag = \"${{ env.IMAGE_TAG }}\"" \
+              ".${KIND}.${NAME}.image.tag = \"${{ env.IMAGE_TAG }}\"" \
               -i "$VALUES_FILE"
 
 
@@ -214,7 +228,7 @@ jobs:
             if [[ "${{ needs.prepare-deployment.outputs.environment }}" == "test" ]]; then
 
               yq e \
-                ".deployments.${NAME}.podLabels.releaseLabel = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
+                ".${KIND}.${NAME}.labels.releaseLabel = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
                 -i "$VALUES_FILE"
 
             fi
@@ -289,15 +303,31 @@ jobs:
 
           oc project d106d6-${{ needs.prepare-deployment.outputs.environment }}
 
-          # Wait for the rollout to complete.
-          oc rollout status \
-            deployment/${{ matrix.name }} \
-            --watch=true \
-            --timeout=10m
+          if [[ "${{ matrix.kind }}" == "deployments" ]]; then
+
+            oc rollout status \
+              deployment/${{ matrix.name }} \
+              --watch=true \
+              --timeout=10m
+
+          else
+
+            echo "Skipping rollout check for CronJob '${{ matrix.name }}'."
+
+          fi
 
           # Verify the deployment is running the expected image tag.
-          DEPLOYED_IMAGE=$(oc get deployment "${{ matrix.name }}" \
-            -o jsonpath='{.spec.template.spec.containers[0].image}')
+          if [[ "${{ matrix.kind }}" == "deployment" ]]; then
+
+            DEPLOYED_IMAGE=$(oc get deployment/${{ matrix.name }} \
+              -o jsonpath='{.spec.template.spec.containers[0].image}')
+
+          else
+
+            DEPLOYED_IMAGE=$(oc get cronjob/${{ matrix.name }} \
+              -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}')
+
+          fi
 
           echo "Running image: ${DEPLOYED_IMAGE}"
 
