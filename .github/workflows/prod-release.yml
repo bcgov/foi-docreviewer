@@ -1,0 +1,181 @@
+on:
+  workflow_dispatch:
+    inputs:
+      release_label:
+        description: Release label (you provided in PR to main for example 1.2.0-rc1)
+        required: true
+        type: string
+
+      release_version:
+        description: Semantic version to publish to prod (for example 1.2.0)
+        required: true
+        type: string
+
+jobs:
+
+  release:
+    name: Promote Release To Production
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+     # Add deploy key to runner
+      - name: Setup SSH
+        shell: bash
+        env:
+          MANIFEST_REPO_DEPLOY_KEY: ${{ secrets.MANIFEST_REPO_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${MANIFEST_REPO_DEPLOY_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+
+      # Checkout Gitops repo 
+      - name: Checkout Gitops
+        shell: bash
+        run: |
+          git clone git@github.com:bcgov-c/tenant-gitops-d106d6.git -b main
+
+      # Find services for the given release label in values-test.yaml
+      - name: Find release services
+        id: services
+        working-directory: tenant-gitops-d106d6
+        env:
+          RELEASE_LABEL: ${{ inputs.release_label }}
+          VALUES_FILE: "foi-doc-reviewer/values-test.yaml"
+        run: |
+
+          services=$(yq -o=json '
+            pick(["deployments","cronjobs","statefulsets"])
+            | to_entries
+            | map(
+                .key as $kind
+                | .value
+                | to_entries
+                | map(
+                    select(.value.metadata.labels.releaseLabel == env(RELEASE_LABEL))
+                    | {
+                        kind: $kind,
+                        name: .key,
+                        imagestream: (.value.image.repository | split("/") | last),
+                        tag: .value.image.tag
+                      }
+                  )
+              )
+            | add
+          ' "$VALUES_FILE")
+
+
+          if [ "$(echo "$services" | jq length)" -eq 0 ]; then
+            echo "No services found"
+            exit 1
+          fi
+
+
+          echo "$services" | jq
+
+          echo "services=$(echo "$services" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+      # login to tool's registry
+
+     # Install OC CLI
+      - name: Install OC CLI
+        uses: redhat-actions/oc-installer@v1
+        with:
+          oc_version: '4.6'
+
+      # Login and verify every service from the deployment matrix.
+      - name: Login to OpenShift
+        run: |
+          oc login \
+            --server="${{ secrets.OPENSHIFT4_LOGIN_REGISTRY }}" \
+            --token="${{ secrets.OPENSHIFT4_SA_TOKEN }}"
+          
+      # retal all the service imagestreams to resease version
+      - name: Retag images in Imagestream
+        env: 
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          NAMESPACE: ${{ secrets.OPENSHIFT_TOOLS_NAMESPACE }}
+          
+        run: |
+
+          oc project "$NAMESPACE"
+          
+          echo '${{ steps.services.outputs.services }}' |
+            jq -c '.[]' |
+            while IFS= read -r service
+            do
+                IMAGE_NAME=$(echo "$service" | jq -r '.imagestream')
+                CURRENT_TAG=$(echo "$service" | jq -r '.tag')
+
+                echo "Tagging ${IMAGE_NAME}:${CURRENT_TAG} -> ${IMAGE_NAME}:${RELEASE_VERSION}"
+
+                oc tag \
+                  "${IMAGE_NAME}:${CURRENT_TAG}" \
+                  "${IMAGE_NAME}:${RELEASE_VERSION}"
+            done
+
+      - name: Promote images in Gitops
+        working-directory: tenant-gitops-d106d6
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          VALUES_FILE: "foi-doc-reviewer/values-prod.yaml"
+        run: |
+
+          echo '${{ steps.services.outputs.services }}' |
+          jq -c '.[]' |
+          while IFS= read -r service
+          do
+
+            NAME=$(echo "$service" | jq -r '.name')
+            TAG=$(echo "$service" | jq -r '.tag')
+            KIND=$(echo "$service" | jq -r '.kind')
+
+
+            echo "Promoting ${TAG} -> ${RELEASE_VERSION}"
+
+
+            yq e '
+              .[strenv(KIND)][strenv(NAME)].image.tag = strenv(RELEASE_VERSION)
+            ' -i "$VALUES_FILE"
+
+          done
+
+          git config user.email "manish.sihag@gov.bc.ca"
+          git config user.name "ManishSihag"
+          
+          git pull --rebase origin main
+          git add "$VALUES_FILE"
+
+          if git diff --cached --quiet; then
+            echo "No GitOps changes."
+            exit 0
+          fi
+
+          git commit -m "Release ${{ inputs.release_version }} (from ${{ inputs.release_label }})"
+
+          MAX_RETRIES=5
+          RETRY_DELAY=15
+
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+              if git push; then
+                  break
+              fi
+
+              if [ "$i" -eq "$MAX_RETRIES" ]; then
+                  exit 1
+              fi
+
+              sleep "$RETRY_DELAY"
+              git pull --rebase origin main
+          done
+
+
+
+    
