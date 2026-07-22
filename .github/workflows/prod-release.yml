@@ -125,6 +125,7 @@ jobs:
         working-directory: tenant-gitops-d106d6
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
+          RELEASE_LABEL: ${{ inputs.release_label }}
           VALUES_FILE: "foi-doc-reviewer/values-prod.yaml"
         run: |
 
@@ -158,7 +159,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Release ${{ inputs.release_version }} (from ${{ inputs.release_label }})"
+          git commit -m "Release ${RELEASE_VERSION} (from ${RELEASE_LABEL})"
 
           MAX_RETRIES=5
           RETRY_DELAY=15
