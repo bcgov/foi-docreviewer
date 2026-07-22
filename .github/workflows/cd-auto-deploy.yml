@@ -290,7 +290,7 @@ jobs:
     steps:
       # Install OC CLI
       - name: Install OC CLI
-        uses: redhat-actions/oc-installer@v1
+        uses: redhat-actions/oc-installer@35b60c3f9757ae4301521556e1b75ff6f59f8d7c
         with:
           oc_version: '4.6'
 
