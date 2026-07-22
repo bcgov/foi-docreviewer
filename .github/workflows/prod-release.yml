@@ -175,7 +175,3 @@ jobs:
               sleep "$RETRY_DELAY"
               git pull --rebase origin main
           done
-
-
-
-    
