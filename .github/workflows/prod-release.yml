@@ -7,7 +7,7 @@ on:
         type: string
 
       release_version:
-        description: Semantic version to publish to prod (for example 1.2.0)
+        description: Semantic version to publish to prod (for example v1.2.0)
         required: true
         type: string
 
@@ -52,7 +52,7 @@ jobs:
         run: |
 
           services=$(yq -o=json '
-            pick(["deployments","cronjobs","statefulsets"])
+            pick(["deployments","cronJobs"])
             | to_entries
             | map(
                 .key as $kind
@@ -61,10 +61,10 @@ jobs:
                 | map(
                     select(.value.metadata.labels.releaseLabel == env(RELEASE_LABEL))
                     | {
-                        kind: $kind,
-                        name: .key,
-                        imagestream: (.value.image.repository | split("/") | last),
-                        tag: .value.image.tag
+                        "kind": $kind,
+                        "name": .key,
+                        "imagestream": (.value.image.repository | split("/") | .[-1]),
+                        "tag": .value.image.tag
                       }
                   )
               )
