@@ -59,7 +59,7 @@ jobs:
                 | .value
                 | to_entries
                 | map(
-                    select(.value.metadata.labels.releaseLabel == env(RELEASE_LABEL))
+                    select(.value.labels.releaseLabel == env(RELEASE_LABEL))
                     | {
                         "kind": $kind,
                         "name": .key,
