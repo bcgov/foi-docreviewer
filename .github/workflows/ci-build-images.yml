@@ -202,7 +202,7 @@ jobs:
             echo "Warmup ping $i: HTTP $HTTP_CODE"
             
             # 401 means OpenShift registry replied instantly
-            if [ "$HTTP_CODE" = "401" ] then
+            if [ "$HTTP_CODE" = "401" ]; then
               echo "OpenShift Registry is online and responsive."
               break
             fi
@@ -213,7 +213,7 @@ jobs:
           do
             echo "Registry login attempt ${attempt}/${MAX_RETRIES}"
 
-            LOGIN_OUTPUT=$(printf '%s\n' "$PASSWORD" | docker login "$REGISTRY" --username "$USERNAME" --password-stdin 2>&1)
+            printf '%s\n' "$PASSWORD" | docker login "$REGISTRY" --username "$USERNAME" --password-stdin
             EXIT_CODE=$?
 
             if [ $EXIT_CODE -eq 0 ]; then
