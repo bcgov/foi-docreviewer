@@ -52,7 +52,7 @@ jobs:
         run: |
 
           services=$(yq -o=json '
-            pick(["deployments","cronjobs","statefulsets"])
+            pick(["deployments","cronJobs"])
             | to_entries
             | map(
                 .key as $kind
