@@ -79,6 +79,19 @@ def test_publish_uses_a_provided_correlation_id_without_consuming_another_uuid()
     assert envelope["correlation_id"] == "request-123"
 
 
+@pytest.mark.parametrize("correlation_id", ["", " ", 1, False])
+def test_publish_rejects_empty_or_non_string_correlation_ids(correlation_id):
+    redis = RecordingRedis()
+
+    with pytest.raises(ValueError, match="correlation_id must be a non-empty string"):
+        publisher(redis, uuids=("event-uuid",)).publish(
+            valid_payload(),
+            correlation_id=correlation_id,
+        )
+
+    assert redis.calls == []
+
+
 @pytest.mark.parametrize(
     "stream_prefix, definition",
     [

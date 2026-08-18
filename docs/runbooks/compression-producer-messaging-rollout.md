@@ -202,20 +202,11 @@ allows it, then perform every check below before restarting in legacy mode.
 
 ### Required checks before switching back
 
-1. Identify the affected topic and record its current stream ID range. Do not
-   acknowledge, delete, or replay entries as part of an emergency inspection.
-2. Inspect the new stream's consumer-group pending list and the age of the
-   oldest pending entry:
-
-   ```bash
-   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-     XPENDING foi:compression "$CONSUMER_GROUP"
-   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-     XPENDING foi:compression-large "$CONSUMER_GROUP"
-   ```
-
-   As in Stage 2, run `XINFO GROUPS` only when the stream exists. A missing
-   standard stream is treated as empty during rollback inspection:
+1. Identify the affected topic and its consumer group. Record the pending
+   count and pending-ID range from the `XPENDING` summary, plus the group
+   metadata from `XINFO GROUPS`; neither command reads stream entries or prints
+   payload fields. Do not acknowledge, delete, or replay entries as part of an
+   emergency inspection.
 
    ```bash
    for stream in foi:compression foi:compression-large; do
@@ -223,13 +214,15 @@ allows it, then perform every check below before restarting in legacy mode.
          EXISTS "$stream")" = "1" ]; then
        redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
          XINFO GROUPS "$stream"
+       redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+         XPENDING "$stream" "$CONSUMER_GROUP"
      else
-       echo "$stream: missing (empty; no consumer group to inspect)"
+       echo "$stream: missing (empty; no group or pending range to inspect)"
      fi
    done
    ```
 
-3. Inspect both DLQ conventions used by the consumer fixture and service,
+2. Inspect both DLQ conventions used by the consumer fixture and service,
    `foi:compression.dlq` and `foi:compression-large.dlq`. Capture counts and
    IDs only; never copy payload fields into the incident record:
 
@@ -240,13 +233,13 @@ allows it, then perform every check below before restarting in legacy mode.
      XLEN foi:compression-large.dlq
    ```
 
-4. Check each controlled or in-flight `CompressionJob` by job ID in the
+3. Check each controlled or in-flight `CompressionJob` by job ID in the
    approved job view. Record only `version`, `status`, and terminal outcome;
    do not copy its message, filename, path, or payload into the incident
    record.
-5. Confirm the legacy stream key exists and that the legacy consumer path is
+4. Confirm the legacy stream key exists and that the legacy consumer path is
    healthy before stopping the standard producer.
-6. The compression service owner/on-call is the decision owner. Before any
+5. The compression service owner/on-call is the decision owner. Before any
    restart, obtain a bounded incident decision from that owner naming the
    affected deployment, topic, pending-entry treatment, job IDs in scope, and
    the rollback/forward action. Pending standard entries remain available for

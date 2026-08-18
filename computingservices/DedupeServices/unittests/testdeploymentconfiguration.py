@@ -81,7 +81,7 @@ def test_dedupe_deployments_use_distinct_standard_compression_topics():
     }
 
 
-def test_dedupe_deployments_keep_legacy_compression_stream_key_without_dual_publish_config():
+def test_dedupe_deployments_require_legacy_compression_stream_keys_without_dual_publish_config():
     environments = {
         name: _environment(path) for name, path in TEMPLATE_PATHS.items()
     }
@@ -95,9 +95,10 @@ def test_dedupe_deployments_keep_legacy_compression_stream_key_without_dual_publ
             for entry_name in names
         )
         assert environments[name]["COMPRESSION_MESSAGING_MODE"]["value"] == "${COMPRESSION_MESSAGING_MODE}"
-        assert environments[name]["COMPRESSION_STREAM_KEY"]["valueFrom"][
+        secret_ref = environments[name]["COMPRESSION_STREAM_KEY"]["valueFrom"][
             "secretKeyRef"
-        ]["optional"] is True
+        ]
+        assert "optional" not in secret_ref
 
 
 def test_local_dedupe_configuration_defaults_to_legacy_with_a_normal_standard_topic():

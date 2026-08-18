@@ -68,6 +68,8 @@ class StandardCompressionPublisher:
         self, payload: Mapping[str, object], correlation_id: str | None = None
     ) -> PublishResult:
         self._validate_payload(payload)
+        if correlation_id is not None:
+            self._validate_correlation_id(correlation_id)
         event_id = str(self._uuid_provider())
         resolved_correlation_id = (
             correlation_id if correlation_id is not None else str(self._uuid_provider())
@@ -177,3 +179,8 @@ class StandardCompressionPublisher:
         }.get(expected_type, expected_type.__name__)
         article = "an" if type_name[0] in "aeiou" else "a"
         raise ValueError(f"payload.{name} must be {article} {type_name}")
+
+    @staticmethod
+    def _validate_correlation_id(correlation_id: object) -> None:
+        if not isinstance(correlation_id, str) or not correlation_id.strip():
+            raise ValueError("correlation_id must be a non-empty string")
