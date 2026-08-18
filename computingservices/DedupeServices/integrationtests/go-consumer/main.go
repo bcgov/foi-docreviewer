@@ -19,28 +19,49 @@ type compressionDetails struct {
 }
 
 type compressionAttributes struct {
-	Pages   int                `json:"pages"`
-	Details compressionDetails `json:"details"`
+	IsAttachment bool               `json:"isattachment"`
+	Pages        int                `json:"pages"`
+	Details      compressionDetails `json:"details"`
 }
 
 type compressionPayload struct {
-	JobID            int                   `json:"jobid"`
-	DocumentMasterID int                   `json:"documentmasterid"`
-	Filename         string                `json:"filename"`
-	Incompatible     bool                  `json:"incompatible"`
-	Attributes       compressionAttributes `json:"attributes"`
+	JobID                    int                   `json:"jobid"`
+	S3FilePath               string                `json:"s3filepath"`
+	Filename                 string                `json:"filename"`
+	MinistryRequestID        int                   `json:"ministryrequestid"`
+	DocumentMasterID         int                   `json:"documentmasterid"`
+	Trigger                  string                `json:"trigger"`
+	CreatedBy                string                `json:"createdby"`
+	RequestNumber            string                `json:"requestnumber"`
+	Batch                    string                `json:"batch"`
+	Incompatible             bool                  `json:"incompatible"`
+	BCGovCode                string                `json:"bcgovcode"`
+	Attributes               compressionAttributes `json:"attributes"`
+	DocumentID               *int                  `json:"documentid,omitempty"`
+	OutputDocumentMasterID   *int                  `json:"outputdocumentmasterid,omitempty"`
+	OriginalDocumentMasterID *int                  `json:"originaldocumentmasterid,omitempty"`
 }
 
 type report struct {
-	Acknowledged     bool                   `json:"acknowledged"`
-	Attributes       *compressionAttributes `json:"attributes,omitempty"`
-	Dispatched       bool                   `json:"dispatched"`
-	DocumentMasterID *int                   `json:"document_master_id,omitempty"`
-	EventID          string                 `json:"event_id,omitempty"`
-	Filename         string                 `json:"filename,omitempty"`
-	Incompatible     *bool                  `json:"incompatible,omitempty"`
-	JobID            *int                   `json:"job_id,omitempty"`
-	Topic            string                 `json:"topic"`
+	Acknowledged             bool                   `json:"acknowledged"`
+	Attributes               *compressionAttributes `json:"attributes,omitempty"`
+	Dispatched               bool                   `json:"dispatched"`
+	DocumentMasterID         *int                   `json:"document_master_id,omitempty"`
+	DocumentID               *int                   `json:"document_id,omitempty"`
+	EventID                  string                 `json:"event_id,omitempty"`
+	Filename                 string                 `json:"filename,omitempty"`
+	Incompatible             *bool                  `json:"incompatible,omitempty"`
+	JobID                    *int                   `json:"job_id,omitempty"`
+	MinistryRequestID        *int                   `json:"ministry_request_id,omitempty"`
+	OutputDocumentMasterID   *int                   `json:"output_document_master_id,omitempty"`
+	OriginalDocumentMasterID *int                   `json:"original_document_master_id,omitempty"`
+	S3FilePath               string                 `json:"s3_file_path,omitempty"`
+	RequestNumber            string                 `json:"request_number,omitempty"`
+	Batch                    string                 `json:"batch,omitempty"`
+	Trigger                  string                 `json:"trigger,omitempty"`
+	CreatedBy                string                 `json:"created_by,omitempty"`
+	BCGovCode                string                 `json:"bcgov_code,omitempty"`
+	Topic                    string                 `json:"topic"`
 }
 
 type contractHandler struct {
@@ -54,18 +75,32 @@ func (h *contractHandler) Handle(_ context.Context, env messaging.Envelope[compr
 	h.once.Do(func() {
 		jobID := env.Payload.JobID
 		documentMasterID := env.Payload.DocumentMasterID
+		documentID := env.Payload.DocumentID
 		incompatible := env.Payload.Incompatible
 		attributes := env.Payload.Attributes
+		ministryRequestID := env.Payload.MinistryRequestID
+		outputDocumentMasterID := env.Payload.OutputDocumentMasterID
+		originalDocumentMasterID := env.Payload.OriginalDocumentMasterID
 		h.report <- report{
-			Acknowledged:     true,
-			Attributes:       &attributes,
-			Dispatched:       true,
-			DocumentMasterID: &documentMasterID,
-			EventID:          env.EventID,
-			Filename:         env.Payload.Filename,
-			Incompatible:     &incompatible,
-			JobID:            &jobID,
-			Topic:            h.topic,
+			Acknowledged:             true,
+			Attributes:               &attributes,
+			Dispatched:               true,
+			DocumentMasterID:         &documentMasterID,
+			DocumentID:               documentID,
+			EventID:                  env.EventID,
+			Filename:                 env.Payload.Filename,
+			Incompatible:             &incompatible,
+			JobID:                    &jobID,
+			MinistryRequestID:        &ministryRequestID,
+			OutputDocumentMasterID:   outputDocumentMasterID,
+			OriginalDocumentMasterID: originalDocumentMasterID,
+			S3FilePath:               env.Payload.S3FilePath,
+			RequestNumber:            env.Payload.RequestNumber,
+			Batch:                    env.Payload.Batch,
+			Trigger:                  env.Payload.Trigger,
+			CreatedBy:                env.Payload.CreatedBy,
+			BCGovCode:                env.Payload.BCGovCode,
+			Topic:                    h.topic,
 		}
 		h.cancel()
 	})

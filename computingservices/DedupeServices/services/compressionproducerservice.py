@@ -78,9 +78,10 @@ class compressionproducerservice:
         if self.mode == "standard":
             result = self.publisher.publish(payload, correlation_id=correlation_id)
             logger.info(
-                "Published compression event mode=%s stream=%s event_id=%s correlation_id=%s job_id=%s document_master_id=%s",
+                "Published compression event mode=%s stream=%s stream_id=%s event_id=%s correlation_id=%s job_id=%s document_master_id=%s",
                 self.mode,
                 self.stream,
+                result.stream_id,
                 result.event_id,
                 result.correlation_id,
                 jobid,
@@ -90,9 +91,10 @@ class compressionproducerservice:
 
         result = self.publisher.publish(payload)
         logger.info(
-            "Published compression event mode=%s stream=%s job_id=%s document_master_id=%s",
+            "Published compression event mode=%s stream=%s stream_id=%s job_id=%s document_master_id=%s",
             self.mode,
             self.stream,
+            result,
             jobid,
             compression_request.documentmasterid,
         )

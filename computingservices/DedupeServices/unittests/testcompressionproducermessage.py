@@ -2,6 +2,8 @@ import os
 import sys
 from types import SimpleNamespace
 
+import pytest
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from models.compressionproducermessage import compressionproducermessage
@@ -46,6 +48,31 @@ def test_to_dict_returns_json_native_contract_values():
         "bcgovcode": "LDB",
         "attributes": {"isattachment": True, "pages": 3},
     }
+
+
+@pytest.mark.parametrize(
+    ("redis_value", "expected"),
+    [
+        (True, True),
+        (False, False),
+        ("true", True),
+        ("TRUE", True),
+        ("False", False),
+    ],
+)
+def test_to_dict_decodes_incompatible_from_redis_values(redis_value, expected):
+    message = compressionproducermessage(
+        11,
+        source_message(incompatible=redis_value),
+    )
+
+    assert message.to_dict()["incompatible"] is expected
+
+
+@pytest.mark.parametrize("redis_value", ["", "yes", "0", 0, None])
+def test_to_dict_rejects_invalid_incompatible_values(redis_value):
+    with pytest.raises(ValueError, match="incompatible"):
+        compressionproducermessage(11, source_message(incompatible=redis_value))
 
 
 def test_to_dict_omits_none_optional_fields():

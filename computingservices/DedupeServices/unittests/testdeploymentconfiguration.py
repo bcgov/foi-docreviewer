@@ -40,20 +40,45 @@ def test_dedupe_deployments_use_distinct_standard_compression_topics():
         name: _environment(path) for name, path in TEMPLATE_PATHS.items()
     }
 
-    assert environments["normal"]["COMPRESSION_MESSAGING_MODE"]["value"] == "standard"
-    assert environments["large"]["COMPRESSION_MESSAGING_MODE"]["value"] == "standard"
-    assert environments["normal"]["MESSAGING_STREAM_PREFIX"]["value"] == "foi"
-    assert environments["large"]["MESSAGING_STREAM_PREFIX"]["value"] == "foi"
+    assert environments["normal"]["COMPRESSION_MESSAGING_MODE"]["value"] == "${COMPRESSION_MESSAGING_MODE}"
+    assert environments["large"]["COMPRESSION_MESSAGING_MODE"]["value"] == "${COMPRESSION_MESSAGING_MODE}"
+    assert environments["normal"]["MESSAGING_STREAM_PREFIX"]["value"] == "${MESSAGING_STREAM_PREFIX}"
+    assert environments["large"]["MESSAGING_STREAM_PREFIX"]["value"] == "${MESSAGING_STREAM_PREFIX}"
 
-    topics = {
-        name: environment["COMPRESSION_TOPIC"]["value"]
-        for name, environment in environments.items()
+    assert all(
+        environment["COMPRESSION_TOPIC"]["value"] == "${COMPRESSION_TOPIC}"
+        for environment in environments.values()
+    )
+
+    parameters = {
+        name: {
+            parameter["name"]: parameter["value"]
+            for parameter in yaml.safe_load(path.read_text())["parameters"]
+            if parameter["name"]
+            in {
+                "COMPRESSION_MESSAGING_MODE",
+                "MESSAGING_STREAM_PREFIX",
+                "COMPRESSION_TOPIC",
+            }
+        }
+        for name, path in TEMPLATE_PATHS.items()
     }
-    assert topics == {"normal": "compression", "large": "compression-large"}
-    assert topics["normal"] != topics["large"]
     assert {
-        f"foi:{topic}" for topic in topics.values()
-    } == {"foi:compression", "foi:compression-large"}
+        key: parameters["normal"][key]
+        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC")
+    } == {
+        "COMPRESSION_MESSAGING_MODE": "legacy",
+        "MESSAGING_STREAM_PREFIX": "foi",
+        "COMPRESSION_TOPIC": "compression",
+    }
+    assert {
+        key: parameters["large"][key]
+        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC")
+    } == {
+        "COMPRESSION_MESSAGING_MODE": "legacy",
+        "MESSAGING_STREAM_PREFIX": "foi",
+        "COMPRESSION_TOPIC": "compression-large",
+    }
 
 
 def test_dedupe_deployments_keep_legacy_compression_stream_key_without_dual_publish_config():
@@ -69,13 +94,13 @@ def test_dedupe_deployments_keep_legacy_compression_stream_key_without_dual_publ
             "DUAL" in entry_name and "COMPRESSION" in entry_name
             for entry_name in names
         )
-        assert environments[name]["COMPRESSION_MESSAGING_MODE"]["value"] == "standard"
+        assert environments[name]["COMPRESSION_MESSAGING_MODE"]["value"] == "${COMPRESSION_MESSAGING_MODE}"
         assert environments[name]["COMPRESSION_STREAM_KEY"]["valueFrom"][
             "secretKeyRef"
         ]["optional"] is True
 
 
-def test_local_dedupe_configuration_uses_normal_standard_compression_topic():
+def test_local_dedupe_configuration_defaults_to_legacy_with_a_normal_standard_topic():
     compose_environment = _compose_dedupe_environment()
     assert "COMPRESSION_MESSAGING_MODE=${COMPRESSION_MESSAGING_MODE}" in compose_environment
     assert "MESSAGING_STREAM_PREFIX=${MESSAGING_STREAM_PREFIX}" in compose_environment
@@ -83,7 +108,7 @@ def test_local_dedupe_configuration_uses_normal_standard_compression_topic():
     assert "COMPRESSION_STREAM_KEY=${COMPRESSION_STREAM_KEY}" in compose_environment
 
     sample = _sample_environment()
-    assert sample["COMPRESSION_MESSAGING_MODE"] == "standard"
+    assert sample["COMPRESSION_MESSAGING_MODE"] == "legacy"
     assert sample["MESSAGING_STREAM_PREFIX"] == "foi"
     assert sample["COMPRESSION_TOPIC"] == "compression"
     assert _environment(TEMPLATE_PATHS["large"])["COMPRESSION_TOPIC"]["value"] != sample[
