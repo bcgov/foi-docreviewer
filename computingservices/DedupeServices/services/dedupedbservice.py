@@ -2,6 +2,7 @@ from . import getdbconnection
 from models import dedupeproducermessage
 from utils.basicutils import to_json
 from utils.loggingutils import log_context, log_event
+from utils.foidedupeconfig import compression_workload
 from datetime import datetime
 import json
 import logging
@@ -210,9 +211,9 @@ def compressionjobstart(message):
                     
             cursor = conn.cursor()
             cursor.execute('''INSERT INTO public."CompressionJob"
-                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
-                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s) returning compressionjobid;''',
-                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid))
+                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid, workload)
+                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning compressionjobid;''',
+                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid, compression_workload))
             compressionjobid = cursor.fetchone()[0]
             conn.commit()
             cursor.close()

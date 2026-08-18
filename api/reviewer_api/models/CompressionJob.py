@@ -17,6 +17,7 @@ class CompressionJob(db.Model):
     filename = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(120), nullable=False)
     message = db.Column(db.Text, nullable=True)
+    workload = db.Column(db.String(20), nullable=True)
 
     @classmethod
     def insert(cls, row):
@@ -82,4 +83,4 @@ class CompressionJob(db.Model):
 
 class CompressionJobSchema(ma.Schema):
     class Meta:
-        fields = ('compressionjobid', 'version', 'ministryrequestid', 'createdat', 'batch', 'trigger', 'inputfilepath', 'outputfilepath', 'filename', 'status', 'message')
+        fields = ('compressionjobid', 'version', 'ministryrequestid', 'createdat', 'batch', 'trigger', 'inputfilepath', 'outputfilepath', 'filename', 'status', 'message', 'workload')

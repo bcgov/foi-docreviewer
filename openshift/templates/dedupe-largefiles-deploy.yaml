@@ -74,6 +74,8 @@ objects:
               value: "${MESSAGING_STREAM_PREFIX}"
             - name: COMPRESSION_TOPIC
               value: "${COMPRESSION_TOPIC}"
+            - name: COMPRESSION_WORKLOAD
+              value: "${COMPRESSION_WORKLOAD}"
             # Required while the rollout-safe default remains legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
@@ -201,3 +203,8 @@ parameters:
   description: Standard Redis Streams topic for large-file Dedupe processing.
   required: true
   value: compression-large
+- name: COMPRESSION_WORKLOAD
+  displayName: Compression Workload
+  description: Workload classification recorded for compression jobs.
+  required: true
+  value: large

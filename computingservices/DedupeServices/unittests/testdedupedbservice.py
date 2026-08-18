@@ -20,8 +20,10 @@ class Cursor:
     def __init__(self, *, fail=False):
         self.fail = fail
         self.closed = False
+        self.calls = []
 
-    def execute(self, *_args):
+    def execute(self, sql, params=None):
+        self.calls.append((sql, params))
         if self.fail:
             raise RuntimeError("database unavailable")
 
@@ -122,3 +124,15 @@ def test_database_failure_logs_operation_and_reraises(capsys, caplog, monkeypatc
     assert caplog.records[-1].exc_info[0] is RuntimeError
     assert "attributes" not in event
     assert "usertoken" not in event
+
+
+def test_compressionjobstart_records_workload(monkeypatch):
+    connection = Connection()
+    monkeypatch.setattr(dedupedbservice, "getdbconnection", lambda: connection)
+    monkeypatch.setattr(dedupedbservice, "compression_workload", "normal")
+
+    assert dedupedbservice.compressionjobstart(message()) == 41
+
+    sql, params = connection.cursor_instance.calls[-1]
+    assert "workload" in sql
+    assert params[-1] == "normal"

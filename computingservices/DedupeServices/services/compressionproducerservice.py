@@ -10,6 +10,7 @@ from utils.loggingutils import log_event
 from utils.foidedupeconfig import (
     compression_messaging_mode,
     compression_topic,
+    compression_workload,
     compressionredishost,
     compressionredispassword,
     compressionredisport,
@@ -108,6 +109,9 @@ class compressionproducerservice:
     def _validate_configuration():
         if compression_messaging_mode not in ("legacy", "standard"):
             raise ValueError("compression_messaging_mode must be 'legacy' or 'standard'")
+
+        if compression_workload not in ("normal", "large"):
+            raise ValueError("compression_workload must be 'normal' or 'large'")
 
         compressionproducerservice._require_value("compressionredishost", compressionredishost)
         compressionproducerservice._require_value("compressionredisport", compressionredisport)
