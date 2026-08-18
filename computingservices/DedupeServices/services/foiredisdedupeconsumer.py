@@ -15,12 +15,14 @@ from . import jsonmessageparser
 from .dedupeservice import initialize_compressionproducer, processmessage
 from .dedupedbservice import isbatchcompleted
 from rstreamio.redisstreamwriter import redisstreamwriter
+from utils.loggingutils import log_context, log_event
 
 LAST_ID_KEY = "{consumer_id}:lastid"
 BLOCK_TIME = 5000
 STREAM_KEY = dedupe_stream_key
 
 app = typer.Typer()
+logger = logging.getLogger(__name__)
 
 
 class StartFrom(str, Enum):
@@ -35,39 +37,65 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
     initialize_compressionproducer()
     rdb = redisstreamdb
     stream = rdb.Stream(STREAM_KEY)
-    print("consumer_id:",consumer_id)
-    print("start_from:",start_from)
+    consumer_context = log_context(consumer_id=consumer_id)
     last_id = rdb.get(LAST_ID_KEY.format(consumer_id=consumer_id))
     if last_id:
-        print(f"Resume from ID: {last_id}")
+        log_event(logger, logging.INFO, "consumer_resumed", context=consumer_context, stream_id=last_id)
     else:
         last_id = start_from.value
-        print(f"Starting from {start_from.name}")
+        log_event(logger, logging.INFO, "consumer_started", context=consumer_context)
 
     while True:
         #print("Reading stream...")
         messages = stream.read(last_id=last_id, block=BLOCK_TIME)
         if messages:
             for message_id, message in messages:
-                #print(f"processing {message_id}::{message}")
                 if message is not None:
-                    _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
+                    started_at = time.monotonic()
+                    message_context = log_context(consumer_id=consumer_id, stream_id=message_id)
+                    log_event(logger, logging.INFO, "message_received", context=message_context)
+                    stage = "message_parse"
                     try:
+                        _message = json.dumps({key.decode('utf-8'): value.decode('utf-8') for (key, value) in message.items()})
                         producermessage = jsonmessageparser.getdedupeproducermessage(_message)
-                        processmessage(producermessage) 
+                        message_context = log_context(producermessage, **message_context)
+                        log_event(logger, logging.INFO, "message_parsed", context=message_context)
+                        stage = "dedupe_processing"
+                        processmessage(producermessage, log_context_data=message_context)
                         # send message to notification stream if batch is complete
+                        stage = "batch_check"
                         complete, err = isbatchcompleted(producermessage.batch)
+                        log_event(logger, logging.INFO, "batch_checked", context=message_context)
                         if complete:
+                            stage = "notification_publish"
                             redisstreamwriter().sendnotification(producermessage, err)
+                            log_event(logger, logging.INFO, "notification_sent", context=message_context)
                         else:
-                            print("batch not yet complete, no message sent")
+                            log_event(logger, logging.INFO, "notification_skipped", context=message_context)
                     except(Exception) as error:
-                        print("Exception while processing redis message, func start(p1), Error : {0} ".format(error))
+                        duration_ms = int((time.monotonic() - started_at) * 1000)
+                        log_event(
+                            logger,
+                            logging.ERROR,
+                            "message_failed",
+                            context=message_context,
+                            stage=stage,
+                            duration_ms=duration_ms,
+                            exc_info=True,
+                        )
+                    else:
+                        duration_ms = int((time.monotonic() - started_at) * 1000)
+                        log_event(
+                            logger,
+                            logging.INFO,
+                            "message_completed",
+                            context=message_context,
+                            duration_ms=duration_ms,
+                        )
                                              
                 # simulate processing
                 #time.sleep(random.randint(1, 3)) #TODO : todo: remove!
                 last_id = message_id
                 rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
-                print(f"finished processing {message_id}")
         #else:
             #print(f"No new messages after ID: {last_id}")

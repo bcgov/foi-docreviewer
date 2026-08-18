@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -16,6 +17,7 @@ psycopg2.DatabaseError = Exception
 
 import services.compressionproducerservice as producer_module
 from rstreamio.compressionevents import PublishResult
+from utils.loggingutils import configure_logging
 
 
 class FakeStream:
@@ -176,20 +178,23 @@ def test_initialization_rejects_invalid_mode_or_required_configuration(
         producer_module.compressionproducerservice()
 
 
-def test_safe_logs_include_routing_and_identifiers_without_secrets_or_payload(caplog):
+def test_compression_publish_log_is_safe_structured_json(capsys):
     producer_module.compression_messaging_mode = "standard"
-    caplog.set_level(logging.INFO, logger=producer_module.__name__)
+    configure_logging()
+    capsys.readouterr()
 
     producer = producer_module.compressionproducerservice()
     producer.producecompressionevent(source_message(), 11, correlation_id="request-123")
 
-    log_text = caplog.text
-    assert "mode=standard" in log_text
-    assert "stream=foi:compression" in log_text
-    assert "event_id=event-123" in log_text
-    assert "correlation_id=request-123" in log_text
-    assert "job_id=11" in log_text
-    assert "document_master_id=7" in log_text
-    assert "payload" not in log_text
-    assert "compression-password" not in log_text
-    assert "super-secret-user-token" not in log_text
+    records = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    record = next(record for record in records if record["event"] == "compression_published")
+
+    assert record["stage"] == "foi:compression"
+    assert record["stream_id"] == "1712345678901-0"
+    assert record["event_id"] == "event-123"
+    assert record["correlation_id"] == "request-123"
+    assert record["job_id"] == 11
+    assert record["document_master_id"] == 7
+    assert "payload" not in record
+    assert "usertoken" not in record
+    assert "super-secret-user-token" not in json.dumps(record)
