@@ -100,3 +100,40 @@ pytest -q unittests/testcompressionproducermessage.py \
 GOPROXY=off GOCACHE=/tmp/foimod-5199-go-build go test ./...
 # blocked by the missing transitive checksums listed above
 ```
+
+## Final Fix Round Update
+
+- Removed `optional: true` from the normal and large-file Dedupe compression
+  secret references. Because OpenShift now defaults the mode to `legacy`, a
+  missing `COMPRESSION_STREAM_KEY` or `COMPRESSION_STREAM_KEY_LARGEFILES`
+  prevents the pod from starting with an unusable legacy configuration.
+- Added pre-`XADD` validation for caller-supplied correlation IDs. A supplied
+  value must be a non-blank string; invalid values raise `ValueError` without
+  publishing.
+- Replaced the rollback instruction to record a raw stream-ID range with a
+  payload-safe `XINFO GROUPS` and `XPENDING` summary procedure. It records
+  group metadata and pending count/ID range for both standard topics without
+  reading entries.
+
+Final checks:
+
+```text
+pytest unittests -q
+# blocked during collection: pypdf is not installed for testcontext.py and
+# testdedupedbservice.py
+
+pytest -q unittests/testcompressionproducermessage.py \
+  unittests/testcompressionevents.py \
+  unittests/testcompressionproducerservice.py \
+  unittests/testdeploymentconfiguration.py \
+  integrationtests/test_go_compression_contract.py
+# 52 passed, 3 skipped
+
+python -m compileall -q models/compressionproducermessage.py \
+  rstreamio/compressionevents.py \
+  services/compressionproducerservice.py \
+  integrationtests/test_go_compression_contract.py
+
+gofmt -d integrationtests/go-consumer/main.go
+git diff --check
+```

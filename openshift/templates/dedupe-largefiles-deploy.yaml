@@ -74,13 +74,12 @@ objects:
               value: "${MESSAGING_STREAM_PREFIX}"
             - name: COMPRESSION_TOPIC
               value: "${COMPRESSION_TOPIC}"
-            # Provision this rollback key before switching to legacy mode.
+            # Required while the rollout-safe default remains legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: COMPRESSION_STREAM_KEY_LARGEFILES
-                  optional: true
             - name: DEDUPE_STREAM_KEY
               valueFrom:
                 secretKeyRef:
