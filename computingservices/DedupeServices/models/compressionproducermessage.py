@@ -1,5 +1,3 @@
-import json
-
 class compressionproducermessage(object):
     def __init__(self,jobid,message) -> None:
         self.jobid = jobid
@@ -11,10 +9,10 @@ class compressionproducermessage(object):
         self.createdby = message.createdby
         self.requestnumber = message.requestnumber
         self.batch=message.batch
-        self.incompatible=str(bool(message.incompatible)).lower() 
+        self.incompatible=bool(message.incompatible)
         self.usertoken=message.usertoken
         self.bcgovcode=message.bcgovcode
-        self.attributes= json.dumps(message.attributes)
+        self.attributes=message.attributes
         #self.needsocr = str(bool(message.needsocr)).lower() 
         if message.documentid is not None:
             self.documentid= int(message.documentid)
@@ -22,3 +20,31 @@ class compressionproducermessage(object):
             self.outputdocumentmasterid= int(message.outputdocumentmasterid)
         if message.originaldocumentmasterid is not None:
             self.originaldocumentmasterid=int(message.originaldocumentmasterid)
+
+    def to_dict(self) -> dict[str, object]:
+        payload = {
+            "jobid": self.jobid,
+            "s3filepath": self.s3filepath,
+            "filename": self.filename,
+            "ministryrequestid": self.ministryrequestid,
+            "documentmasterid": self.documentmasterid,
+            "trigger": self.trigger,
+            "createdby": self.createdby,
+            "requestnumber": self.requestnumber,
+            "batch": self.batch,
+            "incompatible": self.incompatible,
+            "bcgovcode": self.bcgovcode,
+            "attributes": self.attributes,
+        }
+
+        for field in (
+            "documentid",
+            "outputdocumentmasterid",
+            "originaldocumentmasterid",
+            "usertoken",
+        ):
+            value = getattr(self, field, None)
+            if value is not None:
+                payload[field] = value
+
+        return payload
