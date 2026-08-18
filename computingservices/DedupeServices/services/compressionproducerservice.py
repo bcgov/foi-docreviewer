@@ -6,6 +6,7 @@ from walrus import Database
 from models.compressionproducermessage import compressionproducermessage
 from rstreamio.compressionevents import CompressionEventDefinition, StandardCompressionPublisher
 from rstreamio.legacycompressionpublisher import LegacyCompressionPublisher
+from utils.loggingutils import log_event
 from utils.foidedupeconfig import (
     compression_messaging_mode,
     compression_topic,
@@ -69,7 +70,7 @@ class compressionproducerservice:
                 event_definition,
             )
 
-        logger.info("Initialized compression producer mode=%s stream=%s", self.mode, self.stream)
+        log_event(logger, logging.INFO, "compression_producer_initialized", stage=self.stream)
 
     def producecompressionevent(self, finalmessage, jobid, correlation_id=None):
         compression_request = self.createcompressionproducermessage(finalmessage, jobid=jobid)
@@ -77,26 +78,26 @@ class compressionproducerservice:
 
         if self.mode == "standard":
             result = self.publisher.publish(payload, correlation_id=correlation_id)
-            logger.info(
-                "Published compression event mode=%s stream=%s stream_id=%s event_id=%s correlation_id=%s job_id=%s document_master_id=%s",
-                self.mode,
-                self.stream,
-                result.stream_id,
-                result.event_id,
-                result.correlation_id,
-                jobid,
-                compression_request.documentmasterid,
+            log_event(
+                logger,
+                logging.INFO,
+                "compression_published",
+                context=compression_request,
+                stage=self.stream,
+                stream_id=result.stream_id,
+                event_id=result.event_id,
+                correlation_id=result.correlation_id,
             )
             return result
 
         result = self.publisher.publish(payload)
-        logger.info(
-            "Published compression event mode=%s stream=%s stream_id=%s job_id=%s document_master_id=%s",
-            self.mode,
-            self.stream,
-            result,
-            jobid,
-            compression_request.documentmasterid,
+        log_event(
+            logger,
+            logging.INFO,
+            "compression_published",
+            context=compression_request,
+            stage=self.stream,
+            stream_id=result,
         )
         return result
 

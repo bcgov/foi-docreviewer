@@ -1,10 +1,11 @@
 import logging
 from utils import redisstreamdb, notification_stream_key
 from rstreamio.message.schemas.notification import NotificationPublishSchema
-from models import dedupeproducermessage
 from datetime import datetime
+from utils.loggingutils import log_event
 
-import json
+
+logger = logging.getLogger(__name__)
 
 class redisstreamwriter:
 
@@ -24,11 +25,21 @@ class redisstreamwriter:
             
             #Additional execution parameters : End
             msgid = self.notificationstream.add(notification_msg.__dict__, id="*")
-            logging.info("Notification message for msgid = %s ",  msgid)
+            log_event(
+                logger,
+                logging.INFO,
+                "notification_published",
+                context=message,
+                stream_id=msgid,
+            )
         except RuntimeError as error:
-            print("Exception while sending notification, func sendnotification(p4), Error : {0} ".format(error))
-            logging.error("Unable to write to notification stream for batch %s | ministryrequestid=%i", message.batch, message.ministryrequestid)
-            logging.error(error)
+            log_event(
+                logger,
+                logging.ERROR,
+                "notification_publish_failed",
+                context=message,
+                exc_info=True,
+            )
 
     def __booltostr(self, value):
         return "YES" if value == True else "NO"

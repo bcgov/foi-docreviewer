@@ -38,6 +38,23 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 import os
 from decimal import Decimal
+import logging
+
+from utils.loggingutils import log_context, log_event
+
+
+logger = logging.getLogger(__name__)
+
+
+def _log_document_processing_event(level, event, stage, *, exc_info=False):
+    log_event(
+        logger,
+        level,
+        event,
+        context=log_context(operation="hash_document"),
+        stage=stage,
+        exc_info=exc_info,
+    )
 
 # Get the directory of the current Python file (inside the 'service' folder)
 service_folder_path = os.path.dirname(os.path.abspath(__file__))
@@ -65,12 +82,11 @@ def __getcredentialsbybcgovcode(bcgovcode):
         if attributes is not None:
             s3cred = gets3credentialsobject(str(attributes[0]))
         cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+    except (Exception, psycopg2.DatabaseError):
+        _log_document_processing_event(logging.ERROR, "document_processing_failed", "credentials", exc_info=True)
     finally:
         if _conn is not None:
             _conn.close()
-            print("Database connection closed.")
 
     return s3cred
 
@@ -140,8 +156,8 @@ def split_comments_to_pages(comments,font,font_size, canvas, lines_per_page=50):
             pages.append(current_page)    
         #print("pages-split_comments_to_pages:",pages)
         return pages
-    except Exception as e:
-        print(f"Error in splitting comments by pages: {e}")
+    except Exception:
+        _log_document_processing_event(logging.ERROR, "document_processing_failed", "split_comments", exc_info=True)
 
 
 
@@ -183,8 +199,8 @@ def wrap_text(text, width, font, font_size, canvas):
         if line:
             wrapped_lines.append(line)
         return wrapped_lines
-    except Exception as e:
-        print(f"Error in wrapping the text comments in each page: {e}")
+    except Exception:
+        _log_document_processing_event(logging.ERROR, "document_processing_failed", "wrap_comments", exc_info=True)
 
 def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filename):
     # clear metadata
@@ -200,8 +216,13 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
             try:
                 #Function to get all comments type annotations & copy it to a new page
                 pagecount, writer= createpagesforcomments(page, page_num, writer, reader2, pagecount,filename)
-            except Exception as e:
-                print(f"Error in creating new page with comment annotations: {e}")
+            except Exception:
+                _log_document_processing_event(
+                    logging.ERROR,
+                    "document_processing_failed",
+                    "metadata_annotation_handling",
+                    exc_info=True,
+                )
         buffer = BytesIO()
         writer.write(buffer)
         flattened_buffer = buffer
@@ -209,8 +230,8 @@ def _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_acces
             # Now, flatten the PDF content using the __flattenfitz function
             if _hasannotations:
                 flattened_buffer = __flattenfitz(buffer.getvalue())
-        except Exception as e:
-            print(f"Error in flatenning pdf: {e}")
+        except Exception:
+            _log_document_processing_event(logging.ERROR, "document_processing_failed", "metadata_flattening", exc_info=True)
 
         client = boto3.client('s3',config=Config(signature_version='s3v4'),
             endpoint_url='https://{0}/'.format(dedupe_s3_host),
@@ -238,7 +259,7 @@ def __flattenfitz(docbytesarr):
     for page_num in range(len(doc)):
         #page = doc[page_num]
         page = doc.load_page(page_num) 
-        print("\nPage:",page)
+        _log_document_processing_event(logging.DEBUG, "document_processing_progress", "flatten_page")
         rotation = page.rotation
         # print("\nRotation:",rotation)
         # Reset rotation to 0 to ensure consistent rendering of page content
@@ -257,7 +278,7 @@ def __flattenfitz(docbytesarr):
         annot = page.first_annot
         widget_exist = page.first_widget is not None
         if widget_exist:
-            print("\nwidget_exist:",widget_exist)
+            _log_document_processing_event(logging.DEBUG, "document_processing_progress", "flatten_widget")
             pix = page.get_pixmap(dpi=150)  # set desired resolution
             outpage.insert_image(page.rect, pixmap=pix)
 
@@ -266,7 +287,7 @@ def __flattenfitz(docbytesarr):
                 annot_rect = annot.rect  # Get the annotation's rectangle
                 # Check for invalid annotation dimensions (zero width/height)
                 if __is_not_rect_renderable(annot_rect):
-                    print(f"Skipping annotation on page {page_num + 1}: Invalid annotation dimensions.")
+                    _log_document_processing_event(logging.WARNING, "document_processing_skipped", "invalid_annotation")
                     annot = annot.next  # Move to the next annots & skip invalid ones
                     continue
                 # Handle specific case of highlight annotations
@@ -285,8 +306,8 @@ def __flattenfitz(docbytesarr):
                     # For other types of annotations, use the original rect
                     annot_pix = page.get_pixmap(clip=annot_rect, dpi=150)
                     outpage.insert_image(annot_rect, pixmap=annot_pix)  # Burn annotation
-            except Exception as e:
-                print(f"Error processing annotation on page {page_num + 1}: {e}")
+            except Exception:
+                _log_document_processing_event(logging.ERROR, "document_processing_failed", "flatten_annotation", exc_info=True)
             annot = annot.next  # Move to the next annotation
     # Saving the flattened PDF to a buffer
     buffer = BytesIO()
@@ -314,13 +335,13 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
         width = parameters.get("width")
         height = parameters.get("height")
         rotation= parameters.get("rotation")
-        print("rotation:",rotation)
+        _log_document_processing_event(logging.DEBUG, "document_processing_progress", "render_comments")
         #set standard A4 size for new page if page have rotation
         if rotation not in [0, 360]:
             width=612
             height=792
         currentpagesize = (width, height)
-        print("\ncurrentpagesize:",currentpagesize)
+        _log_document_processing_event(logging.DEBUG, "document_processing_progress", "render_comment_page")
         title_height=height-40
         comment_pages = split_comments_to_pages(comments, font, font_size, c, lines_per_page=50)
         for comment_page in comment_pages:
@@ -365,8 +386,8 @@ def __rendercommentsonnewpage(comments,pagecount,writer,parameters,filename):
         comments_pdf_reader = PyPDF2.PdfReader(comments_pdf)
         writer.add_page(comments_pdf_reader.pages[0])  # Add comments as a new page
         return pagecount,writer
-    except Exception as e:
-        print(f"Error in rendering comments on new page in pdf: {e}")
+    except Exception:
+        _log_document_processing_event(logging.ERROR, "document_processing_failed", "render_comments", exc_info=True)
 
 def has_annotations(reader):
     """
@@ -443,13 +464,43 @@ def createpagesforcomments(page, page_num, writer, reader2, pagecount,filename):
                 parameters = get_page_properties(reader2, page_num)
                 # If there are comments, create an additional page for them
                 pagecount,writer=__rendercommentsonnewpage(comments,pagecount,writer,parameters,filename)
-            except Exception as e:
-                print(f"Error in rendering comments on new page in pdf: {e}")
+            except Exception:
+                _log_document_processing_event(
+                    logging.ERROR,
+                    "document_processing_failed",
+                    "metadata_annotation_handling",
+                    exc_info=True,
+                )
     else:
         writer.add_page(page)
     return pagecount, writer
 
 def gets3documenthashcode(producermessage):
+    context = log_context(producermessage, operation="hash_document")
+    try:
+        result = _gets3documenthashcode(producermessage)
+        log_event(
+            logger,
+            logging.INFO,
+            "document_hash_completed",
+            context=context,
+            stage="hash",
+            pagecount=result[1],
+        )
+        return result
+    except Exception:
+        log_event(
+            logger,
+            logging.ERROR,
+            "document_processing_failed",
+            context=context,
+            stage="hash_document",
+            exc_info=True,
+        )
+        raise
+
+
+def _gets3documenthashcode(producermessage):
     s3credentials = __getcredentialsbybcgovcode(producermessage.bcgovcode)    
     s3_access_key_id = s3credentials.s3accesskey
     s3_secret_access_key = s3credentials.s3secretkey
@@ -537,7 +588,14 @@ def gets3documenthashcode(producermessage):
             filenamewithextension=_filename+extension.lower()
             pagecount= _clearmetadata(response, pagecount, reader, s3_access_key_id,s3_secret_access_key,filepath,auth,filenamewithextension)
         except Exception as e:
-            print(f"Exception while clearing metadata/flattening: {e}")
+            log_event(
+                logger,
+                logging.ERROR,
+                "document_processing_failed",
+                context=log_context(producermessage, operation="hash_document"),
+                stage="metadata_cleanup",
+                exc_info=True,
+            )
                
     elif extension.lower() in file_conversion_types:
         # "Extension different {0}, so need to download pdf here for pagecount!!".format(extension))
@@ -598,8 +656,8 @@ def __converttoPST(creationdate):
         timestamp_utc = maya.parse(timestamp_str).datetime(to_timezone='America/Vancouver', naive=False)
         return timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p") + " PST"
     
-    except Exception as e:
-        print(f"[__converttoPST] Failed to parse date '{creationdate}': {e}")
+    except Exception:
+        _log_document_processing_event(logging.WARNING, "document_processing_failed", "convert_timestamp", exc_info=True)
         return "Unknown PST"
     
 def verify_ocr_needed(content, message):
@@ -609,5 +667,5 @@ def verify_ocr_needed(content, message):
         with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)
             return ocr_required
-    except Exception as e:
-        print(f"Error in ocr validation: {e}")
+    except Exception:
+        _log_document_processing_event(logging.ERROR, "document_processing_failed", "ocr_validation", exc_info=True)
