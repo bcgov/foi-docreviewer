@@ -36,6 +36,9 @@ compressionredishost= os.getenv('REDIS_HOST')
 compressionredispassword= os.getenv('REDIS_PASSWORD')
 compressionredisport= os.getenv('REDIS_PORT')
 compressionstreamkey= os.getenv('COMPRESSION_STREAM_KEY')
+compression_messaging_mode = os.getenv('COMPRESSION_MESSAGING_MODE', 'legacy')
+messaging_stream_prefix = os.getenv('MESSAGING_STREAM_PREFIX', 'foi')
+compression_topic = os.getenv('COMPRESSION_TOPIC')
 
 try:
     response = requests.request(

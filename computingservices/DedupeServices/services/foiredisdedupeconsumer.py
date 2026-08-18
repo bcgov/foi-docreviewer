@@ -12,7 +12,7 @@ import logging
 from enum import Enum
 from utils import redisstreamdb,dedupe_stream_key,notification_stream_key
 from . import jsonmessageparser
-from .dedupeservice import processmessage
+from .dedupeservice import initialize_compressionproducer, processmessage
 from .dedupedbservice import isbatchcompleted
 from rstreamio.redisstreamwriter import redisstreamwriter
 
@@ -32,6 +32,7 @@ class StartFrom(str, Enum):
 
 @app.command()
 def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
+    initialize_compressionproducer()
     rdb = redisstreamdb
     stream = rdb.Stream(STREAM_KEY)
     print("consumer_id:",consumer_id)

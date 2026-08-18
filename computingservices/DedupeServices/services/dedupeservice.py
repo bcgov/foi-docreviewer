@@ -9,7 +9,22 @@ import traceback
 from utils.basicutils import to_json
 
 
+_compressionproducer = None
+
+
+def _get_compressionproducer():
+    global _compressionproducer
+    if _compressionproducer is None:
+        _compressionproducer = compressionproducerservice()
+    return _compressionproducer
+
+
+def initialize_compressionproducer():
+    return _get_compressionproducer()
+
+
 def processmessage(message):
+    compressionproducer = _get_compressionproducer()
     recordjobstart(message)
     try:
         hashcode, _pagecount = gets3documenthashcode(message)
@@ -22,7 +37,7 @@ def processmessage(message):
             #message.needsocr= needs_ocr
             #compressionmessage =  compressionproducerservice().createcompressionproducermessage(message, _pagecount)
             compressionjobid = compressionjobstart(message)
-            compressionproducerservice().producecompressionevent(message, compressionjobid)
+            compressionproducer.producecompressionevent(message, compressionjobid)
             print("Pushed to Compression Stream!!!",compressionjobid)
             pagecalculatormessage = documentspagecalculatorproducerservice().createpagecalculatorproducermessage(message, _pagecount)
             pagecalculatorjobid = pagecalculatorjobstart(pagecalculatormessage)

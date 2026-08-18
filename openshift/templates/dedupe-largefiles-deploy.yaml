@@ -68,6 +68,19 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: REDIS_PORT
+            - name: COMPRESSION_MESSAGING_MODE
+              value: standard
+            - name: MESSAGING_STREAM_PREFIX
+              value: foi
+            - name: COMPRESSION_TOPIC
+              value: compression-large
+            # Provision this rollback key before switching to legacy mode.
+            - name: COMPRESSION_STREAM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_STREAM_KEY_LARGEFILES
+                  optional: true
             - name: DEDUPE_STREAM_KEY
               valueFrom:
                 secretKeyRef:
