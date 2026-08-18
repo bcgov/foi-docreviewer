@@ -175,7 +175,11 @@ def test_standard_python_events_are_dispatched_to_the_go_typed_consumer(redis_cl
 
     assert consumed == {
         "acknowledged": True,
-        "attributes": {"details": {"classification": "open"}, "pages": 3},
+        "attributes": {
+            "details": {"classification": "open"},
+            "isattachment": True,
+            "pages": 3,
+        },
         "dispatched": True,
         "document_master_id": 42,
         "event_id": published.event_id,

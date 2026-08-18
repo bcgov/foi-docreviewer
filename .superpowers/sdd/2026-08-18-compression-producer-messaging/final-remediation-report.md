@@ -58,10 +58,45 @@ The focused Go/Redis integration tests intentionally skip unless
   but full collection cannot run in this environment because unrelated legacy
   test modules import `pypdf`, which is not installed. The observed collection
   errors are `unittests/testcontext.py` and `unittests/testdedupedbservice.py`.
-- An offline Go fixture compile (`GOPROXY=off go test ./...`) cannot proceed
-  because `integrationtests/go-consumer` lacks the required `go.sum` entry for
-  `github.com/bcgov/foi-messaging-go v0.1.0`. No dependency download was
-  attempted, per the no-network constraint.
+- The Go fixture now records the exact v0.1.0 module checksums in `go.sum`.
+  Offline compilation still cannot proceed because transitive checksums for
+  `github.com/redis/go-redis/v9`, Watermill, `github.com/google/uuid`, and
+  OpenTelemetry are not present. The attempted escalated download was stopped
+  at the user's direction, so no further dependency fetch was attempted.
 
 Run the Redis/Go contract suite in its documented container environment after
 the Go dependency checksum is available.
+
+## Final Cleanup Update (2026-08-18)
+
+- Corrected the Redis/Go contract assertion to expect
+  `attributes.isattachment=true`, matching the typed Go fixture's JSON report.
+  The live test remains intentionally skipped unless
+  `RUN_COMPRESSION_CONTRACT_TESTS=1`; it is not claimed as passed here.
+- Added `integrationtests/go-consumer/go.sum` with the exact
+  `github.com/bcgov/foi-messaging-go v0.1.0` module and go.mod checksums.
+- Replaced the normal-cutover `XINFO STREAM` inspection with a bounded script
+  using only `EXISTS`, `XLEN`, `XINFO GROUPS`, and `XPENDING`. It retains
+  missing-stream guards for both standard topics and both DLQs and never reads
+  entry payload fields.
+- Added `docs/foimod-5199-compression-messaging-migration-plan.md` as the
+  concise producer addendum, linking the plan/runbook and recording rollout,
+  rollback, topic isolation, legacy-window, verification, and deferred work.
+
+Final checks:
+
+```text
+pytest unittests -q
+# blocked during collection: pypdf is not installed for testcontext.py and
+# testdedupedbservice.py
+
+pytest -q unittests/testcompressionproducermessage.py \
+  unittests/testcompressionevents.py \
+  unittests/testcompressionproducerservice.py \
+  unittests/testdeploymentconfiguration.py \
+  integrationtests/test_go_compression_contract.py
+# 48 passed, 3 skipped
+
+GOPROXY=off GOCACHE=/tmp/foimod-5199-go-build go test ./...
+# blocked by the missing transitive checksums listed above
+```

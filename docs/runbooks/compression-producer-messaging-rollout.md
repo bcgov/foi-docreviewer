@@ -138,19 +138,36 @@ of the following before proceeding:
    version, status, and approved outcome, not message text or document fields.
 6. The large-file topic remains unchanged and isolated.
 
-Use bounded inspection commands and redact output before sharing it:
+Use the following bounded, metadata-only inspection commands. They never read
+entries, so they cannot print event payload fields. Set `CONSUMER_GROUP` to the
+group assigned to the deployment being checked.
 
 ```bash
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-  XINFO STREAM foi:compression
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-  XPENDING foi:compression "$CONSUMER_GROUP"
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-  XINFO GROUPS foi:compression
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-  XLEN foi:compression.dlq
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
-  XLEN foi:compression-large.dlq
+for stream in foi:compression foi:compression-large; do
+  if [ "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      EXISTS "$stream")" = "1" ]; then
+    printf '%s entries: ' "$stream"
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      XLEN "$stream"
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      XINFO GROUPS "$stream"
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      XPENDING "$stream" "$CONSUMER_GROUP"
+  else
+    echo "$stream: missing (empty; no group or pending state to inspect)"
+  fi
+done
+
+for dlq in foi:compression.dlq foi:compression-large.dlq; do
+  if [ "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      EXISTS "$dlq")" = "1" ]; then
+    printf '%s entries: ' "$dlq"
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --user "$REDIS_USER" \
+      XLEN "$dlq"
+  else
+    echo "$dlq: missing (empty)"
+  fi
+done
 ```
 
 Check the `CompressionJob` record by job ID in the approved operational view,
