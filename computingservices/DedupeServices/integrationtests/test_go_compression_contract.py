@@ -4,6 +4,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import redis
@@ -22,6 +23,7 @@ from rstreamio.compressionevents import (  # noqa: E402
     CompressionEventDefinition,
     StandardCompressionPublisher,
 )
+from models.compressionproducermessage import compressionproducermessage  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -85,6 +87,30 @@ def publish(redis_client, topic, payload):
     return publisher.publish(payload, correlation_id=f"{topic}-correlation")
 
 
+def source_message():
+    return SimpleNamespace(
+        s3filepath="s3://bucket/typed-contract.pdf",
+        filename="typed-contract.pdf",
+        ministryrequestid="41",
+        documentmasterid="42",
+        trigger="new",
+        createdby="user@example.com",
+        requestnumber="LDB-123",
+        batch="batch-1",
+        incompatible="false",
+        usertoken=None,
+        bcgovcode="LDB",
+        attributes={
+            "isattachment": True,
+            "pages": 3,
+            "details": {"classification": "open"},
+        },
+        documentid="43",
+        outputdocumentmasterid="44",
+        originaldocumentmasterid="45",
+    )
+
+
 def clear_stream(redis_client, topic):
     redis_client.delete(f"foi:{topic}", f"foi:{topic}.dlq")
 
@@ -141,13 +167,7 @@ def assert_no_pending(redis_client, topic):
 def test_standard_python_events_are_dispatched_to_the_go_typed_consumer(redis_client, topic):
     """A regression in Python envelope typing or topic routing breaks Go dispatch."""
     clear_compression_streams(redis_client)
-    payload = {
-        "jobid": 5199,
-        "documentmasterid": 42,
-        "filename": "typed-contract.pdf",
-        "incompatible": False,
-        "attributes": {"pages": 3, "details": {"classification": "open"}},
-    }
+    payload = compressionproducermessage(5199, source_message()).to_dict()
 
     published = publish(redis_client, topic, payload)
     assert_stream_isolation(redis_client, topic)
@@ -162,6 +182,16 @@ def test_standard_python_events_are_dispatched_to_the_go_typed_consumer(redis_cl
         "filename": "typed-contract.pdf",
         "incompatible": False,
         "job_id": 5199,
+        "ministry_request_id": 41,
+        "output_document_master_id": 44,
+        "original_document_master_id": 45,
+        "document_id": 43,
+        "s3_file_path": "s3://bucket/typed-contract.pdf",
+        "request_number": "LDB-123",
+        "batch": "batch-1",
+        "trigger": "new",
+        "created_by": "user@example.com",
+        "bcgov_code": "LDB",
         "topic": topic,
     }
     assert_no_pending(redis_client, topic)

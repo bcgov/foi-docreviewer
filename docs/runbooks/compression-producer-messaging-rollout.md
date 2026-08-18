@@ -60,6 +60,12 @@ compression processing remains unchanged. This release establishes the
 rollback-capable binary/configuration before any consumer is exposed to the
 new topics.
 
+The OpenShift Dedupe templates parameterize `COMPRESSION_MESSAGING_MODE`,
+`MESSAGING_STREAM_PREFIX`, and `COMPRESSION_TOPIC`. Their rollout-safe defaults
+are `legacy`, `foi`, and `compression` (normal) or `compression-large` (large
+files); use the explicit standard values in the cutover stages below rather
+than changing those defaults globally.
+
 ### 2. Deploy consumers with empty standard topics
 
 Create or verify the standard streams and consumer groups are empty before

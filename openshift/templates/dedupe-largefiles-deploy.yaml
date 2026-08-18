@@ -69,11 +69,11 @@ objects:
                   name: "${SECRETS}"
                   key: REDIS_PORT
             - name: COMPRESSION_MESSAGING_MODE
-              value: standard
+              value: "${COMPRESSION_MESSAGING_MODE}"
             - name: MESSAGING_STREAM_PREFIX
-              value: foi
+              value: "${MESSAGING_STREAM_PREFIX}"
             - name: COMPRESSION_TOPIC
-              value: compression-large
+              value: "${COMPRESSION_TOPIC}"
             # Provision this rollback key before switching to legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
@@ -187,3 +187,18 @@ parameters:
   displayName: Dedupe Secrets
   description: Name of secrets for all dedupe values
   required: true
+- name: COMPRESSION_MESSAGING_MODE
+  displayName: Compression Messaging Mode
+  description: Use legacy during rollout; set standard only for the staged cutover.
+  required: true
+  value: legacy
+- name: MESSAGING_STREAM_PREFIX
+  displayName: Messaging Stream Prefix
+  description: Prefix for standard Redis Streams topics.
+  required: true
+  value: foi
+- name: COMPRESSION_TOPIC
+  displayName: Compression Topic
+  description: Standard Redis Streams topic for large-file Dedupe processing.
+  required: true
+  value: compression-large

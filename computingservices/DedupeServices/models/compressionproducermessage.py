@@ -9,7 +9,7 @@ class compressionproducermessage(object):
         self.createdby = message.createdby
         self.requestnumber = message.requestnumber
         self.batch=message.batch
-        self.incompatible=bool(message.incompatible)
+        self.incompatible = self._parse_incompatible(message.incompatible)
         self.usertoken=message.usertoken
         self.bcgovcode=message.bcgovcode
         self.attributes=message.attributes
@@ -48,3 +48,15 @@ class compressionproducermessage(object):
                 payload[field] = value
 
         return payload
+
+    @staticmethod
+    def _parse_incompatible(value) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized_value = value.lower()
+            if normalized_value == "true":
+                return True
+            if normalized_value == "false":
+                return False
+        raise ValueError("incompatible must be a boolean or string 'true'/'false'")
