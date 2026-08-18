@@ -10,15 +10,15 @@ type CompressionProducerMessage struct {
 	JobID             int    `json:"jobid"`
 	DocumentMasterID  int    `json:"documentmasterid"`
 	//InputDocumentMasterID int    `json:"inputdocumentmasterid,omitempty"`
-	Trigger                  string     `json:"trigger"`
-	CreatedBy                string     `json:"createdby"`
-	Incompatible             *bool      `json:"incompatible,omitempty"`
-	UserToken                *string    `json:"usertoken,omitempty"`
-	Attributes               Attributes `json:"attributes"`
-	OutputDocumentMasterID   *int       `json:"outputdocumentmasterid,omitempty"`
-	OriginalDocumentMasterID *int       `json:"originaldocumentmasterid,omitempty"`
-	CompressedS3FilePath     string     `json:"compresseds3filepath,omitempty"`
-	DocumentID               int        `json:"documentid"`
+	Trigger                  string         `json:"trigger"`
+	CreatedBy                string         `json:"createdby"`
+	Incompatible             bool           `json:"incompatible"`
+	UserToken                *string        `json:"usertoken,omitempty"`
+	Attributes               map[string]any `json:"attributes"`
+	OutputDocumentMasterID   *int           `json:"outputdocumentmasterid,omitempty"`
+	OriginalDocumentMasterID *int           `json:"originaldocumentmasterid,omitempty"`
+	CompressedS3FilePath     string         `json:"compresseds3filepath,omitempty"`
+	DocumentID               *int           `json:"documentid,omitempty"`
 }
 
 type Division struct {
