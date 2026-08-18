@@ -114,6 +114,7 @@ def configured_service(monkeypatch):
     monkeypatch.setattr(producer_module, "compression_messaging_mode", "legacy", raising=False)
     monkeypatch.setattr(producer_module, "messaging_stream_prefix", "foi", raising=False)
     monkeypatch.setattr(producer_module, "compression_topic", "compression", raising=False)
+    monkeypatch.setattr(producer_module, "compression_workload", "normal", raising=False)
     monkeypatch.setattr(producer_module, "compressionredishost", "redis-host", raising=False)
     monkeypatch.setattr(producer_module, "compressionredisport", "6379", raising=False)
     monkeypatch.setattr(producer_module, "compressionredispassword", "compression-password", raising=False)
@@ -178,6 +179,14 @@ def test_initialization_rejects_invalid_mode_or_required_configuration(
         producer_module.compressionproducerservice()
 
 
+@pytest.mark.parametrize("workload", [None, "unexpected"])
+def test_initialization_rejects_unset_or_invalid_compression_workload(workload):
+    producer_module.compression_workload = workload
+
+    with pytest.raises(ValueError, match="compression_workload"):
+        producer_module.compressionproducerservice()
+
+
 def test_compression_publish_log_is_safe_structured_json(capsys):
     producer_module.compression_messaging_mode = "standard"
     configure_logging()
@@ -198,3 +207,4 @@ def test_compression_publish_log_is_safe_structured_json(capsys):
     assert "payload" not in record
     assert "usertoken" not in record
     assert "super-secret-user-token" not in json.dumps(record)
+    assert "workload" not in RecordingStandardPublisher.instances[0].calls[0][0]

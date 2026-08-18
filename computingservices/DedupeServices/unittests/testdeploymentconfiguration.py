@@ -49,6 +49,8 @@ def test_dedupe_deployments_use_distinct_standard_compression_topics():
         environment["COMPRESSION_TOPIC"]["value"] == "${COMPRESSION_TOPIC}"
         for environment in environments.values()
     )
+    assert environments["normal"]["COMPRESSION_WORKLOAD"]["value"] == "${COMPRESSION_WORKLOAD}"
+    assert environments["large"]["COMPRESSION_WORKLOAD"]["value"] == "${COMPRESSION_WORKLOAD}"
 
     parameters = {
         name: {
@@ -59,25 +61,28 @@ def test_dedupe_deployments_use_distinct_standard_compression_topics():
                 "COMPRESSION_MESSAGING_MODE",
                 "MESSAGING_STREAM_PREFIX",
                 "COMPRESSION_TOPIC",
+                "COMPRESSION_WORKLOAD",
             }
         }
         for name, path in TEMPLATE_PATHS.items()
     }
     assert {
         key: parameters["normal"][key]
-        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC")
+        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC", "COMPRESSION_WORKLOAD")
     } == {
         "COMPRESSION_MESSAGING_MODE": "legacy",
         "MESSAGING_STREAM_PREFIX": "foi",
         "COMPRESSION_TOPIC": "compression",
+        "COMPRESSION_WORKLOAD": "normal",
     }
     assert {
         key: parameters["large"][key]
-        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC")
+        for key in ("COMPRESSION_MESSAGING_MODE", "MESSAGING_STREAM_PREFIX", "COMPRESSION_TOPIC", "COMPRESSION_WORKLOAD")
     } == {
         "COMPRESSION_MESSAGING_MODE": "legacy",
         "MESSAGING_STREAM_PREFIX": "foi",
         "COMPRESSION_TOPIC": "compression-large",
+        "COMPRESSION_WORKLOAD": "large",
     }
 
 
@@ -106,12 +111,14 @@ def test_local_dedupe_configuration_defaults_to_legacy_with_a_normal_standard_to
     assert "COMPRESSION_MESSAGING_MODE=${COMPRESSION_MESSAGING_MODE}" in compose_environment
     assert "MESSAGING_STREAM_PREFIX=${MESSAGING_STREAM_PREFIX}" in compose_environment
     assert "COMPRESSION_TOPIC=${COMPRESSION_TOPIC}" in compose_environment
+    assert "COMPRESSION_WORKLOAD=${COMPRESSION_WORKLOAD}" in compose_environment
     assert "COMPRESSION_STREAM_KEY=${COMPRESSION_STREAM_KEY}" in compose_environment
 
     sample = _sample_environment()
     assert sample["COMPRESSION_MESSAGING_MODE"] == "legacy"
     assert sample["MESSAGING_STREAM_PREFIX"] == "foi"
     assert sample["COMPRESSION_TOPIC"] == "compression"
+    assert sample["COMPRESSION_WORKLOAD"] == "normal"
     assert _environment(TEMPLATE_PATHS["large"])["COMPRESSION_TOPIC"]["value"] != sample[
         "COMPRESSION_TOPIC"
     ]
