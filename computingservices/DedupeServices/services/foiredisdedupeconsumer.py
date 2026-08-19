@@ -92,10 +92,10 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
                             context=message_context,
                             duration_ms=duration_ms,
                         )
-                                             
+                        last_id = message_id
+                        rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
+
                 # simulate processing
                 #time.sleep(random.randint(1, 3)) #TODO : todo: remove!
-                last_id = message_id
-                rdb.set(LAST_ID_KEY.format(consumer_id=consumer_id), last_id)
         #else:
             #print(f"No new messages after ID: {last_id}")
