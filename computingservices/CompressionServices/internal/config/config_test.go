@@ -1,6 +1,7 @@
 package config
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -27,7 +28,75 @@ func TestLoadStandardNormal(t *testing.T) {
 	assert.Equal(t, 75*time.Minute, got.Reconciliation.LargeAfter)
 	assert.Equal(t, 75*time.Minute, got.Reconciliation.UnknownAfter)
 	assert.Equal(t, 100, got.Reconciliation.BatchSize)
-	assert.Equal(t, time.Hour, got.S3.PresignExpiry)
+	assert.Equal(t, 15*time.Minute, got.S3.PresignExpiry)
+}
+
+func TestLoadValidatesPresignExpirySecurityMaximum(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "defaults to fifteen minutes", want: 15 * time.Minute},
+		{name: "accepts shorter positive expiry", value: "5m", want: 5 * time.Minute},
+		{name: "accepts fifteen minute maximum", value: "15m", want: 15 * time.Minute},
+		{name: "rejects zero", value: "0s", wantErr: true},
+		{name: "rejects negative", value: "-1s", wantErr: true},
+		{name: "rejects above maximum", value: "15m1ns", wantErr: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			env := standardNormalEnv()
+			env["COMPRESSION_S3_PRESIGN_EXPIRY"] = test.value
+
+			got, err := Load(func(key string) string { return env[key] })
+
+			if test.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "COMPRESSION_S3_PRESIGN_EXPIRY")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, test.want, got.S3.PresignExpiry)
+		})
+	}
+}
+
+func TestLoadValidatesCompressionRatioBusinessRange(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		want    float64
+		wantErr bool
+	}{
+		{name: "accepts lower positive value", value: "0.01", want: 0.01},
+		{name: "accepts upper boundary", value: "1", want: 1},
+		{name: "rejects zero", value: "0", wantErr: true},
+		{name: "rejects negative", value: "-0.1", wantErr: true},
+		{name: "rejects above one", value: "1.0001", wantErr: true},
+		{name: "rejects NaN", value: "NaN", wantErr: true},
+		{name: "rejects positive infinity", value: "+Inf", wantErr: true},
+		{name: "rejects negative infinity", value: "-Inf", wantErr: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			env := standardNormalEnv()
+			env["COMPRESSION_RATIO_THRESHOLD"] = test.value
+
+			got, err := Load(func(key string) string { return env[key] })
+
+			if test.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "COMPRESSION_RATIO_THRESHOLD")
+				return
+			}
+			require.NoError(t, err)
+			assert.InDelta(t, test.want, got.CompressionRatioThreshold, math.SmallestNonzeroFloat64)
+		})
+	}
 }
 
 func TestLoadUsesLargeWorkloadDurationDefaults(t *testing.T) {
