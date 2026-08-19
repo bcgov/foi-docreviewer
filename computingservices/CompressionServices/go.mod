@@ -3,6 +3,7 @@ module compressionservices
 go 1.25.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/bcgov/foi-messaging-go v0.1.0
 	github.com/go-redis/redis/v8 v8.11.5
