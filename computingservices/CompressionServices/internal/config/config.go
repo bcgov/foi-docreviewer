@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -83,7 +84,7 @@ const (
 	defaultReconciliationBatch   = 100
 	defaultMaxDeliveryAttempts   = 5
 	defaultShutdownTimeout       = 25 * time.Second
-	defaultPresignExpiry         = time.Hour
+	defaultPresignExpiry         = 15 * time.Minute
 	defaultCompressionRatio      = 0.9
 )
 
@@ -171,6 +172,9 @@ func Load(getenv func(string) string) (Config, error) {
 	presignExpiry, err := duration(getenv, "COMPRESSION_S3_PRESIGN_EXPIRY", defaultPresignExpiry)
 	if err != nil {
 		return Config{}, err
+	}
+	if presignExpiry > defaultPresignExpiry {
+		return Config{}, fmt.Errorf("COMPRESSION_S3_PRESIGN_EXPIRY must not exceed 15 minutes")
 	}
 	ratio, err := floatValue(getenv, "COMPRESSION_RATIO_THRESHOLD", defaultCompressionRatio)
 	if err != nil {
@@ -390,8 +394,8 @@ func floatValue(getenv func(string) string, key string, defaultValue float64) (f
 		return defaultValue, nil
 	}
 	parsed, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return 0, fmt.Errorf("%s must be a floating-point value", key)
+	if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) || parsed <= 0 || parsed > 1 {
+		return 0, fmt.Errorf("%s must be a finite value greater than zero and at most one", key)
 	}
 	return parsed, nil
 }
