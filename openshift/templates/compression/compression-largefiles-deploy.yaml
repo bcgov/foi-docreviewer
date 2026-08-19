@@ -53,6 +53,26 @@ objects:
           image: "${APP_NAME}"
           imagePullPolicy: Always
           env:
+            - name: COMPRESSION_MESSAGING_MODE
+              value: legacy
+            - name: COMPRESSION_WORKLOAD
+              value: large
+            - name: COMPRESSION_PROCESSING_TIMEOUT
+              value: 60m
+            - name: MESSAGING_STREAM_PREFIX
+              value: foi
+            - name: COMPRESSION_TOPIC
+              value: compression-large
+            - name: MESSAGING_CONSUMER_GROUP
+              value: foi-compression-large
+            - name: MESSAGING_CLAIM_INTERVAL
+              value: 30s
+            - name: MESSAGING_CLAIM_MIN_IDLE
+              value: 62m
+            - name: MESSAGING_MAX_DELIVERY_ATTEMPTS
+              value: "5"
+            - name: MESSAGING_SHUTDOWN_TIMEOUT
+              value: 25s
             - name: REDIS_HOST
               valueFrom:
                 secretKeyRef:
@@ -73,6 +93,8 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: COMPRESSION_STREAM_KEY_LARGEFILES
+            - name: COMPRESSION_CHECKPOINT_KEY
+              value: foi-compression-large-checkpoint
             - name: NOTIFICATION_STREAM_KEY
               valueFrom:
                 secretKeyRef:

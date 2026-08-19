@@ -1,22 +1,25 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"context"
+	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"compressionservices/internal/app"
 )
 
 func main() {
-	//cfg := utils.LoadConfig()
-	// create temp folder for pdfcpu
-	configDir := "/tmp/pdfcpu_config"
-	os.MkdirAll(configDir, 0o777)
-	// set XDG_CONFIG_HOME, which pdfcpu uses
-	os.Setenv("XDG_CONFIG_HOME", configDir)
-	consumerID := flag.String("consumer-id", "$", "ID of the consumer")
-	startFrom := flag.String("start-from", "$", "Where to start from in stream: 0 or $")
-	// Parse CLI flags
-	flag.Parse()
-	fmt.Printf("Starting consumer with ID: %s, Start from: %s\n", *consumerID, *startFrom)
-	Start(*consumerID, StartFrom(*startFrom))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	if err := app.Run(ctx, os.Args[1:], os.Getenv, logger); err != nil {
+		logStopped(logger, err)
+		os.Exit(1)
+	}
+}
+
+func logStopped(logger *slog.Logger, err error) {
+	logger.Error("compression_service_stopped", "error_code", app.SafeCode(err))
 }
