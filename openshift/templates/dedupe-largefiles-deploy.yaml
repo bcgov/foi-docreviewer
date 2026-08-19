@@ -68,6 +68,20 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: REDIS_PORT
+            - name: COMPRESSION_MESSAGING_MODE
+              value: "${COMPRESSION_MESSAGING_MODE}"
+            - name: MESSAGING_STREAM_PREFIX
+              value: "${MESSAGING_STREAM_PREFIX}"
+            - name: COMPRESSION_TOPIC
+              value: "${COMPRESSION_TOPIC}"
+            - name: COMPRESSION_WORKLOAD
+              value: "${COMPRESSION_WORKLOAD}"
+            # Required while the rollout-safe default remains legacy mode.
+            - name: COMPRESSION_STREAM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "${SECRETS}"
+                  key: COMPRESSION_STREAM_KEY_LARGEFILES
             - name: DEDUPE_STREAM_KEY
               valueFrom:
                 secretKeyRef:
@@ -174,3 +188,23 @@ parameters:
   displayName: Dedupe Secrets
   description: Name of secrets for all dedupe values
   required: true
+- name: COMPRESSION_MESSAGING_MODE
+  displayName: Compression Messaging Mode
+  description: Use legacy during rollout; set standard only for the staged cutover.
+  required: true
+  value: legacy
+- name: MESSAGING_STREAM_PREFIX
+  displayName: Messaging Stream Prefix
+  description: Prefix for standard Redis Streams topics.
+  required: true
+  value: foi
+- name: COMPRESSION_TOPIC
+  displayName: Compression Topic
+  description: Standard Redis Streams topic for large-file Dedupe processing.
+  required: true
+  value: compression-large
+- name: COMPRESSION_WORKLOAD
+  displayName: Compression Workload
+  description: Workload classification recorded for compression jobs.
+  required: true
+  value: large
