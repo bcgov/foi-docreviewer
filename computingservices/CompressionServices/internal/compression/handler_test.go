@@ -1399,6 +1399,39 @@ func TestHandlerLogsCompressionSkipped(t *testing.T) {
 	assert.True(t, ok, "compression_skipped not logged; got: %s", buf.String())
 }
 
+func TestHandlerDoesNotLogMessageCompletedForExistingErrorTerminalState(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.latest = terminalJob(store.StatusError)
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, &fakeProcessor{}, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "message_completed")
+	assert.False(t, ok, "message_completed should not be logged for StatusError; got: %s", buf.String())
+}
+
+func TestHandlerDoesNotLogMessageCompletedForCompletionConflictWinnerError(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.completeJob = terminalJob(store.StatusError)
+	processor := &fakeProcessor{result: completedResult()}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "message_completed")
+	assert.False(t, ok, "message_completed should not be logged for StatusError; got: %s", buf.String())
+}
+
 func TestHandlerLogsDeterministicFailureAtError(t *testing.T) {
 	t.Parallel()
 	repo := newFakeRepository()

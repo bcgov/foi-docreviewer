@@ -300,7 +300,7 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery, start ti
 	)
 }
 
-// logCompleted emits compression_skipped or compression_completed followed by message_completed.
+// logCompleted emits completion events for successful terminal states only.
 func (h *Handler) logCompleted(status string, message models.CompressionProducerMessage, start time.Time) {
 	switch status {
 	case store.StatusSkipped:
@@ -313,6 +313,8 @@ func (h *Handler) logCompleted(status string, message models.CompressionProducer
 			"job_id", message.JobID,
 			"filename", message.Filename,
 		)
+	default:
+		return
 	}
 	h.logger.Info("message_completed",
 		"job_id", message.JobID,
