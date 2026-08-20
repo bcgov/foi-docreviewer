@@ -132,6 +132,7 @@ func standardMessagingConfig(cfg config.Config, logger *slog.Logger) messaging.C
 		},
 		Consumer: messaging.ConsumerConfig{
 			Group:               cfg.Messaging.ConsumerGroup,
+			ConsumerName:        cfg.Messaging.ConsumerName,
 			Concurrency:         1,
 			ClaimInterval:       cfg.Messaging.ClaimInterval,
 			ClaimMinIdle:        cfg.Messaging.ClaimMinIdle,

@@ -351,3 +351,13 @@ func TestLoadErrorsDoNotExposeSecretValues(t *testing.T) {
 	assert.False(t, strings.Contains(err.Error(), "redis-secret"))
 	assert.False(t, strings.Contains(err.Error(), "database-secret"))
 }
+
+func TestLoadReadsOptionalRedisConsumerName(t *testing.T) {
+	env := standardNormalEnv()
+	env["REDIS_CONSUMER_NAME"] = " compression-normal-pod-123 "
+
+	got, err := Load(func(key string) string { return env[key] })
+
+	require.NoError(t, err)
+	assert.Equal(t, "compression-normal-pod-123", got.Messaging.ConsumerName)
+}

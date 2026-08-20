@@ -30,6 +30,7 @@ type Messaging struct {
 	StreamPrefix        string
 	Topic               string
 	ConsumerGroup       string
+	ConsumerName        string
 	LegacyStreamKey     string
 	LegacyCheckpointKey string
 	ClaimInterval       time.Duration
@@ -201,6 +202,7 @@ func Load(getenv func(string) string) (Config, error) {
 	messaging := Messaging{
 		RedisAddress:        net.JoinHostPort(redisHost, strconv.Itoa(redisPort)),
 		RedisPassword:       getenv("REDIS_PASSWORD"),
+		ConsumerName:        strings.TrimSpace(getenv("REDIS_CONSUMER_NAME")),
 		ClaimInterval:       claimInterval,
 		ClaimMinIdle:        claimMinIdle,
 		MaxDeliveryAttempts: maxDeliveryAttempts,
