@@ -88,6 +88,10 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: REDIS_PORT
+            - name: REDIS_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
                 secretKeyRef:

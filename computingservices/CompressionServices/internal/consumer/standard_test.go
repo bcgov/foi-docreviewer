@@ -180,6 +180,7 @@ func TestStandard_RegistersConfiguredContractBeforeRun(t *testing.T) {
 
 func TestStandardMessagingConfig_MapsProductionSettings(t *testing.T) {
 	cfg := validStandardConfig()
+	cfg.Messaging.ConsumerName = "reviewer-compression-marshal-7f5f7c9bd8-h9k2m"
 	logger := testLogger()
 
 	got := standardMessagingConfig(cfg, logger)
@@ -192,6 +193,7 @@ func TestStandardMessagingConfig_MapsProductionSettings(t *testing.T) {
 	}, got.Redis)
 	assert.Equal(t, messaging.ConsumerConfig{
 		Group:               cfg.Messaging.ConsumerGroup,
+		ConsumerName:        cfg.Messaging.ConsumerName,
 		Concurrency:         1,
 		ClaimInterval:       cfg.Messaging.ClaimInterval,
 		ClaimMinIdle:        cfg.Messaging.ClaimMinIdle,

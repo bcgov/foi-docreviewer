@@ -3,6 +3,7 @@ package compression
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"reflect"
 	"time"
 
@@ -24,6 +25,7 @@ type Handler struct {
 	processor  Processor
 	followUp   FollowUp
 	options    Options
+	logger     *slog.Logger
 }
 
 func NewHandler(
@@ -35,15 +37,22 @@ func NewHandler(
 	if options.Now == nil {
 		options.Now = time.Now
 	}
+	logger := options.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &Handler{
 		repository: repository,
 		processor:  processor,
 		followUp:   followUp,
 		options:    options,
+		logger:     logger,
 	}
 }
 
 func (h *Handler) Process(ctx context.Context, delivery Delivery) (err error) {
+	start := time.Now()
+
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = NewRetryableFailure(
@@ -68,19 +77,29 @@ func (h *Handler) Process(ctx context.Context, delivery Delivery) (err error) {
 		return NewRetryableFailure(store.FailureCodeInvalidMessage, errInvalidHandler)
 	}
 
+	h.logger.Info("message_received",
+		"job_id", delivery.Message.JobID,
+		"request_number", delivery.Message.RequestNumber,
+		"filename", delivery.Message.Filename,
+		"document_master_id", delivery.Message.DocumentMasterID,
+		"ministry_request_id", delivery.Message.MinistryRequestID,
+		"workload", string(h.options.Workload),
+	)
+
 	callbackInvoked := false
 	acquired, lockErr := h.repository.WithinJobLock(
 		ctx,
 		delivery.Message.JobID,
 		func(lockCtx context.Context) error {
 			callbackInvoked = true
-			return h.processLocked(lockCtx, delivery)
+			return h.processLocked(lockCtx, delivery, start)
 		},
 	)
 	if lockErr != nil {
 		return retryFrom(lockErr, store.FailureCodeDatabaseUnavailable)
 	}
 	if !acquired {
+		h.logger.Debug("lock_contended", "job_id", delivery.Message.JobID)
 		return NewRetryableFailure(store.FailureCodeDatabaseUnavailable, errLockContended)
 	}
 	if !callbackInvoked {
@@ -92,7 +111,7 @@ func (h *Handler) Process(ctx context.Context, delivery Delivery) (err error) {
 	return nil
 }
 
-func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
+func (h *Handler) processLocked(ctx context.Context, delivery Delivery, start time.Time) error {
 	latest, found, err := h.repository.Latest(ctx, delivery.Message.JobID)
 	if err != nil {
 		return NewRetryableFailure(store.FailureCodeDatabaseUnavailable, err)
@@ -105,9 +124,14 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 			)
 		}
 		h.afterConfirmedTerminal(ctx, delivery.Message, terminalResult(latest.Status))
+		h.logCompleted(latest.Status, delivery.Message, start)
 		return nil
 	}
 	if !preStartWorkloadMatches(h.options.Workload, delivery.Workload, latest, found) {
+		h.logger.Warn("workload_mismatch",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeWorkloadMismatch),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -127,6 +151,10 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 		return NewRetryableFailure(store.FailureCodeDatabaseUnavailable, errTerminalStateUnconfirmed)
 	}
 	if !startedWorkloadMatches(h.options.Workload, delivery.Workload, started) {
+		h.logger.Warn("workload_mismatch",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeWorkloadMismatch),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -135,12 +163,22 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 		)
 	}
 
+	h.logger.Info("compression_started",
+		"job_id", delivery.Message.JobID,
+		"filename", delivery.Message.Filename,
+		"workload", string(h.options.Workload),
+	)
+
 	deadline := started.CreatedAt.Add(h.options.ProcessingTimeout)
 	interruption, interruptionErr := h.classifyInterruption(ctx, nil, deadline)
 	switch interruption {
 	case interruptionCaller:
 		return retryFrom(interruptionErr, store.FailureCodeDatabaseUnavailable)
 	case interruptionJobDeadline:
+		h.logger.Warn("compression_timeout",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeCompressionTimeout),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -154,6 +192,10 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 
 	result, processingErr, processingPanic := h.compress(processingCtx, delivery.Message)
 	if processingPanic != nil {
+		h.logger.Error("compression_failed",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeCompressionPanic),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -163,6 +205,10 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 	}
 	interruption, interruptionErr = h.classifyInterruption(ctx, processingCtx, deadline)
 	if interruption == interruptionJobDeadline {
+		h.logger.Warn("compression_timeout",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeCompressionTimeout),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -178,6 +224,10 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 	}
 	if processingErr != nil {
 		if failure, ok := asFailure(processingErr); ok && !failure.Retryable {
+			h.logger.Error("compression_failed",
+				"job_id", delivery.Message.JobID,
+				"failure_code", string(failure.Code),
+			)
 			return h.persistFailure(
 				ctx,
 				delivery,
@@ -185,9 +235,21 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 				processingErr,
 			)
 		}
-		return retryFrom(processingErr, store.FailureCodeDatabaseUnavailable)
+		resolvedCode := store.FailureCodeDatabaseUnavailable
+		if failure, ok := asFailure(processingErr); ok && failure.Retryable {
+			resolvedCode = store.FailureCode(failure.Error())
+		}
+		h.logger.Warn("compression_failed",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(resolvedCode),
+		)
+		return NewRetryableFailure(resolvedCode, processingErr)
 	}
 	if result.Status != store.StatusCompleted && result.Status != store.StatusSkipped {
+		h.logger.Error("compression_failed",
+			"job_id", delivery.Message.JobID,
+			"failure_code", string(store.FailureCodeInvalidMessage),
+		)
 		return h.persistFailure(
 			ctx,
 			delivery,
@@ -204,6 +266,7 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 				confirmedResult = terminalResult(stored.Status)
 			}
 			h.afterConfirmedTerminal(ctx, delivery.Message, confirmedResult)
+			h.logCompleted(stored.Status, delivery.Message, start)
 		}
 		return nil
 	}
@@ -214,6 +277,10 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 		if contextInterrupted {
 			interruption, interruptionErr = h.classifyInterruption(ctx, processingCtx, deadline)
 			if interruption == interruptionJobDeadline {
+				h.logger.Warn("compression_timeout",
+					"job_id", delivery.Message.JobID,
+					"failure_code", string(store.FailureCodeCompressionTimeout),
+				)
 				return h.persistFailure(
 					ctx,
 					delivery,
@@ -230,6 +297,29 @@ func (h *Handler) processLocked(ctx context.Context, delivery Delivery) error {
 	return NewRetryableFailure(
 		store.FailureCodeTerminalStatePersistFailed,
 		errTerminalStateUnconfirmed,
+	)
+}
+
+// logCompleted emits completion events for successful terminal states only.
+func (h *Handler) logCompleted(status string, message models.CompressionProducerMessage, start time.Time) {
+	switch status {
+	case store.StatusSkipped:
+		h.logger.Info("compression_skipped",
+			"job_id", message.JobID,
+			"filename", message.Filename,
+		)
+	case store.StatusCompleted:
+		h.logger.Info("compression_completed",
+			"job_id", message.JobID,
+			"filename", message.Filename,
+		)
+	default:
+		return
+	}
+	h.logger.Info("message_completed",
+		"job_id", message.JobID,
+		"filename", message.Filename,
+		"duration_ms", time.Since(start).Milliseconds(),
 	)
 }
 
@@ -322,6 +412,7 @@ func (h *Handler) afterConfirmedTerminal(
 		_ = recover()
 	}()
 	h.followUp.AfterTerminal(ctx, message, result)
+	h.logger.Info("ocr_published", "job_id", message.JobID)
 }
 
 func retryFrom(err error, fallback store.FailureCode) error {

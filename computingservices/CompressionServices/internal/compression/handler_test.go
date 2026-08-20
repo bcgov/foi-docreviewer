@@ -1,8 +1,11 @@
 package compression
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -15,6 +18,71 @@ import (
 )
 
 var fixedNow = time.Now().UTC().Truncate(time.Second)
+
+func loggerAndBuffer() (*slog.Logger, *bytes.Buffer) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	return logger, &buf
+}
+
+func logLines(buf *bytes.Buffer) []map[string]any {
+	var lines []map[string]any
+	for _, raw := range bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n")) {
+		if len(raw) == 0 {
+			continue
+		}
+		var m map[string]any
+		if err := json.Unmarshal(raw, &m); err == nil {
+			lines = append(lines, m)
+		}
+	}
+	return lines
+}
+
+func findEvent(lines []map[string]any, key string) (map[string]any, bool) {
+	for _, l := range lines {
+		if l["msg"] == key {
+			return l, true
+		}
+	}
+	return nil, false
+}
+
+func TestHandlerLogsMessageReceived(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.latest = terminalJob(store.StatusCompleted)
+	logger, buf := loggerAndBuffer()
+
+	_ = newHandlerWithLogger(repo, &fakeProcessor{}, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "message_received")
+	require.True(t, ok, "message_received not logged; got: %s", buf.String())
+	assert.Equal(t, float64(41), evt["job_id"])
+	assert.NotEmpty(t, evt["filename"])
+	assert.NotContains(t, buf.String(), "s3")
+	assert.NotContains(t, buf.String(), "token")
+}
+
+func TestHandlerLogsLockContendedAtDebug(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.contended = true
+	logger, buf := loggerAndBuffer()
+
+	_ = newHandlerWithLogger(repo, &fakeProcessor{}, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "lock_contended")
+	require.True(t, ok, "lock_contended not logged; got: %s", buf.String())
+	assert.Equal(t, "DEBUG", evt["level"])
+	assert.Equal(t, float64(41), evt["job_id"])
+}
 
 func TestProcessExistingTerminalStatesShortCircuit(t *testing.T) {
 	tests := []struct {
@@ -1223,6 +1291,16 @@ func newTestHandler(repo Repository, processor Processor, followUp FollowUp) *Ha
 	})
 }
 
+func newHandlerWithLogger(repo *fakeRepository, processor Processor, followUp FollowUp, logger *slog.Logger) *Handler {
+	return NewHandler(repo, processor, followUp, Options{
+		Workload:            config.WorkloadNormal,
+		ProcessingTimeout:   15 * time.Minute,
+		FinalizationTimeout: 10 * time.Second,
+		Now:                 func() time.Time { return fixedNow },
+		Logger:              logger,
+	})
+}
+
 func delivery(jobID int) Delivery {
 	return Delivery{
 		EventID:       "event-1",
@@ -1230,7 +1308,11 @@ func delivery(jobID int) Delivery {
 		StreamID:      "stream-1",
 		Workload:      config.WorkloadNormal,
 		Message: models.CompressionProducerMessage{
-			JobID: jobID,
+			JobID:             jobID,
+			Filename:          "test-document.pdf",
+			RequestNumber:     "req-123",
+			DocumentMasterID:  999,
+			MinistryRequestID: 888,
 		},
 	}
 }
@@ -1264,4 +1346,176 @@ func completedResult() store.CompressionResult {
 		CompressedSize: 1234,
 		Extension:      ".pdf",
 	}
+}
+
+func TestHandlerLogsCompressionStarted(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	// no latest job — forces EnsureStarted path
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusCompleted}}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "compression_started")
+	assert.True(t, ok, "compression_started not logged; got: %s", buf.String())
+}
+
+func TestHandlerLogsCompressionCompleted(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusCompleted}}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "compression_completed")
+	assert.True(t, ok, "compression_completed not logged; got: %s", buf.String())
+	_, ok2 := findEvent(lines, "message_completed")
+	assert.True(t, ok2, "message_completed not logged; got: %s", buf.String())
+}
+
+func TestHandlerLogsCompressionSkipped(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusSkipped}}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "compression_skipped")
+	assert.True(t, ok, "compression_skipped not logged; got: %s", buf.String())
+}
+
+func TestHandlerDoesNotLogMessageCompletedForExistingErrorTerminalState(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.latest = terminalJob(store.StatusError)
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, &fakeProcessor{}, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "message_completed")
+	assert.False(t, ok, "message_completed should not be logged for StatusError; got: %s", buf.String())
+}
+
+func TestHandlerDoesNotLogMessageCompletedForCompletionConflictWinnerError(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	repo.completeJob = terminalJob(store.StatusError)
+	processor := &fakeProcessor{result: completedResult()}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "message_completed")
+	assert.False(t, ok, "message_completed should not be logged for StatusError; got: %s", buf.String())
+}
+
+func TestHandlerLogsDeterministicFailureAtError(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{err: NewDeterministicFailure(store.FailureCodeUnsupportedDocument, errors.New("bad doc"))}
+	logger, buf := loggerAndBuffer()
+
+	_ = newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "compression_failed")
+	require.True(t, ok, "compression_failed not logged; got: %s", buf.String())
+	assert.Equal(t, "ERROR", evt["level"])
+	assert.Equal(t, string(store.FailureCodeUnsupportedDocument), evt["failure_code"])
+	assert.NotContains(t, buf.String(), "bad doc")
+}
+
+func TestHandlerLogsRetryableFailureAtWarn(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{err: NewRetryableFailure(store.FailureCodeDatabaseUnavailable, errors.New("db down"))}
+	logger, buf := loggerAndBuffer()
+
+	_ = newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "compression_failed")
+	require.True(t, ok, "compression_failed not logged; got: %s", buf.String())
+	assert.Equal(t, "WARN", evt["level"])
+	assert.NotContains(t, buf.String(), "db down")
+}
+
+func TestHandlerLogsInvalidProcessorResultAsError(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{result: store.CompressionResult{Status: "unknown"}}
+	logger, buf := loggerAndBuffer()
+
+	_ = newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "compression_failed")
+	require.True(t, ok, "compression_failed not logged; got: %s", buf.String())
+	assert.Equal(t, "ERROR", evt["level"])
+	assert.Equal(t, string(store.FailureCodeInvalidMessage), evt["failure_code"])
+}
+
+func TestMessageCompletedContainsDurationMs(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusCompleted}}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, &fakeFollowUp{}, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	evt, ok := findEvent(lines, "message_completed")
+	require.True(t, ok)
+	dms, hasDur := evt["duration_ms"]
+	assert.True(t, hasDur, "duration_ms missing from message_completed")
+	assert.GreaterOrEqual(t, dms.(float64), float64(0))
+}
+
+func TestHandlerLogsOCRPublished(t *testing.T) {
+	t.Parallel()
+	repo := newFakeRepository()
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusCompleted}}
+	followUp := &fakeFollowUp{}
+	logger, buf := loggerAndBuffer()
+
+	err := newHandlerWithLogger(repo, processor, followUp, logger).Process(
+		context.Background(), delivery(41),
+	)
+
+	require.NoError(t, err)
+	lines := logLines(buf)
+	_, ok := findEvent(lines, "ocr_published")
+	assert.True(t, ok, "ocr_published not logged; got: %s", buf.String())
 }

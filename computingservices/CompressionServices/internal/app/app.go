@@ -159,6 +159,7 @@ func newApplication(ctx context.Context, command string, cfg config.Config, logg
 		Workload:            cfg.Workload,
 		ProcessingTimeout:   cfg.ProcessingTimeout,
 		FinalizationTimeout: finalizationTimeout,
+		Logger:              logger,
 	})
 
 	if cfg.Mode == config.ModeStandard {
