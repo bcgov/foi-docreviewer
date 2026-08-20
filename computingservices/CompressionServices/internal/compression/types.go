@@ -3,6 +3,7 @@ package compression
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"compressionservices/internal/config"
@@ -49,4 +50,5 @@ type Options struct {
 	ProcessingTimeout   time.Duration
 	FinalizationTimeout time.Duration
 	Now                 func() time.Time
+	Logger              *slog.Logger
 }
