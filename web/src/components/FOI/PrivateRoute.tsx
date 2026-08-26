@@ -4,7 +4,6 @@ import UserService from '../../services/UserService';
 import { setUserAuth } from '../../actions/userActions';
 import { useAppSelector, useAppDispatch } from '../../hooks/hook';
 import Header from "./Header/Header";
-import Footer from "./Footer/Footer";
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -32,7 +31,7 @@ function PrivateRoute(props: any) {
             <Routes>
               <Route path="/foi/:foiministryrequestid" element={<Home />}/>
             </Routes>
-          <Footer /></> : null}
+        </> : null}
     </>
   );
 }
