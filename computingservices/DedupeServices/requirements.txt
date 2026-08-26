@@ -17,7 +17,7 @@ urllib3==1.26.13
 walrus==0.8.2
 wrapt==1.14.1
 marshmallow==3.0.0rc7
-pypdf==3.5.1
+pypdf==6.15.0
 PyPDF2==3.0.1
 PyMuPDF==1.24.9
 pycryptodome==3.18.0
