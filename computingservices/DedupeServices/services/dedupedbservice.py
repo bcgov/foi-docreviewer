@@ -1,14 +1,20 @@
 from . import getdbconnection
 from models import dedupeproducermessage
 from utils.basicutils import to_json
+from utils.loggingutils import log_context, log_event
+from utils.foidedupeconfig import compression_workload
 from datetime import datetime
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
     conn = getdbconnection()
+    context = log_context(dedupeproducermessage, operation="save_document_details")
     try:        
         cursor = conn.cursor()
-        print("outputdocumentmasterid",dedupeproducermessage.outputdocumentmasterid)
         _incompatible = True if str(dedupeproducermessage.incompatible).lower() == 'true' else False
 
         cursor.execute('INSERT INTO public."Documents" (version, \
@@ -32,9 +38,10 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
         conn.commit()
 
         cursor.close()
+        log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
         return id_of_new_row[0], True
     except(Exception) as error:
-        print("Exception while executing func savedocumentdetails (p5), Error : {0} ".format(error))
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -42,6 +49,7 @@ def savedocumentdetails(dedupeproducermessage, hashcode, pagecount = 1):
 
 def recordjobstart(dedupeproducermessage):
     conn = getdbconnection()
+    context = log_context(dedupeproducermessage, operation="record_job_start", job_version=2)
     try:
         if __doesjobversionexists(dedupeproducermessage.jobid, 2) == False:        
             cursor = conn.cursor()
@@ -51,10 +59,11 @@ def recordjobstart(dedupeproducermessage):
                 (dedupeproducermessage.jobid, 2, dedupeproducermessage.ministryrequestid, dedupeproducermessage.batch, 'rank1', dedupeproducermessage.trigger, dedupeproducermessage.documentmasterid, dedupeproducermessage.filename, 'started'))
             conn.commit()
             cursor.close()
+            log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
         else:
-            print("Dedupe Job  already exists for file {0} with JOB ID {1} and version {2}".format(dedupeproducermessage.filename,dedupeproducermessage.jobid,2))    
+            log_event(logger, logging.WARNING, "duplicate_job", context=context, stage="write")
     except(Exception) as error:
-        print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -62,6 +71,7 @@ def recordjobstart(dedupeproducermessage):
 
 def recordjobend(dedupeproducermessage, error, message=""):
     conn = getdbconnection()
+    context = log_context(dedupeproducermessage, operation="record_job_end", job_version=3)
     try: 
         if __doesjobversionexists(dedupeproducermessage.jobid, 3) == False:
             cursor = conn.cursor()
@@ -72,10 +82,11 @@ def recordjobend(dedupeproducermessage, error, message=""):
                 'error' if error else 'completed', message if error else ""))
             conn.commit()
             cursor.close()
+            log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
         else:
-            print("Dedupe Job  already exists for file {0} with JOB ID {1} and version {2}".format(dedupeproducermessage.filename,dedupeproducermessage.jobid,3))        
+            log_event(logger, logging.WARNING, "duplicate_job", context=context, stage="write")
     except(Exception) as error:
-        print("Exception while executing func recordjobend (p7), Error : {0} ".format(error))
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -83,6 +94,7 @@ def recordjobend(dedupeproducermessage, error, message=""):
 
 def __doesjobversionexists(jobid, version):
     conn = getdbconnection()
+    context = log_context(job_id=jobid, job_version=version, operation="job_version_exists")
     result = 0
     try:
         cursor = conn.cursor()
@@ -92,7 +104,7 @@ def __doesjobversionexists(jobid, version):
         cursor.close()
        
     except(Exception) as error:
-        print("Exception while executing func __doesversionexists (p9), Error : {0} ".format(error))        
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="read", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -101,6 +113,7 @@ def __doesjobversionexists(jobid, version):
 
 def updateredactionstatus(dedupeproducermessage):
     conn = getdbconnection()
+    context = log_context(dedupeproducermessage, operation="update_redaction_status")
     try:        
         cursor = conn.cursor()
         cursor.execute('''update "DocumentMaster" dm
@@ -115,8 +128,9 @@ def updateredactionstatus(dedupeproducermessage):
             (dedupeproducermessage.ministryrequestid,dedupeproducermessage.ministryrequestid))
         conn.commit()
         cursor.close()
+        log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
     except(Exception) as error:
-        print("Exception while executing func updateredactionstatus (p8), Error : {0} ".format(error))
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -124,6 +138,7 @@ def updateredactionstatus(dedupeproducermessage):
 
 def isbatchcompleted(batch):
     conn = getdbconnection()
+    context = log_context(batch=batch, operation="batch_completed")
     try:        
         cursor = conn.cursor()
         cursor.execute('''select count(1) filter (where status = 'pushedtostream' or status = 'started') as inprogress,
@@ -159,7 +174,7 @@ def isbatchcompleted(batch):
         cursor.close()
         return dedupeinprogress == 0 and conversioninprogress == 0, dedupeerr+conversionerr > 0
     except(Exception) as error:
-        print("Exception while executing func isbatchcompleted (p2), Error : {0} ".format(error))
+        log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="read", exc_info=True)
         raise
     finally:
         if conn is not None:
@@ -168,6 +183,7 @@ def isbatchcompleted(batch):
 
 def pagecalculatorjobstart(message):
         conn = getdbconnection()
+        context = log_context(message, operation="page_calculator_job_start")
         try:
                     
             cursor = conn.cursor()
@@ -178,10 +194,10 @@ def pagecalculatorjobstart(message):
             pagecalculatorjobid = cursor.fetchone()[0]
             conn.commit()
             cursor.close()
-            print("Inserted pagecalculatorjobid:", pagecalculatorjobid)
+            log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
             return pagecalculatorjobid
         except(Exception) as error:
-            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
             raise
         finally:
             if conn is not None:
@@ -190,20 +206,21 @@ def pagecalculatorjobstart(message):
 
 def compressionjobstart(message):
         conn = getdbconnection()
+        context = log_context(message, operation="compression_job_start")
         try:
                     
             cursor = conn.cursor()
             cursor.execute('''INSERT INTO public."CompressionJob"
-                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid)
-                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s) returning compressionjobid;''',
-                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid))
+                (version, ministryrequestid, batch, trigger, filename, status, documentmasterid, workload)
+                VALUES (%s::integer, %s::integer, %s, %s, %s, %s, %s, %s) returning compressionjobid;''',
+                (1, message.ministryrequestid, message.batch, 'recordupload', message.filename, 'pushedtostream', message.documentmasterid, compression_workload))
             compressionjobid = cursor.fetchone()[0]
             conn.commit()
             cursor.close()
-            print("Inserted compressionjobid:", compressionjobid)
+            log_event(logger, logging.INFO, "database_recorded", context=context, stage="write")
             return compressionjobid
         except(Exception) as error:
-            print("Exception while executing func recordjobstart (p6), Error : {0} ".format(error))
+            log_event(logger, logging.ERROR, "database_operation_failed", context=context, stage="write", exc_info=True)
             raise
         finally:
             if conn is not None:

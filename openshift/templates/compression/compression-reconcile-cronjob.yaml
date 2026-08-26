@@ -1,0 +1,172 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  annotations:
+    description: Reconciles stale compression jobs with a terminal outcome.
+    tags: "${APP_NAME}"
+  name: "${APP_NAME}-reconcile"
+objects:
+- kind: CronJob
+  apiVersion: batch/v1
+  metadata:
+    name: "${APP_NAME}-reconcile"
+    labels:
+      app: "${APP_NAME}-reconcile"
+      app-group: "${APP_GROUP}"
+  spec:
+    schedule: "*/5 * * * *"
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 1
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      spec:
+        activeDeadlineSeconds: 1500
+        template:
+          metadata:
+            labels:
+              app: "${APP_NAME}-reconcile"
+              app-group: "${APP_GROUP}"
+          spec:
+            containers:
+            - name: "${APP_NAME}-reconcile"
+              image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${IMAGE_NAME}:${TAG_NAME}
+              imagePullPolicy: Always
+              command:
+              - /app/compression-service
+              args:
+              - reconcile
+              env:
+              - name: COMPRESSION_MESSAGING_MODE
+                value: standard
+              - name: COMPRESSION_WORKLOAD
+                value: normal
+              - name: COMPRESSION_PROCESSING_TIMEOUT
+                value: 15m
+              - name: MESSAGING_STREAM_PREFIX
+                value: foi
+              - name: COMPRESSION_TOPIC
+                value: compression
+              - name: MESSAGING_CONSUMER_GROUP
+                value: foi-compression-normal
+              - name: MESSAGING_CLAIM_INTERVAL
+                value: 30s
+              - name: MESSAGING_CLAIM_MIN_IDLE
+                value: 17m
+              - name: MESSAGING_MAX_DELIVERY_ATTEMPTS
+                value: "5"
+              - name: MESSAGING_SHUTDOWN_TIMEOUT
+                value: 25s
+              - name: REDIS_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_REDIS_HOST
+              - name: REDIS_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_REDIS_PASSWORD
+              - name: REDIS_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_REDIS_PORT
+              - name: COMPRESSION_STREAM_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_STREAM_KEY
+              - name: COMPRESSION_CHECKPOINT_KEY
+                value: foi-compression-normal-checkpoint
+              - name: COMPRESSION_DB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_DB_HOST
+              - name: COMPRESSION_DB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_DB_NAME
+              - name: COMPRESSION_DB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_DB_PORT
+              - name: COMPRESSION_DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_DB_USER
+              - name: COMPRESSION_DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_DB_PASSWORD
+              - name: COMPRESSION_S3_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_S3_HOST
+              - name: COMPRESSION_S3_REGION
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_S3_REGION
+              - name: COMPRESSION_S3_SERVICE
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_S3_SERVICE
+              - name: COMPRESSION_S3_ENV
+                valueFrom:
+                  secretKeyRef:
+                    name: "${SECRETS}"
+                    key: COMPRESSION_S3_ENV
+              - name: COMPRESSION_RECONCILIATION_NORMAL_AFTER
+                value: 20m
+              - name: COMPRESSION_RECONCILIATION_LARGE_AFTER
+                value: 75m
+              - name: COMPRESSION_RECONCILIATION_UNKNOWN_AFTER
+                value: 75m
+              - name: COMPRESSION_RECONCILIATION_BATCH_SIZE
+                value: "100"
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "250Mi"
+                limits:
+                  cpu: "150m"
+                  memory: "500Mi"
+            restartPolicy: OnFailure
+            terminationGracePeriodSeconds: 30
+parameters:
+- name: APP_NAME
+  displayName: Name
+  description: Name of the shared CompressionServices application.
+  required: true
+  value: reviewer-compression
+- name: APP_GROUP
+  displayName: App Group
+  description: Name assigned to the document reviewer deployments.
+  required: true
+  value: foi-docreviewer
+- name: IMAGE_NAMESPACE
+  displayName: Image Namespace
+  description: Namespace containing the shared CompressionServices image stream.
+  required: true
+  value: d106d6-tools
+- name: IMAGE_NAME
+  displayName: Image Name
+  description: Shared CompressionServices image stream name.
+  required: true
+  value: reviewer-compression
+- name: TAG_NAME
+  displayName: Environment Tag Name
+  description: Image tag for the target environment.
+  required: true
+- name: SECRETS
+  displayName: Compression Secrets
+  description: Name of the secret containing compression runtime values.
+  required: true
