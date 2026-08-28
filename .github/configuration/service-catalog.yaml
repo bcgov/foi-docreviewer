@@ -3,8 +3,6 @@ services:
     path: computingservices/ZippingServices
     image: reviewer-zippingservice
     kind: deployment
-    deploymentOverride:
-      test: reviewer-zippingservice-test
 
   - name: reviewer-documentservice
     path: computingservices/DocumentServices
@@ -51,14 +49,10 @@ services:
     kind: deployment
     largefiles: true
 
-  - name: azuredocextractauditapi
+  - name: azure-docextract-audit-api
     path: azuredocextractapi
     image: azuredocextractauditapi
     kind: deployment
-    deploymentOverride:
-      dev: azuredocextractauditapi-dev
-      test: azuredocextractauditapi-test
-      prod: azuredocextractauditapi-prod
 
   - name: azure-doc-ocr-api
     path: azuredococrapi

@@ -10,8 +10,14 @@
 Enter the release label exactly as it should be applied to the deployed services.
 
 Examples:
+
+25.99
+
+25.99.99
+
 25.4-rc
-25.4.1-rc
+
+25.4.1-rc1
 -->
 
 Release Label: <YOUR-RELEASE-LABEL>
