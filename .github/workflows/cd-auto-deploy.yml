@@ -116,15 +116,6 @@ jobs:
             IMAGE=$(yq ".services[$i].image" .github/configuration/service-catalog.yaml)
             KIND=$(yq ".services[$i].kind // \"deployment\"" .github/configuration/service-catalog.yaml)
 
-            # Override the deployment name for environments that differ.
-            OVERRIDE=$(yq ".services[$i].deploymentOverride.${TARGET_ENVIRONMENT}" \
-              .github/configuration/service-catalog.yaml)
-
-            if [[ "$OVERRIDE" != "null" ]]; then
-              NAME="$OVERRIDE"
-            fi
-
-
             # Some services also deploy a companion "-largefiles" deployment
             # using the same container image.
             LARGEFILES=$(yq ".services[$i].largefiles // false" \
@@ -227,6 +218,13 @@ jobs:
             yq e \
               ".${GITOPS_SECTION}.${NAME}.image.tag = \"${{ env.IMAGE_TAG }}\"" \
               -i "$VALUES_FILE"
+
+            # Update Pull Request Label
+            if [[ "${{ github.event.pull_request.base.ref }}" == "dev" ]]; then
+              yq e \
+                ".${GITOPS_SECTION}.${NAME}.labels.pull-request-number = \"${{ env.IMAGE_TAG }}\"" \
+                -i "$VALUES_FILE"
+            fi
 
 
             # Add release label only for test deployments.
