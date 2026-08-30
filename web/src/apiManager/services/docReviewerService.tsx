@@ -97,7 +97,15 @@ export const fetchAnnotationsByPagination = (
       }
     })
     .catch((error: any) => {
-      errorCallback("Error in fetching annotations for a document");
+      errorCallback(
+        "Error in fetching annotations for a document",
+        {
+          url: apiUrlGet,
+          status: error?.response?.status,
+          response: error?.response?.data,
+          error,
+        }
+      );
     });
 };
 

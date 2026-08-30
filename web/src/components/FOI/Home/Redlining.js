@@ -1285,50 +1285,64 @@ const Redlining = React.forwardRef(
               1,
               ANNOTATION_PAGE_SIZE,
               async (data) => {
-                let meta = data["meta"];
-                if (meta["has_next"] === false) {
+                try {
+                  let meta = data["meta"];
+                  if (!fetchAnnotResponse) {
+                    setMerge(true);
+                    setFetchAnnotResponse(data);
+                  } else {
+                    //oipc changes - begin
+                    //Set to read only if oipc layer exists
+                    if (
+                      validoipcreviewlayer &&
+                      currentLayer.name.toLowerCase() === "redline"
+                    ) {
+                      annotManager.enableReadOnlyMode();
+                    } else {
+                      annotManager.disableReadOnlyMode();
+                    }
+                    //oipc changes - end
+                    docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
+                    const existingAnnotations =
+                      annotManager.getAnnotationsList();
+                    await annotManager.deleteAnnotations(existingAnnotations, {
+                      imported: true,
+                      force: true,
+                      source: "layerchange",
+                    });
+                    let domParser = new DOMParser();
+                    await assignAnnotationsPagination(
+                      pageMappedDocs,
+                      data["data"],
+                      domParser,
+                    );
+                    if (meta["has_next"] === true) {
+                      await fetchandApplyAnnotations(
+                        pageMappedDocs,
+                        domParser,
+                        meta["next_num"],
+                        meta["pages"],
+                      );
+                    }
+                    setIsAnnotationsLoading(false);
+                  }
+                } catch (error) {
+                  console.log("Error:", error);
+                  setErrorMessage(
+                    "Error occurred while applying annotations, please refresh browser and try again",
+                  );
                   setIsAnnotationsLoading(false);
                 }
-                if (!fetchAnnotResponse) {
-                  setMerge(true);
-                  setFetchAnnotResponse(data);
-                } else {
-                  //oipc changes - begin
-                  //Set to read only if oipc layer exists
-                  if (
-                    validoipcreviewlayer &&
-                    currentLayer.name.toLowerCase() === "redline"
-                  ) {
-                    annotManager.enableReadOnlyMode();
-                  } else {
-                    annotManager.disableReadOnlyMode();
-                  }
-                  //oipc changes - end
-                  docInstance?.UI.setToolbarGroup("toolbarGroup-Redact");
-                  const existingAnnotations = annotManager.getAnnotationsList();
-                  await annotManager.deleteAnnotations(existingAnnotations, {
-                    imported: true,
-                    force: true,
-                    source: "layerchange",
-                  });
-                  let domParser = new DOMParser();
-                  assignAnnotationsPagination(
-                    pageMappedDocs,
-                    data["data"],
-                    domParser,
-                  );
-                  if (meta["has_next"] === true) {
-                    fetchandApplyAnnotations(
-                      pageMappedDocs,
-                      domParser,
-                      meta["next_num"],
-                      meta["pages"],
-                    );
-                  }
-                }
               },
-              (error) => {
-                console.log("Error:", error);
+              (error, errorContext) => {
+                const resolvedError = errorContext || error;
+                console.log("Error:", resolvedError);
+                setErrorMessage(
+                  resolvedError?.response?.message ||
+                    resolvedError?.message ||
+                    (typeof error === "string" ? error : null) ||
+                    "Error occurred while fetching redaction details, please refresh browser and try again",
+                );
                 setIsAnnotationsLoading(false);
               },
               currentLayer.name.toLowerCase(),
@@ -2198,8 +2212,11 @@ const Redlining = React.forwardRef(
 
     const applyAnnotationsFunc = async () => {
       let domParser = new DOMParser();
-      if (fetchAnnotResponse) {
-        assignAnnotationsPagination(
+      if (!fetchAnnotResponse) {
+        return;
+      }
+      try {
+        await assignAnnotationsPagination(
           pageMappedDocs,
           fetchAnnotResponse["data"],
           domParser,
@@ -2213,6 +2230,13 @@ const Redlining = React.forwardRef(
             meta["pages"],
           );
         }
+      } catch (error) {
+        console.log("Error:", error);
+        setErrorMessage(
+          "Error occurred while applying annotations, please refresh browser and try again",
+        );
+      } finally {
+        setIsAnnotationsLoading(false);
       }
     };
 
@@ -2231,8 +2255,16 @@ const Redlining = React.forwardRef(
             i,
             ANNOTATION_PAGE_SIZE,
             async (data) => {
-              assignAnnotationsPagination(mappedDocs, data["data"], domParser);
-              resolve();
+              try {
+                await assignAnnotationsPagination(
+                  mappedDocs,
+                  data["data"],
+                  domParser,
+                );
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
             },
             (error) => {
               console.log("Error:", error);
