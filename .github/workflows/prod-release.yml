@@ -1,3 +1,5 @@
+name: Release to Prod
+
 on:
   workflow_dispatch:
     inputs:
@@ -59,12 +61,13 @@ jobs:
                 | .value
                 | to_entries
                 | map(
-                    select(.value.labels.releaseLabel == env(RELEASE_LABEL))
+                    select(.value.labels."release-label" == env(RELEASE_LABEL))
                     | {
                         "kind": $kind,
                         "name": .key,
                         "imagestream": (.value.image.repository | split("/") | .[-1]),
-                        "tag": .value.image.tag
+                        "tag": .value.image.tag,
+                        "backup-required": (.value.labels."db-backup-required" == "true")
                       }
                   )
               )
@@ -96,6 +99,47 @@ jobs:
           oc login \
             --server="${{ secrets.OPENSHIFT4_LOGIN_REGISTRY }}" \
             --token="${{ secrets.OPENSHIFT4_SA_TOKEN }}"
+
+      # Perform DB backup if release touches api
+      - name: Perform DB backup if release touches api
+        env: 
+          SERVICES: ${{ steps.services.outputs.services }}
+          NAMESPACE: d106d6-prod
+          BACKUP_DEPLOYMENT: foi-docreviewer-bkup
+        run: |
+          
+          # Check if any service in the JSON array has db_backup_required set to true
+          BACKUP_NEEDED=$(echo '${{ steps.services.outputs.services }}' | jq -r 'any(.[]; .backup-required == true)')
+
+          if [ "$BACKUP_NEEDED" = "true" ]; then
+            echo "DB backup is required for this release."
+            # 1. Target the correct namespace
+            oc project ${NAMESPACE}
+
+            echo "Locating running pod for deployment ${BACKUP_DEPLOYMENT}"
+
+            # 2. Find the active running pod name for the deployment
+            BACKUP_POD=$(oc get pods -n "${NAMESPACE}" \
+              -l deployment=${BACKUP_DEPLOYMENT} \
+              --field-selector=status.phase=Running \
+              -o jsonpath='{.items[0].metadata.name}')
+
+            if [ -z "$BACKUP_POD" ]; then
+              echo "No running '${BACKUP_DEPLOYMENT}' pod found in namespace '${NAMESPACE}'!"
+              exit 1
+            fi
+
+            echo "Found backup pod: $BACKUP_POD"
+
+            # 3. Execute the backup script inside the pod
+            # Replace '/app/backup.sh' with the actual script path inside your container
+            oc exec -n "${NAMESPACE}" "$BACKUP_POD" -- /bin/sh -c "/backup.sh -1"
+
+            echo "Database backup completed successfully!"
+
+          else
+            echo "No DB backup is required for this release."
+          fi
           
       # retal all the service imagestreams to resease version
       - name: Retag images in Imagestream
@@ -134,16 +178,17 @@ jobs:
           while IFS= read -r service
           do
 
-            NAME=$(echo "$service" | jq -r '.name')
-            TAG=$(echo "$service" | jq -r '.tag')
-            KIND=$(echo "$service" | jq -r '.kind')
+            # EXPORT variables so yq strenv() can see them in environment
+            export KIND=$(echo "$service" | jq -r '.kind')
+            export NAME=$(echo "$service" | jq -r '.name')
+            export TAG=$(echo "$service" | jq -r '.tag')
 
 
             echo "Promoting ${TAG} -> ${RELEASE_VERSION}"
 
 
             yq e '
-              .[strenv(KIND)][strenv(NAME)].image.tag = strenv(RELEASE_VERSION)
+              '.[env(KIND)][env(NAME)].image.tag = env(RELEASE_VERSION)'
             ' -i "$VALUES_FILE"
 
           done
