@@ -10,6 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLoadLegacyNormalSetsStreamPrefix(t *testing.T) {
+	env := standardNormalEnv()
+	env["COMPRESSION_MESSAGING_MODE"] = "legacy"
+	env["COMPRESSION_STREAM_KEY"] = "legacy-compression"
+	env["COMPRESSION_CHECKPOINT_KEY"] = "legacy-compression-cp"
+
+	got, err := Load(func(key string) string { return env[key] })
+
+	require.NoError(t, err)
+	assert.Equal(t, ModeLegacy, got.Mode)
+	assert.Equal(t, "foi", got.Messaging.StreamPrefix)
+	assert.Equal(t, "legacy-compression", got.Messaging.LegacyStreamKey)
+	assert.Equal(t, "legacy-compression-cp", got.Messaging.LegacyCheckpointKey)
+}
+
 func TestLoadStandardNormal(t *testing.T) {
 	env := standardNormalEnv()
 
@@ -144,6 +159,16 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 				env["MESSAGING_CONSUMER_GROUP"] = ""
 			},
 			wantKey: "MESSAGING_CONSUMER_GROUP",
+		},
+		{
+			name: "legacy mode requires stream prefix",
+			mutate: func(env map[string]string) {
+				env["COMPRESSION_MESSAGING_MODE"] = "legacy"
+				env["COMPRESSION_STREAM_KEY"] = "legacy-compression"
+				env["COMPRESSION_CHECKPOINT_KEY"] = "legacy-compression-cp"
+				env["MESSAGING_STREAM_PREFIX"] = ""
+			},
+			wantKey: "MESSAGING_STREAM_PREFIX",
 		},
 		{
 			name: "legacy mode requires stream key",
