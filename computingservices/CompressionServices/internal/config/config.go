@@ -70,7 +70,6 @@ type Config struct {
 	S3                        S3
 	Reconciliation            Reconciliation
 	CompressionRatioThreshold float64
-	OCRStreamKey              string
 }
 
 const (
@@ -226,7 +225,6 @@ func Load(getenv func(string) string) (Config, error) {
 			BatchSize:    reconciliationBatch,
 		},
 		CompressionRatioThreshold: ratio,
-		OCRStreamKey:              strings.TrimSpace(getenv("OCR_STREAM_KEY")),
 	}, nil
 }
 
@@ -261,11 +259,14 @@ func loadWorkload(getenv func(string) string) (Workload, error) {
 }
 
 func loadModeSettings(getenv func(string) string, mode Mode, messaging *Messaging) error {
+	// StreamPrefix is required for all modes: the OCR publisher always targets foi:ocr.
+	streamPrefix, err := required(getenv, "MESSAGING_STREAM_PREFIX")
+	if err != nil {
+		return err
+	}
+	messaging.StreamPrefix = streamPrefix
+
 	if mode == ModeStandard {
-		streamPrefix, err := required(getenv, "MESSAGING_STREAM_PREFIX")
-		if err != nil {
-			return err
-		}
 		topic, err := required(getenv, "COMPRESSION_TOPIC")
 		if err != nil {
 			return err
@@ -274,7 +275,6 @@ func loadModeSettings(getenv func(string) string, mode Mode, messaging *Messagin
 		if err != nil {
 			return err
 		}
-		messaging.StreamPrefix = streamPrefix
 		messaging.Topic = topic
 		messaging.ConsumerGroup = consumerGroup
 		return nil
