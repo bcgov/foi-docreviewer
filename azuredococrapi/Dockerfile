@@ -1,5 +1,5 @@
 # Step 1: Use the official Golang image as the builder
-FROM golang:1.22 as builder
+FROM golang:1.25 as builder
 
 
 ARG AZDOCOCR_FOIDOCREVIEWER_DB_HOST
