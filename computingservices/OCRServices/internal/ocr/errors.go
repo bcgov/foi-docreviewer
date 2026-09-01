@@ -7,8 +7,13 @@ type classifiedError struct {
 	err       error
 }
 
-func (e *classifiedError) Error() string { return e.err.Error() }
-func (e *classifiedError) Unwrap() error  { return e.err }
+func (e *classifiedError) Error() string {
+	if e.permanent {
+		return "permanent_handler_error"
+	}
+	return "retryable_handler_error"
+}
+func (e *classifiedError) Unwrap() error { return e.err }
 
 // Retryable marks err as a transient failure eligible for redelivery.
 func Retryable(err error) error {
