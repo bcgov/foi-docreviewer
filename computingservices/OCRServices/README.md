@@ -17,8 +17,8 @@ reclaimed; malformed envelopes and rejected (4xx) pushes are dead-lettered to
 
 ## Configuration
 
-Start from [`sample.env`](sample.env). The stream prefix must be `foi` and the
-topic `ocr`. `MESSAGING_CLAIM_MIN_IDLE` must exceed `OCR_PROCESSING_TIMEOUT`.
+Start from [`sample.env`](sample.env). The stream prefix must be `foi`.
+`MESSAGING_CLAIM_MIN_IDLE` must exceed `OCR_PROCESSING_TIMEOUT`.
 
 ## Coordinated cutover from the legacy flat stream
 

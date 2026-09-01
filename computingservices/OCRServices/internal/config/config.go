@@ -19,7 +19,6 @@ type Config struct {
 
 type Messaging struct {
 	StreamPrefix        string
-	Topic               string
 	ConsumerGroup       string
 	ConsumerName        string
 	RedisAddress        string
@@ -66,7 +65,6 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
 		Messaging: Messaging{
 			StreamPrefix:        strings.TrimSpace(getenv("MESSAGING_STREAM_PREFIX")),
-			Topic:               strings.TrimSpace(getenv("OCR_TOPIC")),
 			ConsumerGroup:       strings.TrimSpace(getenv("MESSAGING_CONSUMER_GROUP")),
 			ConsumerName:        consumerName,
 			RedisAddress:        fmt.Sprintf("%s:%s", strings.TrimSpace(getenv("REDIS_HOST")), strings.TrimSpace(getenv("REDIS_PORT"))),
@@ -102,9 +100,6 @@ func validate(cfg Config) error {
 	if m.StreamPrefix != "foi" {
 		return errors.New("MESSAGING_STREAM_PREFIX must be foi")
 	}
-	if m.Topic != "ocr" {
-		return errors.New("OCR_TOPIC must be ocr")
-	}
 	if m.ConsumerGroup == "" {
 		return errors.New("MESSAGING_CONSUMER_GROUP is required")
 	}
@@ -130,11 +125,31 @@ func validate(cfg Config) error {
 	if m.MaxDeliveryAttempts <= 0 {
 		return errors.New("MESSAGING_MAX_DELIVERY_ATTEMPTS must be positive")
 	}
-	if cfg.Database.Host == "" || cfg.Database.Name == "" {
-		return errors.New("OCR database host and name are required")
+	if err := validateDatabase(cfg.Database); err != nil {
+		return err
 	}
 	if cfg.ActiveMQ.URL == "" || cfg.ActiveMQ.Destination == "" {
 		return errors.New("ACTIVEMQ_URL and ACTIVEMQ_DESTINATION are required")
+	}
+	return nil
+}
+
+func validateDatabase(database Database) error {
+	if database.Host == "" {
+		return errors.New("OCR_DB_HOST is required")
+	}
+	port, err := strconv.Atoi(database.Port)
+	if err != nil || port < 1 || port > 65535 {
+		return errors.New("OCR_DB_PORT must be a valid TCP port")
+	}
+	if database.User == "" {
+		return errors.New("OCR_DB_USER is required")
+	}
+	if strings.TrimSpace(database.Password) == "" {
+		return errors.New("OCR_DB_PASSWORD is required")
+	}
+	if database.Name == "" {
+		return errors.New("OCR_DB_NAME is required")
 	}
 	return nil
 }
