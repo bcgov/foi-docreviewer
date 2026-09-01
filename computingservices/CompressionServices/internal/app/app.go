@@ -200,9 +200,15 @@ func newApplication(ctx context.Context, command string, cfg config.Config, logg
 	return app, nil
 }
 
+// buildDSN constructs a lib/pq keyword=value DSN from database config.
+// The DSN is never logged; callers must not pass it to any logger.
+func buildDSN(cfg config.Database) string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name)
+}
+
 func openDatabase(ctx context.Context, cfg config.Database) (*sql.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name)
-	database, err := sql.Open("postgres", dsn)
+	database, err := sql.Open("postgres", buildDSN(cfg))
 	if err != nil {
 		return nil, safe("database_unavailable", err)
 	}

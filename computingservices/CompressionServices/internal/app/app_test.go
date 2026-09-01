@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+
+	"compressionservices/internal/config"
 )
 
 func TestRunRejectsUnknownCommandBeforeLoadingConfiguration(t *testing.T) {
@@ -32,5 +34,32 @@ func TestSafeCodeNeverExposesOperationalErrorText(t *testing.T) {
 	code := SafeCode(errors.New("Ghostscript failed for " + secret))
 	if code == "" || strings.Contains(code, secret) || strings.Contains(code, "Ghostscript") {
 		t.Fatalf("SafeCode() = %q, must be a safe category", code)
+	}
+}
+
+// TestBuildDSN verifies that password and dbname are independently and correctly
+// placed in the DSN. It uses synthetic values so no real secrets appear in output.
+func TestBuildDSN(t *testing.T) {
+	t.Parallel()
+	cfg := config.Database{
+		Host:     "dbhost",
+		Port:     5432,
+		User:     "dbuser",
+		Password: "synth-pw-1234",
+		Name:     "mydb",
+	}
+	dsn := buildDSN(cfg)
+
+	if !strings.Contains(dsn, "dbname=mydb") {
+		t.Errorf("DSN missing dbname=mydb; got: %q", dsn)
+	}
+	if strings.Contains(dsn, "dbname=synth-pw-1234") {
+		t.Errorf("DSN has dbname set to password value; got: %q", dsn)
+	}
+	if !strings.Contains(dsn, "host=dbhost") {
+		t.Errorf("DSN missing host=dbhost; got: %q", dsn)
+	}
+	if !strings.Contains(dsn, "user=dbuser") {
+		t.Errorf("DSN missing user=dbuser; got: %q", dsn)
 	}
 }
