@@ -3,15 +3,14 @@ package followup
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"strings"
 
+	"compressionservices/internal/contracts"
 	"compressionservices/internal/store"
 	"compressionservices/models"
 
-	"github.com/go-redis/redis/v8"
+	messaging "github.com/bcgov/foi-messaging-go"
 )
 
 // Repository owns the durable state changes required before follow-up work.
@@ -20,32 +19,26 @@ type Repository interface {
 	UpdateRedactionReady(context.Context, models.CompressionProducerMessage) error
 }
 
-// Publisher is the subset of the shared Redis client used to publish OCR work.
+// Publisher is the narrow subset of *messaging.Publisher used to publish OCR work.
 type Publisher interface {
-	XAdd(context.Context, *redis.XAddArgs) *redis.StringCmd
+	Publish(context.Context, messaging.EventDef, any, ...messaging.PublishOption) (messaging.PublishResult, error)
 }
 
 // Service preserves the existing best-effort OCR/redaction follow-up behavior.
 type Service struct {
 	repository Repository
 	publisher  Publisher
-	stream     string
 	logger     *slog.Logger
 }
 
-// New creates a follow-up service using the process-owned Redis client.
-func New(repository Repository, publisher Publisher, stream string, logger *slog.Logger) *Service {
-	return &Service{
-		repository: repository,
-		publisher:  publisher,
-		stream:     strings.TrimSpace(stream),
-		logger:     logger,
-	}
+// New creates a follow-up service using the shared messaging publisher.
+func New(repository Repository, publisher Publisher, logger *slog.Logger) *Service {
+	return &Service{repository: repository, publisher: publisher, logger: logger}
 }
 
 // AfterTerminal sends PDFs to OCR and marks other successful documents ready
-// for redaction. Failures are intentionally logged as safe codes and do not
-// change the confirmed compression outcome.
+// for redaction. Failures are logged as safe codes and never change the
+// confirmed compression outcome.
 func (s *Service) AfterTerminal(
 	ctx context.Context,
 	message models.CompressionProducerMessage,
@@ -67,39 +60,41 @@ func (s *Service) AfterTerminal(
 }
 
 func (s *Service) publishOCR(ctx context.Context, message models.CompressionProducerMessage) {
-	if s.publisher == nil || s.stream == "" {
+	if s.publisher == nil {
 		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_publish_unavailable", "job_id", message.JobID)
 		return
 	}
-
 	jobID, err := s.repository.EnsureOCRStarted(ctx, message)
 	if err != nil {
 		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_start_failed", "job_id", message.JobID)
 		return
 	}
-	message.JobID = jobID
-	values, err := flatMessage(message)
-	if err != nil {
-		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_payload_invalid", "job_id", message.JobID)
-		return
-	}
-	if err := s.publisher.XAdd(ctx, &redis.XAddArgs{Stream: s.stream, Values: values}).Err(); err != nil {
-		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_publish_failed", "job_id", message.JobID)
+	// Correlation ID propagates from ctx automatically (library resolves it).
+	if _, err := s.publisher.Publish(ctx, contracts.OCRRequested(), toOCRPayload(message, jobID)); err != nil {
+		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_publish_failed", "job_id", jobID)
 	}
 }
 
-func flatMessage(message models.CompressionProducerMessage) (map[string]any, error) {
-	encoded, err := json.Marshal(message)
-	if err != nil {
-		return nil, err
+func toOCRPayload(m models.CompressionProducerMessage, ocrJobID int) contracts.OCREventPayload {
+	documentID := 0
+	if m.DocumentID != nil {
+		documentID = *m.DocumentID
 	}
-	var decoded map[string]any
-	if err := json.Unmarshal(encoded, &decoded); err != nil {
-		return nil, err
+	incompatible := m.Incompatible
+	return contracts.OCREventPayload{
+		BCGovCode:            m.BCGovCode,
+		S3FilePath:           m.S3FilePath,
+		RequestNumber:        m.RequestNumber,
+		Filename:             m.Filename,
+		MinistryRequestID:    m.MinistryRequestID,
+		Batch:                m.Batch,
+		JobID:                ocrJobID,
+		DocumentMasterID:     m.DocumentMasterID,
+		Trigger:              m.Trigger,
+		CreatedBy:            m.CreatedBy,
+		CompressedS3FilePath: m.CompressedS3FilePath,
+		DocumentID:           documentID,
+		Incompatible:         &incompatible,
+		UserToken:            m.UserToken,
 	}
-	flat := make(map[string]any, len(decoded))
-	for key, value := range decoded {
-		flat[key] = fmt.Sprint(value)
-	}
-	return flat, nil
 }

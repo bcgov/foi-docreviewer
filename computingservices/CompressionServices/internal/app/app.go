@@ -19,6 +19,7 @@ import (
 	"compressionservices/internal/reconcile"
 	"compressionservices/internal/store"
 
+	messaging "github.com/bcgov/foi-messaging-go"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 )
@@ -113,10 +114,11 @@ type reconciliationRunner interface {
 }
 
 type application struct {
-	consumer    runnable
-	reconciler  reconciliationRunner
-	database    *sql.DB
-	redisClient *redis.Client
+	consumer         runnable
+	reconciler       reconciliationRunner
+	database         *sql.DB
+	redisClient      *redis.Client
+	messagingPublisher *messaging.Publisher
 }
 
 func newApplication(ctx context.Context, command string, cfg config.Config, logger *slog.Logger) (*application, error) {
@@ -154,7 +156,24 @@ func newApplication(ctx context.Context, command string, cfg config.Config, logg
 		CompressionRatioThreshold: cfg.CompressionRatioThreshold,
 		TempRoot:                  "",
 	})
-	followUp := followup.New(repository, redisClient, cfg.OCRStreamKey, logger)
+	ocrPublisher, err := messaging.NewPublisher(messaging.Config{
+		Source:       "foi-docreviewer.compression",
+		StreamPrefix: cfg.Messaging.StreamPrefix,
+		Redis: messaging.RedisConfig{
+			Address:  cfg.Messaging.RedisAddress,
+			Password: cfg.Messaging.RedisPassword,
+		},
+		Telemetry: messaging.TelemetryConfig{
+			Logger:      logger,
+			LogPayloads: false,
+		},
+	})
+	if err != nil {
+		_ = app.close()
+		return nil, safe("configuration_invalid", err)
+	}
+	app.messagingPublisher = ocrPublisher
+	followUp := followup.New(repository, ocrPublisher, logger)
 	handler := compression.NewHandler(repository, processor, followUp, compression.Options{
 		Workload:            cfg.Workload,
 		ProcessingTimeout:   cfg.ProcessingTimeout,
@@ -181,9 +200,15 @@ func newApplication(ctx context.Context, command string, cfg config.Config, logg
 	return app, nil
 }
 
+// buildDSN constructs a lib/pq keyword=value DSN from database config.
+// The DSN is never logged; callers must not pass it to any logger.
+func buildDSN(cfg config.Database) string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name)
+}
+
 func openDatabase(ctx context.Context, cfg config.Database) (*sql.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name)
-	database, err := sql.Open("postgres", dsn)
+	database, err := sql.Open("postgres", buildDSN(cfg))
 	if err != nil {
 		return nil, safe("database_unavailable", err)
 	}
@@ -241,6 +266,11 @@ func (a *application) close() error {
 	if a.consumer != nil {
 		if err := a.consumer.Close(); err != nil {
 			result = errors.Join(result, safe("consumer_close_failed", err))
+		}
+	}
+	if a.messagingPublisher != nil {
+		if err := a.messagingPublisher.Close(); err != nil {
+			result = errors.Join(result, safe("publisher_close_failed", err))
 		}
 	}
 	if a.redisClient != nil {
