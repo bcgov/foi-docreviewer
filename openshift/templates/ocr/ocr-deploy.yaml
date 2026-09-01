@@ -52,11 +52,26 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: OCR_REDIS_PORT
-            - name: OCR_STREAM_KEY
+            - name: MESSAGING_STREAM_PREFIX
+              value: foi
+            - name: MESSAGING_CONSUMER_GROUP
+              value: foi-ocr
+            - name: OCR_CONSUMER_NAME
               valueFrom:
-                secretKeyRef:
-                  name: "${SECRETS}"
-                  key: OCR_STREAM_KEY
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MESSAGING_CLAIM_INTERVAL
+              value: 30s
+            - name: MESSAGING_CLAIM_MIN_IDLE
+              value: 20m
+            - name: MESSAGING_MAX_DELIVERY_ATTEMPTS
+              value: "5"
+            - name: MESSAGING_SHUTDOWN_TIMEOUT
+              value: 30s
+            - name: OCR_PROCESSING_TIMEOUT
+              value: 10m
+            - name: LOG_LEVEL
+              value: INFO
             - name: OCR_S3_ENV
               valueFrom:
                 secretKeyRef:
