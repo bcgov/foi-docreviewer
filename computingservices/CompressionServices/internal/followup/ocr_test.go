@@ -6,10 +6,11 @@ import (
 	"log/slog"
 	"testing"
 
+	"compressionservices/internal/contracts"
 	"compressionservices/internal/store"
 	"compressionservices/models"
 
-	"github.com/go-redis/redis/v8"
+	messaging "github.com/bcgov/foi-messaging-go"
 )
 
 func TestAfterTerminalPublishesOneFlatOCRMessageForPDF(t *testing.T) {
@@ -17,7 +18,7 @@ func TestAfterTerminalPublishesOneFlatOCRMessageForPDF(t *testing.T) {
 
 	repository := &fakeRepository{ocrJobID: 77}
 	publisher := &fakePublisher{}
-	service := New(repository, publisher, "ocr", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	message := models.CompressionProducerMessage{JobID: 12, Filename: "record.pdf", Attributes: map[string]any{"filesize": 3}}
 
 	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
@@ -28,11 +29,42 @@ func TestAfterTerminalPublishesOneFlatOCRMessageForPDF(t *testing.T) {
 	if repository.redactionCalls != 0 {
 		t.Fatalf("UpdateRedactionReady calls = %d, want 0", repository.redactionCalls)
 	}
-	if publisher.calls != 1 || publisher.stream != "ocr" {
-		t.Fatalf("publish = (%d, %q), want (1, ocr)", publisher.calls, publisher.stream)
+	if publisher.calls != 1 {
+		t.Fatalf("publish calls = %d, want 1", publisher.calls)
 	}
-	if got := publisher.values["jobid"]; got != "77" {
-		t.Fatalf("published jobid = %v, want 77", got)
+	if publisher.lastDef.Type != "document.ocr.requested" {
+		t.Fatalf("type = %q", publisher.lastDef.Type)
+	}
+	if publisher.lastPayload.JobID != 77 {
+		t.Fatalf("published jobid = %d, want 77", publisher.lastPayload.JobID)
+	}
+}
+
+func TestAfterTerminalForwardsIncompatibleAndUserToken(t *testing.T) {
+	t.Parallel()
+
+	token := "tok-abc"
+	repository := &fakeRepository{ocrJobID: 5}
+	publisher := &fakePublisher{}
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	message := models.CompressionProducerMessage{
+		JobID:        12,
+		Filename:     "record.pdf",
+		Incompatible: true,
+		UserToken:    &token,
+		Attributes:   map[string]any{},
+	}
+
+	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
+
+	if publisher.calls != 1 {
+		t.Fatalf("publish calls = %d, want 1", publisher.calls)
+	}
+	if publisher.lastPayload.Incompatible == nil || !*publisher.lastPayload.Incompatible {
+		t.Fatalf("Incompatible = %v, want pointer to true", publisher.lastPayload.Incompatible)
+	}
+	if publisher.lastPayload.UserToken == nil || *publisher.lastPayload.UserToken != "tok-abc" {
+		t.Fatalf("UserToken = %v, want pointer to %q", publisher.lastPayload.UserToken, "tok-abc")
 	}
 }
 
@@ -41,7 +73,7 @@ func TestAfterTerminalMarksNonPDFReadyForRedaction(t *testing.T) {
 
 	repository := &fakeRepository{}
 	publisher := &fakePublisher{}
-	service := New(repository, publisher, "ocr", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	message := models.CompressionProducerMessage{JobID: 12, Filename: "record.png"}
 
 	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusSkipped, Extension: ".png"})
@@ -71,14 +103,18 @@ func (r *fakeRepository) UpdateRedactionReady(context.Context, models.Compressio
 }
 
 type fakePublisher struct {
-	calls  int
-	stream string
-	values map[string]any
+	calls       int
+	lastDef     messaging.EventDef
+	lastPayload contracts.OCREventPayload
+	err         error
 }
 
-func (p *fakePublisher) XAdd(_ context.Context, args *redis.XAddArgs) *redis.StringCmd {
-	p.calls++
-	p.stream = args.Stream
-	p.values, _ = args.Values.(map[string]any)
-	return redis.NewStringResult("1-0", nil)
+func (f *fakePublisher) Publish(_ context.Context, def messaging.EventDef, payload any,
+	_ ...messaging.PublishOption) (messaging.PublishResult, error) {
+	f.calls++
+	f.lastDef = def
+	if p, ok := payload.(contracts.OCREventPayload); ok {
+		f.lastPayload = p
+	}
+	return messaging.PublishResult{EventID: "evt-1"}, f.err
 }
