@@ -41,6 +41,32 @@ messaging_stream_prefix = os.getenv('MESSAGING_STREAM_PREFIX', 'foi')
 compression_topic = os.getenv('COMPRESSION_TOPIC')
 compression_workload = os.getenv('COMPRESSION_WORKLOAD')
 
+
+def _positive_int(name, default):
+    raw = os.getenv(name)
+    try:
+        value = default if raw is None else int(raw)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{name} must be a positive integer") from error
+
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
+dedupe_consumer_group = os.getenv("DEDUPE_CONSUMER_GROUP", "dedupe")
+dedupe_consumer_name = os.getenv("DEDUPE_CONSUMER_NAME")
+dedupe_consumer_batch_size = _positive_int("DEDUPE_CONSUMER_BATCH_SIZE", 10)
+dedupe_consumer_block_ms = _positive_int("DEDUPE_CONSUMER_BLOCK_MS", 5000)
+dedupe_consumer_max_retries = _positive_int("DEDUPE_CONSUMER_MAX_RETRIES", 5)
+dedupe_consumer_retry_backoff_ms = _positive_int(
+    "DEDUPE_CONSUMER_RETRY_BACKOFF_MS", 250
+)
+dedupe_consumer_claim_min_idle_ms = _positive_int(
+    "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS", 60000
+)
+dedupe_dlq_stream = os.getenv("DEDUPE_DLQ_STREAM", "foi:dedupe.dlq")
+
 try:
     response = requests.request(
         method="GET",
