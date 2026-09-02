@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import importlib
 from types import SimpleNamespace
 
 import pytest
@@ -15,7 +16,11 @@ psycopg2 = sys.modules.setdefault("psycopg2", SimpleNamespace(connect=lambda **k
 psycopg2.sql = SimpleNamespace(SQL=lambda query: query)
 psycopg2.DatabaseError = Exception
 
-import services.compressionproducerservice as producer_module
+existing_producer_module = sys.modules.get("services.compressionproducerservice")
+if existing_producer_module is not None and not getattr(existing_producer_module, "__file__", None):
+    del sys.modules["services.compressionproducerservice"]
+
+producer_module = importlib.import_module("services.compressionproducerservice")
 from rstreamio.compressionevents import PublishResult
 from utils.loggingutils import configure_logging
 
@@ -208,3 +213,25 @@ def test_compression_publish_log_is_safe_structured_json(capsys):
     assert "usertoken" not in record
     assert "super-secret-user-token" not in json.dumps(record)
     assert "workload" not in RecordingStandardPublisher.instances[0].calls[0][0]
+
+
+@pytest.mark.parametrize("mode", ["legacy", "standard"])
+def test_publish_preserves_normalized_contract_and_omits_none_optionals(mode):
+    producer_module.compression_messaging_mode = mode
+
+    producer = producer_module.compressionproducerservice()
+    producer.producecompressionevent(
+        source_message(usertoken=None), 11, correlation_id="request-123"
+    )
+
+    if mode == "legacy":
+        payload = RecordingLegacyPublisher.instances[0].payloads[0]
+    else:
+        payload, correlation_id = RecordingStandardPublisher.instances[0].calls[0]
+        assert correlation_id == "request-123"
+
+    assert payload["incompatible"] is False
+    assert "documentid" not in payload
+    assert "outputdocumentmasterid" not in payload
+    assert "originaldocumentmasterid" not in payload
+    assert "usertoken" not in payload
