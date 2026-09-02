@@ -662,7 +662,7 @@ def __converttoPST(creationdate):
     
 def verify_ocr_needed(content, message):
     try:
-        if (message.incompatible is not None and message.incompatible.lower() == 'true'):
+        if (message.incompatible is not None and str(message.incompatible).lower() == 'true'):
             return False
         with fitz.open(stream=BytesIO(content), filetype="pdf") as doc:
             ocr_required = needs_ocr(doc) or has_fillable_forms(doc)

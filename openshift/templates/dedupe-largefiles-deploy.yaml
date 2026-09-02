@@ -94,6 +94,8 @@ objects:
               value: "${DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS}"
             - name: DEDUPE_DLQ_STREAM
               value: "${DEDUPE_DLQ_STREAM}"
+            - name: DEDUPE_DLQ_MAXLEN
+              value: "${DEDUPE_DLQ_MAXLEN}"
             # Required while the rollout-safe default remains legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
@@ -261,3 +263,8 @@ parameters:
   description: Redis stream used for permanently failed dedupe messages.
   required: true
   value: foi:dedupe.dlq
+- name: DEDUPE_DLQ_MAXLEN
+  displayName: Dedupe Dead Letter Stream Max Length
+  description: Approximate maximum number of entries retained in the dedupe DLQ stream.
+  required: true
+  value: "10000"

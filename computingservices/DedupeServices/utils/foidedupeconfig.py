@@ -66,6 +66,7 @@ dedupe_consumer_claim_min_idle_ms = _positive_int(
     "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS", 60000
 )
 dedupe_dlq_stream = os.getenv("DEDUPE_DLQ_STREAM", "foi:dedupe.dlq")
+dedupe_dlq_maxlen = _positive_int("DEDUPE_DLQ_MAXLEN", 10000)
 
 try:
     response = requests.request(
