@@ -68,6 +68,15 @@ dedupe_consumer_claim_min_idle_ms = _positive_int(
 dedupe_dlq_stream = os.getenv("DEDUPE_DLQ_STREAM", "foi:dedupe.dlq")
 dedupe_dlq_maxlen = _positive_int("DEDUPE_DLQ_MAXLEN", 10000)
 
+# Optional, explicit legacy checkpoint key to seed a brand new consumer
+# group from (see services/foiredisdedupeconsumer.py). Unset/empty by
+# default so legacy seeding never happens implicitly: it must never be
+# derived from consumer_id, because the production entrypoint invokes the
+# consumer CLI with the literal "$" positional, and that would collide
+# with the shared "$:lastid" key used by other still-legacy services and
+# both Dedupe deployments.
+dedupe_legacy_checkpoint_key = os.getenv("DEDUPE_LEGACY_CHECKPOINT_KEY", "")
+
 try:
     response = requests.request(
         method="GET",

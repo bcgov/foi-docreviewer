@@ -1,14 +1,29 @@
 """
-Start processing all records in the stream from the beginning (default, so a
-fresh consumer group does not skip an existing backlog):
+Start processing only new records published after the consumer group is
+created (default). The dedupe stream is not trimmed and message handling
+is not idempotent, so replaying the whole historical stream on every fresh
+group is unsafe:
 $ python consumer.py consumer1
-$ python consumer.py consumer1 --start-from 0
-Start processing only new records published after the consumer group is created:
 $ python consumer.py consumer1 --start-from $
+Legacy checkpoint seeding is opt-in and explicit: it only happens when the
+operator sets DEDUPE_LEGACY_CHECKPOINT_KEY to the exact legacy cursor key
+that should be trusted (this is deliberately NOT derived from consumer_id,
+because the production entrypoint invokes this CLI with the literal "$"
+positional, and that value collides with the shared "$:lastid" key used by
+other still-legacy services and both Dedupe deployments). When that env
+var is set and a brand new group is created at the default "$", it is
+seeded from that configured key if a real backlog cursor is present there.
+The legacy key itself is never deleted (it may still be relied upon by
+other consumers); instead a Dedupe-scoped, one-shot marker is set once the
+seed has actually been used, so the same cursor is never replayed again on
+a later startup. Force a full replay of the stream from the beginning only
+if you explicitly need it (e.g. a one-off backfill):
+$ python consumer.py consumer1 --start-from 0
 """
 import json
 import logging
 import random
+import re
 import socket
 import time
 from datetime import datetime, timezone
@@ -27,6 +42,7 @@ from utils import (
     dedupe_consumer_retry_backoff_ms,
     dedupe_dlq_maxlen,
     dedupe_dlq_stream,
+    dedupe_legacy_checkpoint_key,
     dedupe_stream_key,
     redisstreamdb,
 )
@@ -88,6 +104,118 @@ class StartFrom(str, Enum):
     latest = "$"
 
 
+def _legacy_seed_marker_key(stream_name, group_name, checkpoint_key):
+    """Dedupe-scoped, one-shot marker recording that a brand new consumer
+    group for (stream_name, group_name) has already been seeded from the
+    configured legacy checkpoint key. Namespaced under "dedupe:" and keyed
+    by the full stream/group/checkpoint identity so distinct dedupe
+    deployments (e.g. normal vs large-file workloads, or differently named
+    consumer groups sharing the same legacy checkpoint key) never collide
+    with each other, and this marker never collides with the legacy key
+    itself (which is never written to or deleted by this consumer)."""
+    return "dedupe:{0}:{1}:{2}:legacy_seeded".format(stream_name, group_name, checkpoint_key)
+
+
+# Redis stream ids are always "<milliseconds>-<sequence>" (e.g. "1700000000000-0").
+# Used to validate a legacy checkpoint value before trusting it as a real
+# backlog cursor, instead of blindly handing an arbitrary string to
+# XGROUP CREATE.
+_STREAM_ID_PATTERN = re.compile(r"^\d+-\d+$")
+
+
+def _is_valid_stream_id(value):
+    return bool(_STREAM_ID_PATTERN.match(value))
+
+
+def _resolve_group_start_id(
+    redis_client, stream_name, group_name, legacy_checkpoint_key, requested_start_id
+):
+    """Resolve the id used only when creating a brand new consumer group.
+
+    An explicit request to replay the whole stream (--start-from 0) is
+    always honored as-is. Otherwise, the requested id is the safe "$"
+    default. Legacy checkpoint seeding is opt-in and only attempted when
+    DEDUPE_LEGACY_CHECKPOINT_KEY (legacy_checkpoint_key) is configured: the
+    legacy key is never derived from consumer_id (the production entrypoint
+    invokes this CLI with the literal "$" positional, so a derived key
+    would collide with the shared "$:lastid" key used by other still-legacy
+    services and both Dedupe deployments). When configured, seeding is only
+    attempted if a Dedupe-scoped marker for this exact (stream_name,
+    group_name, legacy_checkpoint_key) combination is not already present,
+    so the same cutover cursor is never replayed twice. When legacy seeding
+    is unset, already used, or the checkpoint is absent/malformed, "$" is
+    kept so a fresh/lost group does not replay the entire, untrimmed stream
+    through the non-idempotent processing pipeline.
+
+    Returns a (resolved_start_id, legacy_seed_marker_key) tuple.
+    legacy_seed_marker_key is None whenever legacy seeding was not used; the
+    caller must SET it (never delete the legacy checkpoint key itself, which
+    may still be relied upon by other consumers/deployments) once it has
+    actually seeded a brand new group.
+    """
+    if requested_start_id != StartFrom.latest.value:
+        return requested_start_id, None
+
+    if not legacy_checkpoint_key:
+        return requested_start_id, None
+
+    marker_key = _legacy_seed_marker_key(stream_name, group_name, legacy_checkpoint_key)
+    try:
+        marker_present = bool(redis_client.exists(marker_key))
+    except (RedisError, AttributeError):
+        # AttributeError covers redis-like clients/fakes (e.g. in tests)
+        # that do not implement EXISTS; treat that the same as "cannot
+        # confirm the marker is absent" and skip seeding rather than risk
+        # re-seeding at the same stale cursor.
+        return requested_start_id, None
+
+    if marker_present:
+        return requested_start_id, None
+
+    try:
+        legacy_value = redis_client.get(legacy_checkpoint_key)
+    except (RedisError, AttributeError):
+        # AttributeError covers redis-like clients/fakes (e.g. in tests)
+        # that do not implement a plain string GET; treat that the same as
+        # "no legacy checkpoint" rather than failing group creation.
+        return requested_start_id, None
+
+    if legacy_value is None:
+        return requested_start_id, None
+
+    if isinstance(legacy_value, bytes):
+        legacy_value = legacy_value.decode("utf-8", errors="replace")
+
+    legacy_value = legacy_value.strip()
+    if not legacy_value or not _is_valid_stream_id(legacy_value):
+        # Blank or malformed values are not a usable backlog cursor and
+        # must not be reported as seeded (so the caller never sets the
+        # marker for a checkpoint that was not actually relied upon).
+        return requested_start_id, None
+
+    return legacy_value, marker_key
+
+
+def _set_legacy_seed_marker(redis_client, marker_key, value):
+    """Record that the legacy checkpoint has been used to seed a brand new
+    consumer group, without touching the legacy checkpoint key itself
+    (which may still be relied upon by other still-legacy consumers/
+    deployments). This is a one-shot marker: a later startup for the same
+    (stream_name, group_name, legacy_checkpoint_key) combination will see
+    it present and resume at "$" instead of silently re-seeding from the
+    same stale cursor."""
+    try:
+        redis_client.set(marker_key, value)
+    except RedisError as error:
+        log_event(
+            logger,
+            logging.WARNING,
+            "legacy_seed_marker_set_failed",
+            context=log_context(marker_key=marker_key),
+            error=str(error)[:4000],
+        )
+
+
 class RedisDedupeConsumer:
     def __init__(
         self,
@@ -104,7 +232,7 @@ class RedisDedupeConsumer:
         dlq_stream,
         sleep=None,
         jitter=None,
-        group_start_id="0",
+        group_start_id=StartFrom.latest.value,
         dlq_maxlen=dedupe_dlq_maxlen,
     ):
         self.redis = redis_client
@@ -125,17 +253,29 @@ class RedisDedupeConsumer:
             lambda attempt: random.uniform(0, self.retry_backoff_ms / 1000)
         )
 
-    def ensure_group(self):
+    def ensure_group(self, start_id=None):
+        """Create the consumer group if it does not already exist.
+
+        Returns True if a brand new group was created, False if the group
+        already existed (BUSYGROUP). Callers use this to know whether it is
+        safe to record a legacy checkpoint as consumed (see
+        `_resolve_group_start_id`/`_set_legacy_seed_marker`): the one-shot
+        marker must only be set once the checkpoint actually seeded a *new*
+        group.
+        """
+        group_start_id = self.group_start_id if start_id is None else start_id
         try:
             self.redis.xgroup_create(
                 name=self.stream_name,
                 groupname=self.group_name,
-                id=self.group_start_id,
+                id=group_start_id,
                 mkstream=True,
             )
         except ResponseError as error:
             if "BUSYGROUP" not in str(error):
                 raise
+            return False
+        return True
 
     def consume_forever(self):
         self.start()
@@ -179,7 +319,7 @@ class RedisDedupeConsumer:
         if not self._is_nogroup_error(error):
             return False
         try:
-            self.ensure_group()
+            self.ensure_group(start_id=StartFrom.latest.value)
         except RedisError as recreate_error:
             self._log_consumer_redis_error("consumer_group_recreate_failed", recreate_error)
             return False
@@ -228,13 +368,20 @@ class RedisDedupeConsumer:
             )
             next_start_id, messages = self._normalize_xautoclaim_response(response)
             next_start_id = self._decode_scalar(next_start_id)
-            decoded_messages = [
-                (
-                    self._decode_scalar(message_id),
-                    self._decode_fields(fields),
+            decoded_messages = []
+            for message_id, fields in messages:
+                # Redis returns (None, None) placeholders for pending
+                # entries that were deleted/trimmed from the stream out
+                # from under XAUTOCLAIM; skip them instead of crashing on
+                # None.items() below.
+                if message_id is None or fields is None:
+                    continue
+                decoded_messages.append(
+                    (
+                        self._decode_scalar(message_id),
+                        self._decode_fields(fields),
+                    )
                 )
-                for message_id, fields in messages
-            ]
 
             for message_id, fields in decoded_messages:
                 delivery_count = self._pending_delivery_count(message_id)
@@ -430,11 +577,24 @@ def _default_consumer_name(consumer_id):
 
 
 @app.command()
-def start(consumer_id: str, start_from: StartFrom = StartFrom.beginning):
-    # Default to "0" (beginning) so the first consumer group created during
-    # cutover sees the existing stream backlog instead of skipping it. Pass
-    # --start-from $ explicitly to start from only new records.
+def start(consumer_id: str, start_from: StartFrom = StartFrom.latest):
+    # Default to "$" (latest) so a brand new/lost consumer group does not
+    # replay the entire, untrimmed dedupe stream through the non-idempotent
+    # processing pipeline. When creating a new group with this default and
+    # DEDUPE_LEGACY_CHECKPOINT_KEY is configured, seed it from that legacy
+    # checkpoint key if a real backlog cursor was left behind there and it
+    # has not already been used (see _resolve_group_start_id). Leaving
+    # DEDUPE_LEGACY_CHECKPOINT_KEY unset disables legacy seeding entirely.
+    # Pass --start-from 0 explicitly to force a full replay of the stream
+    # from the beginning.
     initialize_compressionproducer()
+    resolved_start_id, legacy_seed_marker_key = _resolve_group_start_id(
+        redisstreamdb,
+        STREAM_KEY,
+        dedupe_consumer_group,
+        dedupe_legacy_checkpoint_key,
+        start_from.value,
+    )
     consumer = RedisDedupeConsumer(
         redis_client=redisstreamdb,
         stream_name=STREAM_KEY,
@@ -446,10 +606,18 @@ def start(consumer_id: str, start_from: StartFrom = StartFrom.beginning):
         retry_backoff_ms=dedupe_consumer_retry_backoff_ms,
         claim_min_idle_ms=dedupe_consumer_claim_min_idle_ms,
         dlq_stream=dedupe_dlq_stream,
-        group_start_id=start_from.value,
+        group_start_id=resolved_start_id,
         dlq_maxlen=dedupe_dlq_maxlen,
     )
-    consumer.ensure_group()
+    group_created = consumer.ensure_group()
+    # The legacy checkpoint key is never deleted (other consumers/
+    # deployments may still rely on it); instead record the Dedupe-scoped
+    # marker once it has actually seeded a brand new group. If the group
+    # already existed (BUSYGROUP), or no legacy checkpoint was used, leave
+    # the marker unset so a stale/absent checkpoint is never mistaken for
+    # having been consumed.
+    if group_created and legacy_seed_marker_key:
+        _set_legacy_seed_marker(redisstreamdb, legacy_seed_marker_key, resolved_start_id)
     consumer_context = log_context(consumer_id=consumer.consumer_name)
     log_event(logger, logging.INFO, "consumer_started", context=consumer_context)
     consumer.start()
