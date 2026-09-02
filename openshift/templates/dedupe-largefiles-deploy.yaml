@@ -96,6 +96,13 @@ objects:
               value: "${DEDUPE_DLQ_STREAM}"
             - name: DEDUPE_DLQ_MAXLEN
               value: "${DEDUPE_DLQ_MAXLEN}"
+            # Opt-in, one-shot legacy checkpoint cutover. Unset/empty by
+            # default so a fresh deployment never seeds from a shared
+            # "$:lastid" style key (the entrypoint invokes the consumer CLI
+            # with the literal "$" positional). Only set this to a specific
+            # legacy cursor key during an explicit, planned cutover.
+            - name: DEDUPE_LEGACY_CHECKPOINT_KEY
+              value: "${DEDUPE_LEGACY_CHECKPOINT_KEY}"
             # Required while the rollout-safe default remains legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
@@ -268,3 +275,12 @@ parameters:
   description: Approximate maximum number of entries retained in the dedupe DLQ stream.
   required: true
   value: "10000"
+- name: DEDUPE_LEGACY_CHECKPOINT_KEY
+  displayName: Dedupe Legacy Checkpoint Key
+  description: >-
+    Optional, explicit legacy single-consumer checkpoint key to seed a brand
+    new consumer group from during a one-shot cutover. Leave empty (default)
+    to disable legacy seeding entirely; never point this at the shared
+    "$:lastid" key used by other still-legacy services/deployments.
+  required: false
+  value: ""
