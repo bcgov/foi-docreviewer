@@ -11,6 +11,9 @@ from tests.pdf_helpers import pdf_bytes
 
 @pytest.fixture(autouse=True)
 def _aws_env(monkeypatch):
+    async def run_sync(func, /, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
@@ -22,6 +25,10 @@ def _aws_env(monkeypatch):
 
     get_settings.cache_clear()
     s3_mod._client = None
+    # Moto's in-memory HTTP mock does not propagate into asyncio.to_thread on
+    # Python 3.14. Keep the production offload intact and run mocked calls in
+    # this test process instead.
+    monkeypatch.setattr(s3_mod.asyncio, "to_thread", run_sync)
     yield
     s3_mod._client = None
     get_settings.cache_clear()
