@@ -68,3 +68,10 @@ services:
     path: computingservices/ETLServices
     image: reviewer-etlservices
     kind: cronjob
+
+  - name: preprocessing-service
+    path: preprocessing-service
+    image: preprocessing-service
+    kind: deployment
+
+  
