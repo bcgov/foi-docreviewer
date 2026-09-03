@@ -1,0 +1,92 @@
+services:
+  worker:
+    build: .
+    container_name: pdf_preprocessing_worker
+    ports:
+      - "8000:8000"
+    # Local Compose supplies the endpoint, path-style setting, credentials, and
+    # region below. Optional external-S3 settings may be supplied by .env for a
+    # non-Compose deployment or an explicit Compose override file.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      REDIS_STREAM_URL: redis://:redis@redis:6379/1
+      HEALTH_PORT: 8000
+      WORK_DIR: /tmp/pdf-preprocessing
+      JSON_LOGS: "true"
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_FORCE_PATH_STYLE: "true"
+      AWS_ACCESS_KEY_ID: dev
+      AWS_SECRET_ACCESS_KEY: dev
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+
+  redis:
+    image: redis:7
+    container_name: pdf_preprocessing_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass "redis"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.44
+    command: >
+      server
+      -dir=/data
+      -s3
+      -s3.port=8333
+      -s3.config=/etc/seaweedfs/config.json
+      -volume.max=100
+      -master.volumeSizeLimitMB=100
+      -master.volumePreallocate=false
+    ports:
+      - "8333:8333"
+      - "9333:9333"
+    volumes:
+      - seaweeddata:/data
+      - ./seaweedfs/config.json:/etc/seaweedfs/config.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
+  bucket-init:
+    image: amazon/aws-cli:2.31.9
+    profiles: ["init"]
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: dev
+      AWS_SECRET_ACCESS_KEY: dev
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        endpoint=http://seaweedfs:8333
+        bucket=pdf-preprocessing
+        if aws --endpoint-url "$$endpoint" s3api head-bucket --bucket "$$bucket" 2>/dev/null; then
+          echo "bucket $$bucket already exists"
+        else
+          aws --endpoint-url "$$endpoint" s3 mb "s3://$$bucket"
+        fi
+        aws --endpoint-url "$$endpoint" s3api head-bucket --bucket "$$bucket"
+        echo "bucket $$bucket ready"
+
+volumes:
+  seaweeddata:
