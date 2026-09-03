@@ -15,14 +15,42 @@ dedup state and both event streams; S3 holds the PDFs.
 
 ## Quickstart
 
+Prerequisites: Docker with Compose and the AWS CLI v2 on your host.
+
 ```bash
-cp .env.example .env      # then edit it — see below
 make up
-make demo SOURCE_URI=s3://my-bucket/incoming/doc.pdf   # publish a request twice; processed once
+
+# Upload a real PDF; make demo only publishes an event for this object.
+AWS_ACCESS_KEY_ID=dev AWS_SECRET_ACCESS_KEY=dev AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 \
+  s3 cp ./doc.pdf s3://pdf-preprocessing/incoming/doc.pdf
+
+make demo SOURCE_URI=s3://pdf-preprocessing/incoming/doc.pdf
 ```
 
-`docker compose` loads `.env` straight into the worker container, so put your
-config there:
+The local stack exposes an authenticated S3-compatible API at
+`http://localhost:8333`. It uses access key `dev`, secret key `dev`, region
+`us-east-1`, and one bucket: `pdf-preprocessing`. Source and restored objects
+share that bucket: `incoming/doc.pdf` becomes `incoming/docPREPROCESSED.pdf`.
+
+Use `make health` to confirm the worker is ready. After a successful restored
+document, inspect the output with:
+
+```bash
+AWS_ACCESS_KEY_ID=dev AWS_SECRET_ACCESS_KEY=dev AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:8333 \
+  s3 ls s3://pdf-preprocessing/incoming/
+```
+
+### External S3 configuration (optional)
+
+For an external deployment, `docker compose` loads `.env` into the worker
+container. In this local stack, the explicit Compose `environment:` values
+intentionally override matching `.env` values, including the local endpoint,
+credentials, and region shown above. Therefore, editing `.env` alone cannot
+activate external S3 here: use a non-Compose deployment or an explicit Compose
+override file that replaces the local values. Configure external storage in
+`.env` for that deployment as needed:
 
 ```
 # real AWS S3
@@ -40,8 +68,9 @@ AWS_SECRET_ACCESS_KEY=...
 The credentials need **write** access to the source bucket — the restored PDF
 is written back beside the input.
 
-Re-run `make down && make up` after editing `.env` — a running container keeps
-the environment it was created with.
+When using a Compose override file for external storage, recreate the stack
+after changing its environment configuration — a running container keeps the
+environment it was created with.
 
 A store URL like `https://citz-foi-prod.objectstore.gov.bc.ca/ecc-dev-e/APR-880-880/<uuid>.pdf`
 maps to `S3_ENDPOINT_URL=https://citz-foi-prod.objectstore.gov.bc.ca` +
@@ -60,7 +89,7 @@ spans_restored
 pages_affected
 6
 output_uri
-s3://my-bucket/incoming/docPREPROCESSED.pdf
+s3://pdf-preprocessing/incoming/docPREPROCESSED.pdf
 --- PdfPreprocessingCompleted on the output stream
 1) 1) "1735300000000-0"
    2) 1) "event"
@@ -75,7 +104,7 @@ logged no-op — the idempotency guard doing its job.
 
 ---
 
-## The pipeline
+## Architecture
 
 ```
 python -m cli publish --source-uri s3://bucket/key [--job-id <id>] [--count N]
@@ -101,6 +130,16 @@ malformed PDF raises → the consumer retries → dead-letters to
 The worker **publishes** `PdfPreprocessingCompleted` but does not consume it —
 that stream belongs to the next service. `STREAM_NAME` (input) and
 `OUTPUT_STREAM_NAME` (output) are kept separate for exactly this reason.
+
+The local development stack has four components:
+
+- `seaweedfs` provides the authenticated S3-compatible object store and keeps
+  data in the `seaweeddata` volume.
+- `bucket-init` is a profile-gated AWS CLI job that creates and verifies
+  `pdf-preprocessing` before a local workflow uses it.
+- `redis` stores both streams and the handler's idempotency state.
+- `worker` consumes requests, restores clipped text, writes output to the same
+  bucket, and publishes completion events.
 
 ---
 
@@ -161,13 +200,41 @@ make health     # 200 {"status":"ok","redis":"ok"} or 503 {"status":"degraded",.
 
 ---
 
-## Make it yours
+## Developer guide
 
-The PDF work is a few lines. To run different processing, replace the
-`fetch_pdf` → `restore_pdf` → `upload_pdf` calls in
-`messaging/consumer/handlers/pdf_preprocessing_requested.py` and adjust the two
-event payloads under `messaging/models/events/`. To use something other than S3
-for storage, replace `core/s3.py`.
+### Local operations
+
+```bash
+make health                         # worker and Redis health
+make logs                           # follow worker logs
+make init-bucket                    # re-run idempotent bucket setup
+make down                           # stop the local stack
+```
+
+Failed source-object requests are retried and then sent to the dead-letter
+stream. Inspect it with:
+
+```bash
+docker compose exec redis redis-cli -a redis --no-auth-warning -n 1 \
+  XRANGE pdf.preprocessing.requests:dlq - +
+```
+
+### Tests and formatting
+
+```bash
+make test       # unit tests
+make test-all   # unit and integration tests (requires Docker)
+make lint
+make fmt
+```
+
+### Extending the service
+
+The document-processing boundary is the `fetch_pdf` → `restore_pdf` →
+`upload_pdf` sequence in
+`messaging/consumer/handlers/pdf_preprocessing_requested.py`. A new processing
+step should preserve the input/output URI contract and update the event payloads
+under `messaging/models/events/` when its result changes.
 
 To add a *new* event type it's the usual four-file edit:
 
@@ -186,15 +253,16 @@ Two rules:
 
 ---
 
-## What this template does not solve
+## Known delivery limitation
 
 The handler writes its dedup state, then publishes. Those two steps are not
 atomic: if the publish fails after the state write, the retry sees the guard
 and skips the publish, so `PdfPreprocessingCompleted` is lost. That's the
 write-then-publish problem; the real answer is a transactional outbox — persist
 the outgoing event in the same write as the state and let a relay drain it.
-Deliberately not implemented; it roughly doubles the moving parts. The failure
-is named in the handler docstring.
+It is deliberately not implemented because it adds a persistent relay and its
+associated operational complexity. The failure mode is named in the handler
+docstring.
 
 ---
 
@@ -205,19 +273,6 @@ exponential `CONSUMER_RETRY_BACKOFF_MS`), then dead-letter to
 `<STREAM_NAME>:dlq`. Malformed envelopes are dead-lettered with no retries.
 `XAUTOCLAIM` reclaims messages orphaned by a killed worker; one already past
 the retry limit is dead-lettered rather than looped forever.
-
-```bash
-docker compose exec redis redis-cli -a redis XRANGE pdf.preprocessing.requests:dlq - +
-```
-
----
-
-## Testing
-
-```bash
-make test       # unit — no Docker (pytest -m "not integration")
-make test-all   # + a testcontainers Redis: handler, roundtrip, tracing, CLI, DLQ
-```
 
 Unit: `core.hidden_text` restoration on generated PDFs, `core.s3` fetch/upload
 against a `moto` mock, envelope/dispatcher/settings logic. Integration (real

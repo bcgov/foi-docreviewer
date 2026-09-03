@@ -1,11 +1,16 @@
-.PHONY: up down logs test test-all lint fmt demo health
+.PHONY: up down logs test test-all lint fmt demo health init-bucket
 
-# Override on the CLI: make demo SOURCE_URI=s3://my-bucket/incoming/doc.pdf
-SOURCE_URI ?= s3://REPLACE_ME/incoming/example.pdf
+# Override on the CLI: make demo SOURCE_URI=s3://pdf-preprocessing/incoming/doc.pdf
+SOURCE_URI ?= s3://pdf-preprocessing/incoming/example.pdf
 
-up:                ## Start Redis and the worker
+up:                ## Start Redis, SeaweedFS, and the worker
 	docker compose up --build -d
+	docker compose --profile init run --rm bucket-init
 	@echo "Worker health on http://localhost:8000/health"
+	@echo "SeaweedFS S3 on http://localhost:8333"
+
+init-bucket:       ## Create the local pdf-preprocessing bucket if needed
+	docker compose --profile init run --rm bucket-init
 
 down:
 	docker compose down

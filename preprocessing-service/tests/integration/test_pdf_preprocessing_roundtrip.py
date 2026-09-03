@@ -38,9 +38,9 @@ async def test_cli_publish_flows_through_fetch_restore_upload_publish(
     app_settings, redis_client, tmp_path, monkeypatch
 ):
     """
-    CLI publishes PdfPreprocessingRequested twice; the worker fetches +
-    restores + uploads once and publishes exactly one PdfPreprocessingCompleted
-    on the output stream. Two in, one out.
+    CLI publishes PdfPreprocessingRequested twice; the worker fetches,
+    restores, and uploads for both deliveries, then publishes exactly one
+    PdfPreprocessingCompleted on the output stream. Two in, one out.
     """
     monkeypatch.setattr(app_settings, "WORK_DIR", str(tmp_path / "work"))
     uploads = []
@@ -73,7 +73,10 @@ async def test_cli_publish_flows_through_fetch_restore_upload_publish(
     await _drain(consumer)
     await consumer.close()
 
-    assert uploads == ["s3://in-bucket/incoming/xPREPROCESSED.pdf"]
+    assert uploads == [
+        "s3://in-bucket/incoming/xPREPROCESSED.pdf",
+        "s3://in-bucket/incoming/xPREPROCESSED.pdf",
+    ]
 
     state = await redis_client.hgetall("preprocessing:demo-1")
     assert state["outcome"] == "text_restored"
