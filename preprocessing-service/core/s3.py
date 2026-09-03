@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import boto3
+from boto3.exceptions import S3UploadFailedError
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -128,5 +129,5 @@ def _upload_sync(src: Path, bucket: str, key: str) -> None:
         client.upload_file(
             str(src), bucket, key, ExtraArgs={"ContentType": "application/pdf"}
         )
-    except (ClientError, BotoCoreError) as e:
+    except (ClientError, BotoCoreError, S3UploadFailedError) as e:
         raise S3Error(f"put s3://{bucket}/{key}: {e}") from e

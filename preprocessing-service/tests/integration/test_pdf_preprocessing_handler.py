@@ -23,17 +23,17 @@ async def _close_clients(app_settings):
 def s3_stub(tmp_path, app_settings, monkeypatch):
     """
     Fake core.s3: fetch writes a generated PDF to the work path, upload records
-    the (src, uri) pair. Returns the uploads list.
+    the uploaded bytes and URI. Returns the uploads list.
     """
     monkeypatch.setattr(app_settings, "WORK_DIR", str(tmp_path / "work"))
-    uploads: list[tuple[Path, str]] = []
+    uploads: list[tuple[bytes, str]] = []
     state = {"clip": True}
 
     async def fake_fetch(source_uri: str, dst) -> Path:
         return make_pdf(dst, clip=state["clip"])
 
     async def fake_upload(src, dest_uri: str) -> str:
-        uploads.append((Path(src), dest_uri))
+        uploads.append((Path(src).read_bytes(), dest_uri))
         return dest_uri
 
     monkeypatch.setattr(handler_mod, "fetch_pdf", fake_fetch)
@@ -60,11 +60,11 @@ async def test_hidden_text_is_restored_uploaded_and_completed_is_published(
 
     # uploaded once, to the derived output key, with a real restored PDF
     assert len(uploads) == 1
-    src, uri = uploads[0]
+    body, uri = uploads[0]
     assert uri == expected_uri
     import pymupdf
 
-    assert SECRET in pymupdf.open(src)[0].get_text()
+    assert SECRET in pymupdf.open(stream=body, filetype="pdf")[0].get_text()
 
     state = await redis_client.hgetall("preprocessing:job-rec")
     assert state["outcome"] == "text_restored"
