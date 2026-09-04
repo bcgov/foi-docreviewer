@@ -9,6 +9,7 @@ Keeping them apart means a handler cannot accidentally issue a blocking
 command on the connection the read loop depends on.
 """
 
+import asyncio
 from redis.asyncio import Redis
 
 from config.logging import get_logger
@@ -26,6 +27,14 @@ def get_state_client() -> Redis:
     """
     global _client
     if _client is None:
+        # Enforce at runtime that this synchronous function is 
+        # only ever executed inside a running event loop
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError as e:
+            raise RuntimeError(
+                "get_state_client() can only be called inside an active asyncio event loop."
+            ) from e
         _client = Redis.from_url(get_settings().REDIS_STREAM_URL, decode_responses=True)
     return _client
 

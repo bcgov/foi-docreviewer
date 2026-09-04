@@ -199,13 +199,16 @@ class RedisConsumer:
         is reclaimed and re-crashes it forever.
         """
         try:
-            _, messages, _ = await self.redis.xautoclaim(
+            claim_result = await self.redis.xautoclaim(
                 name=self.stream_name,
                 groupname=self.consumer_group,
                 consumername=self.consumer_name,
                 min_idle_time=self.claim_min_idle_ms,
                 count=self.batch_size,
             )
+            # Redis 7.0+ adds a third element listing message ids
+            # deleted from the stream - this handles all versions
+            messages = claim_result[1]
         except ResponseError as e:
             logger.warning("XAUTOCLAIM failed", error=str(e))
             return

@@ -1,3 +1,5 @@
+import asyncio
+
 from opentelemetry import trace
 from opentelemetry.propagate import inject
 from redis.asyncio import Redis
@@ -85,6 +87,14 @@ def get_producer() -> RedisProducer:
     """
     global _producer
     if _producer is None:
+        # Enforce at runtime that this synchronous function is
+        # only ever executed inside a running event loop
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError as e:
+            raise RuntimeError(
+                "get_producer() can only be called inside an active asyncio event loop."
+            ) from e
         _producer = RedisProducer()
     return _producer
 
