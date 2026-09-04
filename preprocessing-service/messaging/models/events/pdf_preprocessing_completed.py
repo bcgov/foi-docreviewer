@@ -4,6 +4,15 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class DetectorOutcome(BaseModel):
+    """One detector's contribution to a preprocessing run."""
+
+    spans_restored: int = Field(ge=0)
+    pages_affected: int = Field(ge=0)
+
+    model_config = {"extra": "forbid"}
+
+
 class PdfPreprocessingCompletedEvent(BaseModel):
     """
     Payload for PdfPreprocessingCompleted -- the *output* of the processing
@@ -21,6 +30,7 @@ class PdfPreprocessingCompletedEvent(BaseModel):
     outcome: Literal["text_restored", "clean"]
     spans_restored: int = Field(ge=0)
     pages_affected: int = Field(ge=0)
+    detectors: dict[str, DetectorOutcome] = Field(default_factory=dict)
     output_uri: str | None = None
     completed_at: datetime
 

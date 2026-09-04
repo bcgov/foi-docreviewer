@@ -1,9 +1,9 @@
-"""Unit tests for core.hidden_text -- no Docker, no network."""
+"""Unit tests for core.clip_hidden_text -- no Docker, no network."""
 
 import pymupdf
 import pytest
 
-from core.hidden_text import restore_pdf
+from core.clip_hidden_text import restore_pdf
 
 
 def _make_pdf(path, *, clip: bool):
@@ -67,5 +67,5 @@ def test_unmapped_glyphs_are_not_reported_as_hidden(tmp_path):
 
 
 def test_missing_file_raises(tmp_path):
-    with pytest.raises(Exception):
+    with pytest.raises(pymupdf.FileNotFoundError):
         restore_pdf(tmp_path / "nope.pdf", tmp_path / "out.pdf")
