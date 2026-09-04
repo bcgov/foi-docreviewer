@@ -112,7 +112,7 @@ python -m cli publish --source-uri s3://bucket/key [--job-id <id>] [--count N]
 
 [worker] XREADGROUP pdf.preprocessing.requests
   └→ S3 GetObject  source_uri        (HeadObject size cap, %PDF- check)   [the work]
-  └→ core.hidden_text.restore_pdf    (local scratch in WORK_DIR)
+  └→ core.pipeline.run_pipeline      (local scratch in WORK_DIR)
   └→ S3 PutObject  <source>PREPROCESSED.pdf   (same bucket/prefix; only if hidden text found)
   └→ HSETNX preprocessing:<job_id> outcome ...   (idempotency guard)
   └→ XADD pdf.preprocessing.completed "PdfPreprocessingCompleted"
@@ -143,7 +143,12 @@ The local development stack has four components:
 
 ---
 
-## How restoration works (`core/hidden_text.py`)
+## How restoration works (`core/pipeline.py`, `core/clip_hidden_text.py`)
+
+`core/pipeline.py` opens the PDF once and runs every registered detector on
+each page in order. A detector only needs to provide `restore_page(page) ->
+int`; the pipeline handles rotation normalization, saving, and combined plus
+per-detector results.
 
 Each page's text is extracted twice, identically except one pass honors clip
 paths (`TEXT_MEDIABOX_CLIP`) and the other doesn't. A span present only in the
@@ -274,7 +279,8 @@ exponential `CONSUMER_RETRY_BACKOFF_MS`), then dead-letter to
 `XAUTOCLAIM` reclaims messages orphaned by a killed worker; one already past
 the retry limit is dead-lettered rather than looped forever.
 
-Unit: `core.hidden_text` restoration on generated PDFs, `core.s3` fetch/upload
+Unit: `core.clip_hidden_text` and `core.pipeline` restoration on generated
+PDFs, `core.s3` fetch/upload
 against a `moto` mock, envelope/dispatcher/settings logic. Integration (real
 Redis via testcontainers, S3 faked): the handler, the full `cli → consume →
 publish` round trip, one trace across the hops, and the DLQ path.

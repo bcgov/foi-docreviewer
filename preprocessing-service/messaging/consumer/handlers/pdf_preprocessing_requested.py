@@ -3,9 +3,10 @@ from pathlib import Path
 
 from config.logging import get_logger
 from config.settings import get_settings
-from core.hidden_text import restore_pdf
+from core.pipeline import run_pipeline
 from core.s3 import fetch_pdf, suffix_uri, upload_pdf
 from messaging.models import (
+    DetectorOutcome,
     EventEnvelope,
     PdfPreprocessingCompletedEvent,
     PdfPreprocessingRequestedEvent,
@@ -23,8 +24,8 @@ async def handle(
     Consume -> fetch -> restore -> upload -> publish. The shape every handler in
     this template takes.
 
-    THE PROCESSING STEP: read the source object from S3, detect clip-hidden text
-    (failed redactions), re-draw it, upload the restored PDF back beside the
+    THE PROCESSING STEP: read the source object from S3, run the registered
+    detectors to find and restore hidden text, upload the restored PDF beside the
     source (`<name>.pdf` -> `<name><OUTPUT_FILENAME_SUFFIX>.pdf`, same bucket and
     prefix), and publish PdfPreprocessingCompleted to OUTPUT_STREAM_NAME for the
     next service. Replace the fetch + `restore_pdf` + upload with whatever your
@@ -65,7 +66,7 @@ async def handle(
 
     try:
         await fetch_pdf(payload.source_uri, src_path)
-        result = restore_pdf(src_path, out_path)
+        result = run_pipeline(src_path, out_path)
         if result.wrote_output:
             await upload_pdf(out_path, output_uri)
     finally:
@@ -81,6 +82,14 @@ async def handle(
         return
 
     completed_at = datetime.now(UTC)
+    detectors = {
+        name: DetectorOutcome(
+            spans_restored=detector_result.spans_restored,
+            pages_affected=detector_result.pages_affected,
+        )
+        for name, detector_result in result.detectors.items()
+        if detector_result.spans_restored
+    }
     await redis.hset(
         key,
         mapping={
@@ -103,6 +112,7 @@ async def handle(
                 outcome=outcome,
                 spans_restored=result.spans_restored,
                 pages_affected=result.pages_affected,
+                detectors=detectors,
                 output_uri=output_uri if result.wrote_output else None,
                 completed_at=completed_at,
             ),
