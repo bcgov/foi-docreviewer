@@ -81,6 +81,8 @@ async def test_hidden_text_is_restored_uploaded_and_completed_is_published(
     assert env.payload.job_id == "job-rec"
     assert env.payload.outcome == "text_restored"
     assert env.payload.output_uri == expected_uri
+    assert env.payload.detectors["clip_hidden_text"].spans_restored >= 1
+    assert env.payload.detectors["clip_hidden_text"].pages_affected == 1
     assert await redis_client.xlen(app_settings.STREAM_NAME) == 0
 
 

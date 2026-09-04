@@ -9,10 +9,11 @@ every clip, in its own font / size / colour, so the text is visible.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import pymupdf
+
+from core.detection import RestoreResult
 
 pymupdf.TOOLS.mupdf_display_errors(False)
 
@@ -29,16 +30,6 @@ _FONT_FAMILIES = {
     "serif": ("tiro", "tibo", "tiit", "tibi"),
     "sans": ("helv", "hebo", "heit", "hebi"),
 }
-
-
-@dataclass
-class RestoreResult:
-    """Outcome of a restoration run."""
-
-    hidden_found: bool
-    spans_restored: int
-    pages_affected: int
-    wrote_output: bool
 
 
 def _is_junk(text: str) -> bool:
@@ -85,6 +76,30 @@ def _hidden_spans(page: pymupdf.Page) -> list[dict]:
     return hidden
 
 
+def restore_page(page: pymupdf.Page) -> int:
+    """Re-draw clip-hidden spans on `page` in place and return the count."""
+    spans_restored = 0
+    for s in _hidden_spans(page):
+        origin = s.get("origin") or (s["bbox"][0], s["bbox"][3] - 1)
+        try:
+            color = pymupdf.sRGB_to_pdf(s.get("color", 0))
+        except Exception:
+            color = (0, 0, 0)
+        try:
+            page.insert_text(
+                origin,
+                s["text"],
+                fontname=_base14(s),
+                fontsize=s.get("size", 11),
+                color=color,
+            )
+        except Exception:
+            # Glyphs outside a Base-14 font, etc. -- skip that span.
+            continue
+        spans_restored += 1
+    return spans_restored
+
+
 def restore_pdf(src: str | Path, dst: str | Path) -> RestoreResult:
     """Re-draw clip-hidden text in `src` and save the result to `dst`.
 
@@ -103,30 +118,12 @@ def restore_pdf(src: str | Path, dst: str | Path) -> RestoreResult:
             if rotation:
                 page.set_rotation(0)
 
-            page_hits = 0
-            for s in _hidden_spans(page):
-                origin = s.get("origin") or (s["bbox"][0], s["bbox"][3] - 1)
-                try:
-                    color = pymupdf.sRGB_to_pdf(s.get("color", 0))
-                except Exception:
-                    color = (0, 0, 0)
-                try:
-                    page.insert_text(
-                        origin,
-                        s["text"],
-                        fontname=_base14(s),
-                        fontsize=s.get("size", 11),
-                        color=color,
-                    )
-                except Exception:
-                    # Glyphs outside a Base-14 font, etc. -- skip that span.
-                    continue
-                spans_restored += 1
-                page_hits += 1
+            page_hits = restore_page(page)
 
             if rotation:
                 page.set_rotation(rotation)
             if page_hits:
+                spans_restored += page_hits
                 pages_affected += 1
 
         wrote_output = spans_restored > 0
