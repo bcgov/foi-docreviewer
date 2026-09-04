@@ -121,16 +121,29 @@ def test_processmessage_emits_safe_orchestration_events(caplog, capsys, monkeypa
         assert event["stream_id"] == "1-0"
 
 
-class OneMessageStream:
+class OneMessageRedis:
     def __init__(self, message):
         self.message = message
         self.read_count = 0
 
-    def read(self, last_id, block):
+    def xgroup_create(self, **kwargs):
+        return True
+
+    def xreadgroup(self, *, groupname, consumername, streams, count, block):
         self.read_count += 1
         if self.read_count == 1:
-            return [("1-0", self.message)]
+            stream_name = next(iter(streams))
+            return [(stream_name, [("1-0", self.message)])]
         raise RuntimeError("stop test read loop")
+
+    def xautoclaim(self, **kwargs):
+        return ("0-0", [], [])
+
+    def xack(self, *args):
+        return 1
+
+    def xadd(self, *args, **kwargs):
+        return "dlq-1"
 
 
 def test_consumer_emits_ordered_lifecycle_events_with_safe_context(caplog, capsys, monkeypatch):
@@ -159,23 +172,13 @@ def test_consumer_emits_ordered_lifecycle_events_with_safe_context(caplog, capsy
         ).encode("utf-8")
         for key, value in payload.items()
     }
-    stream = OneMessageStream(message)
-
-    class Redis:
-        def Stream(self, stream_key):
-            return stream
-
-        def get(self, key):
-            return None
-
-        def set(self, key, value):
-            return None
+    redis_client = OneMessageRedis(message)
 
     class NotificationWriter:
         def sendnotification(self, message, error):
             raise AssertionError("notification should be skipped")
 
-    monkeypatch.setattr(consumer_module, "redisstreamdb", Redis())
+    monkeypatch.setattr(consumer_module, "redisstreamdb", redis_client)
     monkeypatch.setattr(consumer_module, "isbatchcompleted", lambda batch: (False, False))
     monkeypatch.setattr(consumer_module, "redisstreamwriter", lambda: NotificationWriter())
     configure_logging()
@@ -223,19 +226,10 @@ def test_consumer_emits_ordered_lifecycle_events_with_safe_context(caplog, capsy
 def test_consumer_logs_message_failure_with_duration_and_safe_context(caplog, capsys, monkeypatch):
     """Fails if a post-parse failure loses correlation or traceback metadata."""
     install_successful_orchestration(monkeypatch)
-    stream = OneMessageStream({})
+    redis_client = OneMessageRedis({})
 
-    class Redis:
-        def Stream(self, stream_key):
-            return stream
-
-        def get(self, key):
-            return None
-
-        def set(self, key, value):
-            return None
-
-    monkeypatch.setattr(consumer_module, "redisstreamdb", Redis())
+    monkeypatch.setattr(consumer_module, "redisstreamdb", redis_client)
+    monkeypatch.setattr(consumer_module.time, "sleep", lambda *_: None)
     monkeypatch.setattr(consumer_module.jsonmessageparser, "getdedupeproducermessage", lambda raw: source_message())
     monkeypatch.setattr(consumer_module, "isbatchcompleted", lambda batch: (_ for _ in ()).throw(RuntimeError("batch lookup failed")))
     configure_logging()
@@ -248,6 +242,7 @@ def test_consumer_logs_message_failure_with_duration_and_safe_context(caplog, ca
     events = [json.loads(line) for line in log_output.splitlines()]
     assert events[-1]["event"] == "message_failed"
     assert events[-1]["exception_type"] == "RuntimeError"
+    assert sum(event["event"] == "message_failed" for event in events) == consumer_module.dedupe_consumer_max_retries
     assert caplog.records[-1].exc_info[0] is RuntimeError
     assert isinstance(events[-1]["duration_ms"], int)
     assert events[-1]["job_id"] == 11
@@ -263,25 +258,16 @@ def test_orchestration_failure_stops_consumer_before_batch_notification_or_compl
 ):
     """Fails if a Dedupe failure is mistaken for successful consumer completion."""
     install_successful_orchestration(monkeypatch)
-    stream = OneMessageStream({})
+    redis_client = OneMessageRedis({})
     recorded_ends = []
     batch_checks = []
-
-    class Redis:
-        def Stream(self, stream_key):
-            return stream
-
-        def get(self, key):
-            return None
-
-        def set(self, key, value):
-            return None
 
     failed_message = source_message()
     failed_message.s3filepath = "s3://private-bucket/failed.pdf"
     failed_message.usertoken = "failed-token-must-not-appear"
     failed_message.attributes = {"document_content": "failed-document-content-must-not-appear"}
-    monkeypatch.setattr(consumer_module, "redisstreamdb", Redis())
+    monkeypatch.setattr(consumer_module, "redisstreamdb", redis_client)
+    monkeypatch.setattr(consumer_module.time, "sleep", lambda *_: None)
     monkeypatch.setattr(consumer_module.jsonmessageparser, "getdedupeproducermessage", lambda raw: failed_message)
     monkeypatch.setattr(dedupe_module, "gets3documenthashcode", lambda message: (_ for _ in ()).throw(RuntimeError("hash failed")))
     monkeypatch.setattr(dedupe_module, "recordjobend", lambda *args: recorded_ends.append(args))
@@ -294,13 +280,14 @@ def test_orchestration_failure_stops_consumer_before_batch_notification_or_compl
 
     log_output = capsys.readouterr().out
     events = [json.loads(line) for line in log_output.splitlines()]
-    assert [event["event"] for event in events] == [
-        "consumer_started", "message_received", "message_parsed", "dedupe_started",
-        "dedupe_failed", "message_failed",
+    assert [event["event"] for event in events[:3]] == [
+        "consumer_started", "message_received", "message_parsed",
     ]
     assert batch_checks == []
-    assert recorded_ends == [(failed_message, True, "hash failed")]
-    assert sum(event["event"] == "message_failed" for event in events) == 1
+    assert recorded_ends == [(failed_message, True, "hash failed")] * consumer_module.dedupe_consumer_max_retries
+    assert sum(event["event"] == "dedupe_started" for event in events) == consumer_module.dedupe_consumer_max_retries
+    assert sum(event["event"] == "dedupe_failed" for event in events) == consumer_module.dedupe_consumer_max_retries
+    assert sum(event["event"] == "message_failed" for event in events) == consumer_module.dedupe_consumer_max_retries
     assert "message_completed" not in [event["event"] for event in events]
     failed_event = events[-1]
     assert failed_event["stage"] == "dedupe_processing"
@@ -334,24 +321,14 @@ def test_processmessage_logs_incompatible_completion(caplog, capsys, monkeypatch
 def test_consumer_logs_notification_sent(caplog, capsys, monkeypatch):
     """Fails if a completed batch omits the notification-sent lifecycle event."""
     install_successful_orchestration(monkeypatch)
-    stream = OneMessageStream({})
+    redis_client = OneMessageRedis({})
     notifications = []
-
-    class Redis:
-        def Stream(self, stream_key):
-            return stream
-
-        def get(self, key):
-            return None
-
-        def set(self, key, value):
-            return None
 
     class NotificationWriter:
         def sendnotification(self, message, error):
             notifications.append((message, error))
 
-    monkeypatch.setattr(consumer_module, "redisstreamdb", Redis())
+    monkeypatch.setattr(consumer_module, "redisstreamdb", redis_client)
     monkeypatch.setattr(consumer_module.jsonmessageparser, "getdedupeproducermessage", lambda raw: source_message())
     monkeypatch.setattr(consumer_module, "isbatchcompleted", lambda batch: (True, False))
     monkeypatch.setattr(consumer_module, "redisstreamwriter", lambda: NotificationWriter())
@@ -369,20 +346,10 @@ def test_consumer_logs_notification_sent(caplog, capsys, monkeypatch):
 
 def test_consumer_logs_parser_failure_as_json_with_traceback(caplog, capsys, monkeypatch):
     """Fails if parsing errors skip the failure lifecycle event or traceback."""
-    stream = OneMessageStream({})
-
-    class Redis:
-        def Stream(self, stream_key):
-            return stream
-
-        def get(self, key):
-            return None
-
-        def set(self, key, value):
-            return None
+    redis_client = OneMessageRedis({})
 
     monkeypatch.setattr(consumer_module, "initialize_compressionproducer", lambda: None)
-    monkeypatch.setattr(consumer_module, "redisstreamdb", Redis())
+    monkeypatch.setattr(consumer_module, "redisstreamdb", redis_client)
     monkeypatch.setattr(consumer_module.jsonmessageparser, "getdedupeproducermessage", lambda raw: (_ for _ in ()).throw(ValueError("invalid message")))
     configure_logging()
     caplog.set_level(logging.INFO)
@@ -394,9 +361,9 @@ def test_consumer_logs_parser_failure_as_json_with_traceback(caplog, capsys, mon
     assert [event["event"] for event in events] == [
         "consumer_started", "message_received", "message_failed",
     ]
-    assert events[-1]["exception_type"] == "ValueError"
+    assert events[-1]["exception_type"] == "PermanentMessageError"
     assert isinstance(events[-1]["duration_ms"], int)
-    assert caplog.records[-1].exc_info[0] is ValueError
+    assert caplog.records[-1].exc_info[0] is consumer_module.PermanentMessageError
 
 
 def test_processmessage_reuses_one_compression_producer_across_messages(monkeypatch):
@@ -436,27 +403,27 @@ def test_processmessage_reuses_one_compression_producer_across_messages(monkeypa
     assert len(page_calculator_calls) == 2
 
 
-class StartupReadStream:
-    def read(self, last_id, block):
-        raise RuntimeError("stop test read loop")
-
-
 class StartupRedis:
     def __init__(self):
-        self.stream_calls = 0
-        self.get_calls = 0
-        self.set_calls = 0
+        self.group_create_calls = 0
+        self.read_calls = 0
 
-    def Stream(self, stream_key):
-        self.stream_calls += 1
-        return StartupReadStream()
+    def xgroup_create(self, **kwargs):
+        self.group_create_calls += 1
+        return True
 
-    def get(self, key):
-        self.get_calls += 1
-        return None
+    def xreadgroup(self, *, groupname, consumername, streams, count, block):
+        self.read_calls += 1
+        raise RuntimeError("stop test read loop")
 
-    def set(self, key, value):
-        self.set_calls += 1
+    def xautoclaim(self, **kwargs):
+        return ("0-0", [], [])
+
+    def xack(self, *args):
+        return 1
+
+    def xadd(self, *args, **kwargs):
+        return "dlq-1"
 
 
 def test_consumer_rejects_invalid_configuration_before_opening_or_advancing_stream(
@@ -475,9 +442,8 @@ def test_consumer_rejects_invalid_configuration_before_opening_or_advancing_stre
     with pytest.raises(ValueError, match="compression_messaging_mode"):
         consumer_module.start("consumer-1")
 
-    assert startup_redis.stream_calls == 0
-    assert startup_redis.get_calls == 0
-    assert startup_redis.set_calls == 0
+    assert startup_redis.group_create_calls == 0
+    assert startup_redis.read_calls == 0
 
 
 def test_consumer_startup_reuses_the_initialized_producer(monkeypatch):
@@ -501,4 +467,5 @@ def test_consumer_startup_reuses_the_initialized_producer(monkeypatch):
         consumer_module.start("consumer-1")
 
     assert len(producer_instances) == 1
-    assert startup_redis.stream_calls == 2
+    assert startup_redis.group_create_calls == 2
+    assert startup_redis.read_calls == 2

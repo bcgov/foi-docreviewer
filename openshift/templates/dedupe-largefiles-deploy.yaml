@@ -76,6 +76,33 @@ objects:
               value: "${COMPRESSION_TOPIC}"
             - name: COMPRESSION_WORKLOAD
               value: "${COMPRESSION_WORKLOAD}"
+            - name: DEDUPE_CONSUMER_GROUP
+              value: "${DEDUPE_CONSUMER_GROUP}"
+            - name: DEDUPE_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DEDUPE_CONSUMER_BATCH_SIZE
+              value: "${DEDUPE_CONSUMER_BATCH_SIZE}"
+            - name: DEDUPE_CONSUMER_BLOCK_MS
+              value: "${DEDUPE_CONSUMER_BLOCK_MS}"
+            - name: DEDUPE_CONSUMER_MAX_RETRIES
+              value: "${DEDUPE_CONSUMER_MAX_RETRIES}"
+            - name: DEDUPE_CONSUMER_RETRY_BACKOFF_MS
+              value: "${DEDUPE_CONSUMER_RETRY_BACKOFF_MS}"
+            - name: DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS
+              value: "${DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS}"
+            - name: DEDUPE_DLQ_STREAM
+              value: "${DEDUPE_DLQ_STREAM}"
+            - name: DEDUPE_DLQ_MAXLEN
+              value: "${DEDUPE_DLQ_MAXLEN}"
+            # Opt-in, one-shot legacy checkpoint cutover. Unset/empty by
+            # default so a fresh deployment never seeds from a shared
+            # "$:lastid" style key (the entrypoint invokes the consumer CLI
+            # with the literal "$" positional). Only set this to a specific
+            # legacy cursor key during an explicit, planned cutover.
+            - name: DEDUPE_LEGACY_CHECKPOINT_KEY
+              value: "${DEDUPE_LEGACY_CHECKPOINT_KEY}"
             # Required while the rollout-safe default remains legacy mode.
             - name: COMPRESSION_STREAM_KEY
               valueFrom:
@@ -208,3 +235,52 @@ parameters:
   description: Workload classification recorded for compression jobs.
   required: true
   value: large
+- name: DEDUPE_CONSUMER_GROUP
+  displayName: Dedupe Consumer Group
+  description: Redis stream consumer group for dedupe delivery.
+  required: true
+  value: dedupe
+- name: DEDUPE_CONSUMER_BATCH_SIZE
+  displayName: Dedupe Consumer Batch Size
+  description: Maximum dedupe messages read per consumer poll.
+  required: true
+  value: "10"
+- name: DEDUPE_CONSUMER_BLOCK_MS
+  displayName: Dedupe Consumer Block Milliseconds
+  description: Long poll duration for dedupe consumer reads.
+  required: true
+  value: "5000"
+- name: DEDUPE_CONSUMER_MAX_RETRIES
+  displayName: Dedupe Consumer Max Retries
+  description: Maximum retry attempts before routing to the DLQ.
+  required: true
+  value: "5"
+- name: DEDUPE_CONSUMER_RETRY_BACKOFF_MS
+  displayName: Dedupe Consumer Retry Backoff Milliseconds
+  description: Delay between dedupe retry attempts.
+  required: true
+  value: "250"
+- name: DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS
+  displayName: Dedupe Consumer Claim Minimum Idle Milliseconds
+  description: Minimum idle time before claiming a pending dedupe message.
+  required: true
+  value: "60000"
+- name: DEDUPE_DLQ_STREAM
+  displayName: Dedupe Dead Letter Stream
+  description: Redis stream used for permanently failed dedupe messages.
+  required: true
+  value: foi:dedupe.dlq
+- name: DEDUPE_DLQ_MAXLEN
+  displayName: Dedupe Dead Letter Stream Max Length
+  description: Approximate maximum number of entries retained in the dedupe DLQ stream.
+  required: true
+  value: "10000"
+- name: DEDUPE_LEGACY_CHECKPOINT_KEY
+  displayName: Dedupe Legacy Checkpoint Key
+  description: >-
+    Optional, explicit legacy single-consumer checkpoint key to seed a brand
+    new consumer group from during a one-shot cutover. Leave empty (default)
+    to disable legacy seeding entirely; never point this at the shared
+    "$:lastid" key used by other still-legacy services/deployments.
+  required: false
+  value: ""

@@ -1,7 +1,12 @@
+import importlib.util
+import os
+import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 REPOSITORY_ROOT = Path(__file__).parents[3]
 TEMPLATE_PATHS = {
@@ -33,6 +38,48 @@ def _sample_environment():
         for line in SAMPLE_ENV_PATH.read_text().splitlines()
         if line and not line.startswith("#") and "=" in line
     }
+
+
+def clear_dedupe_consumer_environment(monkeypatch):
+    for name in (
+        "DEDUPE_CONSUMER_GROUP",
+        "DEDUPE_CONSUMER_NAME",
+        "DEDUPE_CONSUMER_BATCH_SIZE",
+        "DEDUPE_CONSUMER_BLOCK_MS",
+        "DEDUPE_CONSUMER_MAX_RETRIES",
+        "DEDUPE_CONSUMER_RETRY_BACKOFF_MS",
+        "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS",
+        "DEDUPE_DLQ_STREAM",
+        "DEDUPE_DLQ_MAXLEN",
+        "DEDUPE_LEGACY_CHECKPOINT_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
+def load_dedupe_settings(monkeypatch):
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"conversion": [], "dedupe": [], "nonredactable": []}
+
+    def _request(*args, **kwargs):
+        return _Response()
+
+    import requests
+
+    monkeypatch.setattr(requests, "request", _request)
+
+    module_name = "foidedupeconfig_under_test"
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        REPOSITORY_ROOT / "computingservices/DedupeServices/utils/foidedupeconfig.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_dedupe_deployments_use_distinct_standard_compression_topics():
@@ -122,3 +169,160 @@ def test_local_dedupe_configuration_defaults_to_legacy_with_a_normal_standard_to
     assert _environment(TEMPLATE_PATHS["large"])["COMPRESSION_TOPIC"]["value"] != sample[
         "COMPRESSION_TOPIC"
     ]
+
+
+def test_consumer_settings_have_safe_defaults(monkeypatch):
+    clear_dedupe_consumer_environment(monkeypatch)
+
+    settings = load_dedupe_settings(monkeypatch)
+
+    assert settings.dedupe_consumer_group == "dedupe"
+    assert settings.dedupe_consumer_name is None
+    assert settings.dedupe_consumer_batch_size == 10
+    assert settings.dedupe_consumer_block_ms == 5000
+    assert settings.dedupe_consumer_max_retries == 5
+    assert settings.dedupe_consumer_retry_backoff_ms == 250
+    assert settings.dedupe_consumer_claim_min_idle_ms == 60000
+    assert settings.dedupe_dlq_stream == "foi:dedupe.dlq"
+    assert settings.dedupe_dlq_maxlen == 10000
+    # Legacy checkpoint seeding must be disabled by default: unset/empty,
+    # and never a shared "{consumer_id}:lastid"/"$:lastid" style default.
+    assert settings.dedupe_legacy_checkpoint_key == ""
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "DEDUPE_CONSUMER_BATCH_SIZE",
+        "DEDUPE_CONSUMER_BLOCK_MS",
+        "DEDUPE_CONSUMER_MAX_RETRIES",
+        "DEDUPE_CONSUMER_RETRY_BACKOFF_MS",
+        "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS",
+        "DEDUPE_DLQ_MAXLEN",
+    ],
+)
+def test_consumer_numeric_settings_reject_non_positive_values(monkeypatch, name):
+    monkeypatch.setenv(name, "0")
+
+    with pytest.raises(ValueError):
+        load_dedupe_settings(monkeypatch)
+
+
+def test_dedupe_dlq_maxlen_can_be_overridden(monkeypatch):
+    clear_dedupe_consumer_environment(monkeypatch)
+    monkeypatch.setenv("DEDUPE_DLQ_MAXLEN", "25000")
+
+    settings = load_dedupe_settings(monkeypatch)
+
+    assert settings.dedupe_dlq_maxlen == 25000
+
+
+def test_dedupe_legacy_checkpoint_key_can_be_overridden(monkeypatch):
+    clear_dedupe_consumer_environment(monkeypatch)
+    monkeypatch.setenv("DEDUPE_LEGACY_CHECKPOINT_KEY", "consumer1:lastid")
+
+    settings = load_dedupe_settings(monkeypatch)
+
+    assert settings.dedupe_legacy_checkpoint_key == "consumer1:lastid"
+
+
+def test_dedupe_deployments_document_consumer_delivery_configuration():
+    environments = {
+        name: _environment(path) for name, path in TEMPLATE_PATHS.items()
+    }
+    parameters = {
+        name: {
+            parameter["name"]: parameter["value"]
+            for parameter in yaml.safe_load(path.read_text())["parameters"]
+            if parameter["name"]
+            in {
+                "DEDUPE_CONSUMER_GROUP",
+                "DEDUPE_CONSUMER_BATCH_SIZE",
+                "DEDUPE_CONSUMER_BLOCK_MS",
+                "DEDUPE_CONSUMER_MAX_RETRIES",
+                "DEDUPE_CONSUMER_RETRY_BACKOFF_MS",
+                "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS",
+                "DEDUPE_DLQ_STREAM",
+                "DEDUPE_DLQ_MAXLEN",
+                "DEDUPE_LEGACY_CHECKPOINT_KEY",
+            }
+        }
+        for name, path in TEMPLATE_PATHS.items()
+    }
+
+    for environment in environments.values():
+        assert environment["DEDUPE_CONSUMER_GROUP"]["value"] == "${DEDUPE_CONSUMER_GROUP}"
+        assert environment["DEDUPE_CONSUMER_NAME"]["valueFrom"]["fieldRef"][
+            "fieldPath"
+        ] == "metadata.name"
+        assert environment["DEDUPE_CONSUMER_BATCH_SIZE"]["value"] == "${DEDUPE_CONSUMER_BATCH_SIZE}"
+        assert environment["DEDUPE_CONSUMER_BLOCK_MS"]["value"] == "${DEDUPE_CONSUMER_BLOCK_MS}"
+        assert environment["DEDUPE_CONSUMER_MAX_RETRIES"]["value"] == "${DEDUPE_CONSUMER_MAX_RETRIES}"
+        assert environment["DEDUPE_CONSUMER_RETRY_BACKOFF_MS"]["value"] == "${DEDUPE_CONSUMER_RETRY_BACKOFF_MS}"
+        assert environment["DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS"]["value"] == "${DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS}"
+        assert environment["DEDUPE_DLQ_STREAM"]["value"] == "${DEDUPE_DLQ_STREAM}"
+        assert environment["DEDUPE_DLQ_MAXLEN"]["value"] == "${DEDUPE_DLQ_MAXLEN}"
+        assert environment["DEDUPE_LEGACY_CHECKPOINT_KEY"]["value"] == "${DEDUPE_LEGACY_CHECKPOINT_KEY}"
+
+    assert {
+        key: parameters["normal"][key]
+        for key in (
+            "DEDUPE_CONSUMER_GROUP",
+            "DEDUPE_CONSUMER_BATCH_SIZE",
+            "DEDUPE_CONSUMER_BLOCK_MS",
+            "DEDUPE_CONSUMER_MAX_RETRIES",
+            "DEDUPE_CONSUMER_RETRY_BACKOFF_MS",
+            "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS",
+            "DEDUPE_DLQ_STREAM",
+            "DEDUPE_DLQ_MAXLEN",
+            "DEDUPE_LEGACY_CHECKPOINT_KEY",
+        )
+    } == {
+        "DEDUPE_CONSUMER_GROUP": "dedupe",
+        "DEDUPE_CONSUMER_BATCH_SIZE": "10",
+        "DEDUPE_CONSUMER_BLOCK_MS": "5000",
+        "DEDUPE_CONSUMER_MAX_RETRIES": "5",
+        "DEDUPE_CONSUMER_RETRY_BACKOFF_MS": "250",
+        "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS": "60000",
+        "DEDUPE_DLQ_STREAM": "foi:dedupe.dlq",
+        "DEDUPE_DLQ_MAXLEN": "10000",
+        # Legacy checkpoint seeding is opt-in and must default to empty, so
+        # a deployment never seeds implicitly from a shared checkpoint key.
+        "DEDUPE_LEGACY_CHECKPOINT_KEY": "",
+    }
+    assert {
+        key: parameters["large"][key]
+        for key in (
+            "DEDUPE_CONSUMER_GROUP",
+            "DEDUPE_CONSUMER_BATCH_SIZE",
+            "DEDUPE_CONSUMER_BLOCK_MS",
+            "DEDUPE_CONSUMER_MAX_RETRIES",
+            "DEDUPE_CONSUMER_RETRY_BACKOFF_MS",
+            "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS",
+            "DEDUPE_DLQ_STREAM",
+            "DEDUPE_DLQ_MAXLEN",
+            "DEDUPE_LEGACY_CHECKPOINT_KEY",
+        )
+    } == {
+        "DEDUPE_CONSUMER_GROUP": "dedupe",
+        "DEDUPE_CONSUMER_BATCH_SIZE": "10",
+        "DEDUPE_CONSUMER_BLOCK_MS": "5000",
+        "DEDUPE_CONSUMER_MAX_RETRIES": "5",
+        "DEDUPE_CONSUMER_RETRY_BACKOFF_MS": "250",
+        "DEDUPE_CONSUMER_CLAIM_MIN_IDLE_MS": "60000",
+        "DEDUPE_DLQ_STREAM": "foi:dedupe.dlq",
+        "DEDUPE_DLQ_MAXLEN": "10000",
+        "DEDUPE_LEGACY_CHECKPOINT_KEY": "",
+    }
+
+
+def test_sample_env_documents_legacy_checkpoint_key_disabled_by_default():
+    # The sample environment must document the opt-in legacy checkpoint
+    # cutover key with an empty default, and must never default it to the
+    # shared "$:lastid" key that other still-legacy services/deployments
+    # may rely on.
+    sample = _sample_environment()
+
+    assert "DEDUPE_LEGACY_CHECKPOINT_KEY" in sample
+    assert sample["DEDUPE_LEGACY_CHECKPOINT_KEY"] == ""
+    assert sample["DEDUPE_LEGACY_CHECKPOINT_KEY"] != "$:lastid"
