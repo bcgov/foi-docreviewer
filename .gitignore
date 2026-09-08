@@ -14,6 +14,7 @@ demo.env
 api/reviewer_api/logs
 
 .vscode/
+.worktrees/
 
 web/node_modules
 web/build
@@ -115,4 +116,3 @@ openshift/templates/documentextraction/push-to-queue/env/*
 azuredococrapi/*.exe
 azuredococrapi/main
 azuredococrapi/env/*
-

@@ -1,6 +1,6 @@
 class dedupeproducermessage(object):
     def __init__(self,s3filepath,bcgovcode,requestnumber,filename,ministryrequestid,attributes,batch,jobid,documentmasterid,trigger,createdby,
-                 outputdocumentmasterid=None,originaldocumentmasterid=None,incompatible=None,usertoken=None) -> None:
+                 outputdocumentmasterid=None,originaldocumentmasterid=None,incompatible=False,usertoken=None) -> None:
         self.s3filepath = s3filepath
         self.bcgovcode=bcgovcode
         self.requestnumber = requestnumber
