@@ -45,6 +45,33 @@ The producer does not dual-publish. Standard events use the typed envelope
 consumed by `github.com/bcgov/foi-messaging-go v0.1.0`; legacy mode preserves
 the existing flat Redis field representation.
 
+## Consumer group startup and legacy checkpoint seeding
+
+The dedupe stream consumer group is created at `$` (latest) by default, so a
+brand new or lost group never replays the entire, untrimmed, non-idempotent
+dedupe stream. Legacy checkpoint seeding is opt-in and explicit:
+
+| Variable | Purpose |
+| --- | --- |
+| `DEDUPE_LEGACY_CHECKPOINT_KEY` | Optional. The exact legacy single-consumer checkpoint key to seed a brand new group from. Unset/empty (the default) disables legacy seeding entirely. |
+
+- The legacy checkpoint key is **never** derived from the CLI `consumer_id`
+  positional and is **never** deleted. The production entrypoint invokes the
+  consumer with the literal `$` positional argument, so a derived key would
+  collide with the shared `$:lastid` key that other still-legacy services and
+  both Dedupe deployments (normal and large-file) may still rely on; deleting
+  it could cause those other consumers to lose their resume cursor.
+- When `DEDUPE_LEGACY_CHECKPOINT_KEY` is set and a brand new group is created
+  at the default `$`, it is seeded from that key only if the checkpoint value
+  exists and is a valid Redis stream id (`<milliseconds>-<sequence>`).
+- Seeding is one-shot per `(stream, consumer group, checkpoint key)`: once a
+  brand new group has actually been seeded from the checkpoint, a Dedupe-scoped
+  marker (`dedupe:{stream}:{group}:{checkpoint_key}:legacy_seeded`) is set so a
+  later startup never re-seeds from the same stale cursor. If the group
+  already existed (`BUSYGROUP`), no marker is set.
+- Pass `--start-from 0` explicitly to force a full replay from the beginning
+  instead (bypasses legacy seeding).
+
 ## Compression event contract
 
 The standard publisher writes one event per compression request to the
