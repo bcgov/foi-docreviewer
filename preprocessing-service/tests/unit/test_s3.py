@@ -10,10 +10,11 @@ from tests.pdf_helpers import pdf_bytes
 
 
 @pytest.fixture(autouse=True)
-def _aws_env(monkeypatch):
+def _aws_env(monkeypatch, tmp_path):
     async def run_sync(func, /, *args, **kwargs):
         return func(*args, **kwargs)
 
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")

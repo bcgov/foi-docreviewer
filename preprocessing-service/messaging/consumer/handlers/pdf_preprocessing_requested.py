@@ -28,8 +28,7 @@ async def handle(
     detectors to find and restore hidden text, upload the restored PDF beside the
     source (`<name>.pdf` -> `<name><OUTPUT_FILENAME_SUFFIX>.pdf`, same bucket and
     prefix), and publish PdfPreprocessingCompleted to OUTPUT_STREAM_NAME for the
-    next service. Replace the fetch + `restore_pdf` + upload with whatever your
-    service actually does.
+    next service.
 
     IDEMPOTENCY: Redis Streams delivers at least once. HSETNX on
     `preprocessing:<job_id>` is the guard -- exactly one delivery per job_id

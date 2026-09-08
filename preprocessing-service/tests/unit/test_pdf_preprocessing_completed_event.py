@@ -38,9 +38,7 @@ def test_detectors_round_trip():
 
 
 def test_detector_outcome_rejects_unknown_fields():
-    with pytest.raises(ValidationError):
-        PdfPreprocessingCompletedEvent(
-            **_event_kwargs(
+    event_kwargs = _event_kwargs(
                 detectors={
                     "clip_hidden_text": {
                         "spans_restored": 2,
@@ -49,4 +47,5 @@ def test_detector_outcome_rejects_unknown_fields():
                     }
                 }
             )
-        )
+    with pytest.raises(ValidationError):
+        PdfPreprocessingCompletedEvent(**event_kwargs)
