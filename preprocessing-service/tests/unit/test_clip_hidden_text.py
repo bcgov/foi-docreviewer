@@ -1,9 +1,9 @@
-"""Unit tests for core.hidden_text -- no Docker, no network."""
+"""Unit tests for core.clip_hidden_text -- no Docker, no network."""
 
 import pymupdf
 import pytest
 
-from core.hidden_text import restore_pdf
+from core.clip_hidden_text import _NOCLIP_FLAGS, _iter_spans, restore_pdf
 
 
 def _make_pdf(path, *, clip: bool):
@@ -40,6 +40,19 @@ def test_clipped_text_is_restored(tmp_path):
     assert "TOP_SECRET_LEAK" in pymupdf.open(dst)[0].get_text()
 
 
+def test_iter_spans_accepts_text_flags(tmp_path):
+    src = tmp_path / "in.pdf"
+    _make_pdf(src, clip=True)
+    doc = pymupdf.open(src)
+
+    assert list(_iter_spans(doc[0])) == []
+    assert [span["text"].strip() for span in _iter_spans(doc[0], _NOCLIP_FLAGS)] == [
+        "TOP_SECRET_LEAK"
+    ]
+
+    doc.close()
+
+
 def test_clean_pdf_produces_no_output(tmp_path):
     src = tmp_path / "in.pdf"
     dst = tmp_path / "out.pdf"
@@ -67,5 +80,5 @@ def test_unmapped_glyphs_are_not_reported_as_hidden(tmp_path):
 
 
 def test_missing_file_raises(tmp_path):
-    with pytest.raises(Exception):
+    with pytest.raises(pymupdf.FileNotFoundError):
         restore_pdf(tmp_path / "nope.pdf", tmp_path / "out.pdf")

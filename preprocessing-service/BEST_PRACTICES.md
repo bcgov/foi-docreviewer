@@ -16,7 +16,7 @@ present, and publishes the result for the next pipeline stage.
 | Consumer and dispatcher | `messaging/consumer/` | Reads Redis Streams, retries failures, and routes event types. |
 | PDF handler | `messaging/consumer/handlers/pdf_preprocessing_requested.py` | Fetches, restores, uploads, records idempotency state, and publishes completion. |
 | Object storage | `core/s3.py` | Validates and transfers PDFs through boto3. |
-| PDF restoration | `core/hidden_text.py` | Detects and redraws clipped text. |
+| PDF restoration | `core/pipeline.py`, `core/clip_hidden_text.py` | Runs registered detectors over each PDF; clip-hidden text is the current detector. |
 | Runtime services | `config/`, `health/`, `main.py` | Settings, logs, traces, health, and worker lifecycle. |
 
 Keep these boundaries intact. The consumer should not contain PDF logic, and a

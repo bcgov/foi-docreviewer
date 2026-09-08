@@ -14,8 +14,8 @@ the next service. A CLI publishes the input event. Redis holds the dedup state
 and both streams; S3 holds the PDFs.
 
 Built from a Redis-only worker template; the messaging / tracing / health /
-consumer-reliability machinery is the template's, `core/hidden_text.py` +
-`core/s3.py` + the two `pdf_preprocessing_*` events and handler are this
+consumer-reliability machinery is the template's, `core/pipeline.py` +
+`core/clip_hidden_text.py` + `core/s3.py` + the two `pdf_preprocessing_*` events and handler are this
 service.
 
 ## Development Commands
@@ -61,10 +61,13 @@ handler to run. The credentials need write access to the source bucket.
      handler-side Redis client, separate from the consumer's connection.
 
 2. **Core** (`core/`):
-   - `hidden_text.py`: `restore_pdf(src, dst) -> RestoreResult`. Detection =
-     `get_text` with vs without `TEXT_MEDIABOX_CLIP`; spans only in the no-clip
-     pass are clip-hidden. Restoration re-draws each on top, outside clips, own
-     font/size/colour. Output written only when hidden text is found.
+   - `pipeline.py`: `run_pipeline(src, dst) -> PipelineResult`. Opens the PDF
+     once, runs every registered detector on each page, and aggregates combined
+     totals plus a per-detector breakdown.
+   - `clip_hidden_text.py`: `restore_page(page) -> int` detects clip-hidden
+     spans using `TEXT_MEDIABOX_CLIP` and re-draws them; `restore_pdf(src, dst)`
+     remains available as a standalone wrapper.
+   - `detection.py`: shared `RestoreResult` returned by standalone detectors.
    - `s3.py`: `fetch_pdf(source_uri, dst)` / `upload_pdf(src, dest_uri)` —
      boto3, run in `asyncio.to_thread`. `HeadObject` size cap, `%PDF-` check.
      Raises `S3Error`. Process-wide client via `get_s3_client()` /

@@ -9,10 +9,12 @@ every clip, in its own font / size / colour, so the text is visible.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Iterator
 from pathlib import Path
 
 import pymupdf
+
+from core.detection import RestoreResult
 
 pymupdf.TOOLS.mupdf_display_errors(False)
 
@@ -29,16 +31,6 @@ _FONT_FAMILIES = {
     "serif": ("tiro", "tibo", "tiit", "tibi"),
     "sans": ("helv", "hebo", "heit", "hebi"),
 }
-
-
-@dataclass
-class RestoreResult:
-    """Outcome of a restoration run."""
-
-    hidden_found: bool
-    spans_restored: int
-    pages_affected: int
-    wrote_output: bool
 
 
 def _is_junk(text: str) -> bool:
@@ -60,29 +52,62 @@ def _base14(span: dict) -> str:
     return _FONT_FAMILIES[family][idx]
 
 
+def _iter_spans(page: pymupdf.Page, flags: int | None = None) -> Iterator[dict]:
+    """Yield text spans from `page`, optionally using custom extraction flags."""
+    text = page.get_text("dict") if flags is None else page.get_text("dict", flags=flags)
+    for block in text["blocks"]:
+        for line in block.get("lines", []):
+            yield from line["spans"]
+
+
+def _span_key(span: dict) -> tuple[float, float, str] | None:
+    """A key for comparing spans: (x, y, text)."""
+    text = span.get("text", "").strip()
+    if not text:
+        return None
+    return round(span["bbox"][0], 1), round(span["bbox"][1], 1), text
+
 def _hidden_spans(page: pymupdf.Page) -> list[dict]:
     """Spans present when clips are ignored but not when they are honored."""
     visible = set()
-    for block in page.get_text("dict")["blocks"]:
-        for line in block.get("lines", []):
-            for span in line["spans"]:
-                t = span["text"].strip()
-                if t:
-                    visible.add(
-                        (round(span["bbox"][0], 1), round(span["bbox"][1], 1), t)
-                    )
+    for span in _iter_spans(page):
+        t = span.get("text", "").strip()
+        if t:
+            visible.add((_span_key(span)))
 
     hidden = []
-    for block in page.get_text("dict", flags=_NOCLIP_FLAGS)["blocks"]:
-        for line in block.get("lines", []):
-            for span in line["spans"]:
-                t = span["text"].strip()
-                if not t or _is_junk(t):
-                    continue
-                key = (round(span["bbox"][0], 1), round(span["bbox"][1], 1), t)
-                if key not in visible:
-                    hidden.append(span)
+    for span in _iter_spans(page, _NOCLIP_FLAGS):
+        t = span.get("text", "").strip()
+        if not t or _is_junk(t):
+            continue
+        key = _span_key(span)
+        if key and key not in visible:
+            hidden.append(span)
     return hidden
+
+
+def restore_page(page: pymupdf.Page) -> int:
+    """Re-draw clip-hidden spans on `page` in place and return the count."""
+    spans_restored = 0
+    for s in _hidden_spans(page):
+        origin = s.get("origin") or (s["bbox"][0], s["bbox"][3] - 1)
+        try:
+            color = pymupdf.sRGB_to_pdf(s.get("color", 0))
+        except Exception:
+            color = (0, 0, 0)
+        try:
+            page.insert_text(
+                origin,
+                s["text"],
+                fontname=_base14(s),
+                fontsize=s.get("size", 11),
+                color=color,
+            )
+        except Exception:
+            # Glyphs outside a Base-14 font, etc. -- skip that span.
+            continue
+        spans_restored += 1
+    return spans_restored
 
 
 def restore_pdf(src: str | Path, dst: str | Path) -> RestoreResult:
@@ -103,30 +128,12 @@ def restore_pdf(src: str | Path, dst: str | Path) -> RestoreResult:
             if rotation:
                 page.set_rotation(0)
 
-            page_hits = 0
-            for s in _hidden_spans(page):
-                origin = s.get("origin") or (s["bbox"][0], s["bbox"][3] - 1)
-                try:
-                    color = pymupdf.sRGB_to_pdf(s.get("color", 0))
-                except Exception:
-                    color = (0, 0, 0)
-                try:
-                    page.insert_text(
-                        origin,
-                        s["text"],
-                        fontname=_base14(s),
-                        fontsize=s.get("size", 11),
-                        color=color,
-                    )
-                except Exception:
-                    # Glyphs outside a Base-14 font, etc. -- skip that span.
-                    continue
-                spans_restored += 1
-                page_hits += 1
+            page_hits = restore_page(page)
 
             if rotation:
                 page.set_rotation(rotation)
             if page_hits:
+                spans_restored += page_hits
                 pages_affected += 1
 
         wrote_output = spans_restored > 0
