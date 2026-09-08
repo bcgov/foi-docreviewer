@@ -62,7 +62,7 @@ def run_pipeline(src: str | Path, dst: str | Path) -> PipelineResult:
                 hidden_found=detector_spans[name] > 0,
                 spans_restored=detector_spans[name],
                 pages_affected=detector_pages[name],
-                wrote_output=wrote_output,
+                wrote_output=detector_spans[name] > 0,
             )
             for name, _ in DETECTORS
         }
