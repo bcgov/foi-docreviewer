@@ -1,7 +1,7 @@
 from messaging import state
 
 
-def test_get_state_client_is_process_wide_and_lazy():
+async def test_get_state_client_is_process_wide_and_lazy():
     """
     Lazily constructed: importing the module must not open a socket, or every
     importer needs a live Redis. Same instance thereafter, so handlers share

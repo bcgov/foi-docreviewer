@@ -9,6 +9,7 @@ every clip, in its own font / size / colour, so the text is visible.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pymupdf
@@ -51,28 +52,37 @@ def _base14(span: dict) -> str:
     return _FONT_FAMILIES[family][idx]
 
 
+def _iter_spans(page: pymupdf.Page, flags: int | None = None) -> Iterator[dict]:
+    """Yield text spans from `page`, optionally using custom extraction flags."""
+    text = page.get_text("dict") if flags is None else page.get_text("dict", flags=flags)
+    for block in text["blocks"]:
+        for line in block.get("lines", []):
+            yield from line["spans"]
+
+
+def _span_key(span: dict) -> tuple[float, float, str] | None:
+    """A key for comparing spans: (x, y, text)."""
+    text = span.get("text", "").strip()
+    if not text:
+        return None
+    return round(span["bbox"][0], 1), round(span["bbox"][1], 1), text
+
 def _hidden_spans(page: pymupdf.Page) -> list[dict]:
     """Spans present when clips are ignored but not when they are honored."""
     visible = set()
-    for block in page.get_text("dict")["blocks"]:
-        for line in block.get("lines", []):
-            for span in line["spans"]:
-                t = span["text"].strip()
-                if t:
-                    visible.add(
-                        (round(span["bbox"][0], 1), round(span["bbox"][1], 1), t)
-                    )
+    for span in _iter_spans(page):
+        t = span.get("text", "").strip()
+        if t:
+            visible.add((_span_key(span)))
 
     hidden = []
-    for block in page.get_text("dict", flags=_NOCLIP_FLAGS)["blocks"]:
-        for line in block.get("lines", []):
-            for span in line["spans"]:
-                t = span["text"].strip()
-                if not t or _is_junk(t):
-                    continue
-                key = (round(span["bbox"][0], 1), round(span["bbox"][1], 1), t)
-                if key not in visible:
-                    hidden.append(span)
+    for span in _iter_spans(page, _NOCLIP_FLAGS):
+        t = span.get("text", "").strip()
+        if not t or _is_junk(t):
+            continue
+        key = _span_key(span)
+        if key and key not in visible:
+            hidden.append(span)
     return hidden
 
 
