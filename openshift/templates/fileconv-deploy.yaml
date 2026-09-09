@@ -118,6 +118,10 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: REDIS_STREAM_CONSUMER_GROUP
+            - name: CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           resources:
             requests:
               cpu: "50m"

@@ -122,7 +122,7 @@ namespace MCS.FOI.S3FileConversion
                                 foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
                                 {
                                     attachment.Key.Position = 0;
-                                    var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                    var attributes = JsonSerializer.Deserialize<JsonNode>((string)message["attributes"]);
                                     attributes["filesize"] = JsonValue.Create(attachment.Value["size"]);
                                     attributes["isattachment"] = JsonValue.Create(true);
                                     attributes["rootparentfilepath"] ??= JsonValue.Create((string)message["s3filepath"]);
