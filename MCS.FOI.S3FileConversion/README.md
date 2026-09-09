@@ -92,7 +92,7 @@ The `MCS.FOI.EMLToPDF` project exists in the solution and container build contex
 | Transport | Redis Stream entry (flat name/value fields, not a single JSON body) |
 | Stream | Value of `REDIS_STREAM_KEY`; `file-conversion-local-{initials}` is the local sample |
 | Consumer group | Value of `REDIS_STREAM_CONSUMER_GROUP`; sample: `file-conversion-consumer-group` |
-| Consumer name | Hard-coded as `c1` |
+| Consumer name | Trimmed `CONSUMER_NAME`; falls back to `<machine-name>-<process-id>` with a startup warning when missing or blank. |
 | Producer | Initial producer: **Not determined from the repository**. This service itself produces child conversion jobs for convertible `.msg`/`.ics` attachments. |
 | When consumed | Continuously after startup through `StreamReadGroup`; a new group is created at `$`, so it begins after the stream's current tail. |
 | Purpose | Request conversion of one S3-hosted source file to PDF. |
@@ -305,7 +305,7 @@ sequenceDiagram
     participant D as Redis dedupe stream
 
     U->>R: XADD conversion fields
-    W->>R: XREADGROUP (group, consumer c1)
+    W->>R: XREADGROUP (group, consumer pod name)
     W->>W: Validate required field presence
     W->>DB: INSERT FileConversionJob version 2, status started
     W->>DB: SELECT DocumentPathMapper.attributes by bucket
@@ -484,6 +484,7 @@ ORDER BY version;
 | `REDIS_STREAM_PASSWORD` | Conditional | None | Redis password; required when the Redis server enforces authentication. |
 | `REDIS_STREAM_KEY` | Yes | None | Input conversion stream and target for convertible attachments. |
 | `REDIS_STREAM_CONSUMER_GROUP` | Yes | None | Redis consumer-group name. |
+| `CONSUMER_NAME` | Required in Kubernetes/OpenShift; optional locally | `<machine-name>-<process-id>` | Inject `metadata.name` through the Downward API. Missing or blank values emit a startup warning. |
 | `DEDUPE_STREAM_KEY` | Yes | None | Output stream for converted PDFs and other extracted attachments. |
 | `S3_HOST` | Yes | None | S3-compatible service endpoint. `https://` is prepended unless the value already contains it. |
 | `RECORD_FORMATS` | Yes | None | HTTP(S) URL returning `conversion`, `dedupe`, and `nonredactable` arrays. Startup fails if the request/status/JSON shape fails. |
@@ -575,6 +576,20 @@ The live Helm manifests and values are in the external GitOps repository and are
 
 The normal template omits several variables required by current code, including `DEDUPE_STREAM_KEY`, `RECORD_FORMATS`, and the Syncfusion/retry values. The large-file template contains them. The templates are not the current GitOps source of truth.
 
+Both standard and large-file conversion deployments must inject `CONSUMER_NAME`
+from `metadata.name`:
+
+```yaml
+- name: CONSUMER_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.name
+```
+
+Configure the live GitOps manifests before or alongside the application
+rollout; the checked-in legacy templates are not the live source of truth.
+Older application images ignore this additional variable.
+
 `fileconv-build.yaml` references `Dockerfile.local`, which is not present in this directory. Current GitHub Actions uses `Dockerfile` directly.
 
 ### Runtime requirements
@@ -598,7 +613,13 @@ S3 access keys are not configured as worker environment variables: they are stor
 ### Scaling and shutdown
 
 - The checked-in templates use one replica; the service processes stream entries sequentially inside a single loop.
-- All replicas use the hard-coded Redis consumer name `c1`. Safe horizontal-scaling behavior with duplicate consumer names is not established by tests or configuration, so scaling above one replica requires validation.
+- Each pod uses its pod name as the Redis consumer name, assuming one worker
+  per pod. The value is resolved once at startup. Local fallback uses machine
+  name plus process ID and is not a cross-host uniqueness guarantee.
+- Container restarts in the same pod reuse its name; replacement pods use
+  their own names. Existing pending entries remain with their original
+  consumer, including `c1`. This change does not recover the backlog or
+  establish that every aspect of horizontal scaling is safe.
 - CPU- and memory-heavy converters and in-memory input/output streams make resource needs depend strongly on document size. The separate `largefiles` deployment indicates workload separation, but its size threshold/routing policy is **Not determined from the repository**.
 - The process does not register a cancellation token or signal handler. `using`/`finally` cleanup runs on normal managed exit, but graceful completion of an in-flight job after SIGTERM is not implemented explicitly. The checked-in pod grace period is 30 seconds.
 
@@ -608,6 +629,7 @@ S3 access keys are not configured as worker environment variables: they are stor
 
 Serilog writes structured logs to stdout and the debug sink. The default Serilog minimum is `Debug`, with `Microsoft` and `System` overridden to `Warning`. Each consumed job pushes these properties into the log context:
 
+- `ConsumerName`
 - `RequestNumber`
 - `BCGovCode`
 - `MinistryRequestId`
@@ -626,6 +648,9 @@ Useful messages include:
 - `Job skipped — missing required field`
 - `Error converting file`
 - `Unhandled error in FOI File Conversion service`
+
+The Redis connection log includes `ConsumerName`. If `CONSUMER_NAME` is missing or
+blank, startup emits one warning with the selected machine/PID fallback.
 
 The worker forwards `usertoken` in messages but does not add it to the structured log context. Exception messages and stack traces may still contain sensitive operational details and should be access-controlled.
 
@@ -686,6 +711,11 @@ A failure after uploading an object or publishing one of several output messages
 5. Verify downstream messages and database records after recovery.
 
 Exact production replay/claim commands and ownership policy are **Not determined from the repository**. Do not blindly `XADD` a failed job without checking for partial outputs.
+
+Do not delete `c1`, recreate the consumer group, reset its position, or replay
+pending entries as part of this identity change. An image rollback restores
+the old shared identity but does not migrate or recover entries pending under
+pod-specific consumers.
 
 ## 11. Troubleshooting
 
