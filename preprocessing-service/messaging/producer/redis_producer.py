@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Mapping
 
 from opentelemetry import trace
 from opentelemetry.propagate import inject
@@ -71,6 +72,14 @@ class RedisProducer:
                     exc_info=True,
                 )
                 raise
+
+    async def publish_legacy(
+        self, fields: Mapping[str, object], *, stream: str | None = None
+    ) -> str:
+        """Publish flat legacy fields for a downstream legacy consumer."""
+        target = stream or self.stream_name
+        with tracer.start_as_current_span("publish legacy message"):
+            return await self.redis.xadd(name=target, fields=dict(fields))
 
     async def close(self) -> None:
         await self.redis.aclose()

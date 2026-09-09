@@ -12,6 +12,7 @@ class PdfPreprocessingRequestedEvent(BaseModel):
 
     job_id: str = Field(min_length=1, max_length=64)
     source_uri: str = Field(min_length=1, max_length=2048)
+    legacy_payload: dict[str, object] = Field(default_factory=dict)
 
     model_config = {"extra": "forbid"}
 
