@@ -4,7 +4,7 @@ from pathlib import Path
 from config.logging import get_logger
 from config.settings import get_settings
 from core.pipeline import run_pipeline
-from core.s3 import fetch_pdf, suffix_uri, upload_pdf
+from core.s3 import fetch_pdf, normalize_s3_uri, suffix_uri, upload_pdf
 from messaging.models import (
     DetectorOutcome,
     EventEnvelope,
@@ -60,11 +60,12 @@ async def handle(
     work = Path(settings.WORK_DIR)
     src_path = work / f"{job_id}.src.pdf"
     out_path = work / f"{job_id}.out.pdf"
+    source_uri = normalize_s3_uri(payload.source_uri)
     # Restored PDF goes back beside the source: <name>.pdf -> <name>PREPROCESSED.pdf
-    output_uri = suffix_uri(payload.source_uri, settings.OUTPUT_FILENAME_SUFFIX)
+    output_uri = suffix_uri(source_uri, settings.OUTPUT_FILENAME_SUFFIX)
 
     try:
-        await fetch_pdf(payload.source_uri, src_path)
+        await fetch_pdf(source_uri, src_path)
         result = run_pipeline(src_path, out_path)
         if result.wrote_output:
             await upload_pdf(out_path, output_uri)
@@ -103,23 +104,33 @@ async def handle(
     # Publishing from inside a handler is what makes this a pipeline node. The
     # producer reads ambient trace context, so this event is automatically a
     # child of the span for the message being handled.
-    await get_producer().publish(
-        EventEnvelope.create(
-            event_type="PdfPreprocessingCompleted",
-            payload=PdfPreprocessingCompletedEvent(
-                job_id=job_id,
-                outcome=outcome,
-                spans_restored=result.spans_restored,
-                pages_affected=result.pages_affected,
-                detectors=detectors,
-                output_uri=output_uri if result.wrote_output else None,
-                completed_at=completed_at,
+    producer = get_producer()
+    if payload.legacy_payload:
+        downstream_payload = dict(payload.legacy_payload)
+        if result.wrote_output:
+            downstream_payload["s3filepath"] = output_uri
+        await producer.publish_legacy(
+            downstream_payload,
+            stream=settings.OUTPUT_STREAM_NAME,
+        )
+    else:
+        await producer.publish(
+            EventEnvelope.create(
+                event_type="PdfPreprocessingCompleted",
+                payload=PdfPreprocessingCompletedEvent(
+                    job_id=job_id,
+                    outcome=outcome,
+                    spans_restored=result.spans_restored,
+                    pages_affected=result.pages_affected,
+                    detectors=detectors,
+                    output_uri=output_uri if result.wrote_output else None,
+                    completed_at=completed_at,
+                ),
+                correlation_id=correlation_id,
+                source="pdf-preprocessing",
             ),
-            correlation_id=correlation_id,
-            source="pdf-preprocessing",
-        ),
-        stream=settings.OUTPUT_STREAM_NAME,
-    )
+            stream=settings.OUTPUT_STREAM_NAME,
+        )
 
     log.info(
         "Preprocessing complete",

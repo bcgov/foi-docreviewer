@@ -5,7 +5,14 @@ import pytest
 from moto import mock_aws
 
 from core import s3 as s3_mod
-from core.s3 import S3Error, fetch_pdf, parse_s3_uri, suffix_uri, upload_pdf
+from core.s3 import (
+    S3Error,
+    fetch_pdf,
+    normalize_s3_uri,
+    parse_s3_uri,
+    suffix_uri,
+    upload_pdf,
+)
 from tests.pdf_helpers import pdf_bytes
 
 
@@ -50,6 +57,28 @@ def test_parse_s3_uri():
         parse_s3_uri("https://example.com/a.pdf")
     with pytest.raises(S3Error):
         parse_s3_uri("s3://bucket-only")
+
+
+def test_normalize_supported_https_object_store_url(monkeypatch):
+    monkeypatch.setenv("S3_ENDPOINT_URL", "https://obj.example.gov.bc.ca")
+    from config.settings import get_settings
+
+    get_settings.cache_clear()
+
+    assert (
+        normalize_s3_uri("https://obj.example.gov.bc.ca/edu-dev-e/path/file.pdf")
+        == "s3://edu-dev-e/path/file.pdf"
+    )
+
+
+def test_normalize_rejects_https_url_for_another_host(monkeypatch):
+    monkeypatch.setenv("S3_ENDPOINT_URL", "https://obj.example.gov.bc.ca")
+    from config.settings import get_settings
+
+    get_settings.cache_clear()
+
+    with pytest.raises(S3Error, match="unsupported object-store URI"):
+        normalize_s3_uri("https://other.example.com/bucket/file.pdf")
 
 
 def test_suffix_uri():
