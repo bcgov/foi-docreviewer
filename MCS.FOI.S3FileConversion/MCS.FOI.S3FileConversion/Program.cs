@@ -216,7 +216,7 @@ namespace MCS.FOI.S3FileConversion
                                             }
                                         }
                                         string newFilename = Path.ChangeExtension(message["s3filepath"], ".pdf");
-                                        var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                        var attributes = JsonSerializer.Deserialize<JsonNode>((string)message["attributes"]);
                                         attributes["convertedfilesize"] = JsonValue.Create(convertedSize);
                                         db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                         {

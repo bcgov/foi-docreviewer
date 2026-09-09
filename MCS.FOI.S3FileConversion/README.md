@@ -526,8 +526,8 @@ These values are illustrative. The authoritative lists are whatever the configur
 
 The current `Dockerfile` is a multi-stage build:
 
-1. `mcr.microsoft.com/dotnet/sdk:7.0` restores the solution and publishes `MCS.FOI.S3FileConversion` in Release mode.
-2. `mcr.microsoft.com/dotnet/runtime:7.0` installs fonts and native rendering dependencies.
+1. `mcr.microsoft.com/dotnet/sdk:10.0-noble` restores and publishes `MCS.FOI.S3FileConversion` in Release mode.
+2. `mcr.microsoft.com/dotnet/runtime:10.0-noble` installs fonts and native rendering dependencies.
 3. The published output is copied to `/app`.
 4. The container starts with `dotnet MCS.FOI.S3FileConversion.dll`.
 
