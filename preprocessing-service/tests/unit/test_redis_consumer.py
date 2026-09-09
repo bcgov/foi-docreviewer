@@ -71,6 +71,30 @@ async def test_handle_one_dead_letters_when_event_field_missing():
     assert consumer.redis.xack_calls == ["1-0"]
 
 
+async def test_handle_one_adapts_legacy_fields_before_dispatch(monkeypatch):
+    consumer = make_consumer()
+    dispatched = []
+
+    async def fake_dispatch(envelope):
+        dispatched.append(envelope)
+
+    monkeypatch.setattr(redis_consumer_module, "dispatch_event", fake_dispatch)
+
+    await consumer._handle_one(
+        "1-0",
+        {"jobid": "42", "s3filepath": "s3://bucket/input.pdf"},
+    )
+
+    assert len(dispatched) == 1
+    assert dispatched[0].payload.job_id == "42"
+    assert dispatched[0].payload.source_uri == "s3://bucket/input.pdf"
+    assert dispatched[0].payload.legacy_payload == {
+        "jobid": "42",
+        "s3filepath": "s3://bucket/input.pdf",
+    }
+    assert consumer.redis.xack_calls == ["1-0"]
+
+
 async def test_reclaim_orphans_returns_quietly_on_xautoclaim_error():
     consumer = make_consumer()
     consumer.redis.xautoclaim_error = ResponseError("NOGROUP no such key")

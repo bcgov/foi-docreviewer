@@ -13,11 +13,13 @@ from redis.exceptions import RedisError, ResponseError
 
 from config.logging import get_logger
 from config.settings import get_settings
+from messaging.adapters.legacy_redis_message_adapter import LegacyRedisMessageAdapter
 from messaging.consumer.dispatcher import dispatch_event
 from messaging.models import EventEnvelope
 
 logger = get_logger(__name__)
 tracer = trace.get_tracer(__name__)
+legacy_message_adapter = LegacyRedisMessageAdapter()
 
 
 class RedisConsumer:
@@ -130,17 +132,25 @@ class RedisConsumer:
         """
         raw_event = fields.get("event")
         if not raw_event:
-            await self._dead_letter(
-                message_id, fields, "missing_field", "message has no 'event' field"
-            )
-            return
-
-        try:
-            envelope = EventEnvelope.model_validate_json(raw_event)
-        except ValidationError as e:
-            # No retries: a message that cannot parse will never parse.
-            await self._dead_letter(message_id, fields, "validation_error", str(e))
-            return
+            if not fields:
+                await self._dead_letter(
+                    message_id, fields, "missing_field", "message has no 'event' field"
+                )
+                return
+            try:
+                envelope = legacy_message_adapter.adapt(fields)
+            except (TypeError, ValueError) as e:
+                await self._dead_letter(
+                    message_id, fields, "validation_error", str(e)
+                )
+                return
+        else:
+            try:
+                envelope = EventEnvelope.model_validate_json(raw_event)
+            except ValidationError as e:
+                # No retries: a message that cannot parse will never parse.
+                await self._dead_letter(message_id, fields, "validation_error", str(e))
+                return
 
         carrier = {"traceparent": envelope.traceparent} if envelope.traceparent else {}
         parent_context = extract(carrier)

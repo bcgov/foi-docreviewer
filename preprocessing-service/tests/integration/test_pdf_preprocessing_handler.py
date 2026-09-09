@@ -105,6 +105,39 @@ async def test_clean_pdf_uploads_nothing_and_reports_clean(
     assert env.payload.output_uri is None
 
 
+async def test_legacy_payload_is_preserved_for_downstream_compression(
+    app_settings, redis_client, s3_stub
+):
+    legacy_payload = {
+        "jobid": "job-legacy",
+        "s3filepath": SOURCE_URI,
+        "filename": "a.pdf",
+        "ministryrequestid": "42",
+        "documentmasterid": "7",
+        "trigger": "recordupload",
+        "createdby": "user@example.com",
+        "requestnumber": "REQ-1",
+        "batch": "batch-1",
+        "incompatible": "false",
+        "bcgovcode": "EDU",
+        "attributes": '{"isattachment":true}',
+    }
+    payload = PdfPreprocessingRequestedEvent(
+        job_id="job-legacy",
+        source_uri=SOURCE_URI,
+        legacy_payload=legacy_payload,
+    )
+
+    await handler_mod.handle(payload, correlation_id="job-legacy")
+
+    entries = await redis_client.xrange(app_settings.OUTPUT_STREAM_NAME)
+    output = entries[0][1]
+    assert output["jobid"] == "job-legacy"
+    assert output["filename"] == "a.pdf"
+    assert output["attributes"] == '{"isattachment":true}'
+    assert output["s3filepath"] == EXPECTED_OUTPUT_URI
+
+
 async def test_redelivery_is_a_noop_and_publishes_nothing_extra(
     app_settings, redis_client, s3_stub
 ):

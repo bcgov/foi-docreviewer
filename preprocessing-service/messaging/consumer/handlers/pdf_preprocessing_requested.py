@@ -103,23 +103,33 @@ async def handle(
     # Publishing from inside a handler is what makes this a pipeline node. The
     # producer reads ambient trace context, so this event is automatically a
     # child of the span for the message being handled.
-    await get_producer().publish(
-        EventEnvelope.create(
-            event_type="PdfPreprocessingCompleted",
-            payload=PdfPreprocessingCompletedEvent(
-                job_id=job_id,
-                outcome=outcome,
-                spans_restored=result.spans_restored,
-                pages_affected=result.pages_affected,
-                detectors=detectors,
-                output_uri=output_uri if result.wrote_output else None,
-                completed_at=completed_at,
+    producer = get_producer()
+    if payload.legacy_payload:
+        downstream_payload = dict(payload.legacy_payload)
+        if result.wrote_output:
+            downstream_payload["s3filepath"] = output_uri
+        await producer.publish_legacy(
+            downstream_payload,
+            stream=settings.OUTPUT_STREAM_NAME,
+        )
+    else:
+        await producer.publish(
+            EventEnvelope.create(
+                event_type="PdfPreprocessingCompleted",
+                payload=PdfPreprocessingCompletedEvent(
+                    job_id=job_id,
+                    outcome=outcome,
+                    spans_restored=result.spans_restored,
+                    pages_affected=result.pages_affected,
+                    detectors=detectors,
+                    output_uri=output_uri if result.wrote_output else None,
+                    completed_at=completed_at,
+                ),
+                correlation_id=correlation_id,
+                source="pdf-preprocessing",
             ),
-            correlation_id=correlation_id,
-            source="pdf-preprocessing",
-        ),
-        stream=settings.OUTPUT_STREAM_NAME,
-    )
+            stream=settings.OUTPUT_STREAM_NAME,
+        )
 
     log.info(
         "Preprocessing complete",
