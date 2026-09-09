@@ -17,7 +17,7 @@ def redis_url() -> str:
         yield f"redis://{host}:{port}/0"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def app_settings(redis_url: str):
     """
     Point the application's cached settings at the container.
@@ -34,8 +34,10 @@ def app_settings(redis_url: str):
     os.environ["OUTPUT_FILENAME_SUFFIX"] = "PREPROCESSED"
     os.environ["CONSUMER_RETRY_BACKOFF_MS"] = "10"
     get_settings.cache_clear()
-    yield get_settings()
-    get_settings.cache_clear()
+    try:
+        yield get_settings()
+    finally:
+        get_settings.cache_clear()
 
 
 @pytest_asyncio.fixture

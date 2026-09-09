@@ -4,7 +4,7 @@ from pathlib import Path
 from config.logging import get_logger
 from config.settings import get_settings
 from core.pipeline import run_pipeline
-from core.s3 import fetch_pdf, suffix_uri, upload_pdf
+from core.s3 import fetch_pdf, normalize_s3_uri, suffix_uri, upload_pdf
 from messaging.models import (
     DetectorOutcome,
     EventEnvelope,
@@ -60,11 +60,12 @@ async def handle(
     work = Path(settings.WORK_DIR)
     src_path = work / f"{job_id}.src.pdf"
     out_path = work / f"{job_id}.out.pdf"
+    source_uri = normalize_s3_uri(payload.source_uri)
     # Restored PDF goes back beside the source: <name>.pdf -> <name>PREPROCESSED.pdf
-    output_uri = suffix_uri(payload.source_uri, settings.OUTPUT_FILENAME_SUFFIX)
+    output_uri = suffix_uri(source_uri, settings.OUTPUT_FILENAME_SUFFIX)
 
     try:
-        await fetch_pdf(payload.source_uri, src_path)
+        await fetch_pdf(source_uri, src_path)
         result = run_pipeline(src_path, out_path)
         if result.wrote_output:
             await upload_pdf(out_path, output_uri)

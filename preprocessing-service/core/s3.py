@@ -71,6 +71,30 @@ def parse_s3_uri(uri: str) -> tuple[str, str]:
     return parsed.netloc, parsed.path.lstrip("/")
 
 
+def normalize_s3_uri(uri: str) -> str:
+    """Convert a configured path-style HTTPS object URL to an s3:// URI."""
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        if not parsed.netloc or not parsed.path.lstrip("/"):
+            raise S3Error(f"not a valid s3:// URI: {uri!r}")
+        return uri
+
+    settings = get_settings()
+    endpoint = urlparse(settings.S3_ENDPOINT_URL or "")
+    if (
+        parsed.scheme != "https"
+        or not endpoint.netloc
+        or parsed.netloc != endpoint.netloc
+        or not parsed.path.lstrip("/")
+    ):
+        raise S3Error(f"unsupported object-store URI: {uri!r}")
+
+    bucket, separator, key = parsed.path.lstrip("/").partition("/")
+    if not separator or not bucket or not key:
+        raise S3Error(f"not a valid path-style object-store URI: {uri!r}")
+    return f"s3://{bucket}/{key}"
+
+
 def suffix_uri(uri: str, suffix: str) -> str:
     """Append `suffix` to the filename stem, keeping bucket/prefix/extension.
 
