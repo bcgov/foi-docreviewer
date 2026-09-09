@@ -27,9 +27,10 @@ def s3_stub(tmp_path, app_settings, monkeypatch):
     """
     monkeypatch.setattr(app_settings, "WORK_DIR", str(tmp_path / "work"))
     uploads: list[tuple[bytes, str]] = []
-    state = {"clip": True}
+    state = {"clip": True, "fetched_uri": None}
 
     async def fake_fetch(source_uri: str, dst) -> Path:
+        state["fetched_uri"] = source_uri
         return make_pdf(dst, clip=state["clip"])
 
     async def fake_upload(src, dest_uri: str) -> str:
@@ -84,6 +85,21 @@ async def test_hidden_text_is_restored_uploaded_and_completed_is_published(
     assert env.payload.detectors["clip_hidden_text"].spans_restored >= 1
     assert env.payload.detectors["clip_hidden_text"].pages_affected == 1
     assert await redis_client.xlen(app_settings.STREAM_NAME) == 0
+
+
+async def test_https_source_uri_is_normalized_before_processing(
+    app_settings, redis_client, s3_stub, monkeypatch
+):
+    state, uploads = s3_stub
+    app_settings.S3_ENDPOINT_URL = "https://obj.example.gov.bc.ca"
+    https_uri = "https://obj.example.gov.bc.ca/in-bucket/incoming/a.pdf"
+    payload = PdfPreprocessingRequestedEvent(job_id="job-https", source_uri=https_uri)
+
+    await handler_mod.handle(payload, correlation_id="job-https")
+
+    assert state["fetched_uri"] == SOURCE_URI
+    assert uploads[0][1] == EXPECTED_OUTPUT_URI
+    assert await redis_client.hget("preprocessing:job-https", "output_uri") == EXPECTED_OUTPUT_URI
 
 
 async def test_clean_pdf_uploads_nothing_and_reports_clean(

@@ -29,6 +29,15 @@ def test_create_builds_valid_envelope():
     assert env.event_id is not None
 
 
+def test_requested_event_accepts_https_object_store_uri():
+    event = PdfPreprocessingRequestedEvent(
+        job_id="job-https",
+        source_uri="https://obj.example.gov.bc.ca/bucket/file.pdf",
+    )
+
+    assert event.source_uri.startswith("https://")
+
+
 def test_envelope_round_trips_through_json():
     env = EventEnvelope.create(
         event_type="PdfPreprocessingRequested",
