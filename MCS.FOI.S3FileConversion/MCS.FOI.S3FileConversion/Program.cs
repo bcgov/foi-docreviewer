@@ -77,6 +77,18 @@ namespace MCS.FOI.S3FileConversion
                 string dedupeStreamKey = Environment.GetEnvironmentVariable("DEDUPE_STREAM_KEY");
                 string consumerGroup = Environment.GetEnvironmentVariable("REDIS_STREAM_CONSUMER_GROUP");
 
+                var consumerIdentity = ConsumerIdentity.Resolve(
+                    Environment.GetEnvironmentVariable("CONSUMER_NAME"),
+                    Environment.MachineName,
+                    Environment.ProcessId);
+                string consumerName = consumerIdentity.Name;
+                if (consumerIdentity.IsFallback)
+                {
+                    Log.Warning(
+                        "CONSUMER_NAME is missing or blank; using fallback Redis consumer {ConsumerName}",
+                        consumerName);
+                }
+
                 using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
                  new ConfigurationOptions
                  {
@@ -85,8 +97,9 @@ namespace MCS.FOI.S3FileConversion
                  });
 
                 var db = redis.GetDatabase();
-                Log.Information("Connecting to Redis stream {StreamKey} on {Host}:{Port} with consumer group {ConsumerGroup}",
-                    streamKey, eventHubHost, eventHubPort, consumerGroup);
+                Log.Information(
+                    "Connecting to Redis stream {StreamKey} on {Host}:{Port} with consumer group {ConsumerGroup} and consumer {ConsumerName}",
+                    streamKey, eventHubHost, eventHubPort, consumerGroup, consumerName);
 
                 string latest = "$";
                 try
@@ -111,11 +124,12 @@ namespace MCS.FOI.S3FileConversion
 
                 while (true)
                 {
-                    var messages = db.StreamReadGroup(streamKey, consumerGroup, "c1");
+                    var messages = db.StreamReadGroup(streamKey, consumerGroup, consumerName);
                     if (messages.Length > 0)
                     {
                         foreach (StreamEntry message in messages)
                         {
+                            using var _consumer = LogContext.PushProperty("ConsumerName", consumerName);
                             using var _rn = LogContext.PushProperty("RequestNumber", (string)message["requestnumber"]);
                             using var _bc = LogContext.PushProperty("BCGovCode", (string)message["bcgovcode"]);
                             using var _mr = LogContext.PushProperty("MinistryRequestId", (string)message["ministryrequestid"]);
@@ -202,7 +216,7 @@ namespace MCS.FOI.S3FileConversion
                                             }
                                         }
                                         string newFilename = Path.ChangeExtension(message["s3filepath"], ".pdf");
-                                        var attributes = JsonSerializer.Deserialize<JsonNode>(message["attributes"]);
+                                        var attributes = JsonSerializer.Deserialize<JsonNode>((string)message["attributes"]);
                                         attributes["convertedfilesize"] = JsonValue.Create(convertedSize);
                                         db.StreamAdd(dedupeStreamKey, new NameValueEntry[]
                                         {
