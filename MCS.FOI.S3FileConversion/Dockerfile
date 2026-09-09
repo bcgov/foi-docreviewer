@@ -48,7 +48,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         unzip \
-        libfontconfig1 \
+        fontconfig \
         xvfb \
         libasound2t64 \
         libatk1.0-0t64 \
@@ -99,7 +99,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 RUN curl -o fonts.zip "https://citz-foi-prod.objectstore.gov.bc.ca/records-upload-formats/fonts.zip"  \
 && unzip fonts.zip -d /usr/local/share/fonts \
-&& rm fonts.zip
+&& rm fonts.zip \
+&& fc-cache -f -v
 # RUN echo "deb http://httpredir.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \ 
 #     && echo "deb http://httpredir.debian.org/debian buster-updates main contrib non- free" >> /etc/apt/sources.list \
 #     && echo "deb http://security.debian.org/ buster/updates main contrib non-free" >> /etc/apt/sources.list \
@@ -117,7 +118,12 @@ RUN curl -o fonts.zip "https://citz-foi-prod.objectstore.gov.bc.ca/records-uploa
 #     && apt-get autoremove -y \
 #     && rm -rf /var/lib/apt/lists/*
 
+ENV HOME=/app \
+    XDG_CACHE_HOME=/app/.cache
+
 COPY --from=build-env /app/MCS.FOI.S3FileConversion/out ./
-RUN chmod a+rwx -R /app
+RUN mkdir -p /app/.cache/fontconfig \
+    && chgrp -R 0 /app \
+    && chmod -R g=u /app
 #RUN chmod a+rwx -R /vault/secrets/conversion
 ENTRYPOINT ["dotnet", "MCS.FOI.S3FileConversion.dll"]
