@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build-env
 WORKDIR /app
 
 COPY *.sln .
@@ -19,7 +19,7 @@ COPY MCS.FOI.PPTToPDFUnitTests/*.csproj ./MCS.FOI.PPTToPDFUnitTests/
 # RUN ["cp", "/NuGet.Config", "/root/.nuget/NuGet/NuGet.Config"]
 
 # Restore as distinct layers
-RUN dotnet restore
+RUN dotnet restore MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion.csproj
 
 # Copy everything else
 COPY MCS.FOI.S3FileConversion/. ./MCS.FOI.S3FileConversion/
@@ -37,19 +37,69 @@ RUN dotnet publish -c Release -o out
 
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/runtime:7.0
+FROM mcr.microsoft.com/dotnet/runtime:10.0-noble
 WORKDIR /app
 
 # fonts
 # COPY ["Fonts/*.*", "/usr/local/share/fonts/"]
 # either copy fonts to font folder in project path, or run following command in cmd
 # docker cp C:/Windows/Fonts/. ** docker image hash code **:/usr/local/share/fonts
-RUN apt-get update && apt-get install -y curl unzip
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        unzip \
+        libfontconfig1 \
+        xvfb \
+        libasound2t64 \
+        libatk1.0-0t64 \
+        libc6 \
+        libcairo2 \
+        libcups2t64 \
+        libdbus-1-3 \
+        libexpat1 \
+        libgcc-s1 \
+        libgdk-pixbuf-2.0-0 \
+        libglib2.0-0t64 \
+        libgtk-3-0t64 \
+        libnspr4 \
+        libpango-1.0-0 \
+        libpangocairo-1.0-0 \
+        libstdc++6 \
+        libx11-6 \
+        libx11-xcb1 \
+        libxcb1 \
+        libxcursor1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
+        libxi6 \
+        libxrandr2 \
+        libxrender1 \
+        libxss1 \
+        libxtst6 \
+        libnss3 \
+        libgbm1 \
+        libgdiplus \
+        libx11-dev \
+        libx11-xcb-dev \
+        libxcb-icccm4-dev \
+        libxcb-image0-dev \
+        libxcb-keysyms1-dev \
+        libxcb-randr0-dev \
+        libxcb-render-util0-dev \
+        libxcb-render0-dev \
+        libxcb-shm0-dev \
+        libxcb-util-dev \
+        libxcb-xfixes0-dev \
+        libxcb-xkb-dev \
+        libxcb1-dev \
+        libxfixes-dev \
+        libxrandr-dev \
+        libxrender-dev && \
+    rm -rf /var/lib/apt/lists/*
 RUN curl -o fonts.zip "https://citz-foi-prod.objectstore.gov.bc.ca/records-upload-formats/fonts.zip"  \
 && unzip fonts.zip -d /usr/local/share/fonts \
 && rm fonts.zip
-
-RUN apt-get update && apt-get install -y libfontconfig1 xvfb
 # RUN echo "deb http://httpredir.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list \ 
 #     && echo "deb http://httpredir.debian.org/debian buster-updates main contrib non- free" >> /etc/apt/sources.list \
 #     && echo "deb http://security.debian.org/ buster/updates main contrib non-free" >> /etc/apt/sources.list \
@@ -67,14 +117,6 @@ RUN apt-get update && apt-get install -y libfontconfig1 xvfb
 #     && apt-get autoremove -y \
 #     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-     apt-get install -yq --no-install-recommends \ 
-     libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \ 
-     libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 \ 
-     libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 \ 
-     libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \ 
-     libnss3 libgbm1 libgdiplus \
-     libx11-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-render0-dev libxcb-shm0-dev libxcb-util0-dev libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxfixes-dev libxrandr-dev libxrender-dev
 COPY --from=build-env /app/MCS.FOI.S3FileConversion/out ./
 RUN chmod a+rwx -R /app
 #RUN chmod a+rwx -R /vault/secrets/conversion
