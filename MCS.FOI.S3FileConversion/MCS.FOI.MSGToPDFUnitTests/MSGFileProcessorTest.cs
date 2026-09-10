@@ -38,17 +38,13 @@ namespace MCS.FOI.MSGToPDF.UnitTests
         [TestMethod]
         public void ProcessSimpleMSGFilesTest()
         {
-            bool converted;
-            string message = string.Empty;
-            Dictionary<MemoryStream, Dictionary<string,string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
-            Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "simple-test-msg-file.msg"), FileMode.Open, FileAccess.Read);
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(testFile);
+            using MSGFileProcessor msgFileProcessor = new MSGFileProcessor(testFile);
             msgFileProcessor.IsSinglePDFOutput = false;
             msgFileProcessor.WaitTimeinMilliSeconds = 5000;
             msgFileProcessor.FailureAttemptCount = 10;
-            (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
+            var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             Assert.IsTrue(converted == true, $"MSG to PDF Conversion failed for {testFile}");
 
             SaveStreamAsFile(getSourceFolder(), output, "result_simple-test-msg-file.pdf");
@@ -57,17 +53,13 @@ namespace MCS.FOI.MSGToPDF.UnitTests
         [TestMethod]
         public void ProcessMSGFileWithAttachmentsTest()
         {
-            bool converted;
-            string message = string.Empty;
-            Dictionary<MemoryStream, Dictionary<string, string>> attachments = new Dictionary<MemoryStream, Dictionary<string, string>>();
             string rootFolder = getSourceFolder();
-            Stream output = new MemoryStream();
             Stream testFile = new FileStream(Path.Combine(getSourceFolder(), "Test-MSG-File-with-Attachments.msg"), FileMode.Open, FileAccess.Read);
-            MSGFileProcessor msgFileProcessor = new MSGFileProcessor(testFile);
+            using MSGFileProcessor msgFileProcessor = new MSGFileProcessor(testFile);
             msgFileProcessor.IsSinglePDFOutput = false;
             msgFileProcessor.WaitTimeinMilliSeconds = 5000;
             msgFileProcessor.FailureAttemptCount = 10;
-            (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
+            var (converted, message, output, attachments) = msgFileProcessor.ConvertToPDF();
             Assert.IsTrue(converted == true, $"MSG to PDF Conversion failed for {testFile}");
 
             SaveStreamAsFile(getSourceFolder(), output, "result_Test-MSG-File-with-Attachments.pdf");
@@ -96,4 +88,3 @@ namespace MCS.FOI.MSGToPDF.UnitTests
         }
     }
 }
-

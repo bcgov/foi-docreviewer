@@ -435,10 +435,11 @@ SourceRootPath="$PWD/MCS.FOI.ExcelToPDFUnitTests/SourceExcel" \
 
 #### Containerized conversion integration tests
 
-Docker with Compose v2 is required. Run the supported local and CI entry
-point from this service directory:
+Docker with Compose v2 is required. Confirm that it is available, then run the
+supported local and CI entry point from this service directory:
 
 ```bash
+docker compose version
 ./integration/run.sh
 ```
 
@@ -446,28 +447,67 @@ The command builds and runs the production worker entry point with
 health-checked PostgreSQL, Redis, SeaweedFS, and a record-formats stub.
 It uses static test-only credentials and no protected secrets. The suite runs
 independent DOCX and attachment-bearing MSG conversion jobs, each with a
-60-second scenario deadline.
+60-second scenario deadline. The script returns a non-zero exit code when any
+test fails and removes its containers, network, and volumes after the run.
 
 The database fixture intentionally defines only the worker's five-table
 contract: `DocumentPathMapper`, `DocumentMaster`, `DocumentAttributes`,
 `FileConversionJob`, and `DeduplicationJob`. The DOCX scenario verifies its
 source and converted PDF, database job/document state, downstream event, and
-input acknowledgement. The MSG scenario additionally verifies three extracted
-attachments: two XLSX files recursively return through conversion, while one
-PDF routes directly to deduplication. It expects four MSG-related dedupe events
-in total (the parent, direct PDF, and two converted XLSX PDFs). Both scenarios
-stop at the dedupe-stream boundary; the suite does not run a deduplication
-consumer.
+input acknowledgement.
+
+The MSG scenario is independent of a fixture's attachment count and file
+types. It discovers the extracted attachment documents from the database and
+expects one final dedupe event for the parent and one for every attachment.
+Attachments that create child conversion jobs must complete conversion and
+produce PDFs; attachments without child conversion jobs must route directly to
+deduplication. Both paths verify the database relationships, Redis messages,
+S3 objects, and input acknowledgement. The suite stops at the dedupe-stream
+boundary and does not run a deduplication consumer.
+
+By default, the integration image uses this fixture:
+
+```text
+MCS.FOI.MSGToPDFUnitTests/SourceFiles/Test-MSG-File-with-Attachments.msg
+```
+
+To exercise a different small or large MSG, place it at that path before
+running `./integration/run.sh`. The test calculates the input size and expected
+downstream work from the selected file; no attachment names, extensions, or
+counts need to be changed in the test. Preserve the original fixture with Git
+or use a temporary worktree if the replacement should not become a repository
+change.
 
 Results are written beneath `TestResults/integration/`:
 
 - `conversion-integration.trx` contains the MSTest results.
-- `compose.log` contains Compose status and logs for failure diagnosis.
+- `compose.log` contains Compose status and service logs from the most recent
+  run, including worker conversion and routing messages.
 - `artifacts/` preserves the inputs and generated files for manual validation:
   - `docx/original/` and `docx/converted/` contain the DOCX scenario files.
   - `msg/original/` and `msg/converted/` contain the parent MSG scenario files.
   - `msg/attachments/original/` contains every extracted attachment.
-  - `msg/attachments/converted/` contains the PDFs generated from convertible attachments.
+  - `msg/attachments/converted/` contains every PDF generated from a
+    convertible attachment. The directory may be absent when all attachments
+    route directly to deduplication.
+
+Each run resets its scenario artifact directories, so copy any output that must
+be retained before running the suite again. Useful commands after a run are:
+
+```bash
+# List every preserved artifact and its size.
+find TestResults/integration/artifacts -type f -printf '%P\t%s bytes\n' | sort
+
+# Inspect the result counters in the TRX report.
+grep -o '<Counters[^>]*/>' TestResults/integration/conversion-integration.trx
+
+# Inspect worker and infrastructure diagnostics from the last Compose run.
+less TestResults/integration/compose.log
+```
+
+Running the integration project directly with `dotnet test` does not start its
+dependencies; its end-to-end tests are marked inconclusive outside the Compose
+environment. Use `./integration/run.sh` for an actual end-to-end result.
 
 ### Formatting and linting
 
