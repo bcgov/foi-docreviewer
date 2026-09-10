@@ -1,0 +1,126 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: foi
+      POSTGRES_USER: foi
+      POSTGRES_PASSWORD: foi-test
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./integration/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foi -d foi"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "redis-test"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis-test", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/config.json
+      - -volume.max=100
+      - -master.volumeSizeLimitMB=100
+      - -master.volumePreallocate=false
+    volumes:
+      - seaweedfs-data:/data
+      - ./integration/seaweedfs/config.json:/etc/seaweedfs/config.json:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -qO- http://127.0.0.1:9333/dir/status |
+          grep -q '"DataNodes":\[{' &&
+          wget -q --spider http://127.0.0.1:8333/healthz
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
+  record-formats:
+    image: nginx:1.29.1-alpine
+    volumes:
+      - ./integration/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./integration/record-formats.json:/usr/share/nginx/html/record-formats.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  file-conversion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: foi
+      DATABASE_USERNAME: foi
+      DATABASE_PASSWORD: foi-test
+      REDIS_STREAM_HOST: redis
+      REDIS_STREAM_PORT: "6379"
+      REDIS_STREAM_PASSWORD: redis-test
+      REDIS_STREAM_KEY: file-conversion-integration
+      DEDUPE_STREAM_KEY: dedupe-integration
+      REDIS_STREAM_CONSUMER_GROUP: file-conversion-consumer-group
+      CONSUMER_NAME: integration-worker
+      S3_HOST: http://seaweedfs:8333
+      RECORD_FORMATS: http://record-formats/formats.json
+      FILE_CONVERSION_SYNCFUSIONKEY: ""
+      FILE_CONVERSION_FAILTUREATTEMPT: "1"
+      FILE_CONVERSION_WAITTIME: "1"
+      FILE_CONVERSION_OPENFILE_WAITTIME: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  integration-tests:
+    build:
+      context: .
+      dockerfile: integration/Dockerfile
+    environment:
+      DATABASE_CONNECTION_STRING: Host=postgres;Port=5432;Database=foi;Username=foi;Password=foi-test
+      REDIS_CONNECTION_STRING: redis:6379,password=redis-test,abortConnect=false
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ACCESS_KEY: dev
+      S3_SECRET_KEY: dev
+      S3_BUCKET: integration-bucket
+      CONVERSION_STREAM: file-conversion-integration
+      DEDUPE_STREAM: dedupe-integration
+      CONSUMER_GROUP: file-conversion-consumer-group
+    volumes:
+      - ./TestResults/integration:/test-results
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+      file-conversion:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  seaweedfs-data:

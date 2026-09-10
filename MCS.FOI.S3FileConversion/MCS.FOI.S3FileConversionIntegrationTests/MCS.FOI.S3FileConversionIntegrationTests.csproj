@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="3.7.101.9" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+    <PackageReference Include="Npgsql" Version="7.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.70" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../MCS.FOI.DocToPDFUnitTests/SourceFiles/simple-test-doc.docx"
+          Link="Fixtures/simple-test-doc.docx"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
