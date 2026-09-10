@@ -30,7 +30,7 @@ Its responsibilities are to:
 - validate the presence of the job fields required by the worker;
 - record `started`, `completed`, or `error` job entries in PostgreSQL;
 - retrieve bucket-specific S3 access credentials from PostgreSQL;
-- download the source object through a one-hour presigned HTTPS URL;
+- download the source object through a one-hour presigned HTTP(S) URL;
 - convert `.xls`, `.xlsx`, `.ics`, `.msg`, `.doc`, `.docx`, `.ppt`, and `.pptx` files to PDF;
 - extract attachments from `.ics` and `.msg` files, upload them separately, and route each attachment according to the centrally supplied format lists;
 - upload the converted PDF beside the source object; and
@@ -53,7 +53,7 @@ flowchart LR
     R -->|XREADGROUP| W[FOI S3 File Conversion]
     W -->|job state and object metadata| P[(PostgreSQL)]
     P -->|bucket credentials| W
-    W -->|presigned HTTPS GET/PUT| S[(S3-compatible object storage)]
+    W -->|presigned HTTP(S) GET/PUT| S[(S3-compatible object storage)]
     W --> C[Format-specific converter]
     C -->|PDF and optional attachments| W
     W -->|XADD converted PDF and<br/>non-convertible attachments| D[Deduplication stream]
@@ -67,7 +67,7 @@ flowchart LR
 | --- | --- | --- |
 | Redis | Redis Streams | Reads the stream named by `REDIS_STREAM_KEY` with a consumer group; writes converted outputs to `DEDUPE_STREAM_KEY`; writes convertible attachments back to `REDIS_STREAM_KEY`. |
 | PostgreSQL | Npgsql/TCP | Reads bucket credentials from `DocumentPathMapper`; writes `FileConversionJob`, `DeduplicationJob`, `DocumentMaster`, and `DocumentAttributes` records. |
-| S3-compatible object storage | S3 signing plus HTTPS | Generates presigned GET/PUT URLs, downloads source files, and uploads PDFs and extracted attachments. |
+| S3-compatible object storage | S3 signing plus HTTP(S) | Generates presigned GET/PUT URLs, downloads source files, and uploads PDFs and extracted attachments. |
 | Record-format endpoint | HTTP GET | Supplies JSON arrays named `conversion`, `dedupe`, and `nonredactable` at startup. |
 
 ### Internal components
@@ -289,8 +289,8 @@ These are synchronous dependency calls rather than queue messages:
 | Interaction | When | Payload/result | Failure behavior |
 | --- | --- | --- | --- |
 | `GET RECORD_FORMATS` | Once during startup | Expects a JSON object with `conversion`, `dedupe`, and `nonredactable` arrays. | Non-success status, connection failure, or invalid content reaches the top-level fatal handler and stops the worker loop. No explicit retry. |
-| Presigned HTTPS GET | Once per input | Downloads the object identified by `s3filepath`. | Non-success status raises and enters processing failure handling. No explicit HTTP retry or timeout. |
-| Presigned HTTPS PUT | Once for the PDF and once per extracted attachment | Uploads an `application/octet-stream` body. | Non-success status raises and enters processing failure handling. Already completed uploads are not rolled back. |
+| Presigned HTTP(S) GET | Once per input | Downloads the object identified by `s3filepath`. | Non-success status raises and enters processing failure handling. No explicit HTTP retry or timeout. |
+| Presigned HTTP(S) PUT | Once for the PDF and once per extracted attachment | Uploads an `application/octet-stream` body. | Non-success status raises and enters processing failure handling. Already completed uploads are not rolled back. |
 | PostgreSQL commands | At job start, credential lookup, and job completion/failure | Parameterized job/document writes except the bucket credential query, which concatenates the parsed bucket into SQL. | Exceptions are logged and rethrown. There is no application retry; the completion records use one `NpgsqlBatch`, but external S3/Redis effects are not part of its transaction. |
 
 ## 5. End-to-End Message Flow
@@ -408,7 +408,11 @@ dotnet watch --project MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion.csproj 
 
 ### Tests
 
-The solution contains MSTest projects for Calendar, Word, Excel, MSG, and PowerPoint converters. There is no test project for `Program`, `S3Handler`, or `DBHandler`, and no automated integration-test suite for Redis/PostgreSQL/S3 orchestration.
+The solution contains MSTest projects for Calendar, Word, Excel, MSG, PowerPoint,
+and S3 file-conversion components. Its containerized integration project exercises
+Redis, PostgreSQL, and S3 orchestration through the supported wrapper below; when
+that project is discovered outside Compose, its end-to-end test is reported as
+inconclusive with guidance to use the wrapper.
 
 ```bash
 dotnet test MCS.FOI.S3FileConversion.sln --configuration Debug
@@ -429,7 +433,33 @@ SourceRootPath="$PWD/MCS.FOI.ExcelToPDFUnitTests/SourceExcel" \
   dotnet test MCS.FOI.ExcelToPDFUnitTests/MCS.FOI.ExcelToPDFUnitTests.csproj
 ```
 
-Integration tests: **Not determined from the repository**; no conversion-service integration-test project is present.
+#### Containerized DOCX integration test
+
+Docker with Compose v2 is required. Run the supported local and CI entry
+point from this service directory:
+
+```bash
+./integration/run.sh
+```
+
+The command builds and runs the production worker entry point with
+health-checked PostgreSQL, Redis, SeaweedFS, and a record-formats stub.
+It uses static test-only credentials, no protected secrets, and exposes no
+service ports to the host. The runner waits for the worker's Redis consumer
+group, publishes one DOCX conversion, and uses a 60-second conversion
+deadline.
+
+The database fixture intentionally defines only the worker's five-table
+contract: `DocumentPathMapper`, `DocumentMaster`, `DocumentAttributes`,
+`FileConversionJob`, and `DeduplicationJob`. The test verifies the source
+and PDF objects, database job/document state, the downstream dedupe-stream
+entry, and input acknowledgement. It stops at the dedupe-stream boundary and
+does not run a deduplication consumer.
+
+Results are written beneath `TestResults/integration/`:
+
+- `docx-integration.trx` contains the MSTest result.
+- `compose.log` contains Compose status and logs for failure diagnosis.
 
 ### Formatting and linting
 
@@ -486,7 +516,7 @@ ORDER BY version;
 | `REDIS_STREAM_CONSUMER_GROUP` | Yes | None | Redis consumer-group name. |
 | `CONSUMER_NAME` | Required in Kubernetes/OpenShift; optional locally | `<machine-name>-<process-id>` | Inject `metadata.name` through the Downward API. Missing or blank values emit a startup warning. |
 | `DEDUPE_STREAM_KEY` | Yes | None | Output stream for converted PDFs and other extracted attachments. |
-| `S3_HOST` | Yes | None | S3-compatible service endpoint. `https://` is prepended unless the value already contains it. |
+| `S3_HOST` | Yes | None | S3-compatible service endpoint. Explicit `http://` and `https://` schemes are preserved; a scheme-less host defaults to HTTPS. |
 | `RECORD_FORMATS` | Yes | None | HTTP(S) URL returning `conversion`, `dedupe`, and `nonredactable` arrays. Startup fails if the request/status/JSON shape fails. |
 | `FILE_CONVERSION_SYNCFUSIONKEY` | Operationally yes | Empty `ConversionSettings:SyncfusionLicense` | Syncfusion licence key. |
 | `FILE_CONVERSION_FAILTUREATTEMPT` | No | `5` | Maximum converter attempts. The misspelling `FAILTURE` is the actual contract. Values below `1` fall back to the JSON default. |

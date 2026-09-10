@@ -183,12 +183,13 @@ namespace MCS.FOI.S3FileConversion
         public string GetPresignedURL(IAmazonS3 s3, string fileName, HttpVerb method)
         {
             AWSConfigsS3.UseSignatureVersion4 = true;
+            var serviceUri = new Uri(s3.Config.ServiceURL);
             GetPreSignedUrlRequest request = new()
             {
                 Key = fileName,
                 Verb = method,
                 Expires = DateTime.Now.AddHours(1),
-                Protocol = Protocol.HTTPS,
+                Protocol = serviceUri.Scheme == Uri.UriSchemeHttp ? Protocol.HTTP : Protocol.HTTPS,
             };
             return s3.GetPreSignedURL(request);
         }

@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MCS.FOI.PPTToPDFUnitTests",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCS.FOI.S3FileConversionUnitTests", "MCS.FOI.S3FileConversionUnitTests\MCS.FOI.S3FileConversionUnitTests.csproj", "{F307DA95-1B09-4A90-9A0E-49956C0CC0E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCS.FOI.S3FileConversionIntegrationTests", "MCS.FOI.S3FileConversionIntegrationTests\MCS.FOI.S3FileConversionIntegrationTests.csproj", "{542BC79C-7BE8-4516-99BC-873E1B330DB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,10 @@ Global
 		{F307DA95-1B09-4A90-9A0E-49956C0CC0E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F307DA95-1B09-4A90-9A0E-49956C0CC0E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F307DA95-1B09-4A90-9A0E-49956C0CC0E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{542BC79C-7BE8-4516-99BC-873E1B330DB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{542BC79C-7BE8-4516-99BC-873E1B330DB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{542BC79C-7BE8-4516-99BC-873E1B330DB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{542BC79C-7BE8-4516-99BC-873E1B330DB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
