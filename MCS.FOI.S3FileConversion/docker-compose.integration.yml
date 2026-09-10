@@ -107,6 +107,7 @@ services:
       CONVERSION_STREAM: file-conversion-integration
       DEDUPE_STREAM: dedupe-integration
       CONSUMER_GROUP: file-conversion-consumer-group
+      INTEGRATION_ARTIFACTS_DIRECTORY: /test-results/artifacts
     volumes:
       - ./TestResults/integration:/test-results
     depends_on:

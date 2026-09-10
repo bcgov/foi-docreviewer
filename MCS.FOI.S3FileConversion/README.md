@@ -411,8 +411,8 @@ dotnet watch --project MCS.FOI.S3FileConversion/MCS.FOI.S3FileConversion.csproj 
 The solution contains MSTest projects for Calendar, Word, Excel, MSG, PowerPoint,
 and S3 file-conversion components. Its containerized integration project exercises
 Redis, PostgreSQL, and S3 orchestration through the supported wrapper below; when
-that project is discovered outside Compose, its end-to-end test is reported as
-inconclusive with guidance to use the wrapper.
+that project is discovered outside Compose, its end-to-end tests are reported
+as inconclusive with guidance to use the wrapper.
 
 ```bash
 dotnet test MCS.FOI.S3FileConversion.sln --configuration Debug
@@ -433,7 +433,7 @@ SourceRootPath="$PWD/MCS.FOI.ExcelToPDFUnitTests/SourceExcel" \
   dotnet test MCS.FOI.ExcelToPDFUnitTests/MCS.FOI.ExcelToPDFUnitTests.csproj
 ```
 
-#### Containerized DOCX integration test
+#### Containerized conversion integration tests
 
 Docker with Compose v2 is required. Run the supported local and CI entry
 point from this service directory:
@@ -444,22 +444,30 @@ point from this service directory:
 
 The command builds and runs the production worker entry point with
 health-checked PostgreSQL, Redis, SeaweedFS, and a record-formats stub.
-It uses static test-only credentials, no protected secrets, and exposes no
-service ports to the host. The runner waits for the worker's Redis consumer
-group, publishes one DOCX conversion, and uses a 60-second conversion
-deadline.
+It uses static test-only credentials and no protected secrets. The suite runs
+independent DOCX and attachment-bearing MSG conversion jobs, each with a
+60-second scenario deadline.
 
 The database fixture intentionally defines only the worker's five-table
 contract: `DocumentPathMapper`, `DocumentMaster`, `DocumentAttributes`,
-`FileConversionJob`, and `DeduplicationJob`. The test verifies the source
-and PDF objects, database job/document state, the downstream dedupe-stream
-entry, and input acknowledgement. It stops at the dedupe-stream boundary and
-does not run a deduplication consumer.
+`FileConversionJob`, and `DeduplicationJob`. The DOCX scenario verifies its
+source and converted PDF, database job/document state, downstream event, and
+input acknowledgement. The MSG scenario additionally verifies three extracted
+attachments: two XLSX files recursively return through conversion, while one
+PDF routes directly to deduplication. It expects four MSG-related dedupe events
+in total (the parent, direct PDF, and two converted XLSX PDFs). Both scenarios
+stop at the dedupe-stream boundary; the suite does not run a deduplication
+consumer.
 
 Results are written beneath `TestResults/integration/`:
 
-- `docx-integration.trx` contains the MSTest result.
+- `conversion-integration.trx` contains the MSTest results.
 - `compose.log` contains Compose status and logs for failure diagnosis.
+- `artifacts/` preserves the inputs and generated files for manual validation:
+  - `docx/original/` and `docx/converted/` contain the DOCX scenario files.
+  - `msg/original/` and `msg/converted/` contain the parent MSG scenario files.
+  - `msg/attachments/original/` contains every extracted attachment.
+  - `msg/attachments/converted/` contains the PDFs generated from convertible attachments.
 
 ### Formatting and linting
 

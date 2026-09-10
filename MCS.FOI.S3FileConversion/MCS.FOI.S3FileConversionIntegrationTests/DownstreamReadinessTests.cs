@@ -6,19 +6,26 @@ namespace MCS.FOI.S3FileConversionIntegrationTests;
 public sealed class DownstreamReadinessTests
 {
     [DataTestMethod]
-    [DataRow(0, 1, false)]
-    [DataRow(1, 1, false)]
-    [DataRow(0, 0, false)]
-    [DataRow(1, 0, true)]
-    public void RequiresOneDedupeEntryAndAcknowledgedInput(
-        int dedupeEntryCount,
+    [DataRow(0L, 0L, 1L, 0L, false)]
+    [DataRow(0L, 1L, 1L, 1L, false)]
+    [DataRow(0L, 1L, 1L, 0L, true)]
+    [DataRow(0L, 2L, 1L, 0L, false)]
+    [DataRow(4L, 4L, 1L, 0L, false)]
+    [DataRow(4L, 5L, 1L, 0L, true)]
+    [DataRow(1L, 5L, 4L, 0L, true)]
+    public void RequiresExpectedNewDedupeEntriesAndNoPendingMessages(
+        long baselineDedupeCount,
+        long currentDedupeCount,
+        long expectedNewDedupeCount,
         long pendingMessageCount,
         bool expected)
     {
         Assert.AreEqual(
             expected,
-            DocxConversionEndToEndTests.IsDownstreamReady(
-                dedupeEntryCount,
+            DownstreamReadiness.HasSettled(
+                baselineDedupeCount,
+                currentDedupeCount,
+                expectedNewDedupeCount,
                 pendingMessageCount));
     }
 }

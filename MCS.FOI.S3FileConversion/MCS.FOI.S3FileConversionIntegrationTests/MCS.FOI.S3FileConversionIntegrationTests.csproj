@@ -18,5 +18,8 @@
     <None Include="../MCS.FOI.DocToPDFUnitTests/SourceFiles/simple-test-doc.docx"
           Link="Fixtures/simple-test-doc.docx"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../MCS.FOI.MSGToPDFUnitTests/SourceFiles/Test-MSG-File-with-Attachments.msg"
+          Link="Fixtures/Test-MSG-File-with-Attachments.msg"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

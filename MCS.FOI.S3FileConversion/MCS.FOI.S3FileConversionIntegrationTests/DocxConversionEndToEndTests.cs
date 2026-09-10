@@ -13,9 +13,11 @@ namespace MCS.FOI.S3FileConversionIntegrationTests;
 
 [TestClass]
 [TestCategory("Integration")]
+[DoNotParallelize]
 public sealed class DocxConversionEndToEndTests
 {
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(60);
+    private const string SourceFileName = "simple-test-doc.docx";
     private const string SourceKey = "requests/FOI-TEST-001/simple-test-doc.docx";
     private const string PdfKey = "requests/FOI-TEST-001/simple-test-doc.pdf";
     private const string SourceUrl = "http://seaweedfs:8333/integration-bucket/" + SourceKey;
@@ -32,6 +34,9 @@ public sealed class DocxConversionEndToEndTests
         }
 
         var settings = IntegrationSettings.FromEnvironment();
+        var artifacts = IntegrationArtifactWriter.FromEnvironment("docx");
+        artifacts.Reset();
+        await artifacts.CopyAsync(FixturePath(), "original", SourceFileName);
         var scenario = Stopwatch.StartNew();
         await using var postgres = new NpgsqlConnection(settings.DatabaseConnectionString);
         await postgres.OpenAsync();
@@ -42,12 +47,25 @@ public sealed class DocxConversionEndToEndTests
         await CreateBucketAndUploadFixture(s3, settings);
         await SeedDatabase(postgres, settings);
         await WaitForConsumerGroup(db, settings, Remaining(scenario));
+        var baselineDedupeCount = await db.StreamLengthAsync(settings.DedupeStream);
         var inputId = await PublishConversionJob(db, settings);
         var completed = await WaitForCompletion(postgres, Remaining(scenario));
 
+        await SaveObject(
+            s3,
+            settings,
+            PdfKey,
+            artifacts,
+            "converted",
+            "simple-test-doc.pdf");
         await AssertObjectStorage(s3, settings);
         var dedupeJob = await AssertDatabase(postgres, completed);
-        await WaitForDownstream(db, settings, Remaining(scenario));
+        await WaitForDownstream(
+            db,
+            settings,
+            baselineDedupeCount,
+            expectedNewDedupeCount: 1,
+            Remaining(scenario));
         await AssertDedupeEvent(db, settings, completed, dedupeJob);
         await AssertAcknowledged(db, settings, inputId);
     }
@@ -92,10 +110,7 @@ public sealed class DocxConversionEndToEndTests
             // A rerun against a live diagnostic stack may reuse the bucket.
         }
 
-        var fixture = Path.Combine(
-            AppContext.BaseDirectory,
-            "Fixtures",
-            "simple-test-doc.docx");
+        var fixture = FixturePath();
         Assert.IsTrue(File.Exists(fixture), $"DOCX fixture not found at {fixture}");
         await using var stream = File.OpenRead(fixture);
         await s3.PutObjectAsync(new PutObjectRequest
@@ -105,6 +120,20 @@ public sealed class DocxConversionEndToEndTests
             InputStream = stream,
             ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         });
+    }
+
+    private static string FixturePath() =>
+        Path.Combine(AppContext.BaseDirectory, "Fixtures", SourceFileName);
+
+    private static async Task SaveObject(
+        IAmazonS3 s3,
+        IntegrationSettings settings,
+        string key,
+        IntegrationArtifactWriter artifacts,
+        params string[] relativePath)
+    {
+        using var response = await s3.GetObjectAsync(settings.S3Bucket, key);
+        await artifacts.WriteAsync(response.ResponseStream, relativePath);
     }
 
     private static async Task SeedDatabase(
@@ -303,7 +332,9 @@ public sealed class DocxConversionEndToEndTests
         const string dedupeSql = """
             SELECT deduplicationjobid, documentmasterid, ministryrequestid, batch,
                    trigger, filename, version, status
-            FROM "DeduplicationJob";
+            FROM "DeduplicationJob"
+            WHERE ministryrequestid = 1001
+              AND batch = 'batch-integration-001';
             """;
         await using (var command = new NpgsqlCommand(dedupeSql, postgres))
         await using (var reader = await command.ExecuteReaderAsync())
@@ -325,6 +356,8 @@ public sealed class DocxConversionEndToEndTests
     private static async Task WaitForDownstream(
         IDatabase db,
         IntegrationSettings settings,
+        long baselineDedupeCount,
+        long expectedNewDedupeCount,
         TimeSpan deadline)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -338,7 +371,11 @@ public sealed class DocxConversionEndToEndTests
             lastObserved =
                 $"dedupe entries: {entries.Length}; pending messages: {pending.PendingMessageCount}";
 
-            if (IsDownstreamReady(entries.Length, pending.PendingMessageCount))
+            if (DownstreamReadiness.HasSettled(
+                    baselineDedupeCount,
+                    entries.Length,
+                    expectedNewDedupeCount,
+                    pending.PendingMessageCount))
             {
                 return;
             }
@@ -350,20 +387,18 @@ public sealed class DocxConversionEndToEndTests
             $"Downstream work did not settle within {deadline.TotalSeconds:F1} seconds; {lastObserved}");
     }
 
-    internal static bool IsDownstreamReady(
-        int dedupeEntryCount,
-        long pendingMessageCount) =>
-        dedupeEntryCount == 1 && pendingMessageCount == 0;
-
     private static async Task AssertDedupeEvent(
         IDatabase db,
         IntegrationSettings settings,
         CompletedConversion completed,
         DedupeJob dedupeJob)
     {
-        var entries = await db.StreamRangeAsync(settings.DedupeStream);
-        Assert.AreEqual(1, entries.Length, "Expected exactly one dedupe stream entry");
-        var fields = entries[0].Values.ToDictionary(
+        var matchingEntries = (await db.StreamRangeAsync(settings.DedupeStream))
+            .Where(entry => entry.Values.Any(field =>
+                field.Name == "requestnumber" && field.Value == "FOI-TEST-001"))
+            .ToArray();
+        Assert.AreEqual(1, matchingEntries.Length, "Expected one DOCX dedupe stream entry");
+        var fields = matchingEntries[0].Values.ToDictionary(
             entry => entry.Name.ToString(),
             entry => entry.Value.ToString());
 
