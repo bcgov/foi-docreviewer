@@ -26,6 +26,7 @@ namespace MCS.FOI.S3FileConversion
     {
         Stream? output = null;
         Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
+        ExtractedAttachmentSet? msgAttachments;
         ExcelFileProcessor excelFileProcessor = null;
         DocFileProcessor docFileProcessor = null;
         PptFileProcessor pptFileProcessor = null;
@@ -87,8 +88,8 @@ namespace MCS.FOI.S3FileConversion
                             case ".ics":                                
                                 (output, attachments) = ConvertCalendarFiles(responseStream);
                                 break;
-                            case ".msg":                                
-                                (output, attachments) = ConvertMSGFiles(responseStream);
+                            case ".msg":
+                                (output, msgAttachments) = ConvertMSGFiles(responseStream);
                                 break;
                             case ".doc":
                             case ".docx":
@@ -116,33 +117,57 @@ namespace MCS.FOI.S3FileConversion
                             putRespMsg.EnsureSuccessStatusCode();
                             Log.Information("Successfully uploaded converted file: {NewKey}", newKey);
 
-                            if (attachments != null && attachments.Count > 0)
+                            var uploadAttachments = new List<(Func<Stream> OpenRead, Dictionary<string, string> Metadata, Action Uploaded)>();
+                            if (attachments != null)
                             {
-                                
-                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachments)
+                                foreach (var attachment in attachments)
                                 {
-                                    attachment.Key.Position = 0;
+                                    uploadAttachments.Add((
+                                        () =>
+                                        {
+                                            attachment.Key.Position = 0;
+                                            return attachment.Key;
+                                        },
+                                        attachment.Value,
+                                        () => { }));
+                                }
+                            }
+
+                            if (msgAttachments != null)
+                            {
+                                foreach (var attachment in msgAttachments)
+                                {
+                                    uploadAttachments.Add((
+                                        attachment.OpenRead,
+                                        attachment.Metadata,
+                                        () => File.Delete(attachment.TemporaryFilePath)));
+                                }
+                            }
+
+                            foreach (var attachment in uploadAttachments)
+                            {
                                     var attributes = JsonSerializer.Deserialize<JsonNode>((string)message["attributes"]);
-                                    attributes["filesize"] = JsonValue.Create(attachment.Value["size"]);
+                                    attributes["filesize"] = JsonValue.Create(attachment.Metadata["size"]);
                                     attributes["isattachment"] = JsonValue.Create(true);
                                     attributes["rootparentfilepath"] ??= JsonValue.Create((string)message["s3filepath"]);
-                                    if (attachment.Value.ContainsKey("lastmodified"))
+                                    if (attachment.Metadata.ContainsKey("lastmodified"))
                                     {
-                                        attributes["lastmodified"] = JsonValue.Create(attachment.Value["lastmodified"]);
+                                        attributes["lastmodified"] = JsonValue.Create(attachment.Metadata["lastmodified"]);
                                     }
-                                    string attachmentExtension = Path.GetExtension(attachment.Value["filename"]);
+                                    string attachmentExtension = Path.GetExtension(attachment.Metadata["filename"]);
                                     attributes["extension"] = JsonValue.Create(attachmentExtension);
-                                    attachment.Value.Add("extension", attachmentExtension);
+                                    attachment.Metadata.Add("extension", attachmentExtension);
                                     string[] formats = ConversionSettings.ConversionFormats.Concat(ConversionSettings.DedupeFormats).Except(ConversionSettings.IncompatibleFormats).ToArray();
                                     attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension.ToLower()) == -1);
-                                    attachment.Value.Add("attributes", attributes.ToJsonString());
+                                    attachment.Metadata.Add("attributes", attributes.ToJsonString());
                                     var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
                                     var newAttachmentKey = parentFolder.Split(".")[0] + "/" + Guid.NewGuid().ToString() + attachmentExtension;
                                     var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
-                                    attachment.Value.Add("filepath", S3Host + "/" + newAttachmentKey);
-                                    returnAttachments.Add(attachment.Value);
-                                    Log.Information("Uploading attachment {Filename} to S3: {AttachmentKey}", attachment.Value["filename"], newAttachmentKey);
-                                    using (StreamContent attachmentstrm = new StreamContent(attachment.Key))
+                                    attachment.Metadata.Add("filepath", S3Host + "/" + newAttachmentKey);
+                                    returnAttachments.Add(attachment.Metadata);
+                                    Log.Information("Uploading attachment {Filename} to S3: {AttachmentKey}", attachment.Metadata["filename"], newAttachmentKey);
+                                    using (var attachmentContent = attachment.OpenRead())
+                                    using (StreamContent attachmentstrm = new StreamContent(attachmentContent))
                                     {
                                         attachmentstrm.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                                         using (HttpResponseMessage attachementresponse = await client.PutAsync(attachmentPresignedPutURL, attachmentstrm))
@@ -150,10 +175,8 @@ namespace MCS.FOI.S3FileConversion
                                             attachementresponse.EnsureSuccessStatusCode();
                                             Log.Information("Successfully uploaded attachment: {AttachmentKey}", newAttachmentKey);
                                         }
-
                                     }
-
-                                }
+                                    attachment.Uploaded();
                             }
                         }
 
@@ -221,7 +244,7 @@ namespace MCS.FOI.S3FileConversion
             return (output, attachments);
         }
 
-        private (Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertMSGFiles(Stream input)
+        private (Stream, ExtractedAttachmentSet) ConvertMSGFiles(Stream input)
         {
              msgFileProcessor = new MSGFileProcessor(input)
             {
@@ -280,6 +303,9 @@ namespace MCS.FOI.S3FileConversion
 
                 if (msgFileProcessor != null)
                     msgFileProcessor.Dispose();
+
+                msgAttachments?.Dispose();
+                msgAttachments = null;
 
                 if (calendarFileProcessor != null)
                     calendarFileProcessor.Dispose();

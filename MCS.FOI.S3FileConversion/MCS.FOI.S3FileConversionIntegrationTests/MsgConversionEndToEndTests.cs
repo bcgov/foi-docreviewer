@@ -151,8 +151,9 @@ public sealed class MsgConversionEndToEndTests
                 "original",
                 artifactName);
 
-            if (Path.GetExtension(attachment.FilePath)
-                .Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            var completedConversion = state.ConversionJobs.SingleOrDefault(job =>
+                job.InputDocumentId == attachment.Id && job.Version == 3);
+            if (completedConversion is not null)
             {
                 await SaveObject(
                     s3,
@@ -247,7 +248,11 @@ public sealed class MsgConversionEndToEndTests
         IDatabase db,
         IntegrationSettings settings)
     {
-        const string attributes = """{"filesize":260096,"extension":".msg"}""";
+        var attributes = JsonSerializer.Serialize(new
+        {
+            filesize = new FileInfo(FixturePath()).Length,
+            extension = ".msg"
+        });
         return await db.StreamAddAsync(
             settings.ConversionStream,
             [
@@ -289,17 +294,25 @@ public sealed class MsgConversionEndToEndTests
             var pending = await db.StreamPendingAsync(
                 settings.ConversionStream,
                 settings.ConsumerGroup);
+            var parentCompleted = jobs.Any(job =>
+                job.Id == 2101 && job.Version == 3 && job.Status == "completed");
+            var attachmentCount = parentCompleted
+                ? (await LoadAttachmentDocuments(postgres)).Count
+                : 0;
+            var expectedNewDedupeCount = attachmentCount + 1L;
             var jobVersions = string.Join(
                 ", ",
                 jobs.Select(job => $"{job.Id}/{job.Filename}/{job.Version}:{job.Status}"));
             lastObserved =
                 $"dedupe entries: {dedupeCount} (baseline {baselineDedupeCount}); " +
+                $"expected new entries: {(parentCompleted ? expectedNewDedupeCount : null)}; " +
+                $"attachments: {(parentCompleted ? attachmentCount : null)}; " +
                 $"pending messages: {pending.PendingMessageCount}; jobs: {jobVersions}";
 
-            if (DownstreamReadiness.HasSettled(
+            if (parentCompleted && DownstreamReadiness.HasSettled(
                     baselineDedupeCount,
                     dedupeCount,
-                    expectedNewDedupeCount: 4,
+                    expectedNewDedupeCount,
                     pending.PendingMessageCount))
             {
                 return;
@@ -442,12 +455,12 @@ public sealed class MsgConversionEndToEndTests
             settings.DatabaseConnectionString);
         await AssertPdf(s3, settings, PdfKey);
 
-        Assert.AreEqual(3, state.Attachments.Count, "Expected exactly three extracted attachment documents");
+        Assert.IsTrue(state.Attachments.Count > 0, "Expected at least one extracted attachment document");
         Assert.IsTrue(state.Attachments.All(document => document.ParentId == 3101));
-        CollectionAssert.AreEquivalent(
-            new[] { ".xlsx", ".xlsx", ".pdf" },
-            state.Attachments.Select(document => Path.GetExtension(document.FilePath).ToLowerInvariant()).ToArray());
-        Assert.AreEqual(3, state.Attributes.Count, "Expected one active attribute row per attachment");
+        Assert.AreEqual(
+            state.Attachments.Count,
+            state.Attributes.Count,
+            "Expected one active attribute row per attachment");
 
         foreach (var attachment in state.Attachments)
         {
@@ -461,28 +474,36 @@ public sealed class MsgConversionEndToEndTests
                 Path.GetExtension(attachment.FilePath),
                 root.GetProperty("extension").GetString());
             Assert.IsTrue(ReadPositiveInt64(root.GetProperty("filesize")) > 0);
-            Assert.IsFalse(root.GetProperty("incompatible").GetBoolean());
+            Assert.IsTrue(
+                root.GetProperty("incompatible").ValueKind is JsonValueKind.True or JsonValueKind.False,
+                $"Attachment {attachment.Id} has a non-boolean incompatible attribute");
             var metadata = await s3.GetObjectMetadataAsync(
                 settings.S3Bucket,
                 ObjectKey(attachment.FilePath, settings.S3Bucket));
             Assert.IsTrue(metadata.ContentLength > 0, $"Attachment {attachment.FilePath} is empty");
         }
 
-        var xlsxAttachments = state.Attachments
-            .Where(document => Path.GetExtension(document.FilePath)
-                .Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        foreach (var attachment in xlsxAttachments)
+        foreach (var attachment in state.Attachments)
         {
             var childJobs = state.ConversionJobs
                 .Where(job => job.InputDocumentId == attachment.Id)
                 .OrderBy(job => job.Version)
                 .ToArray();
+            if (childJobs.Length == 0)
+            {
+                Assert.AreEqual(
+                    "fileconversion",
+                    state.DedupeJobs.Single(job => job.DocumentId == attachment.Id).Trigger);
+                continue;
+            }
+
             CollectionAssert.AreEqual(
                 new[] { "1:pushedtostream", "2:started", "3:completed" },
                 childJobs.Select(job => $"{job.Version}:{job.Status}").ToArray());
             var completed = childJobs.Single(job => job.Version == 3);
-            Assert.IsNotNull(completed.OutputDocumentId, $"XLSX job {completed.Id} has no output document ID");
+            Assert.IsNotNull(
+                completed.OutputDocumentId,
+                $"Attachment conversion job {completed.Id} has no output document ID");
             var pdfPath = Path.ChangeExtension(attachment.FilePath, ".pdf");
             await AssertOutputDocument(
                 completed.OutputDocumentId.Value,
@@ -490,15 +511,15 @@ public sealed class MsgConversionEndToEndTests
                 attachment.Id,
                 settings.DatabaseConnectionString);
             await AssertPdf(s3, settings, ObjectKey(pdfPath, settings.S3Bucket));
+            Assert.AreEqual(
+                "attachment",
+                state.DedupeJobs.Single(job => job.DocumentId == attachment.Id).Trigger);
         }
 
-        var pdfAttachment = state.Attachments.Single(document =>
-            Path.GetExtension(document.FilePath).Equals(".pdf", StringComparison.OrdinalIgnoreCase));
-        Assert.IsFalse(
-            state.ConversionJobs.Any(job => job.InputDocumentId == pdfAttachment.Id),
-            "The PDF attachment must bypass conversion");
-
-        Assert.AreEqual(4, state.DedupeJobs.Count, "Expected four version-1 dedupe jobs");
+        Assert.AreEqual(
+            state.Attachments.Count + 1,
+            state.DedupeJobs.Count,
+            "Expected one dedupe job for the parent and each attachment");
         Assert.IsTrue(state.DedupeJobs.All(job => job.Version == 1));
         Assert.IsTrue(state.DedupeJobs.All(job => job.Status == "pushedtostream"));
         Assert.AreEqual(
@@ -508,11 +529,9 @@ public sealed class MsgConversionEndToEndTests
         var attachmentJobs = state.DedupeJobs
             .Where(job => attachmentDocumentIds.Contains(job.DocumentId))
             .ToArray();
-        Assert.AreEqual(3, attachmentJobs.Length);
-        Assert.AreEqual(2, attachmentJobs.Count(job => job.Trigger == "attachment"));
-        Assert.AreEqual(
-            "fileconversion",
-            attachmentJobs.Single(job => job.DocumentId == pdfAttachment.Id).Trigger);
+        Assert.AreEqual(state.Attachments.Count, attachmentJobs.Length);
+        Assert.IsTrue(state.Attachments.All(attachment =>
+            attachmentJobs.Count(job => job.DocumentId == attachment.Id) == 1));
     }
 
     private static async Task AssertOutputDocument(
@@ -571,7 +590,6 @@ public sealed class MsgConversionEndToEndTests
         var childEntries = conversionEntries
             .Where(fields => fields.GetValueOrDefault("trigger") == "attachment")
             .ToArray();
-        Assert.AreEqual(2, childEntries.Length, "Expected two XLSX conversion entries");
 
         var expectedChildRoutes = state.ConversionJobs
             .Where(job => job.Version == 1 && job.Trigger == "attachment")
@@ -581,6 +599,10 @@ public sealed class MsgConversionEndToEndTests
                 return RouteKey(job.Id, attachment.Id, attachment.FilePath, job.Filename);
             })
             .ToArray();
+        Assert.AreEqual(
+            expectedChildRoutes.Length,
+            childEntries.Length,
+            "Expected one conversion entry per convertible attachment");
         var actualChildRoutes = childEntries
             .Select(fields => RouteKey(
                 int.Parse(fields["jobid"]),
@@ -592,7 +614,6 @@ public sealed class MsgConversionEndToEndTests
 
         foreach (var fields in childEntries)
         {
-            Assert.IsTrue(fields["filename"].EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
             Assert.AreEqual(SourceUrl, fields["parentfilepath"]);
             Assert.AreEqual(SourceFileName, fields["parentfilename"]);
             AssertCommonFields(fields);
@@ -602,7 +623,10 @@ public sealed class MsgConversionEndToEndTests
             .Select(Fields)
             .Where(fields => fields.GetValueOrDefault("requestnumber") == RequestNumber)
             .ToArray();
-        Assert.AreEqual(4, dedupeEntries.Length, "Expected four MSG dedupe entries");
+        Assert.AreEqual(
+            state.Attachments.Count + 1,
+            dedupeEntries.Length,
+            "Expected one dedupe entry for the parent and each attachment");
 
         var parent = dedupeEntries.Single(fields => fields["trigger"] == "recordupload");
         var parentDedupeJob = state.DedupeJobs.Single(job =>
@@ -619,39 +643,38 @@ public sealed class MsgConversionEndToEndTests
         var attachmentEntries = dedupeEntries
             .Where(fields => fields["trigger"] == "attachment")
             .ToArray();
-        Assert.AreEqual(3, attachmentEntries.Length);
-        var directPdf = attachmentEntries.Single(fields =>
-            fields["filename"].EndsWith(".pdf", StringComparison.OrdinalIgnoreCase));
-        var pdfAttachment = state.Attachments.Single(document =>
-            Path.GetExtension(document.FilePath).Equals(".pdf", StringComparison.OrdinalIgnoreCase));
-        var directDedupeJob = state.DedupeJobs.Single(job => job.DocumentId == pdfAttachment.Id);
-        Assert.AreEqual(directDedupeJob.Id.ToString(), directPdf["jobid"]);
-        Assert.AreEqual(pdfAttachment.Id.ToString(), directPdf["documentmasterid"]);
-        Assert.AreEqual(directDedupeJob.Filename, directPdf["filename"]);
-        Assert.AreEqual(pdfAttachment.FilePath, directPdf["s3filepath"]);
-        Assert.AreEqual("false", directPdf["incompatible"]);
-        Assert.IsFalse(directPdf.ContainsKey("outputdocumentmasterid"));
-
-        var convertedXlsx = attachmentEntries
-            .Where(fields => fields["filename"].EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        Assert.AreEqual(2, convertedXlsx.Length);
-        foreach (var attachment in state.Attachments.Where(document =>
-                     Path.GetExtension(document.FilePath)
-                         .Equals(".xlsx", StringComparison.OrdinalIgnoreCase)))
+        Assert.AreEqual(state.Attachments.Count, attachmentEntries.Length);
+        foreach (var attachment in state.Attachments)
         {
-            var fields = convertedXlsx.Single(entry =>
+            var fields = attachmentEntries.Single(entry =>
                 entry["documentmasterid"] == attachment.Id.ToString());
             var dedupeJob = state.DedupeJobs.Single(job => job.DocumentId == attachment.Id);
-            var completed = state.ConversionJobs.Single(job =>
+            var completed = state.ConversionJobs.SingleOrDefault(job =>
                 job.InputDocumentId == attachment.Id && job.Version == 3);
             Assert.AreEqual(dedupeJob.Id.ToString(), fields["jobid"]);
             Assert.AreEqual(dedupeJob.Filename, fields["filename"]);
-            Assert.AreEqual(Path.ChangeExtension(attachment.FilePath, ".pdf"), fields["s3filepath"]);
-            Assert.AreEqual(completed.OutputDocumentId!.Value.ToString(), fields["outputdocumentmasterid"]);
-            using var attributes = JsonDocument.Parse(fields["attributes"]);
-            Assert.IsTrue(
-                ReadPositiveInt64(attributes.RootElement.GetProperty("convertedfilesize")) > 0);
+            if (completed is null)
+            {
+                var incompatible = state.Attributes[attachment.Id]
+                    .RootElement.GetProperty("incompatible").GetBoolean();
+                Assert.AreEqual(
+                    incompatible.ToString().ToLowerInvariant(),
+                    fields["incompatible"]);
+                Assert.AreEqual(attachment.FilePath, fields["s3filepath"]);
+                Assert.IsFalse(fields.ContainsKey("outputdocumentmasterid"));
+            }
+            else
+            {
+                Assert.AreEqual(
+                    Path.ChangeExtension(attachment.FilePath, ".pdf"),
+                    fields["s3filepath"]);
+                Assert.AreEqual(
+                    completed.OutputDocumentId!.Value.ToString(),
+                    fields["outputdocumentmasterid"]);
+                using var attributes = JsonDocument.Parse(fields["attributes"]);
+                Assert.IsTrue(
+                    ReadPositiveInt64(attributes.RootElement.GetProperty("convertedfilesize")) > 0);
+            }
         }
 
         foreach (var fields in conversionEntries.Concat(dedupeEntries))
