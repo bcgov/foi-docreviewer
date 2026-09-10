@@ -53,7 +53,7 @@ flowchart LR
     R -->|XREADGROUP| W[FOI S3 File Conversion]
     W -->|job state and object metadata| P[(PostgreSQL)]
     P -->|bucket credentials| W
-    W -->|presigned HTTP(S) GET/PUT| S[(S3-compatible object storage)]
+    W -->|"presigned HTTP(S) GET/PUT"| S[(S3-compatible object storage)]
     W --> C[Format-specific converter]
     C -->|PDF and optional attachments| W
     W -->|XADD converted PDF and<br/>non-convertible attachments| D[Deduplication stream]
