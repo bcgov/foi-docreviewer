@@ -37,13 +37,26 @@ namespace MCS.FOI.S3FileConversion.Utilities
 
         public string gets3host()
         {
-            string S3Host = Environment.GetEnvironmentVariable("S3_HOST");
-            if (!S3Host.Contains("https://"))
+            var configured = Environment.GetEnvironmentVariable("S3_HOST");
+            if (string.IsNullOrWhiteSpace(configured))
             {
-                S3Host = "https://" + S3Host;
+                throw new InvalidOperationException("S3_HOST is required");
             }
 
-            return S3Host;
+            var endpoint = configured.Trim();
+            if (!endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                endpoint = $"https://{endpoint}";
+            }
+
+            if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                throw new InvalidOperationException("S3_HOST must be an HTTP or HTTPS endpoint");
+            }
+
+            return endpoint.TrimEnd('/');
         }
 
 
