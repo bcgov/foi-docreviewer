@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "integration-test",
+      "credentials": [{"accessKey": "dev", "secretKey": "dev"}],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    }
+  ]
+}

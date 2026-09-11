@@ -17,10 +17,9 @@ namespace MCS.FOI.MSGToPDF
         public int FailureAttemptCount { get; set; }
         public int WaitTimeinMilliSeconds { get; set; }
 
-        Dictionary<MemoryStream, Dictionary<string, string>> attachmentsObj = null;
+        private ExtractedAttachmentSet? attachmentsObj;
 
         private MemoryStream? output = null;
-        private MemoryStream? attachmentStream = null;
         public MSGFileProcessor() { }
 
 
@@ -31,7 +30,7 @@ namespace MCS.FOI.MSGToPDF
         }
 
 
-        public (bool, string, Stream, Dictionary<MemoryStream, Dictionary<string, string>>) ConvertToPDF()
+        public (bool, string, Stream, ExtractedAttachmentSet) ConvertToPDF()
         {
             string message = $"No attachments to move to output folder";
             bool moved = true;
@@ -52,7 +51,6 @@ namespace MCS.FOI.MSGToPDF
                             Dictionary<string, Boolean> fileNameHash = new();
                             foreach (Object attachment in msg.Attachments)
                             {
-                                attachmentStream = new();
                                 if (attachment.GetType().FullName.ToLower().Contains("message"))
                                 {
                                     var _attachment = (Storage.Message)attachment;
@@ -61,7 +59,6 @@ namespace MCS.FOI.MSGToPDF
                                     var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
-                                        _attachment.Save(attachmentStream);
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                         
                                         // If the filename already exists, increment the duplicate count to create a unique filename
@@ -85,16 +82,14 @@ namespace MCS.FOI.MSGToPDF
                                         if (!string.IsNullOrEmpty(sentOn))
                                             lastModified = sentOn;
 
-                                        var attachmentSize = attachmentStream.Length.ToString();
-                                        if (string.IsNullOrEmpty(attachmentSize))
-                                            attachmentSize = attachmentStream.Capacity.ToString();
-
                                         attachmentInfo.Add("filename", _attachment.FileName);
                                         attachmentInfo.Add("s3filename", filename);
-                                        attachmentInfo.Add("size", attachmentSize);
                                         attachmentInfo.Add("lastmodified", lastModified);
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                        var extractedAttachment = attachmentsObj.Add(
+                                            attachmentInfo,
+                                            destination => _attachment.Save(destination));
+                                        attachmentInfo.Add("size", new FileInfo(extractedAttachment.TemporaryFilePath).Length.ToString());
                                     }
                                 }
                                 else
@@ -105,7 +100,7 @@ namespace MCS.FOI.MSGToPDF
                                     var baseFilename = Path.GetFileNameWithoutExtension(filename);
                                     if (!string.IsNullOrEmpty(extension))
                                     {
-                                        attachmentStream.Write(_attachment.Data, 0, _attachment.Data.Length);
+                                        var attachmentData = _attachment.Data;
                                         Dictionary<string, string> attachmentInfo = new Dictionary<string, string>();
                                         
                                         // If the filename already exists, increment the duplicate count to create a unique filename
@@ -125,16 +120,24 @@ namespace MCS.FOI.MSGToPDF
                                         attachmentInfo.Add("filename", filename);
                                         attachmentInfo.Add("s3filename", filename);
                                         attachmentInfo.Add("cid", _attachment.ContentId);
-                                        attachmentInfo.Add("size", _attachment.Data.Length.ToString());
+                                        attachmentInfo.Add("size", attachmentData.Length.ToString());
                                         attachmentInfo.Add("lastmodified", _attachment.LastModificationTime.ToString());
                                         attachmentInfo.Add("created", _attachment.CreationTime.ToString());
-                                        attachmentsObj.Add(attachmentStream, attachmentInfo);
+                                        attachmentsObj.Add(
+                                            attachmentInfo,
+                                            destination => destination.Write(attachmentData, 0, attachmentData.Length));
                                     }
                                 }
                             }
                             ////WordDocument doc = GetEmailMetatdata(msg);
 
-                            SerilogNS.Log.Information("MSG parsed. Attachment count: {AttachmentCount}", attachmentsObj.Count);
+                            var extractedAttachmentBytes = attachmentsObj.Sum(
+                                attachment => new FileInfo(attachment.TemporaryFilePath).Length);
+                            SerilogNS.Log.Information(
+                                "MSG parsed. Attachment count: {AttachmentCount}, extracted bytes: {ExtractedBytes}, process working set: {WorkingSetBytes}",
+                                attachmentsObj.Count,
+                                extractedAttachmentBytes,
+                                Environment.WorkingSet);
                             var msgReader = new Reader();
                             string body = msgReader.ExtractMsgEmailBody(SourceStream, ReaderHyperLinks.None, "text/html; charset=utf-8", false);
                             var options = RegexOptions.None;
@@ -197,12 +200,11 @@ namespace MCS.FOI.MSGToPDF
                                             if (_inlineAttachment.OleAttachment)
                                             {
                                                 bodyreplaced = ReplaceFirstOccurrence(bodyreplaced, rtfInlineObject, "<img style=\"max-width: 700px\" src=\"data:image/" + Path.GetExtension(_inlineAttachment.FileName) + ";base64," + Convert.ToBase64String(_inlineAttachment.Data) + "\"/>");
-                                                foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                                var extractedAttachment = attachmentsObj.FirstOrDefault(
+                                                    attachment => attachment.Metadata["filename"] == _inlineAttachment.FileName);
+                                                if (extractedAttachment != null)
                                                 {
-                                                    if (attachment.Value["filename"] == _inlineAttachment.FileName)
-                                                    {
-                                                        attachmentsObj.Remove(attachment.Key);
-                                                    }
+                                                    attachmentsObj.Remove(extractedAttachment);
                                                 }
                                             }
                                             else
@@ -255,12 +257,12 @@ namespace MCS.FOI.MSGToPDF
                                             bodyreplaced = regex.Replace(bodyreplaced, imgReplacementString, Int32.MaxValue, startAt);
                                             startAt = match.Index + imgReplacementString.Length;
                                         }
-                                        foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                                        var extractedAttachment = attachmentsObj.FirstOrDefault(
+                                            attachment => attachment.Metadata.ContainsKey("cid") &&
+                                                attachment.Metadata["cid"] == _inlineAttachment.ContentId);
+                                        if (extractedAttachment != null)
                                         {
-                                            if (attachment.Value.ContainsKey("cid") && attachment.Value["cid"] == _inlineAttachment.ContentId)
-                                            {
-                                                attachmentsObj.Remove(attachment.Key);
-                                            }
+                                            attachmentsObj.Remove(extractedAttachment);
                                         }
                                     }
                                 }
@@ -268,9 +270,9 @@ namespace MCS.FOI.MSGToPDF
 
                             //Message Attachments
                             string attachmentsList = "";
-                            foreach (KeyValuePair<MemoryStream, Dictionary<string, string>> attachment in attachmentsObj)
+                            foreach (var attachment in attachmentsObj)
                             {
-                                attachmentsList += (attachment.Value["filename"] + ", ");
+                                attachmentsList += (attachment.Metadata["filename"] + ", ");
                             }
                             if (!string.IsNullOrEmpty(attachmentsList))
                             {
@@ -441,6 +443,9 @@ namespace MCS.FOI.MSGToPDF
                                 SerilogNS.Log.Error(e, "All {MaxAttempts} conversion attempts exhausted", FailureAttemptCount);
                                 throw;
                             }
+                            attachmentsObj.Dispose();
+                            attachmentsObj = new ExtractedAttachmentSet();
+                            output.SetLength(0);
                             Thread.Sleep(WaitTimeinMilliSeconds);
                         }
                     }
@@ -637,8 +642,8 @@ namespace MCS.FOI.MSGToPDF
                 }
 
                 if (output != null) output.Dispose();
-                if (attachmentStream != null) attachmentStream.Dispose();
-                if (attachmentsObj != null) attachmentsObj = null;
+                attachmentsObj?.Dispose();
+                attachmentsObj = null;
                 // free managed resources
             }
 
