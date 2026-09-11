@@ -33,6 +33,21 @@ func TestLoadValid(t *testing.T) {
 	if cfg.Messaging.ConsumerName != "ocr-1" {
 		t.Fatalf("ConsumerName = %q", cfg.Messaging.ConsumerName)
 	}
+	if cfg.Messaging.Topic != "ocr" {
+		t.Fatalf("Topic = %q, want default %q", cfg.Messaging.Topic, "ocr")
+	}
+}
+
+func TestLoadOverridesTopic(t *testing.T) {
+	m := validEnv()
+	m["OCR_TOPIC"] = "ocr-large"
+	cfg, err := Load(env(m))
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Messaging.Topic != "ocr-large" {
+		t.Fatalf("Topic = %q, want %q", cfg.Messaging.Topic, "ocr-large")
+	}
 }
 
 func TestLoadRejectsClaimMinIdleNotExceedingProcessingTimeout(t *testing.T) {

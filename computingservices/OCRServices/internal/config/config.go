@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ocrservices/internal/contracts"
 )
 
 // Config is the fully-validated OCRServices runtime configuration.
@@ -19,6 +21,7 @@ type Config struct {
 
 type Messaging struct {
 	StreamPrefix        string
+	Topic               string
 	ConsumerGroup       string
 	ConsumerName        string
 	RedisAddress        string
@@ -62,9 +65,14 @@ func Load(getenv func(string) string) (Config, error) {
 	if consumerName == "" {
 		consumerName, _ = os.Hostname()
 	}
+	topic := strings.TrimSpace(getenv("OCR_TOPIC"))
+	if topic == "" {
+		topic = contracts.OCRTopic
+	}
 	cfg := Config{
 		Messaging: Messaging{
 			StreamPrefix:        strings.TrimSpace(getenv("MESSAGING_STREAM_PREFIX")),
+			Topic:               topic,
 			ConsumerGroup:       strings.TrimSpace(getenv("MESSAGING_CONSUMER_GROUP")),
 			ConsumerName:        consumerName,
 			RedisAddress:        fmt.Sprintf("%s:%s", strings.TrimSpace(getenv("REDIS_HOST")), strings.TrimSpace(getenv("REDIS_PORT"))),
@@ -99,6 +107,9 @@ func validate(cfg Config) error {
 	m := cfg.Messaging
 	if m.StreamPrefix != "foi" {
 		return errors.New("MESSAGING_STREAM_PREFIX must be foi")
+	}
+	if m.Topic == "" {
+		return errors.New("OCR_TOPIC must not be empty")
 	}
 	if m.ConsumerGroup == "" {
 		return errors.New("MESSAGING_CONSUMER_GROUP is required")

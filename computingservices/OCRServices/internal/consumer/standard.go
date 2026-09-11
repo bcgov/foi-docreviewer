@@ -40,7 +40,7 @@ func NewStandard(cfg config.Config, logger *slog.Logger, processor ocr.DeliveryP
 	if err != nil {
 		return nil, fmt.Errorf("creating ocr consumer: %w", err)
 	}
-	if err := messaging.RegisterHandler(c, contracts.OCRRequested(), handlerFor(logger, processor)); err != nil {
+	if err := messaging.RegisterHandler(c, contracts.OCRRequested(cfg.Messaging.Topic), handlerFor(logger, processor)); err != nil {
 		return nil, fmt.Errorf("registering ocr handler: %w", err)
 	}
 	return &Standard{consumer: c}, nil
