@@ -115,7 +115,12 @@ public sealed class StackExchangeRedisStreamClient : IRedisStreamClient
             DeadLetterScript,
             new[] { sourceStream, dlqStream },
             arguments);
-        var values = (RedisResult[])rawResult;
+        var values = (RedisResult[]?)rawResult;
+        if (values is not { Length: 3 })
+        {
+            throw new InvalidOperationException(
+                "Redis DLQ script returned an unexpected result shape");
+        }
 
         return new DeadLetterWriteResult(
             (RedisValue)values[0],

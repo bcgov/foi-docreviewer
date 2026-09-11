@@ -74,7 +74,9 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| `Program.cs` | Loads configuration, initializes logging and the Syncfusion licence, fetches format lists, connects to Redis, validates messages, orchestrates processing, publishes outputs, and acknowledges successful input entries. |
+| `Program.cs` | Loads configuration, initializes logging and the Syncfusion licence, fetches format lists, connects to Redis, and composes the stream consumer and conversion handler. |
+| `Messaging/RedisStreamConsumer.cs` | Reads new entries, reclaims stale pending entries, enforces the delivery cap, and atomically dead-letters and acknowledges terminal entries. |
+| `FileConversionMessageHandler.cs` | Validates messages and orchestrates conversion, storage, database, and downstream publishing side effects. |
 | `DBHandler.cs` | Performs PostgreSQL access and job/document record writes. |
 | `S3Handler.cs` | Downloads and uploads objects, chooses a converter by extension, prepares attachment metadata, and creates presigned URLs. |
 | `FOIS3ObjectStorageClient.cs` | Creates an AWS SDK S3 client using the configured endpoint and credentials read from PostgreSQL. |
@@ -163,14 +165,14 @@ Equivalent conceptual payload:
 - `attributes` must parse as a JSON object. On success, the worker adds `convertedfilesize`; for attachments it also sets `filesize`, `isattachment`, `rootparentfilepath`, `lastmodified` when available, `extension`, and `incompatible`.
 - The verified conversion extensions are `.xls`, `.xlsx`, `.ics`, `.msg`, `.doc`, `.docx`, `.ppt`, and `.pptx`.
 
-After validation, the worker records the start, downloads and converts the object, uploads outputs, creates completion/downstream job records, publishes downstream entries, acknowledges the input, and logs completion.
+After validation, the handler records the start, downloads and converts the object, uploads outputs, creates completion/downstream job records, and publishes downstream entries. The stream consumer acknowledges the input only after the handler succeeds.
 
 #### Incoming-message errors and retries
 
-- Missing required fields produce a warning. The entry is not acknowledged and no error job is written.
-- Other processing failures are logged and an `error` version of the `FileConversionJob` is written when that database operation succeeds. The entry is not acknowledged.
-- The worker does not call `XAUTOCLAIM`, `XCLAIM`, or read pending entries. No message-level automatic retry or dead-letter stream is implemented here.
-- Format converters retry conversion/file-access operations according to `FailureAttemptCount` and `WaitTimeInMilliSeconds`; this is separate from Redis delivery retry.
+- Missing required fields are permanent failures. The consumer writes a redacted diagnostic entry to the DLQ and acknowledges the input atomically.
+- Other processing failures are retryable. They are logged, an `error` job version is attempted, and the input remains pending.
+- Every claim scan reclaims at most one entry that has been idle longer than the configured minimum. With defaults, the third retryable delivery is moved to the DLQ and acknowledged.
+- Format converters retry conversion/file-access operations according to `FailureAttemptCount` and `WaitTimeInMilliSeconds`. These converter-level attempts are separate from Redis message deliveries.
 
 ## 4. Outgoing Messages
 
@@ -278,9 +280,9 @@ Sent fields are `s3filepath`, `requestnumber`, `bcgovcode`, `filename`, `ministr
 
 An exception from a Redis publish enters the general processing failure path. The worker attempts to record the conversion job as `error` and leaves the input entry pending/unacknowledged. There is no transactional outbox, publish retry loop, or rollback of earlier S3/database/Redis effects; see [Failure Handling](#10-failure-handling).
 
-### Redis completion marker
+### Redis delivery completion
 
-After all downstream messages are added, the worker writes a Redis string key named `<input-stream-entry-id>:lastid` whose value is that same stream entry ID. It then acknowledges the input. This marker is written for every successful message, but no code in this service reads it, and its intended consumer or expiry policy is **Not determined from the repository**.
+After all downstream messages are added, the stream consumer acknowledges the input with `XACK`. The previous `<input-stream-entry-id>:lastid` checkpoint key is no longer written.
 
 ### Other outbound interactions
 
@@ -330,6 +332,18 @@ Redis entry -> field-presence validation -> job-start record -> credential looku
 -> presigned download -> format-specific conversion -> presigned upload
 -> database completion/downstream records -> outgoing Redis entries -> XACK
 ```
+
+Delivery failures follow this lifecycle:
+
+```text
+new delivery -> success -> XACK
+new delivery -> permanent validation error -> DLQ + XACK
+new delivery -> retryable error -> pending
+pending idle > 150 minutes -> XAUTOCLAIM -> second/third delivery
+third retryable failure -> DLQ + XACK
+```
+
+Only one pending message is reclaimed per claim scan. Recovery is at-least-once: a process crash after an S3, database, or downstream Redis side effect but before `XACK` can cause that side effect to be repeated on a later delivery.
 
 ## 6. Developer Guide
 
@@ -548,7 +562,7 @@ ORDER BY version;
 
 ## 7. Configuration
 
-`Program` reads optional `appsettings.json` and then environment variables. The main infrastructure values are read directly from the environment, so the environment variables below are required for a functional worker even though startup does not perform explicit configuration validation.
+`Program` reads optional `appsettings.json` and then environment variables. Recovery settings are validated at startup; most infrastructure values are read directly from the environment and fail later at their first use when missing.
 
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
@@ -570,6 +584,11 @@ ORDER BY version;
 | `FILE_CONVERSION_FAILTUREATTEMPT` | No | `5` | Maximum converter attempts. The misspelling `FAILTURE` is the actual contract. Values below `1` fall back to the JSON default. |
 | `FILE_CONVERSION_WAITTIME` | No | `5000` | Milliseconds between converter attempts. `0` or invalid values fall back to the JSON default. |
 | `FILE_CONVERSION_OPENFILE_WAITTIME` | No | `120` | Seconds allowed for the initial Excel workbook open. `0` or invalid values fall back to the JSON default. |
+| `FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES` | No | `150` | Minimum pending idle time before `XAUTOCLAIM`. Keep this above the longest expected conversion, currently 120 minutes. |
+| `FILE_CONVERSION_CLAIM_INTERVAL_SECONDS` | No | `30` | Delay between pending-entry claim scans. Each scan claims at most one entry. |
+| `FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS` | No | `3` | Delivery count at which retryable failures become terminal and are sent to the DLQ. |
+| `FILE_CONVERSION_DLQ_STREAM_KEY` | No | `<REDIS_STREAM_KEY>:dlq` | DLQ stream. A missing or blank value derives the default from the input stream. |
+| `FILE_CONVERSION_DLQ_MAX_LENGTH` | No | `10000` | Approximate maximum DLQ stream length used by `XADD MAXLEN ~`. |
 
 The parent Compose/OpenShift files also pass `S3_REGION` and `S3_SERVICE`, but this worker does not read them.
 
@@ -695,9 +714,9 @@ S3 access keys are not configured as worker environment variables: they are stor
   per pod. The value is resolved once at startup. Local fallback uses machine
   name plus process ID and is not a cross-host uniqueness guarantee.
 - Container restarts in the same pod reuse its name; replacement pods use
-  their own names. Existing pending entries remain with their original
-  consumer, including `c1`. This change does not recover the backlog or
-  establish that every aspect of horizontal scaling is safe.
+  their own names. Entries left pending under an old consumer are reclaimed
+  after the configured minimum idle time. Every worker scans the shared group,
+  while each worker limits itself to one concurrent claim operation.
 - CPU- and memory-heavy converters and in-memory input/output streams make resource needs depend strongly on document size. The separate `largefiles` deployment indicates workload separation, but its size threshold/routing policy is **Not determined from the repository**.
 - The process does not register a cancellation token or signal handler. `using`/`finally` cleanup runs on normal managed exit, but graceful completion of an in-flight job after SIGTERM is not implemented explicitly. The checked-in pod grace period is 30 seconds.
 
@@ -723,8 +742,10 @@ Useful messages include:
 - `File conversion completed in ... ms`
 - `Queued converted file to DEDUPE STREAM ...`
 - `Job completed successfully`
-- `Job skipped — missing required field`
+- `Job rejected because a required field is missing`
 - `Error converting file`
+- `Redis message ... processing finished with disposition ...`
+- `Redis message ... dead-lettered as ... for ...`
 - `Unhandled error in FOI File Conversion service`
 
 The Redis connection log includes `ConsumerName`. If `CONSUMER_NAME` is missing or
@@ -759,41 +780,36 @@ redis-cli -h "$REDIS_STREAM_HOST" -p "$REDIS_STREAM_PORT" \
 
 If Redis requires authentication, supply it securely through the client environment/configuration; avoid putting the password directly in shell history.
 
-Failed conversion processing is visible through error logs, `FileConversionJob` rows with `status = 'error'`, and entries remaining in the Redis pending-entry list.
+Failed conversion processing is visible through error logs, `FileConversionJob` rows with `status = 'error'`, pending entries, and the configured DLQ. DLQ copies redact `usertoken` case-insensitively; access to all diagnostics should still be restricted.
 
 ## 10. Failure Handling
 
 | Concern | Verified behavior |
 | --- | --- |
 | Converter retry | Word, Excel, PowerPoint, MSG, and calendar file-access/conversion paths contain retry loops. Defaults are 5 attempts with 5 seconds between attempts; Excel also has a 120-second workbook-open timeout. |
-| Redis message retry | Not implemented. Failed entries remain pending and are not reclaimed/read by this worker. |
-| Dead-letter queue | Not implemented for this service. |
+| Redis message retry | Retryable failures remain pending. `XAUTOCLAIM` reassigns one sufficiently idle entry per scan; the default cap is three deliveries. Requires Redis 6.2 or newer. |
+| Dead-letter queue | Permanent failures and retryable failures at the delivery cap are copied to the DLQ. `XADD` and source `XACK` run in one Lua script; an `XADD` error leaves the source pending. |
 | Redis/S3/DB timeout | No explicit Redis, general HTTP, S3-download/upload, or PostgreSQL command timeout is set by application code. Library defaults apply. |
 | Duplicate handling | No idempotency key check or duplicate guard is implemented. Database constraints, if any, are not handled as an idempotency mechanism here. |
 | Atomicity | S3 writes, PostgreSQL writes, and Redis publishes are separate operations. There is no cross-system transaction or outbox. |
 | Acknowledgement | The input is acknowledged only after uploads, success DB writes, and all output publishes complete. |
-| Missing fields | Warning only; no ACK and no database error record. |
-| Conversion/dependency failure | Logs error, attempts to insert an error job version, and leaves the Redis entry pending. |
+| Missing fields | Classified as permanent, copied to the DLQ with redacted fields, then acknowledged. |
+| Conversion/dependency failure | Logs error, attempts to insert an error job version, and leaves the Redis entry pending until recovery or terminal delivery. |
 | Startup failure | Format endpoint, Redis connection, or other top-level failures are logged as fatal; `Main` then exits without explicitly setting a non-zero exit code. |
 
 ### Partial-failure implications
 
-A failure after uploading an object or publishing one of several output messages can leave durable side effects while the input remains pending. Manual replay can therefore create duplicate database rows, duplicate stream entries, or overwritten PDF objects. Recovery must inspect all three systems before replaying.
+A failure after uploading an object or publishing one of several output messages can leave durable side effects while the input remains pending. Automatic at-least-once recovery can therefore create duplicate database rows, duplicate stream entries, or overwritten PDF objects. Recovery must inspect all three systems when investigating duplicates or terminal failures.
 
 ### Recovery procedure
 
 1. Correlate the entry using its Redis ID and the structured job fields.
 2. Inspect `XPENDING`/`XRANGE`, the related `FileConversionJob` versions, downstream `DeduplicationJob` rows, and the expected S3 PDF/attachment objects.
 3. Correct the dependency, data, or configuration issue.
-4. Decide whether to acknowledge, claim/replay, or reconstruct the job based on already-created side effects.
+4. Let automatic recovery claim retryable work, or use the reviewed runbook to make a bounded manual decision based on already-created side effects.
 5. Verify downstream messages and database records after recovery.
 
-Exact production replay/claim commands and ownership policy are **Not determined from the repository**. Do not blindly `XADD` a failed job without checking for partial outputs.
-
-Do not delete `c1`, recreate the consumer group, reset its position, or replay
-pending entries as part of this identity change. An image rollback restores
-the old shared identity but does not migrate or recover entries pending under
-pod-specific consumers.
+See [`docs/runbooks/file-conversion-redis-recovery-rollout.md`](../docs/runbooks/file-conversion-redis-recovery-rollout.md) for the operator-reviewed reset, rollout, monitoring, and rollback sequence. Do not blindly `XADD` a failed job without checking for partial outputs.
 
 ## 11. Troubleshooting
 
@@ -801,8 +817,8 @@ pod-specific consumers.
 | --- | --- |
 | Service logs a fatal error at startup | Confirm all required environment variables. Fetch `RECORD_FORMATS` manually and verify HTTP success plus the three expected arrays. Confirm Redis DNS/port/password. |
 | Cannot connect to Redis | Check `REDIS_STREAM_HOST`, `REDIS_STREAM_PORT`, and conditional password; test network reachability; inspect Redis logs. The local Compose port is `7379`, not container port `6379`. |
-| Messages are not consumed | Check `XLEN`, `XINFO GROUPS`, and `XPENDING`. A newly created group starts at `$` and ignores entries that already existed. Failed entries remain pending and are not automatically reclaimed. Ensure the worker and producer use the same stream. |
-| Messages remain pending | Inspect worker errors and DB job state. This code only reads new group entries and contains no pending-entry recovery loop. Follow the reviewed operational replay procedure. |
+| Messages are not consumed | Check `XLEN`, `XINFO GROUPS`, and `XPENDING`. A newly created group starts at `$` and ignores entries that already existed. Ensure the worker and producer use the same stream. |
+| Messages remain pending | Inspect worker errors, delivery counts, idle times, and DB job state. Entries younger than the claim minimum remain pending; older entries are reclaimed one per scan. Verify all five recovery settings. |
 | Converted/dedupe message is absent | Check conversion logs, S3 output, DB completion batch, and the exact `DEDUPE_STREAM_KEY`. The input is ACKed only after the outgoing adds succeed. |
 | S3 download/upload fails | Ensure `S3_HOST` matches the prefix in `s3filepath`, the bucket is the fourth URL segment, and `DocumentPathMapper.attributes` contains valid credentials for that bucket. Presigned URLs expire after one hour. |
 | S3 credential lookup returns no usable values | Verify a `DocumentPathMapper` row exists for the parsed bucket and that `attributes` contains `s3accesskey` and `s3secretkey`. |
@@ -813,7 +829,7 @@ pod-specific consumers.
 | Excel conversion times out | Increase `FILE_CONVERSION_OPENFILE_WAITTIME` if justified and inspect document size/complexity and pod resources. |
 | Font/layout output differs | Confirm the container image successfully downloaded/installed the required fonts and native rendering libraries. Local host execution may not have the same font set. |
 | Container health check fails | The worker has no HTTP health endpoint. Remove HTTP probes or add an appropriate external/process-based check in the deployment; current live probe behavior is not in this repository. |
-| CPU usage is high while idle | The loop performs non-blocking reads with no sleep when no messages are returned. This is current code behavior; there is no polling-delay setting wired into the loop. |
+| DLQ grows unexpectedly | Inspect `reason`, `delivery_count`, `failed_at`, and the redacted `fields` JSON. Check dependency health before replaying; DLQ entries are diagnostic copies and are not consumed automatically. |
 | Tests fail to find fixtures | Set `SourceRootPath` for Excel. Other test projects contain hard-coded Windows paths and require adaptation for the executing machine. |
 
 ## 12. Repository Structure

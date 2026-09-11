@@ -10,6 +10,24 @@ namespace MCS.FOI.S3FileConversionUnitTests;
 public class RedisStreamConsumerTests
 {
     [DataTestMethod]
+    [DataRow("481", true, 481L)]
+    [DataRow("not-numeric", false, 0L)]
+    public void TryGetJobIdReturnsOnlyParseableNumericValues(
+        string value,
+        bool expectedResult,
+        long expectedJobId)
+    {
+        var message = new StreamEntry(
+            "1-0",
+            new[] { new NameValueEntry("jobid", value) });
+
+        var result = RedisStreamConsumer.TryGetJobId(message, out var jobId);
+
+        Assert.AreEqual(expectedResult, result);
+        Assert.AreEqual(expectedJobId, jobId);
+    }
+
+    [DataTestMethod]
     [DataRow(1L, false)]
     [DataRow(2L, false)]
     [DataRow(3L, true)]
