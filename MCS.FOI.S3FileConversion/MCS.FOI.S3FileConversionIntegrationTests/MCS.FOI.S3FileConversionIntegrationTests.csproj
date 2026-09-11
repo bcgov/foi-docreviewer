@@ -15,6 +15,9 @@
     <PackageReference Include="StackExchange.Redis" Version="2.6.70" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MCS.FOI.S3FileConversion\MCS.FOI.S3FileConversion.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="../MCS.FOI.DocToPDFUnitTests/SourceFiles/simple-test-doc.docx"
           Link="Fixtures/simple-test-doc.docx"
           CopyToOutputDirectory="PreserveNewest" />
