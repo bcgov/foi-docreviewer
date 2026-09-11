@@ -104,6 +104,11 @@ services:
       dockerfile: integration/Dockerfile
     environment:
       DATABASE_CONNECTION_STRING: Host=postgres;Port=5432;Database=foi;Username=foi;Password=foi-test
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: foi
+      DATABASE_USERNAME: foi
+      DATABASE_PASSWORD: foi-test
       REDIS_CONNECTION_STRING: redis:6379,password=redis-test,abortConnect=false
       S3_ENDPOINT: http://seaweedfs:8333
       S3_ACCESS_KEY: dev

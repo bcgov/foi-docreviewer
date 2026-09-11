@@ -14,15 +14,34 @@ public sealed class FileConversionMessageHandler : IStreamMessageHandler
     private readonly IDatabase database;
     private readonly RedisKey conversionStream;
     private readonly RedisKey dedupeStream;
+    private readonly Func<IConversionDatabase> conversionDatabaseFactory;
+    private readonly Func<IFileConverter> fileConverterFactory;
 
     public FileConversionMessageHandler(
         IDatabase database,
         string conversionStream,
         string dedupeStream)
+        : this(
+            database,
+            conversionStream,
+            dedupeStream,
+            () => new DBHandler(),
+            () => new S3Handler())
+    {
+    }
+
+    internal FileConversionMessageHandler(
+        IDatabase database,
+        string conversionStream,
+        string dedupeStream,
+        Func<IConversionDatabase> conversionDatabaseFactory,
+        Func<IFileConverter> fileConverterFactory)
     {
         this.database = database;
         this.conversionStream = conversionStream;
         this.dedupeStream = dedupeStream;
+        this.conversionDatabaseFactory = conversionDatabaseFactory;
+        this.fileConverterFactory = fileConverterFactory;
     }
 
     public async Task<MessageHandlingResult> HandleAsync(
@@ -48,7 +67,7 @@ public sealed class FileConversionMessageHandler : IStreamMessageHandler
         using var jobId = LogContext.PushProperty("JobId", message["jobid"].ToString());
         using var filename = LogContext.PushProperty("Filename", message["filename"].ToString());
         using var filepath = LogContext.PushProperty("Filepath", message["s3filepath"].ToString());
-        using var dbHandler = new DBHandler();
+        using var dbHandler = conversionDatabaseFactory();
 
         try
         {
@@ -97,14 +116,14 @@ public sealed class FileConversionMessageHandler : IStreamMessageHandler
 
     private async Task ProcessConversionAsync(
         StreamEntry message,
-        DBHandler dbHandler,
+        IConversionDatabase dbHandler,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         await dbHandler.recordJobStart(message);
         Log.Information("Job started");
 
-        using var s3Handler = new S3Handler();
+        using var s3Handler = fileConverterFactory();
         var filePath = message["s3filepath"].ToString();
         var bucket = filePath.Split('/')[3];
         var s3AccessKeys = await dbHandler.getAccessKeyFromDB(bucket);

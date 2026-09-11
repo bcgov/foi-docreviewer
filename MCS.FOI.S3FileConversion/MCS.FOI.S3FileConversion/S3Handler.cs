@@ -22,7 +22,7 @@ namespace MCS.FOI.S3FileConversion
         public string s3accesskey { get; set; }
         public string s3secretkey { get; set; }
     }
-    internal class S3Handler : IDisposable
+    internal class S3Handler : IFileConverter
     {
         Stream? output = null;
         Dictionary<MemoryStream, Dictionary<string, string>> attachments = null;
@@ -144,6 +144,7 @@ namespace MCS.FOI.S3FileConversion
                                 }
                             }
 
+                            var attachmentIndex = 0;
                             foreach (var attachment in uploadAttachments)
                             {
                                     var attributes = JsonSerializer.Deserialize<JsonNode>((string)message["attributes"]);
@@ -161,7 +162,11 @@ namespace MCS.FOI.S3FileConversion
                                     attributes["incompatible"] = JsonValue.Create(Array.IndexOf(formats, attachmentExtension.ToLower()) == -1);
                                     attachment.Metadata.Add("attributes", attributes.ToJsonString());
                                     var parentFolder = attributes["rootparentfilepath"] == null ? newKey : attributes["rootparentfilepath"].ToString().Split(S3Host + '/')[1];
-                                    var newAttachmentKey = parentFolder.Split(".")[0] + "/" + Guid.NewGuid().ToString() + attachmentExtension;
+                                    var newAttachmentKey = GetAttachmentKey(
+                                        parentFolder,
+                                        (int) message["jobid"],
+                                        attachmentIndex++,
+                                        attachmentExtension);
                                     var attachmentPresignedPutURL = GetPresignedURL(s3, newAttachmentKey, HttpVerb.PUT);
                                     attachment.Metadata.Add("filepath", S3Host + "/" + newAttachmentKey);
                                     returnAttachments.Add(attachment.Metadata);
@@ -281,6 +286,13 @@ namespace MCS.FOI.S3FileConversion
             return output;
         }
 
+
+        internal static string GetAttachmentKey(
+            string parentFolder,
+            int jobId,
+            int attachmentIndex,
+            string extension) =>
+            $"{parentFolder.Split('.')[0]}/{jobId}-{attachmentIndex}{extension}";
 
         public void Dispose()
         {
