@@ -89,6 +89,9 @@ public sealed class RedisStreamConsumer
         using var groupContext = LogContext.PushProperty("ConsumerGroup", group.ToString());
         using var consumerContext = LogContext.PushProperty("ConsumerName", consumerName.ToString());
         using var messageContext = LogContext.PushProperty("MessageId", message.Id.ToString());
+        using var jobContext = TryGetJobId(message, out var jobId)
+            ? LogContext.PushProperty("JobId", jobId)
+            : null;
 
         var deliveryCount = await redis.GetDeliveryCountAsync(stream, group, message.Id);
         if (deliveryCount is null)
@@ -177,6 +180,9 @@ public sealed class RedisStreamConsumer
                 stopwatch.Elapsed.TotalMilliseconds);
         }
     }
+
+    internal static bool TryGetJobId(StreamEntry message, out long jobId) =>
+        long.TryParse(message["jobid"].ToString(), out jobId);
 
     internal async Task ReclaimOneAsync(CancellationToken cancellationToken)
     {

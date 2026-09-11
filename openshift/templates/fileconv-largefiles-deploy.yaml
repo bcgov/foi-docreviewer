@@ -147,6 +147,16 @@ objects:
                 secretKeyRef:
                   name: "${SECRETS}"
                   key: FILE_CONVERSION_WAITTIME
+            - name: FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES
+              value: "${FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES}"
+            - name: FILE_CONVERSION_CLAIM_INTERVAL_SECONDS
+              value: "${FILE_CONVERSION_CLAIM_INTERVAL_SECONDS}"
+            - name: FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS
+              value: "${FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS}"
+            - name: FILE_CONVERSION_DLQ_STREAM_KEY
+              value: "${FILE_CONVERSION_DLQ_STREAM_KEY}"
+            - name: FILE_CONVERSION_DLQ_MAX_LENGTH
+              value: "${FILE_CONVERSION_DLQ_MAX_LENGTH}"
           resources:
             requests:
               cpu: "50m"
@@ -198,3 +208,13 @@ parameters:
   displayName: File Conversion App Secrets
   description: Name of secret for all file conversion values
   required: true
+- name: FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES
+  value: "150"
+- name: FILE_CONVERSION_CLAIM_INTERVAL_SECONDS
+  value: "30"
+- name: FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS
+  value: "3"
+- name: FILE_CONVERSION_DLQ_STREAM_KEY
+  value: ""
+- name: FILE_CONVERSION_DLQ_MAX_LENGTH
+  value: "10000"
