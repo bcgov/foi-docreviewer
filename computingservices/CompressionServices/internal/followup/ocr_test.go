@@ -18,7 +18,7 @@ func TestAfterTerminalPublishesOneFlatOCRMessageForPDF(t *testing.T) {
 
 	repository := &fakeRepository{ocrJobID: 77}
 	publisher := &fakePublisher{}
-	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)), contracts.OCRTopic)
 	message := models.CompressionProducerMessage{JobID: 12, Filename: "record.pdf", Attributes: map[string]any{"filesize": 3}}
 
 	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
@@ -38,6 +38,27 @@ func TestAfterTerminalPublishesOneFlatOCRMessageForPDF(t *testing.T) {
 	if publisher.lastPayload.JobID != 77 {
 		t.Fatalf("published jobid = %d, want 77", publisher.lastPayload.JobID)
 	}
+	if publisher.lastDef.Topic != contracts.OCRTopic {
+		t.Fatalf("topic = %q, want %q", publisher.lastDef.Topic, contracts.OCRTopic)
+	}
+}
+
+func TestAfterTerminalPublishesToWhicheverTopicItWasConfiguredWith(t *testing.T) {
+	t.Parallel()
+
+	repository := &fakeRepository{ocrJobID: 77}
+	publisher := &fakePublisher{}
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)), "ocr-large")
+	message := models.CompressionProducerMessage{JobID: 12, Filename: "record.pdf", Attributes: map[string]any{"filesize": 3}}
+
+	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
+
+	if publisher.calls != 1 {
+		t.Fatalf("publish calls = %d, want 1", publisher.calls)
+	}
+	if publisher.lastDef.Topic != "ocr-large" {
+		t.Fatalf("topic = %q, want %q", publisher.lastDef.Topic, "ocr-large")
+	}
 }
 
 func TestAfterTerminalForwardsIncompatibleAndUserToken(t *testing.T) {
@@ -46,7 +67,7 @@ func TestAfterTerminalForwardsIncompatibleAndUserToken(t *testing.T) {
 	token := "tok-abc"
 	repository := &fakeRepository{ocrJobID: 5}
 	publisher := &fakePublisher{}
-	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)), contracts.OCRTopic)
 	message := models.CompressionProducerMessage{
 		JobID:        12,
 		Filename:     "record.pdf",
@@ -73,7 +94,7 @@ func TestAfterTerminalMarksNonPDFReadyForRedaction(t *testing.T) {
 
 	repository := &fakeRepository{}
 	publisher := &fakePublisher{}
-	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service := New(repository, publisher, slog.New(slog.NewTextHandler(io.Discard, nil)), contracts.OCRTopic)
 	message := models.CompressionProducerMessage{JobID: 12, Filename: "record.png"}
 
 	service.AfterTerminal(context.Background(), message, store.CompressionResult{Status: store.StatusSkipped, Extension: ".png"})
