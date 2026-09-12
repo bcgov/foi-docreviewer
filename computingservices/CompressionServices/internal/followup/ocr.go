@@ -29,11 +29,17 @@ type Service struct {
 	repository Repository
 	publisher  Publisher
 	logger     *slog.Logger
+	ocrTopic   string
 }
 
 // New creates a follow-up service using the shared messaging publisher.
-func New(repository Repository, publisher Publisher, logger *slog.Logger) *Service {
-	return &Service{repository: repository, publisher: publisher, logger: logger}
+// ocrTopic is the destination stream for OCR follow-up work (e.g. "ocr" or
+// "ocr-large"), configured via CompressionServices' OCR_TOPIC env var so
+// deployments can route normal and large workloads to separate OCR
+// consumers, mirroring the compression/compression-large topic split this
+// service already uses for its own consumer.
+func New(repository Repository, publisher Publisher, logger *slog.Logger, ocrTopic string) *Service {
+	return &Service{repository: repository, publisher: publisher, logger: logger, ocrTopic: ocrTopic}
 }
 
 // AfterTerminal sends PDFs to OCR and marks other successful documents ready
@@ -70,7 +76,7 @@ func (s *Service) publishOCR(ctx context.Context, message models.CompressionProd
 		return
 	}
 	// Correlation ID propagates from ctx automatically (library resolves it).
-	if _, err := s.publisher.Publish(ctx, contracts.OCRRequested(), toOCRPayload(message, jobID)); err != nil {
+	if _, err := s.publisher.Publish(ctx, contracts.OCRRequested(s.ocrTopic), toOCRPayload(message, jobID)); err != nil {
 		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_publish_failed", "job_id", jobID)
 	}
 }
