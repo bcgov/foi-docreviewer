@@ -27,7 +27,7 @@ func registeredHandler(t *testing.T, p ocr.DeliveryProcessor) messaging.Handler[
 }
 
 func newEnvelope(eventID, correlationID string, msg models.OCRProducerMessage) messaging.Envelope[models.OCRProducerMessage] {
-	def := contracts.OCRRequested()
+	def := contracts.OCRRequested(contracts.OCRTopic)
 	return messaging.Envelope[models.OCRProducerMessage]{
 		EventID:       eventID,
 		EventType:     def.Type,

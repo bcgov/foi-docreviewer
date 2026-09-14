@@ -8,10 +8,13 @@ const (
 	OCRTopic         = "ocr"
 )
 
-// OCRRequested is the typed event OCRServices consumes.
-func OCRRequested() messaging.EventDef {
+// OCRRequested is the typed event OCRServices consumes. topic selects the
+// Redis stream (via foi-messaging-go's StreamPrefix:topic convention),
+// letting deployments split traffic (e.g. by file size) across separate
+// consumer processes without changing the event type or schema version.
+func OCRRequested(topic string) messaging.EventDef {
 	return messaging.EventDef{
-		Topic:   OCRTopic,
+		Topic:   topic,
 		Type:    OCREventType,
 		Version: OCRSchemaVersion,
 	}

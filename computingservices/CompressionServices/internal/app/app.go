@@ -173,7 +173,7 @@ func newApplication(ctx context.Context, command string, cfg config.Config, logg
 		return nil, safe("configuration_invalid", err)
 	}
 	app.messagingPublisher = ocrPublisher
-	followUp := followup.New(repository, ocrPublisher, logger)
+	followUp := followup.New(repository, ocrPublisher, logger, cfg.Messaging.OCRTopic)
 	handler := compression.NewHandler(repository, processor, followUp, compression.Options{
 		Workload:            cfg.Workload,
 		ProcessingTimeout:   cfg.ProcessingTimeout,
