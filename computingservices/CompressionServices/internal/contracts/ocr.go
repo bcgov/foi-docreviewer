@@ -8,10 +8,13 @@ const (
 	OCRTopic         = "ocr"
 )
 
-// OCRRequested is the typed event CompressionServices publishes for OCR work.
-func OCRRequested() messaging.EventDef {
+// OCRRequested is the typed event CompressionServices publishes for OCR
+// work. topic is the destination stream, configured via OCR_TOPIC (see
+// config.Load), so deployments can route follow-up OCR jobs to a separate
+// consumer without changing the event type or schema version.
+func OCRRequested(topic string) messaging.EventDef {
 	return messaging.EventDef{
-		Topic:   OCRTopic,
+		Topic:   topic,
 		Type:    OCREventType,
 		Version: OCRSchemaVersion,
 	}

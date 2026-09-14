@@ -44,6 +44,27 @@ func TestLoadStandardNormal(t *testing.T) {
 	assert.Equal(t, 75*time.Minute, got.Reconciliation.UnknownAfter)
 	assert.Equal(t, 100, got.Reconciliation.BatchSize)
 	assert.Equal(t, 15*time.Minute, got.S3.PresignExpiry)
+	assert.Equal(t, "ocr", got.Messaging.OCRTopic)
+}
+
+func TestLoadDefaultsOCRTopicToOCRRegardlessOfWorkload(t *testing.T) {
+	env := standardNormalEnv()
+	env["COMPRESSION_WORKLOAD"] = "large"
+
+	got, err := Load(func(key string) string { return env[key] })
+
+	require.NoError(t, err)
+	assert.Equal(t, "ocr", got.Messaging.OCRTopic, "OCR_TOPIC must be set explicitly to opt into a separate large-file topic")
+}
+
+func TestLoadReadsExplicitOCRTopic(t *testing.T) {
+	env := standardNormalEnv()
+	env["OCR_TOPIC"] = " ocr-custom "
+
+	got, err := Load(func(key string) string { return env[key] })
+
+	require.NoError(t, err)
+	assert.Equal(t, "ocr-custom", got.Messaging.OCRTopic)
 }
 
 func TestLoadValidatesPresignExpirySecurityMaximum(t *testing.T) {

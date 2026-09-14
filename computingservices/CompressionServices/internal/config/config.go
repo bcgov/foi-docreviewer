@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"compressionservices/internal/contracts"
 )
 
 type Mode string
@@ -29,6 +31,7 @@ type Messaging struct {
 	RedisPassword       string
 	StreamPrefix        string
 	Topic               string
+	OCRTopic            string
 	ConsumerGroup       string
 	ConsumerName        string
 	LegacyStreamKey     string
@@ -198,10 +201,16 @@ func Load(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 
+	ocrTopic := strings.TrimSpace(getenv("OCR_TOPIC"))
+	if ocrTopic == "" {
+		ocrTopic = contracts.OCRTopic
+	}
+
 	messaging := Messaging{
 		RedisAddress:        net.JoinHostPort(redisHost, strconv.Itoa(redisPort)),
 		RedisPassword:       getenv("REDIS_PASSWORD"),
 		ConsumerName:        strings.TrimSpace(getenv("REDIS_CONSUMER_NAME")),
+		OCRTopic:            ocrTopic,
 		ClaimInterval:       claimInterval,
 		ClaimMinIdle:        claimMinIdle,
 		MaxDeliveryAttempts: maxDeliveryAttempts,
@@ -259,7 +268,12 @@ func loadWorkload(getenv func(string) string) (Workload, error) {
 }
 
 func loadModeSettings(getenv func(string) string, mode Mode, messaging *Messaging) error {
-	// StreamPrefix is required for all modes: the OCR publisher always targets foi:ocr.
+	// StreamPrefix is required for all modes. The OCR publisher topic is
+	// configured separately via OCR_TOPIC, defaulting to "ocr" regardless of
+	// workload: a large-workload deployment must opt into a separate
+	// large-file OCR topic explicitly (e.g. OCR_TOPIC=ocr-large) rather than
+	// switching implicitly, so it can't silently start publishing to a
+	// stream no consumer is listening on yet.
 	streamPrefix, err := required(getenv, "MESSAGING_STREAM_PREFIX")
 	if err != nil {
 		return err
