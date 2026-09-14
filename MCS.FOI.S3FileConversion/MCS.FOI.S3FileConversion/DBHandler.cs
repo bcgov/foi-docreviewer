@@ -13,7 +13,7 @@ using StackExchange.Redis;
 
 namespace MCS.FOI.S3FileConversion
 {
-    internal class DBHandler : IDisposable
+    internal class DBHandler : IConversionDatabase
     {
         NpgsqlConnection conn = null;
         public  async System.Threading.Tasks.Task<S3AccessKeys> getAccessKeyFromDB(string bucket)
@@ -60,7 +60,9 @@ namespace MCS.FOI.S3FileConversion
                 // Insert entry to mark job start
                 await using var cmd = new NpgsqlCommand(@"INSERT INTO ""FileConversionJob""
                     (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, filename, status)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) returning fileconversionjobid", conn)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (fileconversionjobid, version) DO NOTHING
+                    returning fileconversionjobid", conn)
 
                 {
                     Parameters =
@@ -100,8 +102,34 @@ namespace MCS.FOI.S3FileConversion
                 conn = getSqlConnection();
 
                 await conn.OpenAsync();
+                await using var transaction = await conn.BeginTransactionAsync();
+                await using (var lockCommand = new NpgsqlCommand(
+                    "SELECT pg_advisory_xact_lock($1)",
+                    conn,
+                    transaction))
+                {
+                    lockCommand.Parameters.AddWithValue(
+                        (int) message["jobid"]);
+                    await lockCommand.ExecuteNonQueryAsync();
+                }
 
-                await using var batch = new NpgsqlBatch(conn);
+                if (!error)
+                {
+                    var completedJobIDs = await getCompletedJobIDs(
+                        message,
+                        conn,
+                        transaction);
+                    if (completedJobIDs != null)
+                    {
+                        await transaction.CommitAsync();
+                        return completedJobIDs;
+                    }
+                }
+
+                await using var batch = new NpgsqlBatch(conn)
+                {
+                    Transaction = transaction
+                };
 
                 if (!error)
                 {
@@ -212,7 +240,18 @@ namespace MCS.FOI.S3FileConversion
                         VALUES ($1, $2, $3, $4, $5) returning documentmasterid)
                         INSERT INTO ""FileConversionJob""
                         (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, outputdocumentmasterid, filename, status, message)
-                        VALUES ($6, $7, $8, $9, $10, $11, (select documentmasterid from masterid), $12, $13, $14) returning (select documentmasterid from masterid)")
+                        VALUES ($6, $7, $8, $9, $10, $11, (select documentmasterid from masterid), $12, $13, $14)
+                        ON CONFLICT (fileconversionjobid, version) DO UPDATE SET
+                            ministryrequestid = EXCLUDED.ministryrequestid,
+                            createdat = now(),
+                            batch = EXCLUDED.batch,
+                            trigger = EXCLUDED.trigger,
+                            inputdocumentmasterid = EXCLUDED.inputdocumentmasterid,
+                            outputdocumentmasterid = EXCLUDED.outputdocumentmasterid,
+                            filename = EXCLUDED.filename,
+                            status = EXCLUDED.status,
+                            message = EXCLUDED.message
+                        returning (select documentmasterid from masterid)")
 
                         {
                             Parameters =
@@ -240,7 +279,17 @@ namespace MCS.FOI.S3FileConversion
                     var cmd2 = new NpgsqlBatchCommand(@"
                         INSERT INTO ""FileConversionJob""
                         (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, filename, status, message)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ")
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                        ON CONFLICT (fileconversionjobid, version) DO UPDATE SET
+                            ministryrequestid = EXCLUDED.ministryrequestid,
+                            createdat = now(),
+                            batch = EXCLUDED.batch,
+                            trigger = EXCLUDED.trigger,
+                            inputdocumentmasterid = EXCLUDED.inputdocumentmasterid,
+                            filename = EXCLUDED.filename,
+                            status = EXCLUDED.status,
+                            message = EXCLUDED.message
+                        WHERE ""FileConversionJob"".status <> 'completed' ")
 
                         {
                             Parameters =
@@ -285,7 +334,8 @@ namespace MCS.FOI.S3FileConversion
                         jobIDs.Add(Path.ChangeExtension(message["s3filepath"], ".pdf"), new Dictionary<string, string> { { "jobID", dedupeJobID }, { "masterID", masterID } });
                     }
                 }
-                
+                await transaction.CommitAsync();
+
             }
             catch (Exception ex)
             {
@@ -300,6 +350,86 @@ namespace MCS.FOI.S3FileConversion
             }
 
             return jobIDs;
+        }
+
+        private static async Task<Dictionary<string, Dictionary<string, string>>?> getCompletedJobIDs(
+            StreamEntry message,
+            NpgsqlConnection connection,
+            NpgsqlTransaction transaction)
+        {
+            const string query = @"
+                SELECT output.filepath,
+                       dedupe.deduplicationjobid,
+                       completed.outputdocumentmasterid
+                FROM ""FileConversionJob"" completed
+                JOIN ""DocumentMaster"" output
+                  ON output.documentmasterid = completed.outputdocumentmasterid
+                JOIN LATERAL (
+                    SELECT deduplicationjobid
+                    FROM ""DeduplicationJob""
+                    WHERE documentmasterid = completed.inputdocumentmasterid
+                    ORDER BY deduplicationjobid DESC
+                    LIMIT 1
+                ) dedupe ON true
+                WHERE completed.fileconversionjobid = $1
+                  AND completed.version = 3
+                  AND completed.status = 'completed'
+
+                UNION ALL
+
+                SELECT attachment.filepath,
+                       COALESCE(conversion.fileconversionjobid,
+                                dedupe.deduplicationjobid),
+                       attachment.documentmasterid
+                FROM ""DocumentMaster"" attachment
+                LEFT JOIN LATERAL (
+                    SELECT fileconversionjobid
+                    FROM ""FileConversionJob""
+                    WHERE inputdocumentmasterid = attachment.documentmasterid
+                      AND version = 1
+                    ORDER BY fileconversionjobid DESC
+                    LIMIT 1
+                ) conversion ON true
+                LEFT JOIN LATERAL (
+                    SELECT deduplicationjobid
+                    FROM ""DeduplicationJob""
+                    WHERE documentmasterid = attachment.documentmasterid
+                    ORDER BY deduplicationjobid DESC
+                    LIMIT 1
+                ) dedupe ON true
+                WHERE attachment.parentid = $2
+                  AND (conversion.fileconversionjobid IS NOT NULL
+                       OR dedupe.deduplicationjobid IS NOT NULL)
+                  AND EXISTS (
+                      SELECT 1
+                      FROM ""FileConversionJob""
+                      WHERE fileconversionjobid = $1
+                        AND version = 3
+                        AND status = 'completed'
+                  )";
+
+            await using var command = new NpgsqlCommand(query, connection, transaction)
+            {
+                Parameters =
+                {
+                    new() { Value = (int) message["jobid"], NpgsqlDbType = NpgsqlDbType.Integer },
+                    new() { Value = (int) message["documentmasterid"], NpgsqlDbType = NpgsqlDbType.Integer }
+                }
+            };
+            await using var reader = await command.ExecuteReaderAsync();
+            var completedJobIDs = new Dictionary<string, Dictionary<string, string>>();
+            while (await reader.ReadAsync())
+            {
+                completedJobIDs.Add(
+                    reader.GetString(0),
+                    new Dictionary<string, string>
+                    {
+                        { "jobID", reader.GetInt32(1).ToString() },
+                        { "masterID", reader.GetInt32(2).ToString() }
+                    });
+            }
+
+            return completedJobIDs.Count == 0 ? null : completedJobIDs;
         }
 
         private NpgsqlConnection getSqlConnection()
