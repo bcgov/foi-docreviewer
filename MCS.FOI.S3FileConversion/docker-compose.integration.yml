@@ -83,6 +83,11 @@ services:
       FILE_CONVERSION_FAILTUREATTEMPT: "1"
       FILE_CONVERSION_WAITTIME: "1"
       FILE_CONVERSION_OPENFILE_WAITTIME: "5"
+      FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES: "150"
+      FILE_CONVERSION_CLAIM_INTERVAL_SECONDS: "30"
+      FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS: "3"
+      FILE_CONVERSION_DLQ_STREAM_KEY: ""
+      FILE_CONVERSION_DLQ_MAX_LENGTH: "10000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,6 +104,11 @@ services:
       dockerfile: integration/Dockerfile
     environment:
       DATABASE_CONNECTION_STRING: Host=postgres;Port=5432;Database=foi;Username=foi;Password=foi-test
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: foi
+      DATABASE_USERNAME: foi
+      DATABASE_PASSWORD: foi-test
       REDIS_CONNECTION_STRING: redis:6379,password=redis-test,abortConnect=false
       S3_ENDPOINT: http://seaweedfs:8333
       S3_ACCESS_KEY: dev
