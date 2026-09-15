@@ -1,3 +1,4 @@
+import json
 from collections.abc import Mapping
 
 from messaging.models import EventEnvelope, PdfPreprocessingRequestedEvent
@@ -35,6 +36,8 @@ class LegacyRedisMessageAdapter:
     def _text(value: object, field: str) -> str:
         if isinstance(value, bytes):
             value = value.decode("utf-8")
+        elif isinstance(value, int) and not isinstance(value, bool):
+            value = str(value)
         if not isinstance(value, str) or not value.strip():
             raise ValueError(
                 f"legacy message field '{field}' must be a non-empty string"
