@@ -1,0 +1,302 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="2110" viewBox="0 0 1900 2110" role="img" aria-labelledby="title desc">
+<title id="title">FOI current document processing architecture</title><desc id="desc">Upload routes to conditional conversion or direct deduplication. Dedupe starts compression and page counting independently. Successful PDF compression publishes OCR work best effort through Redis, then ActiveMQ, Azure OCR and an OCR status callback. Grouped data access shows object storage and document databases.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#526781"/></marker></defs>
+<rect x="0" y="0" width="1900" height="2110" rx="0" fill="#F7F9FC" stroke="#F7F9FC" stroke-width="2"/>
+<text x="60" y="68" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" fill="#14243C" text-anchor="start">
+<tspan x="60" dy="0">FOI current document processing architecture</tspan>
+</text>
+<text x="60" y="108" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="60" dy="0">Current implementation described in the supplied September 2026 findings</tspan>
+</text>
+<rect x="60" y="140" width="1170" height="1820" rx="22" fill="#FFFFFF" stroke="#E0E6EF" stroke-width="2"/>
+<rect x="1260" y="140" width="580" height="1820" rx="22" fill="#F2F6FA" stroke="#E0E6EF" stroke-width="2"/>
+<text x="88" y="178" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#586A80" text-anchor="start">
+<tspan x="88" dy="0">DOCUMENT PROCESSING</tspan>
+</text>
+<text x="1290" y="178" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#586A80" text-anchor="start">
+<tspan x="1290" dy="0">SHARED DATA AND STATUS</tspan>
+</text>
+<rect x="680" y="210" width="410" height="86" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="245" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">User upload</tspan>
+</text>
+<text x="885.0" y="275" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Binary stored before work is queued</tspan>
+</text>
+<rect x="680" y="350" width="410" height="94" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="385" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">request-management-api</tspan>
+</text>
+<text x="885.0" y="415" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">foi-flow · classify and route upload</tspan>
+</text>
+<path d="M 885 296 V 350" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="140" y="485" width="410" height="90" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="154" y="501" width="7" height="58" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="345.0" y="520" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Conversion Redis streams</tspan>
+</text>
+<text x="345.0" y="550" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Normal / large-file routes</tspan>
+</text>
+<path d="M 680 397 H 345 V 485" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="155" y="426" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="155" dy="0">Conversion-required</tspan>
+<tspan x="155" dy="22">format</tspan>
+</text>
+<rect x="140" y="630" width="410" height="100" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="345.0" y="665" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">File Conversion</tspan>
+</text>
+<text x="345.0" y="695" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">.NET · PDFs and extracted attachments</tspan>
+</text>
+<path d="M 345 575 V 630" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<path d="M 140 680 H 105 V 530 H 140" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="150" y="773" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="150" dy="0">Attachments needing conversion</tspan>
+<tspan x="150" dy="22">return to the conversion stream</tspan>
+</text>
+<rect x="680" y="630" width="410" height="100" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="694" y="646" width="7" height="68" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="885.0" y="665" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Dedupe Redis streams</tspan>
+</text>
+<text x="885.0" y="695" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Direct files and converted outputs</tspan>
+</text>
+<path d="M 885 444 V 630" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="905" y="536" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="905" dy="0">Dedupe-ready format</tspan>
+</text>
+<path d="M 550 680 H 680" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="561" y="639" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="561" dy="0">PDF / ready</tspan>
+<tspan x="561" dy="22">attachment</tspan>
+</text>
+<rect x="680" y="820" width="410" height="100" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="855" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">DedupeServices</tspan>
+</text>
+<text x="885.0" y="885" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Hash, page information and document state</tspan>
+</text>
+<path d="M 885 730 V 820" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="140" y="850" width="410" height="74" rx="16" fill="#FFFBEB" stroke="#E4BA63" stroke-width="2"/>
+<text x="345.0" y="885" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Incompatible branch</tspan>
+</text>
+<path d="M 680 870 H 550" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="160" y="948" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="160" dy="0">Update status; no downstream jobs</tspan>
+</text>
+<rect x="140" y="1030" width="410" height="90" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="154" y="1046" width="7" height="58" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="345.0" y="1065" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Page-count Redis stream</tspan>
+</text>
+<text x="345.0" y="1095" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">PAGECALCULATOR_STREAM_KEY</tspan>
+</text>
+<rect x="680" y="1030" width="410" height="90" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="694" y="1046" width="7" height="58" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="885.0" y="1065" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Compression Redis streams</tspan>
+</text>
+<text x="885.0" y="1095" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Legacy or foi:compression[-large]</tspan>
+</text>
+<path d="M 885 920 V 970 H 345 V 1030" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<path d="M 885 970 V 1030" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="430" y="1006" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#586A80" text-anchor="start">
+<tspan x="430" dy="0">INDEPENDENT WORK</tspan>
+</text>
+<rect x="140" y="1170" width="410" height="90" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="345.0" y="1205" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">PageCountCalculator</tspan>
+</text>
+<text x="345.0" y="1235" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Recalculate eligible request pages</tspan>
+</text>
+<rect x="680" y="1170" width="410" height="90" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="1205" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">CompressionServices</tspan>
+</text>
+<text x="885.0" y="1235" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Compress or retain preferable original</tspan>
+</text>
+<path d="M 345 1120 V 1170" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<path d="M 885 1120 V 1170" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="140" y="1310" width="410" height="106" rx="16" fill="#F0FDFA" stroke="#67B8A7" stroke-width="2"/>
+<text x="345.0" y="1345" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">foidb</tspan>
+</text>
+<text x="345.0" y="1375" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">FOIMinistryRequests.recordspagecount</tspan>
+</text>
+<path d="M 345 1260 V 1310" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="155" y="1453" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="155" dy="0">Page-count job state → docreviewerdb</tspan>
+<tspan x="155" dy="26">Does not wait for compression or OCR</tspan>
+</text>
+<rect x="140" y="1540" width="410" height="100" rx="16" fill="#FFFBEB" stroke="#E4BA63" stroke-width="2"/>
+<text x="345.0" y="1575" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Ready for redaction</tspan>
+</text>
+<text x="345.0" y="1605" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Successful non-PDF result</tspan>
+</text>
+<path d="M 680 1215 H 610 V 1590 H 550" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="680" y="1360" width="410" height="90" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="694" y="1376" width="7" height="58" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="885.0" y="1395" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">foi:ocr Redis stream</tspan>
+</text>
+<text x="885.0" y="1425" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">document.ocr.requested v1</tspan>
+</text>
+<path d="M 885 1260 V 1360" fill="none" stroke="#526781" stroke-width="2.5" stroke-dasharray="9 7" marker-end="url(#arrow)"/>
+<text x="908" y="1296" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#8F611D" text-anchor="start">
+<tspan x="908" dy="0">Successful / skipped PDF</tspan>
+<tspan x="908" dy="23">Best-effort publication</tspan>
+</text>
+<rect x="680" y="1500" width="410" height="90" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="1535" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">OCRServices</tspan>
+</text>
+<text x="885.0" y="1565" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Record dispatch state; guard terminal jobs</tspan>
+</text>
+<path d="M 885 1450 V 1500" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="680" y="1640" width="410" height="90" rx="16" fill="#EFF6FF" stroke="#75A8DE" stroke-width="2"/>
+<rect x="694" y="1656" width="7" height="58" rx="3" fill="#75A8DE" stroke="#75A8DE" stroke-width="2"/>
+<text x="885.0" y="1675" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">ActiveMQ OCR destination</tspan>
+</text>
+<text x="885.0" y="1705" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">JSON payload over REST</tspan>
+</text>
+<path d="M 885 1590 V 1640" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="680" y="1780" width="410" height="118" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="885.0" y="1815" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">azureocrservices</tspan>
+</text>
+<text x="885.0" y="1845" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="885.0" dy="0">Select compressed or source object</tspan>
+<tspan x="885.0" dy="24">Poll OCR, upload result, report status</tspan>
+</text>
+<path d="M 885 1730 V 1780" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="140" y="1780" width="410" height="118" rx="16" fill="#F5F3FF" stroke="#A99BDB" stroke-width="2"/>
+<text x="345.0" y="1815" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Azure Document Intelligence</tspan>
+</text>
+<text x="345.0" y="1845" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="345.0" dy="0">Process PDF and provide</tspan>
+<tspan x="345.0" dy="24">searchable PDF output</tspan>
+</text>
+<path d="M 680 1813 H 550" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="558" y="1800" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="558" dy="0">Submit / poll</tspan>
+</text>
+<path d="M 550 1865 H 680" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="573" y="1850" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="573" dy="0">PDF result</tspan>
+</text>
+<rect x="1300" y="245" width="500" height="100" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="1550.0" y="280" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">reviewer_api</tspan>
+</text>
+<text x="1550.0" y="310" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">Create initial job and document records</tspan>
+</text>
+<path d="M 1090 397 H 1195 V 295 H 1300" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="1120" y="276" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="1120" dy="0">Initial</tspan>
+<tspan x="1120" dy="23">records</tspan>
+</text>
+<rect x="1300" y="420" width="500" height="220" rx="16" fill="#F0FDFA" stroke="#67B8A7" stroke-width="2"/>
+<text x="1550.0" y="455" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">S3-compatible object storage</tspan>
+</text>
+<text x="1330" y="494" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#24334C" text-anchor="start">
+<tspan x="1330" dy="0">Original uploads and extracted attachments</tspan>
+<tspan x="1330" dy="31">Converted and compressed files</tspan>
+<tspan x="1330" dy="31">Final searchable OCR PDFs</tspan>
+</text>
+<text x="1330" y="606" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#327A6D" text-anchor="start">
+<tspan x="1330" dy="0">Queues carry references, not document bytes</tspan>
+</text>
+<rect x="1300" y="725" width="500" height="186" rx="16" fill="#FFFFFF" stroke="#A6B5C7" stroke-width="2"/>
+<text x="1325" y="766" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="start">
+<tspan x="1325" dy="0">Processing workers</tspan>
+</text>
+<text x="1325" y="802" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#24334C" text-anchor="start">
+<tspan x="1325" dy="0">Conversion · Dedupe · Compression</tspan>
+<tspan x="1325" dy="28">Page count · OCR dispatch · Azure OCR</tspan>
+</text>
+<text x="1325" y="879" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="1325" dy="0">Grouped data access view of the services at left</tspan>
+</text>
+<path d="M 1750 725 V 640" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="1325" y="674" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="1325" dy="0">Object reads / writes by Conversion,</tspan>
+<tspan x="1325" dy="22">Dedupe, Compression and Azure OCR</tspan>
+</text>
+<rect x="1300" y="1000" width="500" height="310" rx="16" fill="#F0FDFA" stroke="#67B8A7" stroke-width="2"/>
+<text x="1550.0" y="1035" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">docreviewerdb</tspan>
+</text>
+<path d="M 1750 911 V 1000" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="1325" y="955" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#526781" text-anchor="start">
+<tspan x="1325" dy="0">Job / document reads and writes</tspan>
+</text>
+<text x="1330" y="1078" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#24334C" text-anchor="start">
+<tspan x="1330" dy="0">DocumentMaster · Documents · Attributes</tspan>
+<tspan x="1330" dy="32">FileConversionJob · DeduplicationJob</tspan>
+<tspan x="1330" dy="32">CompressionJob · PageCalculatorJob</tspan>
+<tspan x="1330" dy="32">OCRActiveMQJob · DocumentOCRJob</tspan>
+</text>
+<text x="1330" y="1254" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#327A6D" text-anchor="start">
+<tspan x="1330" dy="0">Durable document identity, processing state,</tspan>
+<tspan x="1330" dy="24">parent / child relationships and output paths</tspan>
+</text>
+<path d="M 1800 295 H 1820 V 1050 H 1800" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="1300" y="1440" width="500" height="125" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="1550.0" y="1475" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">OCR audit API / reviewer data layer</tspan>
+</text>
+<text x="1550.0" y="1505" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">POST /api/documentocrjob</tspan>
+<tspan x="1550.0" dy="24">Persist OCR lifecycle state and output path</tspan>
+</text>
+<path d="M 1090 1836 H 1210 V 1504 H 1300" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="1228" y="1700" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="1228" dy="0">OCR status</tspan>
+<tspan x="1228" dy="24">callback</tspan>
+</text>
+<path d="M 1550 1440 V 1310" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<rect x="1300" y="1740" width="500" height="115" rx="16" fill="#FFFFFF" stroke="#90A8C6" stroke-width="2"/>
+<text x="1550.0" y="1775" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">Review application</tspan>
+</text>
+<text x="1550.0" y="1805" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#24334C" text-anchor="middle">
+<tspan x="1550.0" dy="0">Expose processing state</tspan>
+<tspan x="1550.0" dy="24">and searchable-PDF path</tspan>
+</text>
+<path d="M 1800 1180 H 1820 V 1798 H 1800" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="1320" y="1908" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="1320" dy="0">Exact audit API hosting boundary is not specified.</tspan>
+</text>
+<path d="M 65 2000 H 140" fill="none" stroke="#526781" stroke-width="2.5"  marker-end="url(#arrow)"/>
+<text x="155" y="2007" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#24334C" text-anchor="start">
+<tspan x="155" dy="0">Described communication / data access</tspan>
+</text>
+<path d="M 625 2000 H 700" fill="none" stroke="#526781" stroke-width="2.5" stroke-dasharray="9 7" marker-end="url(#arrow)"/>
+<text x="715" y="2007" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#24334C" text-anchor="start">
+<tspan x="715" dy="0">Best-effort OCR publication</tspan>
+</text>
+<text x="65" y="2054" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#586A80" text-anchor="start">
+<tspan x="65" dy="0">Normal / large labels represent logical routes; deployed keys may differ. Shared data access is grouped to avoid crossing the workflow.</tspan>
+<tspan x="65" dy="27">Review exposure is a logical data relationship, not a claimed direct database connection. No target architecture or undocumented recovery settings are shown.</tspan>
+</text>
+</svg>
