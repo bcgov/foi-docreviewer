@@ -1047,7 +1047,7 @@ const DocumentSelector = React.memo(
 
       return (
         <div className="leftPanel">
-          <Stack sx={{ maxHeight: "calc(100vh - 117px)" }}>
+          <Stack sx={{ maxHeight: "calc(100vh - 67px)" }}>
             <Paper
               component={Grid}
               sx={{
