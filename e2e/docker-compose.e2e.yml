@@ -264,7 +264,7 @@ services:
       E2E_CONVERSION_GROUP: file-conversion-consumer-group
       E2E_DEDUPE_STREAM: e2e-dedupe
       E2E_DEDUPE_GROUP: dedupe
-      E2E_COMPRESSION_STREAM: e2e-compression
+      E2E_COMPRESSION_STREAM: ${E2E_COMPRESSION_STREAM:-e2e-compression}
       E2E_PAGECOUNT_STREAM: e2e-pagecount
       E2E_OCR_STREAM: foi:ocr
       E2E_OCR_GROUP: foi-ocr
