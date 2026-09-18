@@ -32,4 +32,14 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$script_dir"
-"${compose[@]}" up --build --abort-on-container-exit --exit-code-from e2e-tests "$@"
+# Bring up every dependency detached, then run the test container in the
+# foreground and propagate its exit code. `up --abort-on-container-exit` was
+# tried first, but that flag aborts the whole stack as soon as ANY container
+# exits -- including the one-shot `db-migrate` container, which is *supposed*
+# to exit 0 once it finishes -- which raced with e2e-tests startup and tore
+# the stack down mid-run. `up -d --build` (with no service filter) has its own
+# trap: it also starts `e2e-tests` itself, so a second, concurrent test run
+# was racing the one from the explicit `run` below. Listing the dependency
+# services explicitly avoids both problems.
+"${compose[@]}" up -d --build postgres db-migrate redis seaweedfs record-formats activemq "$@"
+"${compose[@]}" run --rm --build e2e-tests

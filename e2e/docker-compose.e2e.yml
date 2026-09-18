@@ -93,6 +93,45 @@ services:
       retries: 30
       start_period: 15s
 
+  e2e-tests:
+    build:
+      context: ./tests
+    environment:
+      E2E_DB_DSN: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      E2E_REDIS_URL: redis://:redis-test@redis:6379/0
+      E2E_S3_ENDPOINT: http://seaweedfs:8333
+      E2E_S3_ACCESS_KEY: dev
+      E2E_S3_SECRET_KEY: dev
+      E2E_S3_BUCKET: citz-dev-e
+      E2E_CONVERSION_STREAM: e2e-conversion
+      E2E_CONVERSION_GROUP: file-conversion-consumer-group
+      E2E_DEDUPE_STREAM: e2e-dedupe
+      E2E_DEDUPE_GROUP: dedupe
+      E2E_COMPRESSION_STREAM: e2e-compression
+      E2E_PAGECOUNT_STREAM: e2e-pagecount
+      E2E_OCR_STREAM: foi:ocr
+      E2E_OCR_GROUP: foi-ocr
+      E2E_ACTIVEMQ_URL: http://activemq:8161/api/message
+      E2E_ACTIVEMQ_USER: admin
+      E2E_ACTIVEMQ_PASSWORD: admin
+      E2E_ACTIVEMQ_QUEUE: foidococr
+      E2E_STAGE_TIMEOUT: "120"
+      E2E_SAMPLES_DIR: /samples
+    volumes:
+      - ./samples:/samples:ro
+      - ./TestResults:/test-results
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   seaweedfs-data:
