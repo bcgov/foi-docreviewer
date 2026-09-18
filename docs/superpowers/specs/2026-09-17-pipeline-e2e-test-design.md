@@ -111,8 +111,9 @@ Python 3.12 + pytest. Dependencies: `pytest`, `psycopg[binary]`, `redis`,
 2. **pdf pipeline** – upload `sample.pdf`, publish straight to `e2e-dedupe`,
    assert the dedupe → compression → OCR stages above.
 3. **duplicate** – publish `sample.pdf` a second time under a new document;
-   assert Dedupe records it as a duplicate and that no additional compression
-   message is produced.
+   assert both `Documents` rows carry the same `DocumentHashCodes.rank1hash`.
+   (Dedupe records hashes only; it always publishes compression, and duplicate
+   detection happens when the reviewer reads the hashes.)
 
 Each test uses unique IDs (ministry request, document master, job) so tests do
 not interfere; the whole stack is torn down after the run.
@@ -131,6 +132,13 @@ on failure, `down --volumes --remove-orphans` always.
 - Worker crashes surface through `--abort-on-container-exit` and the captured
   compose log.
 - Readiness is gated on healthchecks and `db-migrate` completion, not sleeps.
+
+## Known local-only limitations
+
+- `DedupeServices` hard-codes `https://` for its PDF metadata-cleanup upload
+  (`s3documentservice.py` `_clearmetadata`). Against plain-HTTP SeaweedFS that
+  step logs `metadata_cleanup` and continues; the tests do not assert on the
+  `...ORIGINAL.pdf` copy.
 
 ## Open items resolved during implementation
 
