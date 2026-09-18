@@ -74,8 +74,9 @@ def seed_pdf_upload(pg: Postgres, ids: Ids, s3url: str, filename: str, filesize:
     )
 
 
-def seed_docx_upload(pg: Postgres, ids: Ids, s3url: str, filename: str, filesize: int) -> None:
-    _seed_document(pg, ids, s3url, filename, filesize, ".docx")
+def seed_conversion_upload(pg: Postgres, ids: Ids, s3url: str, filename: str, filesize: int, extension: str) -> None:
+    """A record whose extension needs File Conversion (.docx, .msg, ...) before dedupe."""
+    _seed_document(pg, ids, s3url, filename, filesize, extension)
     pg.execute(
         '''INSERT INTO "FileConversionJob"
            (fileconversionjobid, version, ministryrequestid, batch, trigger, inputdocumentmasterid, filename, status)
