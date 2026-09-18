@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: docreviewerdb
+      POSTGRES_USER: foi
+      POSTGRES_PASSWORD: foi-test
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foi -d docreviewerdb"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  db-migrate:
+    build:
+      context: ../api
+      dockerfile: dockerfile.local
+    entrypoint: ["python", "manage.py", "db", "upgrade"]
+    environment:
+      FLASK_ENV: testing
+      DATABASE_TEST_URL: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      JWT_OIDC_JWKS_CACHE_TIMEOUT: "300"
+      FOI_RECORD_FORMATS: http://record-formats/formats.json
+      CORS_ORIGIN: "*"
+      DEDUPE_S3_ENV: "dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "redis-test"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis-test", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/config.json
+      - -volume.max=100
+      - -master.volumeSizeLimitMB=100
+      - -master.volumePreallocate=false
+    volumes:
+      - seaweedfs-data:/data
+      - ./fixtures/seaweedfs/config.json:/etc/seaweedfs/config.json:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -qO- http://127.0.0.1:9333/dir/status |
+          grep -q '"DataNodes":\[{' &&
+          wget -q --spider http://127.0.0.1:8333/healthz
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
+  record-formats:
+    image: nginx:1.29.1-alpine
+    volumes:
+      - ./fixtures/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./fixtures/record-formats.json:/usr/share/nginx/html/record-formats.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  activemq:
+    image: apache/activemq-classic:5.18.6
+    environment:
+      ACTIVEMQ_CONNECTION_USER: admin
+      ACTIVEMQ_CONNECTION_PASSWORD: admin
+      ACTIVEMQ_WEB_USER: admin
+      ACTIVEMQ_WEB_PASSWORD: admin
+    healthcheck:
+      # The image is Ubuntu/Temurin based and ships curl; if the check reports
+      # "curl: not found", switch to: bash -c 'exec 3<>/dev/tcp/127.0.0.1/8161'
+      test: ["CMD-SHELL", "curl -fsu admin:admin http://127.0.0.1:8161/api/jolokia/version >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+volumes:
+  postgres-data:
+  seaweedfs-data:
