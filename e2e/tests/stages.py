@@ -76,8 +76,41 @@ def wait_for_conversion(pg: Postgres, s3: S3, redis: Redis, settings: Settings, 
     return ConversionResult(outputdocumentmasterid=outputid, pdf_url=pdf_url)
 
 
-def wait_for_dedupe(pg: Postgres, redis: Redis, settings: Settings, ids: Ids, jobid: int | None = None) -> DedupeResult:
+def wait_for_attachment_conversions(pg: Postgres, settings: Settings, ids: Ids, expected: int) -> list[tuple[int, str]]:
+    """Attachments File Conversion extracted from the upload: one DocumentMaster
+    row each under `parentid`, re-queued as their own FileConversionJob.
+    Returns (documentmasterid, filepath) per attachment once all have converted."""
+    rows = pg.all(
+        '''SELECT m.documentmasterid, m.filepath, j.fileconversionjobid
+           FROM "DocumentMaster" m
+           JOIN "FileConversionJob" j ON j.inputdocumentmasterid = m.documentmasterid AND j.version = 1
+           WHERE m.parentid = %s ORDER BY m.documentmasterid''',
+        (ids.documentmasterid,),
+    )
+    assert len(rows) == expected, f"expected {expected} attachment rows under parentid={ids.documentmasterid}, got {len(rows)}"
+
+    def done():
+        pending = []
+        for masterid, filepath, jobid in rows:
+            versions = _job_versions(pg, "FileConversionJob", "fileconversionjobid", jobid)
+            _fail_if_error(versions, f"attachment conversion {filepath}")
+            if not any(v == 3 and s == "completed" for v, s, _ in versions):
+                pending.append(jobid)
+        return not pending or None
+
+    wait_until(done, settings.stage_timeout,
+               describe=lambda: f"attachment FileConversionJobs still pending: {[j for _, _, j in rows if not any(v == 3 and s == 'completed' for v, s, _ in _job_versions(pg, 'FileConversionJob', 'fileconversionjobid', j))]}")
+    return [(masterid, filepath) for masterid, filepath, _ in rows]
+
+
+def wait_for_dedupe(
+    pg: Postgres, redis: Redis, settings: Settings, ids: Ids,
+    jobid: int | None = None, documentmasterid: int | None = None,
+) -> DedupeResult:
+    """`documentmasterid` is the id Dedupe records on `Documents`: the upload's
+    own id for a PDF, or the converted output's id after File Conversion."""
     dedupe_jobid = jobid if jobid is not None else ids.jobid
+    documents_masterid = documentmasterid if documentmasterid is not None else ids.documentmasterid
 
     def done():
         versions = _job_versions(pg, "DeduplicationJob", "deduplicationjobid", dedupe_jobid)
@@ -91,11 +124,12 @@ def wait_for_dedupe(pg: Postgres, redis: Redis, settings: Settings, ids: Ids, jo
         lambda: pg.one(
             '''SELECT d.documentid, h.rank1hash FROM "Documents" d
                JOIN "DocumentHashCodes" h ON h.documentid = d.documentid
-               WHERE d.foiministryrequestid = %s ORDER BY d.documentid DESC LIMIT 1''',
-            (ids.ministryrequestid,),
+               WHERE d.foiministryrequestid = %s AND d.documentmasterid = %s
+               ORDER BY d.documentid DESC LIMIT 1''',
+            (ids.ministryrequestid, documents_masterid),
         ),
         settings.stage_timeout,
-        describe=lambda: f"no Documents/DocumentHashCodes row for ministryrequestid={ids.ministryrequestid}",
+        describe=lambda: f"no Documents/DocumentHashCodes row for documentmasterid={documents_masterid}",
     )
     documentid, rank1hash = row
 

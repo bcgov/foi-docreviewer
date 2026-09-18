@@ -26,12 +26,12 @@ to stderr on failure) and `e2e-tests.log` (a live tee of the pytest output).
 
 | Stage | Evidence |
 | --- | --- |
-| Conversion (docx only) | `FileConversionJob` v3 `completed`; converted PDF in S3; message on `e2e-dedupe` |
+| Conversion (docx, msg) | `FileConversionJob` v3 `completed`; converted PDF in S3; message on `e2e-dedupe`; msg attachments get `DocumentMaster` rows under `parentid` and their own completed `FileConversionJob` |
 | Dedupe | `DeduplicationJob` v3 `completed`; `Documents` + `DocumentHashCodes` rows; messages on the compression and `e2e-pagecount` streams |
 | Compression | `CompressionJob` v3 `completed`/`skipped`; `DocumentMaster.compressedfilepath` object exists; `document.ocr.requested` on `foi:ocr` |
 | OCR dispatch | `OCRActiveMQJob` v3 `completed`; payload consumed from ActiveMQ queue `foidococr` references the document |
 
-Tests: `tests/test_pdf_pipeline.py`, `tests/test_docx_pipeline.py`,
+Tests: `tests/test_pdf_pipeline.py`, `tests/test_docx_pipeline.py`, `tests/test_msg_pipeline.py`,
 `tests/test_duplicate.py`; a session-wide autouse fixture in `conftest.py`
 blocks every test until File Conversion, Dedupe and OCR have all registered
 their consumer groups, so a pipeline test never races a worker that hasn't
@@ -45,6 +45,9 @@ per-component diagnostics if something is still broken.
    `tests/test_docx_pipeline.py` (conversion formats), change `FILENAME`,
    content type and the `seed.new_ids(prefix=...)` value to an unused prefix.
 3. If the extension is new, add it to `fixtures/record-formats.json`.
+
+`samples/msg-with-attachments.msg` is synthetic; regenerate it with
+`samples/msggen` (see its README) rather than replacing it with a real email.
 
 ## Layout
 
