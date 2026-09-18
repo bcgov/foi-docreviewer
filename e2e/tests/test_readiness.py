@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 
+from clients import wait_until
+
 REQUIRED_TABLES = {
     "DocumentPathMapper", "DocumentMaster", "DocumentAttributes", "FileConversionJob",
     "DeduplicationJob", "Documents", "DocumentHashCodes", "CompressionJob",
@@ -35,3 +37,17 @@ def test_activemq_rest_is_reachable(activemq):
 def test_samples_are_mounted(samples_dir):
     assert os.path.isfile(os.path.join(samples_dir, "simple-test-doc.docx"))
     assert os.path.isfile(os.path.join(samples_dir, "sample.pdf"))
+
+
+def test_workers_registered_consumer_groups(redis_client, settings):
+    expected = [
+        (settings.conversion_stream, settings.conversion_group),
+        (settings.dedupe_stream, settings.dedupe_group),
+        (settings.ocr_stream, settings.ocr_group),
+    ]
+    for stream, group in expected:
+        wait_until(
+            lambda: redis_client.has_group(stream, group),
+            timeout=settings.stage_timeout,
+            describe=lambda: f"group {group!r} not yet on stream {stream!r}",
+        )
