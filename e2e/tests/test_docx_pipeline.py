@@ -41,3 +41,5 @@ def test_docx_flows_through_conversion_dedupe_compression_and_ocr_dispatch(pg, r
 
     payload = stages.wait_for_ocr_dispatch(pg, redis_client, activemq, settings, ids, dedupe.compressionjobid)
     assert payload["documentmasterid"] == ids.documentmasterid
+    expected_path = compression.compressedfilepath or conversion.pdf_url
+    assert expected_path in (payload.get("compresseds3filepath"), payload.get("s3filepath"))
