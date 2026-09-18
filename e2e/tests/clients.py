@@ -60,6 +60,12 @@ class Postgres:
 class Redis:
     def __init__(self, url: str) -> None:
         self._r = redis_lib.Redis.from_url(url, decode_responses=True)
+        # Watermill's redis-stream marshaller (used by CompressionServices/
+        # OCRServices to publish `foi:ocr`) stores a msgpack-encoded `metadata`
+        # field alongside the JSON `payload`; that field is not valid UTF-8 and
+        # crashes a `decode_responses=True` connection on XREVRANGE. Read raw
+        # bytes on this second connection and decode only what is UTF-8.
+        self._raw = redis_lib.Redis.from_url(url, decode_responses=False)
 
     def ping(self) -> bool:
         return bool(self._r.ping())
@@ -69,7 +75,20 @@ class Redis:
 
     def entries(self, stream: str, count: int = 200) -> list[tuple[str, dict[str, str]]]:
         """Newest-first entries; the typed OCR stream keeps its JSON in `payload`."""
-        return self._r.xrevrange(stream, count=count)
+        raw_entries = self._raw.xrevrange(stream, count=count)
+        decoded: list[tuple[str, dict[str, str]]] = []
+        for entry_id, fields in raw_entries:
+            decoded_fields: dict[str, str] = {}
+            for key, value in fields.items():
+                key = key.decode("utf-8")
+                if isinstance(value, bytes):
+                    try:
+                        value = value.decode("utf-8")
+                    except UnicodeDecodeError:
+                        continue  # binary field (e.g. watermill `metadata`); not needed by callers
+                decoded_fields[key] = value
+            decoded.append((entry_id.decode("utf-8"), decoded_fields))
+        return decoded
 
     def has_group(self, stream: str, group: str) -> bool:
         try:
