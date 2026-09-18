@@ -19,9 +19,8 @@ COMPRESSION_MESSAGING_MODE=standard E2E_COMPRESSION_STREAM=foi:compression ./e2e
 Requires Docker with Compose v2. The first run builds five images (api for
 migrations, conversion, dedupe, compression, ocr) and takes several minutes.
 `run.sh` runs `docker compose run --rm --build e2e-tests`, and results land in
-`e2e/TestResults/`: `junit.xml`, `compose.log` (all container output) and
-`e2e-tests.log` (the pytest output; both logs are also printed to stderr on
-failure).
+`e2e/TestResults/`: `junit.xml`, `compose.log` (all container output; echoed
+to stderr on failure) and `e2e-tests.log` (a live tee of the pytest output).
 
 ## What is asserted
 
@@ -33,8 +32,11 @@ failure).
 | OCR dispatch | `OCRActiveMQJob` v3 `completed`; payload consumed from ActiveMQ queue `foidococr` references the document |
 
 Tests: `tests/test_pdf_pipeline.py`, `tests/test_docx_pipeline.py`,
-`tests/test_duplicate.py`; `tests/test_readiness.py` fails fast when the
-stack itself is broken.
+`tests/test_duplicate.py`; a session-wide autouse fixture in `conftest.py`
+blocks every test until File Conversion, Dedupe and OCR have all registered
+their consumer groups, so a pipeline test never races a worker that hasn't
+started yet. `tests/test_readiness.py` re-checks the same conditions with
+per-component diagnostics if something is still broken.
 
 ## Adding a sample
 
