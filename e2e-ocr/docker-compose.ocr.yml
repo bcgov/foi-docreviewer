@@ -1,0 +1,192 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: docreviewerdb
+      POSTGRES_USER: foi
+      POSTGRES_PASSWORD: foi-test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foi -d docreviewerdb"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  record-formats:
+    # db-migrate's app factory resolves FOI_RECORD_FORMATS at import; any 200 JSON will do.
+    image: nginx:1.29.1-alpine
+    volumes:
+      - ../e2e/fixtures/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../e2e/fixtures/record-formats.json:/usr/share/nginx/html/record-formats.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  db-migrate:
+    build:
+      context: ../api
+      dockerfile: dockerfile.local
+    entrypoint: ["python", "manage.py", "db", "upgrade"]
+    environment:
+      FLASK_ENV: testing
+      DATABASE_TEST_URL: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      JWT_OIDC_JWKS_CACHE_TIMEOUT: "300"
+      FOI_RECORD_FORMATS: http://record-formats/formats.json
+      CORS_ORIGIN: "*"
+      DEDUPE_S3_ENV: "dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/config.json
+      - -volume.max=100
+      - -master.volumeSizeLimitMB=100
+      - -master.volumePreallocate=false
+    volumes:
+      - ./fixtures/seaweedfs/config.json:/etc/seaweedfs/config.json:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -qO- http://127.0.0.1:9333/dir/status |
+          grep -q '"DataNodes":\[{' &&
+          wget -q --spider http://127.0.0.1:8333/healthz
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
+  activemq:
+    image: apache/activemq-classic:5.18.6
+    environment:
+      ACTIVEMQ_CONNECTION_USER: admin
+      ACTIVEMQ_CONNECTION_PASSWORD: admin
+      ACTIVEMQ_WEB_USER: admin
+      ACTIVEMQ_WEB_PASSWORD: admin
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsu admin:admin http://127.0.0.1:8161/api/jolokia/version >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  azuredococrapi:
+    build:
+      context: ../azuredococrapi
+      dockerfile: DockerFile
+    environment:
+      AZDOCOCR_FOIDOCREVIEWER_DB_HOST: postgres
+      AZDOCOCR_FOIDOCREVIEWER_DB_PORT: "5432"
+      AZDOCOCR_FOIDOCREVIEWER_DB_NAME: docreviewerdb
+      AZDOCOCR_FOIDOCREVIEWER_DB_USERNAME: foi
+      AZDOCOCR_FOIDOCREVIEWER_DB_PASSWORD: foi-test
+      AZDOCOCR_LISTENING_PORT: "52863"
+      AZDOCOCR_API_SECRET: e2e-ocr-secret
+      AZDOCOCR_ALLOWED_ORIGINS: "*"
+    healthcheck:
+      # golang:1.25 image ships curl. Without the secret header the API answers 403,
+      # which proves the router is up.
+      test: ["CMD-SHELL", "test \"$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:52863/api/documentocrjob)\" = 403"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+
+  mock-azure:
+    build:
+      context: ./mock-azure
+    environment:
+      MOCK_AZURE_BASE_URL: http://mock-azure:8080
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/healthz')\""]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  azure-ocr-worker:
+    build:
+      context: ../computingservices/azureocrservices
+    # The worker reads config via viper.AutomaticEnv(), which upper-cases keys, so
+    # the names in sample.env (s3endpoint, activeMQBaseURL, ...) must be UPPERCASE here.
+    environment:
+      S3ENDPOINT: http://seaweedfs:8333
+      S3ACCESSKEY: dev
+      S3SECRETKEY: dev
+      S3REGION: us-east-1
+      AZURESUBCRIPTIONKEY: e2e-azure-key
+      AZUREDOCUMENTOCRAIENDPOINT: http://mock-azure:8080
+      # readTimeout shortens the empty long-poll that ends every run (servlet default ~20s).
+      # The code appends "://<queue>&clientId=<id>", so the URL must end with destination=queue.
+      ACTIVEMQBASEURL: http://activemq:8161/api/message?readTimeout=1000&destination=queue
+      ACTIVEMQUSERNAME: admin
+      ACTIVEMQPASSWORD: admin
+      FOIDOCOCRQUEUE: foidococr
+      ACTIVEMQCLIENTID: e2e-ocr-worker
+      DOCREVIEWEROCRAPIENDPOINT: http://azuredococrapi:52863
+      DOCREVIEWEROCRAPISECRET: e2e-ocr-secret
+      LOGFILEPATH: /var/log/ocr/
+      OCR_RUN_MODE: loop
+      OCR_RUN_INTERVAL_SECONDS: "2"
+    volumes:
+      - ocr-logs:/var/log/ocr
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+      azuredococrapi:
+        condition: service_healthy
+      mock-azure:
+        condition: service_healthy
+
+  e2e-tests:
+    build:
+      context: ./tests
+    environment:
+      E2E_OCR_DB_DSN: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      E2E_OCR_S3_ENDPOINT: http://seaweedfs:8333
+      E2E_OCR_S3_ACCESS_KEY: dev
+      E2E_OCR_S3_SECRET_KEY: dev
+      E2E_OCR_S3_BUCKET: citz-dev-e
+      E2E_OCR_ACTIVEMQ_URL: http://activemq:8161/api/message
+      E2E_OCR_ACTIVEMQ_USER: admin
+      E2E_OCR_ACTIVEMQ_PASSWORD: admin
+      E2E_OCR_ACTIVEMQ_QUEUE: foidococr
+      E2E_OCR_MOCK_AZURE_URL: http://mock-azure:8080
+      E2E_OCR_STATUS_API_URL: http://azuredococrapi:52863
+      E2E_OCR_STAGE_TIMEOUT: "120"
+      E2E_OCR_MAX_CONCURRENT: "1"
+      E2E_OCR_SAMPLES_DIR: /samples
+      E2E_OCR_WORKER_LOG_DIR: /var/log/ocr
+    volumes:
+      - ./samples:/samples:ro
+      - ./TestResults:/test-results
+      - ocr-logs:/var/log/ocr:ro
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      seaweedfs:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+      azuredococrapi:
+        condition: service_healthy
+      mock-azure:
+        condition: service_healthy
+      azure-ocr-worker:
+        condition: service_started
+
+volumes:
+  ocr-logs:
