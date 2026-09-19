@@ -118,3 +118,4 @@ azuredococrapi/main
 azuredococrapi/env/*
 e2e/samples/msggen/bin/
 e2e/samples/msggen/obj/
+e2e-ocr/mock-azure/.venv/
