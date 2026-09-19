@@ -56,9 +56,11 @@ def wait_for_ocr_done(pg: Postgres, settings: Settings, ids: Ids) -> OcrOutcome:
 
 
 def wait_for_status(pg: Postgres, settings: Settings, ids: Ids, status: str) -> list[str]:
-    chain = wait_until(lambda: (c := status_chain(pg, ids)) if status in c else None, settings.stage_timeout,
-                       describe=lambda: f"chain={status_chain(pg, ids)}")
-    return chain
+    def reached():
+        chain = status_chain(pg, ids)
+        return chain if status in chain else None
+
+    return wait_until(reached, settings.stage_timeout, describe=lambda: f"chain={status_chain(pg, ids)}")
 
 
 def ocr_key_for(key: str) -> str:
