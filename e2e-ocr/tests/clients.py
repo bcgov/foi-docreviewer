@@ -127,6 +127,22 @@ class ActiveMQ:
         )
         response.raise_for_status()
 
+    def queue_size(self) -> int:
+        """Messages still on the broker, via Jolokia (activemq-classic exposes it on the web console port)."""
+        base = self._url.rsplit("/api/", 1)[0]
+        mbean = f"org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName={self._queue}"
+        response = requests.get(
+            f"{base}/api/jolokia/read/{mbean}/QueueSize",
+            auth=self._auth,
+            headers={"Origin": "http://localhost"},
+            timeout=5,
+        )
+        response.raise_for_status()
+        body = response.json()
+        if body.get("status") == 404:  # queue not created yet
+            return 0
+        return int(body["value"])
+
 
 class MockAzure:
     def __init__(self, settings: Settings) -> None:

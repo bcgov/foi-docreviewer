@@ -144,6 +144,11 @@ services:
       AZURERETRYMAXSECONDS: "10"
       OCR_RUN_MODE: loop
       OCR_RUN_INTERVAL_SECONDS: "2"
+      # Step 3: streaming dequeue + worker pool at the recommended production values.
+      ACTIVEMQBATCHSIZE: "20"
+      MAXCONCURRENTOCRJOBS: "5"
+      OCRUPLOADCONCURRENCY: "3"
+      AZUREANALYZERATELIMIT: "2"
     volumes:
       - ocr-logs:/var/log/ocr
     depends_on:
@@ -172,7 +177,7 @@ services:
       E2E_OCR_MOCK_AZURE_URL: http://mock-azure:8080
       E2E_OCR_STATUS_API_URL: http://azuredococrapi:52863
       E2E_OCR_STAGE_TIMEOUT: "120"
-      E2E_OCR_MAX_CONCURRENT: "1"
+      E2E_OCR_MAX_CONCURRENT: "5"
       E2E_OCR_SAMPLES_DIR: /samples
       E2E_OCR_WORKER_LOG_DIR: /var/log/ocr
     volumes:
