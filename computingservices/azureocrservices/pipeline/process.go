@@ -15,17 +15,18 @@ import (
 )
 
 type job struct {
-	ctx     context.Context // per-document context (JobTimeout)
-	parent  context.Context
-	cfg     config.Config
-	deps    Deps
-	gates   Gates
-	msg     types.QueueMessage
-	docID   int64
-	apim    string
-	stage   string
-	retries int
-	start   time.Time
+	ctx           context.Context // per-document context (JobTimeout)
+	parent        context.Context
+	cfg           config.Config
+	deps          Deps
+	gates         Gates
+	msg           types.QueueMessage
+	docID         int64
+	apim          string
+	stage         string
+	retries       int
+	start         time.Time
+	runningPosted bool // guards ocrjobrunning: onRunning may fire more than once
 }
 
 // Process runs one document end to end. It never panics or aborts the run:
@@ -79,6 +80,10 @@ func (j *job) run() Result {
 
 	j.stage = "poll"
 	_, attempts, err = j.deps.Azure.Poll(j.ctx, j.docID, opLocation, func() {
+		if j.runningPosted {
+			return
+		}
+		j.runningPosted = true
 		j.post("ocrjobrunning", map[string]any{"apimRequestID": apim}, "", 0, false)
 	})
 	j.retries += max(attempts-1, 0)
@@ -95,11 +100,7 @@ func (j *job) run() Result {
 	j.post("ocrjobsucceeded", map[string]any{"apimRequestID": apim, "pdfSize": len(pdf)}, "", 0, false)
 
 	j.stage = "upload"
-	if err := j.gates.Upload.Acquire(j.ctx, 1); err != nil {
-		return j.fail(err)
-	}
-	key, size, err := j.deps.Store.Upload(j.ctx, j.docID, path, pdf)
-	j.gates.Upload.Release(1)
+	key, size, err := j.upload(path, pdf)
 	if err != nil {
 		return j.fail(err)
 	}
@@ -111,6 +112,18 @@ func (j *job) run() Result {
 	dur := time.Since(j.start)
 	logx.Event("JOB_DONE", "documentid", j.docID, "outcome", "success", "totalms", dur.Milliseconds(), "retries", j.retries)
 	return Result{DocumentID: j.docID, Outcome: "success", Retries: j.retries, Duration: dur}
+}
+
+// upload acquires the shared upload semaphore and releases it via defer, so
+// the permit is freed even if Store.Upload panics — Process recovers the
+// panic higher up, and without this defer a panicking upload would leak the
+// permit and starve every later job's Acquire until its JobTimeout.
+func (j *job) upload(path string, pdf []byte) (key string, size int, err error) {
+	if err := j.gates.Upload.Acquire(j.ctx, 1); err != nil {
+		return "", 0, err
+	}
+	defer j.gates.Upload.Release(1)
+	return j.deps.Store.Upload(j.ctx, j.docID, path, pdf)
 }
 
 // post sends one status row; failures are logged and returned, never fatal.

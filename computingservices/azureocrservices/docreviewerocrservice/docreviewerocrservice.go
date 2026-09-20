@@ -29,7 +29,7 @@ func New(endpoint, secret string, timeout time.Duration, policy httpx.RetryPolic
 
 // Post sends one DocReviewAudit row. hard=true raises the retry budget to at
 // least 2 retries (3 attempts) for the statuses the UI depends on
-// (ocrjobsucceeded, ocrfileuploadsuccess, ocrjobfailed).
+// (ocrfileuploadsuccess, ocrjobfailed).
 func (c *Client) Post(ctx context.Context, audit types.DocReviewAudit, hard bool) error {
 	body, err := json.Marshal(audit)
 	if err != nil {
