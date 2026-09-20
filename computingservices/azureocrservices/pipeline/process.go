@@ -133,8 +133,17 @@ func (j *job) post(status string, message map[string]any, ocrPath string, size i
 		DocumentID: j.docID, MinistryRequestID: int64(j.msg.MinistryRequestId), DocumentMasterID: int64(j.msg.DocumentMasterID),
 		Status: status, Description: string(body), OCRFilePath: ocrPath, OCRFileSize: size,
 	}
-	// Status posts use the parent context: a timed-out job must still report ocrjobfailed.
-	err := j.deps.Reviewer.Post(context.WithoutCancel(j.parent), audit, hard)
+	// Intermediate posts live inside the job deadline and see the interrupt.
+	// The two must-deliver posts (ocrjobfailed, ocrfileuploadsuccess) go out
+	// even after a timeout or cancel, but are bounded so shutdown cannot
+	// outlast 3×ReviewerTimeout per document.
+	ctx := j.ctx
+	if hard {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.WithoutCancel(j.parent), 3*j.cfg.ReviewerTimeout)
+		defer cancel()
+	}
+	err := j.deps.Reviewer.Post(ctx, audit, hard)
 	if err != nil {
 		logx.Event("REVIEWER_POST_FAILED", "documentid", j.docID, "status", status, "err", err)
 	}
