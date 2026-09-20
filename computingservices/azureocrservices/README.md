@@ -121,11 +121,16 @@ Key properties:
 
 | Path | Responsibility |
 | --- | --- |
-| `messageprocessor.go` | `main()`: opens the daily log file, drains the queue, runs OCR per message |
-| `httpservices/messagedequeue.go` | Fetches messages from the ActiveMQ REST endpoint until the queue is empty |
-| `azureservices/azureocrservice.go` | Azure Document Intelligence client: submit, poll, download searchable PDF, upload to S3, emit status |
-| `s3services/s3services.go` | Presigned GET/PUT URL generation (AWS SDK v1, path-style, S3-compatible endpoint) and upload |
-| `docreviewerocrservice/docreviewerocrservice.go` | Posts `DocReviewAudit` status records to the reviewer API |
+| `messageprocessor.go` | `main()` → `run()`: opens the daily log file, takes the run lock, builds the clients, hands the ActiveMQ source to `pipeline.Run` |
+| `config/` | `Load()`: every tunable with a legacy-equivalent default; bad values log `CONFIG_DEFAULT` |
+| `runlock/` | Lock file with PID; a lock from a dead PID or older than 2 × `ocrjobtimeoutseconds` is taken over |
+| `logx/` | `Event(marker, k, v, …)`: one `MARKER k=v` line per event |
+| `httpx/` | `DoWithRetry`: 429/5xx/transport retry with `Retry-After` or capped backoff; `CodedError` |
+| `httpservices/messagedequeue.go` | `ActiveMQSource.Next`: one destructive REST GET per call, mutex-guarded, capped by `activemqbatchsize` |
+| `pipeline/` | `Run` (worker pool, `RUN_SUMMARY`) and `Process` (download → submit → poll → result → upload, status contract) |
+| `azureservices/azureocrservice.go` | Azure Document Intelligence client: `Submit`, `Poll`, `ResultPDF` |
+| `s3services/s3services.go` | Presigned GET/PUT (AWS SDK v1) and `Store` (download/upload with retry) |
+| `docreviewerocrservice/docreviewerocrservice.go` | `Client.Post`: `DocReviewAudit` rows to the reviewer API, soft or hard retry |
 | `types/` | `QueueMessage`, `DocReviewAudit`, `S3Details`, Azure `AnalyzeResults` structs |
 | `utils/utils.go` | `ViperEnvVariable(key)`: reads `.env` + process environment via viper |
 | `FOIDocumentOCRTimerTrigger/` | Azure Functions timer binding |
@@ -149,6 +154,47 @@ environment variables (`utils.ViperEnvVariable`). Keys the code actually reads:
 | `docreviewerocrapiendpoint` | docreviewerocrservice | Reviewer API base URL; `/api/documentocrjob` is appended |
 | `docreviewerocrapisecret` | docreviewerocrservice | Sent as `X-FOI-OCR-Secret` |
 | `logfilepath` | messageprocessor | Directory for `<YYYY-M-D>dococrlog.txt`; stdout is redirected there |
+| `activemqbatchsize` | config | Messages pulled per run; `0` = until the queue is empty. Default `0`; recommended `20` |
+| `maxconcurrentocrjobs` | config | Documents processed in parallel. Default `1`; recommended `5` |
+| `ocruploadconcurrency` | config | Concurrent S3 PUTs. Default `1`; recommended `3` |
+| `azureanalyzeratelimit` | config | Analyze POSTs per second across all workers; `0` = unlimited. Default `0`; recommended `2` |
+| `azurepollintervalseconds` | config | Base delay between status polls; a `Retry-After` header overrides it. Default `5` |
+| `azurepollmaxattempts` | config | Give up polling after this many status reads (120 × 5s = 10 min). Default `120` |
+| `azuremaxretries` | config | Retries per HTTP call on 429/5xx/transport error; `0` = none. Default `0`; recommended `5` |
+| `azureretrybaseseconds` | config | Backoff base: `min(base * 2^n + jitter, azureretrymaxseconds)`. Default `2` |
+| `azureretrymaxseconds` | config | Backoff ceiling. Default `60` |
+| `ocrjobtimeoutseconds` | config | Hard deadline for download → upload of one document. Default `900` |
+| `azurehttptimeoutseconds` | config | Azure HTTP client timeout. Default `120` |
+| `s3httptimeoutseconds` | config | S3 HTTP client timeout. Default `120` |
+| `reviewerapitimeoutseconds` | config | Reviewer API HTTP client timeout. Default `30` |
+| `activemqhttptimeoutseconds` | config | ActiveMQ REST HTTP client timeout. Default `30` |
+| `azureusebase64source` | config | `true` = `base64Source` (default); `false` = `urlSource` with a presigned GET (only if Azure can reach the S3 endpoint from the internet) |
+| `runlockpath` | config | Overlap guard; default `<logfilepath>azureocrservice.lock` |
+
+### Status contract
+
+| Event | Status | `message` |
+| --- | --- | --- |
+| Analyze accepted | `azureocrrequestcreated` | `{"apimRequestID","operationLocation"}` |
+| First `running` poll | `ocrjobrunning` (once) | `{"apimRequestID"}` |
+| Result PDF retrieved | `ocrjobsucceeded` | `{"apimRequestID","pdfSize"}` |
+| S3 upload done | `ocrfileuploadsuccess` | `{"apimRequestID"}` + `ocrfilepath`, `ocrfilesize` |
+| Any failure | `ocrjobfailed` | `{"stage":"download|submit|poll|result|upload","code","reason","attempts"}` |
+
+`operationLocation` is kept so a completed Azure result (valid 24 h) can be fetched by hand without re-submitting.
+Only `ocrfileuploadsuccess` and `ocrjobfailed` are hard posts (retried until they succeed or the process gives up); the others are best-effort.
+
+### Log markers
+
+`RUN_START`, `RUN_SUMMARY`, `RUNLOCK_HELD`, `RUNLOCK_STALE`, `RUNLOCK_ERROR`, `CONFIG_DEFAULT`, `DEQUEUED`, `DEQUEUE_BAD_MESSAGE`,
+`DEQUEUE_TIMEOUT`, `DEQUEUE_RETRY`, `DEQUEUE_ERROR`, `DOWNLOAD_OK`, `AZURE_SUBMIT`, `AZURE_POLL`, `AZURE_RETRY`, `AZURE_RESULT_OK`,
+`S3_RETRY`, `REVIEWER_RETRY`, `REVIEWER_POST_OK`, `REVIEWER_POST_FAILED`, `UPLOAD_OK`, `JOB_DONE`, `JOB_FAILED`. Every line carries
+`documentid` where applicable; `RUN_SUMMARY` carries `pulled`, `succeeded`, `failed`, `retries`, `http429`, `dequeueError`, `totalms`
+and `ids=<documentid>:ok|failed:<stage>,…` — the run's manifest. Transport errors are URL-redacted; presigned URLs and secrets are
+never logged.
+
+Reconcile a run: every `DEQUEUED documentid=X` must have a `JOB_DONE` or `JOB_FAILED` for `X`; one without either was in flight when
+the process died and must be re-queued.
 
 [`sample.env`](sample.env) contains exactly these keys. To verify they stay in
 sync with the code:
@@ -194,6 +240,21 @@ reviewer's ActiveMQ contract:
 ```
 
 The OCR'd file will land at `.../file-compressedOCR.pdf` in the same bucket.
+
+## Running on the Windows VM
+
+Build: `set GOOS=windows& set GOARCH=amd64& go build -o azureocrservice.exe .` (or cross-compile from Linux with `GOTOOLCHAIN=auto GOOS=windows GOARCH=amd64 go build -o azureocrservice.exe .`).
+
+Task Scheduler:
+
+- Trigger: repeat every 5 minutes, indefinitely.
+- Action: `azureocrservice.exe`, **Start in** = the folder containing `.env` (the binary loads `.env` from the working directory).
+- Settings: **Do not start a new instance** if the task is already running; run whether the user is logged on or not.
+- The binary also takes a lock file (`runlockpath`); a second instance logs `RUNLOCK_HELD` and exits 0 without touching the queue, so a mis-configured scheduler cannot double the Azure rate.
+- Environment variables set at the system level must be UPPERCASE (`AZUREMAXRETRIES`, …); `.env` keys may stay lowercase.
+- Stop a run cleanly with Ctrl+C / `taskkill` (no `/F`): in-flight documents post `ocrjobfailed code=Interrupted` and `RUN_SUMMARY` is written.
+
+Each run pulls up to `activemqbatchsize` messages and exits; latency for a new message is at most one scheduler interval.
 
 ## Development guidelines
 
@@ -249,18 +310,22 @@ this is the safety net.
 
 ### Testing
 
-There are no unit tests yet. When adding them:
+Unit tests live beside the code (`go test ./...`); external calls are stubbed with `httptest.Server`. Run with `-race` for `pipeline/` and `httpservices/`.
 
-- Put `_test.go` files beside the code they test.
-- Wrap external calls (Azure, S3, ActiveMQ, reviewer API) behind `http.Client`
-  or interfaces so they can be stubbed with `httptest.Server`.
-- Good first targets: `GetS3Details` URL parsing, `GeneratePresignedUploadURL`
-  key suffixing (`file.pdf` → `fileOCR.pdf`), and `getAnalysisResults` status
-  handling.
+End to end: `e2e-ocr/run.sh` runs the real worker against ActiveMQ, SeaweedFS, Postgres and a mock Azure (see `e2e-ocr/README.md`).
 
-The repo-level e2e harness (`e2e/`) covers the upstream pipeline up to OCR
-dispatch; this service is exercised against real Azure in dev/test
-environments.
+### Load test (dev, real Azure)
+
+Fill in from `RUN_SUMMARY` / `JOB_*` lines after each run. Raise `concurrency`/`ratelimit` until `http429 > 0`, then back off one step and record that as the production default.
+
+| N | batchsize | concurrency | ratelimit | http429 | failed | p50 / p95 doc s | run s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 10 | 10 | 2 | 1 | | | | |
+| 20 | 20 | 5 | 2 | | | | |
+| 50 | 20 | 5 | 2 | | | | (3 runs) |
+| 100 | 20 | 10 | 4 | | | | (5 runs) |
+
+After each run every `DEQUEUED` id must have a `JOB_DONE`/`JOB_FAILED` line and a matching `ocrfileuploadsuccess`/`ocrjobfailed` row in `DocumentOCRJob`.
 
 ## Related
 
