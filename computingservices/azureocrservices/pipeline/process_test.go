@@ -1,4 +1,3 @@
-// pipeline/process_test.go
 package pipeline
 
 import (
@@ -210,6 +209,11 @@ func TestProcessJobTimeout(t *testing.T) {
 	if res.Outcome != "failed" || res.Stage != "poll" || res.Code != "JobTimeout" {
 		t.Fatalf("%+v", res)
 	}
+	// A timed-out job must still deliver its ocrjobfailed post (via the
+	// WithoutCancel parent context), not just report a failed Result.
+	if rv.chain()[len(rv.chain())-1] != "ocrjobfailed" {
+		t.Fatalf("chain=%v", rv.chain())
+	}
 }
 
 func TestProcessInterrupted(t *testing.T) {
@@ -253,5 +257,93 @@ func TestProcessFinalPostFailureFails(t *testing.T) {
 	res := Process(context.Background(), cfg(), Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(cfg()), msg)
 	if res.Outcome != "failed" || res.Stage != "upload" || res.Code != "ReviewerUnreachable" {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestProcessResultStageFailure(t *testing.T) {
+	az, st, rv := happy()
+	az.result = func(context.Context) ([]byte, int, error) {
+		return nil, 2, httpx.Coded("Transport", 2, errors.New("connection reset"))
+	}
+	res := Process(context.Background(), cfg(), Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(cfg()), msg)
+	if res.Outcome != "failed" || res.Stage != "result" || res.Code != "Transport" {
+		t.Fatalf("%+v", res)
+	}
+	for _, s := range rv.chain() {
+		if s == "ocrjobsucceeded" {
+			t.Fatalf("ocrjobsucceeded must not be posted on a result-stage failure: chain=%v", rv.chain())
+		}
+	}
+	if rv.chain()[len(rv.chain())-1] != "ocrjobfailed" {
+		t.Fatalf("chain=%v", rv.chain())
+	}
+}
+
+func TestProcessUploadStageFailure(t *testing.T) {
+	az, st, rv := happy()
+	st.upload = func(string, []byte) (string, int, error) {
+		return "", 0, httpx.Coded("HTTP500", 3, errors.New("s3 down"))
+	}
+	res := Process(context.Background(), cfg(), Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(cfg()), msg)
+	if res.Outcome != "failed" || res.Stage != "upload" || res.Code != "HTTP500" {
+		t.Fatalf("%+v", res)
+	}
+	chain := rv.chain()
+	sawSucceeded := false
+	for _, s := range chain {
+		if s == "ocrjobsucceeded" {
+			sawSucceeded = true
+		}
+		if s == "ocrfileuploadsuccess" {
+			t.Fatalf("ocrfileuploadsuccess must not be posted on an upload-stage failure: chain=%v", chain)
+		}
+	}
+	if !sawSucceeded {
+		t.Fatalf("ocrjobsucceeded must be posted before the upload stage: chain=%v", chain)
+	}
+	if chain[len(chain)-1] != "ocrjobfailed" {
+		t.Fatalf("chain=%v", chain)
+	}
+}
+
+func TestProcessOnRunningPostedOnce(t *testing.T) {
+	az, st, rv := happy()
+	az.poll = func(_ context.Context, onRunning func()) (string, int, error) {
+		onRunning()
+		onRunning()
+		return "op-1", 1, nil
+	}
+	res := Process(context.Background(), cfg(), Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(cfg()), msg)
+	if res.Outcome != "success" {
+		t.Fatalf("%+v", res)
+	}
+	count := 0
+	for _, s := range rv.chain() {
+		if s == "ocrjobrunning" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("ocrjobrunning posted %d times, chain=%v", count, rv.chain())
+	}
+}
+
+func TestProcessReleasesUploadPermitOnPanic(t *testing.T) {
+	az, st, rv := happy()
+	st.upload = func(string, []byte) (string, int, error) { panic("upload boom") }
+	c := cfg()
+	c.UploadConcurrency = 1
+	c.JobTimeout = 200 * time.Millisecond
+	gates := NewGates(c)
+
+	res1 := Process(context.Background(), c, Deps{Azure: az, Store: st, Reviewer: rv}, gates, msg)
+	if res1.Outcome != "failed" || res1.Stage != "upload" || res1.Code != "Panic" {
+		t.Fatalf("first run: %+v", res1)
+	}
+
+	az2, st2, rv2 := happy()
+	res2 := Process(context.Background(), c, Deps{Azure: az2, Store: st2, Reviewer: rv2}, gates, msg)
+	if res2.Outcome != "success" {
+		t.Fatalf("second run should succeed once the upload permit is released, got %+v", res2)
 	}
 }
