@@ -23,13 +23,11 @@ type AzureService struct {
 }
 
 // NewAzureService initializes a new AzureService instance
-func NewAzureService(subscriptionKey string, baseURL string) *AzureService {
+func NewAzureService(subscriptionKey string, baseURL string, timeout time.Duration) *AzureService {
 	return &AzureService{
 		SubscriptionKey: subscriptionKey,
 		BaseURL:         baseURL,
-		Client: http.Client{
-			Timeout: 30 * time.Second,
-		},
+		Client:          http.Client{Timeout: timeout},
 	}
 }
 
@@ -223,11 +221,11 @@ func wrapDocReviewerUpdate(documentid int64, ministryrequestid int64, documentma
 	return returnstate
 }
 
-func CallAzureOCRService(pdfData []byte, message types.QueueMessage, filePathForOCR string) (string, error) {
+func CallAzureOCRService(pdfData []byte, message types.QueueMessage, filePathForOCR string, timeout time.Duration) (string, error) {
 	// Load environment variables
 	subscriptionKey := utils.ViperEnvVariable("azuresubcriptionkey")
 	baseURL := utils.ViperEnvVariable("azuredocumentocraiendpoint")
-	service := NewAzureService(subscriptionKey, baseURL)
+	service := NewAzureService(subscriptionKey, baseURL, timeout)
 	// Run the function
 	result, err := service.performOCR(pdfData, message, filePathForOCR)
 	if err != nil {
