@@ -6,9 +6,11 @@ Go worker that turns uploaded FOI documents into searchable PDFs using
 pipeline: it consumes OCR jobs from ActiveMQ, sends the PDF to Azure, stores the
 OCR'd PDF back in S3, and reports each lifecycle step to the reviewer API.
 
-Deployed as an Azure Function on a timer trigger (every 5 minutes, see
-[`FOIDocumentOCRTimerTrigger/function.json`](FOIDocumentOCRTimerTrigger/function.json)).
-Each run drains the queue and exits.
+Deployed as a fire-and-exit executable run by Windows Task Scheduler every N
+minutes (see [Running on the Windows VM](#running-on-the-windows-vm)). Each
+run pulls up to `activemqbatchsize` messages and exits; `FOIDocumentOCRTimerTrigger/`
+is a legacy Azure Functions timer binding kept for reference and is not used
+by this deployment.
 
 For where this sits in the wider pipeline, see
 [`docs/document-processing-message-flow.md`](../../docs/document-processing-message-flow.md).
@@ -19,9 +21,10 @@ For where this sits in the wider pipeline, see
 ActiveMQ (foidococrqueue)
    │  JSON QueueMessage {documentId, documentMasterId, ministryRequestId, S3FilePath, compressedS3FilePath}
    ▼
-messageprocessor.go ── drain queue via ActiveMQ REST (GET until 204)
+pipeline.Run ── maxconcurrentocrjobs workers, each pulling one message at a time via
+                ActiveMQSource.Next (GET until 204), capped per run by activemqbatchsize
    │
-   │  for each message:
+   │  per worker, per message:
    ├─ 1. pick compressedS3FilePath, fall back to S3FilePath
    ├─ 2. presign GET → download PDF bytes from S3
    ├─ 3. POST base64 PDF to Azure  .../prebuilt-read:analyze?output=pdf
@@ -65,40 +68,34 @@ redelivering the same one.
 
 ### Loop
 
-```text
-ProcessMessage()
-  messages := []
-  loop:
-    GET url   (Basic auth, 30s client timeout)
-    ├─ 200 + JSON body      → unmarshal into QueueMessage, append, loop again
-    ├─ 204 No Content       → queue empty, break
-    ├─ context deadline hit → count timeout; break once maxTimeouts (=1) reached
-    └─ any other error/
-       non-200 status       → return error (caller log.Fatal's, run aborts)
-  return messages
-```
+`ActiveMQSource.Next` (`httpservices/messagedequeue.go`) is streaming: each of
+`pipeline.Run`'s `maxconcurrentocrjobs` workers calls `Next` only when free to
+process the result immediately (one `GET` at a time, mutex-guarded), capped
+at `activemqbatchsize` total pulls (`0` = until empty). A `204`/client-timeout
+returns `ErrEOF`; a bad message logs `DEQUEUE_BAD_MESSAGE` and is skipped in
+place; a transport error retries once (`DEQUEUE_RETRY`) before surfacing as
+`DEQUEUE_ERROR` and stopping that worker.
 
 Key properties:
 
-- **Drain-then-process.** `ProcessMessage` pulls *every* available message into
-  a slice before `main()` starts any OCR. Nothing is processed while the queue
-  is being read.
+- **Streaming, bounded in-flight.** A worker only dequeues when it has
+  finished (or is starting) its previous document, so a hard kill loses at
+  most `maxconcurrentocrjobs` in-flight messages, not the whole pulled batch.
 - **Consume on read.** The ActiveMQ REST `GET` is a destructive receive: the
   message is acknowledged and removed from the queue as soon as the broker
-  returns it. There is no ack after OCR completes, so if the process dies (or
-  `log.Fatal`s) after dequeue and before upload, those messages are **lost**
-  from the queue. The `DocumentOCRJob` audit table is the only place to detect
+  returns it. There is no ack after OCR completes, so if the process dies
+  after dequeue and before upload, that in-flight message is **lost** from
+  the queue. The `DocumentOCRJob` audit table is the only place to detect
   this (status stuck at `azureocrrequestcreated`/`ocrjobrunning`, or no row).
-- **Two exit signals.** Normally the broker returns `204` when empty. If instead
-  the request hangs and hits the 30s client timeout, that is treated as "no
-  more messages" after one occurrence (`maxTimeouts = 1`). Any other HTTP error
-  (401, 5xx, connection refused) aborts the whole run.
-- **Not concurrent.** One `GET` at a time; one consumer per run. Parallel runs
-  of this function against the same queue would work (broker distributes
-  messages) but are not how it's deployed.
+- **Two exit signals.** Normally the broker returns `204` when empty. If
+  instead the request hangs and hits the client timeout
+  (`activemqhttptimeoutseconds`), that is treated as "no more messages" for
+  that call (`DEQUEUE_TIMEOUT`). Any other HTTP error (401, 5xx, connection
+  refused) is retried once, then stops that worker.
 - **Message body** is expected to be a single JSON object matching
-  `types.QueueMessage`. Anything that fails to unmarshal aborts the run — the
-  offending message has already been consumed at that point.
+  `types.QueueMessage`. A message that fails to unmarshal is already consumed
+  at that point; it is logged (`DEQUEUE_BAD_MESSAGE`) and skipped, not fatal
+  to the run.
 
 ### Debugging a dequeue problem
 
@@ -133,7 +130,7 @@ Key properties:
 | `docreviewerocrservice/docreviewerocrservice.go` | `Client.Post`: `DocReviewAudit` rows to the reviewer API, soft or hard retry |
 | `types/` | `QueueMessage`, `DocReviewAudit`, `S3Details`, Azure `AnalyzeResults` structs |
 | `utils/utils.go` | `ViperEnvVariable(key)`: reads `.env` + process environment via viper |
-| `FOIDocumentOCRTimerTrigger/` | Azure Functions timer binding |
+| `FOIDocumentOCRTimerTrigger/` | Legacy Azure Functions timer binding, not used by the Task Scheduler deployment |
 
 ## Configuration
 
@@ -243,7 +240,7 @@ The OCR'd file will land at `.../file-compressedOCR.pdf` in the same bucket.
 
 ## Running on the Windows VM
 
-Build: `set GOOS=windows& set GOARCH=amd64& go build -o azureocrservice.exe .` (or cross-compile from Linux with `GOTOOLCHAIN=auto GOOS=windows GOARCH=amd64 go build -o azureocrservice.exe .`).
+Build: `set GOOS=windows&& set GOARCH=amd64&& go build -o azureocrservice.exe .` (or cross-compile from Linux with `GOTOOLCHAIN=auto GOOS=windows GOARCH=amd64 go build -o azureocrservice.exe .`).
 
 Task Scheduler:
 
@@ -299,13 +296,15 @@ this is the safety net.
 
 - The worker is **not idempotent**: reprocessing a message re-submits to Azure
   (billable) and overwrites the `...OCR.pdf` object.
-- Polling has **no timeout**: `getAnalysisResults` loops until Azure returns a
-  terminal status. A stuck Azure job blocks the whole run.
-- The HTTP client timeout is 30s per request. Large PDFs are base64-encoded in
-  memory and posted in one request; very large files may need chunking or the
-  URL-source variant of the Azure API.
-- One `ProcessMessage` call drains the entire queue into memory before any OCR
-  starts. Fine for the current volume; revisit if queue depth grows.
+- Polling is bounded: `Client.Poll` gives up after `azurepollmaxattempts`
+  reads (default 120 × `azurepollintervalseconds` = 10 min) and fails the
+  document with `PollTimeout`; it no longer blocks the run indefinitely.
+- The Azure HTTP client timeout is `azurehttptimeoutseconds` (default 120s),
+  not hard-coded. Large PDFs are base64-encoded in memory and posted in one
+  request (`azureusebase64source=true`); very large files may need the
+  `urlSource` variant (`azureusebase64source=false`) instead.
+- Dequeue is streaming, bounded by `maxconcurrentocrjobs` in flight and
+  `activemqbatchsize` per run; see "Dequeue process in detail" above.
 - `.idea/` is local IDE state and should not be committed.
 
 ### Testing
