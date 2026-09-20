@@ -2,13 +2,17 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"azureocrservice/logx"
 )
 
 func server(t *testing.T, codes ...int) (*httptest.Server, *atomic.Int32) {
@@ -109,6 +113,29 @@ func TestTransportErrorIsRetriedThenReturned(t *testing.T) {
 		get("http://127.0.0.1:1/"), p, "TEST")
 	if err == nil || attempts != 2 {
 		t.Fatalf("attempts=%d err=%v", attempts, err)
+	}
+}
+
+func TestTransportErrorRedactsURL(t *testing.T) {
+	var buf bytes.Buffer
+	old := logx.Output
+	logx.Output = &buf
+	defer func() { logx.Output = old }()
+
+	p := RetryPolicy{MaxRetries: 1, Base: time.Millisecond, Max: time.Millisecond}
+	_, attempts, err := DoWithRetry(context.Background(), &http.Client{Timeout: 200 * time.Millisecond},
+		get("http://127.0.0.1:1/?X-Amz-Signature=secret"), p, "TEST")
+	if err == nil || attempts != 2 {
+		t.Fatalf("attempts=%d err=%v", attempts, err)
+	}
+	if strings.Contains(err.Error(), "X-Amz-Signature") {
+		t.Fatalf("err leaks URL: %v", err)
+	}
+	if !strings.Contains(err.Error(), "Get") {
+		t.Fatalf("err missing op: %v", err)
+	}
+	if strings.Contains(buf.String(), "X-Amz-Signature") {
+		t.Fatalf("log leaks URL: %s", buf.String())
 	}
 }
 

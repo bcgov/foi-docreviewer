@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -65,6 +66,9 @@ func RetryDelay(resp *http.Response, attempt int, p RetryPolicy, now time.Time) 
 	if base <= 0 {
 		base = time.Second
 	}
+	if attempt > 30 { // clamp the shift exponent: 2^30 already dwarfs any realistic Max
+		attempt = 30
+	}
 	d := time.Duration(float64(base) * math.Pow(2, float64(attempt)))
 	if d <= 0 { // overflow for a huge attempt number
 		d = p.Max
@@ -88,6 +92,9 @@ func DoWithRetry(ctx context.Context, client *http.Client, build func(context.Co
 			return nil, attempt, fmt.Errorf("build request: %w", err)
 		}
 		resp, err := client.Do(req)
+		if err != nil {
+			err = redactURLError(err)
+		}
 		attempts := attempt + 1
 		if err == nil && !Retryable(resp.StatusCode) {
 			return resp, attempts, nil
@@ -113,6 +120,17 @@ func DoWithRetry(ctx context.Context, client *http.Client, build func(context.Co
 			return nil, attempts, err
 		}
 	}
+}
+
+// redactURLError strips the request URL (which may carry a presigned-request
+// signature or other secret query params) from a *url.Error returned by
+// client.Do, keeping the op and cause so errors.Is/As on the cause still work.
+func redactURLError(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return fmt.Errorf("%s: %w", ue.Op, ue.Err)
+	}
+	return err
 }
 
 func errOrEmpty(err error) string {
@@ -145,7 +163,12 @@ type CodedError struct {
 	Err      error
 }
 
-func (e *CodedError) Error() string { return e.Code + ": " + e.Err.Error() }
+func (e *CodedError) Error() string {
+	if e.Err == nil {
+		return e.Code
+	}
+	return e.Code + ": " + e.Err.Error()
+}
 func (e *CodedError) Unwrap() error { return e.Err }
 
 func Coded(code string, attempts int, err error) *CodedError {
