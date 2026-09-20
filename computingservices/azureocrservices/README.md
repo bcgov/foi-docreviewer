@@ -120,7 +120,7 @@ Key properties:
 | --- | --- |
 | `messageprocessor.go` | `main()` → `run()`: opens the daily log file, takes the run lock, builds the clients, hands the ActiveMQ source to `pipeline.Run` |
 | `config/` | `Load()`: every tunable with a legacy-equivalent default; bad values log `CONFIG_DEFAULT` |
-| `runlock/` | Lock file with PID; a lock from a dead PID or older than 2 × `ocrjobtimeoutseconds` is taken over |
+| `runlock/` | Lock file with PID, refreshed (mtime) every 30 s while the run is alive; a lock from a dead PID, or one not refreshed for 2 × `ocrjobtimeoutseconds`, is taken over |
 | `logx/` | `Event(marker, k, v, …)`: one `MARKER k=v` line per event |
 | `httpx/` | `DoWithRetry`: 429/5xx/transport retry with `Retry-After` or capped backoff; `CodedError` |
 | `httpservices/messagedequeue.go` | `ActiveMQSource.Next`: one destructive REST GET per call, mutex-guarded, capped by `activemqbatchsize` |
@@ -247,9 +247,10 @@ Task Scheduler:
 - Trigger: repeat every 5 minutes, indefinitely.
 - Action: `azureocrservice.exe`, **Start in** = the folder containing `.env` (the binary loads `.env` from the working directory).
 - Settings: **Do not start a new instance** if the task is already running; run whether the user is logged on or not.
-- The binary also takes a lock file (`runlockpath`); a second instance logs `RUNLOCK_HELD` and exits 0 without touching the queue, so a mis-configured scheduler cannot double the Azure rate.
+- The binary also takes a lock file (`runlockpath`); a second instance logs `RUNLOCK_HELD` and exits 0 without touching the queue, so a mis-configured scheduler cannot double the Azure rate. The lock is refreshed every 30 s while the run is alive; a lock not refreshed for 2 × `ocrjobtimeoutseconds` (or whose PID is dead) is taken over by the next tick (`RUNLOCK_STALE`). A long run is therefore never pre-empted while its process is alive.
 - Environment variables set at the system level must be UPPERCASE (`AZUREMAXRETRIES`, …); `.env` keys may stay lowercase.
-- Stop a run cleanly with Ctrl+C / `taskkill` (no `/F`): in-flight documents post `ocrjobfailed code=Interrupted` and `RUN_SUMMARY` is written.
+- Graceful stop: only a console control event (Ctrl+C / `SIGINT`) is graceful — in-flight documents post `ocrjobfailed code=Interrupted` and `RUN_SUMMARY` is written. That works from an interactive console. From a service context (the task runs "whether the user is logged on or not", so the process has no console window) `taskkill` without `/F` is refused ("can only be terminated forcefully") and Task Scheduler's **End task** / "Stop the task if it runs longer than" is a hard kill (`TerminateProcess`). To stop gracefully from there, send a console control event with a tool such as `windows-kill -SIGINT <pid>` (or a small `GenerateConsoleCtrlEvent` helper) and let the process exit on its own. Worst-case graceful shutdown time: each in-flight document finishes its current HTTP call, then its final `ocrjobfailed` post is bounded by 3 × `reviewerapitimeoutseconds` (the interrupt is honoured by every other post), so expect up to roughly `azurehttptimeoutseconds + 3 × reviewerapitimeoutseconds` after the signal.
+- Hard kill (**End task**, `taskkill /F`, VM restart, crash): nothing is posted — no `ocrjobfailed`, no `RUN_SUMMARY`. The lock file is left behind and recovered on the next tick via dead-PID takeover (`RUNLOCK_STALE`), so the schedule self-heals. The loss is bounded by the in-flight set: up to `maxconcurrentocrjobs` messages already consumed from the broker are gone, and their documents stay at their last posted status (`azureocrrequestcreated`/`ocrjobrunning`/`ocrjobsucceeded`, or nothing if killed before the first post). Spot them in the daily log as a `DEQUEUED documentid=X` with no `JOB_DONE`/`JOB_FAILED` for `X` (see Reconcile a run above) and re-queue them.
 
 Each run pulls up to `activemqbatchsize` messages and exits; latency for a new message is at most one scheduler interval.
 
