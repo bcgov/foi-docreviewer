@@ -28,11 +28,13 @@ func main() { os.Exit(run()) }
 // before any message was processed; per-document failures never fail the run.
 func run() int {
 	start := time.Now()
-	cfg := config.Load()
 
+	// Redirect stdout before config.Load so its CONFIG_DEFAULT lines reach the
+	// daily file (the console is discarded under Task Scheduler). logfilepath is
+	// read from the same key config.Load uses, so cfg.LogFilePath matches.
 	y, m, d := start.Date()
 	filedate := strconv.Itoa(y) + "-" + strconv.Itoa(int(m)) + "-" + strconv.Itoa(d)
-	file, err := os.OpenFile(cfg.LogFilePath+filedate+"dococrlog.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	file, err := os.OpenFile(utils.ViperEnvVariable("logfilepath")+filedate+"dococrlog.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return 1
@@ -40,6 +42,8 @@ func run() int {
 	defer file.Close()
 	os.Stdout = file // every logx.Event and fmt.Print goes to the daily file
 	fmt.Println("\nStart Time :" + start.String())
+
+	cfg := config.Load()
 
 	release, err := runlock.Acquire(cfg.RunLockPath, 2*cfg.JobTimeout)
 	if err != nil {
