@@ -35,7 +35,7 @@ def test_worker_has_completed_a_run(settings):
     files = glob.glob(os.path.join(settings.worker_log_dir, "*dococrlog.txt"))
     assert files, "worker never wrote a daily log file"
     text = open(files[0], encoding="utf-8", errors="replace").read()
-    assert "No more messages in the queue" in text or "Total time:" in text
+    assert "RUN_SUMMARY " in text, "worker has not completed a run yet"
 
 
 def test_samples_are_mounted(samples_dir):
