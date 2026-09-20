@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -13,10 +11,14 @@ import (
 
 	"azureocrservice/azureservices"
 	"azureocrservice/config"
+	"azureocrservice/docreviewerocrservice"
 	"azureocrservice/httpservices"
+	"azureocrservice/httpx"
 	"azureocrservice/logx"
+	"azureocrservice/pipeline"
 	"azureocrservice/runlock"
 	"azureocrservice/s3services"
+	"azureocrservice/utils"
 )
 
 func main() { os.Exit(run()) }
@@ -57,64 +59,44 @@ func run() int {
 		"ratelimit", cfg.AnalyzeRatePerSec, "pollinterval", cfg.PollInterval, "maxretries", cfg.MaxRetries,
 		"jobtimeout", cfg.JobTimeout, "lock", cfg.RunLockPath)
 
+	counter := &httpx.Counter{}
+	deps := buildDeps(cfg, counter)
+	gates := pipeline.NewGates(cfg)
+
 	dequeuedmessages, err := httpservices.ProcessMessage()
 	if err != nil {
 		logx.Event("DEQUEUE_ERROR", "err", err)
 		return 1
 	}
-	succeeded, failed := 0, 0
+	succeeded, failed, retries := 0, 0, 0
 	for _, message := range dequeuedmessages {
 		if ctx.Err() != nil {
 			logx.Event("RUN_INTERRUPTED", "remaining", len(dequeuedmessages)-succeeded-failed)
 			break
 		}
-		fmt.Printf("Received message: %+v\n", message)
-		filePathForOCR := message.CompressedS3FilePath
-		if filePathForOCR == "" {
-			filePathForOCR = message.S3FilePath
-		}
-		jobStart := time.Now()
-		pdf, err := getBytesfromDocumentPath(filePathForOCR, cfg.S3HTTPTimeout)
-		if err != nil {
+		res := pipeline.Process(ctx, cfg, deps, gates, message)
+		retries += res.Retries
+		if res.Outcome == "success" {
+			succeeded++
+		} else {
 			failed++
-			logx.Event("JOB_FAILED", "documentid", message.DocumentID, "stage", "download", "reason", err, "totalms", logx.Ms(jobStart))
-			continue
 		}
-		if _, err := azureservices.CallAzureOCRService(pdf, message, filePathForOCR, cfg.AzureHTTPTimeout); err != nil {
-			failed++
-			logx.Event("JOB_FAILED", "documentid", message.DocumentID, "stage", "ocr", "reason", err, "totalms", logx.Ms(jobStart))
-			continue
-		}
-		succeeded++
-		logx.Event("JOB_DONE", "documentid", message.DocumentID, "outcome", "success", "totalms", logx.Ms(jobStart))
 	}
-	logx.Event("RUN_SUMMARY", "pulled", len(dequeuedmessages), "succeeded", succeeded, "failed", failed, "totalms", logx.Ms(start))
+	logx.Event("RUN_SUMMARY", "pulled", len(dequeuedmessages), "succeeded", succeeded, "failed", failed,
+		"retries", retries, "http429", counter.Load(), "totalms", logx.Ms(start))
 	fmt.Println("End Time :" + time.Now().String())
 	return 0
 }
 
-// getBytesfromDocumentPath presigns a GET for the source object and downloads
-// it. An empty body is an error: never send an empty base64Source to Azure.
-func getBytesfromDocumentPath(documenturlpath string, timeout time.Duration) ([]byte, error) {
-	s3url, err := s3services.GenerateDownloadPresignedURL(documenturlpath)
-	if err != nil {
-		return nil, fmt.Errorf("presign download: %w", err)
+// buildDeps constructs the real Azure, S3 and reviewer clients from config.
+// The 429 counter is shared so RUN_SUMMARY can report throttling across all of them.
+func buildDeps(cfg config.Config, counter *httpx.Counter) pipeline.Deps {
+	policy := httpx.RetryPolicy{MaxRetries: cfg.MaxRetries, Base: cfg.RetryBase, Max: cfg.RetryMax, On429: counter.Inc}
+	return pipeline.Deps{
+		Azure: azureservices.New(utils.ViperEnvVariable("azuresubcriptionkey"), utils.ViperEnvVariable("azuredocumentocraiendpoint"),
+			azureservices.Options{Timeout: cfg.AzureHTTPTimeout, Policy: policy, PollInterval: cfg.PollInterval, PollMaxAttempts: cfg.PollMaxAttempts}),
+		Store:    s3services.NewStore(cfg.S3HTTPTimeout, policy),
+		Reviewer: docreviewerocrservice.New(utils.ViperEnvVariable("docreviewerocrapiendpoint"), utils.ViperEnvVariable("docreviewerocrapisecret"), cfg.ReviewerTimeout, policy),
+		HTTP429:  counter,
 	}
-	client := &http.Client{Timeout: timeout}
-	resp, err := client.Get(s3url)
-	if err != nil {
-		return nil, fmt.Errorf("download: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("download: status %d", resp.StatusCode)
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("download: read body: %w", err)
-	}
-	if len(data) == 0 {
-		return nil, errors.New("download: empty body")
-	}
-	return data, nil
 }
