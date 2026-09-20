@@ -70,11 +70,11 @@ func (f *fakeReviewer) chain() []string {
 func happy() (*fakeAzure, *fakeStore, *fakeReviewer) {
 	az := &fakeAzure{
 		submit: func(_ context.Context, _ types.AnalyzeSource) (string, string, int, error) {
-			return "https://az/analyzeResults/op-1?api-version=x", "apim-1", 2, nil
+			return "https://az/analyzeResults/op-1?api-version=x", "apim-1", 1, nil
 		},
 		poll: func(_ context.Context, onRunning func()) (string, int, error) {
 			onRunning()
-			return "op-1", 3, nil
+			return "op-1", 3, nil // 3 status reads: poll ticks, not retries
 		},
 		result: func(_ context.Context) ([]byte, int, error) { return []byte("%PDF-out"), 1, nil },
 	}
@@ -117,7 +117,8 @@ func TestProcessHappyPath(t *testing.T) {
 		return "http://s3/bucket/requests/1/file-compressedOCR.pdf", len(pdf), nil
 	}
 	res := Process(context.Background(), cfg(), Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(cfg()), msg)
-	if res.Outcome != "success" || res.DocumentID != 456 || res.Retries != 3 {
+	// A clean run has no HTTP retries; Poll's attempt count is ticks, not retries (I2).
+	if res.Outcome != "success" || res.DocumentID != 456 || res.Retries != 0 {
 		t.Fatalf("%+v", res)
 	}
 	want := []string{"azureocrrequestcreated", "ocrjobrunning", "ocrjobsucceeded", "ocrfileuploadsuccess"}

@@ -86,7 +86,8 @@ func (j *job) run() Result {
 		j.runningPosted = true
 		j.post("ocrjobrunning", map[string]any{"apimRequestID": apim}, "", 0, false)
 	})
-	j.retries += max(attempts-1, 0)
+	// Poll's attempts are status reads (ticks), not retries: they stay in
+	// ocrjobfailed.attempts for stage=poll but must not inflate retries.
 	if err != nil {
 		return j.fail(err)
 	}
