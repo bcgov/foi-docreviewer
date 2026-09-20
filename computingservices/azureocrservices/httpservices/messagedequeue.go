@@ -1,3 +1,7 @@
+// Package httpservices pulls QueueMessages from the ActiveMQ REST API.
+// The GET is a destructive receive: a message is gone from the broker once
+// this returns it, so Next is only called by a worker that is free to
+// process the message immediately (streaming dequeue).
 package httpservices
 
 import (
@@ -7,90 +11,132 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"azureocrservice/config"
+	"azureocrservice/logx"
 	"azureocrservice/types"
-	"azureocrservice/utils"
 )
 
-// ActiveMQ REST API configuration
-var activeMQBaseURL = utils.ViperEnvVariable("activeMQBaseURL")
-var username = utils.ViperEnvVariable("activeMQUserName")
-var password = utils.ViperEnvVariable("activeMQPassword")
-var queueName = utils.ViperEnvVariable("foidococrqueue")
-var activemqclientid = utils.ViperEnvVariable("activemqclientid")
+var ErrEOF = errors.New("no more messages")
 
-// ProcessMessage fetches messages from the ActiveMQ queue using HTTP
-func ProcessMessage() ([]types.QueueMessage, error) {
-	queueName := queueName
-	clientid := activemqclientid
-	// Construct the URL to fetch messages from the queue
-	url := fmt.Sprintf("%s://%s&clientId=%s", activeMQBaseURL, queueName, clientid)
-	messages := []types.QueueMessage{}
-	timeoutCounter := 0
-	maxTimeouts := 1
-	for {
-		//GET request to fetch the message
-		message, err := fetchMessageFromQueue(url)
-		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				timeoutCounter++
-				fmt.Printf("No messages received within the timeout (%d/%d)\n", timeoutCounter, maxTimeouts)
-				if timeoutCounter >= maxTimeouts {
-					fmt.Println("No more messages in the queue. Exiting...")
-					break
-				}
-				continue
-			}
-			return nil, fmt.Errorf("error fetching message: %w", err)
-		}
-		if message == nil {
-			fmt.Println("No more messages in the queue. Exiting...")
-			break
-		}
-		fmt.Printf("S3uri: %s\n", message.CompressedS3FilePath)
-		messages = append(messages, *message)
-	}
-	fmt.Println("All messages processed. Exiting.")
-	return messages, nil
+type Source interface {
+	Next(ctx context.Context) (types.QueueMessage, error)
 }
 
-// Fetches a message from the queue
-func fetchMessageFromQueue(url string) (*types.QueueMessage, error) {
-	fmt.Println("URL:", url)
-	client := &http.Client{Timeout: 30 * time.Second}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(username, password)
-	// Make the HTTP request
-	resp, err := client.Do(req)
-	fmt.Println("resp:", resp)
-	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request: %w", err)
-	}
-	defer resp.Body.Close()
-	fmt.Printf("HTTP Status Code: %d\n", resp.StatusCode)
-	// Handle non-200 HTTP responses
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNoContent {
-			// No messages in the queue
-			return nil, nil
+type ActiveMQSource struct {
+	url, user, pass string
+	limit           int
+	client          *http.Client
+
+	mu     sync.Mutex
+	pulled int
+	done   bool
+	err    error
+}
+
+// NewSource builds the source from the same env keys the service has always
+// used. URL construction is unchanged: "<activeMQBaseURL>://<queue>&clientId=<id>".
+func NewSource(cfg config.Config, get func(string) string) *ActiveMQSource {
+	url := fmt.Sprintf("%s://%s&clientId=%s", get("activeMQBaseURL"), get("foidococrqueue"), get("activemqclientid"))
+	return NewActiveMQSource(url, get("activeMQUserName"), get("activeMQPassword"), cfg.BatchSize,
+		&http.Client{Timeout: cfg.ActiveMQHTTPTimeout})
+}
+
+func NewActiveMQSource(url, user, pass string, limit int, client *http.Client) *ActiveMQSource {
+	return &ActiveMQSource{url: url, user: user, pass: pass, limit: limit, client: client}
+}
+
+func (s *ActiveMQSource) Pulled() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.pulled
+}
+
+func (s *ActiveMQSource) Err() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.err
+}
+
+func (s *ActiveMQSource) Next(ctx context.Context) (types.QueueMessage, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		if s.err != nil {
+			return types.QueueMessage{}, s.err
 		}
-		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+		if s.done || (s.limit > 0 && s.pulled >= s.limit) {
+			return types.QueueMessage{}, ErrEOF
+		}
+		msg, ok, err := s.fetch(ctx)
+		if err != nil {
+			s.err = err
+			return types.QueueMessage{}, err
+		}
+		if !ok {
+			s.done = true
+			return types.QueueMessage{}, ErrEOF
+		}
+		if msg == nil { // bad message: consumed but unusable, take the next one
+			continue
+		}
+		s.pulled++
+		logx.Event("DEQUEUED", "documentid", msg.DocumentID, "documentmasterid", msg.DocumentMasterID,
+			"ministryrequestid", msg.MinistryRequestId, "pulled", s.pulled)
+		return *msg, nil
 	}
-	// Parse the response body
-	body, err := io.ReadAll(resp.Body)
-	fmt.Println("body:", body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+}
+
+// fetch does one GET. Returns (nil, true, nil) for an unparseable message,
+// (nil, false, nil) when the queue is empty (204 or client timeout).
+func (s *ActiveMQSource) fetch(ctx context.Context) (*types.QueueMessage, bool, error) {
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.url, nil)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.SetBasicAuth(s.user, s.pass)
+		resp, err := s.client.Do(req)
+		if err != nil {
+			if isTimeout(err) {
+				logx.Event("DEQUEUE_TIMEOUT", "attempt", attempt+1)
+				return nil, false, nil
+			}
+			if ctx.Err() != nil {
+				return nil, false, ctx.Err()
+			}
+			lastErr = fmt.Errorf("error making HTTP request: %w", err)
+			logx.Event("DEQUEUE_RETRY", "attempt", attempt+1, "err", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		switch resp.StatusCode {
+		case http.StatusNoContent:
+			return nil, false, nil
+		case http.StatusOK:
+			if readErr != nil {
+				return nil, false, fmt.Errorf("failed to read response body: %w", readErr)
+			}
+			var msg types.QueueMessage
+			if err := json.Unmarshal(body, &msg); err != nil {
+				logx.Event("DEQUEUE_BAD_MESSAGE", "err", err, "body", string(body))
+				return nil, true, nil
+			}
+			return &msg, true, nil
+		default:
+			return nil, false, fmt.Errorf("unexpected response status: %s", resp.Status)
+		}
 	}
-	fmt.Printf("Response Body: %s\n", string(body))
-	var message types.QueueMessage
-	if err := json.Unmarshal(body, &message); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
-	}
-	return &message, nil
+	return nil, false, lastErr
+}
+
+func isTimeout(err error) bool {
+	var ne interface{ Timeout() bool }
+	return errors.As(err, &ne) && ne.Timeout() || errors.Is(err, context.DeadlineExceeded)
 }
