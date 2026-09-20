@@ -1,6 +1,6 @@
 module azureocrservice
 
-go 1.23.3
+go 1.26.0
 
 require (
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
@@ -18,7 +18,9 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/time v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
