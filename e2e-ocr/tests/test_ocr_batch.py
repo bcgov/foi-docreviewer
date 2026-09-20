@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
 import seed
 import stages
 
@@ -40,10 +38,6 @@ def test_batch_of_10_all_complete(pg, s3, activemq, mock_azure, settings, sample
     assert all(op["pdf_fetched"] for op in stats["ops"].values())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="findings §4.5: the worker posts ocrjobrunning on every poll, one DocumentOCRJob row per 5 s",
-)
 def test_ocrjobrunning_posted_once_per_document(pg, s3, activemq, mock_azure, settings, samples_dir):
     mock_azure.scenario(processing_polls=4)
     (ids, key, data), = _publish_batch(pg, s3, activemq, samples_dir, prefix=4, count=1)

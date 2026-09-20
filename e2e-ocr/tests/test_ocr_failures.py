@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
 import seed
 import stages
 
@@ -40,10 +38,6 @@ def test_azure_failed_status_marks_job_failed(pg, s3, activemq, mock_azure, sett
     assert bad_path is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="findings §4.4: a failed S3 download yields nil bytes, an empty base64Source is submitted, Azure 400s and no status is posted",
-)
 def test_missing_source_object_does_not_block_batch(pg, s3, activemq, mock_azure, settings, samples_dir):
     missing = _prepare(pg, s3, samples_dir, prefix=10, n=0, upload=False)
     good_a = _prepare(pg, s3, samples_dir, prefix=10, n=1)

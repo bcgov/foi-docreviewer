@@ -1,9 +1,7 @@
-"""Azure 429s on submit, poll and result; concurrency cap. Strict xfails document today's behaviour."""
+"""Azure 429s on submit, poll and result; concurrency cap."""
 from __future__ import annotations
 
 import os
-
-import pytest
 
 import seed
 import stages
@@ -21,10 +19,6 @@ def _publish_one(pg, s3, activemq, samples_dir, prefix: int, n: int = 0):
     return ids, key, data
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="findings §3: 429 on Analyze POST is 'unexpected status code', no retry, no status posted",
-)
 def test_submit_429_is_retried(pg, s3, activemq, mock_azure, settings, samples_dir):
     mock_azure.scenario(submit_429_first=2, retry_after_seconds=1)
     ids, key, data = _publish_one(pg, s3, activemq, samples_dir, prefix=5)
@@ -39,10 +33,6 @@ def test_submit_429_is_retried(pg, s3, activemq, mock_azure, settings, samples_d
     assert all(gap >= 1.0 for gap in gaps), f"Retry-After not honoured: gaps={gaps}"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="findings §3: a 429 on the status GET has no `status` field, falls to the default branch and posts ocrjobfailed",
-)
 def test_poll_429_does_not_fail_job(pg, s3, activemq, mock_azure, settings, samples_dir):
     mock_azure.scenario(poll_429_first=2)
     ids, key, data = _publish_one(pg, s3, activemq, samples_dir, prefix=6)
@@ -53,10 +43,6 @@ def test_poll_429_does_not_fail_job(pg, s3, activemq, mock_azure, settings, samp
     assert stats["http429"]["poll"] == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="findings §3: 429 on the /pdf GET aborts with 'failed to retrieve PDF', DB stays at ocrjobsucceeded with no file",
-)
 def test_result_429_is_retried(pg, s3, activemq, mock_azure, settings, samples_dir):
     mock_azure.scenario(result_429_first=1)
     ids, key, data = _publish_one(pg, s3, activemq, samples_dir, prefix=7)

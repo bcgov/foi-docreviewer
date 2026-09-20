@@ -137,6 +137,11 @@ services:
       DOCREVIEWEROCRAPIENDPOINT: http://azuredococrapi:52863
       DOCREVIEWEROCRAPISECRET: e2e-ocr-secret
       LOGFILEPATH: /var/log/ocr/
+      # Step 2 of docs/superpowers/specs/2026-09-19-azure-ocr-batch-pipeline-design.md:
+      # retry 429/5xx with Retry-After; base 1 s keeps the throttling tests fast.
+      AZUREMAXRETRIES: "5"
+      AZURERETRYBASESECONDS: "1"
+      AZURERETRYMAXSECONDS: "10"
       OCR_RUN_MODE: loop
       OCR_RUN_INTERVAL_SECONDS: "2"
     volumes:
