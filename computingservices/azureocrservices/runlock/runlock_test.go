@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -114,5 +115,64 @@ func TestAcquireReturnsErrHeldAfterRetryExhausted(t *testing.T) {
 	_, err := Acquire(path, time.Hour)
 	if !errors.Is(err, ErrHeld) {
 		t.Fatalf("want ErrHeld, got %v", err)
+	}
+}
+
+// TestHeartbeatKeepsLiveLockHeld is the C1 regression: a run that legitimately
+// outlives `stale` must not be taken over while its holder is alive. The
+// holder refreshes the lock's mtime, so even after the file is aged past
+// `stale` a competing Acquire sees a fresh heartbeat and reports ErrHeld.
+func TestHeartbeatKeepsLiveLockHeld(t *testing.T) {
+	orig := heartbeatInterval
+	heartbeatInterval = 10 * time.Millisecond
+	defer func() { heartbeatInterval = orig }()
+
+	path := filepath.Join(t.TempDir(), "run.lock")
+	release, err := Acquire(path, 50*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(5 * heartbeatInterval)
+	if _, err := Acquire(path, 50*time.Millisecond); !errors.Is(err, ErrHeld) {
+		t.Fatalf("want ErrHeld from heartbeated lock, got %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("mtime not refreshed: %s", info.ModTime())
+	}
+}
+
+// TestReleaseStopsHeartbeat asserts the heartbeat goroutine exits with the
+// lock: after release() the file must stay gone (no Chtimes recreating or
+// touching it) and no goroutine keeps running.
+func TestReleaseStopsHeartbeat(t *testing.T) {
+	orig := heartbeatInterval
+	heartbeatInterval = 5 * time.Millisecond
+	defer func() { heartbeatInterval = orig }()
+
+	path := filepath.Join(t.TempDir(), "run.lock")
+	release, err := Acquire(path, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := runtime.NumGoroutine()
+	release()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("lock file should be removed on release")
+	}
+	time.Sleep(10 * heartbeatInterval)
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("heartbeat must not touch the lock after release")
+	}
+	if after := runtime.NumGoroutine(); after >= before {
+		t.Fatalf("heartbeat goroutine still running: before=%d after=%d", before, after)
 	}
 }

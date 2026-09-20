@@ -1,7 +1,9 @@
 // Package runlock stops two scheduled runs from consuming the same ActiveMQ
 // queue at once. The lock is a file created with O_EXCL holding the owner's
-// PID; a lock whose PID is dead, or whose mtime is older than `stale`, is
-// taken over so a crash never wedges the scheduler.
+// PID; the holder refreshes the file's mtime every heartbeatInterval, so a
+// lock whose PID is dead, or whose heartbeat is older than `stale`, is taken
+// over so a crash never wedges the scheduler while a live long run is never
+// pre-empted.
 package runlock
 
 import (
@@ -10,12 +12,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"azureocrservice/logx"
 )
 
 var ErrHeld = errors.New("run lock held by a live process")
+
+// heartbeatInterval is how often the holder touches the lock's mtime. A
+// package var so tests can shorten it.
+var heartbeatInterval = 30 * time.Second
 
 func Acquire(path string, stale time.Duration) (release func(), err error) {
 	for attempt := 0; attempt < 2; attempt++ {
@@ -55,7 +62,33 @@ var createLock = func(path string) (func(), error) {
 		os.Remove(path)
 		return nil, werr
 	}
-	return func() { releaseIfOwned(path, pid) }, nil
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go heartbeat(path, stop, &wg)
+	return func() {
+		close(stop)
+		wg.Wait()
+		releaseIfOwned(path, pid)
+	}, nil
+}
+
+// heartbeat refreshes the lock's mtime until stop is closed, so a competing
+// Acquire measures liveness rather than run length. Errors are ignored: the
+// worst case is the pre-heartbeat behaviour (takeover after `stale`).
+func heartbeat(path string, stop <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	t := time.NewTicker(heartbeatInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+			now := time.Now()
+			os.Chtimes(path, now, now)
+		}
+	}
 }
 
 // releaseIfOwned removes the lock file only if it still holds the PID that
@@ -73,8 +106,9 @@ func releaseIfOwned(path string, pid int) {
 	os.Remove(path)
 }
 
-// inspect returns the PID stored in the lock and the lock's age. A body that
-// is not a PID yields an error so the caller treats the lock as stale.
+// inspect returns the PID stored in the lock and the age of its last
+// heartbeat (mtime). A body that is not a PID yields an error so the caller
+// treats the lock as stale.
 func inspect(path string) (pid int, age time.Duration, err error) {
 	info, err := os.Stat(path)
 	if err != nil {
