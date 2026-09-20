@@ -22,8 +22,7 @@ import (
 func GenerateDownloadPresignedURL(s3relativefileurl string) (string, error) {
 	s3Details, err := GetS3Details(s3relativefileurl)
 	if err != nil {
-		fmt.Println("Error in fetching S3 details:", err)
-		return "", nil
+		return "", fmt.Errorf("s3 details for download: %w", err)
 	}
 	// Create a new session with the provided credentials
 	sess, err := session.NewSession(&aws.Config{
@@ -47,6 +46,13 @@ func GenerateDownloadPresignedURL(s3relativefileurl string) (string, error) {
 		return "", fmt.Errorf("failed to generate presigned URL: %v", err)
 	}
 	return presignedURL, nil
+}
+
+// OCRKeyFor returns the object key of the searchable PDF written next to the
+// source object: the extension is kept and "OCR" is inserted before it.
+func OCRKeyFor(objectKey string) string {
+	ext := filepath.Ext(objectKey)
+	return strings.TrimSuffix(objectKey, ext) + "OCR" + ext
 }
 
 func GetS3Details(s3FilePath string) (types.S3Details, error) {
@@ -81,10 +87,7 @@ func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
 	if s3Err != nil {
 		return "", fmt.Errorf("error in s3 details: %v", s3Err)
 	}
-	fmt.Println("fullFilePath:", fullFilePath)
-	ext := filepath.Ext(s3Details.ObjectKey)             // e.g. ".pdf"
-	name := strings.TrimSuffix(s3Details.ObjectKey, ext) // e.g. "/some/path/file"
-	OCRKey := name + "OCR" + ext                         // e.g. "/some/path/file-compressed.pdf"
+	OCRKey := OCRKeyFor(s3Details.ObjectKey)
 	// Create a new AWS session with credentials and config
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(s3Details.Region),
@@ -110,24 +113,21 @@ func GeneratePresignedUploadURL(fullFilePath string) (string, error) {
 	return presignedURL, nil
 }
 
-func UploadUsingPresignedURL(presignedURL string, fileData []byte) error {
-	// Create the HTTP PUT request with the file data
-	req, err := http.NewRequest("PUT", presignedURL, bytes.NewReader(fileData))
+// UploadUsingPresignedURL PUTs fileData to a presigned URL with the caller's
+// client (which carries the timeout). The URL is never logged: it embeds credentials.
+func UploadUsingPresignedURL(client *http.Client, presignedURL string, fileData []byte) error {
+	req, err := http.NewRequest(http.MethodPut, presignedURL, bytes.NewReader(fileData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
-	// Perform the upload request
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to upload to S3 using presigned URL: %v", err)
 	}
 	defer resp.Body.Close()
-	// Check the response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
 	}
-	fmt.Println("Successfully uploaded the file using presigned URL.")
 	return nil
 }
