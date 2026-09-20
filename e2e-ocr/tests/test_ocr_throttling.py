@@ -54,14 +54,14 @@ def test_result_429_is_retried(pg, s3, activemq, mock_azure, settings, samples_d
 
 
 def test_analyze_concurrency_cap_is_respected(pg, s3, activemq, mock_azure, settings, samples_dir):
-    """Passes today because the worker is sequential; guards the future worker pool
-    (maxconcurrentocrjobs must never exceed what Azure accepts)."""
-    mock_azure.scenario(max_concurrent_analyze=2, submit_latency_ms=1000)
-    docs = [_publish_one(pg, s3, activemq, samples_dir, prefix=8, n=n) for n in range(6)]
+    """The mock refuses more than settings.max_concurrent Analyze calls at once (429). A
+    correctly bounded worker pool never trips it, so http429 must stay at zero."""
+    mock_azure.scenario(max_concurrent_analyze=settings.max_concurrent, submit_latency_ms=1000)
+    docs = [_publish_one(pg, s3, activemq, samples_dir, prefix=8, n=n) for n in range(3 * settings.max_concurrent)]
 
     for ids, key, data in docs:
         stages.wait_for_ocr_done(pg, settings, ids)
 
     stats = stages.wait_for_mock_idle(mock_azure, settings)
     assert stats["http429"]["submit"] == 0
-    assert stats["max_concurrent_analyze"] <= 2
+    assert stats["max_concurrent_analyze"] <= settings.max_concurrent

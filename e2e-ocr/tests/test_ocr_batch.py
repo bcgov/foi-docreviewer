@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+import clients
 import seed
 import stages
 
@@ -44,3 +45,24 @@ def test_ocrjobrunning_posted_once_per_document(pg, s3, activemq, mock_azure, se
 
     outcome = stages.wait_for_ocr_done(pg, settings, ids)
     assert outcome.chain.count("ocrjobrunning") == 1, outcome.chain
+
+
+def test_streaming_dequeue_leaves_unstarted_messages_on_broker(pg, s3, activemq, mock_azure, settings, samples_dir):
+    """Workers pull one message each only when free: while a batch is in flight the
+    broker must still hold the rest, so a hard kill can lose at most max_concurrent."""
+    mock_azure.scenario(submit_latency_ms=4000)
+    count = 3 * settings.max_concurrent
+    docs = _publish_batch(pg, s3, activemq, samples_dir, prefix=11, count=count)
+
+    def some_in_flight() -> bool:
+        return mock_azure.stats()["analyze"] >= 1
+
+    clients.wait_until(some_in_flight, timeout=settings.stage_timeout, describe=lambda: "no Analyze call started")
+    remaining = activemq.queue_size()
+    assert remaining >= count - settings.max_concurrent, (
+        f"{count - remaining} messages taken from the broker while only {settings.max_concurrent} can be in flight"
+    )
+
+    for ids, key, data in docs:
+        stages.wait_for_ocr_done(pg, settings, ids)
+    assert activemq.queue_size() == 0

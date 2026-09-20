@@ -61,30 +61,13 @@ func run() int {
 
 	counter := &httpx.Counter{}
 	deps := buildDeps(cfg, counter)
-	gates := pipeline.NewGates(cfg)
 
-	dequeuedmessages, err := httpservices.ProcessMessage()
-	if err != nil {
-		logx.Event("DEQUEUE_ERROR", "err", err)
+	src := httpservices.NewSource(cfg, utils.ViperEnvVariable)
+	sum := pipeline.Run(ctx, cfg, src, deps)
+	fmt.Println("End Time :" + time.Now().String())
+	if sum.DequeueError != nil && sum.Pulled == 0 {
 		return 1
 	}
-	succeeded, failed, retries := 0, 0, 0
-	for _, message := range dequeuedmessages {
-		if ctx.Err() != nil {
-			logx.Event("RUN_INTERRUPTED", "remaining", len(dequeuedmessages)-succeeded-failed)
-			break
-		}
-		res := pipeline.Process(ctx, cfg, deps, gates, message)
-		retries += res.Retries
-		if res.Outcome == "success" {
-			succeeded++
-		} else {
-			failed++
-		}
-	}
-	logx.Event("RUN_SUMMARY", "pulled", len(dequeuedmessages), "succeeded", succeeded, "failed", failed,
-		"retries", retries, "http429", counter.Load(), "totalms", logx.Ms(start))
-	fmt.Println("End Time :" + time.Now().String())
 	return 0
 }
 
