@@ -19,7 +19,7 @@ var ErrHeld = errors.New("run lock held by a live process")
 
 func Acquire(path string, stale time.Duration) (release func(), err error) {
 	for attempt := 0; attempt < 2; attempt++ {
-		release, err = tryCreate(path)
+		release, err = createLock(path)
 		if err == nil {
 			return release, nil
 		}
@@ -35,21 +35,42 @@ func Acquire(path string, stale time.Duration) (release func(), err error) {
 			return nil, fmt.Errorf("remove stale lock %s: %w", path, rmErr)
 		}
 	}
-	return nil, fmt.Errorf("lock %s: %w", path, err)
+	// Retry budget exhausted while a competitor kept winning the create
+	// race: report this the same way as a live, unexpired holder.
+	return nil, fmt.Errorf("%w: %s", ErrHeld, path)
 }
 
-func tryCreate(path string) (func(), error) {
+// createLock is a package var so tests can force the race where a competing
+// process wins the create right after this one judged the existing lock
+// stale, without changing the public API.
+var createLock = func(path string) (func(), error) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err != nil {
 		return nil, err
 	}
-	_, werr := f.WriteString(strconv.Itoa(os.Getpid()))
+	pid := os.Getpid()
+	_, werr := f.WriteString(strconv.Itoa(pid))
 	f.Close()
 	if werr != nil {
 		os.Remove(path)
 		return nil, werr
 	}
-	return func() { os.Remove(path) }, nil
+	return func() { releaseIfOwned(path, pid) }, nil
+}
+
+// releaseIfOwned removes the lock file only if it still holds the PID that
+// created it. If another process has since taken the lock over, the file
+// belongs to that process and must be left alone.
+func releaseIfOwned(path string, pid int) {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	owner, err := strconv.Atoi(strings.TrimSpace(string(body)))
+	if err != nil || owner != pid {
+		return
+	}
+	os.Remove(path)
 }
 
 // inspect returns the PID stored in the lock and the lock's age. A body that
