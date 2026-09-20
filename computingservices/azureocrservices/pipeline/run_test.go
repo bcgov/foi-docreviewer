@@ -1,14 +1,17 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"azureocrservice/httpservices"
+	"azureocrservice/logx"
 	"azureocrservice/types"
 )
 
@@ -125,6 +128,72 @@ func TestRunStopsPullingWhenInterrupted(t *testing.T) {
 	sum := Run(ctx, c, &sliceSource{msgs: messages(5)}, Deps{Azure: az, Store: st, Reviewer: &syncReviewer{inner: rv}})
 	if sum.Pulled != 1 {
 		t.Fatalf("pulled %d after interrupt, want 1: %+v", sum.Pulled, sum)
+	}
+	if sum.DequeueError != nil {
+		t.Fatalf("DequeueError = %v, want nil", sum.DequeueError)
+	}
+}
+
+// blockingCancelSource mirrors ActiveMQSource under ctx cancellation: it
+// hands out one real message, then any further Next call blocks on the run
+// ctx and returns ctx.Err() as its own terminal error once cancelled.
+type blockingCancelSource struct {
+	once sync.Once
+	msg  types.QueueMessage
+}
+
+func (s *blockingCancelSource) Next(ctx context.Context) (types.QueueMessage, error) {
+	served := false
+	s.once.Do(func() { served = true })
+	if served {
+		return s.msg, nil
+	}
+	<-ctx.Done()
+	return types.QueueMessage{}, ctx.Err()
+}
+
+// TestRunStopsSilentlyOnCtxCancelledDequeue covers the branch at run.go that
+// treats a Next error caused by run-ctx cancellation (as ActiveMQSource
+// surfaces it) as a silent stop: no DequeueError, no DEQUEUE_ERROR log line,
+// and results already produced by in-flight work are kept.
+func TestRunStopsSilentlyOnCtxCancelledDequeue(t *testing.T) {
+	az, st, rv := happy()
+	az.submit = func(context.Context, types.AnalyzeSource) (string, string, int, error) {
+		time.Sleep(30 * time.Millisecond) // keep the job in flight past the cancel
+		return "op", "apim", 1, nil
+	}
+
+	var buf bytes.Buffer
+	old := logx.Output
+	logx.Output = &buf
+	defer func() { logx.Output = old }()
+
+	src := &blockingCancelSource{msg: types.QueueMessage{DocumentID: 200, S3FilePath: "http://s3/b/k.pdf"}}
+	ctx, cancel := context.WithCancel(context.Background())
+	c := cfg()
+	c.MaxConcurrentJobs = 2 // one worker processes the message, the other blocks in Next
+
+	resultCh := make(chan Summary, 1)
+	go func() {
+		resultCh <- Run(ctx, c, src, Deps{Azure: az, Store: st, Reviewer: &syncReviewer{inner: rv}})
+	}()
+
+	time.Sleep(10 * time.Millisecond) // let both workers reach Next before cancelling
+	cancel()
+
+	select {
+	case sum := <-resultCh:
+		if sum.DequeueError != nil {
+			t.Fatalf("DequeueError = %v, want nil", sum.DequeueError)
+		}
+		if len(sum.Results) != 1 || sum.Results[0].DocumentID != 200 {
+			t.Fatalf("want the one in-flight result for doc 200, got %+v", sum.Results)
+		}
+		if strings.Contains(buf.String(), "DEQUEUE_ERROR") {
+			t.Fatalf("unexpected DEQUEUE_ERROR log line: %s", buf.String())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not return promptly after ctx cancellation")
 	}
 }
 
