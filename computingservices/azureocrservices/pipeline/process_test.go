@@ -45,12 +45,16 @@ func (f *fakeStore) Upload(_ context.Context, _ int64, s3path string, pdf []byte
 type fakeReviewer struct {
 	posts   []types.DocReviewAudit
 	failFor string // status whose Post returns an error
+	hook    func(ctx context.Context, a types.DocReviewAudit, hard bool) error
 }
 
-func (f *fakeReviewer) Post(_ context.Context, a types.DocReviewAudit, _ bool) error {
+func (f *fakeReviewer) Post(ctx context.Context, a types.DocReviewAudit, hard bool) error {
 	f.posts = append(f.posts, a)
 	if a.Status == f.failFor {
 		return errors.New("reviewer down")
+	}
+	if f.hook != nil {
+		return f.hook(ctx, a, hard)
 	}
 	return nil
 }
@@ -345,5 +349,83 @@ func TestProcessReleasesUploadPermitOnPanic(t *testing.T) {
 	res2 := Process(context.Background(), c, Deps{Azure: az2, Store: st2, Reviewer: rv2}, gates, msg)
 	if res2.Outcome != "success" {
 		t.Fatalf("second run should succeed once the upload permit is released, got %+v", res2)
+	}
+}
+
+// TestIntermediatePostBoundedByJobCtx (I1): an intermediate status post
+// against a reviewer that never answers must be cut off by the job deadline
+// (and the interrupt), not run on under a cancel-free context.
+func TestIntermediatePostBoundedByJobCtx(t *testing.T) {
+	az, st, rv := happy()
+	c := cfg()
+	c.JobTimeout = 50 * time.Millisecond
+	c.ReviewerTimeout = 20 * time.Millisecond
+	rv.hook = func(ctx context.Context, a types.DocReviewAudit, _ bool) error {
+		if a.Status != "azureocrrequestcreated" {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(3 * time.Second):
+			return errors.New("post ctx never done")
+		}
+	}
+	start := time.Now()
+	res := Process(context.Background(), c, Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(c), msg)
+	if el := time.Since(start); el > time.Second {
+		t.Fatalf("intermediate post outlived JobTimeout: %s", el)
+	}
+	if res.Outcome != "failed" || res.Code != "JobTimeout" {
+		t.Fatalf("%+v", res)
+	}
+	if rv.chain()[len(rv.chain())-1] != "ocrjobfailed" {
+		t.Fatalf("chain=%v", rv.chain())
+	}
+}
+
+// TestFinalPostAfterCancelIsBounded (I1): ocrjobfailed must still go out
+// after the run is interrupted, with a live (not yet cancelled) context that
+// carries a deadline of 3×ReviewerTimeout.
+func TestFinalPostAfterCancelIsBounded(t *testing.T) {
+	az, st, rv := happy()
+	c := cfg()
+	c.ReviewerTimeout = 20 * time.Millisecond
+	ctx, cancel := context.WithCancel(context.Background())
+	az.poll = func(ctx context.Context, _ func()) (string, int, error) {
+		cancel()
+		<-ctx.Done()
+		return "", 1, ctx.Err()
+	}
+	var gotDeadline time.Duration
+	var liveAtEntry bool
+	rv.hook = func(ctx context.Context, a types.DocReviewAudit, hard bool) error {
+		if a.Status != "ocrjobfailed" {
+			return nil
+		}
+		if !hard {
+			t.Errorf("ocrjobfailed must be a hard post")
+		}
+		liveAtEntry = ctx.Err() == nil
+		if dl, ok := ctx.Deadline(); ok {
+			gotDeadline = time.Until(dl)
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	start := time.Now()
+	res := Process(ctx, c, Deps{Azure: az, Store: st, Reviewer: rv}, NewGates(c), msg)
+	el := time.Since(start)
+	if res.Code != "Interrupted" {
+		t.Fatalf("%+v", res)
+	}
+	if !liveAtEntry {
+		t.Fatal("final post context was already cancelled")
+	}
+	if gotDeadline <= 0 || gotDeadline > 3*c.ReviewerTimeout {
+		t.Fatalf("final post deadline = %s, want (0, %s]", gotDeadline, 3*c.ReviewerTimeout)
+	}
+	if el > time.Second {
+		t.Fatalf("final post not bounded: %s", el)
 	}
 }
