@@ -1,46 +1,45 @@
 package docreviewerocrservice
 
 import (
-	"azureocrservice/types"
-	"azureocrservice/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"time"
+
+	"azureocrservice/logx"
+	"azureocrservice/types"
+	"azureocrservice/utils"
 )
 
+// PushtoDocReviewer posts one status row to the reviewer API. It never aborts
+// the process: a failure is logged and reported as false so the caller decides.
 func PushtoDocReviewer(docreviewAudit types.DocReviewAudit) bool {
-
-	// Convert the struct to JSON
 	jsonData, err := json.Marshal(docreviewAudit)
-	fmt.Println("DocReviwer Audit Data starts here")
-	fmt.Println("JSONDATA:", string(jsonData))
-	//fmt.Println("DocReviwer Audit ends here")
 	if err != nil {
-		log.Fatal("Error marshaling JSON:", err)
+		logx.Event("REVIEWER_POST_FAILED", "documentid", docreviewAudit.DocumentID, "status", docreviewAudit.Status, "err", err)
+		return false
 	}
 	url := fmt.Sprintf("%v/api/documentocrjob", utils.ViperEnvVariable("docreviewerocrapiendpoint"))
-	// Create a POST request with JSON data
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Fatal("Error creating request:", err)
+		logx.Event("REVIEWER_POST_FAILED", "documentid", docreviewAudit.DocumentID, "status", docreviewAudit.Status, "err", err)
+		return false
 	}
-	// Set the appropriate headers for JSON content
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-FOI-OCR-Secret", utils.ViperEnvVariable("docreviewerocrapisecret"))
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal("Error sending request:", err)
+		logx.Event("REVIEWER_POST_FAILED", "documentid", docreviewAudit.DocumentID, "status", docreviewAudit.Status, "err", err)
+		return false
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
-		fmt.Println("Successfully posted to Doc Reviewer audit api")
+		logx.Event("REVIEWER_POST_OK", "documentid", docreviewAudit.DocumentID, "status", docreviewAudit.Status)
 		return true
-	} else {
-		fmt.Printf("Failed to post to Reviewer. Status: %s\n", resp.Status)
-		return false
 	}
+	logx.Event("REVIEWER_POST_FAILED", "documentid", docreviewAudit.DocumentID, "status", docreviewAudit.Status, "httpstatus", resp.StatusCode)
+	return false
 }
