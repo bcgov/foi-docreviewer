@@ -120,3 +120,5 @@ e2e/samples/msggen/bin/
 e2e/samples/msggen/obj/
 e2e-ocr/mock-azure/.venv/
 e2e-ocr/TestResults/
+docs/superpowers/
+*.exe
