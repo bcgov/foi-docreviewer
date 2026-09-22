@@ -43,7 +43,7 @@ class sectionservice:
         _sortedrequestsections = self.__sortbyoccurance(requestsections)
         for section in globalsections:
             if self.__getoccurancecount(_sortedrequestsections, section["sectionid"]) == 1:
-                _sortedrequestsections.append({"id":section["sectionid"], "section":section["section"], "description": section["description"], "count":0})
+                _sortedrequestsections.append({"id":section["sectionid"], "section":section["section"], "description": section["description"], "shortcode": section["shortcode"], "count":0})
         index = 1
         for section in _sortedrequestsections:
             section["sortorder"] = index
