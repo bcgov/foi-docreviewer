@@ -17,6 +17,10 @@ import Switch from "@mui/material/Switch";
 import { styled } from "@mui/material/styles";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
+import FOIPPAShortCodeModal from "./FOIPPAShortCodeModal";
 
 
 export const FOIPPASectionsModal= ({
@@ -41,6 +45,7 @@ export const FOIPPASectionsModal= ({
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
     const [modalSortAsc, setModalSortAsc] = useState(true);
+    const [tabValue, setTabValue] = useState("originalCodes");
 
     const isOILayerSelected = () => {
       if(currentLayer.name.toLowerCase() === "open info")
@@ -120,6 +125,10 @@ export const FOIPPASectionsModal= ({
         }
         pageSelectionsContainNRDup ? setMessageModalOpen(true) : setMessageModalOpen(false);
       }
+
+      const handleTabChange = (event, newValue) => {
+        setTabValue(newValue);
+      }
       
 
     return(
@@ -133,7 +142,30 @@ export const FOIPPASectionsModal= ({
           onRequestClose={cancelRedaction}
           isOpen={modalOpen}
         >
-          <DialogTitle disabletypography="true" id="state-change-dialog-title">
+          {tabValue === "shortCodes"  ?
+            <FOIPPAShortCodeModal 
+              cancelRedaction={cancelRedaction} 
+              saveDisabled={saveDisabled} 
+              AntSwitch={AntSwitch} 
+              sections={sections} 
+              compareValues={compareValues}
+              defaultSections={defaultSections}
+              clearDefaultSections={clearDefaultSections}
+              saveDefaultSections={saveDefaultSections}
+              sectionIsDisabled={sectionIsDisabled}
+              handleSelectCodes={handleSelectCodes}
+              handleSectionSelected={handleSectionSelected}
+              selectedSections={selectedSections}
+              handleTabChange={handleTabChange}
+              tabValue={tabValue}
+              changeSortOrder={changeSortOrder}
+              modalSortNumbered={modalSortNumbered}
+              modalSortAsc={modalSortAsc}
+              changeModalSort={changeModalSort}
+            /> 
+          :
+          <>
+          <DialogTitle disabletypography="true" id="FOIPPA-modal-dialog-title">
             <h2 className="state-change-header">{isProactive ? "OI Redaction Codes": "FOIPPA Sections"}</h2>
             <IconButton className="title-col3" onClick={cancelRedaction}>
               <i className="dialog-close-button">Close</i>
@@ -145,7 +177,32 @@ export const FOIPPASectionsModal= ({
               id="state-change-dialog-description"
               component={"span"}
             >
-              <Stack direction="row-reverse" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tabs
+                  value={tabValue}
+                  onChange={handleTabChange}
+                  TabIndicatorProps={{
+                    sx: { backgroundColor: '#036' }
+                  }}
+                  sx={{
+                    '& .MuiTab-root': {
+                      color: '#7F8C8D',
+                    },
+                    '& .MuiTab-root.Mui-selected': {
+                      color: '#036',
+                    },
+                  }}
+                >
+                  <Tab value="originalCodes" label="FOIPPA Codes" />
+                  <Tab value="shortCodes" label="Short Codes" />
+                </Tabs>
+                <Typography>Most Used</Typography>
+                <AntSwitch
+                  onChange={changeModalSort}
+                  checked={modalSortNumbered}
+                  inputProps={{ "aria-label": "ant design" }}
+                />
+                <Typography>Numbered Order</Typography>
                 <button
                   onClick={changeSortOrder}
                   style={{
@@ -169,13 +226,6 @@ export const FOIPPASectionsModal= ({
                     />
                   )}
                 </button>
-                <Typography>Numbered Order</Typography>
-                <AntSwitch
-                  onChange={changeModalSort}
-                  checked={modalSortNumbered}
-                  inputProps={{ "aria-label": "ant design" }}
-                />
-                <Typography>Most Used</Typography>
               </Stack>
               <div style={{ overflowY: "scroll" }}>
                 <List className="section-list">
@@ -233,6 +283,8 @@ export const FOIPPASectionsModal= ({
               Cancel
             </button>
           </DialogActions>
+          </>
+        }
           </ReactModal> 
         ): (
           <ReactModal
