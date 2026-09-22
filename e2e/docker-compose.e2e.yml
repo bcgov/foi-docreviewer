@@ -1,0 +1,302 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: docreviewerdb
+      POSTGRES_USER: foi
+      POSTGRES_PASSWORD: foi-test
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foi -d docreviewerdb"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  db-migrate:
+    build:
+      context: ../api
+      dockerfile: dockerfile.local
+    entrypoint: ["python", "manage.py", "db", "upgrade"]
+    environment:
+      FLASK_ENV: testing
+      DATABASE_TEST_URL: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      JWT_OIDC_JWKS_CACHE_TIMEOUT: "300"
+      FOI_RECORD_FORMATS: http://record-formats/formats.json
+      CORS_ORIGIN: "*"
+      DEDUPE_S3_ENV: "dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "redis-test"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis-test", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/config.json
+      - -volume.max=100
+      - -master.volumeSizeLimitMB=100
+      - -master.volumePreallocate=false
+    volumes:
+      - seaweedfs-data:/data
+      - ./fixtures/seaweedfs/config.json:/etc/seaweedfs/config.json:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -qO- http://127.0.0.1:9333/dir/status |
+          grep -q '"DataNodes":\[{' &&
+          wget -q --spider http://127.0.0.1:8333/healthz
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
+  record-formats:
+    image: nginx:1.29.1-alpine
+    volumes:
+      - ./fixtures/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./fixtures/record-formats.json:/usr/share/nginx/html/record-formats.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  activemq:
+    image: apache/activemq-classic:5.18.6
+    environment:
+      ACTIVEMQ_CONNECTION_USER: admin
+      ACTIVEMQ_CONNECTION_PASSWORD: admin
+      ACTIVEMQ_WEB_USER: admin
+      ACTIVEMQ_WEB_PASSWORD: admin
+    healthcheck:
+      # The image is Ubuntu/Temurin based and ships curl; if the check reports
+      # "curl: not found", switch to: bash -c 'exec 3<>/dev/tcp/127.0.0.1/8161'
+      test: ["CMD-SHELL", "curl -fsu admin:admin http://127.0.0.1:8161/api/jolokia/version >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  file-conversion:
+    build:
+      context: ../MCS.FOI.S3FileConversion
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: docreviewerdb
+      DATABASE_USERNAME: foi
+      DATABASE_PASSWORD: foi-test
+      REDIS_STREAM_HOST: redis
+      REDIS_STREAM_PORT: "6379"
+      REDIS_STREAM_PASSWORD: redis-test
+      REDIS_STREAM_KEY: e2e-conversion
+      DEDUPE_STREAM_KEY: e2e-dedupe
+      REDIS_STREAM_CONSUMER_GROUP: file-conversion-consumer-group
+      CONSUMER_NAME: e2e-worker
+      S3_HOST: http://seaweedfs:8333
+      RECORD_FORMATS: http://record-formats/formats.json
+      FILE_CONVERSION_SYNCFUSIONKEY: ""
+      FILE_CONVERSION_FAILTUREATTEMPT: "1"
+      FILE_CONVERSION_WAITTIME: "1"
+      FILE_CONVERSION_OPENFILE_WAITTIME: "5"
+      FILE_CONVERSION_CLAIM_MIN_IDLE_MINUTES: "150"
+      FILE_CONVERSION_CLAIM_INTERVAL_SECONDS: "30"
+      FILE_CONVERSION_MAX_DELIVERY_ATTEMPTS: "3"
+      FILE_CONVERSION_DLQ_STREAM_KEY: ""
+      FILE_CONVERSION_DLQ_MAX_LENGTH: "10000"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  dedupe:
+    build:
+      context: ../computingservices/DedupeServices
+      dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redis-test
+      DEDUPE_STREAM_KEY: e2e-dedupe
+      DEDUPE_CONSUMER_GROUP: dedupe
+      DEDUPE_CONSUMER_NAME: e2e-dedupe-1
+      DEDUPE_DB_HOST: postgres
+      DEDUPE_DB_PORT: "5432"
+      DEDUPE_DB_NAME: docreviewerdb
+      DEDUPE_DB_USER: foi
+      DEDUPE_DB_PASSWORD: foi-test
+      DEDUPE_S3_HOST: seaweedfs:8333
+      DEDUPE_S3_REGION: us-east-1
+      DEDUPE_S3_SERVICE: s3
+      DEDUPE_S3_ENV: dev
+      DEDUPE_REQUEST_MANAGEMENT_API: http://record-formats
+      DEDUPE_RECORD_FORMATS: http://record-formats/formats.json
+      PAGECALCULATOR_STREAM_KEY: e2e-pagecount
+      COMPRESSION_MESSAGING_MODE: ${COMPRESSION_MESSAGING_MODE:-legacy}
+      COMPRESSION_STREAM_KEY: e2e-compression
+      COMPRESSION_TOPIC: compression
+      COMPRESSION_WORKLOAD: normal
+      MESSAGING_STREAM_PREFIX: foi
+      NOTIFICATION_STREAM_KEY: e2e-notifications
+      HEALTH_CHECK_INTERVAL: "15"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+
+  compression:
+    build:
+      context: ../computingservices/CompressionServices
+      dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redis-test
+      REDIS_CONSUMER_NAME: e2e-compression-1
+      COMPRESSION_MESSAGING_MODE: ${COMPRESSION_MESSAGING_MODE:-legacy}
+      COMPRESSION_WORKLOAD: normal
+      COMPRESSION_PROCESSING_TIMEOUT: 2m
+      MESSAGING_STREAM_PREFIX: foi
+      COMPRESSION_TOPIC: compression
+      OCR_TOPIC: ocr
+      MESSAGING_CONSUMER_GROUP: foi-compression-normal
+      MESSAGING_CLAIM_INTERVAL: 30s
+      MESSAGING_CLAIM_MIN_IDLE: 3m
+      MESSAGING_MAX_DELIVERY_ATTEMPTS: "3"
+      MESSAGING_SHUTDOWN_TIMEOUT: 25s
+      COMPRESSION_STREAM_KEY: e2e-compression
+      COMPRESSION_CHECKPOINT_KEY: e2e-compression-checkpoint
+      COMPRESSION_DB_HOST: postgres
+      COMPRESSION_DB_PORT: "5432"
+      COMPRESSION_DB_NAME: docreviewerdb
+      COMPRESSION_DB_USER: foi
+      COMPRESSION_DB_PASSWORD: foi-test
+      COMPRESSION_S3_HOST: http://seaweedfs:8333
+      COMPRESSION_S3_REGION: us-east-1
+      COMPRESSION_S3_SERVICE: s3
+      COMPRESSION_S3_ENV: dev
+      COMPRESSION_REQUEST_MANAGEMENT_API: http://record-formats
+      COMPRESSION_RECORD_FORMATS: http://record-formats/formats.json
+      NOTIFICATION_STREAM_KEY: e2e-notifications
+      HEALTH_CHECK_INTERVAL: "15"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+
+  ocr:
+    build:
+      context: ../computingservices/OCRServices
+      dockerfile: Dockerfile
+    environment:
+      LOG_LEVEL: INFO
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redis-test
+      MESSAGING_STREAM_PREFIX: foi
+      OCR_TOPIC: ocr
+      MESSAGING_CONSUMER_GROUP: foi-ocr
+      OCR_CONSUMER_NAME: e2e-ocr-1
+      MESSAGING_CLAIM_INTERVAL: 30s
+      MESSAGING_CLAIM_MIN_IDLE: 3m
+      MESSAGING_MAX_DELIVERY_ATTEMPTS: "3"
+      MESSAGING_SHUTDOWN_TIMEOUT: 30s
+      OCR_PROCESSING_TIMEOUT: 1m
+      OCR_DB_HOST: postgres
+      OCR_DB_PORT: "5432"
+      OCR_DB_USER: foi
+      OCR_DB_PASSWORD: foi-test
+      OCR_DB_NAME: docreviewerdb
+      ACTIVEMQ_URL: http://activemq:8161/api/message
+      ACTIVEMQ_USERNAME: admin
+      ACTIVEMQ_PASSWORD: admin
+      ACTIVEMQ_DESTINATION: foidococr
+      NOTIFICATION_STREAM_KEY: e2e-notifications
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+
+  e2e-tests:
+    build:
+      context: ./tests
+    environment:
+      E2E_DB_DSN: postgresql://foi:foi-test@postgres:5432/docreviewerdb
+      E2E_REDIS_URL: redis://:redis-test@redis:6379/0
+      E2E_S3_ENDPOINT: http://seaweedfs:8333
+      E2E_S3_ACCESS_KEY: dev
+      E2E_S3_SECRET_KEY: dev
+      E2E_S3_BUCKET: citz-dev-e
+      E2E_CONVERSION_STREAM: e2e-conversion
+      E2E_CONVERSION_GROUP: file-conversion-consumer-group
+      E2E_DEDUPE_STREAM: e2e-dedupe
+      E2E_DEDUPE_GROUP: dedupe
+      E2E_COMPRESSION_STREAM: ${E2E_COMPRESSION_STREAM:-e2e-compression}
+      E2E_PAGECOUNT_STREAM: e2e-pagecount
+      E2E_OCR_STREAM: foi:ocr
+      E2E_OCR_GROUP: foi-ocr
+      E2E_ACTIVEMQ_URL: http://activemq:8161/api/message
+      E2E_ACTIVEMQ_USER: admin
+      E2E_ACTIVEMQ_PASSWORD: admin
+      E2E_ACTIVEMQ_QUEUE: foidococr
+      E2E_STAGE_TIMEOUT: "120"
+      E2E_SAMPLES_DIR: /samples
+    volumes:
+      - ./samples:/samples:ro
+      - ./TestResults:/test-results
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      record-formats:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+      file-conversion:
+        condition: service_started
+      dedupe:
+        condition: service_started
+      compression:
+        condition: service_started
+      ocr:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  seaweedfs-data:
