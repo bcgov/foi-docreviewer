@@ -1,46 +1,62 @@
+// Package docreviewerocrservice posts DocumentOCRJob status rows to the
+// reviewer API (POST /api/documentocrjob, X-FOI-OCR-Secret).
 package docreviewerocrservice
 
 import (
-	"azureocrservice/types"
-	"azureocrservice/utils"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
+	"time"
+
+	"azureocrservice/httpx"
+	"azureocrservice/logx"
+	"azureocrservice/types"
 )
 
-func PushtoDocReviewer(docreviewAudit types.DocReviewAudit) bool {
+type Client struct {
+	url, secret string
+	http        *http.Client
+	policy      httpx.RetryPolicy
+}
 
-	// Convert the struct to JSON
-	jsonData, err := json.Marshal(docreviewAudit)
-	fmt.Println("DocReviwer Audit Data starts here")
-	fmt.Println("JSONDATA:", string(jsonData))
-	//fmt.Println("DocReviwer Audit ends here")
-	if err != nil {
-		log.Fatal("Error marshaling JSON:", err)
-	}
-	url := fmt.Sprintf("%v/api/documentocrjob", utils.ViperEnvVariable("docreviewerocrapiendpoint"))
-	// Create a POST request with JSON data
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		log.Fatal("Error creating request:", err)
-	}
-	// Set the appropriate headers for JSON content
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-FOI-OCR-Secret", utils.ViperEnvVariable("docreviewerocrapisecret"))
+func New(endpoint, secret string, timeout time.Duration, policy httpx.RetryPolicy) *Client {
+	return &Client{url: fmt.Sprintf("%v/api/documentocrjob", endpoint), secret: secret,
+		http: &http.Client{Timeout: timeout}, policy: policy}
+}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+// Post sends one DocReviewAudit row. hard=true raises the retry budget to at
+// least 2 retries (3 attempts) for the statuses the UI depends on
+// (ocrfileuploadsuccess, ocrjobfailed).
+func (c *Client) Post(ctx context.Context, audit types.DocReviewAudit, hard bool) error {
+	body, err := json.Marshal(audit)
 	if err != nil {
-		log.Fatal("Error sending request:", err)
+		return httpx.Coded("Marshal", 0, err)
+	}
+	build := func(ctx context.Context) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-FOI-OCR-Secret", c.secret)
+		return req, nil
+	}
+	policy := c.policy
+	if hard {
+		policy = policy.WithMinRetries(2)
+	}
+	resp, attempts, err := httpx.DoWithRetry(ctx, c.http, build, policy, "REVIEWER", "documentid", audit.DocumentID, "status", audit.Status)
+	if err != nil {
+		return httpx.Coded("Transport", attempts, err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
-		fmt.Println("Successfully posted to Doc Reviewer audit api")
-		return true
-	} else {
-		fmt.Printf("Failed to post to Reviewer. Status: %s\n", resp.Status)
-		return false
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return httpx.Coded(fmt.Sprintf("HTTP%d", resp.StatusCode), attempts, fmt.Errorf("reviewer api %d: %s", resp.StatusCode, msg))
 	}
+	logx.Event("REVIEWER_POST_OK", "documentid", audit.DocumentID, "status", audit.Status)
+	return nil
 }
