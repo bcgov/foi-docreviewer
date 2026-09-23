@@ -12,8 +12,8 @@ github.com/ThreeDotsLabs/watermill v1.5.2 h1:0ES33Eq1jEsP/pWvtE4n8bE0bs+9Jq7boT7
 github.com/ThreeDotsLabs/watermill v1.5.2/go.mod h1:i9/968UriGphWfEbfMuYSD1qFbYRjb0mE0r+rV0FPp4=
 github.com/ThreeDotsLabs/watermill-redisstream v1.4.5 h1:SCETqsAYo/CRBb7H3+zWCcSqhMpDrQA4I6dCqC7UPR4=
 github.com/ThreeDotsLabs/watermill-redisstream v1.4.5/go.mod h1:Da3wqG1OcvHPODjuJcxSCY1O7D4loIZQpVbZ5u94xRo=
-github.com/bcgov/foi-messaging-go v0.1.0 h1:tmI6Ins9xdxXAWpfm4+l5NQcI+62lGaUrEreUdmENUY=
-github.com/bcgov/foi-messaging-go v0.1.0/go.mod h1:zvvnPoEf1Wu/ECAMuR9EIbaK59U87r864vI7QWkiEnU=
+github.com/bcgov/foi-messaging-go v0.1.1 h1:mDljt2DqG3b1suWjOE6J8kG+oLgHjYXsvM4oKdZRyQ0=
+github.com/bcgov/foi-messaging-go v0.1.1/go.mod h1:zvvnPoEf1Wu/ECAMuR9EIbaK59U87r864vI7QWkiEnU=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=

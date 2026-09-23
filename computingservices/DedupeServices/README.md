@@ -42,7 +42,7 @@ Compression publishing is selected independently through:
 | `COMPRESSION_CHECKPOINT_KEY` | Stable legacy consumer checkpoint identity. |
 
 The producer does not dual-publish. Standard events use the typed envelope
-consumed by `github.com/bcgov/foi-messaging-go v0.1.0`; legacy mode preserves
+consumed by `github.com/bcgov/foi-messaging-go v0.1.1`; legacy mode preserves
 the existing flat Redis field representation.
 
 ## Consumer group startup and legacy checkpoint seeding
