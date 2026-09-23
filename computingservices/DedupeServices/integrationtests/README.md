@@ -6,7 +6,7 @@ contract. It does not exercise or modify a production Go service.
 
 The fixture starts Redis `7.0-alpine` on `127.0.0.1:16379`, publishes to both
 `foi:compression` and `foi:compression-large`, and runs a test-only typed Go
-consumer. The consumer is pinned to `github.com/bcgov/foi-messaging-go v0.1.0`.
+consumer. The consumer is pinned to `github.com/bcgov/foi-messaging-go v0.1.1`.
 That dependency declares Go `1.25.0`; use a Go 1.25 toolchain (or Go's
 configured automatic toolchain selection).
 
