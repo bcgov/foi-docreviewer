@@ -30,7 +30,6 @@ import {
   PDFVIEWER_DISABLED_FEATURES,
   ANNOTATION_PAGE_SIZE,
   REDACTION_SELECT_LIMIT,
-  BIG_HTTP_GET_TIMEOUT,
   REDLINE_OPACITY,
   REDACTION_SECTION_BUFFER,
   PII_CATEGORIES,
@@ -1349,8 +1348,7 @@ const Redlining = React.forwardRef(
                 );
                 setIsAnnotationsLoading(false);
               },
-              currentLayer.name.toLowerCase(),
-              BIG_HTTP_GET_TIMEOUT,
+              currentLayer.name.toLowerCase()
             );
             fetchPageFlag(
               requestid,
@@ -2269,8 +2267,7 @@ const Redlining = React.forwardRef(
               );
               reject(error);
             },
-            currentLayer.name.toLowerCase(),
-            BIG_HTTP_GET_TIMEOUT,
+            currentLayer.name.toLowerCase()
           );
         });
         fetchPromises.push(promise);
