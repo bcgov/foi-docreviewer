@@ -1,7 +1,7 @@
 import axios from "axios";
 import UserService from "../../services/UserService";
 import { params } from "./types";
-import { HTTP_GET_TIMEOUT, SOLR_HTTP_GET_TIMEOUT } from "../../constants/constants";
+import { BIG_HTTP_GET_TIMEOUT, HTTP_GET_TIMEOUT, SOLR_HTTP_GET_TIMEOUT } from "../../constants/constants";
 
 export const httpGETRequest = (url: string, data: any, token: any, isBearer = true) => {
   return axios.get(url, {
@@ -26,10 +26,10 @@ export const httpGETRequestSOLR = (url: string, data: any, token: any) => {
   });
 };
 
-export const httpGETBigRequest = async (url: string, data: any, token: any, timeout: number = 60000, isBearer = true) => {
+export const httpGETBigRequest = async (url: string, data: any, token: any, isBearer = true) => {
   return axios.get(url, {
     params: data,
-    timeout: timeout,
+    timeout: BIG_HTTP_GET_TIMEOUT,
     headers: {
       Authorization: isBearer
         ? `Bearer ${token || UserService.getToken()}`
