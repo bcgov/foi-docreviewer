@@ -43,10 +43,6 @@ def upgrade():
     op.execute('''UPDATE public."Sections" SET shortcode = 'FM43' WHERE section = 's. 3 - FMEA s. 43';''')
     op.execute('''UPDATE public."Sections" SET shortcode = 'PA' WHERE section = 's. 3 - PA';''')
 
-    # op.execute('''
-    # INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    # VALUES ('s. 8', 'Refuse to confirm or deny', 29, True, 'System', 'F8');
-    # ''')
     op.execute('''
     UPDATE public."Sections" SET sortorder = sortorder + 3 WHERE sortorder >= 20;
     ''')
@@ -76,7 +72,5 @@ def downgrade():
     op.execute('''
     UPDATE public."Sections" SET sortorder = sortorder - 3 WHERE sortorder >= 20;
     ''')
-    # op.execute('''
-    # DELETE FROM public."Sections" WHERE section = 's. 8';
-    # ''')
+    
     op.drop_column("Sections", "shortcode")
