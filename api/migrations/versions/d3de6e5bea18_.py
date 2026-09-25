@@ -48,24 +48,22 @@ def upgrade():
     # VALUES ('s. 8', 'Refuse to confirm or deny', 29, True, 'System', 'F8');
     # ''')
     op.execute('''
-    INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(1)', 'Disclosure harmful to personal privacy, identity of a Reporter under CFCSA', 30, True, 'System', 'C1');
+    UPDATE public."Sections" SET sortorder = sortorder + 3 WHERE sortorder >= 20;
     ''')
     op.execute('''
     INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(b)', 'Disclosure harmful to personal privacy, information collected in confidence under CFCSA Investigation', 31, True, 'System', 'C2');
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(1)', 'Disclosure harmful to personal privacy, identity of a Reporter under CFCSA', 20, True, 'System', 'C1');
     ''')
     op.execute('''
     INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(a)', 'Disclosure harmful to personal privacy, jeopardize an investigation under CFCSA', 32, True, 'System', 'C7');
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(a)', 'Disclosure harmful to personal privacy, jeopardize an investigation under CFCSA', 21, True, 'System', 'C7');
     ''')
-
+    op.execute('''
+    INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(b)', 'Disclosure harmful to personal privacy, information collected in confidence under CFCSA Investigation', 22, True, 'System', 'C2');
+    ''')
 
 def downgrade():
-    op.drop_column("Sections", "shortcode")
-    # op.execute('''
-    # DELETE FROM public."Sections" WHERE section = 's. 8';
-    # ''')
     op.execute('''
     DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(1)';
     ''')
@@ -75,3 +73,10 @@ def downgrade():
     op.execute('''
     DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(2)(a)';
     ''')
+    op.execute('''
+    UPDATE public."Sections" SET sortorder = sortorder - 3 WHERE sortorder >= 20;
+    ''')
+    # op.execute('''
+    # DELETE FROM public."Sections" WHERE section = 's. 8';
+    # ''')
+    op.drop_column("Sections", "shortcode")
