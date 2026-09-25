@@ -631,9 +631,11 @@ func TestEnsureOCRStartedUsesExistingConflictSemantics(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdateRedactionReadyUsesExistingLatestCompletedSemantics(t *testing.T) {
+// A compression job skipped because it did not shrink enough is still a
+// successful terminal outcome; non-PDFs in that state must become ready.
+func TestUpdateRedactionReadyAcceptsLatestCompletedOrSkipped(t *testing.T) {
 	db, mock := newMock(t)
-	mock.ExpectExec(`(?s)UPDATE "DocumentMaster" dm.*DISTINCT ON \(documentmasterid\).*sq\.status = 'completed'`).
+	mock.ExpectExec(`(?s)UPDATE "DocumentMaster" dm.*DISTINCT ON \(documentmasterid\).*sq\.status IN \('completed', 'skipped'\)`).
 		WithArgs(72).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 

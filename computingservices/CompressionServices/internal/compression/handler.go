@@ -412,7 +412,6 @@ func (h *Handler) afterConfirmedTerminal(
 		_ = recover()
 	}()
 	h.followUp.AfterTerminal(ctx, message, result)
-	h.logger.Info("ocr_published", "job_id", message.JobID)
 }
 
 func retryFrom(err error, fallback store.FailureCode) error {
