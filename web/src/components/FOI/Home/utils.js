@@ -223,7 +223,6 @@ export const createRedactionSectionsString = (
   if (redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25) {
     redactionSections = "  ";
   }
-  console.log("final?", redactionSections)
   return redactionSections;
 };
 
