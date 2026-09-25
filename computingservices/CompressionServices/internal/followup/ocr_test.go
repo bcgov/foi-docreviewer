@@ -1,7 +1,9 @@
 package followup
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -107,10 +109,74 @@ func TestAfterTerminalMarksNonPDFReadyForRedaction(t *testing.T) {
 	}
 }
 
+func TestAfterTerminalLogsOCRPublishedOnlyAfterSuccessfulPublish(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	service := New(&fakeRepository{ocrJobID: 77}, &fakePublisher{},
+		slog.New(slog.NewJSONHandler(&buf, nil)), contracts.OCRTopic)
+
+	service.AfterTerminal(context.Background(), models.CompressionProducerMessage{JobID: 12, Filename: "record.pdf"},
+		store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
+
+	if !bytes.Contains(buf.Bytes(), []byte(`"msg":"ocr_published"`)) {
+		t.Fatalf("ocr_published not logged; got: %s", buf.String())
+	}
+}
+
+func TestAfterTerminalDoesNotLogOCRPublishedWhenPublishFails(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	service := New(&fakeRepository{ocrJobID: 77}, &fakePublisher{err: errors.New("redis down")},
+		slog.New(slog.NewJSONHandler(&buf, nil)), contracts.OCRTopic)
+
+	service.AfterTerminal(context.Background(), models.CompressionProducerMessage{JobID: 12, Filename: "record.pdf"},
+		store.CompressionResult{Status: store.StatusCompleted, Extension: ".pdf"})
+
+	if bytes.Contains(buf.Bytes(), []byte(`"msg":"ocr_published"`)) {
+		t.Fatalf("ocr_published logged despite publish failure; got: %s", buf.String())
+	}
+}
+
+func TestAfterTerminalLogsRedactionReadyForNonPDF(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	service := New(&fakeRepository{}, &fakePublisher{},
+		slog.New(slog.NewJSONHandler(&buf, nil)), contracts.OCRTopic)
+
+	service.AfterTerminal(context.Background(), models.CompressionProducerMessage{JobID: 12, Filename: "record.png"},
+		store.CompressionResult{Status: store.StatusSkipped, Extension: ".png"})
+
+	if !bytes.Contains(buf.Bytes(), []byte(`"msg":"redaction_ready_updated"`)) {
+		t.Fatalf("redaction_ready_updated not logged; got: %s", buf.String())
+	}
+	if bytes.Contains(buf.Bytes(), []byte(`"msg":"ocr_published"`)) {
+		t.Fatalf("ocr_published logged for non-PDF; got: %s", buf.String())
+	}
+}
+
+func TestAfterTerminalDoesNotLogRedactionReadyWhenUpdateFails(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	service := New(&fakeRepository{redactionErr: errors.New("db down")}, &fakePublisher{},
+		slog.New(slog.NewJSONHandler(&buf, nil)), contracts.OCRTopic)
+
+	service.AfterTerminal(context.Background(), models.CompressionProducerMessage{JobID: 12, Filename: "record.png"},
+		store.CompressionResult{Status: store.StatusSkipped, Extension: ".png"})
+
+	if bytes.Contains(buf.Bytes(), []byte(`"msg":"redaction_ready_updated"`)) {
+		t.Fatalf("redaction_ready_updated logged despite failure; got: %s", buf.String())
+	}
+}
+
 type fakeRepository struct {
 	ocrJobID       int
 	ensureCalls    int
 	redactionCalls int
+	redactionErr   error
 }
 
 func (r *fakeRepository) EnsureOCRStarted(context.Context, models.CompressionProducerMessage) (int, error) {
@@ -120,7 +186,7 @@ func (r *fakeRepository) EnsureOCRStarted(context.Context, models.CompressionPro
 
 func (r *fakeRepository) UpdateRedactionReady(context.Context, models.CompressionProducerMessage) error {
 	r.redactionCalls++
-	return nil
+	return r.redactionErr
 }
 
 type fakePublisher struct {
