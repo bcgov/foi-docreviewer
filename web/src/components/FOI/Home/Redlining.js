@@ -337,6 +337,7 @@ const Redlining = React.forwardRef(
             css: "/stylesheets/webviewer.css",
             loadAsPDF: true,
             backendType: "ems",
+            config: "/webviewer/config.js"
           },
           viewer.current,
         ).then((instance) => {
@@ -353,6 +354,7 @@ const Redlining = React.forwardRef(
           let redactionTool = documentViewer.getTool(
             instance.Core.Tools.ToolNames.REDACTION,
           );
+          instance.UI.Fonts.addAnnotationFont("Arial Narrow");
           documentViewer
             .getTool(instance.Core.Tools.ToolNames.RECTANGLE)
             .setStyles({
@@ -2969,57 +2971,80 @@ const Redlining = React.forwardRef(
       const pageInfo = doc.getPageInfo(_annot.PageNumber);
       const pageMatrix = doc.getPageMatrix(_annot.PageNumber);
       const pageRotation = doc.getPageRotation(_annot.PageNumber);
-      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 9) + "pt";
+      _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 8) + "pt";
+      _annot.Font = "Arial Narrow";
+      _annot.updateRichTextStyle({ "font-style": "italic" });
+      _annot.TextAlign = "center";
       _annot.Rotation = 0; // reset rotation before resizing
       _annot.fitText(pageInfo, pageMatrix, pageRotation);
       let annotrect = _annot.getRect();
       annotrect.x2 = Math.ceil(annotrect.x2);
       _annot.setRect(annotrect);
+
+      const rectWidth = Math.abs(rect.x2 - rect.x1);
+      const rectHeight = Math.abs(rect.y2 - rect.y1);
+
       if (pageRotation === 0 || _redaction.IsText) {
         // _annot.X = X || rect.x1;
         // _annot.Y = rect.y1;
+        const offsetX = Math.max(0, (rectWidth - _annot.Width) / 2);
+        const offsetY = Math.max(0, (rectHeight - _annot.Height) / 2);
+        const startX = rect.x1 + offsetX;
+        const startY = rect.y1 + offsetY;
         _annot.setRect(
           new docViewerMath.Rect(
-            rect.x1,
-            rect.y1,
-            rect.x1 + _annot.Width,
-            rect.y1 + _annot.Height,
+            startX,
+            startY,
+            startX + _annot.Width,
+            startY + _annot.Height,
           ),
         );
         // let annotrect = _annot.getRect();
         // annotrect.x2 = Math.ceil(annotrect.x2);
         // _annot.setRect(annotrect);
       } else if (pageRotation === 90) {
+        const offsetX = Math.max(0, (rectWidth - _annot.Height) / 2);
+        const offsetY = Math.max(0, (rectHeight - _annot.Width) / 2);
+        const startX = rect.x1 + offsetX;
+        const endY = rect.y2 - offsetY;
         _annot.setRect(
           new docViewerMath.Rect(
-            rect.x1,
-            rect.y2 - _annot.Width,
-            rect.x1 + _annot.Height,
-            rect.y2,
+            startX,
+            endY - _annot.Width,
+            startX + _annot.Height,
+            endY,
           ),
         );
         _annot.Rotation = pageRotation;
         // _annot.X = rect.x1;
         // _annot.Y = rect.y2;
       } else if (pageRotation === 180) {
+        const offsetX = Math.max(0, (rectWidth - _annot.Width) / 2);
+        const offsetY = Math.max(0, (rectHeight - _annot.Height) / 2);
+        const endX = rect.x2 - offsetX;
+        const endY = rect.y2 - offsetY;
         _annot.setRect(
           new docViewerMath.Rect(
-            rect.x2 - _annot.Width,
-            rect.y2 - _annot.Height,
-            rect.x2,
-            rect.y2,
+            endX - _annot.Width,
+            endY - _annot.Height,
+            endX,
+            endY,
           ),
         );
         _annot.Rotation = pageRotation;
         // _annot.X = rect.x2;
         // _annot.Y = rect.y2;
       } else if (pageRotation === 270) {
+        const offsetX = Math.max(0, (rectWidth - _annot.Height) / 2);
+        const offsetY = Math.max(0, (rectHeight - _annot.Width) / 2);
+        const endX = rect.x2 - offsetX;
+        const startY = rect.y1 + offsetY;
         _annot.setRect(
           new docViewerMath.Rect(
-            rect.x2 - _annot.Height,
-            rect.y1,
-            rect.x2,
-            rect.y1 + _annot.Width,
+            endX - _annot.Height,
+            startY,
+            endX,
+            startY + _annot.Width,
           ),
         );
         _annot.Rotation = pageRotation;
