@@ -202,7 +202,7 @@ const Redlining = React.forwardRef(
     const [annottext, setannottext] = useState([]);
 
     const [tabValue, setTabValue] = useState("sections");
-    const applyShortCodes = tabValue === "shortCodes" ? true : false;
+    const applyShortCodes = tabValue === "shortCodes";
     
     //xml parser
     const parser = new XMLParser();
