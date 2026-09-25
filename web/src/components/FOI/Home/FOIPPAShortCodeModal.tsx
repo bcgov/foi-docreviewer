@@ -15,7 +15,7 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 
 const FOIPPAShortCodeModal = ({
-    cancelRedaction, 
+    handleClose, 
     saveDisabled, 
     AntSwitch, 
     sections,
@@ -34,12 +34,11 @@ const FOIPPAShortCodeModal = ({
     modalSortAsc,
     changeModalSort
     } : any) => {
-    // NEEDS ITS OWN SAVEDISABLED??, SELCTED SECTIONS, HANDLE SELECTED SECTIONS, OWN SORTING. SAVE AS DEFAULT CAN BE CROSS FUNCTIONAL? // REUSE REDACTION LOGIC THOUGH
     return (
         <>
             <DialogTitle disabletypography="true" id="FOIPPA-modal-dialog-title">
             <h2 className="state-change-header">FOIPPA Short Codes</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
+            <IconButton className="title-col3" onClick={handleClose}>
                 <i className="dialog-close-button">Close</i>
                 <CloseIcon />
             </IconButton>
@@ -65,7 +64,7 @@ const FOIPPAShortCodeModal = ({
                             },
                         }}
                     >
-                    <Tab value="originalCodes" label="FOIPPA Codes" />
+                    <Tab value="sections" label="FOIPPA Codes" />
                     <Tab value="shortCodes" label="Short Codes" />
                     </Tabs>
                     <Typography>Most Used</Typography>
@@ -103,7 +102,13 @@ const FOIPPAShortCodeModal = ({
                 <List className="section-list">
                     {sections?.sort(compareValues).map((section : any, index : number) => {
                         if (section.shortcode) {
-                            return (<ListItem key={"list-item" + section.id}>
+                            return (
+                            <ListItem key={"list-item" + section.id}>
+                                <label
+                                    style={{ display: "flex", alignItems: "center"}}
+                                    key={"list-label" + section.id}
+                                    className="check-item"
+                                >
                                 <input
                                     type="checkbox"
                                     className="section-checkbox"
@@ -114,13 +119,10 @@ const FOIPPAShortCodeModal = ({
                                     disabled={sectionIsDisabled(section.id)}
                                     defaultChecked={selectedSections.includes(section.id)}
                                 />
-                                <label
-                                    key={"list-label" + section.id}
-                                    className="check-item"
-                                >
                                     {section.shortcode + " - " + section.section + " - " + section.description}
                                 </label>
-                            </ListItem>)
+                            </ListItem>
+                            )
                         }
                     })}
                 </List>
@@ -153,7 +155,7 @@ const FOIPPAShortCodeModal = ({
                 Save as Default
                 </button>
             )}
-            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+            <button className="btn-bottom btn-cancel" onClick={handleClose}>
                 Cancel
             </button>
             </DialogActions>

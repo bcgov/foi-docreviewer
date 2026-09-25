@@ -198,22 +198,32 @@ export const getSections = (sections, redactionSectionsIds) => {
 
 export const createRedactionSectionsString = (
   sections,
-  redactionSectionsIds
+  redactionSectionsIds,
+  applyShortCodes
 ) => {
   const compareFn = (a, b) => {
-    let sectionA = parseFloat(a.section.split("s. ")[1]);
-    let sectionB = parseFloat(b.section.split("s. ")[1]);
+    let sectionA;
+    let sectionB;
+    if (applyShortCodes) {
+      sectionA = parseFloat(a.shortcode.split("F")[1]);
+      sectionB = parseFloat(b.shortcode.split("F")[1]);
+    } else {    
+      sectionA = parseFloat(a.section.split("s. ")[1]);
+      sectionB = parseFloat(b.section.split("s. ")[1]);
+    }
+
     if (sectionA == undefined) sectionA = 100;
     if (sectionB == undefined) sectionB = 100;
     return sectionA - sectionB;
   };
   let redactionSections = getValidSections(sections, redactionSectionsIds)
     .sort(compareFn)
-    .map((s) => s.section)
+    .map((s) => applyShortCodes ? s.shortcode : s.section)
     .join(", ");
   if (redactionSectionsIds?.length == 1 && redactionSectionsIds[0] === 25) {
     redactionSections = "  ";
   }
+  console.log("final?", redactionSections)
   return redactionSections;
 };
 
