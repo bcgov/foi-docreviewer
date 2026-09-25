@@ -70,6 +70,22 @@
   align-items: center;
 }
 
+#FOIPPA-modal-dialog-title {
+  font-family: "BCSans-Bold", sans-serif!important;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px;
+}
+
+#FOIPPA-modal-dialog-title .MuiIconButton-root {
+  background-color: #036 ;
+  color: white;
+  border-radius: unset;
+  z-index: 2;
+}
+
 .state-change-header {
   // margin-left: 30px;
   color: #036 ;

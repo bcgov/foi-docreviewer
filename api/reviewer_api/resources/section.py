@@ -31,7 +31,7 @@ TRACER = Tracer.get_instance()
 @cors_preflight('GET,OPTIONS')
 @API.route('/sections')
 class GetSections(Resource):
-    """Add document to deleted list.
+    """Get all sections
     """
     @staticmethod
     @TRACER.trace()
@@ -49,7 +49,7 @@ class GetSections(Resource):
 @cors_preflight('GET,OPTIONS')
 @API.route('/sections/ministryrequest/<int:ministryrequestid>/<string:redactionlayer>')
 class GetSections(Resource):
-    """Add document to deleted list.
+    """Get sections by ministryrequest id
     """
     @staticmethod
     @TRACER.trace()
