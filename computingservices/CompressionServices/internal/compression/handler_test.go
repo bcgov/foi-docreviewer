@@ -1503,10 +1503,12 @@ func TestMessageCompletedContainsDurationMs(t *testing.T) {
 	assert.GreaterOrEqual(t, dms.(float64), float64(0))
 }
 
-func TestHandlerLogsOCRPublished(t *testing.T) {
+// The follow-up owns ocr_published: only it knows whether OCR was actually
+// published (PDFs) or the document was marked redaction-ready (everything else).
+func TestHandlerDoesNotLogOCRPublishedOnFollowUpsBehalf(t *testing.T) {
 	t.Parallel()
 	repo := newFakeRepository()
-	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusCompleted}}
+	processor := &fakeProcessor{result: store.CompressionResult{Status: store.StatusSkipped, Extension: ".png"}}
 	followUp := &fakeFollowUp{}
 	logger, buf := loggerAndBuffer()
 
@@ -1517,5 +1519,6 @@ func TestHandlerLogsOCRPublished(t *testing.T) {
 	require.NoError(t, err)
 	lines := logLines(buf)
 	_, ok := findEvent(lines, "ocr_published")
-	assert.True(t, ok, "ocr_published not logged; got: %s", buf.String())
+	assert.False(t, ok, "handler logged ocr_published; got: %s", buf.String())
+	assert.Equal(t, 1, followUp.calls)
 }
