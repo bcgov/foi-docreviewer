@@ -40,12 +40,13 @@ export const FOIPPASectionsModal= ({
     pageSelectionsContainNRDup,
     setMessageModalOpen,
     currentLayer,
-    isProactive
+    isProactive,
+    tabValue,
+    setTabValue,
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
     const [modalSortAsc, setModalSortAsc] = useState(true);
-    const [tabValue, setTabValue] = useState("originalCodes");
 
     const isOILayerSelected = () => {
       if(currentLayer.name.toLowerCase() === "open info")
@@ -123,11 +124,18 @@ export const FOIPPASectionsModal= ({
         } else {
           saveRedaction();
         }
+        setTabValue("sections");
         pageSelectionsContainNRDup ? setMessageModalOpen(true) : setMessageModalOpen(false);
       }
 
       const handleTabChange = (event, newValue) => {
+        if (selectedSections.length > 0) return;
         setTabValue(newValue);
+      }
+
+      const handleClose = () => {
+        setTabValue("sections");
+        cancelRedaction();
       }
       
 
@@ -139,12 +147,12 @@ export const FOIPPASectionsModal= ({
           minWidth={400}
           minHeight={200}
           className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
+          onRequestClose={handleClose}
           isOpen={modalOpen}
         >
           {tabValue === "shortCodes"  ?
             <FOIPPAShortCodeModal 
-              cancelRedaction={cancelRedaction} 
+              handleClose={handleClose} 
               saveDisabled={saveDisabled} 
               AntSwitch={AntSwitch} 
               sections={sections} 
@@ -167,7 +175,7 @@ export const FOIPPASectionsModal= ({
           <>
           <DialogTitle disabletypography="true" id="FOIPPA-modal-dialog-title">
             <h2 className="state-change-header">{isProactive ? "OI Redaction Codes": "FOIPPA Sections"}</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
+            <IconButton className="title-col3" onClick={handleClose}>
               <i className="dialog-close-button">Close</i>
               <CloseIcon />
             </IconButton>
@@ -193,7 +201,7 @@ export const FOIPPASectionsModal= ({
                     },
                   }}
                 >
-                  <Tab value="originalCodes" label="FOIPPA Codes" />
+                  <Tab value="sections" label="FOIPPA Codes" />
                   <Tab value="shortCodes" label="Short Codes" />
                 </Tabs>
                 <Typography>Most Used</Typography>
@@ -231,6 +239,11 @@ export const FOIPPASectionsModal= ({
                 <List className="section-list">
                   {sections?.sort(compareValues).map((section, index) => (
                     <ListItem key={"list-item" + section.id}>
+                      <label
+                        style={{ display: "flex", alignItems: "center"}}
+                        key={"list-label" + section.id}
+                        className="check-item"
+                      >
                       <input
                         type="checkbox"
                         className="section-checkbox"
@@ -241,10 +254,6 @@ export const FOIPPASectionsModal= ({
                         disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
-                      <label
-                        key={"list-label" + section.id}
-                        className="check-item"
-                      >
                         {section.section + " - " + section.description}
                       </label>
                     </ListItem>
@@ -279,7 +288,7 @@ export const FOIPPASectionsModal= ({
                 Save as Default
               </button>
             )}
-            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+            <button className="btn-bottom btn-cancel" onClick={handleClose}>
               Cancel
             </button>
           </DialogActions>
@@ -313,6 +322,11 @@ export const FOIPPASectionsModal= ({
               <List className="section-list">
                 {sections?.sort(compareValues).map((section, index) => (
                   <ListItem key={"list-item" + section.id}>
+                    <label
+                        style={{ display: "flex", alignItems: "center"}}
+                        key={"list-label" + section.id}
+                        className="check-item"
+                    >
                     <input
                       type="checkbox"
                       className="section-checkbox"
@@ -323,10 +337,6 @@ export const FOIPPASectionsModal= ({
                       disabled={sectionIsDisabled(section.id)}
                       defaultChecked={selectedSections.includes(section.id)}
                     />
-                    <label
-                      key={"list-label" + section.id}
-                      className="check-item"
-                    >
                       {section.section}
                     </label>
                   </ListItem>

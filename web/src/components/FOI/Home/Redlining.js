@@ -200,6 +200,10 @@ const Redlining = React.forwardRef(
     const [assignedPhases, setAssignedPhases] = useState(null);
     const [redlinePhase, setRedlinePhase] = useState(null);
     const [annottext, setannottext] = useState([]);
+
+    const [tabValue, setTabValue] = useState("sections");
+    const applyShortCodes = tabValue === "shortCodes" ? true : false;
+    
     //xml parser
     const parser = new XMLParser();
     /**Response Package && Redline download and saving logic (react custom hooks)*/
@@ -2498,6 +2502,7 @@ const Redlining = React.forwardRef(
           redactionSections = createRedactionSectionsString(
             sections,
             redactionSectionsIds,
+            applyShortCodes
           );
           childAnnotation.setContents(redactionSections);
 
@@ -2510,6 +2515,9 @@ const Redlining = React.forwardRef(
             "docversion",
             `${displayedDoc.docversion}`,
           );
+          if (applyShortCodes) {
+            childAnnotation.setCustomData("applyshortcodes", true)
+          }
         }
 
         let annotationsInfo = {
@@ -2530,7 +2538,7 @@ const Redlining = React.forwardRef(
             "edit",
             pageFlags,
           );
-        //:{};
+        
         if (pageFlagsUpdated) {
           pageFlagObj.push(pageFlagsUpdated);
         }
@@ -2650,6 +2658,7 @@ const Redlining = React.forwardRef(
             redactionSections = createRedactionSectionsString(
               sections,
               redactionSectionsIds,
+              applyShortCodes,
             );
             childAnnotation.setContents(redactionSections);
 
@@ -2813,6 +2822,7 @@ const Redlining = React.forwardRef(
           let redactionSections = createRedactionSectionsString(
             sections,
             redactionSectionsIds,
+            applyShortCodes
           );
           annot.setAutoSizeType("auto");
           annot.setContents(redactionSections);
@@ -2857,6 +2867,9 @@ const Redlining = React.forwardRef(
               annotationsToDelete.push(existingFreeTextAnnot);
               annotationsToDelete.push(existingRedactAnnot);
             }
+          }
+          if (applyShortCodes) {
+            annot.setCustomData("applyshortcodes", true);
           }
           sectionAnnotations.push(annot);
           for (let redactObj of redactionObj.names) {
@@ -3044,13 +3057,13 @@ const Redlining = React.forwardRef(
     //END: Bulk Edit using Multi Select Option
     useEffect(() => {
       if (editAnnot) {
-        setSelectedSections(
-          redactionInfo
-            .find(
-              (redaction) => redaction.annotationname === editAnnot.names[0],
-            )
-            .sections?.ids?.map((id) => id),
-        );
+        const redaction = redactionInfo.find((redaction) => redaction.annotationname === editAnnot.names[0]);
+        const freeText = annotManager.getAnnotationById(redaction.sections.annotationname);
+        const applyShortCodes = freeText.getCustomData("applyshortcodes");
+        setSelectedSections(redaction.sections?.ids?.map((id) => id));
+        if (applyShortCodes) {
+          setTabValue("shortCodes")
+        }
         setModalOpen(true);
       }
     }, [editAnnot]);
@@ -3532,6 +3545,9 @@ const Redlining = React.forwardRef(
           clearDefaultSections={clearDefaultSections}
           currentLayer={currentLayerRef?.current}
           isProactive={requestType === "proactive disclosure"}
+          setTabValue={setTabValue}
+          tabValue={tabValue}
+          applyShortCodes={applyShortCodes}
         />
         {redlineModalOpen && (
           <ConfirmationModal
