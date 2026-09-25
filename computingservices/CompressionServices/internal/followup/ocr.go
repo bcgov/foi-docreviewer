@@ -62,7 +62,9 @@ func (s *Service) AfterTerminal(
 	}
 	if err := s.repository.UpdateRedactionReady(ctx, message); err != nil {
 		s.logger.Warn("compression_follow_up_failed", "error_code", "redaction_update_failed", "job_id", message.JobID)
+		return
 	}
+	s.logger.Info("redaction_ready_updated", "job_id", message.JobID)
 }
 
 func (s *Service) publishOCR(ctx context.Context, message models.CompressionProducerMessage) {
@@ -78,7 +80,9 @@ func (s *Service) publishOCR(ctx context.Context, message models.CompressionProd
 	// Correlation ID propagates from ctx automatically (library resolves it).
 	if _, err := s.publisher.Publish(ctx, contracts.OCRRequested(s.ocrTopic), toOCRPayload(message, jobID)); err != nil {
 		s.logger.Warn("compression_follow_up_failed", "error_code", "ocr_publish_failed", "job_id", jobID)
+		return
 	}
+	s.logger.Info("ocr_published", "job_id", jobID)
 }
 
 func toOCRPayload(m models.CompressionProducerMessage, ocrJobID int) contracts.OCREventPayload {

@@ -457,7 +457,7 @@ func (r *Repository) UpdateRedactionReady(
 		) AS sq
 		WHERE dm.documentmasterid = sq.documentmasterid
 		AND dm.isredactionready = false
-		AND sq.status = 'completed'
+		AND sq.status IN ('completed', 'skipped')
 		AND dm.ministryrequestid = $1`,
 		message.MinistryRequestID,
 	)
