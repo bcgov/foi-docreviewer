@@ -65,6 +65,7 @@ class sectionservice:
         else:
             entry["count"] = _count
             entry["description"] = self.__getdescription(globalsections, entry["id"])
+            entry["shortcode"] = self.__getshortcode(globalsections, entry["id"])
             requestsections.append(entry)   
         return requestsections 
 
@@ -80,3 +81,9 @@ class sectionservice:
             if int(section["id"]) == int(sectionid):
                 count = section["count"] + 1
         return count
+
+    def __getshortcode(self, sections, sectionid):
+        for section in sections:
+            if section["sectionid"] == sectionid:
+                return section["shortcode"]
+        return None
