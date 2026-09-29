@@ -2973,7 +2973,11 @@ const Redlining = React.forwardRef(
       const pageRotation = doc.getPageRotation(_annot.PageNumber);
       _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 8) + "pt";
       _annot.Font = "Arial Narrow";
-      _annot.updateRichTextStyle({ "font-style": "italic" });
+      // need font-family in rich-text style for persistence
+      _annot.updateRichTextStyle({
+        "font-style": "italic",
+        "font-family": "Arial Narrow",
+      });
       _annot.TextAlign = "center";
       _annot.Rotation = 0; // reset rotation before resizing
       _annot.fitText(pageInfo, pageMatrix, pageRotation);
