@@ -33,6 +33,11 @@ _FIELD_ALIASES = {
     "job_version": "job_version",
     "pagecount": "pagecount",
     "exception_type": "exception_type",
+    "http_status": "http_status",
+    "content_type": "content_type",
+    "declared_content_length": "declared_content_length",
+    "payload_size": "payload_size",
+    "pdf_signature": "pdf_signature",
 }
 _MESSAGE_FIELDS = tuple(_FIELD_ALIASES)
 _SENSITIVE_FIELDS = {
