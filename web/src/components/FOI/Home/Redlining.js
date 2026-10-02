@@ -2237,16 +2237,8 @@ const Redlining = React.forwardRef(
             i,
             ANNOTATION_PAGE_SIZE,
             async (data) => {
-              try {
-                await assignAnnotationsPagination(
-                  mappedDocs,
-                  data["data"],
-                  domParser,
-                );
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
+              assignAnnotationsPagination(mappedDocs, data["data"], domParser);
+              resolve();
             },
             (error) => {
               console.log("Error:", error);
