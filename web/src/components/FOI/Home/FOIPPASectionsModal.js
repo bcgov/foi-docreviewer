@@ -17,6 +17,9 @@ import Switch from "@mui/material/Switch";
 import { styled } from "@mui/material/styles";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import FOIPPAShortCodeModal from "./FOIPPAShortCodeModal";
 
 
 export const FOIPPASectionsModal= ({
@@ -36,7 +39,9 @@ export const FOIPPASectionsModal= ({
     pageSelectionsContainNRDup,
     setMessageModalOpen,
     currentLayer,
-    isProactive
+    isProactive,
+    tabValue,
+    setTabValue,
 }) => {
 
     const [modalSortNumbered, setModalSortNumbered] = useState(false);
@@ -118,7 +123,18 @@ export const FOIPPASectionsModal= ({
         } else {
           saveRedaction();
         }
+        setTabValue("sections");
         pageSelectionsContainNRDup ? setMessageModalOpen(true) : setMessageModalOpen(false);
+      }
+
+      const handleTabChange = (event, newValue) => {
+        if (selectedSections.length > 0) return;
+        setTabValue(newValue);
+      }
+
+      const handleClose = () => {
+        setTabValue("sections");
+        cancelRedaction();
       }
       
 
@@ -130,12 +146,35 @@ export const FOIPPASectionsModal= ({
           minWidth={400}
           minHeight={200}
           className={"state-change-dialog"}
-          onRequestClose={cancelRedaction}
+          onRequestClose={handleClose}
           isOpen={modalOpen}
         >
-          <DialogTitle disabletypography="true" id="state-change-dialog-title">
+          {tabValue === "shortCodes"  ?
+            <FOIPPAShortCodeModal 
+              handleClose={handleClose} 
+              saveDisabled={saveDisabled} 
+              AntSwitch={AntSwitch} 
+              sections={sections} 
+              compareValues={compareValues}
+              defaultSections={defaultSections}
+              clearDefaultSections={clearDefaultSections}
+              saveDefaultSections={saveDefaultSections}
+              sectionIsDisabled={sectionIsDisabled}
+              handleSelectCodes={handleSelectCodes}
+              handleSectionSelected={handleSectionSelected}
+              selectedSections={selectedSections}
+              handleTabChange={handleTabChange}
+              tabValue={tabValue}
+              changeSortOrder={changeSortOrder}
+              modalSortNumbered={modalSortNumbered}
+              modalSortAsc={modalSortAsc}
+              changeModalSort={changeModalSort}
+            /> 
+          :
+          <>
+          <DialogTitle disabletypography="true" id="FOIPPA-modal-dialog-title">
             <h2 className="state-change-header">{isProactive ? "OI Redaction Codes": "FOIPPA Sections"}</h2>
-            <IconButton className="title-col3" onClick={cancelRedaction}>
+            <IconButton className="title-col3" onClick={handleClose}>
               <i className="dialog-close-button">Close</i>
               <CloseIcon />
             </IconButton>
@@ -145,7 +184,32 @@ export const FOIPPASectionsModal= ({
               id="state-change-dialog-description"
               component={"span"}
             >
-              <Stack direction="row-reverse" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tabs
+                  value={tabValue}
+                  onChange={handleTabChange}
+                  TabIndicatorProps={{
+                    sx: { backgroundColor: '#036' }
+                  }}
+                  sx={{
+                    '& .MuiTab-root': {
+                      color: '#7F8C8D',
+                    },
+                    '& .MuiTab-root.Mui-selected': {
+                      color: '#036',
+                    },
+                  }}
+                >
+                  <Tab value="sections" label="FOIPPA Codes" />
+                  <Tab value="shortCodes" label="Short Codes" />
+                </Tabs>
+                <Typography>Most Used</Typography>
+                <AntSwitch
+                  onChange={changeModalSort}
+                  checked={modalSortNumbered}
+                  inputProps={{ "aria-label": "ant design" }}
+                />
+                <Typography>Numbered Order</Typography>
                 <button
                   onClick={changeSortOrder}
                   style={{
@@ -169,18 +233,16 @@ export const FOIPPASectionsModal= ({
                     />
                   )}
                 </button>
-                <Typography>Numbered Order</Typography>
-                <AntSwitch
-                  onChange={changeModalSort}
-                  checked={modalSortNumbered}
-                  inputProps={{ "aria-label": "ant design" }}
-                />
-                <Typography>Most Used</Typography>
               </Stack>
               <div style={{ overflowY: "scroll" }}>
                 <List className="section-list">
                   {sections?.sort(compareValues).map((section, index) => (
                     <ListItem key={"list-item" + section.id}>
+                      <label
+                        style={{ display: "flex", alignItems: "center"}}
+                        key={"list-label" + section.id}
+                        className="check-item"
+                      >
                       <input
                         type="checkbox"
                         className="section-checkbox"
@@ -191,10 +253,6 @@ export const FOIPPASectionsModal= ({
                         disabled={sectionIsDisabled(section.id)}
                         defaultChecked={selectedSections.includes(section.id)}
                       />
-                      <label
-                        key={"list-label" + section.id}
-                        className="check-item"
-                      >
                         {section.section + " - " + section.description}
                       </label>
                     </ListItem>
@@ -229,10 +287,12 @@ export const FOIPPASectionsModal= ({
                 Save as Default
               </button>
             )}
-            <button className="btn-bottom btn-cancel" onClick={cancelRedaction}>
+            <button className="btn-bottom btn-cancel" onClick={handleClose}>
               Cancel
             </button>
           </DialogActions>
+          </>
+        }
           </ReactModal> 
         ): (
           <ReactModal
@@ -261,6 +321,11 @@ export const FOIPPASectionsModal= ({
               <List className="section-list">
                 {sections?.sort(compareValues).map((section, index) => (
                   <ListItem key={"list-item" + section.id}>
+                    <label
+                        style={{ display: "flex", alignItems: "center"}}
+                        key={"list-label" + section.id}
+                        className="check-item"
+                    >
                     <input
                       type="checkbox"
                       className="section-checkbox"
@@ -271,10 +336,6 @@ export const FOIPPASectionsModal= ({
                       disabled={sectionIsDisabled(section.id)}
                       defaultChecked={selectedSections.includes(section.id)}
                     />
-                    <label
-                      key={"list-label" + section.id}
-                      className="check-item"
-                    >
                       {section.section}
                     </label>
                   </ListItem>

@@ -16,6 +16,7 @@ class Section(db.Model):
     created_at = db.Column(db.DateTime, default=datetime2.now)
     updatedby = db.Column(db.String(120), unique=False, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
+    shortcode = db.Column(db.String(50), nullable=True)
 
     @classmethod
     def getall(cls):
@@ -30,4 +31,4 @@ class Section(db.Model):
 
 class SectionSchema(ma.Schema):
     class Meta:
-        fields = ('sectionid', 'section', 'description','sortorder')
+        fields = ('sectionid', 'section', 'description','sortorder', 'shortcode')
