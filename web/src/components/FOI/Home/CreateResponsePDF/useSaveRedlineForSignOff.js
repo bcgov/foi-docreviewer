@@ -22,7 +22,6 @@ import {
 import { pageFlagTypes, RequestStates } from "../../../../constants/enum";
 import { useParams, useLocation } from "react-router-dom";
 import XMLParser from "react-xml-parser";
-import { BIG_HTTP_GET_TIMEOUT } from "../../../../constants/constants";
 import { runWithConcurrencyLimit } from "./annotationFetchQueue";
 
 const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) => {
@@ -1034,8 +1033,7 @@ const useSaveRedlineForSignoff = (initDocInstance, initDocViewer, redlinePhase) 
             (error) => {
               console.error("Error fetching document annotations:", error);
               reject(error);
-            },
-            BIG_HTTP_GET_TIMEOUT
+            }
           );
         });
     });
