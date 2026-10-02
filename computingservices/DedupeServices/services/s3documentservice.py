@@ -56,6 +56,23 @@ def _log_document_processing_event(level, event, stage, *, exc_info=False):
         exc_info=exc_info,
     )
 
+
+def _log_document_download(producermessage, response, stage):
+    content = response.content
+    headers = getattr(response, "headers", {}) or {}
+    log_event(
+        logger,
+        logging.INFO,
+        "document_downloaded",
+        context=log_context(producermessage, operation="hash_document"),
+        stage=stage,
+        http_status=getattr(response, "status_code", None),
+        content_type=headers.get("Content-Type"),
+        declared_content_length=headers.get("Content-Length"),
+        payload_size=len(content),
+        pdf_signature=content.startswith(b"%PDF-"),
+    )
+
 # Get the directory of the current Python file (inside the 'service' folder)
 service_folder_path = os.path.dirname(os.path.abspath(__file__))
 # Navigate to the parent directory (common folder)
@@ -523,6 +540,7 @@ def _gets3documenthashcode(producermessage):
     ):
         filepath = path.splitext(filepath)[0] + extension
     response = requests.get("{0}".format(filepath), auth=auth, stream=True)
+    _log_document_download(producermessage, response, "source_download")
     reader = None
 
     if extension.lower() in [".pdf"] or (
@@ -603,6 +621,7 @@ def _gets3documenthashcode(producermessage):
         pdfresponseofconverted = requests.get(
             "{0}".format(producermessage.s3filepath), auth=auth, stream=True
         )
+        _log_document_download(producermessage, pdfresponseofconverted, "converted_pdf_download")
         reader = PdfReader(BytesIO(pdfresponseofconverted.content))
         # check to see if converted pdf file needs ocr service
         #ocr_needed = verify_ocr_needed(pdfresponseofconverted.content, producermessage)

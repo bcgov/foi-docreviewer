@@ -68,7 +68,12 @@ def install_hash_collaborators(monkeypatch):
     monkeypatch.setattr(
         s3documentservice.requests,
         "get",
-        lambda *_args, **_kwargs: SimpleNamespace(content=b"document", iter_lines=lambda: [b"document"]),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            content=b"document",
+            headers={"Content-Length": "8", "Content-Type": "application/octet-stream"},
+            status_code=200,
+            iter_lines=lambda: [b"document"],
+        ),
     )
 
 
@@ -89,6 +94,22 @@ def test_hashing_logs_safe_success_event(capsys, monkeypatch):
     assert "secret-key" not in json.dumps(event)
     assert "usertoken" not in event
     assert "attributes" not in event
+
+
+def test_hashing_logs_download_diagnostics(capsys, monkeypatch):
+    install_hash_collaborators(monkeypatch)
+    configure_logging()
+
+    s3documentservice.gets3documenthashcode(message())
+
+    event = next(event for event in logged_events(capsys) if event["event"] == "document_downloaded")
+    assert event["stage"] == "source_download"
+    assert event["http_status"] == 200
+    assert event["content_type"] == "application/octet-stream"
+    assert event["declared_content_length"] == "8"
+    assert event["payload_size"] == 8
+    assert event["pdf_signature"] is False
+    assert "s3filepath" not in event
 
 
 def test_hashing_failure_logs_safe_event_and_reraises(capsys, caplog, monkeypatch):
