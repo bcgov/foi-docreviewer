@@ -515,7 +515,8 @@ def _gets3documenthashcode(producermessage):
     pagecount = 1
     _filename, extension = path.splitext(producermessage.filename)
     filepath = producermessage.s3filepath
-    producermessage.attributes = json.loads(producermessage.attributes)
+    if isinstance(producermessage.attributes, (str, bytes, bytearray)):
+        producermessage.attributes = json.loads(producermessage.attributes)
     if extension.lower() not in [".pdf"] and not (
         producermessage.attributes.get("isattachment", False)
         and producermessage.trigger == "recordreplace"

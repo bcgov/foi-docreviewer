@@ -112,6 +112,17 @@ def test_hashing_failure_logs_safe_event_and_reraises(capsys, caplog, monkeypatc
     assert "usertoken" not in event
 
 
+def test_hashing_accepts_attributes_that_were_already_decoded(monkeypatch):
+    install_hash_collaborators(monkeypatch)
+    document_message = message()
+    document_message.attributes = {"secret": "not logged"}
+
+    digest, pagecount = s3documentservice.gets3documenthashcode(document_message)
+
+    assert digest
+    assert pagecount == 1
+
+
 def test_metadata_annotation_handling_emits_only_safe_json_stdout(capsys, monkeypatch):
     class MetadataReader:
         metadata = {"unsafe": "document metadata"}
