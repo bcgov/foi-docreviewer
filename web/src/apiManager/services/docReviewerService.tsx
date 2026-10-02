@@ -83,12 +83,11 @@ export const fetchAnnotationsByPagination = (
   callback: any,
   errorCallback: any,
   redactionlayer: string = "redline",
-  timeout: number = 60000
 ) => {
 
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/${activepage}/${size}`
 
-  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken())
     .then((res: any) => {
       if (res.data || res.data === "") {
         callback(res.data);
@@ -106,12 +105,11 @@ export const fetchDocumentAnnotations = (
   redactionlayer: string,
   documentid: number,
   callback: any,
-  errorCallback: any,
-  timeout: number = 300000
+  errorCallback: any
 ) => {
   let apiUrlGet: string = `${API.DOCREVIEWER_ANNOTATION}/${ministryrequestid}/${redactionlayer}/document/${documentid}`
 
-  httpGETBigRequest(apiUrlGet, {}, UserService.getToken(), timeout)
+  httpGETBigRequest(apiUrlGet, {}, UserService.getToken())
     .then((res: any) => {
       if (res.data || res.data === "") {
         callback(res.data);
