@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-    FROM golang:1.24.3-alpine AS builder
+    FROM golang:1.25-alpine AS builder
 
     # Create a directory for the application
     RUN mkdir -p /app
