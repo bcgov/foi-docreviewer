@@ -231,7 +231,7 @@ jobs:
             if [[ "${{ needs.prepare-deployment.outputs.environment }}" == "test" ]]; then
 
               yq e \
-                ".${GITOPS_SECTION}.${NAME}.labels.releaseLabel = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
+                ".${GITOPS_SECTION}.${NAME}.labels.release-label = \"${{ needs.prepare-deployment.outputs.release_label }}\"" \
                 -i "$VALUES_FILE"
 
             fi
