@@ -303,37 +303,45 @@ jobs:
       - name: Verify Deployment
         shell: bash
         run: |
-
-          oc project d106d6-${{ needs.prepare-deployment.outputs.environment }}
-
-          if [[ "${{ matrix.kind }}" == "deployment" ]]; then
-
-            oc rollout status \
-              deployment/${{ matrix.name }} \
-              --watch=true \
-              --timeout=10m
-
-          else
-
-            echo "Skipping rollout check for CronJob '${{ matrix.name }}'."
-
-          fi
-
-          # Verify the deployment is running the expected image tag.
-          DEPLOYED_IMAGE=$(oc get ${{ matrix.kind }}/${{ matrix.name }} \
-            -o jsonpath='{.spec.template.spec.containers[0].image}')
-
+          NAMESPACE="d106d6-${{ needs.prepare-deployment.outputs.environment }}"
+          DEPLOYMENT="deployment/${{ matrix.name }}"
+          EXPECTED_TAG="${{ env.IMAGE_TAG }}"
+      
+          oc project "${NAMESPACE}"
+      
+          echo "========================================"
+          echo "Verifying ${DEPLOYMENT}"
+          echo "Namespace: ${NAMESPACE}"
+          echo "Expected image tag: ${EXPECTED_TAG}"
+          echo "========================================"
+      
+          echo "Waiting for ${DEPLOYMENT} to use image tag ${EXPECTED_TAG}..."
+      
+          for i in {1..60}; do
+            DEPLOYED_IMAGE=$(oc get "${DEPLOYMENT}" \
+              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)
+      
+            echo "Attempt ${i}/60 - Current image: ${DEPLOYED_IMAGE}"
+      
+            if [[ "${DEPLOYED_IMAGE}" == *":${EXPECTED_TAG}" ]]; then
+              echo "Expected image tag detected."
+              break
+            fi
+      
+            if [[ "$i" -eq 60 ]]; then
+              echo "::error::${DEPLOYMENT} did not update to image tag ${EXPECTED_TAG} within 10 minutes."
+              echo "::error::Current image: ${DEPLOYED_IMAGE}"
+              exit 1
+            fi
+      
+            sleep 10
+          done
+      
+          echo "========================================"
+          echo "Image verification successful"
           echo "Running image: ${DEPLOYED_IMAGE}"
-
-          EXPECTED_TAG=":${{ env.IMAGE_TAG }}"
-
-          if [[ "${DEPLOYED_IMAGE}" != *"${EXPECTED_TAG}" ]]; then
-            echo "::error::Expected image tag ${EXPECTED_TAG}, but deployment is using ${DEPLOYED_IMAGE}"
-            exit 1
-          fi
-
-          echo "Deployment is running the expected image tag."
-
+          echo "Expected tag: ${EXPECTED_TAG}"
+          echo "========================================"
       # Adds deployment result back to the PR.
   comment-pr:
 
