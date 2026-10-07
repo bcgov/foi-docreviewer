@@ -1,0 +1,23 @@
+{
+  "event_id": "33333333-3333-4333-8333-333333333333",
+  "event_type": "PdfPreprocessingCompleted",
+  "timestamp": "2026-01-02T03:05:00Z",
+  "schema_version": "1.0.0",
+  "correlation_id": "synthetic-correlation",
+  "source": "pdf-preprocessing",
+  "traceparent": "00-11111111111111111111111111111111-4444444444444444-01",
+  "payload": {
+    "job_id": "synthetic-job",
+    "outcome": "text_restored",
+    "spans_restored": 1,
+    "pages_affected": 1,
+    "detectors": {
+      "clip_hidden_text": {
+        "spans_restored": 1,
+        "pages_affected": 1
+      }
+    },
+    "output_uri": "s3://synthetic-bucket/docs/inputPREPROCESSED.pdf",
+    "completed_at": "2026-01-02T03:05:00Z"
+  }
+}
