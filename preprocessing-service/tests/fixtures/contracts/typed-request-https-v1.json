@@ -1,0 +1,14 @@
+{
+  "event_id": "11111111-1111-4111-8111-111111111111",
+  "event_type": "PdfPreprocessingRequested",
+  "timestamp": "2026-01-02T03:04:05Z",
+  "schema_version": "1.0.0",
+  "correlation_id": "synthetic-correlation",
+  "source": "synthetic-contract",
+  "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
+  "payload": {
+    "job_id": "synthetic-job",
+    "source_uri": "https://store.invalid/synthetic-bucket/docs/input.pdf",
+    "legacy_payload": {}
+  }
+}
