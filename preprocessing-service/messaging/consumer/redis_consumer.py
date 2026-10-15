@@ -131,7 +131,7 @@ class RedisConsumer:
         never leaves the pending list unaccounted for.
         """
         raw_event = fields.get("event")
-        if not raw_event:
+        if not raw_event: # legacy message without 'event' field
             if not fields:
                 await self._dead_letter(
                     message_id, fields, "missing_field", "message has no 'event' field"
@@ -144,7 +144,7 @@ class RedisConsumer:
                     message_id, fields, "validation_error", str(e)
                 )
                 return
-        else:
+        else: # standard message with 'event' field
             try:
                 envelope = EventEnvelope.model_validate_json(raw_event)
             except ValidationError as e:
@@ -274,6 +274,13 @@ class RedisConsumer:
                 )
             except ResponseError as e:
                 logger.error("XREADGROUP failed", error=str(e))
+                if str(e).upper().startswith("NOGROUP"):
+                    logger.warning(
+                        "Consumer group is missing; recreating it",
+                        stream=self.stream_name,
+                        group=self.consumer_group,
+                    )
+                    await self.ensure_group()
                 await asyncio.sleep(self.block_ms / 1000)
                 continue
             except RedisError as e:
