@@ -1,3 +1,4 @@
+import json
 from collections.abc import Mapping
 
 from messaging.models import EventEnvelope, PdfPreprocessingRequestedEvent
@@ -9,13 +10,20 @@ class LegacyRedisMessageAdapter:
     SOURCE = "foi-docreviewer.dedupe.legacy"
 
     def adapt(self, fields: Mapping[str, object]) -> EventEnvelope:
-        if "jobid" not in fields:
+        raw_payload = fields.get('payload', None)
+        if raw_payload is None:
+            raise ValueError("legacy message is missing required field 'payload'")
+        payload = json.loads(raw_payload)
+        nested_payload = payload.get('payload', None)
+        if nested_payload is None:
+            raise ValueError("legacy message 'payload' is missing nested 'payload'")
+        if "jobid" not in nested_payload:
             raise ValueError("legacy message is missing required field 'jobid'")
-        if "s3filepath" not in fields:
+        if "s3filepath" not in nested_payload:
             raise ValueError("legacy message is missing required field 's3filepath'")
 
-        job_id = self._text(fields["jobid"], "jobid")
-        source_uri = self._text(fields["s3filepath"], "s3filepath")
+        job_id = self._text(nested_payload["jobid"], "jobid")
+        source_uri = self._text(nested_payload["s3filepath"], "s3filepath")
         legacy_payload = {
             self._text(key, "field name"): self._json_value(value)
             for key, value in fields.items()
@@ -35,6 +43,8 @@ class LegacyRedisMessageAdapter:
     def _text(value: object, field: str) -> str:
         if isinstance(value, bytes):
             value = value.decode("utf-8")
+        elif isinstance(value, int) and not isinstance(value, bool):
+            value = str(value)
         if not isinstance(value, str) or not value.strip():
             raise ValueError(
                 f"legacy message field '{field}' must be a non-empty string"

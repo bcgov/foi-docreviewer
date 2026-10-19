@@ -62,13 +62,16 @@ async def handle(
     out_path = work / f"{job_id}.out.pdf"
     source_uri = normalize_s3_uri(payload.source_uri)
     # Restored PDF goes back beside the source: <name>.pdf -> <name>PREPROCESSED.pdf
-    output_uri = suffix_uri(source_uri, settings.OUTPUT_FILENAME_SUFFIX)
+    # Append suffix to http uri for legacy payloads
+    output_uri = suffix_uri(payload.source_uri, settings.OUTPUT_FILENAME_SUFFIX)
+    # Use s3 uri with suffix for uploading in this service
+    upload_uri = suffix_uri(source_uri, settings.OUTPUT_FILENAME_SUFFIX)
 
     try:
         await fetch_pdf(source_uri, src_path)
         result = run_pipeline(src_path, out_path)
         if result.wrote_output:
-            await upload_pdf(out_path, output_uri)
+            await upload_pdf(out_path, upload_uri)
     finally:
         src_path.unlink(missing_ok=True)
         out_path.unlink(missing_ok=True)

@@ -162,6 +162,45 @@ async def test_start_loop_swallows_response_error_and_keeps_running(monkeypatch)
     assert calls["n"] == 2
 
 
+async def test_start_loop_recreates_group_on_nogroup_error(monkeypatch):
+    """
+    NOGROUP means the group was destroyed independently of the stream (Redis
+    restart without persistence, manual XGROUP DESTROY, etc). Without
+    recovery here, the consumer logs and sleeps forever without ever
+    reading a message again.
+    """
+    monkeypatch.setattr(redis_consumer_module.asyncio, "sleep", fast_sleep)
+    consumer = make_consumer()
+    calls = {"n": 0}
+    ensure_group_calls = []
+
+    original_ensure_group = consumer.ensure_group
+
+    async def tracking_ensure_group():
+        ensure_group_calls.append(1)
+        await original_ensure_group()
+
+    consumer.ensure_group = tracking_ensure_group
+
+    async def fake_xreadgroup(**kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ResponseError(
+                'NOGROUP No such key "foi:PREPROCESSING" or consumer group '
+                '"preprocessing" in XREADGROUP with GROUPNAME'
+            )
+        consumer.running = False
+        return []
+
+    consumer.redis.xreadgroup_impl = fake_xreadgroup
+
+    await consumer.start()
+
+    assert calls["n"] == 2
+    # One call from start()'s initial ensure_group(), one recovery call.
+    assert len(ensure_group_calls) == 2
+
+
 async def test_start_loop_swallows_redis_connection_errors(monkeypatch):
     monkeypatch.setattr(redis_consumer_module.asyncio, "sleep", fast_sleep)
     consumer = make_consumer()
