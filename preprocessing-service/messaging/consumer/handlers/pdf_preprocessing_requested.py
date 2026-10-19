@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+import json
 
 from config.logging import get_logger
 from config.settings import get_settings
@@ -108,7 +109,9 @@ async def handle(
     if payload.legacy_payload:
         downstream_payload = dict(payload.legacy_payload)
         if result.wrote_output:
-            downstream_payload["s3filepath"] = output_uri
+            payload_dict = json.loads(downstream_payload['payload'])
+            payload_dict['payload']['s3filepath'] = output_uri
+            downstream_payload['payload'] = json.dumps(payload_dict)
         await producer.publish_legacy(
             downstream_payload,
             stream=settings.OUTPUT_STREAM_NAME,
