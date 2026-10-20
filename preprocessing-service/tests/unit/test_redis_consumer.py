@@ -1,5 +1,7 @@
 # tests/unit/test_redis_consumer.py
 
+import json
+
 import pytest
 from redis.exceptions import RedisError, ResponseError
 
@@ -74,6 +76,14 @@ async def test_handle_one_dead_letters_when_event_field_missing():
 async def test_handle_one_adapts_legacy_fields_before_dispatch(monkeypatch):
     consumer = make_consumer()
     dispatched = []
+    raw_payload = json.dumps(
+        {
+            "payload": {
+                "jobid": "42",
+                "s3filepath": "s3://bucket/input.pdf",
+            }
+        }
+    )
 
     async def fake_dispatch(envelope):
         dispatched.append(envelope)
@@ -82,16 +92,13 @@ async def test_handle_one_adapts_legacy_fields_before_dispatch(monkeypatch):
 
     await consumer._handle_one(
         "1-0",
-        {"jobid": "42", "s3filepath": "s3://bucket/input.pdf"},
+        {"payload": raw_payload},
     )
 
     assert len(dispatched) == 1
     assert dispatched[0].payload.job_id == "42"
     assert dispatched[0].payload.source_uri == "s3://bucket/input.pdf"
-    assert dispatched[0].payload.legacy_payload == {
-        "jobid": "42",
-        "s3filepath": "s3://bucket/input.pdf",
-    }
+    assert dispatched[0].payload.legacy_payload == {"payload": raw_payload}
     assert consumer.redis.xack_calls == ["1-0"]
 
 
