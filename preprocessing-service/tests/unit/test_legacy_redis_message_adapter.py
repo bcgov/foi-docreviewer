@@ -9,23 +9,27 @@ from messaging.adapters.legacy_redis_message_adapter import LegacyRedisMessageAd
 
 def legacy_fields():
     return {
-        "jobid": "42",
-        "s3filepath": "s3://bucket/input.pdf",
-        "filename": "input.pdf",
-        "ministryrequestid": "7",
-        "documentmasterid": "9",
-        "trigger": "recordupload",
-        "createdby": "user@example.com",
-        "requestnumber": "REQ-1",
-        "batch": "batch-1",
-        "incompatible": "false",
-        "bcgovcode": "EDU",
-        "attributes": json.dumps({"isattachment": True}),
-        "usertoken": "token",
-        "documentid": "11",
-        "outputdocumentmasterid": "12",
-        "originaldocumentmasterid": "13",
-        "compresseds3filepath": "s3://bucket/compressed.pdf",
+        "payload": json.dumps({
+            "payload": {
+                "jobid": "42",
+                "s3filepath": "s3://bucket/input.pdf",
+                "filename": "input.pdf",
+                "ministryrequestid": "7",
+                "documentmasterid": "9",
+                "trigger": "recordupload",
+                "createdby": "user@example.com",
+                "requestnumber": "REQ-1",
+                "batch": "batch-1",
+                "incompatible": "false",
+                "bcgovcode": "EDU",
+                "attributes": json.dumps({"isattachment": True}),
+                "usertoken": "token",
+                "documentid": "11",
+                "outputdocumentmasterid": "12",
+                "originaldocumentmasterid": "13",
+                "compresseds3filepath": "s3://bucket/compressed.pdf",
+            }
+        }),
     }
 
 
@@ -44,7 +48,9 @@ def test_adapt_preserves_all_legacy_fields():
 @pytest.mark.parametrize("missing", ["jobid", "s3filepath"])
 def test_adapt_rejects_missing_required_legacy_fields(missing):
     fields = legacy_fields()
-    del fields[missing]
+    payload = json.loads(fields["payload"])
+    del payload["payload"][missing]
+    fields["payload"] = json.dumps(payload)
 
     with pytest.raises(ValueError, match=missing):
         LegacyRedisMessageAdapter().adapt(fields)
