@@ -102,17 +102,17 @@ class Annotation(db.Model):
         db.session.close()
         return [
             {
-                "annotationid": row["annotationid"],
-                "annotationname": row["annotationname"],
-                "documentid": row["documentid"],
-                "documentversion": row["documentversion"],
-                "annotation": row["annotation"],
-                "pagenumber": row["pagenumber"],
-                "isactive": row["isactive"],
-                "createdby": row["createdby"],
-                "created_at": row["created_at"],
-                "updatedby": row["updatedby"],
-                "updated_at": row["updated_at"],
+                "annotationid": row._mapping["annotationid"],
+                "annotationname": row._mapping["annotationname"],
+                "documentid": row._mapping["documentid"],
+                "documentversion": row._mapping["documentversion"],
+                "annotation": row._mapping["annotation"],
+                "pagenumber": row._mapping["pagenumber"],
+                "isactive": row._mapping["isactive"],
+                "createdby": row._mapping["createdby"],
+                "created_at": row._mapping["created_at"],
+                "updatedby": row._mapping["updatedby"],
+                "updated_at": row._mapping["updated_at"],
             }
             for row in rs
         ]
@@ -190,7 +190,7 @@ class Annotation(db.Model):
                     Document.documentid, Annotation.pagenumber, Annotation.annotationid
                 )
             )
-            result = _subquery_annotation.paginate(page=page, per_page=size)
+            result = _subquery_annotation.paginate(page=page, per_page=size, max_per_page=None)
             return result
         finally:
             if _session is not None:
@@ -216,7 +216,7 @@ class Annotation(db.Model):
                 {"ministryrequestid": ministryrequestid, "_mappedlayerids": tuple(mappedlayerids), "documentid": documentid},
             )
             return [
-                row["annotation"]            
+                row._mapping["annotation"]
                 for row in rs
             ]
         except Exception as ex:
@@ -279,9 +279,9 @@ class Annotation(db.Model):
                 text(sql), {"annotationnames": tuple(_annotationnames), "redactionlayerid": _redactionlayerid}
             )
             for row in rs:
-                apks[row["annotationname"]] = {
-                    "annotationid": row["annotationid"],
-                    "version": row["version"],
+                apks[row._mapping["annotationname"]] = {
+                    "annotationid": row._mapping["annotationid"],
+                    "version": row._mapping["version"],
                 }
         except Exception as ex:
             logging.error(ex)
@@ -415,7 +415,7 @@ class Annotation(db.Model):
                 Annotation.isactive, Annotation.annotationid, Annotation.version
             )
             annotproxy = db.session.execute(upsertstmt)
-            result = [dict(row) for row in annotproxy]
+            result = [dict(row._mapping) for row in annotproxy]
             db.session.commit()
             if len(result) > 0:
                 idxannot = result[0]

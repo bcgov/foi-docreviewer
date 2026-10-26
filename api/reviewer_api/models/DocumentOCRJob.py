@@ -41,8 +41,8 @@ class DocumentOCRJob(db.Model):
                         order by ocrjobid, "version" desc"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                executions.append({"ocrjobid": row["ocrjobid"], "version": row["version"], "createdat": row["createdat"], "status": row["status"], 
-                                   "documentid": row["documentid"],"documentmasterid": row["documentmasterid"],"message": row["message"], "createdby": row["createdby"]})
+                executions.append({"ocrjobid": row._mapping["ocrjobid"], "version": row._mapping["version"], "createdat": row._mapping["createdat"], "status": row._mapping["status"],
+                                   "documentid": row._mapping["documentid"],"documentmasterid": row._mapping["documentmasterid"],"message": row._mapping["message"], "createdby": row._mapping["createdby"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

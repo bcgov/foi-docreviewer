@@ -1,0 +1,49 @@
+name: Reviewer API Python upgrade checks
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ["api/**", ".github/workflows/reviewer-api-python-upgrade.yml"]
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Pre-upgrade Reviewer source SHA
+        required: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Capture source baseline
+        env:
+          BASELINE_REF: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
+        run: bash api/scripts/prepare-upgrade-baseline.sh "$BASELINE_REF"
+      - name: Record full baseline suite
+        id: baseline
+        continue-on-error: true
+        run: bash api/scripts/verify-python-upgrade.sh baseline
+      - name: Focused candidate gate and schema parity
+        run: bash api/scripts/verify-python-upgrade.sh candidate @tests/python-upgrade-focused.txt
+      - name: Build local Dockerfile
+        run: docker build -f api/dockerfile.local -t foi-reviewer-api-upgrade:local api
+      - name: Record full candidate suite
+        id: full
+        continue-on-error: true
+        env:
+          UPGRADE_EVIDENCE_DIR: /tmp/reviewer-api-python-upgrade/full-candidate
+        run: bash api/scripts/verify-python-upgrade.sh candidate
+      - name: Reject regressions in previously passing tests
+        run: python3 api/scripts/compare-upgrade-results.py /tmp/reviewer-api-python-upgrade/baseline/tests.xml /tmp/reviewer-api-python-upgrade/full-candidate/tests.xml
+      - name: Upload synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewer-api-python-upgrade
+          path: |
+            /tmp/reviewer-api-python-upgrade/baseline/
+            /tmp/reviewer-api-python-upgrade/candidate/
+            /tmp/reviewer-api-python-upgrade/full-candidate/

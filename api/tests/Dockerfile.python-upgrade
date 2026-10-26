@@ -1,0 +1,3 @@
+ARG APP_IMAGE=foi-reviewer-api-upgrade:candidate
+FROM ${APP_IMAGE}
+ENV PYTHONPATH=/verification-source

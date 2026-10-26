@@ -2,7 +2,6 @@ from threading import Thread
 import eventlet
 #Monkey patch to allow for async actions (aka multiple workers)
 eventlet.monkey_patch()
-from distutils.log import debug
 
 
 import os
