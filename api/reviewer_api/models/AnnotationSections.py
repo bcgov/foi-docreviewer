@@ -56,9 +56,9 @@ class AnnotationSection(db.Model):
                 text(sql), {"annotationnames": tuple(_annotationnames), "redactionlayerid": _redactionlayerid}
             )
             for row in rs:
-                apks[row["annotationname"]] = {
-                    "id": row["id"],
-                    "version": row["version"],
+                apks[row._mapping["annotationname"]] = {
+                    "id": row._mapping["id"],
+                    "version": row._mapping["version"],
                 }
         except Exception as ex:
             logging.error(ex)
@@ -192,7 +192,7 @@ class AnnotationSection(db.Model):
                 AnnotationSection.version,
             )
             sectproxy = db.session.execute(upsertstmt)
-            result = [dict(row) for row in sectproxy]
+            result = [dict(row._mapping) for row in sectproxy]
             db.session.commit()
             if len(result) > 0:
                 idxsect = result[0]
@@ -346,9 +346,9 @@ class AnnotationSection(db.Model):
             for row in rs:
                 mapping.append(
                     {
-                        "annotationname": row["redactannotation"],
-                        "sectionannotation": row["annotationname"],
-                        "ids": row["ids"],
+                        "annotationname": row._mapping["redactannotation"],
+                        "sectionannotation": row._mapping["annotationname"],
+                        "ids": row._mapping["ids"],
                     }
                 )
         except Exception as ex:
@@ -416,7 +416,7 @@ class AnnotationSection(db.Model):
             rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid, "redactionlayerid": redactionlayerid})
             sections = []
             for row in rs:
-                sections += [x.strip() for x in row['section'].split(",")]
+                sections += [x.strip() for x in row._mapping['section'].split(",")]
             if len(sections) > 0:
                 distinctsections = list(set(sections))
                 distinctsections.sort()

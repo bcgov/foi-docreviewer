@@ -51,7 +51,7 @@ class FileConversionJob(db.Model):
             rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
             error = []
             for row in rs:
-                error.append(row["filepath"])
+                error.append(row._mapping["filepath"])
 
             return completed, error
         except Exception as ex:
@@ -71,7 +71,7 @@ class FileConversionJob(db.Model):
                         order by fileconversionjobid, "version" desc"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                executions.append({"fileconversionjobid": row["fileconversionjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], "documentmasterid": row["inputdocumentmasterid"],  "trigger": row["trigger"], "outputdocumentmasterid": row["outputdocumentmasterid"]})
+                executions.append({"fileconversionjobid": row._mapping["fileconversionjobid"], "version": row._mapping["version"], "filename": row._mapping["filename"], "status": row._mapping["status"], "documentmasterid": row._mapping["inputdocumentmasterid"],  "trigger": row._mapping["trigger"], "outputdocumentmasterid": row._mapping["outputdocumentmasterid"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

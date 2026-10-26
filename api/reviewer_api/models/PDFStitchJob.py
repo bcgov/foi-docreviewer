@@ -73,7 +73,7 @@ class PDFStitchJob(db.Model):
             ORDER BY Phase, pdfstitchjobid DESC, version DESC;
             """
             res = db.session.execute(text(sql), {'category': category, 'requestid': int(requestid)})
-            pdfstitchjobsstatuses = [{'category': row['category'], 'status': row['status'], 'ministryrequestid': row['ministryrequestid'], 'phase': int(row['phase'])} for row in res]
+            pdfstitchjobsstatuses = [{'category': row._mapping['category'], 'status': row._mapping['status'], 'ministryrequestid': row._mapping['ministryrequestid'], 'phase': int(row._mapping['phase'])} for row in res]
             return pdfstitchjobsstatuses
         except Exception as ex:
             logging.error(ex)

@@ -1,2 +1,4 @@
-#!/bin/bash
-python manage.py db upgrade && python wsgi.py
+#!/bin/sh
+set -e
+python manage.py db upgrade
+exec python wsgi.py

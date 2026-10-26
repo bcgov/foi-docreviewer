@@ -2,10 +2,9 @@ import importlib.util
 from pathlib import Path
 
 
-REPOSITORY_ROOT = Path(__file__).parents[3]
+REPOSITORY_ROOT = Path(__file__).parents[2]
 MIGRATION_PATH = (
-    REPOSITORY_ROOT
-    / "api/migrations/versions/f5199c0ffee1_compressionjob_workload.py"
+    REPOSITORY_ROOT / "migrations/versions/f5199c0ffee1_compressionjob_workload.py"
 )
 
 

@@ -1,0 +1,13 @@
+tests/test_test_environment.py
+tests/test_python_upgrade_startup.py
+tests/test_python_upgrade_tracing.py
+tests/services/test_python_upgrade_annotations.py
+tests/services/test_python_upgrade_transactions.py
+tests/services/test_python_upgrade_redis.py
+tests/restapi/test_python_upgrade_storage.py
+tests/restapi/test_python_upgrade_auth.py
+tests/unit
+tests/test_upgrade_result_comparison.py
+tests/services/test_python_upgrade_peer_contracts.py
+tests/restapi/test_python_upgrade_contracts.py
+tests/test_baseline_preparation.py

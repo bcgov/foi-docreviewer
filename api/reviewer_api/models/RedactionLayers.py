@@ -30,11 +30,11 @@ class RedactionLayer(db.Model):
             rs = db.session.execute(text(sql), {"ministryrequestid": ministryrequestid})
             return [
                 {
-                    "redactionlayerid": row["redactionlayerid"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "sortorder": row["sortorder"],
-                    "count": row["count"],
+                    "redactionlayerid": row._mapping["redactionlayerid"],
+                    "name": row._mapping["name"],
+                    "description": row._mapping["description"],
+                    "sortorder": row._mapping["sortorder"],
+                    "count": row._mapping["count"],
                 }
                 for row in rs
             ]

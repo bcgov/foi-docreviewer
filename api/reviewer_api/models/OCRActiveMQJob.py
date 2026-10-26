@@ -41,8 +41,8 @@ class OCRActiveMQJob(db.Model):
                         order by ocractivemqjobid, "version" desc"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                executions.append({"ocractivemqjobid": row["ocractivemqjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], 
-                                   "documentmasterid": row["documentmasterid"],  "trigger": row["trigger"],"message": row["message"]})
+                executions.append({"ocractivemqjobid": row._mapping["ocractivemqjobid"], "version": row._mapping["version"], "filename": row._mapping["filename"], "status": row._mapping["status"],
+                                   "documentmasterid": row._mapping["documentmasterid"],  "trigger": row._mapping["trigger"],"message": row._mapping["message"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()
