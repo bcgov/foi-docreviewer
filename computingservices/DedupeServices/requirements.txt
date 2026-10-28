@@ -21,7 +21,9 @@ pypdf==3.5.1
 PyPDF2==3.0.1
 PyMuPDF==1.24.9
 pycryptodome==3.18.0
-pytz==2021.1
+pytz==2026.5
 reportlab==3.6.12
 maya==0.6.1
+pendulum==3.3.0
+tzdata==2026.5
 uuid6==2024.7.10
