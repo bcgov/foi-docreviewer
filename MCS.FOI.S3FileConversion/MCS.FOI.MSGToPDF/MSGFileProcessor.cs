@@ -545,17 +545,7 @@ namespace MCS.FOI.MSGToPDF
                             <td><b>Subject: </b></td>
                             <td>" + msg.Subject + "</td></tr>");
 
-                DateTime sentDate = Convert.ToDateTime(msg.SentOn);
-                if(sentDate == DateTime.MinValue)
-                {
-                    sentDate = Convert.ToDateTime(msg.CreationTime);
-                }
-                if (TimeZone.CurrentTimeZone.StandardName != "Pacific Standard Time")
-                {
-
-                    sentDate = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(sentDate, "Pacific Standard Time");
-
-                }
+                string sentDate = MessageDateFormatter.FormatSentOn(msg.SentOn, msg.CreationTime);
 
                 //Message Sent On timestamp
                 htmlString.Append(@"<tr>

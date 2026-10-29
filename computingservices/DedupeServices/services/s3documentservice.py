@@ -10,14 +10,14 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from pypdf import PdfReader, PdfWriter
 from io import BytesIO
 from html import escape
+from datetime import datetime
 import hashlib
 import uuid
 import boto3
 from botocore.config import Config
-from re import sub
+from re import fullmatch, sub
 import fitz
 import PyPDF2
-import maya
 import pytz
 from utils import (
     gets3credentialsobject,
@@ -662,23 +662,36 @@ def get_dimension_value(value):
 def __converttoPST(creationdate):
     try:
         if not creationdate or not creationdate.startswith("D:"):
-            return "Unknown PST"
+            return "Unknown"
 
-        timestamp_str = creationdate[2:].replace("'", ":")
-        if timestamp_str.endswith(":"):
-            timestamp_str = timestamp_str[:-1]
+        # Honour explicit PDF offsets (D:YYYYMMDDHHmmSS+HH'mm'). Reviewer
+        # annotationservice also writes UTC-normalized XFDF dates without an
+        # offset; preserve that legacy UTC convention for complete dates only.
+        # External offset-less dates remain subject to the same existing UTC
+        # assumption; never reinterpret them using the worker's local timezone.
+        timestamp_str = creationdate[2:].replace("'", "")
+        if not fullmatch(r"[0-9]{14}(?:Z(?:0000)?|[+-][0-9]{2}(?:[0-9]{2})?)?", timestamp_str):
+            return "Unknown"
+        if len(timestamp_str) == 14:
+            timestamp_str += "+0000"
+        elif timestamp_str[14] == "Z":
+            timestamp_str = timestamp_str[:14] + "+0000"
+        elif len(timestamp_str) == 17:
+            timestamp_str += "00"
 
         # Basic year sanity check
         year = int(timestamp_str[:4])
         if year < 1900:
-            return "Unknown PST"
+            return "Unknown"
 
-        timestamp_utc = maya.parse(timestamp_str).datetime(to_timezone='America/Vancouver', naive=False)
-        return timestamp_utc.strftime("%Y/%m/%d %I:%M:%S %p") + " PST"
+        timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%z")
+        pacific_timestamp = timestamp.astimezone(pytz.timezone("America/Vancouver"))
+        # Neutral wording remains accurate for both historical PST/PDT and PCT.
+        return pacific_timestamp.strftime("%Y/%m/%d %I:%M:%S %p") + " Pacific Time"
     
     except Exception:
         _log_document_processing_event(logging.WARNING, "document_processing_failed", "convert_timestamp", exc_info=True)
-        return "Unknown PST"
+        return "Unknown"
     
 def verify_ocr_needed(content, message):
     try:
