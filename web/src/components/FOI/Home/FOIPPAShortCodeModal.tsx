@@ -100,7 +100,7 @@ const FOIPPAShortCodeModal = ({
                 <div style={{ overflowY: "scroll" }}>
                 <List className="section-list">
                     {sections?.sort(compareValues).map((section : any, index : number) => {
-                        if (section.shortcode) {
+                        if (section.shortcode != null) {
                             return (
                             <ListItem key={"list-item" + section.id}>
                                 <label
