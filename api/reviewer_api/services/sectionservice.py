@@ -43,18 +43,13 @@ class sectionservice:
         _sortedrequestsections = self.__sortbyoccurance(requestsections)
         for section in globalsections:
             if self.__getoccurancecount(_sortedrequestsections, section["sectionid"]) == 1:
-                _sortedrequestsections.append({"id":section["sectionid"], "section":section["section"], "description": section["description"], "shortcode": section["shortcode"], "count":0})
-        index = 1
-        for section in _sortedrequestsections:
-            section["sortorder"] = index
-            index = index+1
+                _sortedrequestsections.append({"id":section["sectionid"], "section":section["section"], "description": section["description"], "shortcode": section["shortcode"], "sortorder": section["sortorder"], "count":0})
         return _sortedrequestsections
 
     def __sortbyoccurance(self, requestsections):
         if requestsections not in (None,[]):
             return sorted(requestsections, key=lambda k: int(k['count']), reverse = True)
         return requestsections
-    
     
     def __updateoccurance(self, globalsections, requestsections, entry):
         _count = self.__getoccurancecount(requestsections, entry["id"])
@@ -66,6 +61,7 @@ class sectionservice:
             entry["count"] = _count
             entry["description"] = self.__getdescription(globalsections, entry["id"])
             entry["shortcode"] = self.__getshortcode(globalsections, entry["id"])
+            entry["sortorder"] = self.__getsortorder(globalsections, entry["id"])
             requestsections.append(entry)   
         return requestsections 
 
@@ -86,4 +82,10 @@ class sectionservice:
         for section in sections:
             if section["sectionid"] == sectionid:
                 return section["shortcode"]
+        return None
+
+    def __getsortorder(self, sections, sectionid):
+        for section in sections:
+            if section["sectionid"] == sectionid:
+                return section["sortorder"]
         return None
