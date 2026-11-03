@@ -1,0 +1,26 @@
+{
+  "identities": [
+    {
+      "name": "anonymous",
+      "actions": [
+        "Read"
+      ]
+    },
+    {
+      "name": "foirp",
+      "credentials": [
+        {
+          "accessKey": "dev",
+          "secretKey": "dev"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "List",
+        "Tagging",
+        "Write"
+      ]
+    }
+  ]
+}
