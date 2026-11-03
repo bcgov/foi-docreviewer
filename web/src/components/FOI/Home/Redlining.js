@@ -55,6 +55,7 @@ import {
   getJoinedSections,
 } from "./utils";
 import { Edit, MultiSelectEdit } from "./Edit";
+import { setupBlankCodeCommentsFilter } from "./CommentsPanelFilter";
 import _ from "lodash";
 import {
   createFinalPackageSelection,
@@ -350,6 +351,7 @@ const Redlining = React.forwardRef(
           instance.UI.disableElements(PDFVIEWER_DISABLED_FEATURES.split(","));
           instance.UI.enableElements(["attachmentPanelButton"]);
           instance.UI.enableNoteSubmissionWithEnter();
+          setupBlankCodeCommentsFilter(instance);
           let redactionTool = documentViewer.getTool(
             instance.Core.Tools.ToolNames.REDACTION,
           );
