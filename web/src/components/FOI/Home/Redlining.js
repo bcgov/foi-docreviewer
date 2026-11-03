@@ -3091,7 +3091,9 @@ const Redlining = React.forwardRef(
         const applyShortCodes = freeText.getCustomData("applyshortcodes");
         setSelectedSections(redaction.sections?.ids?.map((id) => id));
         if (applyShortCodes) {
-          setTabValue("shortCodes")
+          setTabValue("shortCodes");
+        } else {
+          setTabValue("sections");
         }
         setModalOpen(true);
       }

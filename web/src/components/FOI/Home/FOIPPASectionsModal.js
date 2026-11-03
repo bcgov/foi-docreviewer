@@ -123,7 +123,7 @@ export const FOIPPASectionsModal= ({
         } else {
           saveRedaction();
         }
-        setTabValue("sections");
+        // setTabValue("sections");
         pageSelectionsContainNRDup ? setMessageModalOpen(true) : setMessageModalOpen(false);
       }
 
@@ -133,7 +133,7 @@ export const FOIPPASectionsModal= ({
       }
 
       const handleClose = () => {
-        setTabValue("sections");
+        // setTabValue("sections");
         cancelRedaction();
       }
       

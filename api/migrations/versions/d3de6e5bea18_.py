@@ -42,27 +42,28 @@ def upgrade():
     op.execute('''UPDATE public."Sections" SET shortcode = 'CA64' WHERE section = 's. 3 - CA s. 64';''')
     op.execute('''UPDATE public."Sections" SET shortcode = 'FM43' WHERE section = 's. 3 - FMEA s. 43';''')
     op.execute('''UPDATE public."Sections" SET shortcode = 'PA' WHERE section = 's. 3 - PA';''')
+    op.execute('''UPDATE public."Sections" SET shortcode = '' WHERE section = '';''')
 
     op.execute('''
-    UPDATE public."Sections" SET sortorder = sortorder + 3 WHERE sortorder >= 20;
+    UPDATE public."Sections" SET sortorder = sortorder + 3 WHERE sortorder >= 17;
+    ''')
+    op.execute('''
+    UPDATE public."Sections" SET sortorder = 18 WHERE section = 's. 3 - CFCSA s. 24';
     ''')
     op.execute('''
     INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(1)', 'Disclosure harmful to personal privacy, identity of a Reporter under CFCSA', 20, True, 'System', 'C1');
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(1)', 'Disclosure harmful to personal privacy, identity of a Reporter under CFCSA', 16, True, 'System', 'C1');
     ''')
     op.execute('''
     INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(a)', 'Disclosure harmful to personal privacy, jeopardize an investigation under CFCSA', 21, True, 'System', 'C7');
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(a)', 'Disclosure harmful to personal privacy, jeopardize an investigation under CFCSA', 19, True, 'System', 'C7');
     ''')
     op.execute('''
     INSERT INTO public."Sections" (section, description, sortorder, isactive, createdby, shortcode) 
-    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(b)', 'Disclosure harmful to personal privacy, information collected in confidence under CFCSA Investigation', 22, True, 'System', 'C2');
+    VALUES ('s. 3 - s. 22 - CFCSA s. 77(2)(b)', 'Disclosure harmful to personal privacy, information collected in confidence under CFCSA Investigation', 17, True, 'System', 'C2');
     ''')
 
 def downgrade():
-    op.execute('''
-    DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(1)';
-    ''')
     op.execute('''
     DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(2)(b)';
     ''')
@@ -70,7 +71,13 @@ def downgrade():
     DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(2)(a)';
     ''')
     op.execute('''
-    UPDATE public."Sections" SET sortorder = sortorder - 3 WHERE sortorder >= 20;
+    DELETE FROM public."Sections" WHERE section = 's. 3 - s. 22 - CFCSA s. 77(1)';
+    ''')
+    op.execute('''
+    UPDATE public."Sections" SET sortorder = 16 WHERE section = 's. 3 - CFCSA s. 24';
+    ''')
+    op.execute('''
+    UPDATE public."Sections" SET sortorder = sortorder - 3 WHERE sortorder >= 17;
     ''')
     
     op.drop_column("Sections", "shortcode")
