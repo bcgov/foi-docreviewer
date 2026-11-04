@@ -1,0 +1,5 @@
+{
+  "jobid": "synthetic-job",
+  "s3filepath": "s3://synthetic-bucket/docs/input.pdf",
+  "attributes": "{\"synthetic\":true}"
+}
