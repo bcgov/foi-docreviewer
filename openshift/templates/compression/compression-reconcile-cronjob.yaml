@@ -32,11 +32,13 @@ objects:
             - name: "${APP_NAME}-reconcile"
               image: image-registry.openshift-image-registry.svc:5000/${IMAGE_NAMESPACE}/${IMAGE_NAME}:${TAG_NAME}
               imagePullPolicy: Always
+              command:
+              - /app/compression-service
               args:
               - reconcile
               env:
               - name: COMPRESSION_MESSAGING_MODE
-                value: legacy
+                value: standard
               - name: COMPRESSION_WORKLOAD
                 value: normal
               - name: COMPRESSION_PROCESSING_TIMEOUT
