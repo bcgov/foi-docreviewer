@@ -4,12 +4,6 @@ import yaml
 
 
 REPOSITORY_ROOT = Path(__file__).parents[3]
-TEMPLATE_PATHS = {
-    "normal": REPOSITORY_ROOT
-    / "openshift/templates/compression/compression-deploy.yaml",
-    "large": REPOSITORY_ROOT
-    / "openshift/templates/compression/compression-largefiles-deploy.yaml",
-}
 CRONJOB_PATH = (
     REPOSITORY_ROOT
     / "openshift/templates/compression/compression-reconcile-cronjob.yaml"
@@ -25,13 +19,6 @@ def _template_object(template_path):
     return yaml.safe_load(template_path.read_text())["objects"][0]
 
 
-def _environment(template_path):
-    container = _template_object(template_path)["spec"]["template"]["spec"][
-        "containers"
-    ][0]
-    return {entry["name"]: entry for entry in container["env"]}
-
-
 def _cronjob():
     return _template_object(CRONJOB_PATH)
 
@@ -42,59 +29,6 @@ def _sample_environment(path):
         for line in path.read_text().splitlines()
         if line and not line.startswith("#") and "=" in line
     }
-
-
-def test_compression_deployments_define_isolated_workload_runtime_settings():
-    normal = _environment(TEMPLATE_PATHS["normal"])
-    large = _environment(TEMPLATE_PATHS["large"])
-
-    expected_common = {
-        "COMPRESSION_MESSAGING_MODE": "legacy",
-        "MESSAGING_STREAM_PREFIX": "foi",
-        "MESSAGING_CLAIM_INTERVAL": "30s",
-        "MESSAGING_MAX_DELIVERY_ATTEMPTS": "5",
-        "MESSAGING_SHUTDOWN_TIMEOUT": "25s",
-    }
-    for name, value in expected_common.items():
-        assert normal[name]["value"] == value
-        assert large[name]["value"] == value
-
-    assert normal["COMPRESSION_WORKLOAD"]["value"] == "normal"
-    assert normal["COMPRESSION_TOPIC"]["value"] == "compression"
-    assert normal["MESSAGING_CONSUMER_GROUP"]["value"] == (
-        "foi-compression-normal"
-    )
-    assert normal["COMPRESSION_PROCESSING_TIMEOUT"]["value"] == "15m"
-    assert normal["MESSAGING_CLAIM_MIN_IDLE"]["value"] == "17m"
-
-    assert large["COMPRESSION_WORKLOAD"]["value"] == "large"
-    assert large["COMPRESSION_TOPIC"]["value"] == "compression-large"
-    assert large["MESSAGING_CONSUMER_GROUP"]["value"] == "foi-compression-large"
-    assert large["COMPRESSION_PROCESSING_TIMEOUT"]["value"] == "60m"
-    assert large["MESSAGING_CLAIM_MIN_IDLE"]["value"] == "62m"
-
-    assert normal["MESSAGING_CONSUMER_GROUP"]["value"] != large[
-        "MESSAGING_CONSUMER_GROUP"
-    ]["value"]
-
-
-def test_compression_deployments_keep_legacy_rollback_configuration_without_dual_mode():
-    environments = {
-        name: _environment(path) for name, path in TEMPLATE_PATHS.items()
-    }
-
-    for environment in environments.values():
-        names = set(environment)
-        assert "COMPRESSION_STREAM_KEY" in names
-        assert "COMPRESSION_CHECKPOINT_KEY" in names
-        assert not any(
-            "DUAL" in entry_name and "COMPRESSION" in entry_name
-            for entry_name in names
-        )
-        stream_secret = environment["COMPRESSION_STREAM_KEY"]["valueFrom"][
-            "secretKeyRef"
-        ]
-        assert "optional" not in stream_secret
 
 
 def test_compression_reconciliation_cronjob_is_bounded_and_non_overlapping():

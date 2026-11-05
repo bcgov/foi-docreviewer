@@ -50,33 +50,6 @@ public sealed class DeploymentRecoveryConfigurationTests
         }
     }
 
-    [DataTestMethod]
-    [DataRow("openshift/templates/fileconv-deploy.yaml")]
-    [DataRow("openshift/templates/fileconv-largefiles-deploy.yaml")]
-    public void OpenShiftTemplateDeclaresAndMapsEveryRecoveryVariable(string path)
-    {
-        var template = ReadRepositoryFile(path);
-
-        foreach (var variable in RecoveryVariables)
-        {
-            Assert.AreEqual(
-                1,
-                Regex.Matches(
-                    template,
-                    $"^\\s+- name: {Regex.Escape(variable)}\\s*$",
-                    RegexOptions.Multiline).Count,
-                $"Expected exactly one container environment mapping for {variable} in {path}.");
-            Assert.AreEqual(
-                1,
-                Regex.Matches(
-                    template,
-                    $"^- name: {Regex.Escape(variable)}\\s*$",
-                    RegexOptions.Multiline).Count,
-                $"Expected exactly one parameter declaration for {variable} in {path}.");
-            StringAssert.Contains(template, $"value: \"${{{variable}}}\"");
-        }
-    }
-
     private static string ReadRepositoryFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

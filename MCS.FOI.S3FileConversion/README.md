@@ -659,19 +659,9 @@ The current GitHub Actions flow is:
 
 The live Helm manifests and values are in the external GitOps repository and are **Not determined from this repository**.
 
-### Checked-in OpenShift templates
+### OpenShift runtime configuration
 
-`../openshift/templates/fileconv-deploy.yaml` and `fileconv-largefiles-deploy.yaml` are older `DeploymentConfig` templates. They show:
-
-- rolling deployment strategy;
-- one replica;
-- `50m` CPU / `250Mi` memory requests;
-- `150m` CPU / `500Mi` memory limits;
-- `30` second pod termination grace period;
-- secret references for database, S3, Redis, format, licence, and retry configuration; and
-- separate stream keys for the large-file deployment.
-
-The normal template omits several variables required by current code, including `DEDUPE_STREAM_KEY`, `RECORD_FORMATS`, and the Syncfusion/retry values. The large-file template contains them. The templates are not the current GitOps source of truth.
+The legacy conversion build and deployment templates have been retired. Maintain both `reviewer-conversion` and `reviewer-conversion-largefiles` in the [Reviewer GitOps chart](https://github.com/bcgov-c/tenant-gitops-d106d6/tree/main/foi-doc-reviewer), using the appropriate environment values. See [OpenShift ownership](../openshift/README.md) for retained provisioning and utility builds.
 
 Both standard and large-file conversion deployments must inject `CONSUMER_NAME`
 from `metadata.name`:
@@ -684,10 +674,10 @@ from `metadata.name`:
 ```
 
 Configure the live GitOps manifests before or alongside the application
-rollout; the checked-in legacy templates are not the live source of truth.
+rollout; the GitOps chart is the live source of truth.
 Older application images ignore this additional variable.
 
-`fileconv-build.yaml` references `Dockerfile.local`, which is not present in this directory. Current GitHub Actions uses `Dockerfile` directly.
+Current GitHub Actions builds this directory's `Dockerfile` directly.
 
 ### Runtime requirements
 
@@ -854,7 +844,7 @@ Docker.bcgov                       Legacy/inconsistent .NET 6 image definition
 test.runsettings                   Machine-specific MSTest environment example
 ../docker-compose.yml              Parent-repository local service composition
 ../sample.env                      Parent-repository environment template
-../openshift/templates/fileconv-*  Legacy OpenShift build/deploy templates
+../openshift/README.md             Deployment ownership and retained provisioning
 ../.github/workflows/              Current image build and GitOps deployment flows
 ```
 

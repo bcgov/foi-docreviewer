@@ -30,9 +30,11 @@ So:
 4. Run `./backup.sh -1` to manually trigger a backup, then do `ls /backups/` to verify it's there.
 
 
-This copy-to-s3 script is configured to use `foi-docreviewer-bkup-pvc`, but if you use something different just change `deploy-job.yaml`
+The copy-to-s3 CronJob's PVC reference is configured per environment in the [Reviewer GitOps chart](https://github.com/bcgov-c/tenant-gitops-d106d6/tree/main/foi-doc-reviewer). Verify the referenced claim against the backup workload before changing it.
 
-## Deploy to OpenShift
+## Build the utility image
+
+The source in this directory and `build-job.yaml` remain the utility image's build inputs. The application service catalog does not replace this build. The existing build procedure is:
 
 ```bash
 # in tools
@@ -40,20 +42,11 @@ oc project ****-tools
 oc process -f build-job.yaml -o yaml | oc apply -f -
 oc start-build backup-to-s3-build
 
-# in dev
-oc project ****-test # or prod
-
-
-# upload env file as params - manually verify output the yaml looks correct and is loading envs!
-oc process -f deploy-job.yaml --param-file=.env -o yaml
-# then upload job yaml
-oc process -f deploy-job.yaml --param-file=.env -o yaml | oc apply -f -
-
-
-# Optional: Dry-run, use this command instead of above if you want to do a dry-run. Advised 
-oc process -f deploy-job.yaml --param-file=.env -o yaml | oc apply -f - --dry-run=server
 ```
 
+## Scheduled deployment
+
+Argo CD manages `backup-to-s3` through the Reviewer GitOps chart in dev, test and prod. Update its image, schedule, storage and Secret references in that chart's environment values. The legacy deployment template has been retired. Preserve the backup workload and its prerequisite provisioning separately from this scheduled S3 copy.
 
 ## Trigger the cronjob manually
 
