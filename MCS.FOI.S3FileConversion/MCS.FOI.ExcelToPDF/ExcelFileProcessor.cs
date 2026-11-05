@@ -110,6 +110,11 @@ namespace MCS.FOI.ExcelToPDF
                                                 if (worksheet.Visibility == WorksheetVisibility.Visible)
                                                 {
                                                     Log.Debug("Converting worksheet: {WorksheetName}", worksheet.Name);
+                                                    if (worksheet.UsedRange != null && worksheet.UsedRange.LastColumn > 0 && worksheet.UsedRange.LastRow > 0) {
+                                                        worksheet.UsedRange.WrapText = true;
+                                                    }
+                                                    worksheet.UsedRange.AutofitColumns();
+                                                    worksheet.UsedRange.AutofitRows();
                                                     output = SaveToPdf(worksheet, output);
                                                 }
                                             }
@@ -120,6 +125,11 @@ namespace MCS.FOI.ExcelToPDF
                                             {
                                                 if (worksheet.Visibility == WorksheetVisibility.Visible)
                                                 {
+                                                    if (worksheet.UsedRange != null && worksheet.UsedRange.LastColumn > 0 && worksheet.UsedRange.LastRow > 0) {
+                                                        worksheet.UsedRange.WrapText = true;
+                                                    }
+                                                    worksheet.UsedRange.AutofitColumns();
+                                                    worksheet.UsedRange.AutofitRows();
                                                     worksheet.PageSetup.PrintComments = ExcelPrintLocation.PrintSheetEnd;
                                                 }
                                             }
