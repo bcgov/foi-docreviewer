@@ -1,4 +1,4 @@
-FROM python:3.10.8
+FROM python:3.13-bookworm
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -11,7 +11,7 @@ WORKDIR /home/app_user
 COPY requirements.txt ./
 RUN apt-get update \
     && apt-get -y install libpq-dev gcc \
-    && pip install psycopg2
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 USER app_user
 COPY . .

@@ -1,0 +1,46 @@
+name: PDFStitch Services Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'computingservices/PDFStitchServices/**'
+      - '.github/workflows/pdfstitch-services-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build both images and verify native imports and output
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/PDFStitchServices
+          docker pull python:3.13-bookworm
+          docker image inspect python:3.13-bookworm --format '{{json .RepoDigests}}'
+          for dockerfile in Dockerfile Dockerfile.local; do
+            image="reviewer-pdfstitch:${dockerfile,,}"
+            docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
+            docker run --rm --entrypoint python "$image" -m pip check
+            docker run --rm --entrypoint python "$image" integrationtests/runtime_smoke.py
+            docker build -t "$image-tests" --build-arg "CANDIDATE=$image" -f - "$service" <<'DOCKERFILE'
+          ARG CANDIDATE
+          FROM ${CANDIDATE}
+          USER root
+          RUN python -m pip install --no-cache-dir -r requirements-test.txt
+          USER app_user
+          DOCKERFILE
+            docker run --rm --entrypoint python "$image-tests" -m pip check
+            docker run --rm --entrypoint sh "$image-tests" -ec '
+              python -m pytest --collect-only -q -p no:cacheprovider unittests
+              python -m pytest -q -p no:cacheprovider --junitxml=/tmp/results.xml unittests
+              python -c '\''import xml.etree.ElementTree as E; r=E.parse("/tmp/results.xml"); suites=list(r.iter("testsuite")); assert sum(int(s.get("tests", 0)) for s in suites)>0; assert sum(int(s.get("skipped", 0)) for s in suites)==0'\''
+            '
+            bash "$service/integrationtests/verify-packaged-worker.sh" "$image-tests"
+          done
