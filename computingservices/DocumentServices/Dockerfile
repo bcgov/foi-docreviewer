@@ -1,19 +1,15 @@
-FROM python:3.10.18-bullseye
+FROM python:3.13-bookworm
 
-# Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
-RUN set -eux; apt-get update; apt-get install -y --no-install-recommends ca-certificates curl netbase wget ; rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl netbase wget libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --shell /bin/bash app_user
 WORKDIR /home/app_user
 COPY requirements.txt ./
-RUN apt-get update \
-    && apt-get -y install libpq-dev gcc \
-    && pip install psycopg2
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
 USER app_user
 COPY . .
 ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]
