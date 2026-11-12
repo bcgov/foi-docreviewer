@@ -2960,6 +2960,8 @@ const Redlining = React.forwardRef(
       let annotrect = _annot.getRect();
       annotrect.x2 = Math.ceil(annotrect.x2);
       _annot.setRect(annotrect);
+      const ANNOTATION_WIDTH_BUFFER = 20;
+      const annotationWidthWithBuffer = _annot.Width + ANNOTATION_WIDTH_BUFFER;
       if (pageRotation === 0 || _redaction.IsText) {
         // _annot.X = X || rect.x1;
         // _annot.Y = rect.y1;
@@ -2967,7 +2969,7 @@ const Redlining = React.forwardRef(
           new docViewerMath.Rect(
             rect.x1,
             rect.y1,
-            rect.x1 + _annot.Width,
+            rect.x1 + annotationWidthWithBuffer,
             rect.y1 + _annot.Height,
           ),
         );
@@ -2978,7 +2980,7 @@ const Redlining = React.forwardRef(
         _annot.setRect(
           new docViewerMath.Rect(
             rect.x1,
-            rect.y2 - _annot.Width,
+            rect.y2 - annotationWidthWithBuffer,
             rect.x1 + _annot.Height,
             rect.y2,
           ),
@@ -2989,7 +2991,7 @@ const Redlining = React.forwardRef(
       } else if (pageRotation === 180) {
         _annot.setRect(
           new docViewerMath.Rect(
-            rect.x2 - _annot.Width,
+            rect.x2 - annotationWidthWithBuffer,
             rect.y2 - _annot.Height,
             rect.x2,
             rect.y2,
@@ -3004,7 +3006,7 @@ const Redlining = React.forwardRef(
             rect.x2 - _annot.Height,
             rect.y1,
             rect.x2,
-            rect.y1 + _annot.Width,
+            rect.y1 + annotationWidthWithBuffer,
           ),
         );
         _annot.Rotation = pageRotation;

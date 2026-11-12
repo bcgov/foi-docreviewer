@@ -239,7 +239,7 @@ export const FOIPPASectionsModal= ({
                   {sections?.sort(compareValues).map((section, index) => (
                     <ListItem key={"list-item" + section.id}>
                       <label
-                        style={{ display: "flex", alignItems: "center"}}
+                        style={{ display: "flex", alignItems: "center", width: "100%"}}
                         key={"list-label" + section.id}
                         className="check-item"
                       >
@@ -322,7 +322,7 @@ export const FOIPPASectionsModal= ({
                 {sections?.sort(compareValues).map((section, index) => (
                   <ListItem key={"list-item" + section.id}>
                     <label
-                        style={{ display: "flex", alignItems: "center"}}
+                        style={{ display: "flex", alignItems: "center", width: "100%"}}
                         key={"list-label" + section.id}
                         className="check-item"
                     >
