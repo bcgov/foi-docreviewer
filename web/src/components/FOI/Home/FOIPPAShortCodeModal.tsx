@@ -104,7 +104,7 @@ const FOIPPAShortCodeModal = ({
                             return (
                             <ListItem key={"list-item" + section.id}>
                                 <label
-                                    style={{ display: "flex", alignItems: "center"}}
+                                    style={{ display: "flex", alignItems: "center", width: "100%"}}
                                     key={"list-label" + section.id}
                                     className="check-item"
                                 >
