@@ -12,6 +12,8 @@ on:
       - test-rook
     paths:
       - "computingservices/ETLServices/**"
+      - ".github/workflows/etlservices-ci.yml"
+  workflow_dispatch:
 
 defaults:
   run:
@@ -24,27 +26,34 @@ jobs:
     name: Build dockerfile to ensure it works
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: docker build to check strictness
         id: docker-build
         run: |
-          docker build -f Dockerfile .
+          docker build -t reviewer-etlservices:ci -f Dockerfile .
+          docker image inspect reviewer-etlservices:ci --format '{{.Id}}'
+          docker run --rm reviewer-etlservices:ci --version
+          docker run --rm reviewer-etlservices:ci -c 'import sys; assert sys.version_info[:2] == (3, 13)'
+          docker run --rm reviewer-etlservices:ci -m pip check
+          docker run --rm reviewer-etlservices:ci -c 'import boto3, botocore, psycopg2'
 
   go-build-check:
     runs-on: ubuntu-latest
-    name: Build python to ensure it works
+    name: Python dependency validation
 
     strategy:
       matrix:
-        python-version: [3.11]
+        python-version: ["3.13"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
+          python --version
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m pip check
