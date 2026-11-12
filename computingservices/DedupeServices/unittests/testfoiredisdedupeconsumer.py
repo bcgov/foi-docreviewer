@@ -47,10 +47,6 @@ sys.modules.setdefault(
     "services.compressionproducerservice",
     collaborator_module("services.compressionproducerservice", compressionproducerservice=None),
 )
-sys.modules.setdefault(
-    "rstreamio.redisstreamwriter",
-    collaborator_module("rstreamio.redisstreamwriter", redisstreamwriter=None),
-)
 
 import services.foiredisdedupeconsumer as consumer_module
 

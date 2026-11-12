@@ -89,11 +89,15 @@ rather than silently coerced.
 
 ## Local development
 
+Both Dockerfiles use standard CPython 3.13 on Debian Bookworm
+(`python:3.13-bookworm`). PostgreSQL uses the single source-built
+`psycopg2` distribution, linked against the image's system libpq.
+
 ```bash
 cd computingservices/DedupeServices
 python -m venv .venv
 . .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-test.txt
 python __main__.py
 ```
 
@@ -102,6 +106,27 @@ container through `docker-compose.yml`. Do not place real passwords, access
 tokens, or presigned URLs in sample files or logs.
 
 ## Testing
+
+The `Dedupe Services Tests` workflow builds both Dockerfiles, checks production
+dependencies and native imports before pytest, and runs the full unit suite
+in disposable test images as `app_user`. The full checkout is mounted read-only
+because configuration tests inspect root Compose and deployment files. The
+separate Python 3.13 / Go 1.25 job exercises both compression workload topics.
+Image publishing remains in `ci-build-images.yml`; require both Dedupe test
+jobs to pass before merging or promoting an upgrade.
+
+To check a production image before running tests:
+
+```bash
+docker run --rm --entrypoint python reviewer-dedupe:py313 -m pip check
+docker run --rm --entrypoint python reviewer-dedupe:py313 integrationtests/runtime_smoke.py
+```
+
+The smoke check imports real PostgreSQL/PDF/Redis/AWS modules, constructs the
+Walrus adapter, and generates, reads and renders a synthetic multipage PDF.
+Run it in a fresh process before pytest; several unit tests stub collaborators.
+Keep local `.env`, `.venv`, IDE files and generated caches out of build contexts;
+the upgrade evidence below used clean contexts assembled from repository files.
 
 Run the fast unit suite from this directory:
 
@@ -130,7 +155,16 @@ RUN_COMPRESSION_CONTRACT_TESTS=1 \
 
 The integration fixture uses Redis 7 on `127.0.0.1:16379`, publishes to both
 standard workload topics, and verifies topic isolation and cross-language
-envelope compatibility.
+envelope compatibility. Build the Go fixture first to keep compilation outside
+the consumer's 30-second deadline:
+
+```bash
+cd integrationtests/go-consumer
+go build -o /tmp/dedupe-contract-consumer .
+```
+
+Its dedicated Redis instance stores data in tmpfs and is removed without deleting
+Docker volumes. It does not touch the shared development Redis instance.
 
 ## Observability and safety
 

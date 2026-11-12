@@ -67,7 +67,6 @@ def redis_client():
                 "-f",
                 str(COMPOSE_FILE),
                 "down",
-                "--volumes",
             ],
             check=False,
         )
@@ -138,8 +137,7 @@ def consume(topic, expect_dispatch):
             topic,
             "-group",
             f"contract-{topic}",
-            "-expect-dispatch",
-            str(expect_dispatch).lower(),
+            f"-expect-dispatch={str(expect_dispatch).lower()}",
         ],
         cwd=GO_CONSUMER_DIRECTORY,
         env={**os.environ, "REDIS_ADDRESS": f"127.0.0.1:{REDIS_PORT}"},

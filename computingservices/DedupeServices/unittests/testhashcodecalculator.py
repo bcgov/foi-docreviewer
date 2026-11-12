@@ -6,7 +6,7 @@ from .testcontext import hashcalc , dedupeunittestbasedirectory
 class Testhashcodecalculator(unittest.TestCase):
 
     def test_hascalc(self):                
-        testfilepath = str.format('{0}\\files\\sample.pdf', dedupeunittestbasedirectory)
+        testfilepath = dedupeunittestbasedirectory / 'files' / 'sample.pdf'
         documenthashvalue1 = hashcalc.hash_file(testfilepath)
         self.assertIsNotNone(documenthashvalue1)
         documenthashvalue2 = hashcalc.hash_file(testfilepath)       

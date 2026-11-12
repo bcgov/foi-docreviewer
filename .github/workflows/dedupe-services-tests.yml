@@ -1,0 +1,76 @@
+name: Dedupe Services Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'computingservices/DedupeServices/**'
+      - '.github/workflows/dedupe-services-tests.yml'
+      - 'docker-compose.yml'
+      - 'sample.env'
+      - 'openshift/templates/compression/**'
+      - 'computingservices/CompressionServices/sample.env'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test both application images
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/DedupeServices
+          docker pull python:3.13-bookworm
+          docker image inspect python:3.13-bookworm --format '{{json .RepoDigests}}'
+          for dockerfile in Dockerfile Dockerfile.local; do
+            image="reviewer-dedupe:${dockerfile,,}"
+            docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
+            docker run --rm --entrypoint python "$image" -m pip check
+            docker run --rm --entrypoint python "$image" integrationtests/runtime_smoke.py
+            docker build -t "$image-tests" --build-arg "CANDIDATE=$image" -f - "$service" <<'DOCKERFILE'
+          ARG CANDIDATE
+          FROM ${CANDIDATE}
+          USER root
+          COPY requirements-test.txt /tmp/requirements-test.txt
+          RUN python -m pip install --no-cache-dir -r /tmp/requirements-test.txt
+          USER app_user
+          DOCKERFILE
+            docker run --rm --entrypoint python "$image-tests" -m pip check
+            docker run --rm --entrypoint python \
+              -v "$GITHUB_WORKSPACE:/workspace:ro" \
+              -w /workspace/computingservices/DedupeServices \
+              "$image-tests" -m pytest -q -p no:cacheprovider unittests
+          done
+
+  compression-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: computingservices/DedupeServices/integrationtests/go-consumer/go.sum
+      - name: Install dependencies
+        working-directory: computingservices/DedupeServices
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev gcc
+          python -m pip install -r requirements.txt -r requirements-test.txt
+      - name: Build Go consumer before the test deadline
+        working-directory: computingservices/DedupeServices/integrationtests/go-consumer
+        run: go build -o "$RUNNER_TEMP/compression-contract-consumer" .
+      - name: Verify normal and large Python to Go contracts
+        working-directory: computingservices/DedupeServices
+        env:
+          RUN_COMPRESSION_CONTRACT_TESTS: '1'
+        run: python -m pytest -q -p no:cacheprovider integrationtests/test_go_compression_contract.py
