@@ -26,4 +26,3 @@ requests==2.34.2
 secure==0.3.0
 sqlalchemy==2.0.55
 walrus==0.9.8
-pytest==9.1.1
