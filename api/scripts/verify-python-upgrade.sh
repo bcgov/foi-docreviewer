@@ -22,6 +22,11 @@ fi
 mkdir -p "$UPGRADE_EVIDENCE_DIR" "$UPGRADE_TLS_DIR"
 docker image inspect --format '{{.Id}}' "$UPGRADE_APP_IMAGE" > "$UPGRADE_EVIDENCE_DIR/image-id.txt"
 openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=storage -addext subjectAltName=DNS:storage -keyout "$UPGRADE_TLS_DIR/storage.key" -out "$UPGRADE_TLS_DIR/storage.crt" > "$UPGRADE_EVIDENCE_DIR/tls.log" 2>&1
+# SeaweedFS drops to its own uid 1000. openssl writes the key 0600 for the invoking
+# user, so on hosts where that is not uid 1000 (GitHub runners use 1001) the HTTPS
+# listener cannot read it and silently never answers. The key is disposable and
+# per-run, so make it readable to the storage container.
+chmod 0644 "$UPGRADE_TLS_DIR/storage.key"
 project="reviewer-upgrade-${phase}-${run_id}"
 printf '%s\n' "$project" > "$UPGRADE_EVIDENCE_DIR/compose-project.txt"
 compose=(docker compose --project-name "$project" --env-file "$service_dir/tests/upgrade.env" -f "$service_dir/tests/compose.python-upgrade.yml")
