@@ -1,12 +1,12 @@
 # Reviewer API failing-test investigation
 
-Investigated 2026-10-26 in `feat/reviewer-api-python313`; application code and the five legacy test files/cases were not changed during investigation.
+Investigated 2026-10-26 on the FOIMOD-4901 Python 3.13 branch (then a local `feat/reviewer-api-python313` worktree); application code and the five legacy test files/cases were not changed during investigation.
 
 ## Confirmed reproduction
 
 The same targeted selection was run against the captured Python 3.10.8 baseline and Python 3.13.17 candidate, with `--runxfail` to expose the expected failure. Each run reported **six failures and one pass**. The five ordinary failures and the query exception match across runtimes. These observations do not identify an upgrade-caused regression.
 
-Evidence is separate from the prior full-suite results:
+Evidence is separate from the prior full-suite results. These are local paths from the investigation and are not published:
 
 - `/tmp/reviewer-api-python-upgrade/investigation-baseline/{tests.xml,checks.log}`
 - `/tmp/reviewer-api-python-upgrade/investigation-candidate/{tests.xml,checks.log}`

@@ -1,3 +1,8 @@
 ARG APP_IMAGE=foi-reviewer-api-upgrade:candidate
 FROM ${APP_IMAGE}
+# Test tooling is layered here so production images never ship pytest.
+# The reconstructed 3.10 baseline already bundles its own pytest; keep it untouched.
+COPY requirements-test.txt /tmp/requirements-test.txt
+RUN python -c "import pytest" 2>/dev/null \
+    || python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements-test.txt
 ENV PYTHONPATH=/verification-source

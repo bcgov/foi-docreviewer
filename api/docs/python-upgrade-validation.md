@@ -1,11 +1,13 @@
 # Reviewer API Python 3.13 upgrade validation
 
-Status: development candidate verified; DEV smoke test and normal security/release review pending. No commit, PR publication, image publication or deployment has been performed.
+Status: development candidate verified locally and proposed for review as FOIMOD-4901. Hosted CI, DEV smoke test and normal security/release review are pending. No image publication or deployment has been performed.
+
+Paths under `/tmp/reviewer-api-python-upgrade/` below are local evidence from the original runs and are not available to reviewers. Hosted CI uploads equivalent synthetic evidence as the `reviewer-api-python-upgrade` workflow artifact.
 
 ## Candidate and provenance
 
-- Branch/worktree: `feat/reviewer-api-python313`, `.worktrees/reviewer-api-python313`.
-- Starting source SHA: `3974e1d8ff69076defb753da19279164646568f4`; changes remain uncommitted.
+- Branch: `FOIMOD-4901_api-python313`, rebased onto `dev`.
+- Original starting source SHA: `3974e1d8ff69076defb753da19279164646568f4`. Hosted CI uses the PR base SHA as its baseline.
 - Runtime-source/dependency diff SHA-256: `ced369cc35e9913bedaf077c9cbc285a019bff5bf8b36e463383889f0562c120`.
 - Tested image: `sha256:4fa00ce0e34ba5d6477e6b8bcfd23570a155410d4923671d3c69920b79cb01e0`.
 - Python 3.13.17 Trixie base is pinned by index digest `sha256:d5a186865324088bd10d1671801b42297a8fe3f8059143fb22b2e2b776ffa6dd`.
@@ -14,7 +16,7 @@ Status: development candidate verified; DEV smoke test and normal security/relea
 
 ## Changes
 
-Reviewer has its own direct inputs and full Linux/Python 3.13 hash-locked dependency graph. Only actively imported packages and required transitive packages remain; one psycopg2 distribution retains the existing driver API. Flask/ORM/auth/serialization dependencies were resolved together. Production and local Dockerfiles use the same runtime and lock.
+Reviewer has its own direct inputs and full Linux/Python 3.13 hash-locked dependency graph. Only actively imported packages and required transitive packages remain; one psycopg2 distribution retains the existing driver API. Flask/ORM/auth/serialization dependencies were resolved together. Production and local Dockerfiles use the same runtime and lock. Test tooling (pytest and its dependencies) is hash-locked separately in `requirements-test.txt` and installed only into the disposable test image, so production images do not ship pytest.
 
 SQLAlchemy compatibility changes preserve selected fields and queries through positional `case` arguments, named result mappings and explicit uncapped annotation pagination. Model serialization preserves the former Marshmallow rc7 UTC timestamp format, including naive `+00:00`, aware offset normalization and nulls. No migration revision or schema change was added.
 
@@ -25,6 +27,7 @@ Flask-Script is replaced by a supported Flask CLI retaining `python manage.py db
 - Focused gate: **74 passed, one strict expected failure**.
 - Full candidate: **76 passed, five legacy failures, one strict expected failure**.
 - Full baseline: **65 passed, seven failures, nine errors, one strict expected failure**.
+- Re-verified 2026-11-12 after rebasing onto `dev` (baseline rebuilt from `2bb01d0e`) and moving pytest out of the production lock: identical counts, schema/heads parity and rollback read; 82 compared cases, 0 regressions. Image IDs listed above predate this re-run.
 - **Zero previously passing baseline tests regressed.** The [complete comparison](python-upgrade-test-comparison.md) names every case and retained failure.
 - Production/local image builds and dependency consistency checks passed; candidate reports Python 3.13.17.
 - Real disposable PostgreSQL tests cover annotation insert/update/type/XML, mapping fields, replacement/deletion/layers, pagination above 100 records, commit/rollback/savepoints and cleanup. A nonempty page-flag REST read checks exact flags and date/null representation.
@@ -49,9 +52,9 @@ python3 api/scripts/compare-upgrade-results.py /tmp/reviewer-api-python-upgrade/
 
 ## Security findings and limits
 
-Grype scanned image `sha256:1bf10eb0283580ffe9800054143c2b6f3a145c6ed2b46b5f2fb4f797152bdb8c`. Its first 11 of 12 layers match the tested image; all OS, native and installed-dependency layers are identical. The final application/test-source layer differs following compatibility/test edits. Evidence: `/tmp/reviewer-api-python-upgrade/grype-reviewed.json` and `scan-layer-proof.json`.
+Grype scanned image `sha256:1bf10eb0283580ffe9800054143c2b6f3a145c6ed2b46b5f2fb4f797152bdb8c`. Its first 11 of 12 layers match the tested image; all OS, native and installed-dependency layers are identical. The final application/test-source layer differs following compatibility/test edits. Local evidence (not published): `/tmp/reviewer-api-python-upgrade/grype-reviewed.json` and `scan-layer-proof.json`.
 
-The available High/Critical fix for `libunbound8` is installed as `1.26.2-0+deb13u1` in both Dockerfiles. The subsequent scan reports **zero High/Critical matches with published fixes**, while retaining 116 unique High/Critical advisory IDs, including inherited OS/native findings and the Python advisories below. This is not vulnerability clearance; normal applicability/acceptance review remains required.
+The available High/Critical fix for `libunbound8` was verified as `1.26.2-0+deb13u1`. Both Dockerfiles run `apt-get install --only-upgrade libunbound8` without an exact version, so builds keep working after Debian supersedes that point release and always take at least the fixed version. The subsequent scan reports **zero High/Critical matches with published fixes**, while retaining 116 unique High/Critical advisory IDs, including inherited OS/native findings and the Python advisories below. This is not vulnerability clearance; normal applicability/acceptance review remains required.
 
 - [python-jose DER/HMAC confusion advisory](https://github.com/advisories/GHSA-3qf3-8w2g-rqmx) has no patched release. Reviewer uses jose for unverified claim parsing, with cryptographic REST verification through flask-jwt-oidc/PyJWT. The tested RS256 configuration rejects the forged HMAC token. Confirm the deployed algorithm configuration and active call paths in release review.
 - [ECDSA timing advisory](https://github.com/advisories/GHSA-wj6h-64fc-37mp) has no patched release. No application ECDSA signing/key generation was found; this is a source applicability assessment, not blanket clearance of the installed library.
