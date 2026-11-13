@@ -11,7 +11,7 @@ python-dotenv==0.21.0
 pypdf==3.5.1
 PyMuPDF==1.24.14
 redis==5.2.1
-reportlab==3.6.12
+reportlab==4.5.1
 s3transfer==0.6.0
 six==1.16.0
 typer==0.4.1
@@ -20,3 +20,4 @@ walrus==0.9.4
 wrapt==1.14.1
 marshmallow==3.26.2
 Pillow==11.1.0
+charset-normalizer==3.5.2

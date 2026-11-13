@@ -2,7 +2,7 @@
 
 Redis worker that persists page-calculation job history in Document Reviewer
 and updates active FOI ministry request counts in a separate PostgreSQL database.
-Both Dockerfiles use full `python:3.13-bookworm`, source-built `psycopg2==2.9.10`,
+Both Dockerfiles use full `python:3.13.17-trixie`, source-built `psycopg2==2.9.10`,
 and the existing `app_user`, working directory, environment and entrypoint.
 
 ## Build and test
@@ -11,7 +11,7 @@ From the repository root:
 
 ```bash
 service=computingservices/PageCountCalculator
-docker pull python:3.13-bookworm
+docker pull python:3.13.17-trixie
 for dockerfile in Dockerfile Dockerfile.local; do
   image="reviewer-pagecountcalculator:${dockerfile,,}"
   docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"

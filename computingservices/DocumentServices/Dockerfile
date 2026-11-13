@@ -1,4 +1,7 @@
-FROM python:3.13-bookworm
+FROM python:3.13.17-trixie
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade libunbound8 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

@@ -21,8 +21,9 @@ PyPDF2==3.0.1
 PyMuPDF==1.25.5
 pycryptodome==3.18.0
 pytz==2026.5
-reportlab==3.6.12
+reportlab==4.5.1
 maya==0.6.1
 pendulum==3.3.0
 tzdata==2026.5
 uuid6==2024.7.10
+charset-normalizer==3.5.2

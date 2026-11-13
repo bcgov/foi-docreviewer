@@ -10,7 +10,7 @@ python-dateutil==2.8.2
 python-dotenv==0.21.0
 pypdf==3.5.1
 redis==5.2.1
-reportlab==3.6.12
+reportlab==4.5.1
 s3transfer==0.6.0
 six==1.16.0
 typer==0.4.1

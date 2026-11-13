@@ -89,8 +89,8 @@ rather than silently coerced.
 
 ## Local development
 
-Both Dockerfiles use standard CPython 3.13 on Debian Bookworm
-(`python:3.13-bookworm`). PostgreSQL uses the single source-built
+Both Dockerfiles use standard CPython 3.13 on Debian 13 Trixie
+(`python:3.13.17-trixie`). PostgreSQL uses the single source-built
 `psycopg2` distribution, linked against the image's system libpq.
 
 ```bash

@@ -7,7 +7,7 @@ their status at `started` until that happens.
 
 ## Runtime
 
-Both Dockerfiles use full `python:3.13-bookworm`, with the same OS packages,
+Both Dockerfiles use full `python:3.13.17-trixie`, with the same OS packages,
 `app_user`, working directory, fonts and entrypoint. Requirements are UTF-8.
 Build both after one base pull to use the same resolved digest. The image tag
 floats for security patches; record the digest and Python patch for each release.
@@ -23,7 +23,9 @@ Dependency changes are limited to demonstrated compatibility problems:
 | marshmallow | 3.0.0rc7 | 3.26.2 | Old version imports removed `distutils`; retain schema major version and include the 3.26.2 fix. |
 | Pillow | unpinned transitive dependency | 11.1.0 | Explicit 3.13 wheel, validated PNG/JPEG conversion and rendering. |
 
-ReportLab 3.6.12 and wrapt 1.14.1 build/import successfully and remain pinned.
+ReportLab moves from 3.6.12 to 4.5.1 (pure-Python wheel, adds `charset-normalizer`):
+3.6.12 does not compile with GCC 14 on Trixie, and on Bookworm its C accelerator
+already failed to import. wrapt 1.14.1 builds/imports successfully and remains pinned.
 The boto3/botocore/s3transfer set is unchanged. This is a runtime compatibility
 upgrade, not a complete dependency security refresh. Native and schema libraries
 emit deprecation warnings; a future interpreter upgrade needs fresh validation.
@@ -37,8 +39,8 @@ Upstream references: [PyMuPDF changes](https://pymupdf.readthedocs.io/en/latest/
 From this directory:
 
 ```bash
-docker pull python:3.13-bookworm
-docker image inspect python:3.13-bookworm --format '{{json .RepoDigests}}'
+docker pull python:3.13.17-trixie
+docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
 docker build --no-cache -t reviewer-pdfstitch:py313 -f Dockerfile .
 docker build --no-cache -t reviewer-pdfstitch:py313-local -f Dockerfile.local .
 docker run --rm --entrypoint python reviewer-pdfstitch:py313 -m pip check

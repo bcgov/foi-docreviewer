@@ -4,7 +4,7 @@ Generates redaction summary PDFs through CDOGS, uploads them to S3-compatible st
 
 ## Runtime and dependencies
 
-Both `Dockerfile` and `Dockerfile.local` use `python:3.13-bookworm`, the same OS packages, working directory, `app_user`, templates, and entrypoint. Build them as a pair after one base-image pull so verification uses the same resolved base digest.
+Both `Dockerfile` and `Dockerfile.local` use `python:3.13.17-trixie`, the same OS packages, working directory, `app_user`, templates, and entrypoint. Build them as a pair after one base-image pull so verification uses the same resolved base digest.
 
 `requirements.txt` is UTF-8 (previously UTF-16). One source-built PostgreSQL driver, `psycopg2==2.9.10`, replaces overlapping `psycopg2==2.9.5` / `psycopg2-binary==2.8.6` installations. The old driver fails a fresh Python 3.13 import with undefined symbol `_PyInterpreterState_Get`. `marshmallow==3.26.1` replaces `3.0.0rc7`, which imports the removed `distutils` module. Marshmallow remains on major version 3. Other existing dependency pins, including Redis, Walrus, boto3/botocore/s3transfer, wrapt and pycryptodome, are retained. No schema migration or application configuration change is required.
 
@@ -47,8 +47,8 @@ The historical `.sampleenv` publisher settings `DOCUMENTSERVICE_REDIS_*` are use
 From this directory:
 
 ```bash
-docker pull python:3.13-bookworm
-docker image inspect python:3.13-bookworm --format '{{json .RepoDigests}}'
+docker pull python:3.13.17-trixie
+docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
 docker build --no-cache -t reviewer-documentservice:py313 -f Dockerfile .
 docker build --no-cache -t reviewer-documentservice:py313-local -f Dockerfile.local .
 docker run --rm --entrypoint python reviewer-documentservice:py313 -m pip check

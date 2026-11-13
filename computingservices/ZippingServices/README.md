@@ -1,6 +1,6 @@
 # ZippingServices
 
-Build both Dockerfiles on standard CPython 3.13 / Debian Bookworm. The shipped
+Build both Dockerfiles on standard CPython 3.13 / Debian 13 Trixie. The shipped
 entrypoint runs as `app_user`: `python __main__.py $`. No production Python source,
 message keys, schema, stream settings or credentials changed for FOIMOD-5495.
 
@@ -17,7 +17,10 @@ Both images install `gcc`/`libpq-dev`; neither pre-installs an unpinned driver.
 | walrus 0.9.2 → 0.9.4 | Original `Database()` raises missing `register_script`, including with corrected Redis |
 | marshmallow rc7 → 3.26.2 | Original imports removed `distutils` |
 
-PyPDF2 3.0.1, pypdf 3.5.1, reportlab 3.6.12 and wrapt 1.14.1 are retained after
+reportlab moves from 3.6.12 to 4.5.1: 3.6.12 has no Python 3.13 wheel and its C
+accelerator fails to compile with GCC 14 on Trixie (on Bookworm it built but failed
+to import, so ReportLab already ran in pure Python). PyPDF2 3.0.1, pypdf 3.5.1 and
+wrapt 1.14.1 are retained after
 successful real imports and archive/PDF tests. Requests, certifi, charset-normalizer,
 idna and Pillow are explicitly pinned to the successful probe resolutions;
 these were previously unconstrained transitives. boto3 1.26.16, botocore 1.29.16,
@@ -30,7 +33,7 @@ From the repository root:
 
 ```bash
 service=computingservices/ZippingServices
-docker pull python:3.13-bookworm
+docker pull python:3.13.17-trixie
 # Keep this resolved base unchanged for the paired builds.
 for variant in Dockerfile Dockerfile.local; do
   image="reviewer-zippingservice:${variant,,}"

@@ -22,8 +22,8 @@ jobs:
         run: |
           set -euo pipefail
           service=computingservices/PDFStitchServices
-          docker pull python:3.13-bookworm
-          docker image inspect python:3.13-bookworm --format '{{json .RepoDigests}}'
+          docker pull python:3.13.17-trixie
+          docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
           for dockerfile in Dockerfile Dockerfile.local; do
             image="reviewer-pdfstitch:${dockerfile,,}"
             docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
