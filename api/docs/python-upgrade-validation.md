@@ -10,7 +10,7 @@ Paths under `/tmp/reviewer-api-python-upgrade/` below are local evidence from th
 - Original starting source SHA: `3974e1d8ff69076defb753da19279164646568f4`. Hosted CI uses the PR base SHA as its baseline.
 - Runtime-source/dependency diff SHA-256: `ced369cc35e9913bedaf077c9cbc285a019bff5bf8b36e463383889f0562c120`.
 - Tested image: `sha256:4fa00ce0e34ba5d6477e6b8bcfd23570a155410d4923671d3c69920b79cb01e0`.
-- Python 3.13.17 Trixie base is pinned by index digest `sha256:d5a186865324088bd10d1671801b42297a8fe3f8059143fb22b2e2b776ffa6dd`.
+- Base image: `python:3.13.17-trixie` (tag, matching request-management-api). Tested against index digest `sha256:d5a186865324088bd10d1671801b42297a8fe3f8059143fb22b2e2b776ffa6dd`, which the tag still resolved to on 2026-11-12.
 - Baseline: frozen current API source over the existing local `docreviewerapiimage` dependency layers (Python 3.10.8). Captured SBC commit: `67bb5e775370970aa7b674b1185d195a51fd7eeb`. This is not deployed runtime/image provenance.
 - CI reconstructs its PR-base source with the captured SBC commit when the legacy editable dependency exists. Both UTF-16 legacy requirements and UTF-8 upgraded locks are supported. This reconstruction builds successfully locally; it is recorded separately from the captured image.
 
