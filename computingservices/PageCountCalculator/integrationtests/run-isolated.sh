@@ -20,7 +20,7 @@ for attempt in $(seq 1 60); do
      docker exec -e REDISCLI_AUTH=synthetic-only "$token-redis" redis-cli ping >/dev/null 2>&1; then
     break
   fi
-  if [ "$attempt" = 60 ]; then
+  if [[ "$attempt" = 60 ]]; then
     echo 'Disposable infrastructure readiness timed out' >&2
     exit 1
   fi

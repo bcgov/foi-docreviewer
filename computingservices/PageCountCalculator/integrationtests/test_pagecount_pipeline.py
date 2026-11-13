@@ -49,7 +49,7 @@ class Pipeline:
                 assert cursor.fetchall() == [(owner,)], "Refuse unowned database"
             self.connections.append(connection)
         self.doc, self.foi = self.connections
-        for conn, name in ((self.doc, "docreviewer.sql"), (self.foi, "foi.sql")):
+        for conn, name in ((self.doc, "docreviewer.pgsql"), (self.foi, "foi.pgsql")):
             with conn.cursor() as cursor:
                 cursor.execute(Path(__file__).with_name(name).read_text())
                 role = "pagecount_doc" if conn is self.doc else "pagecount_foi"

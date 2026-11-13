@@ -30,7 +30,8 @@ def test_byte_message_job_and_notification_decisions(monkeypatch, state, enabled
             events.append("notification")
 
     def record(obj, error, finalmessage, **kwargs):
-        assert error is True and finalmessage is None
+        assert error is True
+        assert finalmessage is None
         events.append("error")
 
     monkeypatch.setattr(reader, "pdfstitchservice", Stitch)

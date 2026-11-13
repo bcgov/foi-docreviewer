@@ -15,6 +15,10 @@ FIXTURE_DIRECTORY = Path(__file__).resolve().parent
 GO_CONSUMER_DIRECTORY = FIXTURE_DIRECTORY / "go-consumer"
 COMPOSE_FILE = FIXTURE_DIRECTORY / "docker-compose.yml"
 REDIS_PORT = 16379
+# CI runs this suite inside the Dedupe test image: Redis is started by the
+# workflow and the Go consumer is a prebuilt static binary mounted into it.
+EXTERNAL_REDIS = os.getenv("COMPRESSION_CONTRACT_REDIS") == "external"
+CONSUMER_BINARY = os.getenv("COMPRESSION_CONTRACT_CONSUMER")
 COMPRESSION_TOPICS = ("compression", "compression-large")
 
 sys.path.insert(0, str(DEDUPE_SERVICES_DIRECTORY))
@@ -32,20 +36,21 @@ def redis_client():
         pytest.skip("set RUN_COMPRESSION_CONTRACT_TESTS=1 to run the Redis/Go contract suite")
 
     project_name = "foimod5199compressioncontract"
-    subprocess.run(
-        [
-            "docker",
-            "compose",
-            "-p",
-            project_name,
-            "-f",
-            str(COMPOSE_FILE),
-            "up",
-            "-d",
-            "--wait",
-        ],
-        check=True,
-    )
+    if not EXTERNAL_REDIS:
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-p",
+                project_name,
+                "-f",
+                str(COMPOSE_FILE),
+                "up",
+                "-d",
+                "--wait",
+            ],
+            check=True,
+        )
     client = redis.Redis(host="127.0.0.1", port=REDIS_PORT, decode_responses=False)
     try:
         deadline = time.monotonic() + 30
@@ -58,18 +63,19 @@ def redis_client():
         yield client
     finally:
         client.close()
-        subprocess.run(
-            [
-                "docker",
-                "compose",
-                "-p",
-                project_name,
-                "-f",
-                str(COMPOSE_FILE),
-                "down",
-            ],
-            check=False,
-        )
+        if not EXTERNAL_REDIS:
+            subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-p",
+                    project_name,
+                    "-f",
+                    str(COMPOSE_FILE),
+                    "down",
+                ],
+                check=False,
+            )
 
 
 def publish(redis_client, topic, payload):
@@ -128,11 +134,10 @@ def assert_stream_isolation(redis_client, selected_topic):
 
 
 def consume(topic, expect_dispatch):
+    command = [CONSUMER_BINARY] if CONSUMER_BINARY else ["go", "run", "."]
     completed = subprocess.run(
         [
-            "go",
-            "run",
-            ".",
+            *command,
             "-topic",
             topic,
             "-group",

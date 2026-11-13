@@ -67,7 +67,8 @@ def test_pdf_retains_text_rotation_and_annotations_but_drops_document_metadata(a
     assert len(reader.pages) == 2
     assert [page.extract_text().strip() for page in reader.pages] == ["SYNTHETIC FIRST PAGE", "SYNTHETIC SECOND PAGE"]
     assert reader.pages[1].get("/Rotate") == 90
-    assert reader.metadata.get("/Author") is None and reader.metadata.get("/Title") is None
+    assert reader.metadata.get("/Author") is None
+    assert reader.metadata.get("/Title") is None
     annotations = [a.get_object() for a in reader.pages[0]["/Annots"]]
     assert any(a.get("/A", {}).get("/URI") == "https://example.invalid" for a in annotations)
     assert any(a.get("/T") == "synthetic-field" and a.get("/V") == "form value" for a in annotations)

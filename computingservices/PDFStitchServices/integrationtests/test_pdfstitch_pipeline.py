@@ -207,7 +207,8 @@ def test_real_entrypoint_output_metadata_status_and_cursor(pipeline, pages, divi
         p["stop"]()
     assert p["rdb"].xlen(p["env"]["ZIPPER_STREAM_KEY"]) == 1
     notifications = p["rdb"].xrange(p["env"]["NOTIFICATION_STREAM_KEY"])
-    assert len(notifications) == 1 and notifications[0][1][b"errorflag"] == b"YES"
+    assert len(notifications) == 1
+    assert notifications[0][1][b"errorflag"] == b"YES"
     # Publish while stopped. An implementation that ignores the saved cursor
     # and always starts at '$' will leave this job unprocessed.
     _, queued_id = p["enqueue"](files)

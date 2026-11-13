@@ -33,7 +33,8 @@ jobs:
           ARG CANDIDATE
           FROM ${CANDIDATE}
           USER root
-          RUN python -m pip install --no-cache-dir -r requirements-test.txt
+          COPY requirements-test.lock /tmp/requirements-test.lock
+          RUN python -m pip install --no-cache-dir --no-deps --only-binary :all: --require-hashes -r /tmp/requirements-test.lock
           USER app_user
           DOCKERFILE
             docker run --rm --entrypoint python "$image-tests" -m pip check

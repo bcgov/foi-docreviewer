@@ -73,5 +73,6 @@ def test_token_and_render_failures_propagate(monkeypatch, failure):
         monkeypatch.setattr(api, '_get_access_token', lambda self: 'token')
         monkeypatch.setattr(api, 'check_template_cached', lambda *args: True)
         monkeypatch.setattr(api, '_post_generate_pdf', lambda *args: SimpleNamespace(status_code=503, text='render unavailable'))
+    service = module.documentgenerationservice()
     with pytest.raises(Exception, match='token unavailable|PDF generation failed. Status: 503'):
-        module.documentgenerationservice().generate_pdf({'data': []})
+        service.generate_pdf({'data': []})

@@ -196,7 +196,8 @@ def test_archive_persistence_notifications_and_restart(pipeline, category, phase
     assert history(p, jobid) == [(3, normalized+'-zipper', 'zippingstarted'), (4, normalized+'-zipper','zippingcompleted'), (5,normalized,'completed')]
     stored_category = category.replace('_','') if phase else category
     rows = package(p, jobid)
-    assert len(rows) == 1 and rows[0][0] == stored_category
+    assert len(rows) == 1
+    assert rows[0][0] == stored_category
     key = f'SYN-{jobid}/Custom folder/SYN-{jobid}.zip'
     assert rows[0][1] == f"https://{p['env']['S3_HOST']}/{p['bucket']}/{key}"
     data = p['s3'].get_object(Bucket=p['bucket'], Key=key)['Body'].read()
@@ -211,7 +212,8 @@ def test_archive_persistence_notifications_and_restart(pipeline, category, phase
     assert len(events) == (1 if serviceid else 0)
     if serviceid:
         event = events[0][1]
-        assert event[b'serviceid'] == serviceid and event[b'errorflag'] == b'NO'
+        assert event[b'serviceid'] == serviceid
+        assert event[b'errorflag'] == b'NO'
         if category == 'harms':
             assert event[b'totalskippedfilecount'] == b'1'
             assert json.loads(event[b'totalskippedfiles']) == ['skipped.pdf']

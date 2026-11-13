@@ -18,7 +18,8 @@ from Crypto.Cipher import AES
 import maya
 
 assert isinstance(Database(), Redis)
-assert AES.new(b"0" * 16, AES.MODE_ECB).encrypt(b"1" * 16)
+ciphertext, tag = AES.new(b"0" * 16, AES.MODE_GCM, nonce=b"1" * 12).encrypt_and_digest(b"synthetic")
+assert AES.new(b"0" * 16, AES.MODE_GCM, nonce=b"1" * 12).decrypt_and_verify(ciphertext, tag) == b"synthetic"
 assert maya.MayaDT.from_datetime(datetime(2020, 1, 15, 12, tzinfo=timezone.utc)).datetime(
     to_timezone="America/Vancouver", naive=False).isoformat() == "2020-01-15T04:00:00-08:00"
 print("Native imports, Walrus construction, crypto and historical timezone checks passed")

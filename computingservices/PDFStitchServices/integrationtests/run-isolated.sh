@@ -38,7 +38,7 @@ for attempt in $(seq 1 60); do
      docker exec "$token-s3" sh -c 'wget -q -O /dev/null http://127.0.0.1:9333/cluster/status && nc -z 127.0.0.1 9000' >/dev/null 2>&1; then
     break
   fi
-  if [ "$attempt" = 60 ]; then
+  if [[ "$attempt" = 60 ]]; then
     echo 'Disposable infrastructure readiness timed out' >&2
     exit 1
   fi
