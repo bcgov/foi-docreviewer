@@ -1,0 +1,65 @@
+name: Document Services Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'computingservices/DocumentServices/**'
+      - '.github/workflows/documentservices-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify both runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/DocumentServices
+          docker pull python:3.13.17-trixie
+          docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
+          for dockerfile in Dockerfile Dockerfile.local; do
+            image="reviewer-documentservice:${dockerfile,,}"
+            docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
+            docker run --rm --entrypoint python "$image" -m pip check
+            docker run --rm --entrypoint python -e PYTHONPATH=/home/app_user "$image" integrationtests/runtime_smoke.py
+            docker build -t "$image-tests" --build-arg "CANDIDATE=$image" -f - "$service" <<'DOCKERFILE'
+          ARG CANDIDATE=reviewer-documentservice:dockerfile
+          FROM ${CANDIDATE}
+          USER root
+          COPY requirements-test.lock /tmp/requirements-test.lock
+          RUN python -m pip install --no-cache-dir --no-deps --only-binary :all: --require-hashes -r /tmp/requirements-test.lock
+          USER app_user
+          DOCKERFILE
+            docker run --rm --entrypoint python "$image-tests" -m pip check
+            docker run --rm --network host --entrypoint sh \
+              -v "$GITHUB_WORKSPACE/$service:/tests:ro" -w /tests \
+              -e RUN_DOCUMENTSERVICE_REDIS_TESTS=1 \
+              -e REDIS_HOST=127.0.0.1 -e REDIS_PORT=6379 -e REDIS_PASSWORD= \
+              -e ZIPPER_REDIS_HOST=127.0.0.1 -e ZIPPER_REDIS_PORT=6379 -e ZIPPER_REDIS_PASSWORD= \
+              -e ZIPPER_STREAM_KEY=documentservice-ci-zipper \
+              -e DOCUMENTSERVICE_GROUP_NAME=documentservice-ci-group \
+              -e DOCUMENTSERVICE_CONSUMER_NAME_PREFIX=documentservice-ci -e HOSTNAME=documentservice-ci \
+              -e DOCUMENTSERVICE_REDIS_HOST=127.0.0.1 -e DOCUMENTSERVICE_REDIS_PORT=6379 \
+              -e DOCUMENTSERVICE_REDIS_PASSWORD= -e DOCUMENTSERVICE_STREAM_KEY=documentservice-ci-publisher \
+              "$image-tests" -ec '
+                python -m pytest --collect-only -q -p no:cacheprovider unittests
+                python -m pytest -q -p no:cacheprovider --junitxml=/tmp/results.xml unittests
+                python -c '\''import xml.etree.ElementTree as E; r=E.parse("/tmp/results.xml"); assert sum(int(s.get("skipped", 0)) for s in r.iter("testsuite")) == 0, "Redis checks must execute without skips"'\''
+              '
+          done

@@ -1,6 +1,10 @@
 services:
   redis:
     image: redis:7.0-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - type: tmpfs
+        target: /data
     ports:
       - "16379:6379"
     healthcheck:
