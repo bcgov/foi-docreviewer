@@ -41,6 +41,8 @@ services:
       args:
         APP_IMAGE: ${UPGRADE_APP_IMAGE:-foi-reviewer-api-upgrade:candidate}
     env_file: upgrade.env
+    # Run as the invoking host user so bind-mounted evidence stays writable without root.
+    user: "${UPGRADE_UID:-1000}:${UPGRADE_GID:-1000}"
     volumes:
       - ${UPGRADE_SOURCE_DIR:-..}:/verification-source:ro
       - ../tests:/verification-source/tests:ro

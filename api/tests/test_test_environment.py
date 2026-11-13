@@ -59,10 +59,12 @@ def test_complete_fake_configuration_is_accepted():
 def test_endpoint_overrides_are_rejected(key, value):
     environ = safe()
     environ[key] = value
+    check = guard()
     with pytest.raises(ValueError):
-        guard()(environ)
+        check(environ)
 
 
 def test_missing_isolation_is_rejected():
+    check = guard()
     with pytest.raises(ValueError):
-        guard()({})
+        check({})

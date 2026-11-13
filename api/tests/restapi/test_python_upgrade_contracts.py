@@ -11,7 +11,8 @@ def test_layer_response_preserves_json_shape_and_counts(client, db, identity):
     response = client.get("/api/redactionlayers/910", headers=headers(identity))
     assert response.status_code == 200
     layers = json.loads(response.get_data(as_text=True))
-    assert isinstance(layers, list) and len(layers) > 0
+    assert isinstance(layers, list)
+    assert len(layers) > 0
     assert {"redactionlayerid", "name", "description", "sortorder", "count"} <= layers[
         0
     ].keys()
