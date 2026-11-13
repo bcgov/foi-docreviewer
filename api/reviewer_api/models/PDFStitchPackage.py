@@ -45,7 +45,7 @@ class PDFStitchPackage(db.Model):
             ORDER BY category, pdfstitchpackageid DESC;
             """
             res = db.session.execute(text(sql), {'category': category+'%', 'requestid': int(requestid)})
-            pdfstitchjobpackages = [{'category': row['category'], 'pdfstitchpackageid': row['pdfstitchpackageid'], 'ministryrequestid': row['ministryrequestid'], 'finalpackagepath': row['finalpackagepath'], 'createdat': row['createdat']} for row in res]
+            pdfstitchjobpackages = [{'category': row._mapping['category'], 'pdfstitchpackageid': row._mapping['pdfstitchpackageid'], 'ministryrequestid': row._mapping['ministryrequestid'], 'finalpackagepath': row._mapping['finalpackagepath'], 'createdat': row._mapping['createdat']} for row in res]
             return pdfstitchjobpackages
         except Exception as ex:
             logging.error(ex)

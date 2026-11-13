@@ -59,6 +59,11 @@ def test_get_request_annotations_pagination_closes_session_after_paginating():
     annotation_query.paginate.assert_called_once_with(
         page=1,
         per_page=3500,
+        **(
+            {"max_per_page": None}
+            if __import__("sqlalchemy").__version__.startswith("2.")
+            else {}
+        ),
     )
     session.close.assert_called_once()
 

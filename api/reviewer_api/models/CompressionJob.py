@@ -51,7 +51,7 @@ class CompressionJob(db.Model):
     #         rs = db.session.execute(text(sql), {'ministryrequestid': requestid})
     #         error = []
     #         for row in rs:
-    #             error.append(row["filepath"])
+    #             error.append(row._mapping["filepath"])
 
     #         return completed, error
     #     except Exception as ex:
@@ -71,8 +71,8 @@ class CompressionJob(db.Model):
                         order by compressionjobid, "version" desc"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                executions.append({"compressionjobid": row["compressionjobid"], "version": row["version"], "filename": row["filename"], "status": row["status"], 
-                                   "documentmasterid": row["documentmasterid"],  "trigger": row["trigger"],"message": row["message"]})
+                executions.append({"compressionjobid": row._mapping["compressionjobid"], "version": row._mapping["version"], "filename": row._mapping["filename"], "status": row._mapping["status"],
+                                   "documentmasterid": row._mapping["documentmasterid"],  "trigger": row._mapping["trigger"],"message": row._mapping["message"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

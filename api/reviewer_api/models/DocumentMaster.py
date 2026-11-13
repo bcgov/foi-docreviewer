@@ -163,7 +163,7 @@ class DocumentMaster(db.Model):
             rs = db.session.execute(text(sql), params)
 
             for row in rs:
-                documentmasters.append(cls._process_row_to_dict(row))
+                documentmasters.append(cls._process_row_to_dict(row._mapping))
 
         except Exception:
             logging.exception("Failed to fetch DocumentMaster")
@@ -189,7 +189,7 @@ class DocumentMaster(db.Model):
                         and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                documentmasters.append(row["documentmasterid"])
+                documentmasters.append(row._mapping["documentmasterid"])
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -209,7 +209,7 @@ class DocumentMaster(db.Model):
                     where processingparentid = :documentmasterids or dm.documentmasterid = :documentmasterids"""
             rs = db.session.execute(text(sql), {'documentmasterids': documentmasterids})
             for row in rs:
-                documentmasters.append(row["documentid"])
+                documentmasters.append(row._mapping["documentid"])
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -229,7 +229,7 @@ class DocumentMaster(db.Model):
 						where processingparentid is not Null and ministryrequestid =:ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                documentmasters.append(row["processingparentid"])
+                documentmasters.append(row._mapping["processingparentid"])
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -249,7 +249,7 @@ class DocumentMaster(db.Model):
 						group by processingparentid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                documentmasters.append(row["documentmasterid"])
+                documentmasters.append(row._mapping["documentmasterid"])
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -268,7 +268,7 @@ class DocumentMaster(db.Model):
 						where processingparentid is null and ministryrequestid =:ministryrequestid"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                documentmasters.append(row["documentmasterid"])
+                documentmasters.append(row._mapping["documentmasterid"])
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -406,8 +406,8 @@ class DocumentMaster(db.Model):
                         and d.ministryrequestid = dd.ministryrequestid and d.ministryrequestid =:ministryrequestid) or processingparentid is null);"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                # if row["processingparentid"] not in deleted:
-                documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"], "isredactionready": row["isredactionready"], "parentid": row["parentid"]})
+                # if row._mapping["processingparentid"] not in deleted:
+                documentmasters.append({"documentmasterid": row._mapping["documentmasterid"], "processingparentid": row._mapping["processingparentid"], "isredactionready": row._mapping["isredactionready"], "parentid": row._mapping["parentid"]})
         except Exception as ex:
             logging.error(ex)
             db.session.close()
@@ -429,11 +429,11 @@ class DocumentMaster(db.Model):
                         and d.documentid = dhc.documentid order by dm.documentmasterid;"""
             rs = db.session.execute(text(sql), {'ministryrequestid': ministryrequestid})
             for row in rs:
-                if (row["processingparentid"] is not None and row["processingparentid"] not in deleted) or (row["processingparentid"] is None and row["documentmasterid"] not in deleted):
-                    documentmasters.append({"documentmasterid": row["documentmasterid"], "processingparentid": row["processingparentid"],"createdby": row["createdby"] ,
-                                            "documentid": row["documentid"], "rank1hash": row["rank1hash"], "filename": row["filename"], "originalpagecount": row["originalpagecount"],
-                                            "pagecount": row["pagecount"], "parentid": row["parentid"], "version": row["version"],
-                                            "selectedfileprocessversion": row["selectedfileprocessversion"],})
+                if (row._mapping["processingparentid"] is not None and row._mapping["processingparentid"] not in deleted) or (row._mapping["processingparentid"] is None and row._mapping["documentmasterid"] not in deleted):
+                    documentmasters.append({"documentmasterid": row._mapping["documentmasterid"], "processingparentid": row._mapping["processingparentid"],"createdby": row._mapping["createdby"] ,
+                                            "documentid": row._mapping["documentid"], "rank1hash": row._mapping["rank1hash"], "filename": row._mapping["filename"], "originalpagecount": row._mapping["originalpagecount"],
+                                            "pagecount": row._mapping["pagecount"], "parentid": row._mapping["parentid"], "version": row._mapping["version"],
+                                            "selectedfileprocessversion": row._mapping["selectedfileprocessversion"],})
         except Exception as ex:
             logging.error(ex)
             db.session.close()

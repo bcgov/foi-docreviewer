@@ -1,0 +1,11 @@
+ARG APP_IMAGE=foi-reviewer-api-upgrade:candidate
+FROM ${APP_IMAGE}
+# Test tooling is layered here so production images never ship pytest.
+# The reconstructed 3.10 baseline already bundles its own pytest; keep it untouched.
+# Wheels only: hash-locked and never runs package build scripts.
+COPY requirements-test.txt /tmp/requirements-test.txt
+RUN python -c "import pytest" 2>/dev/null \
+    || python -m pip install --no-cache-dir --only-binary :all: --require-hashes -r /tmp/requirements-test.txt
+ENV PYTHONPATH=/verification-source HOME=/tmp
+# Compose overrides this with the invoking host UID/GID so /evidence stays writable.
+USER 1000:1000
