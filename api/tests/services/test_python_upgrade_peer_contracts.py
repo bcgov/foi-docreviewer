@@ -59,11 +59,9 @@ def test_redline_handoff_keeps_payload_and_job_before_publish(monkeypatch):
     entries = database.xrange(key)
     assert len(entries) == 1
     message = {k.decode(): v.decode() for k, v in entries[0][1].items()}
-    assert (
-        message["jobid"] == "910"
-        and message["requestid"] == "-1"
-        and message["phase"] == ""
-    )
+    assert message["jobid"] == "910"
+    assert message["requestid"] == "-1"
+    assert message["phase"] == ""
     assert json.loads(message["filestozip"]) == [
         {"filename": "synthetic.pdf", "s3uripath": "s3://synthetic/test.pdf"}
     ]

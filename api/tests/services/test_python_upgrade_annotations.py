@@ -48,20 +48,23 @@ def test_annotation_upsert_preserves_xml_and_type(records):
         910,
         {"userid": "synthetic@idir"},
     )
-    assert result is not None and result.success
+    assert result is not None
+    assert result.success
     row = records.execute(
         text(
             "SELECT annotation, annotationtype FROM \"Annotations\" WHERE annotationname='upgrade-annot' AND isactive=true"
         )
     ).first()
-    assert row is not None and tuple(row) == (xml, "redact")
+    assert row is not None
+    assert tuple(row) == (xml, "redact")
     updated = '<highlight page="0" />'
     result = Annotation.saveannotations(
         [dict(name="upgrade-annot", docid=910001, docversion=1, xml=updated, page=0)],
         910,
         {"userid": "synthetic@idir"},
     )
-    assert result is not None and result.success
+    assert result is not None
+    assert result.success
     rows = records.execute(
         text(
             "SELECT annotation, annotationtype FROM \"Annotations\" WHERE annotationname='upgrade-annot' AND isactive=true"
@@ -101,8 +104,10 @@ def test_pagination_preserves_requested_size_and_meta(records):
     )
     records.commit()
     result = Annotation.get_request_annotations_pagination(910, [910], 1, 3500)
-    assert result.total == 150 and len(result.items) == 150
-    assert result.per_page == 3500 and result.pages == 1
+    assert result.total == 150
+    assert len(result.items) == 150
+    assert result.per_page == 3500
+    assert result.pages == 1
 
 
 @pytest.mark.xfail(
@@ -207,7 +212,8 @@ def test_nonempty_document_master_retains_mapping_fields(records):
     assert len(rows) == 1
     assert rows[0]["documentmasterid"] == 910001
     assert rows[0]["attributes"] == {"lastmodified": "2026-01-01"}
-    assert rows[0]["attachmentof"] is None and rows[0]["duplicate_of"] is None
+    assert rows[0]["attachmentof"] is None
+    assert rows[0]["duplicate_of"] is None
 
 
 def test_nonempty_pageflag_rest_and_date_null_serialization(records, client, identity):
@@ -238,7 +244,8 @@ def test_nonempty_pageflag_rest_and_date_null_serialization(records, client, ide
     ]
     value = DocumentPageflag.getpageflag(910, 910001, 1, [1])
     assert value["created_at"] == "2026-01-02T03:04:05+00:00"
-    assert value["updated_at"] is None and value["attributes"] is None
+    assert value["updated_at"] is None
+    assert value["attributes"] is None
     response = client.post(
         "/api/ministryrequest/910/pageflag/redline",
         json={"documentids": [910001]},

@@ -20,7 +20,8 @@ def test_migration_cli_exposes_commands():
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-    assert "upgrade" in result.stdout and "heads" in result.stdout
+    assert "upgrade" in result.stdout
+    assert "heads" in result.stdout
 
 
 def test_list_routes_retains_probe_routes():

@@ -6,6 +6,7 @@ if [[ "$#" -gt 0 ]]; then shift; fi
 case "$phase" in baseline|candidate) ;; *) echo 'Expected baseline or candidate' >&2; exit 2 ;; esac
 run_id=${UPGRADE_RUN_ID:-$$}
 export UPGRADE_PHASE="$phase"
+export UPGRADE_UID=${UPGRADE_UID:-$(id -u)} UPGRADE_GID=${UPGRADE_GID:-$(id -g)}
 export UPGRADE_EVIDENCE_DIR=${UPGRADE_EVIDENCE_DIR:-/tmp/reviewer-api-python-upgrade/$phase}
 export UPGRADE_TLS_DIR=${UPGRADE_TLS_DIR:-/tmp/reviewer-api-python-upgrade/tls/$phase-$run_id}
 export UPGRADE_APP_IMAGE=${UPGRADE_BASELINE_IMAGE:-foi-reviewer-api-upgrade:baseline}
@@ -16,7 +17,7 @@ if [[ "$phase" = candidate ]]; then
     docker build -f "$service_dir/dockerfile" -t "$UPGRADE_APP_IMAGE" "$service_dir"
 else
     docker image inspect "$UPGRADE_APP_IMAGE" >/dev/null
-    test -f "$UPGRADE_SOURCE_DIR/reviewer_api/__init__.py"
+    [[ -f "$UPGRADE_SOURCE_DIR/reviewer_api/__init__.py" ]] || { echo "Baseline source missing: $UPGRADE_SOURCE_DIR" >&2; exit 1; }
 fi
 mkdir -p "$UPGRADE_EVIDENCE_DIR" "$UPGRADE_TLS_DIR"
 docker image inspect --format '{{.Id}}' "$UPGRADE_APP_IMAGE" > "$UPGRADE_EVIDENCE_DIR/image-id.txt"
