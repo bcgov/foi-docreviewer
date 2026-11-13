@@ -1,4 +1,4 @@
-FROM python:3.13.17-trixie@sha256:d5a186865324088bd10d1671801b42297a8fe3f8059143fb22b2e2b776ffa6dd
+FROM python:3.13.17-trixie
 RUN apt-get update \
     && apt-get install -y --no-install-recommends --only-upgrade libunbound8 \
     && rm -rf /var/lib/apt/lists/*
