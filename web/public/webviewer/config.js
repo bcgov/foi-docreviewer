@@ -1,1 +1,0 @@
-Core.setCustomFontURL("/webviewer/ui/assets/fonts/webviewer/fonts.json");
