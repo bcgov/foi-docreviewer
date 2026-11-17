@@ -336,8 +336,7 @@ const Redlining = React.forwardRef(
             useDownloader: false,
             css: "/stylesheets/webviewer.css",
             loadAsPDF: true,
-            backendType: "ems",
-            config: "/webviewer/config.js"
+            backendType: "ems"
           },
           viewer.current,
         ).then((instance) => {
@@ -355,7 +354,6 @@ const Redlining = React.forwardRef(
           let redactionTool = documentViewer.getTool(
             instance.Core.Tools.ToolNames.REDACTION,
           );
-          instance.UI.Fonts.addAnnotationFont("Arial Narrow");
           documentViewer
             .getTool(instance.Core.Tools.ToolNames.RECTANGLE)
             .setStyles({
@@ -2971,11 +2969,9 @@ const Redlining = React.forwardRef(
       const pageMatrix = doc.getPageMatrix(_annot.PageNumber);
       const pageRotation = doc.getPageRotation(_annot.PageNumber);
       _annot.FontSize = Math.min(parseInt(_redaction.FontSize), 8) + "pt";
-      _annot.Font = "Arial Narrow";
       // need font-family in rich-text style for persistence
       _annot.updateRichTextStyle({
         "font-style": "italic",
-        "font-family": "Arial Narrow",
       });
       _annot.Rotation = 0; // reset rotation before resizing
       _annot.fitText(pageInfo, pageMatrix, pageRotation);
