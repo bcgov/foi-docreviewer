@@ -55,7 +55,7 @@ class Document(db.Model):
                 func.json_agg(DocumentAttributes.attributes['divisions'][0]).label('divisions'),
             ).join(
                 DocumentAttributes, case(
-                    [(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
+                    *[(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
                     else_ = DocumentMaster.processingparentid == DocumentAttributes.documentmasterid
                 )
             ).subquery('sq')
@@ -93,7 +93,7 @@ class Document(db.Model):
                                     DocumentMaster.documentmasterid == Document.documentmasterid
                                 ).join(
                                     DocumentAttributes, case(
-                                        [(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
+                                        *[(DocumentMaster.processingparentid == None, DocumentMaster.documentmasterid == DocumentAttributes.documentmasterid),],
                                         else_ = DocumentMaster.processingparentid == DocumentAttributes.documentmasterid
                                     )
                                 ).filter(
@@ -163,7 +163,7 @@ class Document(db.Model):
                 {"ministryrequestid": ministryrequestid},
             )  
             for row in rs:
-                docids.append(row['documentid'])
+                docids.append(row._mapping['documentid'])
             return docids         
         except Exception as ex:
             logging.error(ex)
@@ -208,7 +208,7 @@ class Document(db.Model):
             parent_dm = aliased(DocumentMaster)
 
             filepath_case = case(
-                [
+                *[
                     (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
 
                     (and_(parent_dm.ocrfilepath.isnot(None), parent_dm.ocrfilepath != ""), parent_dm.ocrfilepath),
@@ -218,7 +218,7 @@ class Document(db.Model):
                     (DocumentMaster.processingparentid.isnot(None), DocumentMaster.filepath),
                 ],
                 else_=case(
-                    [
+                    *[
                         (Document.selectedfileprocessversion == 1, DocumentMaster.filepath),
                         (and_(DocumentMaster.ocrfilepath.isnot(None), DocumentMaster.ocrfilepath != ""),
                          DocumentMaster.ocrfilepath),
@@ -294,9 +294,9 @@ class Document(db.Model):
                 DocumentDeleted.deleted == False or DocumentDeleted.deleted == None,
             ).subquery('sq3')
 
-            xpr = case([(and_(sq.c.minid == None, sq3.c.documentid != None), True),],
+            xpr = case(*[(and_(sq.c.minid == None, sq3.c.documentid != None), True),],
             else_ = False).label("isduplicate")
-            filename = case([
+            filename = case(*[
                 (FileConversionJob.status != 'completed', FileConversionJob.filename),
                 (DeduplicationJob.status != 'completed', DeduplicationJob.filename)
                 ], else_ = sq3.c.filename).label("filename")
@@ -331,7 +331,7 @@ class Document(db.Model):
                 DocumentDeleted.deleted == False or DocumentDeleted.deleted == None,
             ).join(
                 sq3, case(
-                    [(sq3.c.processingparentid == None, sq3.c.documentmasterid == DocumentMaster.documentmasterid),],
+                    *[(sq3.c.processingparentid == None, sq3.c.documentmasterid == DocumentMaster.documentmasterid),],
                     else_ = sq3.c.processingparentid == DocumentMaster.documentmasterid
                 ), isouter=True
             ).join(
@@ -352,7 +352,7 @@ class Document(db.Model):
             sqd = db.session.query(
                 func.max(DeduplicationJob.createdat)
             ).filter(case(
-                [(and_(sq3.c.processingparentid != None, sq3.c.createdby != 'conversionservice'), sq3.c.documentmasterid == DeduplicationJob.documentmasterid),],
+                *[(and_(sq3.c.processingparentid != None, sq3.c.createdby != 'conversionservice'), sq3.c.documentmasterid == DeduplicationJob.documentmasterid),],
                 else_ = DocumentMaster.documentmasterid == DeduplicationJob.documentmasterid
             )).correlate(DocumentMaster, sq3)
 
@@ -362,7 +362,7 @@ class Document(db.Model):
                 ), isouter=True
             ).join(
                 sq, case(
-                    [(sq.c.processingparentid == None, sq.c.minmasterid == DocumentMaster.documentmasterid),],
+                    *[(sq.c.processingparentid == None, sq.c.minmasterid == DocumentMaster.documentmasterid),],
                     else_ = sq.c.processingparentid == DocumentMaster.documentmasterid
                 ), isouter=True
             ).join(
@@ -375,7 +375,7 @@ class Document(db.Model):
                 originaldocument, originaldocument.documentid == sq2.c.minid, isouter=True
             ).join(
                 originaldocumentmaster, case(
-                    [(sq2.c.processingparentid == None, sq2.c.minmasterid == originaldocumentmaster.documentmasterid),],
+                    *[(sq2.c.processingparentid == None, sq2.c.minmasterid == originaldocumentmaster.documentmasterid),],
                     else_ = sq2.c.processingparentid == originaldocumentmaster.documentmasterid
                 ), isouter=True
             ).order_by(DocumentHashCodes.created_at.asc()).all()
@@ -434,7 +434,7 @@ class Document(db.Model):
                 {"ministryrequestid": ministryrequestid},
             )  
             for row in rs:
-                docs[row['documentid']]=row['pagecount']
+                docs[row._mapping['documentid']]=row._mapping['pagecount']
             return docs         
         except Exception as ex:
             logging.error(ex)
