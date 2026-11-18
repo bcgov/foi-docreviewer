@@ -15,6 +15,9 @@
 
 These will get initialized by the application using the models
 """
+from datetime import datetime, timezone
+
+from marshmallow import fields
 from flask_marshmallow import Marshmallow
 from flask_sqlalchemy import SQLAlchemy
 
@@ -25,4 +28,26 @@ ma = Marshmallow()  # pylint: disable=invalid-name
 db = SQLAlchemy()  # pylint: disable=invalid-name
 
 
-#make_versioned(user_cls=None, plugins=[activity_plugin])
+# make_versioned(user_cls=None, plugins=[activity_plugin])
+
+
+class UTCDateTime(fields.DateTime):
+    """Keep the former Marshmallow rc7 UTC representation for model timestamps."""
+
+    def _serialize(self, value, attr, obj, **kwargs):
+        if value is not None:
+            value = (
+                value.replace(tzinfo=timezone.utc)
+                if value.tzinfo is None
+                else value.astimezone(timezone.utc)
+            )
+        return super()._serialize(value, attr, obj, **kwargs)
+
+
+class ReviewerSchema(ma.Schema):
+    """Preserve inferred datetime JSON contracts while upgrading Marshmallow."""
+
+    TYPE_MAPPING = {**ma.Schema.TYPE_MAPPING, datetime: UTCDateTime}
+
+
+ma.Schema = ReviewerSchema

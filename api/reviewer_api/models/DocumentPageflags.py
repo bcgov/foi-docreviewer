@@ -262,9 +262,9 @@ class DocumentPageflag(db.Model):
             for row in rs:
                 pageflags.append(
                     {
-                        "documentid": row["documentid"],
-                        "documentversion": row["documentversion"],
-                        "pageflag": row["pageflag"],
+                        "documentid": row._mapping["documentid"],
+                        "documentversion": row._mapping["documentversion"],
+                        "pageflag": row._mapping["pageflag"],
                     }
                 )
         except Exception as ex:
@@ -301,9 +301,9 @@ class DocumentPageflag(db.Model):
             for row in rs:
                 pageflags.append(
                     {
-                        "documentid": row["documentid"],
-                        "documentversion": row["documentversion"],
-                        "pageflag": row["pageflag"],
+                        "documentid": row._mapping["documentid"],
+                        "documentversion": row._mapping["documentversion"],
+                        "pageflag": row._mapping["pageflag"],
                     }
                 )
         except Exception as ex:
@@ -347,8 +347,8 @@ class DocumentPageflag(db.Model):
 
             # Process results if exists
             for row in rows:
-                count = row["page_count"]
-                result[row["foiministryrequestid"]] = None if count == 0 else count
+                count = row._mapping["page_count"]
+                result[row._mapping["foiministryrequestid"]] = None if count == 0 else count
 
             return result
 
@@ -372,7 +372,7 @@ class DocumentPageflag(db.Model):
 
             for row in rs:
                 pageflags.append(
-                    {"documentid": row["documentid"], "attributes": row["attributes"]}
+                    {"documentid": row._mapping["documentid"], "attributes": row._mapping["attributes"]}
                 )
         except Exception as ex:
             logging.error(ex)

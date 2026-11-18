@@ -1,21 +1,11 @@
-# For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.10.8
+FROM python:3.13.17-trixie
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade libunbound8 \
+    && rm -rf /var/lib/apt/lists/*
 EXPOSE 6402
-
-# Keeps Python from generating .pyc files in the container
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
-
-COPY ./ /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Creates a non-root user and adds permission to access the /app folder
-# For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
-#RUN useradd appuser && chown -R appuser /app
-#USER appuser
-
-RUN chmod u+x /app/entrypoint.sh
+COPY requirements.txt /app/requirements.txt
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements.txt
+COPY . /app
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]

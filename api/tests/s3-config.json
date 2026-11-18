@@ -1,0 +1,20 @@
+{
+  "identities": [
+    {
+      "name": "reviewer-upgrade",
+      "credentials": [
+        {
+          "accessKey": "synthetic",
+          "secretKey": "synthetic-secret"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write",
+        "List",
+        "Tagging"
+      ]
+    }
+  ]
+}

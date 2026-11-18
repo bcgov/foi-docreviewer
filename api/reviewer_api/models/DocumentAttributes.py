@@ -46,15 +46,15 @@ class DocumentAttributes(db.Model):
 
             for row in rs:
                 attributes.append({
-                    "attributeid": row["attributeid"],
-                    "version": row["version"],
-                    "documentmasterid": row["documentmasterid"],
-                    "attributes": row["attributes"],
-                    "createdby": row["createdby"],
-                    "created_at": row["created_at"],
-                    "updatedby": row["updatedby"],
-                    "updated_at": row["updated_at"],
-                    "isactive": row["isactive"]
+                    "attributeid": row._mapping["attributeid"],
+                    "version": row._mapping["version"],
+                    "documentmasterid": row._mapping["documentmasterid"],
+                    "attributes": row._mapping["attributes"],
+                    "createdby": row._mapping["createdby"],
+                    "created_at": row._mapping["created_at"],
+                    "updatedby": row._mapping["updatedby"],
+                    "updated_at": row._mapping["updated_at"],
+                    "isactive": row._mapping["isactive"]
                 })
         except Exception as ex:
             logging.error(ex)
