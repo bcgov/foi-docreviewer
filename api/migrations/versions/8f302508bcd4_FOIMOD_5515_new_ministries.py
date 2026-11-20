@@ -40,7 +40,7 @@ S3_ENVIRONMENT_ENV = 'DEDUPE_S3_ENV'
 CATALOGUE_TYPE = 'BC GOV Ministry'
 
 REPLACEMENTS = (
-    {'old': 'ECS', 'new': 'EMP', 'name': 'Ministry of Energy, Mines, and Petroleum Resources'},
+    {'old': 'ECS', 'new': 'EMP', 'name': 'Ministry of Energy, Mines and Petroleum Resources'},
     {'old': 'HSG', 'new': 'LHS', 'name': 'Ministry of Local Government, Housing, Sport and Culture'},
     {'old': 'JED', 'new': 'EDT', 'name': 'Ministry of Economic Development and Tourism'},
 )

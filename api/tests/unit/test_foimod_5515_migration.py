@@ -50,3 +50,11 @@ def test_environment_is_required(monkeypatch, value):
 @pytest.mark.parametrize("code", ["EMP", "LHS", "EDT", "ECS", "HSG", "JED"])
 def test_ministry_groups(code):
     assert MinistryTeamWithKeycloackGroup[code].value == f"{code} Ministry Team"
+
+
+def test_new_ministry_names_match_flow_and_the_public_form():
+    assert {r["new"]: r["name"] for r in migration.REPLACEMENTS} == {
+        "EMP": "Ministry of Energy, Mines and Petroleum Resources",
+        "LHS": "Ministry of Local Government, Housing, Sport and Culture",
+        "EDT": "Ministry of Economic Development and Tourism",
+    }
