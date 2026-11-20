@@ -1,4 +1,4 @@
-"""FOIMOD-5515 Reviewer migration and ministry groups (no database)."""
+"""FOIMOD-5518 Reviewer migration and ministry groups (no database)."""
 
 import importlib.util
 from pathlib import Path
@@ -16,7 +16,7 @@ def _load(name, relative_path):
     return module
 
 
-migration = _load("foimod_5515_migration", "migrations/versions/8f302508bcd4_FOIMOD_5515_new_ministries.py")
+migration = _load("foimod_5518_migration", "migrations/versions/8f302508bcd4_FOIMOD_5518_new_ministries.py")
 MinistryTeamWithKeycloackGroup = _load("reviewer_enums", "reviewer_api/utils/enums.py").MinistryTeamWithKeycloackGroup
 
 
@@ -50,3 +50,11 @@ def test_environment_is_required(monkeypatch, value):
 @pytest.mark.parametrize("code", ["EMP", "LHS", "EDT", "ECS", "HSG", "JED"])
 def test_ministry_groups(code):
     assert MinistryTeamWithKeycloackGroup[code].value == f"{code} Ministry Team"
+
+
+def test_new_ministry_names_match_flow_and_the_public_form():
+    assert {r["new"]: r["name"] for r in migration.REPLACEMENTS} == {
+        "EMP": "Ministry of Energy, Mines and Petroleum Resources",
+        "LHS": "Ministry of Local Government, Housing, Sport and Culture",
+        "EDT": "Ministry of Economic Development and Tourism",
+    }

@@ -1,4 +1,4 @@
-"""FOIMOD-5515: Document Reviewer rows for EMP (replaces ECS), LHS (replaces HSG) and EDT (replaces JED).
+"""FOIMOD-5518: Document Reviewer rows for EMP (replaces ECS), LHS (replaces HSG) and EDT (replaces JED).
 
 Revision ID: 8f302508bcd4
 Revises: d3de6e5bea18
@@ -35,12 +35,12 @@ depends_on = None
 
 logger = logging.getLogger(f'alembic.{revision}')
 
-CREATED_BY = 'FOIMOD-5515'
+CREATED_BY = 'system'
 S3_ENVIRONMENT_ENV = 'DEDUPE_S3_ENV'
 CATALOGUE_TYPE = 'BC GOV Ministry'
 
 REPLACEMENTS = (
-    {'old': 'ECS', 'new': 'EMP', 'name': 'Ministry of Energy, Mines, and Petroleum Resources'},
+    {'old': 'ECS', 'new': 'EMP', 'name': 'Ministry of Energy, Mines and Petroleum Resources'},
     {'old': 'HSG', 'new': 'LHS', 'name': 'Ministry of Local Government, Housing, Sport and Culture'},
     {'old': 'JED', 'new': 'EDT', 'name': 'Ministry of Economic Development and Tourism'},
 )
