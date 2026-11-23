@@ -51,7 +51,10 @@ const MINISTRYGROUPS: ministryType = {
   PSSG: "PSSG Ministry Team",
   TACS: "TACS Ministry Team",
   TIC: "TIC Ministry Team",
-  TRAN: "TRAN Ministry Team"
+  TRAN: "TRAN Ministry Team",
+  EMP: "EMP Ministry Team",
+  LHS: "LHS Ministry Team",
+  EDT: "EDT Ministry Team"
 };
 
 const pageFlagTypes:pageFlagType = {

@@ -73,12 +73,15 @@ class MinistryTeamWithKeycloackGroup(Enum):
     PSE = "PSE Ministry Team"
     ECC = "ECC Ministry Team"
     JED = "JED Ministry Team"
+    EDT = "EDT Ministry Team"
     COR = "COR Ministry Team"
     HSG = "HSG Ministry Team"
+    LHS = "LHS Ministry Team"
     LSB = "LSB Ministry Team"
     INF = "INF Ministry Team"
     MCM = "MCM Ministry Team"
     ECS = "ECS Ministry Team"
+    EMP = "EMP Ministry Team"
 
     @staticmethod
     def list():
