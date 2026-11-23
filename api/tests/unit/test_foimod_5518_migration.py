@@ -58,3 +58,10 @@ def test_new_ministry_names_match_flow_and_the_public_form():
         "LHS": "Ministry of Local Government, Housing, Sport and Culture",
         "EDT": "Ministry of Economic Development and Tourism",
     }
+
+
+def test_new_bucket_does_not_reuse_the_old_ministrys_storage_keys():
+    # The new bucket gets its own storage user; its keys are filled in through the credential process.
+    sql = migration.EMPTY_CREDENTIALS_SQL
+    assert "jsonb_build_object('s3accesskey', '', 's3secretkey', '')" in sql
+    assert sql.startswith("(attributes::jsonb ||")
