@@ -120,9 +120,9 @@ jobs:
 
             # 2. Find the active running pod name for the deployment
             BACKUP_POD=$(oc get pods -n "${NAMESPACE}" \
-              -l deployment=${BACKUP_DEPLOYMENT} \
+              -l "name=${BACKUP_DEPLOYMENT}" \
               --field-selector=status.phase=Running \
-              -o jsonpath='{.items[0].metadata.name}')
+              -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 
             if [ -z "$BACKUP_POD" ]; then
               echo "No running '${BACKUP_DEPLOYMENT}' pod found in namespace '${NAMESPACE}'!"
