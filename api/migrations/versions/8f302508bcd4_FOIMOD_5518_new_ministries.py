@@ -9,9 +9,11 @@ Companion of Flow's revision a0134b09838d (foi-flow, request-management-api). Sa
 For each new ministry, this revision adds:
   * DocumentPathMapper: one active Records row for "<new>-<DEDUPE_S3_ENV>-e". Reviewer resolves a document's
     mapper by the exact bucket in its stored path, and the stitch and zip workers build the same name from
-    bcgovcode. When the old ministry has a Records row ("<old>-<env>-e"), its attributes (storage credentials) are
-    copied. Otherwise attributes are left empty and must be filled through the credential process, as for the
-    rows created by revision 641ae620392d. Credentials are never printed.
+    bcgovcode. When the old ministry has a Records row ("<old>-<env>-e"), its attributes are copied with
+    s3accesskey and s3secretkey emptied. Otherwise attributes are left empty. Either way the new bucket gets its
+    own storage user, whose keys are filled in through the credential process before release, as for the rows
+    created by revision 641ae620392d. Until then, access to the bucket fails rather than silently using the old
+    ministry's user. Credentials are never printed.
   * ProgramAreas: one row, for catalogue consistency with Flow. Reviewer's API doesn't read this table (divisions
     come from Flow), so the old ministries are not deactivated or renamed here.
 
@@ -38,6 +40,12 @@ logger = logging.getLogger(f'alembic.{revision}')
 CREATED_BY = 'system'
 S3_ENVIRONMENT_ENV = 'DEDUPE_S3_ENV'
 CATALOGUE_TYPE = 'BC GOV Ministry'
+
+# The new bucket's attributes: the old row's, with its storage user's keys emptied. The new bucket has its own
+# user, whose keys are filled in through the credential process.
+EMPTY_CREDENTIALS_SQL = (
+    "(attributes::jsonb || jsonb_build_object('s3accesskey', '', 's3secretkey', ''))::text"
+)
 
 REPLACEMENTS = (
     {'old': 'ECS', 'new': 'EMP', 'name': 'Ministry of Energy, Mines and Petroleum Resources'},
@@ -85,13 +93,13 @@ def _add(conn, r, environment):
     conn.execute(sa.text('''
         INSERT INTO public."DocumentPathMapper" (category, bucket, attributes, isactive, createdby, created_at)
         VALUES ('Records', :bucket,
-                (SELECT attributes FROM public."DocumentPathMapper" WHERE documentpathid = :id),
+                (SELECT ''' + EMPTY_CREDENTIALS_SQL + ''' FROM public."DocumentPathMapper" WHERE documentpathid = :id),
                 TRUE, :createdby, now())'''),
         {'bucket': bucket, 'createdby': CREATED_BY, 'id': old_id},
     )
     if old_id is None:
-        logger.warning('%s: no Records row for %s; %s has no credentials, fill them through the credential process',
-                       revision, _bucket(old, environment), bucket)
+        logger.warning('%s: no Records row for %s; %s has empty attributes', revision, _bucket(old, environment), bucket)
+    logger.warning('%s: %s has no storage keys yet; fill them through the credential process', revision, bucket)
 
 
 def upgrade():
