@@ -43,10 +43,6 @@ sys.modules.setdefault(
     "services.documentspagecalculatorservice",
     collaborator_module("services.documentspagecalculatorservice", documentspagecalculatorproducerservice=None),
 )
-sys.modules.setdefault(
-    "rstreamio.redisstreamwriter",
-    collaborator_module("rstreamio.redisstreamwriter", redisstreamwriter=None),
-)
 
 import services.dedupeservice as dedupe_module
 import services.foiredisdedupeconsumer as consumer_module

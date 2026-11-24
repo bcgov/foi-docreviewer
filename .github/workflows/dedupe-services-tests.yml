@@ -1,0 +1,91 @@
+name: Dedupe Services Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'computingservices/DedupeServices/**'
+      - '.github/workflows/dedupe-services-tests.yml'
+      - 'docker-compose.yml'
+      - 'sample.env'
+      - 'openshift/templates/compression/**'
+      - 'computingservices/CompressionServices/sample.env'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test both application images
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/DedupeServices
+          docker pull python:3.13.17-trixie
+          docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
+          for dockerfile in Dockerfile Dockerfile.local; do
+            image="reviewer-dedupe:${dockerfile,,}"
+            docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
+            docker run --rm --entrypoint python "$image" -m pip check
+            docker run --rm --entrypoint python "$image" integrationtests/runtime_smoke.py
+            docker build -t "$image-tests" --build-arg "CANDIDATE=$image" -f - "$service" <<'DOCKERFILE'
+          ARG CANDIDATE
+          FROM ${CANDIDATE}
+          USER root
+          COPY requirements-test.lock /tmp/requirements-test.lock
+          RUN python -m pip install --no-cache-dir --no-deps --only-binary :all: --require-hashes -r /tmp/requirements-test.lock
+          USER app_user
+          DOCKERFILE
+            docker run --rm --entrypoint python "$image-tests" -m pip check
+            docker run --rm --entrypoint python \
+              -v "$GITHUB_WORKSPACE:/workspace:ro" \
+              -w /workspace/computingservices/DedupeServices \
+              "$image-tests" -m pytest -q -p no:cacheprovider unittests
+          done
+
+  compression-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: computingservices/DedupeServices/integrationtests/go-consumer/go.sum
+      - name: Build static Go consumer
+        working-directory: computingservices/DedupeServices/integrationtests/go-consumer
+        run: CGO_ENABLED=0 go build -o "$RUNNER_TEMP/compression-contract-consumer" .
+      - name: Build Dedupe test image
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/DedupeServices
+          docker build -t reviewer-dedupe:contract -f "$service/Dockerfile" "$service"
+          docker build -t reviewer-dedupe:contract-tests --build-arg CANDIDATE=reviewer-dedupe:contract -f - "$service" <<'DOCKERFILE'
+          ARG CANDIDATE
+          FROM ${CANDIDATE}
+          USER root
+          COPY requirements-test.lock /tmp/requirements-test.lock
+          RUN python -m pip install --no-cache-dir --no-deps --only-binary :all: --require-hashes -r /tmp/requirements-test.lock
+          USER app_user
+          DOCKERFILE
+      - name: Start disposable Redis 7
+        run: docker compose -p dedupecontract -f computingservices/DedupeServices/integrationtests/docker-compose.yml up -d --wait
+      - name: Verify normal and large Python to Go contracts inside the test image
+        run: |
+          docker run --rm --network host --entrypoint python \
+            -v "$GITHUB_WORKSPACE:/workspace:ro" \
+            -v "$RUNNER_TEMP/compression-contract-consumer:/usr/local/bin/compression-contract-consumer:ro" \
+            -w /workspace/computingservices/DedupeServices \
+            -e RUN_COMPRESSION_CONTRACT_TESTS=1 \
+            -e COMPRESSION_CONTRACT_REDIS=external \
+            -e COMPRESSION_CONTRACT_CONSUMER=/usr/local/bin/compression-contract-consumer \
+            reviewer-dedupe:contract-tests -m pytest -q -p no:cacheprovider integrationtests/test_go_compression_contract.py
+      - name: Stop disposable Redis
+        if: always()
+        run: docker compose -p dedupecontract -f computingservices/DedupeServices/integrationtests/docker-compose.yml down

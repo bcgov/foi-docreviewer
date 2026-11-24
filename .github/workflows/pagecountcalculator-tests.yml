@@ -1,0 +1,67 @@
+name: PageCountCalculator Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'computingservices/PageCountCalculator/**'
+      - '.github/workflows/pagecountcalculator-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build both production images and derive test images
+        shell: bash
+        run: |
+          set -euo pipefail
+          service=computingservices/PageCountCalculator
+          docker pull python:3.13.17-trixie
+          docker image inspect python:3.13.17-trixie --format '{{json .RepoDigests}}'
+          for dockerfile in Dockerfile Dockerfile.local; do
+            image="reviewer-pagecountcalculator:${dockerfile,,}"
+            docker build --no-cache -t "$image" -f "$service/$dockerfile" "$service"
+            docker run --rm --entrypoint python "$image" -m pip check
+            docker run --rm --entrypoint python "$image" integrationtests/runtime_smoke.py
+            docker build -t "$image-tests" --build-arg "CANDIDATE=$image" \
+              -f "$service/integrationtests/build-test-image.Dockerfile" "$service"
+            docker run --rm --entrypoint python "$image-tests" -m pip check
+            docker run --rm --entrypoint sh -e REDIS_PORT=6379 "$image-tests" -ec '
+              python -m pytest --collect-only -q -p no:cacheprovider unittests
+              python -m pytest -q -p no:cacheprovider --junitxml=/tmp/results.xml unittests
+              python integrationtests/check-results.py /tmp/results.xml
+            '
+          done
+          docker save reviewer-pagecountcalculator:dockerfile-tests \
+            reviewer-pagecountcalculator:dockerfile.local-tests | gzip > /tmp/pagecount-images.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pagecount-tested-images
+          path: /tmp/pagecount-images.tar.gz
+          retention-days: 1
+
+  isolated-pipeline:
+    needs: candidate-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pagecount-tested-images
+          path: /tmp
+      - name: Verify persistence and restart using the tested image builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker load -i /tmp/pagecount-images.tar.gz
+          for image in dockerfile dockerfile.local; do
+            bash computingservices/PageCountCalculator/integrationtests/run-isolated.sh \
+              "reviewer-pagecountcalculator:$image-tests"
+          done
